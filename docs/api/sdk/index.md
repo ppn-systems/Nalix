@@ -1,6 +1,6 @@
 # Nalix.SDK API Overview
 
-`Nalix.SDK` is the client transport layer for Nalix-based applications. The current source tree includes an abstract transport contract, a reliable TCP session, and helper extensions for control packets, requests, directives, subscriptions, thread dispatching, and protocol strings.
+`Nalix.SDK` is the client transport layer for Nalix-based applications. The current source tree includes an abstract transport contract, a reliable TCP session, a high-performance UDP session, and helper extensions for control packets, requests, subscriptions, thread dispatching, and protocol strings.
 
 !!! tip "Start with TcpSession unless you have a reason not to"
     `TcpSession` is the best default for most clients because it already carries reconnect, monitoring, and helper flow that teams usually need.
@@ -19,10 +19,10 @@ flowchart LR
 
 - `src/Nalix.SDK/Transport/TransportSession.cs`
 - `src/Nalix.SDK/Transport/TcpSession.cs`
+- `src/Nalix.SDK/Transport/UdpSession.cs`
 - `src/Nalix.SDK/Options/TransportOptions.cs`
 - `src/Nalix.SDK/Options/RequestOptions.cs`
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/DirectiveClientExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 - `src/Nalix.SDK/IThreadDispatcher.cs`
@@ -33,10 +33,10 @@ flowchart LR
 
 | Component | Description |
 | --- | --- |
-| `TransportSession`, `TcpSession` | Shared transport contract plus the concrete TCP client implementation. |
+| `TransportSession`, `TcpSession`, `UdpSession` | Shared transport contract plus concrete TCP and UDP client implementations. |
 | `TransportOptions` | Client transport configuration loaded through `ConfigurationManager`. |
 | `RequestOptions` | Timeout, retry, and encryption controls for `RequestAsync`. |
-| `Transport.Extensions` | Control, directive, request, and subscription helpers. |
+| `Transport.Extensions` | Control, request, and subscription helpers. |
 | `IThreadDispatcher`, `InlineDispatcher` | Minimal thread dispatch abstraction and inline implementation. |
 | `ProtocolStringExtensions` | Friendly display text for `ProtocolAdvice` and `ProtocolReason`. |
 
@@ -72,7 +72,7 @@ Compared with older docs/examples, the current SDK shape is:
 - TCP-first and centered on a single concrete client transport
 - reconnect-aware through `TransportOptions`
 - request-safe through `PACKET_AWAITER`-backed helpers
-- able to handle control, directive, and request flows without hand-written boilerplate
+- able to handle control and request flows without hand-written boilerplate
 
 ## ProtocolStringExtensions
 

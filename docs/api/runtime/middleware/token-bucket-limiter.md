@@ -89,4 +89,4 @@ Use this limiter when the key is the caller endpoint rather than the handler opc
 ## Related APIs
 
 - [Policy Rate Limiter](./policy-rate-limiter.md)
-- [Connection Limiter](./connection-limiter.md)
+- [Connection Limiter](../../network/connection/connection-limiter.md)

@@ -15,7 +15,7 @@ flowchart LR
 
 ## Source mapping
 
-- `src/Nalix.Network/Timekeeping/TimingWheel.cs`
+- `src/Nalix.Network/Internal/Time/TimingWheel.cs`
 
 ## What it does
 
@@ -44,6 +44,6 @@ When a connection closes, it should be unregistered so the wheel stops tracking 
 
 ## Related APIs
 
-- [TimingWheelOptions](../options/timing-wheel-options.md)
-- [PoolingOptions](../options/pooling-options.md)
-- [Connection](../connection/connection.md)
+- [TimingWheelOptions](./options/timing-wheel-options.md)
+- [PoolingOptions](./options/pooling-options.md)
+- [Connection](./connection/connection.md)

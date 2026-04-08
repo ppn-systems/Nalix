@@ -122,6 +122,6 @@ In that example:
 ## Read this next
 
 - [Choose the Right Building Block](./choose-the-right-building-block.md)
-- [Middleware Pipeline](../api/middleware/pipeline.md)
-- [Packet Metadata](../api/routing/packet-metadata.md)
+- [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
+- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
 - [Custom Middleware End-to-End](../guides/custom-middleware-end-to-end.md)

@@ -7,13 +7,13 @@ You use these attributes to declaratively control **dispatch, security, rate lim
 
 ## Source mapping
 
-- `src/Nalix.Common/Networking/PacketControllerAttribute.cs`
-- `src/Nalix.Common/Networking/PacketOpcodeAttribute.cs`
-- `src/Nalix.Common/Networking/PacketPermissionAttribute.cs`
-- `src/Nalix.Common/Networking/PacketConcurrencyLimitAttribute.cs`
-- `src/Nalix.Common/Networking/PacketRateLimitAttribute.cs`
-- `src/Nalix.Common/Networking/PacketEncryptionAttribute.cs`
-- `src/Nalix.Common/Networking/PacketTimeoutAttribute.cs`
+- `src/Nalix.Common/Networking/Packets/PacketControllerAttribute.cs`
+- `src/Nalix.Common/Networking/Packets/PacketOpcodeAttribute.cs`
+- `src/Nalix.Common/Networking/Packets/PacketPermissionAttribute.cs`
+- `src/Nalix.Common/Networking/Packets/PacketConcurrencyLimitAttribute.cs`
+- `src/Nalix.Common/Networking/Packets/PacketRateLimitAttribute.cs`
+- `src/Nalix.Common/Networking/Packets/PacketEncryptionAttribute.cs`
+- `src/Nalix.Common/Networking/Packets/PacketTimeoutAttribute.cs`
 
 ## Overview Table
 
@@ -35,7 +35,7 @@ You use these attributes to declaratively control **dispatch, security, rate lim
 [PacketOpcode(0x1802)]
 [PacketPermission(PermissionLevel.USER)]
 [PacketRateLimit(8, burst: 1.5)]
-public static Task HandleAsync(PacketContext<IPacket> request)
+public static Task HandleAsync(IPacketContext<IPacket> request)
 {
     return Task.CompletedTask;
 }
@@ -54,7 +54,7 @@ The framework will automatically select the correct result handler based on the 
 | `T` (e.g. your Packet class)                     | Returns a response packet directly                           |
 | `Task<T>`                                        | Asynchronous with response packet/data                       |
 | `ValueTask<T>`                                   | Lightweight async with response packet/data                  |
-| `string`, `byte[]`, `Memory<byte>`               | Simple primitives—sent as-is                                 |
+| `byte[]`, `Memory<byte>`                   | Simple buffers—sent as-is                                    |
 | `ReadOnlyMemory<byte>`                           | For high-performance buffer return                           |
 
 - `T` is typically your packet or result type that implements `IPacket`.
@@ -81,8 +81,8 @@ The compiler currently accepts these method signatures:
 
 | Style | Signature | Notes |
 |---|---|---|
-| Context | `PacketContext<TPacket>` | Modern context-aware handler. `context.Packet`, `context.Connection`, `context.Attributes`, and `context.Sender` are available from the single parameter. |
-| Context | `PacketContext<TPacket>, CancellationToken` | Same as above, with an explicit cancellation token parameter. |
+| Context | `IPacketContext<TPacket>` | Modern context-aware handler. `context.Packet`, `context.Connection`, `context.Attributes`, and `context.Sender` are available from the single parameter. |
+| Context | `IPacketContext<TPacket>, CancellationToken` | Same as above, with an explicit cancellation token parameter. |
 | Legacy | `TPacket, IConnection` | Older packet+connection signature that remains supported for compatibility. |
 | Legacy | `TPacket, IConnection, CancellationToken` | Legacy signature with explicit cancellation token support. |
 
@@ -94,7 +94,6 @@ Return types can be:
 | `Task` | Async handler with no return payload. |
 | `ValueTask` | Lightweight async handler with no return payload. |
 | `TPacket` | Returns a packet directly. |
-| `string` | Encodes as text and sends the string payload. |
 | `byte[]` | Sends the byte array payload as raw bytes. |
 | `Memory<byte>` | Sends the memory payload as raw bytes. |
 | `ReadOnlyMemory<byte>` | Sends the read-only memory payload as raw bytes. |

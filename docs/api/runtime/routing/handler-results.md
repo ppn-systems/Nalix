@@ -4,8 +4,8 @@ Nalix.Network lets handler methods return more than just `void`. The dispatcher 
 
 ## Source mapping
 
-- `src/Nalix.Network/Internal/Results/ReturnTypeHandlerFactory.cs`
-- `src/Nalix.Network/Internal/Results/*`
+- `src/Nalix.Runtime/Internal/Results/ReturnTypeHandlerFactory.cs`
+- `src/Nalix.Runtime/Internal/Results/*`
 
 ## Supported return shapes
 
@@ -16,7 +16,7 @@ The factory currently supports:
 | `void` | No response is sent. |
 | `Task` | Awaits completion, no payload response. |
 | `ValueTask` | Awaits completion, no payload response. |
-| `TPacket` | Serializes the packet and sends it over TCP. |
+| `TPacket` | Serializes the packet and sends it over the same transport (TCP/UDP) as the incoming request. |
 | `Task<TPacket>` | Awaits, then sends the packet. |
 | `ValueTask<TPacket>` | Awaits, then sends the packet. |
 | `byte[]` | Sends raw bytes directly. |

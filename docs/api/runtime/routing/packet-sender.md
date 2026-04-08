@@ -6,7 +6,7 @@ It is the explicit outbound path used by `PacketContext<TPacket>.Sender` when a 
 
 ## Source mapping
 
-- `src/Nalix.Network/Routing/PacketSender.cs`
+- `src/Nalix.Runtime/Dispatching/PacketSender.cs`
 
 ## Main type
 
@@ -64,7 +64,7 @@ If compression or encryption cannot complete, the sender now throws instead of r
 ## Basic usage
 
 ```csharp
-public async ValueTask Handle(PacketContext<Handshake> context, CancellationToken ct)
+public async ValueTask Handle(IPacketContext<Handshake> context, CancellationToken ct)
 {
     Handshake reply = new(
         0x1002,
@@ -98,5 +98,5 @@ await context.Sender.SendAsync(
 - [Packet Context](./packet-context.md)
 - [Packet Dispatch](./packet-dispatch.md)
 - [Handler Return Types](./handler-results.md)
-- [Compression Options](../network/options/compression-options.md)
-- [Connection](../network/connection/connection.md)
+- [Compression Options](../../network/options/compression-options.md)
+- [Connection](../../network/connection/connection.md)

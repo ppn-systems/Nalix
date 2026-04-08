@@ -7,10 +7,10 @@ Nalix.Network has two middleware layers:
 
 ## Source mapping
 
-- `src/Nalix.Network/Middleware/NetworkBufferMiddlewarePipeline.cs`
-- `src/Nalix.Network/Middleware/INetworkBufferMiddleware.cs`
-- `src/Nalix.Network/Middleware/MiddlewarePipeline.cs`
-- `src/Nalix.Network/Middleware/IPacketMiddleware.cs`
+- `src/Nalix.Runtime/Middleware/NetworkBufferMiddlewarePipeline.cs`
+- `src/Nalix.Common/Middleware/INetworkBufferMiddleware.cs`
+- `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs`
+- `src/Nalix.Common/Middleware/IPacketMiddleware.cs`
 
 ## Buffer middleware
 
@@ -26,10 +26,9 @@ Use it for:
 Contract:
 
 ```csharp
-Task<IBufferLease> InvokeAsync(
+ValueTask<IBufferLease?> InvokeAsync(
     IBufferLease buffer,
     IConnection connection,
-    Func<IBufferLease, CancellationToken, Task<IBufferLease>> next,
     CancellationToken ct)
 ```
 
@@ -48,9 +47,9 @@ Use it for:
 Contract:
 
 ```csharp
-Task InvokeAsync(
-    PacketContext<TPacket> context,
-    Func<CancellationToken, Task> next)
+ValueTask InvokeAsync(
+    IPacketContext<TPacket> context,
+    Func<CancellationToken, ValueTask> next)
 ```
 
 ## Ordering
@@ -96,7 +95,7 @@ options.PacketPipeline.Use(new SampleAuditMiddleware());
 ## Related APIs
 
 - [Network Buffer Pipeline](./network-buffer-pipeline.md)
-- [Connection Limiter](./connection-limiter.md)
+- [Connection Limiter](../../network/connection/connection-limiter.md)
 - [Concurrency Gate](./concurrency-gate.md)
 - [Policy Rate Limiter](./policy-rate-limiter.md)
 - [Token Bucket Limiter](./token-bucket-limiter.md)

@@ -4,18 +4,18 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Routing/PacketDispatchChannel.cs`
-- `src/Nalix.Network/Routing/PacketDispatcherBase.cs`
-- `src/Nalix.Network/Routing/PacketDispatchOptions.cs`
-- `src/Nalix.Network/Routing/PacketDispatchOptions.Execution.cs`
-- `src/Nalix.Network/Routing/PacketDispatchOptions.PublicMethods.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatchOptions.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatchOptions.Execution.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatchOptions.PublicMethods.cs`
 
 ## Runtime model
 
 - `_dispatch` is a priority-aware `DispatchChannel<IPacket>`
-- `_semaphore` signals worker loops when leases are available
-- `Activate(...)` starts `DispatchLoopCount` workers, or defaults to `clamp(Environment.ProcessorCount / 2, 1, 12)`
-- `Deactivate(...)` cancels workers and releases the semaphore so blocked loops can exit
+- `_wakeChannel` is an unbounded `Channel<byte>` used for wake-up signaling
+- `Activate(...)` starts `DispatchLoopCount` workers, or defaults to `Environment.ProcessorCount` (clamped 1–64)
+- `Deactivate(...)` cancels workers and pushes wake signals to the channel so loops can exit
 
 ## Public members at a glance
 
@@ -41,7 +41,7 @@
 
 Each worker:
 
-1. waits on `_semaphore`
+1. waits on a wake signal from `_wakeChannel`
 2. pulls the next `(connection, lease)` pair from `_dispatch`
 3. runs `Options.NetworkPipeline.ExecuteAsync(...)`
 4. deserializes through `IPacketRegistry.TryDeserialize(...)`
@@ -66,8 +66,8 @@ If middleware returns `null`, the packet is dropped before deserialization. If d
 - total and ready connection counts
 - pending ready connections per priority
 - top connections by pending packet count
-- semaphore count and cancellation status
-- packet registry type
+- wake signal and read counts
+- wake request status
 
 ### Common pitfalls
 
@@ -99,4 +99,6 @@ Typical flow:
 - [Packet Metadata](./packet-metadata.md)
 - [Handler Results](./handler-results.md)
 - [Middleware Pipeline](../middleware/pipeline.md)
-- [Protocol](../network/runtime/protocol.md)
+- [Dispatch Options](../options/dispatch-options.md)
+- [Connection Limiter](../../network/connection/connection-limiter.md)
+- [Protocol](../../network/protocol.md)

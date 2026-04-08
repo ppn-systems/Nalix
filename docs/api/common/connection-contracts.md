@@ -97,4 +97,4 @@ Typical flow:
 
 - [Connection](../network/connection/connection.md)
 - [Connection Hub](../network/connection/connection-hub.md)
-- [Protocol](../network/runtime/protocol.md)
+- [Protocol](../network/protocol.md)

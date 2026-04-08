@@ -71,4 +71,4 @@ if (router.Pull(out IConnection nextConnection, out IBufferLease nextLease))
 
 - [Dispatch Contracts](./dispatch-contracts.md)
 - [Packet Dispatch](./packet-dispatch.md)
-- [Dispatch Options](../network/options/dispatch-options.md)
+- [Dispatch Options](../options/dispatch-options.md)

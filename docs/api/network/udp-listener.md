@@ -1,6 +1,6 @@
 # Udp Listener
 
-`UdpListenerBase` is the base class for UDP-based listeners in Nalix.Network. It owns the `UdpClient`, activation and deactivation flow, datagram receive worker, protocol integration, authenticated datagram validation, time-sync wiring, and runtime counters used in diagnostics.
+`UdpListenerBase` is the base class for UDP-based listeners in Nalix.Network. It owns the raw `Socket`, activation and deactivation flow, datagram receive worker, protocol integration, and runtime counters used in diagnostics.
 
 !!! caution "UDP is not a shortcut around session security"
     In Nalix, UDP should usually extend an already trusted session model.
@@ -11,11 +11,9 @@
 ```mermaid
 flowchart LR
     A["UDP datagram"] --> B["Receive worker"]
-    B --> C["Resolve session in ConnectionHub"]
-    C --> D["Validate session id / timestamp / nonce / tag"]
-    D --> E["IsAuthenticated(...)"]
-    E -->|pass| F["Inject payload into connection"]
-    E -->|fail| G["Drop + diagnostics"]
+    B --> C["Resolve session in ConnectionHub / Cache"]
+    C --> D["Inject payload into connection pipeline"]
+    D --> E["Protocol.ProcessMessage(...)"]
 ```
 
 ## Source mapping
@@ -39,38 +37,29 @@ flowchart LR
 `Deactivate(ct)`:
 
 - cancels the CTS
-- closes and nulls the `UdpClient`
+- closes and nulls the `Socket`
 - resets running state
 
 `Dispose()`:
 
 - cancels and disposes the CTS
 - closes the UDP socket
-- unsubscribes from `TimeSynchronizer`
 - disposes the internal semaphore lock
 
 ## Public members at a glance
 
 | Type | Public members |
 |---|---|
-| `UdpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `IsAuthenticated(...)`, `OnTimeSynchronized(...)`, `IsTimeSyncEnabled` |
+| `UdpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `IsAuthenticated(...)`, `IsListening`, `Metrics` |
 
 ## Inbound authentication model
 
-`ProcessDatagram(...)` currently expects every accepted datagram to end with:
-
-- `SessionId`
-- `timestamp`
-- `nonce`
-- `Poly1305` authentication tag
+`ProcessDatagram(...)` extracts the fixed 7-byte `SessionId` (Snowflake) from the beginning of the datagram.
 
 The base class then:
 
-- resolves the target `Connection` from `ConnectionHub`
-- verifies the replay window
-- recomputes the `Poly1305` tag using payload, metadata, and remote endpoint encoding
-- calls `connection.TryAcceptUdpNonce(...)`
-- finally calls your overridden `IsAuthenticated(...)`
+- resolves the target `Connection` from `ConnectionHub` or the endpoint cache
+- calls your overridden `IsAuthenticated(...)` for application-level checks
 
 Only after all of those steps pass does the payload get injected into the connection.
 
@@ -82,8 +71,7 @@ Only after all of those steps pass does the payload get injected into the connec
 
 ## Extensibility points
 
-- `IsAuthenticated(IConnection connection, in UdpReceiveResult result)` is required and decides whether an inbound datagram is accepted.
-- `OnTimeSynchronized(serverMs, localMs, driftMs)` is optional and lets derived listeners react to time drift updates.
+- `IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)` is required and decides whether an inbound datagram is accepted.
 
 ## Diagnostics tracked in code
 
@@ -94,10 +82,7 @@ The class keeps counters for:
 - unauthenticated drops
 - unknown-packet drops
 - receive errors
-- last synchronized Unix milliseconds
-- last measured local drift
-
-`GenerateReport()` prints listener state, socket settings, worker-group details, time-sync stats, traffic counters, error counts, and whether the live `UdpClient` and `CancellationTokenSource` currently exist.
+`GenerateReport()` prints listener state, socket settings, worker-group details, traffic counters, error counts, and whether the live `Socket` and `CancellationTokenSource` currently exist.
 
 ## Notes
 
@@ -136,6 +121,6 @@ Typical flow:
 ## Related APIs
 
 - [Protocol](./protocol.md)
-- [UDP Session](../../sdk/udp-session.md)
-- [Connection Hub](../connection/connection-hub.md)
-- [Network Options](../options/options.md)
+- [UDP Session](../sdk/udp-session.md)
+- [Connection Hub](./connection/connection-hub.md)
+- [Network Options](./options/options.md)

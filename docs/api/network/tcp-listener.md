@@ -42,7 +42,7 @@ flowchart LR
 
 | Type | Public members |
 |---|---|
-| `TcpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `State`, `Port`, `Protocol`, `ConnectionHub` |
+| `TcpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `GetReportData()`, `Metrics` |
 
 ## Startup flow
 
@@ -146,5 +146,5 @@ Typical flow:
 ## Related APIs
 
 - [Protocol](./protocol.md)
-- [Connection Limiter](../../middleware/connection-limiter.md)
-- [Connection](../connection/connection.md)
+- [Connection Limiter](./connection/connection-limiter.md)
+- [Connection](./connection/connection.md)

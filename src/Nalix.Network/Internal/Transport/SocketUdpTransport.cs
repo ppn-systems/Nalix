@@ -142,13 +142,13 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         {
             // Renting memory on the stack for small packets to avoid GC pressure.
             // Using a safe overhead (10%) for serialization margins.
-            Span<byte> buffer = stackalloc byte[packet.Length + 64];
+            Span<byte> buffer = stackalloc byte[packet.Length + (packet.Length / 10)];
             int bytesWritten = packet.Serialize(buffer);
             this.Send(buffer[..bytesWritten]);
             return;
         }
 
-        using BufferLease lease = BufferLease.Rent(packet.Length);
+        using BufferLease lease = BufferLease.Rent(packet.Length + (packet.Length / 10));
         int written = packet.Serialize(lease.SpanFull);
         lease.CommitLength(written);
         this.Send(lease.Span);

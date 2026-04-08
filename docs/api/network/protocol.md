@@ -115,6 +115,6 @@ Typical flow:
 ## Related APIs
 
 - [Tcp Listener](./tcp-listener.md)
-- [Connection](../connection/connection.md)
-- [Connection Contracts](../../common/connection-contracts.md)
-- [Packet Dispatch](../../routing/packet-dispatch.md)
+- [Connection](./connection/connection.md)
+- [Connection Contracts](../common/connection-contracts.md)
+- [Packet Dispatch](../runtime/routing/packet-dispatch.md)

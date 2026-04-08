@@ -93,5 +93,5 @@ socket frame
 
 - [Middleware Pipeline](./pipeline.md)
 - [Packet Dispatch](../routing/packet-dispatch.md)
-- [Socket Connection](../network/runtime/socket-connection.md)
-- [Buffer and Pooling](../framework/memory/buffer-and-pooling.md)
+- [Socket Connection](../../network/socket-connection.md)
+- [Buffer and Pooling](../../framework/memory/buffer-and-pooling.md)

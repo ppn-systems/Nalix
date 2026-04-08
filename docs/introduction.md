@@ -45,7 +45,7 @@ A server usually looks like this:
 4. create a `Protocol`
 5. start `TcpListenerBase` or `UdpListenerBase`
 
-With `Nalix.Network.Hosting`, those same steps can be wrapped behind `NetworkHost.CreateBuilder()` and `RunAsync()`.
+With `Nalix.Network.Hosting`, those same steps can be wrapped behind `NetworkApplication.CreateBuilder()` and `RunAsync()`.
 
 ## Client mental model
 
@@ -55,7 +55,7 @@ A client usually looks like this:
 2. create `TransportSession`-derived `TcpSession`
 3. connect
 4. perform handshake or control flow if needed
-5. use `RequestAsync`, `PingAsync`, or direct send helpers
+5. use `RequestAsync` or direct send helpers
 
 ## Recommended first reading
 

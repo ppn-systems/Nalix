@@ -1,10 +1,10 @@
 # Packet Context
 
-`PacketContext<TPacket>` is the pooled per-request object used by context-aware handlers in Nalix.Network. It carries the packet, connection, resolved metadata, cancellation token, and a pooled sender that can emit outbound packets using the current handler rules.
+`PacketContext<TPacket>` is the pooled per-request implementation of `IPacketContext<TPacket>` used by context-aware handlers in Nalix.Network. It carries the packet, connection, resolved metadata, cancellation token, and a pooled sender that can emit outbound packets using the current handler rules.
 
 ## Source mapping
 
-- `src/Nalix.Network/Routing/PacketContext.cs`
+- `src/Nalix.Runtime/Dispatching/PacketContext.cs`
 
 ## State carried by the context
 
@@ -34,7 +34,7 @@ Use a context-based handler when you need metadata or manual sending:
 
 ```csharp
 [PacketOpcode(0x1002)]
-public async ValueTask Handle(PacketContext<Handshake> context, CancellationToken ct)
+public async ValueTask Handle(IPacketContext<Handshake> context, CancellationToken ct)
 {
     await context.Sender.SendAsync(
         new Handshake(0x1003, HandshakeStage.SERVER_FINISH, [], [], []),
@@ -51,4 +51,4 @@ Returning a packet uses the normal return-type pipeline. Sending through `contex
 - [Packet Metadata](./packet-metadata.md)
 - [Packet Sender](./packet-sender.md)
 - [Handler Results](./handler-results.md)
-- [Connection](../network/connection/connection.md)
+- [Connection](../../network/connection/connection.md)

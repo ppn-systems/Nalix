@@ -19,10 +19,10 @@ flowchart LR
 
 ## Source mapping
 
-- `src/Nalix.Network/Routing/Metadata/PacketMetadata.cs`
-- `src/Nalix.Network/Routing/PacketMetadataBuilder.cs`
-- `src/Nalix.Network/Routing/PacketMetadataProviders.cs`
-- `src/Nalix.Network/Routing/IPacketMetadataProvider.cs`
+- `src/Nalix.Common/Networking/Packets/PacketMetadata.cs`
+- `src/Nalix.Runtime/Dispatching/PacketMetadataBuilder.cs`
+- `src/Nalix.Runtime/Dispatching/PacketMetadataProviders.cs`
+- `src/Nalix.Runtime/Dispatching/IPacketMetadataProvider.cs`
 
 ## What lives in metadata
 
@@ -48,13 +48,13 @@ The runtime flow is:
 4. `Build()` produces an immutable `PacketMetadata`
 5. the descriptor is attached to the compiled handler and later exposed through `PacketContext`
 
-## PacketHandler<TPacket>
+## PacketHandler
 
-`PacketHandler<TPacket>` is the runtime descriptor that pairs handler metadata with the compiled invocation delegate.
+`PacketHandler` is the runtime descriptor that pairs handler metadata with the compiled invocation delegate.
 
 ## Source mapping
 
-- `src/Nalix.Network/Routing/Metadata/PacketHandler.cs`
+- `src/Nalix.Runtime/Internal/Compilation/PacketHandler.cs`
 
 It carries:
 

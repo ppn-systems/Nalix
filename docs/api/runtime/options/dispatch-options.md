@@ -4,7 +4,7 @@
 
 ## Source mapping
 
-- `src/Nalix.Network/Options/DispatchOptions.cs`
+- `src/Nalix.Runtime/Options/DispatchOptions.cs`
 
 ## Properties
 
@@ -39,5 +39,5 @@ var options = new DispatchOptions
 
 ## Related APIs
 
-- [Packet Dispatch](../../routing/packet-dispatch.md)
-- [Connection Limiter](../../middleware/connection-limiter.md)
+- [Packet Dispatch](../routing/packet-dispatch.md)
+- [Connection Limiter](../../network/connection/connection-limiter.md)

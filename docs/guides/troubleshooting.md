@@ -162,4 +162,4 @@ When you are debugging, these usually give the fastest signal:
 
 - [TCP Request/Response](./tcp-request-response.md)
 - [UDP Auth Flow](./udp-auth-flow.md)
-- [Handler Return Types](../api/routing/handler-results.md)
+- [Handler Return Types](../api/runtime/routing/handler-results.md)

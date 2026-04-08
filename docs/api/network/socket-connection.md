@@ -154,8 +154,8 @@ If you are writing handlers, middleware, or protocol logic, start with `Connecti
 
 ## Related APIs
 
-- [Connection](../connection/connection.md)
+- [Connection](./connection/connection.md)
 - [Protocol](./protocol.md)
 - [TCP Listener](./tcp-listener.md)
-- [Fragmentation](../../framework/packets/fragmentation.md)
-- [Buffer and Pooling](../../framework/memory/buffer-and-pooling.md)
+- [Fragmentation](../framework/packets/fragmentation.md)
+- [Buffer and Pooling](../framework/memory/buffer-and-pooling.md)

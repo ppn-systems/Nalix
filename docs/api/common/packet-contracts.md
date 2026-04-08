@@ -7,7 +7,6 @@
 - `src/Nalix.Common/Networking/Packets/IPacket.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketRegistry.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketSender.cs`
-- `src/Nalix.Common/Networking/Packets/IPacketSequenced.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketTimestamped.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketReasoned.cs`
 
@@ -97,6 +96,6 @@ Typical flow:
 
 - [Frame Model](../framework/packets/frame-model.md)
 - [Packet Registry](../framework/packets/packet-registry.md)
-- [Packet Sender](../routing/packet-sender.md)
-- [Packet Dispatch](../routing/packet-dispatch.md)
-- [Packet Metadata](../routing/packet-metadata.md)
+- [Packet Sender](../runtime/routing/packet-sender.md)
+- [Packet Dispatch](../runtime/routing/packet-dispatch.md)
+- [Packet Metadata](../runtime/routing/packet-metadata.md)
