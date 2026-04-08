@@ -141,6 +141,18 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         /// (PacketContext&lt;TPacket&gt;, CancellationToken)
         /// </summary>
         ContextWithToken = 3,
+
+        /// <summary>
+        /// (TConcretePacket, IConnection) where TConcretePacket : IPacket and TConcretePacket != TPacket.
+        /// The dispatcher will perform a runtime type-check and cast before invoking.
+        /// </summary>
+        LegacyConcreteNoToken = 4,
+
+        /// <summary>
+        /// (TConcretePacket, IConnection, CancellationToken) where TConcretePacket : IPacket and TConcretePacket != TPacket.
+        /// The dispatcher will perform a runtime type-check and cast before invoking.
+        /// </summary>
+        LegacyConcreteWithToken = 5,
     }
 
     [StackTraceHidden]
@@ -316,42 +328,23 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         // ---- new-style: first param is PacketContext<T> for any T : IPacket ----
         // Use generic-definition comparison instead of exact-type equality so that
         // PacketContext<LoginPacket> is recognised when TPacket = IPacket.
-        // Exact equality (== typeof(PacketContext<TPacket>)) would reject any handler
-        // whose first parameter is a concrete PacketContext<ConcreteType> whenever the
-        // dispatcher was registered with the base IPacket interface as TPacket.
         if (parms.Length >= 1 && IsPacketContextType(parms[0].ParameterType))
         {
-            // Validate that the generic type argument matches TPacket exactly.
-            // PacketContext<T> is invariant — PacketContext<Handshake> and
-            // PacketContext<IPacket> are unrelated types with no legal conversion,
-            // even when Handshake : IPacket. Accepting a mismatched T here would
-            // compile the expression tree correctly but crash at runtime with
-            // "No coercion operator defined". Catch it early with a clear message.
-            Type declaredT = parms[0].ParameterType.GetGenericArguments()[0];
-            if (declaredT != typeof(TPacket))
-            {
-                throw new InternalErrorException(
-                    $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                    $"parameter type IPacketContext<{declaredT.Name}> does not match " +
-                    $"the dispatcher's TPacket={typeof(TPacket).Name}. " +
-                    $"Declare the parameter as IPacketContext<{typeof(TPacket).Name}> " +
-                    $"and cast context.Packet to {declaredT.Name} inside the method body: " +
-                    $"var pkt = ({declaredT.Name})context.Packet;");
-            }
-            else if (parms.Length == 1)
+            // When the declared context type argument differs from TPacket, the
+            // needsContextBridge path in CompileHandlerMethod will handle the
+            // coercion via reflection — no throw here.
+            if (parms.Length == 1)
             {
                 return SignatureKind.ContextOnly;
             }
-            else
-            {
-                return parms.Length == 2 && parms[1].ParameterType == typeof(CancellationToken)
-                    ? SignatureKind.ContextWithToken
-                    : throw new InternalErrorException(
-                            $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                            "when the first parameter is IPacketContext<TPacket>, " +
-                            "the only valid second parameter is CancellationToken. " +
-                            $"Found {parms.Length} parameter(s).");
-            }
+
+            return parms.Length == 2 && parms[1].ParameterType == typeof(CancellationToken)
+                ? SignatureKind.ContextWithToken
+                : throw new InternalErrorException(
+                        $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                        "when the first parameter is PacketContext<T>, " +
+                        "the only valid second parameter is CancellationToken. " +
+                        $"Found {parms.Length} parameter(s).");
         }
 
         // ---- legacy-style: first param must implement IPacket ----
@@ -359,43 +352,49 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         {
             if (parms.Length < 2 || !typeof(IConnection).IsAssignableFrom(parms[1].ParameterType))
             {
-                // ---- legacy-style: first param must implement IPacket ----
                 throw new InternalErrorException(
                     $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                     "legacy signature requires (TPacket, IConnection[, CancellationToken]). " +
                     "Second parameter must implement IConnection.");
             }
-            else if (parms.Length == 2)
+
+            // Determine whether the packet parameter is the exact dispatcher TPacket or a
+            // concrete subtype. Concrete subtypes get their own SignatureKind variants so
+            // the expression-tree builder can emit the correct cast and the runtime
+            // ExpectedPacketType check knows which concrete type to verify.
+            bool isConcrete = parms[0].ParameterType != typeof(TPacket)
+                && typeof(IPacket).IsAssignableFrom(parms[0].ParameterType);
+
+            if (parms.Length == 2)
             {
-                // ---- legacy-style: first param must implement IPacket ----
-                return SignatureKind.LegacyNoToken;
+                return isConcrete
+                    ? SignatureKind.LegacyConcreteNoToken
+                    : SignatureKind.LegacyNoToken;
             }
-            else if (parms.Length == 3 && parms[2].ParameterType == typeof(CancellationToken))
+
+            if (parms.Length == 3 && parms[2].ParameterType == typeof(CancellationToken))
             {
-                // ---- legacy-style: first param must implement IPacket ----
-                return SignatureKind.LegacyWithToken;
+                return isConcrete
+                    ? SignatureKind.LegacyConcreteWithToken
+                    : SignatureKind.LegacyWithToken;
             }
-            else
-            {
-                // ---- legacy-style: first param must implement IPacket ----
-                throw new InternalErrorException(
-                    $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                    "legacy signature only supports 2 or 3 parameters " +
-                    $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
-            }
-        }
-        else
-        {
-            // ---- legacy-style: first param must implement IPacket ----
+
             throw new InternalErrorException(
                 $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                "unrecognised signature. " +
-                "Supported forms: " +
-                "(TPacket, IConnection), " +
-                "(TPacket, IConnection, CancellationToken), " +
-                "(IPacketContext<T>), " +
-                "(IPacketContext<T>, CancellationToken).");
+                "legacy signature only supports 2 or 3 parameters " +
+                $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
         }
+
+        throw new InternalErrorException(
+            $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+            "unrecognised signature. " +
+            "Supported forms: " +
+            "(TPacket, IConnection), " +
+            "(TPacket, IConnection, CancellationToken), " +
+            "(TConcretePacket, IConnection), " +
+            "(TConcretePacket, IConnection, CancellationToken), " +
+            "(PacketContext<T>), " +
+            "(PacketContext<T>, CancellationToken).");
     }
 
     /// <summary>
@@ -500,6 +499,39 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     return [pktArg, connArg, ctExpr];
                 }
 
+            case SignatureKind.LegacyConcreteNoToken:
+                {
+                    // The handler declares a concrete packet subtype (e.g. LoginPacket) that
+                    // differs from TPacket. The runtime ExpectedPacketType check in
+                    // ExecuteHandlerAsync already guards against mismatched packets, so here
+                    // we only need to emit the cast from TPacket to the concrete type.
+                    Type packetType = parms[0].ParameterType;
+                    Type connType = parms[1].ParameterType;
+
+                    Expression pktArg = System.Linq.Expressions.Expression.Convert(packetExpr, packetType);
+
+                    Expression connArg = connType == typeof(IConnection)
+                        ? connectionExpr
+                        : System.Linq.Expressions.Expression.Convert(connectionExpr, connType);
+
+                    return [pktArg, connArg];
+                }
+
+            case SignatureKind.LegacyConcreteWithToken:
+                {
+                    // Same as LegacyConcreteNoToken but includes CancellationToken.
+                    Type packetType = parms[0].ParameterType;
+                    Type connType = parms[1].ParameterType;
+
+                    Expression pktArg = System.Linq.Expressions.Expression.Convert(packetExpr, packetType);
+
+                    Expression connArg = connType == typeof(IConnection)
+                        ? connectionExpr
+                        : System.Linq.Expressions.Expression.Convert(connectionExpr, connType);
+
+                    return [pktArg, connArg, ctExpr];
+                }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
         }
@@ -585,6 +617,41 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             ,
 
             SignatureKind.LegacyWithToken =>
+                (instance, context) =>
+                {
+                    Type p0 = parms[0].ParameterType;
+                    Type p1 = parms[1].ParameterType;
+
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
+
+                    return method.IsStatic
+                        ? method.Invoke(null, [pkt, conn, context.CancellationToken])!
+                        : method.Invoke(instance, [pkt, conn, context.CancellationToken])!;
+                }
+            ,
+
+            // Concrete packet subtype — cast context.Packet to the declared concrete type.
+            // The ExpectedPacketType guard in ExecuteHandlerAsync ensures the runtime packet
+            // is actually that concrete type before this invoker is reached.
+            SignatureKind.LegacyConcreteNoToken =>
+                (instance, context) =>
+                {
+                    Type p0 = parms[0].ParameterType;
+                    Type p1 = parms[1].ParameterType;
+
+                    // Best-effort cast: if the packet is already the right type use it directly,
+                    // otherwise let Convert.ChangeType attempt a coercion (rare path).
+                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
+                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
+
+                    return method.IsStatic
+                        ? method.Invoke(null, [pkt, conn])!
+                        : method.Invoke(instance, [pkt, conn])!;
+                }
+            ,
+
+            SignatureKind.LegacyConcreteWithToken =>
                 (instance, context) =>
                 {
                     Type p0 = parms[0].ParameterType;
