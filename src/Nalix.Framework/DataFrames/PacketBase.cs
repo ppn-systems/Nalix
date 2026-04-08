@@ -132,7 +132,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
             if (value is null)
             {
-                size += 1;
+                size += GetNullWireSize(meta.Property.PropertyType);
                 continue;
             }
 
@@ -156,6 +156,41 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     }
 
     /// <summary>
+    /// Returns the exact on-wire size when a property value is null,
+    /// based on the declared property type and the serializer's wire format.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetNullWireSize(Type declaredType)
+    {
+        // Nullable<T>: 1-byte presence flag (0 = null).
+        Type? underlying = Nullable.GetUnderlyingType(declaredType);
+        if (underlying is not null)
+        {
+            return sizeof(byte);
+        }
+
+        // StringFormatter (your updated format): 4-byte int length prefix with -1 sentinel for null.
+        if (declaredType == typeof(string))
+        {
+            return sizeof(int);
+        }
+
+        // Unmanaged arrays / byte[] in LiteSerializer UnmanagedSZArray path: 4-byte int marker (-1).
+        if (declaredType.IsArray)
+        {
+            // For your design, treat any array null as a 4-byte marker.
+            // (If you later keep some arrays on ushort-prefix formatters, you'll need per-type rules here.)
+            return sizeof(int);
+        }
+
+        // If your packet format encodes null reference types with a 4-byte length/count sentinel:
+        // return sizeof(int);
+        //
+        // Otherwise, you cannot be exact here without knowing the formatter.
+        return sizeof(int);
+    }
+
+    /// <summary>
     /// Cache Func&lt;int&gt; delegate cho Unsafe.SizeOf&lt;T&gt;() theo runtime Type.
     /// Chỉ được truy cập qua <see cref="GetElementSize"/> — tránh reflection lặp lại.
     /// </summary>
@@ -165,7 +200,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// <summary>
     /// Tính wire-size của một giá trị động, đồng bộ với format của <see cref="LiteSerializer"/>:
     /// <list type="bullet">
-    ///   <item><see cref="string"/>  — 2-byte prefix + UTF-8 bytes</item>
+    ///   <item><see cref="string"/>  — 4-byte prefix + UTF-8 bytes</item>
     ///   <item><see cref="byte"/>[]  — 4-byte int prefix + raw bytes</item>
     ///   <item><see cref="IPacket"/> — delegate sang <c>p.Length</c>, có guard tự-tham chiếu</item>
     ///   <item>Unmanaged array       — 4-byte int prefix + elements</item>
@@ -174,19 +209,17 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int GetDynamicSize(object value)
     {
-        // string: 2-byte ushort prefix + UTF-8 payload.
-        // Đồng bộ với LiteSerializer.GetExactLengthOrThrow và TypeMetadata.GetDynamicSize.
+        // string: 4-byte ushort prefix + UTF-8 payload.
         if (value is string s)
         {
-            return string.IsNullOrEmpty(s) ? 2 : 2 + Encoding.UTF8.GetByteCount(s);
+            return string.IsNullOrEmpty(s) ? 4 : 4 + Encoding.UTF8.GetByteCount(s);
         }
 
         // byte[]: 4-byte int prefix + raw bytes.
         // LiteSerializer viết: GC.AllocateUninitializedArray<byte>(dataSize + 4)
-        // Trước đây dùng sizeof(ushort)=2 — SAI, gây tính Length thiếu 2 bytes mỗi byte[].
         if (value is byte[] b)
         {
-            return sizeof(int) + b.Length;
+            return sizeof(int) + b.Length;  // empty => 4
         }
 
         if (value is IPacket p)
@@ -203,11 +236,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         if (value is Array arr)
         {
             // Unmanaged array (int[], float[], ...): 4-byte int prefix + elements.
-            // Cùng format với byte[] trong LiteSerializer (UnmanagedSZArray path).
             Type? elementType = arr.GetType().GetElementType();
             if (elementType is not null && TypeMetadata.IsUnmanaged(elementType))
             {
-                return sizeof(int) + (arr.Length * GetElementSize(elementType));
+                return sizeof(int) + (arr.Length * GetElementSize(elementType)); // empty => 4
             }
         }
 
