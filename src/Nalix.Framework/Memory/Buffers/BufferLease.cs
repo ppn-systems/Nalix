@@ -78,7 +78,7 @@ public sealed class BufferLease : IBufferLease
         /// After calling this method, the buffer should not be used again.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Return(byte[] array) => s_returnFunc(array, false);
+        public static void Return(byte[] array) => s_returnFunc(array, true);
     }
 
     /// <summary>
