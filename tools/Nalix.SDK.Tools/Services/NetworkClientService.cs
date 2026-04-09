@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +9,6 @@ using System.Windows;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.DataFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Tools.Abstractions;
@@ -87,12 +85,13 @@ public sealed class NetworkClientService : INetworkClientService
 
         _session.OnMessageReceived += this.HandleMessageReceived;
         _session.OnError += (s, e) => this.StatusChanged?.Invoke(this, $"Error: {e.Message}");
-        _session.OnDisconnected += (s, e) => {
+        _session.OnDisconnected += (s, e) =>
+        {
             this.StatusChanged?.Invoke(this, "Disconnected.");
         };
 
-        await _session.ConnectAsync(settings.Host, settings.Port).ConfigureAwait(false);
-        
+        await _session.ConnectAsync(settings.Host, settings.Port, cancellationToken).ConfigureAwait(false);
+
         if (_session is UdpSession udpRef && Snowflake.TryParse(settings.SessionToken, out Snowflake token))
         {
             udpRef.SessionToken = token;

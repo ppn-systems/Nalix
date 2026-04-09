@@ -169,6 +169,12 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     }
 
     /// <summary>
+    /// Validates if a hello packet has the correct cryptographic lengths.
+    /// </summary>
+    public static bool IsValid(Handshake packet)
+        => packet?.PublicKey.Length == DynamicSize && packet.Nonce.Length == DynamicSize;
+
+    /// <summary>
     /// Computes the Keccak-256 transcript hash for the provided bytes.
     /// </summary>
     /// <param name="transcript">Handshake transcript bytes.</param>

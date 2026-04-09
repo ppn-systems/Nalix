@@ -5,7 +5,7 @@ using System;
 using System.Buffers.Binary;
 using Nalix.Framework.Security.Hashing;
 
-namespace Nalix.Framework.DataFrames.SignalFrames;
+namespace Nalix.Framework.Security;
 
 /// <summary>
 /// Provides shared cryptographic primitives and utility methods for the Nalix handshake protocol.
@@ -23,28 +23,6 @@ public static class HandshakeX25519
     #endregion Static Labels
 
     #region Public Methods
-
-    /// <summary>
-    /// Validates if a hello packet has the correct cryptographic lengths.
-    /// </summary>
-    public static bool IsValid(Handshake packet)
-        => packet?.PublicKey.Length == Handshake.DynamicSize && packet.Nonce.Length == Handshake.DynamicSize;
-
-    /// <summary>
-    /// Checks if a buffer contains only zero bytes.
-    /// </summary>
-    public static bool IsAllZero(ReadOnlySpan<byte> value)
-    {
-        for (int i = 0; i < value.Length; i++)
-        {
-            if (value[i] != 0)
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     /// <summary>
     /// Computes the server proof over the negotiated shared secret and transcript hash.

@@ -9,6 +9,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Random;
+using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
 using Nalix.SDK.Options;
@@ -98,13 +99,13 @@ public static class TcpSessionX25519Extensions
             using CancellationTokenRegistration reg1 = ct.Register(() => serverHelloTcs.TrySetCanceled());
             Handshake serverHello = await serverHelloTcs.Task.ConfigureAwait(false);
 
-            if (!HandshakeX25519.IsValid(serverHello))
+            if (!Handshake.IsValid(serverHello))
             {
                 throw new NetworkException("Malformed Handshake SERVER_HELLO packet.");
             }
 
             byte[] sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
-            if (HandshakeX25519.IsAllZero(sharedSecret))
+            if (BitwiseOperations.IsZero(sharedSecret))
             {
                 throw new NetworkException("Handshake key agreement failed: Shared secret is all zero.");
             }

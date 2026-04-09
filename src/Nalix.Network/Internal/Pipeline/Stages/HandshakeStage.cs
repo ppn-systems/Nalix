@@ -10,6 +10,7 @@ using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Random;
+using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Primitives;
 
@@ -92,7 +93,7 @@ internal sealed class HandshakeStage : IProtocolStage
 
     private void HandleClientHello(IConnection connection, Handshake packet)
     {
-        if (!HandshakeX25519.IsValid(packet))
+        if (!Handshake.IsValid(packet))
         {
             this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
             return;
@@ -101,7 +102,7 @@ internal sealed class HandshakeStage : IProtocolStage
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
         byte[] sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
 
-        if (HandshakeX25519.IsAllZero(sharedSecret))
+        if (BitwiseOperations.IsZero(sharedSecret))
         {
             this.Reject(connection, ProtocolReason.DECRYPTION_FAILED);
             return;
