@@ -221,6 +221,8 @@ public sealed class SamplePingHandlers
 }
 ```
 
+The same template works for custom packet types by swapping `Control` for your own packet contract and keeping the generic middleware/context shape aligned.
+
 ## How to extend this template
 
 ### Add more handlers

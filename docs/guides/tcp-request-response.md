@@ -105,7 +105,7 @@ sequenceDiagram
     participant Handler as SamplePingHandlers
 
     Client->>Listener: TCP frame
-    Listener->>Protocol: ProcessMessage event
+    Listener->>Protocol: ProcessFrame event
     Protocol->>Dispatch: HandlePacket(lease, connection)
     Dispatch->>Dispatch: Deserialize Control
     Dispatch->>Handler: Handle(request, connection)
@@ -136,6 +136,7 @@ Use this style when:
 - returning `Control` is the simplest normal request/response model
 - `Protocol` just forwards frames into dispatch
 - `PacketDispatchChannel` owns middleware, deserialization, handler invocation, and result handling
+- the same pattern works for custom packet types if you swap `Control` for your own packet contract
 
 ## Related pages
 

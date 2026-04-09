@@ -215,6 +215,8 @@ If you do not know what to optimize yet:
 - keep middleware small and explicit
 - use return values for simple replies
 - use `PacketContext<TPacket>` only when you need manual send control
+- use custom packet types directly when your contract is not a built-in frame
+- keep `ProcessFrame(...)` as the listener bridge and `ProcessMessage(...)` as the protocol handler hook
 - keep all startup wiring centralized
 
 ## Read this next
