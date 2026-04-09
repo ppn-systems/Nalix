@@ -9,11 +9,8 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.DataFrames.Transforms;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
@@ -59,25 +56,10 @@ internal sealed class FRAME_SENDER : IDisposable
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
         // ── Transformation ──────────────────────────────────────────────────────
-        bool doEncrypt = encrypt ?? _options.EncryptionEnabled;
-        bool doCompress = _options.CompressionEnabled && payload.Length >= _options.CompressionThreshold;
-
         BufferLease current = BufferLease.CopyFrom(payload.Span);
         try
         {
-            if (doCompress)
-            {
-                BufferLease next = PacketCompression.CompressFrame(current);
-                current.Dispose();
-                current = next;
-            }
-
-            if (doEncrypt)
-            {
-                BufferLease next = PacketCipher.EncryptFrame(current, _options.Secret, _options.Algorithm);
-                current.Dispose();
-                current = next;
-            }
+            current = PacketFrameTransforms.TransformOutbound(current, _options, encrypt ?? _options.EncryptionEnabled);
 
             // ── After transformation, check for fragmentation ────────────────────
             if (current.Length >= _fragmentOptions.MaxChunkSize)

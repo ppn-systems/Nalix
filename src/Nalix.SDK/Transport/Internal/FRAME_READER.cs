@@ -6,12 +6,8 @@ using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
@@ -123,24 +119,15 @@ internal sealed class FRAME_READER : IDisposable
     {
         try
         {
-            PacketFlags flags = lease.Span.ReadFlagsLE();
-
-            if (flags.HasFlag(PacketFlags.ENCRYPTED))
+            BufferLease transformed = PacketFrameTransforms.TransformInbound(lease, _options.Secret);
+            try
             {
-                BufferLease decrypted = PacketCipher.DecryptFrame(lease, _options.Secret);
-                lease.Dispose();
-                lease = decrypted;
-                flags = lease.Span.ReadFlagsLE();
+                _onMessage(transformed);
             }
-
-            if (flags.HasFlag(PacketFlags.COMPRESSED))
+            finally
             {
-                BufferLease decompressed = PacketCompression.DecompressFrame(lease);
-                lease.Dispose();
-                lease = decompressed;
+                transformed.Dispose();
             }
-
-            _onMessage(lease);
         }
         catch (Exception)
         {

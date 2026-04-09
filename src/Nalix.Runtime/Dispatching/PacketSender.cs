@@ -10,7 +10,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Transforms;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
@@ -118,13 +117,9 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 s_logger?.Debug("[NW.PacketSender] Case 2: Compress Only");
 #endif
 
-                int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
-                BufferLease compressedLease = BufferLease.Rent(maxCompressedLength + FrameTransformer.Offset);
+                BufferLease compressedLease = PacketCompression.CompressFrame(rawLease);
                 try
                 {
-                    FrameTransformer.Compress(rawLease, compressedLease);
-
-                    compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
                     await context.Connection.TCP.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
                 }
                 finally
@@ -142,20 +137,12 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 s_logger?.Debug("[NW.PacketSender] Case 3: Encrypt Only");
 #endif
 
-                int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
-                    context.Connection.Algorithm,
-                    rawLease.Length);
-
-                BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
+                BufferLease encryptedLease = PacketCipher.EncryptFrame(
+                    rawLease,
+                    context.Connection.Secret,
+                    context.Connection.Algorithm);
                 try
                 {
-                    FrameTransformer.Encrypt(
-                        rawLease,
-                        encryptedLease,
-                        context.Connection.Secret,
-                        context.Connection.Algorithm);
-
-                    encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
                     await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
                 }
                 finally
@@ -173,28 +160,15 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 s_logger?.Debug("[NW.PacketSender] Case 4: Compress + Encrypt");
 #endif
 
-                int maxCompressedLength = FrameTransformer.GetMaxCompressedSize(written);
-                BufferLease compressedLease = BufferLease.Rent(maxCompressedLength + FrameTransformer.Offset);
+                BufferLease compressedLease = PacketCompression.CompressFrame(rawLease);
                 try
                 {
-                    FrameTransformer.Compress(rawLease, compressedLease);
-
-                    compressedLease.Span.WriteFlagsLE(compressedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-
-                    int maxCipherLength = FrameTransformer.GetMaxCiphertextSize(
-                        context.Connection.Algorithm,
-                        compressedLease.Length);
-
-                    BufferLease encryptedLease = BufferLease.Rent(maxCipherLength + FrameTransformer.Offset);
+                    BufferLease encryptedLease = PacketCipher.EncryptFrame(
+                        compressedLease,
+                        context.Connection.Secret,
+                        context.Connection.Algorithm);
                     try
                     {
-                        FrameTransformer.Encrypt(
-                            compressedLease,
-                            encryptedLease,
-                            context.Connection.Secret,
-                            context.Connection.Algorithm);
-
-                        encryptedLease.Span.WriteFlagsLE(encryptedLease.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
                         await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
                     }
                     finally
