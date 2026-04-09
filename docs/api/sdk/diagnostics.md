@@ -1,6 +1,7 @@
 # Session Diagnostics
 
 This page covers the diagnostics helpers for `TcpSession`.
+The snapshot is transport-focused and is useful regardless of whether the session is carrying built-in packets or custom packet types.
 
 ## Source mapping
 

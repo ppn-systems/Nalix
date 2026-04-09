@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
@@ -18,7 +17,6 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Serialization;
-using Nalix.Framework.Serialization.Internal.Types;
 
 namespace Nalix.Framework.DataFrames;
 
@@ -30,9 +28,8 @@ namespace Nalix.Framework.DataFrames;
 /// full type name via FNV-1a hash — no <c>[MagicNumber]</c> attribute needed.
 /// </para>
 /// </summary>
-/// <typeparam name="TSelf"></typeparam>
-public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPacketDeserializer<TSelf>
-    where TSelf : PacketBase<TSelf>, new()
+/// <typeparam name="TSelf">The concrete packet type.</typeparam>
+public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>, new()
 {
     #region Static Cache
 
@@ -46,7 +43,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// The serialization layout declared on the packet type.
     /// </summary>
     [SerializeIgnore]
-    private static readonly SerializeLayout s_layout = typeof(TSelf).GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Auto;
+    private static readonly SerializeLayout s_layout =
+        typeof(TSelf).GetCustomAttribute<SerializePackableAttribute>()?.SerializeLayout ?? SerializeLayout.Auto;
 
     /// <summary>
     /// All serializable properties as pre-compiled PropertyMetadata.
@@ -57,37 +55,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     private static readonly Lazy<PropertyMetadata[]> s_metadata = new(
         static () =>
         [
-            .. Enumerable.Select(
-                EnumerateSerializableProperties(),
-                static x => new PropertyMetadata(x.p)
-            )
+            .. EnumerateSerializableProperties().Select(static x => new PropertyMetadata(x.p))
         ],
         isThreadSafe: true
     );
 
-    /// <summary>
-    /// null  -> has dynamic properties, call ComputeDynamicLength() at runtime.
-    /// value -> all properties are fixed-size, return directly.
-    /// Using int? avoids the "0-as-sentinel" ambiguity from the previous version.
-    /// </summary>
     [SerializeIgnore]
-    private static readonly Lazy<int?> s_cachedFixedSize = new(
-        static () =>
-        {
-            int size = PacketConstants.HeaderSize;
-            foreach (PropertyMetadata meta in s_metadata.Value)
-            {
-                if (meta.IsDynamic || meta.FixedSize == 0)
-                {
-                    return null; // signal: at least one property needs runtime measurement
-                }
-
-                size += meta.FixedSize;
-            }
-            return size;
-        },
-        isThreadSafe: true
-    );
+    private static readonly Cache s_cache = InitializeCache();
 
     #endregion Static Cache
 
@@ -110,154 +84,24 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            // Fast path: all properties are fixed-size -> return cached value directly.
-            int? fixedSize = s_cachedFixedSize.Value;
-            return fixedSize ?? this.COMPUTE_DYNAMIC_LENGTH();
-        }
-    }
-
-    /// <summary>
-    /// Walks all properties to compute the actual wire-length at runtime.
-    /// Fixed-size contributions use the cached <see cref="PropertyMetadata.FixedSize"/>;
-    /// dynamic contributions call through to the compiled getter delegate.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private int COMPUTE_DYNAMIC_LENGTH()
-    {
-        int size = PacketConstants.HeaderSize;
-
-        foreach (PropertyMetadata meta in s_metadata.Value)
-        {
-            object? value = meta.GetValue(this);
-
-            if (value is null)
+            // Fast path: no dynamic getters -> fixed size.
+            Func<TSelf, int>[] getters = s_cache.SizeGetters;
+            if (getters.Length == 0)
             {
-                size += 1;
-                continue;
+                return s_cache.StaticSize;
             }
 
-            if (meta.IsDynamic)
+            int size = s_cache.StaticSize;
+            TSelf self = (TSelf)this;
+
+            // Tight loop: just delegate calls + integer adds.
+            for (int i = 0; i < getters.Length; i++)
             {
-                size += this.GetDynamicSize(value);
-                continue;
+                size += getters[i](self);
             }
 
-            if (meta.FixedSize != 0)
-            {
-                size += meta.FixedSize;
-                continue;
-            }
-
-            // Reference types without [SerializeDynamicSize] (like string, byte[], nested IPacket)
-            size += this.GetDynamicSize(value);
+            return size;
         }
-
-        return size;
-    }
-
-    /// <summary>
-    /// Cache Func&lt;int&gt; delegate cho Unsafe.SizeOf&lt;T&gt;() theo runtime Type.
-    /// Chỉ được truy cập qua <see cref="GetElementSize"/> — tránh reflection lặp lại.
-    /// </summary>
-    [SerializeIgnore]
-    private static readonly ConcurrentDictionary<Type, Func<int>> s_elementSizeCache = new();
-
-    /// <summary>
-    /// Tính wire-size của một giá trị động, đồng bộ với format của <see cref="LiteSerializer"/>:
-    /// <list type="bullet">
-    ///   <item><see cref="string"/>  — 2-byte prefix + UTF-8 bytes</item>
-    ///   <item><see cref="byte"/>[]  — 4-byte int prefix + raw bytes</item>
-    ///   <item><see cref="IPacket"/> — delegate sang <c>p.Length</c>, có guard tự-tham chiếu</item>
-    ///   <item>Unmanaged array       — 4-byte int prefix + elements</item>
-    /// </list>
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int GetDynamicSize(object value)
-    {
-        // string: 2-byte ushort prefix + UTF-8 payload.
-        // Đồng bộ với LiteSerializer.GetExactLengthOrThrow và TypeMetadata.GetDynamicSize.
-        if (value is string s)
-        {
-            return string.IsNullOrEmpty(s) ? 2 : 2 + Encoding.UTF8.GetByteCount(s);
-        }
-
-        // byte[]: 4-byte int prefix + raw bytes.
-        // LiteSerializer viết: GC.AllocateUninitializedArray<byte>(dataSize + 4)
-        // Trước đây dùng sizeof(ushort)=2 — SAI, gây tính Length thiếu 2 bytes mỗi byte[].
-        if (value is byte[] b)
-        {
-            return sizeof(int) + b.Length;
-        }
-
-        if (value is IPacket p)
-        {
-            // Guard tự-tham chiếu cơ bản — cycle detection đầy đủ quá tốn kém cho hot path.
-            if (ReferenceEquals(p, this))
-            {
-                return 0;
-            }
-
-            return p.Length;
-        }
-
-        if (value is Array arr)
-        {
-            // Unmanaged array (int[], float[], ...): 4-byte int prefix + elements.
-            // Cùng format với byte[] trong LiteSerializer (UnmanagedSZArray path).
-            Type? elementType = arr.GetType().GetElementType();
-            if (elementType is not null && TypeMetadata.IsUnmanaged(elementType))
-            {
-                return sizeof(int) + (arr.Length * GetElementSize(elementType));
-            }
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Trả về byte-size của một unmanaged element type.
-    /// Caller đã check <see cref="TypeMetadata.IsUnmanaged"/> — chỉ unmanaged type mới đến đây.
-    /// Với <see cref="TypeCode.Object"/> (struct như <see cref="Guid"/>, custom struct):
-    /// dùng <see cref="Unsafe.SizeOf{T}"/> qua delegate cache thay vì hardcode sai.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetElementSize(Type type)
-    {
-        if (type.IsEnum)
-        {
-            return GetElementSize(Enum.GetUnderlyingType(type));
-        }
-
-        return Type.GetTypeCode(type) switch
-        {
-            TypeCode.Decimal => 16,
-            TypeCode.Object => GetUnsafeSizeOf(type),
-            TypeCode.DBNull => GetUnsafeSizeOf(type),
-            TypeCode.String => GetUnsafeSizeOf(type),
-            TypeCode.Char or TypeCode.Int16 or TypeCode.UInt16 => 2,
-            TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Single => 4,
-            TypeCode.Byte or TypeCode.SByte or TypeCode.Boolean or TypeCode.Empty => 1,
-            TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Double or TypeCode.DateTime => 8,
-            _ => 0
-        };
-    }
-
-    /// <summary>
-    /// Gọi <c>Unsafe.SizeOf&lt;T&gt;()</c> với runtime <see cref="Type"/> bằng cách cache delegate
-    /// sau lần đầu — tương tự pattern của <c>TypeMetadata.Core</c>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static int GetUnsafeSizeOf(Type type)
-    {
-        return s_elementSizeCache.GetOrAdd(type, static t =>
-        {
-            MethodInfo method =
-                typeof(Unsafe)
-                    .GetMethod(nameof(Unsafe.SizeOf), BindingFlags.Public | BindingFlags.Static)!
-                    .MakeGenericMethod(t);
-
-            return method.CreateDelegate<Func<int>>();
-        })();
     }
 
     #endregion Length
@@ -277,10 +121,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
-        if (buffer.Length < this.Length)
+        int length = this.Length;
+        if (buffer.Length < length)
         {
             throw new ArgumentException(
-                $"Buffer too small: length={buffer.Length}, required>={this.Length}, type={typeof(TSelf).FullName}.");
+                $"Buffer too small: length={buffer.Length}, required>={length}, type={typeof(TSelf).FullName}.");
         }
 
         return LiteSerializer.Serialize((TSelf)this, buffer);
@@ -350,6 +195,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         this.MagicNumber = s_autoMagic;
     }
 
+
     #endregion APIs
 
     #region Diagnostics
@@ -363,9 +209,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     public string GenerateReport()
     {
         StringBuilder sb = new(128);
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} FixedSize={s_cachedFixedSize.Value?.ToString(CultureInfo.InvariantCulture) ?? "dynamic"} Properties={s_metadata.Value.Length}");
 
-        foreach (PropertyMetadata meta in s_metadata.Value)
+        _ = sb.AppendLine(
+            CultureInfo.InvariantCulture,
+            $"[{typeof(TSelf).Name}] s_autoMagic=0x{s_autoMagic:X8} StaticSize={s_cache.StaticSize} " +
+            $"Properties={s_cache.All.Length} DynamicGetters={s_cache.SizeGetters.Length}");
+
+        foreach (PropertyMetadata meta in s_cache.All)
         {
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  {meta}");
         }
@@ -384,18 +234,200 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         {
             ["TypeName"] = typeof(TSelf).Name,
             ["AutoMagic"] = $"0x{s_autoMagic:X8}",
-            ["FixedSize"] = s_cachedFixedSize.Value?.ToString(CultureInfo.InvariantCulture) ?? "dynamic",
-            ["PropertiesCount"] = s_metadata.Value.Length,
-            ["Properties"] = Array.ConvertAll(s_metadata.Value, meta => meta.ToString())
+            ["StaticSize"] = s_cache.StaticSize.ToString(CultureInfo.InvariantCulture),
+            ["PropertiesCount"] = s_cache.All.Length,
+            ["DynamicGettersCount"] = s_cache.SizeGetters.Length,
+            ["Properties"] = Array.ConvertAll(s_cache.All, meta => meta.ToString())
         };
     }
 
     /// <inheritdoc/>
-    public override string ToString() => $"{typeof(TSelf).Name}(Magic=0x{this.MagicNumber:X8}, OpCode={this.OpCode}, Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol})";
+    public override string ToString() =>
+        $"{typeof(TSelf).Name}(Magic=0x{this.MagicNumber:X8}, OpCode={this.OpCode}, Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol})";
 
     #endregion Diagnostics
 
     #region Private Methods
+
+    private readonly struct Cache
+    {
+        public readonly PropertyMetadata[] All;
+        public readonly int StaticSize;
+        public readonly Func<TSelf, int>[] SizeGetters;
+
+        public Cache(PropertyMetadata[] all, int staticSize, Func<TSelf, int>[] sizeGetters)
+        {
+            All = all;
+            StaticSize = staticSize;
+            SizeGetters = sizeGetters;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Cache InitializeCache()
+    {
+        PropertyMetadata[] all = s_metadata.Value;
+
+        int staticSize = PacketConstants.HeaderSize;
+        List<Func<TSelf, int>> getters = new(capacity: all.Length);
+
+        foreach (PropertyMetadata meta in all)
+        {
+            // Fixed-size: pre-sum into staticSize and never touch getter in Length().
+            if (!meta.IsDynamic && meta.FixedSize != 0)
+            {
+                staticSize += meta.FixedSize;
+                continue;
+            }
+
+            // Dynamic or unknown-size => build a size getter.
+            // This keeps Length() a tight loop over delegates.
+            getters.Add(BuildSizeGetter(meta));
+        }
+
+        return new Cache(all, staticSize, [.. getters]);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Func<TSelf, int> BuildSizeGetter(PropertyMetadata meta)
+    {
+        // Localize meta reference for closure; this closure is created once per property per TSelf.
+        // The returned delegate MUST be allocation-free per invocation.
+        return meta.DynamicKind switch
+        {
+            DynamicWireKind.String => BuildStringGetter(meta),
+            DynamicWireKind.ByteArray => BuildByteArrayGetter(meta),
+            DynamicWireKind.Packet => BuildPacketGetter(meta),
+            DynamicWireKind.UnmanagedArray => BuildUnmanagedArrayGetter(meta),
+            DynamicWireKind.None or DynamicWireKind.Other => BuildFallbackGetter(meta),
+            _ => BuildFallbackGetter(meta),
+        };
+    }
+
+    private static Func<TSelf, int> BuildStringGetter(PropertyMetadata meta)
+    {
+        return instance =>
+        {
+            object? value = meta.GetValue(instance);
+            if (value is null)
+            {
+                return meta.NullWireSize; // typically 4
+            }
+
+            // Fast, safe over-estimate: int32 prefix + 4 bytes per char max.
+            // This avoids UTF8 byte counting (hot path).
+            int charCount = ((string)value).Length;
+            return sizeof(int) + (charCount << 2);
+        };
+    }
+
+    private static Func<TSelf, int> BuildByteArrayGetter(PropertyMetadata meta)
+    {
+        return instance =>
+        {
+            object? value = meta.GetValue(instance);
+            if (value is null)
+            {
+                return meta.NullWireSize; // 4
+            }
+
+            return sizeof(int) + ((byte[])value).Length;
+        };
+    }
+
+    private static Func<TSelf, int> BuildPacketGetter(PropertyMetadata meta)
+    {
+        return instance =>
+        {
+            object? value = meta.GetValue(instance);
+            if (value is null)
+            {
+                return meta.NullWireSize; // 4
+            }
+
+            IPacket p = (IPacket)value;
+
+            // Minimal self-reference guard.
+            if (ReferenceEquals(p, instance))
+            {
+                return 0;
+            }
+
+            return p.Length;
+        };
+    }
+
+    private static Func<TSelf, int> BuildUnmanagedArrayGetter(PropertyMetadata meta)
+    {
+        int elementSize = meta.ElementSize;
+
+        return instance =>
+        {
+            object? value = meta.GetValue(instance);
+            if (value is null)
+            {
+                return meta.NullWireSize; // 4
+            }
+
+            Array arr = (Array)value;
+            return sizeof(int) + (arr.Length * elementSize);
+        };
+    }
+
+    private static Func<TSelf, int> BuildFallbackGetter(PropertyMetadata meta)
+    {
+        return instance =>
+        {
+            object? value = meta.GetValue(instance);
+            if (value is null)
+            {
+                return meta.NullWireSize;
+            }
+
+            // Conservative runtime sizing for uncommon types.
+            return GetDynamicSizeFallback(instance, value);
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetDynamicSizeFallback(PacketBase<TSelf> self, object value)
+    {
+        // NOTE: keep this only for rare cases.
+        if (value is string s)
+        {
+            return string.IsNullOrEmpty(s) ? sizeof(int) : sizeof(int) + Encoding.UTF8.GetByteCount(s);
+        }
+
+        if (value is byte[] b)
+        {
+            return sizeof(int) + b.Length;
+        }
+
+        if (value is IPacket p)
+        {
+            if (ReferenceEquals(p, self))
+            {
+                return 0;
+            }
+
+            return p.Length;
+        }
+
+        if (value is Array arr)
+        {
+            Type? elementType = arr.GetType().GetElementType();
+            if (elementType is not null && Serialization.Internal.Types.TypeMetadata.IsUnmanaged(elementType))
+            {
+                int elementSize = PacketBaseElementSizer.GetElementSize(elementType);
+                return sizeof(int) + (arr.Length * elementSize);
+            }
+        }
+
+        throw new SerializationFailureException($"Unsupported dynamic property type: {value.GetType().FullName}");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int GetDynamicSizeFallback(TSelf instance, object value) => GetDynamicSizeFallback((PacketBase<TSelf>)instance, value);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order)> EnumerateSerializableProperties()

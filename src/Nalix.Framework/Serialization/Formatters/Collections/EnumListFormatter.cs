@@ -48,7 +48,7 @@ internal sealed class EnumListFormatter<
             return;
         }
 
-        ushort count = (ushort)value.Count;
+        int count = value.Count;
         writer.Write(count);
 
         if (count == 0)
@@ -83,7 +83,7 @@ internal sealed class EnumListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort count = reader.ReadUInt16();
+        int count = reader.ReadInt32();
 
         if (count == 0)
         {

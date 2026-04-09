@@ -15,7 +15,7 @@ public sealed class MetadataProviderAnalyzerTests
         const string source = """
 namespace Demo;
 using System.Reflection;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 public sealed class BadProvider : IPacketMetadataProvider
 {
@@ -38,7 +38,7 @@ public sealed class BadProvider : IPacketMetadataProvider
 namespace Demo;
 using System.Reflection;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 public sealed class BadProvider : IPacketMetadataProvider
 {
@@ -61,7 +61,7 @@ public sealed class BadProvider : IPacketMetadataProvider
 namespace Demo;
 using System.Reflection;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 public sealed class GoodProvider : IPacketMetadataProvider
 {

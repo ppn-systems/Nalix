@@ -1,6 +1,7 @@
 # Packet Metadata
 
 `PacketMetadata` is the descriptor Nalix.Network builds for each handler method. It is the bridge between attributes on your handler and the runtime behavior applied by dispatch, middleware, rate limiting, permissions, timeout handling, and encryption rules.
+It is used for both built-in packet handlers and custom packet handlers.
 
 !!! note "Metadata is runtime behavior, not decoration"
     Packet attributes become real dispatch and middleware rules.
@@ -46,7 +47,7 @@ The runtime flow is:
 2. attributes are copied into `PacketMetadataBuilder`
 3. registered `IPacketMetadataProvider` instances can add more metadata
 4. `Build()` produces an immutable `PacketMetadata`
-5. the descriptor is attached to the compiled handler and later exposed through `PacketContext`
+5. the descriptor is attached to the compiled handler and later exposed through `PacketContext<TPacket>`
 
 ## PacketHandler
 
@@ -65,7 +66,7 @@ It carries:
 - `ReturnType`
 - `Invoker`
 
-This is the object the dispatch layer actually executes after metadata resolution is complete.
+This is the object the dispatch layer actually executes after metadata resolution is complete, regardless of whether the handler targets a built-in packet or a custom packet type.
 
 ## Execution model
 

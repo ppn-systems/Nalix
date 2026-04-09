@@ -42,10 +42,9 @@ internal sealed class ListFormatter<
             return;
         }
 
-        ushort count = (ushort)value.Count;
-        writer.Write(count);
+        writer.Write(value.Count);
 
-        if (count == 0)
+        if (value.Count == 0)
         {
             return;
         }
@@ -74,7 +73,7 @@ internal sealed class ListFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public System.Collections.Generic.List<T> Deserialize(ref DataReader reader)
     {
-        ushort length = reader.ReadUInt16();
+        int length = reader.ReadInt32();
 
         if (length == SerializerBounds.Null)
         {

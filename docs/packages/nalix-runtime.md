@@ -14,6 +14,7 @@
 ### [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
 
 The `PacketDispatchChannel` manages worker loops that pull packets from the queue, run them through middleware, and execute the correct handler.
+It supports the same generic handler model used by built-in packets and custom packet types.
 
 ### [Middleware](../api/runtime/middleware/pipeline.md)
 

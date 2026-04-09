@@ -13,6 +13,7 @@ using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
+using Nalix.Runtime.Handlers;
 
 internal class Program
 {
@@ -25,14 +26,15 @@ internal class Program
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
 
-        using NetworkHost host = NetworkHost.CreateBuilder()
-            .UseLogger(logger)
+        using NetworkApplication host = NetworkApplication.CreateBuilder()
+            .ConfigureLogging(logger)
             .Configure<NetworkSocketOptions>(options => options.Port = 57206)
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
-            .AddPacketsFromAssemblyContaining<Handshake>()
-            .AddPacketHandlersFromAssemblyContaining<PacketCommandHandler>()
-            .AddPacketMetadataProvider<PacketTagMetadataProvider>()
-            .ConfigurePacketDispatcher(dispatchOptions =>
+            .AddPacketAssembly<Handshake>()
+            .AddHandler<PacketCommandHandler>()
+            .AddHandlers<HandshakeHandlers>()
+            .AddMetadataProvider<PacketTagMetadataProvider>()
+            .ConfigureDispatch(dispatchOptions =>
             {
                 _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
                 _ = dispatchOptions.WithErrorHandling((exception, command) =>

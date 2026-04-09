@@ -108,6 +108,7 @@ flowchart LR
 - Build an immutable packet registry.
 - Provide shared serialization helpers.
 - Provide pooled LZ4 compression primitives.
+- Provide shared framed packet transform helpers (`PacketCipher` and `PacketCompression`).
 
 ### Key components
 
@@ -121,6 +122,7 @@ flowchart LR
 - `Control` — built-in frame type.
 - `PacketPool<TPacket>` / `PacketLease<TPacket>` — packet pooling helpers for reusable packet instances.
 - `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.
+- `PacketCipher` / `PacketCompression` — framed packet encrypt/decrypt and compress/decompress helpers.
 - `LZ4Codec` — pooled block compression and decompression.
 
 ### Quick example

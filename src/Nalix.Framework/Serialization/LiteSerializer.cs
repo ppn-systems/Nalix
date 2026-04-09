@@ -8,7 +8,6 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization.Formatters.Automatic;
@@ -335,16 +334,6 @@ public static class LiteSerializer
         // (because Span-based DataWriter cannot Expand()).
         if (kind is TypeKind.None)
         {
-            int required = value is IPacket packet
-                ? packet.Length
-                : GetExactLengthOrThrow(value);
-            if (buffer.Length < required)
-            {
-                throw new SerializationFailureException(
-                    $"Buffer too small for variable-length type '{typeof(T)}'. " +
-                    $"Required: {required}, Actual: {buffer.Length}.");
-            }
-
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
 
             // DataWriter(Span<byte>) wraps the span directly — no renting, no pool.
@@ -697,7 +686,7 @@ public static class LiteSerializer
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsNullArrayMarker(ReadOnlySpan<byte> buffer) =>
-        buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == -1;
+        buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == SerializerBounds.Null;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
@@ -708,30 +697,6 @@ public static class LiteSerializer
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
         => TypeMetadata.IsReferenceOrNullable<T>() &&
            TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out _) is not TypeKind.UnmanagedSZArray;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetExactLengthOrThrow<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
-    {
-        if (RootFormatterCache<T>.ThrowsOnNull && value is null)
-        {
-            throw new SerializationFailureException(
-                $"Cannot serialize null reference type '{typeof(T).FullName}' without an explicit nullable wrapper.");
-        }
-
-        if (value is IPacket p)
-        {
-            return p.Length;
-        }
-
-        if (value is string s)
-        {
-            return string.IsNullOrEmpty(s) ? 2 : 2 + System.Text.Encoding.UTF8.GetByteCount(s);
-        }
-
-        throw new SerializationFailureException(
-            $"Unable to determine exact serialized length for type '{typeof(T).FullName}'.");
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static IFormatter<T> ResolveRootFormatter<

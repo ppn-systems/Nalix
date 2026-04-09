@@ -10,6 +10,7 @@ This page documents the internal framing helpers behind `TransportSession` and `
 
 - `src/Nalix.SDK/Transport/Internal/FRAME_READER.cs`
 - `src/Nalix.SDK/Transport/Internal/FRAME_SENDER.cs`
+- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
 - `src/Nalix.SDK/Transport/TransportSession.cs`
 - `src/Nalix.SDK/Transport/TcpSession.cs`
 
@@ -25,7 +26,7 @@ flowchart LR
     F["Socket.ReceiveAsync"] --> G["FRAME_READER"]
     G --> H["Header + payload read"]
     H --> I["Fragment reassembly"]
-    I --> J["Decrypt / decompress"]
+    I --> J["PacketFrameTransforms"]
     J --> K["TcpSession.HandleReceiveMessage"]
 ```
 
@@ -74,7 +75,7 @@ Its job is to:
 - copy the header back into the rented frame
 - detect fragmented frames
 - reassemble full payloads through `FragmentAssembler`
-- decrypt and decompress after reassembly
+- apply shared inbound transforms after reassembly via `PacketFrameTransforms`, which wraps `PacketCipher` and `PacketCompression`
 - deliver the finished pooled lease upward
 
 ## Ownership model
@@ -87,6 +88,17 @@ Ownership is important on the receive path:
 - the upper layer becomes the sole owner and must dispose it
 
 This is why `TcpSession.HandleReceiveMessage(...)` is careful about lease copies, event dispatching, and final cleanup.
+
+## Shared transform helpers
+
+`PacketFrameTransforms` is an internal SDK helper that centralizes the send and receive transform flow.
+
+It delegates to the shared framework helpers:
+
+- `PacketCipher` for encrypt and decrypt flows
+- `PacketCompression` for compress and decompress flows
+
+This keeps the SDK transform logic in one place while still reusing the common frame APIs exposed by `Nalix.Framework`.
 
 ## Interaction with TransportSession
 
@@ -102,6 +114,7 @@ This is why `TcpSession.HandleReceiveMessage(...)` is careful about lease copies
 - background receive scheduling
 - reconnect handling
 - heartbeat and bandwidth sampling through `SessionMonitor`
+- shared packet framing helpers for the active transport options
 
 ## When clients should care
 

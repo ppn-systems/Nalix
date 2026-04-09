@@ -39,7 +39,7 @@ internal sealed class NullableArrayFormatter<
             return;
         }
 
-        writer.Write((ushort)value.Length);
+        writer.Write(value.Length);
 
         if (value.Length == 0)
         {
@@ -62,7 +62,7 @@ internal sealed class NullableArrayFormatter<
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public T?[] Deserialize(ref DataReader reader)
     {
-        ushort length = reader.ReadUInt16();
+        int length = reader.ReadInt32();
 
         if (length == SerializerBounds.Null)
         {
@@ -75,6 +75,7 @@ internal sealed class NullableArrayFormatter<
         }
 
         T?[] array = new T?[length];
+
         for (int i = 0; i < length; i++)
         {
             array[i] = s_elementFormatter.Deserialize(ref reader);

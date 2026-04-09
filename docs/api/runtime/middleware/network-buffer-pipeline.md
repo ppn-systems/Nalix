@@ -78,6 +78,7 @@ Typical use cases:
 - protocol-level rejection before deserialization
 
 If you already need `PacketContext<TPacket>` and handler metadata, use packet middleware instead.
+That same rule applies when the packet type is custom, not just when it is one of the built-in packets.
 
 ## Relationship to packet middleware
 

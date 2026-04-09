@@ -1,6 +1,6 @@
 # Nalix.Logging
 
-Structured logging, built-in targets, and a shared `ILogger` implementation.
+Built-in structured logging for the Nalix stack, with shared `ILogger` integration and batched console/file targets.
 
 ### Logging bootstrap
 Register the logger once and reuse it across the process.
@@ -13,27 +13,41 @@ Register the logger once and reuse it across the process.
 ### Quick example
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Framework.Injection;
+using Nalix.Logging;
+
 InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
 ```
 
 ### Options and targets
-Options describe log level, formatting, and targets.
+Options describe log level, timestamps, metadata, and sink behavior.
 
 **Key Components**
 - `NLogixOptions`
 - `FileLogOptions`
+- `ConsoleLogOptions`
 - `INLogixTarget`
 
 ### Quick example
 
 ```csharp
-NLogixOptions options = new();
-INLogixTarget target = /* your target */;
-options.RegisterTarget(target);
+using Microsoft.Extensions.Logging;
+using Nalix.Logging;
+using Nalix.Logging.Options;
+using Nalix.Logging.Sinks;
+
+NLogix logger = new(cfg =>
+{
+    cfg.SetMinimumLevel(LogLevel.Debug)
+       .ConfigureFileOptions(f => f.LogFileName = "server.log")
+       .RegisterTarget(new BatchConsoleLogTarget())
+       .RegisterTarget(new BatchFileLogTarget());
+});
 ```
 
 !!! warning "Dispose with care"
-    Dispose log options only after all targets are registered and stable.
+    Dispose the logger only when your process is shutting down. `NLogixOptions` is owned by the logger runtime.
 
 ## Key API pages
 

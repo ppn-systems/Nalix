@@ -16,6 +16,7 @@ This page covers the public routing contracts that sit below `PacketDispatchChan
 
 `IDispatchChannel<TPacket>` is the low-level queue contract used by routing internals.
 It moves `IBufferLease` instances through the queueing stage before the dispatch runtime turns them into packets.
+The generic parameter reflects the packet type flowing through the route, so the same contract can back built-in or custom packet pipelines.
 
 ## Basic usage
 
@@ -40,6 +41,7 @@ if (channel.Pull(out IConnection nextConnection, out IBufferLease nextLease))
 
 - raw `IBufferLease`
 - deserialized `IPacket`
+- packet-specific handler pipelines for built-in or custom packet types
 
 ## Example
 

@@ -259,7 +259,7 @@ sequenceDiagram
     participant H as PingHandlers
 
     C->>L: PingRequest
-    L->>P: ProcessMessage()
+    L->>P: ProcessFrame()
     P->>D: HandlePacket(...)
     D->>Q: enqueue lease
     W->>Q: pull lease

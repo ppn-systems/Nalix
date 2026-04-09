@@ -65,14 +65,14 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         => this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
 
     /// <inheritdoc />
-    public void Initialize(IBufferLease lease, IConnection connection)
+    public void Initialize([Borrowed] IBufferLease lease, IConnection connection)
     {
         _lease = lease ?? throw new ArgumentNullException(nameof(lease), "Buffer lease cannot be null when initializing ConnectionEventArgs with a buffer");
         this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
     }
 
     /// <inheritdoc />
-    public IBufferLease? ReplaceLease(IBufferLease? newLease)
+    public IBufferLease? ReplaceLease([Borrowed] IBufferLease? newLease)
     {
         IBufferLease? old = _lease;
         _lease = newLease;
