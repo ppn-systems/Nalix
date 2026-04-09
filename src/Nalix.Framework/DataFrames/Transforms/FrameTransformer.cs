@@ -13,7 +13,7 @@ using Nalix.Framework.Memory.Internal;
 using Nalix.Framework.Security;
 using Nalix.Framework.Security.Internal;
 
-namespace Nalix.Framework.DataFrames;
+namespace Nalix.Framework.DataFrames.Transforms;
 
 /// <summary>
 /// Provides high-performance packet transformation utilities including encryption,

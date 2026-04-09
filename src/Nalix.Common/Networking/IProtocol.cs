@@ -20,6 +20,15 @@ public interface IProtocol : IDisposable, IReportable, IProtocolStage
     bool KeepConnectionOpen { get; }
 
     /// <summary>
+    /// Processes a raw inbound frame, applying shared frame transforms before the protocol
+    /// message handler is invoked.
+    /// </summary>
+    /// <param name="sender">The source of the event triggering the processing.</param>
+    /// <param name="args">The event arguments containing the frame and connection data.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="args"/> is null.</exception>
+    void ProcessFrame(object? sender, IConnectEventArgs args);
+
+    /// <summary>
     /// Executes after a message from the connection has been processed.
     /// This method can be used to perform additional actions after message handling, like disconnecting the connection if needed.
     /// </summary>

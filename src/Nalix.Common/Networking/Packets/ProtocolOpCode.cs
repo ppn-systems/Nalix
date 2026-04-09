@@ -18,4 +18,14 @@ public enum ProtocolOpCode : ushort
     /// The default handshake protocol packet for key exchange and transcript verification.
     /// </summary>
     HANDSHAKE = 0x0001,
+
+    /// <summary>
+    /// Reserved for runtime compression negotiation and dictionary updates.
+    /// </summary>
+    COMPRESS = 0x0002,
+
+    /// <summary>
+    /// Reserved for runtime encryption re-keying and cipher rotation.
+    /// </summary>
+    ENCRYPT = 0x0003,
 }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Memory.Buffers;
@@ -343,28 +343,16 @@ public class UdpSession : TransportSession
         {
             if (doCompress)
             {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCompressedSize(current.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Compress(current, next);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
+                BufferLease next = PacketCompression.CompressFrame(current);
+                current.Dispose();
+                current = next;
             }
 
             if (doEncrypt)
             {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCiphertextSize(this.Options.Algorithm, current.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Encrypt(current, next, this.Options.Secret, this.Options.Algorithm);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
+                BufferLease next = PacketCipher.EncryptFrame(current, this.Options.Secret, this.Options.Algorithm);
+                current.Dispose();
+                current = next;
             }
 
             return current;
@@ -387,29 +375,17 @@ public class UdpSession : TransportSession
 
             if (flags.HasFlag(PacketFlags.ENCRYPTED))
             {
-                BufferLease decrypted = BufferLease.Rent(FrameTransformer.GetPlaintextLength(current.Span) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Decrypt(current, decrypted, this.Options.Secret);
-                    // Do NOT write flags back yet if we expect more transformations
-                    // The flags are part of the original header
-                    current.Dispose();
-                    current = decrypted;
-                    flags = current.Span.ReadFlagsLE();
-                }
-                catch { decrypted.Dispose(); throw; }
+                BufferLease decrypted = PacketCipher.DecryptFrame(current, this.Options.Secret);
+                current.Dispose();
+                current = decrypted;
+                flags = current.Span.ReadFlagsLE();
             }
 
             if (flags.HasFlag(PacketFlags.COMPRESSED))
             {
-                BufferLease decompressed = BufferLease.Rent(FrameTransformer.GetDecompressedLength(current.Span) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Decompress(current, decompressed);
-                    current.Dispose();
-                    current = decompressed;
-                }
-                catch { decompressed.Dispose(); throw; }
+                BufferLease decompressed = PacketCompression.DecompressFrame(current);
+                current.Dispose();
+                current = decompressed;
             }
 
             return current;

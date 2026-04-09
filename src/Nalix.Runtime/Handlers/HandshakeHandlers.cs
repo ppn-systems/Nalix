@@ -66,6 +66,8 @@ public sealed class HandshakeHandlers
     /// </summary>
     public static bool IsEstablished(IConnection connection)
     {
+        ArgumentNullException.ThrowIfNull(connection);
+
         if (connection.Attributes.TryGetValue(EstablishedAttributeKey, out object? boxed) &&
             boxed is bool established)
         {

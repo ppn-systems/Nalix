@@ -11,8 +11,8 @@ using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
@@ -67,28 +67,16 @@ internal sealed class FRAME_SENDER : IDisposable
         {
             if (doCompress)
             {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCompressedSize(current.Length) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Compress(current, next);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
+                BufferLease next = PacketCompression.CompressFrame(current);
+                current.Dispose();
+                current = next;
             }
 
             if (doEncrypt)
             {
-                BufferLease next = BufferLease.Rent(FrameTransformer.GetMaxCiphertextSize(_options.Algorithm, current.Length) + FrameTransformer.Offset);
-                try
-                {
-                    FrameTransformer.Encrypt(current, next, _options.Secret, _options.Algorithm);
-                    next.Span.WriteFlagsLE(next.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
-                    current.Dispose();
-                    current = next;
-                }
-                catch { next.Dispose(); throw; }
+                BufferLease next = PacketCipher.EncryptFrame(current, _options.Secret, _options.Algorithm);
+                current.Dispose();
+                current = next;
             }
 
             // ── After transformation, check for fragmentation ────────────────────

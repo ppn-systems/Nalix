@@ -51,8 +51,6 @@ public sealed class ExamplePacketProtocol : Protocol
 
         if (args.Lease is null)
         {
-            // No payload means there is nothing to dispatch, so exit cleanly.
-            args.Dispose();
             return;
         }
 
@@ -64,7 +62,6 @@ public sealed class ExamplePacketProtocol : Protocol
         _packetDispatch.HandlePacket(args.Lease, args.Connection);
 
         // The protocol event args are disposable and should be released after processing.
-        args.Dispose();
     }
 
     /// <summary>

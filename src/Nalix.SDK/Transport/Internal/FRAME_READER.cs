@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
@@ -126,9 +127,7 @@ internal sealed class FRAME_READER : IDisposable
 
             if (flags.HasFlag(PacketFlags.ENCRYPTED))
             {
-                BufferLease decrypted = BufferLease.Rent(FrameTransformer.GetPlaintextLength(lease.Span));
-                FrameTransformer.Decrypt(lease, decrypted, _options.Secret);
-                decrypted.Span.WriteFlagsLE(decrypted.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
+                BufferLease decrypted = PacketCipher.DecryptFrame(lease, _options.Secret);
                 lease.Dispose();
                 lease = decrypted;
                 flags = lease.Span.ReadFlagsLE();
@@ -136,9 +135,7 @@ internal sealed class FRAME_READER : IDisposable
 
             if (flags.HasFlag(PacketFlags.COMPRESSED))
             {
-                BufferLease decompressed = BufferLease.Rent(FrameTransformer.GetDecompressedLength(lease.Span));
-                FrameTransformer.Decompress(lease, decompressed);
-                decompressed.Span.WriteFlagsLE(decompressed.Span.ReadFlagsLE().RemoveFlag(PacketFlags.COMPRESSED));
+                BufferLease decompressed = PacketCompression.DecompressFrame(lease);
                 lease.Dispose();
                 lease = decompressed;
             }

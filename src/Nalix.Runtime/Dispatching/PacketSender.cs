@@ -9,7 +9,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
