@@ -135,6 +135,7 @@ Use this style when:
 
 - returning `Control` is the simplest normal request/response model
 - `Protocol` just forwards frames into dispatch
+- `ProcessFrame(...)` is the bridge before `ProcessMessage(...)` hands the frame to dispatch
 - `PacketDispatchChannel` owns middleware, deserialization, handler invocation, and result handling
 - the same pattern works for custom packet types if you swap `Control` for your own packet contract
 

@@ -222,6 +222,7 @@ public sealed class SamplePingHandlers
 ```
 
 The same template works for custom packet types by swapping `Control` for your own packet contract and keeping the generic middleware/context shape aligned.
+The listener bridge still goes through `ProcessFrame(...)` before your protocol override handles `ProcessMessage(...)`.
 
 ## How to extend this template
 

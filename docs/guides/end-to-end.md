@@ -112,6 +112,7 @@ The same end-to-end structure works with a custom packet type if you replace `Co
 - add middleware
 - add packet attributes such as timeout, permission, or rate limit
 - switch some handlers to `PacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
+- remember that the listener flow is `ProcessFrame(...)` first, then `ProcessMessage(...)` for the protocol bridge
 
 ## Related pages
 
