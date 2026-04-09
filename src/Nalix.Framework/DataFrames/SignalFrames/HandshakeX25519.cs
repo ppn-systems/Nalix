@@ -11,7 +11,7 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// Provides shared cryptographic primitives and utility methods for the Nalix handshake protocol.
 /// These methods are used by both the client and server sides of the X25519 handshake flow.
 /// </summary>
-public static class HandshakeCrypto
+public static class HandshakeX25519
 {
     #region Static Labels
 

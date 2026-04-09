@@ -92,7 +92,7 @@ internal sealed class HandshakeStage : IProtocolStage
 
     private void HandleClientHello(IConnection connection, Handshake packet)
     {
-        if (!HandshakeCrypto.IsValid(packet))
+        if (!HandshakeX25519.IsValid(packet))
         {
             this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
             return;
@@ -101,7 +101,7 @@ internal sealed class HandshakeStage : IProtocolStage
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
         byte[] sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
 
-        if (HandshakeCrypto.IsAllZero(sharedSecret))
+        if (HandshakeX25519.IsAllZero(sharedSecret))
         {
             this.Reject(connection, ProtocolReason.DECRYPTION_FAILED);
             return;
@@ -110,7 +110,7 @@ internal sealed class HandshakeStage : IProtocolStage
         byte[] serverNonce = Csprng.GetBytes(Handshake.DynamicSize);
 
         byte[] transcriptHash = Handshake.ComputeTranscriptHash(
-            HandshakeCrypto.ComposeTranscriptBuffer(
+            HandshakeX25519.ComposeTranscriptBuffer(
                 packet.PublicKey,
                 packet.Nonce,
                 serverKey.PublicKey,
@@ -124,7 +124,7 @@ internal sealed class HandshakeStage : IProtocolStage
             ServerNonce = serverNonce,
             ServerPublicKey = serverKey.PublicKey,
             TranscriptHash = transcriptHash,
-            SessionKey = HandshakeCrypto.DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
+            SessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
         };
 
         connection.Attributes[StateAttributeKey] = state;
@@ -134,7 +134,7 @@ internal sealed class HandshakeStage : IProtocolStage
             Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_HELLO,
             serverKey.PublicKey,
             serverNonce,
-            HandshakeCrypto.ComputeServerProof(sharedSecret, transcriptHash),
+            HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash),
             packet.Protocol)
         {
             TranscriptHash = transcriptHash
@@ -163,7 +163,7 @@ internal sealed class HandshakeStage : IProtocolStage
             return;
         }
 
-        byte[] expectedProof = HandshakeCrypto.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
+        byte[] expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
 
         if (!BitwiseOperations.FixedTimeEquals(packet.Proof, expectedProof))
         {
@@ -182,7 +182,7 @@ internal sealed class HandshakeStage : IProtocolStage
             Framework.DataFrames.SignalFrames.HandshakeStage.SERVER_FINISH,
             [],
             [],
-            HandshakeCrypto.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
+            HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
             packet.Protocol)
         {
             TranscriptHash = state.TranscriptHash,
