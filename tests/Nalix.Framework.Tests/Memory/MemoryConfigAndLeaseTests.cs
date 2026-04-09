@@ -137,6 +137,12 @@ public sealed partial class MemoryTests
         _ = Assert.Throws<ArgumentOutOfRangeException>(() => lease.CommitLength(lease.Capacity + 1));
     }
 
+    [Fact]
+    public void TakeOwnership_SliceExceedsBufferBounds_ThrowsArgumentOutOfRangeException()
+    {
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => BufferLease.TakeOwnership([1, 2, 3, 4], 2, 3));
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
