@@ -25,6 +25,7 @@ internal static class Verifier<TCodeFix>
     public static async Task VerifyAnalyzerAsync(string source, params string[] expectedDiagnosticIds)
         => await VerifyAnalyzerAsync([source], expectedDiagnosticIds).ConfigureAwait(false);
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1310:Specify StringComparison for correctness", Justification = "<Pending>")]
     public static async Task VerifyAnalyzerAsync(string[] sources, params string[] expectedDiagnosticIds)
     {
         Project project = CreateProject(sources);

@@ -24,6 +24,7 @@ public sealed partial class DataFramesPublicApiTests
         Handshake
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1825:Avoid zero-length array allocations", Justification = "<Pending>")]
     public static TheoryData<PacketRoundTripKind> PacketRoundTripCases()
     {
         return
