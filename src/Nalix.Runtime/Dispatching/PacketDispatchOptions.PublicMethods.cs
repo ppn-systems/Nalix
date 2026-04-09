@@ -233,13 +233,6 @@ public sealed partial class PacketDispatchOptions<TPacket>
         for (int i = 0; i < compiledHandlers.Length; i++)
         {
             PacketHandler<TPacket> descriptor = compiledHandlers[i];
-            int index = descriptor.OpCode;
-
-            if (Volatile.Read(ref _handlerFlags[index]) != 0)
-            {
-                throw new InternalErrorException($"OpCode '{descriptor.OpCode}' has already been registered.");
-            }
-
             Type? concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
             IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.ResolveHandler(descriptor.ReturnType);
 
@@ -253,8 +246,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 concretePacketType,
                 returnHandler);
 
-            _handlerTable[index] = runtimeHandler;
-            Volatile.Write(ref _handlerFlags[index], 1);
+            if (!_handlerTable.TryAdd(descriptor.OpCode, runtimeHandler))
+            {
+                throw new InternalErrorException($"OpCode '{descriptor.OpCode}' has already been registered.");
+            }
+
             _ = Interlocked.Increment(ref _handlerCount);
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
@@ -284,17 +280,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     /// </returns>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    internal bool TryResolveHandler(ushort opCode, out PacketHandler<TPacket> handler)
-    {
-        if (Volatile.Read(ref _handlerFlags[opCode]) != 0)
-        {
-            handler = _handlerTable[opCode];
-            return true;
-        }
-
-        handler = default;
-        return false;
-    }
+    internal bool TryResolveHandler(ushort opCode, out PacketHandler<TPacket> handler) => _handlerTable.TryGetValue(opCode, out handler);
 
     /// <summary>
     /// Executes a resolved handler with a pooled packet context and returns the context
