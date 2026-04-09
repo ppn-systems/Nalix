@@ -122,7 +122,7 @@ Use this helper for throttle, fail, timeout, or other control replies.
 ## Integration
 
 - `TcpListenerBase` subscribes protocol and limiter handlers to the connection events.
-- `Protocol.ProcessMessage` and `Protocol.PostProcessMessage` usually attach to the process events.
+- `Protocol.ProcessFrame` usually attaches to the process event bridge, while `ProcessMessage` remains the protocol-specific handler.
 - `ConnectionGuard.OnConnectionClosed` should be attached to `OnCloseEvent` so per-endpoint counters stay accurate.
 
 ## Transport implementation details
@@ -132,7 +132,7 @@ If you want the lower-level TCP framing, receive loop, callback wiring, fragment
 ## Basic usage
 
 ```csharp
-connection.OnProcessEvent += protocol.ProcessMessage;
+connection.OnProcessEvent += protocol.ProcessFrame;
 connection.OnPostProcessEvent += protocol.PostProcessMessage;
 
 await connection.TCP.SendAsync(new Control(), ct);

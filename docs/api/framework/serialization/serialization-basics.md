@@ -78,6 +78,22 @@ The current source supports these groups directly:
 - `ValueTuple` arity 2 through 5
 - automatic class and struct serialization through generated formatters
 
+## Automatic member model
+
+Generated object and struct formatters are field-based.
+
+- instance fields are serialized directly
+- public and non-public instance fields participate in discovery
+- static members do not participate
+- properties are not invoked directly as serialization accessors
+- auto-properties typically work through their compiler-generated backing fields
+- custom or computed properties should be treated as non-serializable unless you provide a custom formatter
+
+This means a shape like `public int Count { get; set; }` is a good fit for automatic serialization, while a shape like `public int Count => _items.Count;` is metadata only and should usually be ignored.
+
+Readonly and constructor-only models need extra care.
+If a type depends on strict immutability semantics, the recommended approach is to register a custom `IFormatter<T>` that reconstructs the object intentionally.
+
 ## Overriding behavior
 
 If you need custom behavior for one type, register your formatter first:

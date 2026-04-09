@@ -1,6 +1,6 @@
 # Protocol
 
-`Protocol` is the base abstraction that `TcpListenerBase` calls for connection acceptance and per-message processing. It centralizes accepting-state, connection validation, post-processing, auto-disconnect policy, error counting, and a small runtime report surface.
+`Protocol` is the base abstraction that `TcpListenerBase` calls for connection acceptance and per-message processing. It centralizes connection validation, frame pre-processing, post-processing, auto-disconnect policy, error counting, and a small runtime report surface.
 
 !!! tip "Keep protocols thin"
     A good protocol mostly accepts traffic, starts receive flow, and forwards messages into dispatch.
@@ -14,8 +14,9 @@ flowchart LR
     B --> C{"ValidateConnection"}
     C -->|pass| D["BeginReceive"]
     C -->|fail| E["Close connection"]
-    D --> F["ProcessMessage"]
-    F --> G["PostProcessMessage"]
+    D --> F["ProcessFrame"]
+    F --> G["ProcessMessage"]
+    G --> H["PostProcessMessage"]
 ```
 
 ## Source mapping
@@ -33,13 +34,13 @@ Derived types must implement:
 public abstract void ProcessMessage(object sender, IConnectEventArgs args);
 ```
 
-This is the main per-message handler in the connection event pipeline.
+This is the main per-message handler in the connection event pipeline. `ProcessFrame(...)` is the listener-facing entrypoint before `ProcessMessage(...)` runs.
 
 ## Public members at a glance
 
 | Type | Public members |
 |---|---|
-| `Protocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)`, `ValidateConnection(...)`, `SetConnectionAcceptance(...)`, `GenerateReport()` |
+| `Protocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessFrame(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)`, `ValidateConnection(...)`, `SetConnectionAcceptance(...)`, `GenerateReport()` |
 
 ## Acceptance flow
 

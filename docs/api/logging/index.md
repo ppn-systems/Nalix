@@ -12,7 +12,7 @@
 - `src/Nalix.Logging/Options/NLogixOptions.cs`
 - `src/Nalix.Logging/Options/FileLogOptions.cs`
 - `src/Nalix.Logging/Options/ConsoleLogOptions.cs`
-- `src/Nalix.Logging/Engine/NLogixDistributor.cs`
+- `src/Nalix.Logging/NLogixDistributor.cs`
 
 ## Main types
 
@@ -20,6 +20,7 @@
 - `NLogix.Host`
 - `NLogixOptions`
 - `NLogixFx`
+- `NLogixDistributor`
 - `INLogixTarget`
 
 ## What it does
@@ -32,6 +33,8 @@
 ## Basic usage
 
 ```csharp
+using Nalix.Logging;
+
 NLogix logger = NLogix.Host.Instance;
 
 logger.Info("server-started");
@@ -42,6 +45,10 @@ logger.Error("dispatch-failed");
 ## Custom setup
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Logging;
+using Nalix.Logging.Sinks;
+
 NLogix logger = new(cfg =>
 {
     cfg.SetMinimumLevel(LogLevel.Debug)
@@ -53,49 +60,37 @@ NLogix logger = new(cfg =>
 ## Typical integration
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Framework.Injection;
+using Nalix.Logging;
+
 InstanceManager.Instance.Register<ILogger>(NLogix.Host.Instance);
 ```
 
 This is the usual pattern for server startup so listeners, dispatch, and framework services use the same logger instance.
 
-## NLogixEngine
+## NLogixDistributor
 
-`NLogixEngine` is the abstract high-performance base used by the concrete logging runtime.
+`NLogixDistributor` is the internal fan-out component that forwards published entries to registered targets.
 
 ## Source mapping
 
-- `src/Nalix.Logging/Engine/NLogixEngine.cs`
+- `src/Nalix.Logging/NLogixDistributor.cs`
 
 It is responsible for:
 
-- caching and applying `NLogixOptions`
-- checking minimum log level before formatting
-- publishing `LogEntry` objects into `NLogixDistributor`
-- owning common formatting helpers and disposal behavior
+- registering `INLogixTarget` implementations
+- publishing each entry to every registered target
+- coordinating target lifetime and disposal
 
-This is the type that turns a logging call into a published entry while keeping the hot path fast.
-
-## NLogixConstants
-
-`NLogixConstants` contains the small formatting constants shared by the logging implementation.
-
-## Source mapping
-
-- `src/Nalix.Logging/Engine/NLogixConstants.cs`
-
-Current constants include:
-
-- `LogBracketOpen`
-- `LogBracketClose`
-- `LogSpaceSeparator`
-- `LogDashSeparator`
-- `DefaultLogBufferSize`
+`NLogix` owns one distributor instance and uses it as the publish path after level filtering.
 
 ## Notes
 
 - keep one shared logger for the process when possible
 - prefer registering targets during startup, not mid-flight
-- use `NLogix.Host.Instance` unless you have a good reason to own a separate logger graph
+- `NLogix` applies both console and file targets by default when you construct it without a custom configuration delegate
+- `NLogix.Host.Instance` currently boots a shared logger with a console target and `Debug` minimum level
 
 ## Related APIs
 

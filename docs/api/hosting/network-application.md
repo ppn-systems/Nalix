@@ -65,7 +65,7 @@ The builder uses a fluent API to configure the host before it is built.
 ### Metadata and Dispatch
 
 - `AddMetadataProvider<TProvider>()`: Registers a packet metadata provider.
-- `ConfigureDispatch(Action<PacketDispatchOptions<IPacket>>)`: Configures the `PacketDispatchChannel` options, including middleware and custom logic.
+- `ConfigureDispatch(Action<PacketDispatchOptions<IPacket>>)`: Configures the `PacketDispatchChannel` options, including middleware and custom logic for built-in and custom packet pipelines.
 
 ### Server Bindings
 

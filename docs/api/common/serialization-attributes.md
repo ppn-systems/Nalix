@@ -37,6 +37,18 @@ These types define how Nalix interprets a serializable model:
 - which members use dynamic sizing
 - which shapes are considered fixed-size
 
+## Important behavior
+
+The attribute layer allows the core serialization attributes to be placed on either a field or a property.
+
+For `LiteSerializer` automatic object and struct serialization, the effective runtime behavior is still field-based:
+
+- fields are serialized directly
+- properties mainly act as metadata carriers
+- auto-properties usually work because their attributes can be associated with the generated backing field
+- custom properties without a compiler-generated backing field are not serialized as independent members
+- static members are outside the automatic serialization model
+
 ## Attributes
 
 ### `SerializePackableAttribute`
@@ -56,7 +68,7 @@ It is useful when:
 
 - wire order must stay stable
 - you need explicit header/body layout
-- a type has multiple fields or properties that must serialize in a defined sequence
+- a type has multiple fields or auto-properties that must serialize in a defined sequence
 
 ### `SerializeIgnoreAttribute`
 
@@ -67,6 +79,8 @@ Use it for:
 - cached values
 - computed properties
 - runtime-only state
+
+On automatic serializers, this is especially useful on properties that expose derived state but should not participate in field discovery through a backing field.
 
 ### `SerializeHeaderAttribute`
 
@@ -123,6 +137,9 @@ public sealed class PingRequest
     public string Message { get; set; } = string.Empty;
 }
 ```
+
+For automatic member discovery, prefer straightforward fields or auto-properties for members that carry wire data.
+If a model is immutable by constructor design or depends on strict readonly semantics, use a custom formatter rather than assuming every property shape can be reconstructed automatically.
 
 ## Relationship to `PacketBase<TSelf>`
 
