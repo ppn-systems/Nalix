@@ -23,8 +23,8 @@ public abstract partial class Protocol : IProtocol
     /// <summary>
     /// Processes a raw inbound frame.
     /// The base implementation applies the shared buffer pipeline first
-    /// (decrypt -> decompress), then forwards the result to
-    /// <see cref="ProcessMessage(object?, IConnectEventArgs)"/>.
+    /// (decrypt -> decompress), retains the lease for the downstream handler,
+    /// and then forwards the result to <see cref="ProcessMessage(object?, IConnectEventArgs)"/>.
     /// </summary>
     /// <param name="sender">The sender of the message.</param>
     /// <param name="args">Event arguments containing the connection and message data.</param>

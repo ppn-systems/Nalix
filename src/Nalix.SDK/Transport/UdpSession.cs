@@ -180,7 +180,7 @@ public class UdpSession : TransportSession
         int written = packet.Serialize(src.Span);
         src.CommitLength(written);
 
-        // Step 2: Transform (Compress -> Encrypt) using the built-in packet header
+        // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
         BufferLease transformed = this.TransformOutbound(src);
 
         try
@@ -297,7 +297,7 @@ public class UdpSession : TransportSession
                 // (Server-to-Client UDP does not include the 7-byte token)
                 BufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
 
-                // Transform (Decrypt -> Decompress)
+                // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
                 BufferLease transformed = this.TransformInbound(datagram);
 
                 try

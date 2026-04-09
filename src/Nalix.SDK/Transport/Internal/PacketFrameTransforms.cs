@@ -10,8 +10,15 @@ using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
 
+/// <summary>
+/// SDK-local bridge for applying the shared packet cipher/compression helpers
+/// in the correct order for inbound and outbound transport frames.
+/// </summary>
 internal static class PacketFrameTransforms
 {
+    /// <summary>
+    /// Applies inbound transforms in transport order: decrypt first, then decompress.
+    /// </summary>
     public static BufferLease TransformInbound(BufferLease src, ReadOnlySpan<byte> secret)
     {
         BufferLease current = src;
@@ -44,6 +51,9 @@ internal static class PacketFrameTransforms
         }
     }
 
+    /// <summary>
+    /// Applies outbound transforms in transport order: compress first, then encrypt.
+    /// </summary>
     public static BufferLease TransformOutbound(BufferLease src, TransportOptions options, bool? encrypt = null)
     {
         bool doEncrypt = encrypt ?? options.EncryptionEnabled;
