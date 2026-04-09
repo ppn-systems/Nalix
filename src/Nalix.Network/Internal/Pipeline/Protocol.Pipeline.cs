@@ -11,6 +11,7 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Runtime.Handlers;
 using Nalix.Network.Internal.Pipeline.Stages;
 using Nalix.Network.Options;
 
@@ -45,7 +46,7 @@ namespace Nalix.Network.Internal.Pipeline;
 /// Individual protocol stages must not dispose these objects.
 /// </para>
 /// <para>
-/// Stage instances (<see cref="HandshakeStage"/>, <see cref="DecryptStage"/>, <see cref="DecompressStage"/>)
+/// Stage instances (<see cref="DecryptStage"/>, <see cref="DecompressStage"/>)
 /// are resolved as shared singletons and must therefore remain stateless and thread-safe.
 /// </para>
 /// </remarks>
@@ -58,7 +59,6 @@ internal sealed class ProtocolPipeline : IPoolable, IDisposable
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private static readonly IProtocolStage s_decrypt = InstanceManager.Instance.GetOrCreateInstance<DecryptStage>();
-    private static readonly IProtocolStage s_handshake = InstanceManager.Instance.GetOrCreateInstance<HandshakeStage>();
     private static readonly IProtocolStage s_decompress = InstanceManager.Instance.GetOrCreateInstance<DecompressStage>();
 
     #endregion Static
@@ -218,10 +218,16 @@ internal sealed class ProtocolPipeline : IPoolable, IDisposable
         try
         {
             // Stage 1: Handshake gate. Only handshake frames are processed until established.
-            if (!HandshakeStage.IsEstablished(args.Connection))
+            if (!HandshakeHandlers.IsEstablished(args.Connection))
             {
-                s_handshake.ProcessMessage(sender, args);
-                return;
+                // Peak OpCode without full serialization
+                // Handshake OpCode is 0x0001
+                ushort opcode = BitConverter.ToUInt16(args.Lease.Span);
+                if (opcode != 0x0001)
+                {
+                    // Drop non-handshake packets until established
+                    return;
+                }
             }
 
             // Stage 2: Decrypt stage.

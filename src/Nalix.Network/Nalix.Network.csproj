@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -33,6 +33,7 @@ Designed for latency-sensitive workloads, it emphasizes efficient I/O, predictab
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
+		<ProjectReference Include="..\Nalix.Runtime\Nalix.Runtime.csproj" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">

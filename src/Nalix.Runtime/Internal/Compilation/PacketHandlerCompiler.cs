@@ -275,7 +275,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         // without any explicit cast.
         bool needsContextBridge =
             (kind is SignatureKind.ContextOnly or SignatureKind.ContextWithToken)
-            && parms[0].ParameterType != typeof(PacketContext<TPacket>);
+            && parms[0].ParameterType != typeof(PacketContext<TPacket>)
+            && parms[0].ParameterType != typeof(IPacketContext<TPacket>);
 
         Func<object, PacketContext<TPacket>, object> x12;
 
@@ -416,7 +417,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsPacketContextType(Type type)
         => type.IsGenericType
-        && type.GetGenericTypeDefinition() == typeof(PacketContext<>);
+        && (type.GetGenericTypeDefinition() == typeof(PacketContext<>) || type.GetGenericTypeDefinition() == typeof(IPacketContext<>));
 
     /// <summary>
     /// Builds the argument expression array for the compiled method-call expression.

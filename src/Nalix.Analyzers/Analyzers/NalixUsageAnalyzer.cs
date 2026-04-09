@@ -508,11 +508,11 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             }
 
             ushort? opcode = GetOpcode(methodSymbol, symbols.PacketOpcodeAttribute);
-            bool isCandidate = IsNalixHandlerCandidate(methodSymbol, symbols.PacketInterface, symbols.PacketContextType);
+            bool isCandidate = IsNalixHandlerCandidate(methodSymbol, symbols);
 
             if (opcode.HasValue)
             {
-                if (opcode.Value < 0x0100)
+                if (opcode.Value < 0x0100 && !HasInternalByPass(methodSymbol, typeSymbol, symbols))
                 {
                     Report(context, DiagnosticDescriptors.ReservedOpCodeRange, methodSymbol, methodSymbol.Name, opcode.Value);
                 }
@@ -906,7 +906,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         ITypeSymbol firstParameterType = parameters[0].Type;
-        if (IsPacketContext(firstParameterType, symbols.PacketContextType))
+        if (IsPacketContext(firstParameterType, symbols))
         {
             return parameters.Length switch
             {
@@ -947,6 +947,11 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
+        if (Implements(returnType, symbols.PacketInterface))
+        {
+            return true;
+        }
+
         if (returnType is INamedTypeSymbol namedReturnType && namedReturnType.IsGenericType)
         {
             return SymbolEqualityComparer.Default.Equals(namedReturnType.ConstructedFrom, symbols.GenericTaskType)
@@ -956,7 +961,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool IsNalixHandlerCandidate(IMethodSymbol methodSymbol, INamedTypeSymbol? packetInterfaceSymbol, INamedTypeSymbol? packetContextSymbol)
+    private static bool IsNalixHandlerCandidate(IMethodSymbol methodSymbol, SymbolSet symbols)
     {
         if (methodSymbol.Parameters.Length is < 1 or > 3)
         {
@@ -964,7 +969,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         ITypeSymbol firstParameterType = methodSymbol.Parameters[0].Type;
-        return Implements(firstParameterType, packetInterfaceSymbol) || IsPacketContext(firstParameterType, packetContextSymbol);
+        return Implements(firstParameterType, symbols.PacketInterface) || IsPacketContext(firstParameterType, symbols);
     }
 
     private static bool TryGetPacketContextType(IMethodSymbol methodSymbol, INamedTypeSymbol? packetContextSymbol, out ITypeSymbol? packetType)
@@ -996,7 +1001,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         ITypeSymbol firstParameterType = methodSymbol.Parameters[0].Type;
-        if (IsPacketContext(firstParameterType, symbols.PacketContextType))
+        if (IsPacketContext(firstParameterType, symbols))
         {
             return null;
         }
@@ -1020,11 +1025,28 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol? attributeSymbol)
         => attributeSymbol is not null && symbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeSymbol));
 
-    private static bool IsPacketContext(ITypeSymbol typeSymbol, INamedTypeSymbol? packetContextSymbol)
-        => packetContextSymbol is not null
-           && typeSymbol is INamedTypeSymbol namedType
-           && namedType.IsGenericType
-           && SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, packetContextSymbol);
+    private static bool IsPacketContext(ITypeSymbol? type, SymbolSet symbols)
+    {
+        if (type is not INamedTypeSymbol namedType)
+        {
+            return false;
+        }
+
+        if (!namedType.IsGenericType)
+        {
+            return false;
+        }
+
+        INamedTypeSymbol genericDef = namedType.ConstructedFrom;
+        return SymbolEqualityComparer.Default.Equals(genericDef, symbols.PacketContextType)
+               || SymbolEqualityComparer.Default.Equals(genericDef, symbols.PacketContextInterface);
+    }
+
+    private static bool HasInternalByPass(IMethodSymbol methodSymbol, INamedTypeSymbol typeSymbol, SymbolSet symbols)
+    {
+        return HasAttribute(methodSymbol, symbols.ReservedOpcodePermittedAttribute)
+               || HasAttribute(typeSymbol, symbols.ReservedOpcodePermittedAttribute);
+    }
 
     private static bool Implements(ITypeSymbol typeSymbol, INamedTypeSymbol? interfaceSymbol)
         => interfaceSymbol is not null && (SymbolEqualityComparer.Default.Equals(typeSymbol, interfaceSymbol)
@@ -1509,6 +1531,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol? serializeDynamicSizeAttribute,
             INamedTypeSymbol? serializeLayoutType,
             INamedTypeSymbol? packetContextType,
+            INamedTypeSymbol? packetContextInterface,
             INamedTypeSymbol? connectionType,
             INamedTypeSymbol? packetDispatchOptionsType,
             INamedTypeSymbol? packetRegistryFactoryType,
@@ -1520,6 +1543,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol? middlewareStageType,
             INamedTypeSymbol? configurationLoaderType,
             INamedTypeSymbol? configuredIgnoreAttribute,
+            INamedTypeSymbol? reservedOpcodePermittedAttribute,
             INamedTypeSymbol? packetMetadataProviderType,
             INamedTypeSymbol? packetMetadataBuilderType,
             INamedTypeSymbol? methodInfoType,
@@ -1545,6 +1569,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             this.SerializeDynamicSizeAttribute = serializeDynamicSizeAttribute;
             this.SerializeLayoutType = serializeLayoutType;
             this.PacketContextType = packetContextType;
+            this.PacketContextInterface = packetContextInterface;
             this.ConnectionType = connectionType;
             this.PacketDispatchOptionsType = packetDispatchOptionsType;
             this.PacketRegistryFactoryType = packetRegistryFactoryType;
@@ -1556,6 +1581,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             this.MiddlewareStageType = middlewareStageType;
             this.ConfigurationLoaderType = configurationLoaderType;
             this.ConfiguredIgnoreAttribute = configuredIgnoreAttribute;
+            this.ReservedOpcodePermittedAttribute = reservedOpcodePermittedAttribute;
             this.PacketMetadataProviderType = packetMetadataProviderType;
             this.PacketMetadataBuilderType = packetMetadataBuilderType;
             this.MethodInfoType = methodInfoType;
@@ -1582,6 +1608,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         public INamedTypeSymbol? SerializeDynamicSizeAttribute { get; }
         public INamedTypeSymbol? SerializeLayoutType { get; }
         public INamedTypeSymbol? PacketContextType { get; }
+        public INamedTypeSymbol? PacketContextInterface { get; }
         public INamedTypeSymbol? ConnectionType { get; }
         public INamedTypeSymbol? PacketDispatchOptionsType { get; }
         public INamedTypeSymbol? PacketRegistryFactoryType { get; }
@@ -1593,6 +1620,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         public INamedTypeSymbol? MiddlewareStageType { get; }
         public INamedTypeSymbol? ConfigurationLoaderType { get; }
         public INamedTypeSymbol? ConfiguredIgnoreAttribute { get; }
+        public INamedTypeSymbol? ReservedOpcodePermittedAttribute { get; }
         public INamedTypeSymbol? PacketMetadataProviderType { get; }
         public INamedTypeSymbol? PacketMetadataBuilderType { get; }
         public INamedTypeSymbol? MethodInfoType { get; }
@@ -1621,6 +1649,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol? serializeLayoutType = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeLayout");
             INamedTypeSymbol? packetHeaderOffsetType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketHeaderOffset");
             INamedTypeSymbol? packetContextType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketContext`1");
+            INamedTypeSymbol? packetContextInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketContext`1");
             INamedTypeSymbol? connectionType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.IConnection");
             INamedTypeSymbol? packetDispatchOptionsType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketDispatchOptions`1");
             INamedTypeSymbol? packetRegistryFactoryType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketRegistryFactory");
@@ -1632,6 +1661,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol? middlewareStageType = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStage");
             INamedTypeSymbol? configurationLoaderType = compilation.GetTypeByMetadataName("Nalix.Framework.Configuration.Binding.ConfigurationLoader");
             INamedTypeSymbol? configuredIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ConfiguredIgnoreAttribute");
+            INamedTypeSymbol? reservedOpcodePermittedAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ReservedOpcodePermittedAttribute");
             INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
             INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
             INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
@@ -1671,6 +1701,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     serializeDynamicSizeAttribute,
                     serializeLayoutType,
                     packetContextType,
+                    packetContextInterface,
                     connectionType,
                     packetDispatchOptionsType,
                     packetRegistryFactoryType,
@@ -1682,6 +1713,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     middlewareStageType,
                     configurationLoaderType,
                     configuredIgnoreAttribute,
+                    reservedOpcodePermittedAttribute,
                     packetMetadataProviderType,
                     packetMetadataBuilderType,
                     methodInfoType,

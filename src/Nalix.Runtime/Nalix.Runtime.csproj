@@ -33,4 +33,8 @@ It serves as the foundation for building complex message-processing workflows, o
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Handlers\" />
+	</ItemGroup>
 </Project>

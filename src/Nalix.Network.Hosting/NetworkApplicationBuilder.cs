@@ -14,6 +14,7 @@ using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Hosting.Internal;
+using Nalix.Runtime.Handlers;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 
@@ -33,7 +34,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     private readonly HostingBuilderContext _state;
 
     internal NetworkApplicationBuilder(HostingBuilderContext state)
-        => _state = state ?? throw new ArgumentNullException(nameof(state));
+    {
+        _state = state ?? throw new ArgumentNullException(nameof(state));
+        this.AddHandler<HandshakeHandlers>();
+        this.AddPacketAssembly<HandshakeHandlers>(); // Registers the Handshake packet itself
+    }
 
     /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureLogging(ILogger logger)
