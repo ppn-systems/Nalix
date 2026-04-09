@@ -26,9 +26,9 @@ public sealed class BenchmarkConfig : ManualConfig
         _ = this.AddJob(
              Job.Default
                 .WithRuntime(CoreRuntime.Core10_0) // .NET 10
-                .WithLaunchCount(1)
-                .WithWarmupCount(6)
-                .WithIterationCount(15)
+                .WithLaunchCount(2)
+                .WithWarmupCount(10)
+                .WithIterationCount(20)
                 .WithInvocationCount(1)
                 .WithUnrollFactor(1)
                 .WithMinIterationTime(TimeInterval.FromMilliseconds(250))

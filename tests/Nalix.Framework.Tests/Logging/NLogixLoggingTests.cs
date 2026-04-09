@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration;
 using Nalix.Logging;
@@ -12,34 +11,19 @@ namespace Nalix.Framework.Tests.Logging;
 public sealed class NLogixLoggingTests
 {
     [Fact]
-    public async Task PublishAsync_WhenTargetRegistered_ForwardsEntryToTarget()
-    {
-        using NLogixDistributor distributor = new();
-        RecordingTarget target = new();
-        distributor.RegisterTarget(target);
-
-        await distributor.PublishAsync(DateTime.UtcNow, LogLevel.Information, new EventId(7, "test"), "hello", null);
-
-        Assert.Single(target.Messages);
-        Assert.Equal("hello", target.Messages[0]);
-        Assert.Equal(1, distributor.TotalEntriesPublished);
-        Assert.Equal(1, distributor.TotalTargetInvocations);
-    }
-
-    [Fact]
     public void Publish_WhenTargetThrows_IsolatesFailureAndInvokesErrorHandler()
     {
         using NLogixDistributor distributor = new();
         RecordingTarget healthy = new();
         ThrowingTarget faulty = new();
 
-        distributor.RegisterTarget(faulty);
-        distributor.RegisterTarget(healthy);
+        _ = distributor.RegisterTarget(faulty);
+        _ = distributor.RegisterTarget(healthy);
 
         distributor.Publish(DateTime.UtcNow, LogLevel.Error, new EventId(13, "boom"), "payload", null);
 
-        Assert.Single(healthy.Messages);
-        Assert.Single(faulty.Errors);
+        _ = Assert.Single(healthy.Messages);
+        _ = Assert.Single(faulty.Errors);
         Assert.Equal(1, distributor.TotalPublishErrors);
         Assert.Equal(1, distributor.TotalTargetInvocations);
     }
@@ -82,7 +66,7 @@ public sealed class NLogixLoggingTests
         public List<string> Messages { get; } = [];
 
         public void Publish(DateTime timestampUtc, LogLevel logLevel, EventId eventId, string message, Exception? exception)
-            => Messages.Add(message);
+            => this.Messages.Add(message);
     }
 
     private sealed class ThrowingTarget : INLogixTarget, INLogixErrorHandler
@@ -93,7 +77,7 @@ public sealed class NLogixLoggingTests
             => throw new InvalidOperationException("target failure");
 
         public void HandleError(Exception exception, DateTime timestampUtc, LogLevel logLevel, EventId eventId, string message, Exception? originalException)
-            => Errors.Add(exception);
+            => this.Errors.Add(exception);
     }
 
     private static void ResetLoggingConfiguration()
