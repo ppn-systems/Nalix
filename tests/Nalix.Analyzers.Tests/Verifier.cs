@@ -30,13 +30,13 @@ internal static class Verifier<TCodeFix>
         Project project = CreateProject(sources);
         Document document = project.Documents.First(d => d.Name != "Prelude.cs");
         ImmutableArray<Diagnostic> diagnostics = await GetDiagnosticsAsync(document).ConfigureAwait(false);
-        
+
         // Filter diagnostics to only those in TestX.cs files
         string[] actual = [.. diagnostics
             .Where(d => d.Location.SourceTree?.FilePath?.StartsWith("Test") == true)
             .Select(d => d.Id)
             .OrderBy(x => x)];
-        
+
         string[] expected = [.. expectedDiagnosticIds.OrderBy(x => x)];
         Assert.Equal(expected, actual);
     }
@@ -196,10 +196,7 @@ internal static class Verifier<TCodeFix>
         return await withAnalyzers.GetAnalyzerDiagnosticsAsync().ConfigureAwait(false);
     }
 
-    private static Document CreateDocument(string source)
-    {
-        return CreateProject([source]).Documents.First(d => d.Name == "Test0.cs");
-    }
+    private static Document CreateDocument(string source) => CreateProject([source]).Documents.First(d => d.Name == "Test0.cs");
 
     private static Project CreateProject(string[] sources)
     {

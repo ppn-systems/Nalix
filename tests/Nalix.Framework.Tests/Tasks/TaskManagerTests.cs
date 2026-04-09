@@ -336,7 +336,7 @@ public sealed class TaskManagerTests : IDisposable
 
         Assert.False(isRunning);
         Assert.Equal(1, totalRuns);
-        Assert.NotNull(lastHeartbeatUtc);
+        _ = Assert.NotNull(lastHeartbeatUtc);
     }
 
     [Fact]
