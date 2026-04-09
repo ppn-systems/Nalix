@@ -450,7 +450,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evicted Connections  : {Volatile.Read(ref _evictedConnections)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rejected Connections : {Volatile.Read(ref _rejectedConnections)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {_shardCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Queue Depth: {_anonymousQueue.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Queue Depth: {this.CountAnonymousConnections()}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(_maxConnections < 0 ? "Unlimited" : _maxConnections.ToString(CultureInfo.InvariantCulture))}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {_options.DropPolicy}");
 
@@ -559,7 +559,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             ["EvictedConnections"] = Volatile.Read(ref _evictedConnections),
             ["RejectedConnections"] = Volatile.Read(ref _rejectedConnections),
             ["ShardCount"] = _shardCount,
-            ["AnonymousQueueDepth"] = _anonymousQueue.Count,
+            ["AnonymousQueueDepth"] = this.CountAnonymousConnections(),
             ["MaxConnections"] = _maxConnections,
             ["DropPolicy"] = _options.DropPolicy.ToString(),
         };
@@ -697,7 +697,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
 
             added = true;
-            if (_trackEvictionQueue)
+            if (_trackEvictionQueue && this.IsAnonymousConnection(connection))
             {
                 _anonymousQueue.Enqueue(connectionKey);
             }
@@ -838,6 +838,16 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         while (_anonymousQueue.TryDequeue(out UInt56 oldestId))
         {
             ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(oldestId);
+            if (!shard.TryGetValue(oldestId, out IConnection? candidate) || candidate is null)
+            {
+                continue;
+            }
+
+            if (!this.IsAnonymousConnection(candidate))
+            {
+                continue;
+            }
+
             if (!shard.TryRemove(oldestId, out IConnection? evictedConnection) || evictedConnection is null)
             {
                 continue;
@@ -869,6 +879,28 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsAnonymousConnection(IConnection connection) => connection.Level == PermissionLevel.NONE;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int CountAnonymousConnections()
+    {
+        int anonymous = 0;
+
+        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        {
+            foreach (IConnection connection in shard.Values)
+            {
+                if (this.IsAnonymousConnection(connection))
+                {
+                    anonymous++;
+                }
+            }
+        }
+
+        return anonymous;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
