@@ -155,13 +155,15 @@ The repository uses GitHub Actions. Workflows live in `.github/workflows/`:
 | `ci-linux.yml`                   | Build & test on Ubuntu via `_build.yml`              |
 | `ci-windows.yml`                 | Build & test on Windows via `_build.yml`             |
 | `_build.yml`                     | Reusable template: restore → build → test → publish  |
+| `benchmark.yml`                  | Run BenchmarkDotNet on `master`, upload artifacts, compare against the previous benchmark artifact |
 | `_codeql.yml`                    | CodeQL security analysis (C#, scheduled + PR)        |
 | `docs.yml`                       | MkDocs build and deploy to GitHub Pages              |
-| `release-please.yml`             | Bump `.csproj` versions from release-please manifest |
 | `community-welcome.yml`          | Greet first-time contributors                        |
 | `community-stale.yml`            | Mark and close stale issues/PRs                      |
 | `security-dependency-review.yml` | Scan NuGet deps for CVEs on every PR                 |
 | `repo-label-sync.yml`            | Sync labels from `.github/labels.yml`                |
+
+Release/versioning rules are documented in `CONTRIBUTING.md` and follow Conventional Commits (`fix` = patch, `feat` = minor, breaking changes = major).
 
 **Label gate**: PRs labelled `documentation` skip build and CodeQL workflows — they only trigger `docs.yml`. Do not remove or rename this label.
 
