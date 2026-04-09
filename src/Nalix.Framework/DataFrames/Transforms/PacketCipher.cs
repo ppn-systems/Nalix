@@ -16,10 +16,6 @@ namespace Nalix.Framework.DataFrames.Transforms;
 /// </summary>
 public static class PacketCipher
 {
-    /// <inheritdoc cref="FrameTransformer.GetPlaintextLength(ReadOnlySpan{byte})"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetPlaintextLength(ReadOnlySpan<byte> encryptedFrame) => FrameTransformer.GetPlaintextLength(encryptedFrame);
-
     /// <summary>
     /// Decrypts a framed packet and clears the encrypted flag in the resulting buffer.
     /// </summary>
@@ -28,7 +24,8 @@ public static class PacketCipher
     {
         ArgumentNullException.ThrowIfNull(src);
 
-        BufferLease dest = BufferLease.Rent(GetPlaintextLength(src.Span));
+        BufferLease dest = BufferLease.Rent(FrameTransformer
+                                      .GetPlaintextLength(src.Span));
         try
         {
             FrameTransformer.Decrypt(src, dest, key);
@@ -50,7 +47,8 @@ public static class PacketCipher
     {
         ArgumentNullException.ThrowIfNull(src);
 
-        BufferLease dest = BufferLease.Rent(FrameTransformer.GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
+        BufferLease dest = BufferLease.Rent(FrameTransformer
+                                      .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
         try
         {
             FrameTransformer.Encrypt(src, dest, key, suite);

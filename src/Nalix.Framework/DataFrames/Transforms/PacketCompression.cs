@@ -15,10 +15,6 @@ namespace Nalix.Framework.DataFrames.Transforms;
 /// </summary>
 public static class PacketCompression
 {
-    /// <inheritdoc cref="FrameTransformer.GetDecompressedLength(ReadOnlySpan{byte})"/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int GetDecompressedLength(ReadOnlySpan<byte> compressedFrame) => FrameTransformer.GetDecompressedLength(compressedFrame);
-
     /// <summary>
     /// Decompresses a framed packet and clears the compressed flag in the resulting buffer.
     /// </summary>
@@ -27,7 +23,8 @@ public static class PacketCompression
     {
         ArgumentNullException.ThrowIfNull(src);
 
-        BufferLease dest = BufferLease.Rent(GetDecompressedLength(src.Span[FrameTransformer.Offset..]) + FrameTransformer.Offset);
+        BufferLease dest = BufferLease.Rent(FrameTransformer
+                                      .GetDecompressedLength(src.Span[FrameTransformer.Offset..]) + FrameTransformer.Offset);
         try
         {
             FrameTransformer.Decompress(src, dest);
@@ -49,7 +46,9 @@ public static class PacketCompression
     {
         ArgumentNullException.ThrowIfNull(src);
 
-        BufferLease dest = BufferLease.Rent(FrameTransformer.GetMaxCompressedSize(src.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
+        BufferLease dest = BufferLease.Rent(FrameTransformer
+                                      .GetMaxCompressedSize(src.Length - FrameTransformer.Offset) + FrameTransformer.Offset);
+
         try
         {
             FrameTransformer.Compress(src, dest);

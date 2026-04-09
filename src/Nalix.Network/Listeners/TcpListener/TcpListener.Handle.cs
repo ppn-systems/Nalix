@@ -93,9 +93,8 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
-        args.Connection.OnProcessEvent -= _protocol.ProcessFrame;
-
         // Keep unwiring post-process as before (if you subscribed it).
+        args.Connection.OnProcessEvent -= _protocol.ProcessFrame;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
 
         s_logger?.Trace(
