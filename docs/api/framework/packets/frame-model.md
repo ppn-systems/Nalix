@@ -86,6 +86,7 @@ public sealed class ChatMessage : PacketBase<ChatMessage>
 `FrameTransformer` applies payload-level transforms while preserving the packet header region.
 
 It works on the bytes after `PacketHeaderOffset.Region`, leaving the frame header untouched.
+The shared `PacketCipher` and `PacketCompression` helpers build on top of this layer for full framed packet flows.
 
 For higher-level frame workflows, prefer the shared helpers:
 

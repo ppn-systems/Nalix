@@ -13,6 +13,7 @@ using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Network.Connections;
 using Nalix.Network.Hosting.Internal;
 using Nalix.Runtime.Handlers;
 using Nalix.Network.Routing;
@@ -214,6 +215,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         void prepareCallbacks()
         {
             RegisterLogger(_state);
+            EnsureConnectionHubRegistered();
             ApplyOptions(_state);
             RegisterPacketRegistry(_state);
 
@@ -231,6 +233,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
+                EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
                 TcpServerListener listener = new(protocol);
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
@@ -241,6 +244,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
+                EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
                 UdpServerListener listener = new(protocol);
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
@@ -336,6 +340,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
 
         return handlers.Values;
+    }
+
+    private static void EnsureConnectionHubRegistered()
+    {
+        if (InstanceManager.Instance.GetExistingInstance<IConnectionHub>() is not null)
+        {
+            return;
+        }
+
+        InstanceManager.Instance.Register(new ConnectionHub());
     }
 
     private static void RegisterLogger(HostingBuilderContext state)

@@ -5,7 +5,7 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
 using Nalix.Network.Protocols;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Network.Examples.Protocols;
 
