@@ -79,7 +79,7 @@ public sealed class HandshakeHandlers
 
     private Handshake? HandleClientHello(IConnection connection, Handshake packet)
     {
-        if (!Handshake.IsValid(packet))
+        if (!Handshake.IsValid(packet) || packet.PublicKey.Length != X25519.KeySize)
         {
             this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
             return null;
@@ -90,6 +90,8 @@ public sealed class HandshakeHandlers
 
         if (BitwiseOperations.IsZero(sharedSecret))
         {
+            MemorySecurity.ZeroMemory(sharedSecret);
+            MemorySecurity.ZeroMemory(serverKey.PrivateKey);
             this.Reject(connection, ProtocolReason.DECRYPTION_FAILED);
             return null;
         }
@@ -127,6 +129,7 @@ public sealed class HandshakeHandlers
             TranscriptHash = transcriptHash
         };
 
+        MemorySecurity.ZeroMemory(serverKey.PrivateKey);
         return reply;
     }
 
@@ -151,17 +154,19 @@ public sealed class HandshakeHandlers
         }
 
         byte[] expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
-
         if (!BitwiseOperations.FixedTimeEquals(packet.Proof, expectedProof))
         {
+            MemorySecurity.ZeroMemory(expectedProof);
             this.Reject(connection, ProtocolReason.SIGNATURE_INVALID);
             return null;
         }
 
-        connection.Secret = state.SessionKey;
+        MemorySecurity.ZeroMemory(expectedProof);
+        connection.Secret = [.. state.SessionKey];
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
         connection.Attributes[EstablishedAttributeKey] = true;
+        ClearSensitiveState(state);
         _ = connection.Attributes.Remove(StateAttributeKey);
 
         Handshake reply = new(
@@ -181,6 +186,12 @@ public sealed class HandshakeHandlers
 
     private void Reject(IConnection connection, ProtocolReason reason)
     {
+        if (TryGetState(connection, out HandshakeSessionState? state) && state is not null)
+        {
+            ClearSensitiveState(state);
+            _ = connection.Attributes.Remove(StateAttributeKey);
+        }
+
         try
         {
             Control control = new();
@@ -215,5 +226,19 @@ public sealed class HandshakeHandlers
         public byte[] SharedSecret { get; init; } = [];
         public byte[] TranscriptHash { get; init; } = [];
         public byte[] SessionKey { get; init; } = [];
+    }
+
+    private static void ClearSensitiveState(HandshakeSessionState state)
+    {
+        ClearBuffer(state.SharedSecret);
+        ClearBuffer(state.SessionKey);
+    }
+
+    private static void ClearBuffer(byte[]? buffer)
+    {
+        if (buffer is { Length: > 0 })
+        {
+            MemorySecurity.ZeroMemory(buffer);
+        }
     }
 }
