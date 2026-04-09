@@ -11,7 +11,7 @@ Use it when you want Nalix server startup to feel more like a single bootstrap p
 
 ```mermaid
 flowchart LR
-    A["NetworkApplication.CreateBuilder()"] --> B["Configure options + logger"]
+    A["NetworkApplication.CreateBuilder()"] --> B["Configure options + logger + connection hub"]
     B --> C["Register packets / handlers / metadata providers"]
     C --> D["Build()"]
     D --> E["ActivateAsync / RunAsync"]
@@ -42,6 +42,7 @@ flowchart LR
 The builder exposes fluent methods for common bootstrap concerns:
 
 - `ConfigureLogging(...)`
+- `ConfigureConnectionHub(...)`
 - `Configure<TOptions>(...)`
 - `AddPacketAssemblies(...)`
 - `AddHandlers(...)`
@@ -58,6 +59,7 @@ For a method-by-method breakdown, see the dedicated API page: [Network Applicati
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Logging;
+using Nalix.Network.Connections;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
 using Nalix.Runtime.Dispatching;
@@ -66,6 +68,7 @@ ILogger logger = NLogix.Host.Instance;
 
 var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)
+    .ConfigureConnectionHub(new ConnectionHub())
     .Configure<NetworkSocketOptions>(options =>
     {
         options.Port = 57206;

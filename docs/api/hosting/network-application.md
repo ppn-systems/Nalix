@@ -17,10 +17,10 @@ The public API surface revolves around two main types:
 
 ```mermaid
 flowchart LR
-    A["NetworkApplication.CreateBuilder()"] --> B["Configure options, packets, handlers"]
+    A["NetworkApplication.CreateBuilder()"] --> B["Configure options, logger, connection hub, packets, handlers"]
     B --> C["Build()"]
     C --> D["ActivateAsync()"]
-    D --> E["Apply options & Register logger"]
+    D --> E["Apply options & Register logger / connection hub"]
     E --> F["Register Packet Registry"]
     F --> G["Create & Activate PacketDispatchChannel"]
     G --> H["Create protocol instances"]
@@ -32,7 +32,7 @@ flowchart LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `Configure<TOptions>(...)`, `AddPacketAssemblies(...)`, `AddPacketAssembly<TMarker>(...)`, `AddHandlers(...)`, `AddHandlers<TMarker>(...)`, `AddHandler<THandler>(...)`, `AddMetadataProvider<TProvider>()`, `ConfigureDispatch(...)`, `AddTcp<TProtocol>(...)`, `AddUdp<TProtocol>(...)`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `Configure<TOptions>(...)`, `AddPacketAssemblies(...)`, `AddPacketAssembly<TMarker>(...)`, `AddHandlers(...)`, `AddHandlers<TMarker>(...)`, `AddHandler<THandler>(...)`, `AddMetadataProvider<TProvider>()`, `ConfigureDispatch(...)`, `AddTcp<TProtocol>(...)`, `AddUdp<TProtocol>(...)`, `Build()` |
 
 ## `NetworkApplication`
 
@@ -53,6 +53,7 @@ The builder uses a fluent API to configure the host before it is built.
 ### Logging and Options
 
 - `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager`.
+- `ConfigureConnectionHub(ConnectionHub)`: Registers the shared connection hub into the `InstanceManager`.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type. This is applied during the activation phase.
 
 ### Packet and Handler Discovery
@@ -78,6 +79,7 @@ The builder uses a fluent API to configure the host before it is built.
 ```csharp
 var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)
+    .ConfigureConnectionHub(new ConnectionHub())
     .Configure<NetworkSocketOptions>(options =>
     {
         options.Port = 57206;

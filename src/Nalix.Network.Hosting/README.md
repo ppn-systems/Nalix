@@ -15,6 +15,7 @@
 ```csharp
 NetworkApplication host = NetworkApplication.CreateBuilder()
                                             .ConfigureLogging(logger)
+                                            .ConfigureConnectionHub(new ConnectionHub())
                                             .Configure<NetworkSocketOptions>(options => options.Port = 57206)
                                             .AddHandlers<PacketCommandHandler>()
                                             .AddPacketAssemblies<HandshakePacket>()

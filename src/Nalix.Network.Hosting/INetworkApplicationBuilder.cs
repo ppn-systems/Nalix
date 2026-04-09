@@ -8,6 +8,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Routing;
+using Nalix.Network.Connections;
 using Nalix.Runtime.Dispatching;
 using Nalix.Framework.Memory.Buffers;
 
@@ -33,6 +34,13 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureLogging(ILogger logger);
 
     /// <summary>
+    /// Sets the <see cref="ConnectionHub"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub);
+
+    /// <summary>
     /// Configures a Nalix options object before the host starts.
     /// </summary>
     /// <typeparam name="TOptions">The configuration type to mutate.</typeparam>
@@ -49,7 +57,7 @@ public interface INetworkApplicationBuilder
     /// otherwise, all concrete packet types are considered.
     /// </param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacketAssemblies(Assembly assembly, bool requirePacketAttribute = false);
+    INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false);
 
     /// <summary>
     /// Adds packet types discovered from the assembly that contains <typeparamref name="TMarker"/>.
@@ -60,7 +68,7 @@ public interface INetworkApplicationBuilder
     /// otherwise, all concrete packet types are considered.
     /// </param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacketAssembly<TMarker>(bool requirePacketAttribute = false);
+    INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false);
 
     /// <summary>
     /// Adds packet controller types discovered from the specified assembly.

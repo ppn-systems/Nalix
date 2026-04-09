@@ -15,9 +15,9 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Nalix.Network.Hosting.Internal;
-using Nalix.Runtime.Handlers;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Handlers;
 
 namespace Nalix.Network.Hosting;
 
@@ -37,8 +37,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     internal NetworkApplicationBuilder(HostingBuilderContext state)
     {
         _state = state ?? throw new ArgumentNullException(nameof(state));
-        this.AddHandler<HandshakeHandlers>();
-        this.AddPacketAssembly<HandshakeHandlers>(); // Registers the Handshake packet itself
+        _ = this.AddHandler<HandshakeHandlers>();
     }
 
     /// <inheritdoc />
@@ -47,6 +46,15 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         InstanceManager.Instance.Register<ILogger>(logger);
         _state.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub)
+    {
+        ArgumentNullException.ThrowIfNull(connectionHub);
+
+        InstanceManager.Instance.Register(connectionHub);
         return this;
     }
 
@@ -64,7 +72,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacketAssemblies(Assembly assembly, bool requirePacketAttribute = false)
+    public INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false)
     {
         ArgumentNullException.ThrowIfNull(assembly);
 
@@ -73,8 +81,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacketAssembly<TMarker>(bool requirePacketAttribute = false)
-        => this.AddPacketAssemblies(typeof(TMarker).Assembly, requirePacketAttribute);
+    public INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false)
+        => this.AddPacket(typeof(TMarker).Assembly, requirePacketAttribute);
 
     /// <inheritdoc />
     public INetworkApplicationBuilder AddHandlers(Assembly assembly)
@@ -86,8 +94,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandlers<TMarker>()
-        => this.AddHandlers(typeof(TMarker).Assembly);
+    public INetworkApplicationBuilder AddHandlers<TMarker>() => this.AddHandlers(typeof(TMarker).Assembly);
 
     /// <inheritdoc />
     public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
