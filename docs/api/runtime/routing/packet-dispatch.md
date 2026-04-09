@@ -1,6 +1,7 @@
 # Packet Dispatch
 
-`PacketDispatchChannel` is the main asynchronous dispatch loop for raw network frames. It accepts `IBufferLease` payloads, queues them by connection and packet priority, runs buffer middleware, deserializes `IPacket`, and then invokes the compiled handler pipeline from `PacketDispatcherBase<IPacket>`.
+`PacketDispatchChannel` is the main asynchronous dispatch loop for raw network frames. It accepts `IBufferLease` payloads, queues them by connection and packet priority, runs buffer middleware, deserializes `IPacket`, and then invokes the compiled handler pipeline.
+The dispatch model is still generic at the handler layer, so the same runtime can drive built-in packets and custom packet types.
 
 ## Source mapping
 
@@ -22,7 +23,7 @@
 | Type | Public members |
 |---|---|
 | `PacketDispatchChannel` | `Activate(...)`, `Deactivate(...)`, `HandlePacket(...)` overloads, `GenerateReport()`, `Dispose()` |
-| `PacketDispatcherBase<TPacket>` | compiled handler and middleware execution helpers used by the channel |
+| `PacketDispatcherBase<TPacket>` | compiled handler and middleware execution helpers used by the channel for any packet type `TPacket` |
 
 ## Input paths
 
@@ -36,6 +37,7 @@
 
 - is a typed fast-path for internal callers and directly executes the compiled handler pipeline
 - should be treated as an exception to the queue-based runtime flow, not the primary ingress path
+- remains generic-friendly at the handler boundary even though the fast-path itself uses `IPacket`
 
 ## Worker loop
 

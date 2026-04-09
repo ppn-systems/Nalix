@@ -5,13 +5,15 @@
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/UdpSession.cs`
-- `src/Nalix.Framework/DataFrames/FrameTransformer.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/PacketCipher.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/PacketCompression.cs`
+- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
 
 ## Key Features
 
 - **High Performance**: Built with `BufferLease` and `stackalloc` to minimize GC pressure and memory allocations.
 - **Session Identification**: Uses a 7-byte `SessionToken` (Snowflake) prepended to every outbound datagram for O(1) connection mapping on the server.
-- **Integrated Transformation**: Supports optional LZ4 compression and AEAD encryption (ChaCha20-Poly1305) via the internal `FrameTransformer` pipeline.
+- **Integrated Transformation**: Supports optional LZ4 compression and AEAD encryption (ChaCha20-Poly1305) via shared packet transform helpers.
 - **MTU Aware**: Enforces a configurable `MaxUdpDatagramSize` (default 1400 bytes) to prevent fragmentation at the network layer.
 
 ## Basic Usage
@@ -48,3 +50,4 @@ await client.SendAsync(myPacket);
 - [Transport Session](./transport-session.md)
 - [TCP Session](./tcp-session.md)
 - [Transport Options](./options/transport-options.md)
+- [Frame Reader and Sender](./frame-reader-and-sender.md)

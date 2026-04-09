@@ -1,6 +1,6 @@
 # Nalix.SDK.Transport.Extensions — TcpSession Helpers for Control, Directive, and Request Flows
 
-The `Nalix.SDK.Transport.Extensions` namespace enriches `IClientConnection`/`TcpSession` with helpers for protocol control packets, directives, request/response coordination, throttling safety, and subscription management. The helpers keep receive loops resilient by owning leases and catching handler faults.
+The `Nalix.SDK.Transport.Extensions` namespace enriches `TcpSession` with helpers for protocol control packets, directives, request/response coordination, throttling safety, and subscription management. The helpers keep receive loops resilient by owning leases and catching handler faults.
 
 ## Source mapping
 

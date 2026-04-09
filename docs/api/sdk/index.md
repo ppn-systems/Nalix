@@ -1,6 +1,7 @@
 # Nalix.SDK API Overview
 
 `Nalix.SDK` is the client transport layer for Nalix-based applications. The current source tree includes an abstract transport contract, a reliable TCP session, a high-performance UDP session, and helper extensions for control packets, requests, subscriptions, thread dispatching, and protocol strings.
+The SDK transport path also reuses the shared packet framing helpers from `Nalix.Framework`, so built-in packets and custom packet types can follow the same client pipeline.
 
 !!! tip "Start with TcpSession unless you have a reason not to"
     `TcpSession` is the best default for most clients because it already carries reconnect, monitoring, and helper flow that teams usually need.

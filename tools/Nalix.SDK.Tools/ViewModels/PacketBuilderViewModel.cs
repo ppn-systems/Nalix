@@ -414,7 +414,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         {
             this.RaiseStatusRequested(_texts.StatusHandshakeStarted);
             await _tcpClientService.HandshakeAsync().ConfigureAwait(true);
-            
+
             // Auto-fill SessionToken if it was received (common for UDP)
             if (_tcpClientService is NetworkClientService service && !service.SessionToken.IsEmpty)
             {

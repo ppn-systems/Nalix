@@ -6,6 +6,14 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames.Transforms;
+using Nalix.Framework.Extensions;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Network.Connections;
 
 namespace Nalix.Network.Protocols;
 
@@ -67,4 +75,110 @@ public abstract partial class Protocol
     }
 
     #endregion Disposal
+
+    #region Helpers
+
+    private bool TryHandleProcessError(Exception ex)
+    {
+        if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException)
+        {
+            s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(ProcessMessage)}] {ex.Message}");
+            return true;
+        }
+
+        s_logger?.Error(ex, $"[NW.{nameof(Protocol)}:{nameof(ProcessMessage)}] Unhandled exception during message processing.");
+        return true;
+    }
+
+    private void ProcessDecrypt(IConnectEventArgs args)
+    {
+        IBufferLease? lease = args.Lease;
+
+        if (args is not ConnectionEventArgs replaceable)
+        {
+            throw new InvalidCastException("IConnectEventArgs must be ConnectionEventArgs.");
+        }
+
+        if (lease is null)
+        {
+            throw new InvalidOperationException("Event args must have Lease.");
+        }
+
+        if ((uint)lease.Length <= (uint)PacketHeaderOffset.Flags)
+        {
+            throw new InvalidOperationException("Buffer length is invalid for decryption.");
+        }
+
+        PacketFlags flags = lease.Span.ReadFlagsLE();
+
+        if (!flags.HasFlag(PacketFlags.ENCRYPTED))
+        {
+            return;
+        }
+
+        if (args.Connection.Secret is not { } secret)
+        {
+            args.Connection.Disconnect("Encrypted frame received before session key establishment.");
+            throw new InvalidOperationException("Encrypted frame received before session key establishment.");
+        }
+
+        BufferLease? dest = null;
+
+        try
+        {
+            dest = PacketCipher.DecryptFrame(lease, secret);
+
+            IBufferLease? old = replaceable.ReplaceLease(dest);
+            old?.Dispose();
+        }
+        catch
+        {
+            dest?.Dispose();
+            throw;
+        }
+    }
+
+    private void ProcessDecompress(IConnectEventArgs args)
+    {
+        IBufferLease? lease = args.Lease;
+
+        if (args is not ConnectionEventArgs replaceable)
+        {
+            throw new InvalidCastException("IConnectEventArgs must be ConnectionEventArgs.");
+        }
+
+        if (lease is null)
+        {
+            throw new InvalidOperationException("Event args must have Lease.");
+        }
+
+        if ((uint)lease.Length <= (uint)PacketHeaderOffset.Flags)
+        {
+            throw new InvalidOperationException("Buffer length is invalid for decompression.");
+        }
+
+        PacketFlags flags = lease.Span.ReadFlagsLE();
+
+        if (!flags.HasFlag(PacketFlags.COMPRESSED))
+        {
+            return;
+        }
+
+        BufferLease? dest = null;
+
+        try
+        {
+            dest = PacketCompression.DecompressFrame(lease);
+
+            IBufferLease? old = replaceable.ReplaceLease(dest);
+            old?.Dispose();
+        }
+        catch
+        {
+            dest?.Dispose();
+            throw;
+        }
+    }
+
+    #endregion Helpers
 }

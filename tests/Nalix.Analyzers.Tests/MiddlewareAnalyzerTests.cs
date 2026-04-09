@@ -18,8 +18,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -28,7 +28,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 
 public sealed class DemoMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 """;
 
@@ -45,8 +45,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -55,7 +55,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 
 public sealed class DemoMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 """;
 
@@ -66,8 +66,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -77,7 +77,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 [MiddlewareOrder(0)]
 public sealed class DemoMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 """;
 
@@ -99,11 +99,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
-using Nalix.Network.Middleware;
+using Nalix.Runtime.Middleware;
 
 public sealed class DemoBufferMiddleware : INetworkBufferMiddleware
 {
-    public Task<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, Task<IBufferLease?>> nextHandler, CancellationToken ct)
+    public ValueTask<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> nextHandler, CancellationToken ct)
         => nextHandler(buffer, ct);
 }
 """;
@@ -121,11 +121,11 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
-using Nalix.Network.Middleware;
+using Nalix.Runtime.Middleware;
 
 public sealed class DemoBufferMiddleware : INetworkBufferMiddleware
 {
-    public Task<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, Task<IBufferLease?>> nextHandler, CancellationToken ct)
+    public ValueTask<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> nextHandler, CancellationToken ct)
         => nextHandler(buffer, ct);
 }
 """;
@@ -137,12 +137,12 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking;
-using Nalix.Network.Middleware;
+using Nalix.Runtime.Middleware;
 
 [MiddlewareOrder(0)]
 public sealed class DemoBufferMiddleware : INetworkBufferMiddleware
 {
-    public Task<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, Task<IBufferLease?>> nextHandler, CancellationToken ct)
+    public ValueTask<IBufferLease?> InvokeAsync(IBufferLease buffer, IConnection connection, Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> nextHandler, CancellationToken ct)
         => nextHandler(buffer, ct);
 }
 """;
@@ -166,8 +166,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -178,7 +178,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 [MiddlewareStage(MiddlewareStage.Inbound, AlwaysExecute = true)]
 public sealed class DemoMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 """;
 
@@ -195,8 +195,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -207,7 +207,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 [MiddlewareStage(MiddlewareStage.Inbound, AlwaysExecute = true)]
 public sealed class DemoMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 """;
 
@@ -218,8 +218,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -230,7 +230,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public sealed class DemoMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 """;
 
@@ -253,8 +253,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -264,7 +264,7 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 [MiddlewareOrder(10)]
 public sealed class DemoMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 """;
 
@@ -281,8 +281,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Middleware;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Dispatching;
 
 public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
 {
@@ -292,13 +292,13 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 [MiddlewareOrder(10)]
 public sealed class FirstMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 
 [MiddlewareOrder(10)]
 public sealed class SecondMiddleware : IPacketMiddleware<LoginPacket>
 {
-    public Task InvokeAsync(PacketContext<LoginPacket> context, Func<CancellationToken, Task> next) => next(CancellationToken.None);
+    public ValueTask InvokeAsync(IPacketContext<LoginPacket> context, Func<CancellationToken, ValueTask> next) => next(CancellationToken.None);
 }
 
 public sealed class Example

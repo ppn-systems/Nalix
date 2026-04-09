@@ -50,6 +50,7 @@ Start with:
 - the packet is already deserialized
 - you need `PacketContext`
 - you care about permission, timeout, rate limit, audit, or handler policy
+- the handler may be a built-in packet or a custom packet type
 
 ### Choose buffer middleware when
 
@@ -61,6 +62,7 @@ Start with:
 - you want custom attributes
 - you want convention-based metadata
 - you want middleware to read custom handler tags
+- you want those tags to work consistently across built-in and custom packet handlers
 
 ## Common examples
 

@@ -41,9 +41,7 @@ internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
     /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public (T1, T2) Deserialize(ref DataReader reader)
-        => (_f1.Deserialize(ref reader),
-            _f2.Deserialize(ref reader));
+    public (T1, T2) Deserialize(ref DataReader reader) => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -87,9 +85,7 @@ internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3) Deserialize(ref DataReader reader)
-        => (_f1.Deserialize(ref reader),
-            _f2.Deserialize(ref reader),
-            _f3.Deserialize(ref reader));
+        => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader), _f3.Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -136,10 +132,7 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3, T4) Deserialize(ref DataReader reader)
-        => (_f1.Deserialize(ref reader),
-            _f2.Deserialize(ref reader),
-            _f3.Deserialize(ref reader),
-            _f4.Deserialize(ref reader));
+        => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader), _f3.Deserialize(ref reader), _f4.Deserialize(ref reader));
 }
 
 // =========================================================================
@@ -188,9 +181,5 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4, T5>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public (T1, T2, T3, T4, T5) Deserialize(ref DataReader reader)
-        => (_f1.Deserialize(ref reader),
-            _f2.Deserialize(ref reader),
-            _f3.Deserialize(ref reader),
-            _f4.Deserialize(ref reader),
-            _f5.Deserialize(ref reader));
+        => (_f1.Deserialize(ref reader), _f2.Deserialize(ref reader), _f3.Deserialize(ref reader), _f4.Deserialize(ref reader), _f5.Deserialize(ref reader));
 }

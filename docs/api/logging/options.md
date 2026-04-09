@@ -27,6 +27,9 @@ Nalix.Logging exposes a small set of public option classes for logger configurat
 ## Basic usage
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Logging.Options;
+
 var options = new NLogixOptions()
     .SetMinimumLevel(LogLevel.Debug)
     .ConfigureFileOptions(f => f.LogFileName = "server.log");
@@ -40,7 +43,8 @@ var options = new NLogixOptions()
 - queue size
 - flush interval
 - blocking vs dropping when full
-- naming and per-process suffixes
+- naming, custom file-name formatting, and per-process suffixes
+- file error callbacks
 
 ## ConsoleLogOptions
 
@@ -50,7 +54,9 @@ var options = new NLogixOptions()
 - queue size
 - adaptive flush
 - colors
-- flush delay
+- block vs drop when full
+- flush-after-batch behavior
+- batch delay
 
 ## Related APIs
 

@@ -261,12 +261,12 @@ internal static class DiagnosticDescriptors
 
     public static readonly DiagnosticDescriptor RequestEncryptRequiresTcpSession = new(
         id: "NALIX029",
-        title: "Encrypted RequestAsync requires TcpSessionBase",
-        messageFormat: "RequestAsync uses RequestOptions.Encrypt=true, but client type '{0}' is not assignable to TcpSessionBase",
+        title: "Encrypted RequestAsync requires TcpSession",
+        messageFormat: "RequestAsync uses RequestOptions.Encrypt=true, but client type '{0}' is not assignable to TcpSession",
         category: "SDK",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Nalix encrypted RequestAsync overload requires the client to be a TcpSessionBase.");
+        description: "Nalix encrypted RequestAsync overload requires the client to be a TcpSession.");
 
     public static readonly DiagnosticDescriptor PacketMiddlewareMissingOrder = new(
         id: "NALIX030",
@@ -303,4 +303,58 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description: "Nalix middleware registration chains are easier to reason about when MiddlewareOrder values are unique within the same builder chain.");
+
+    public static readonly DiagnosticDescriptor SerializeHeaderConflictsWithOrder = new(
+        id: "NALIX034",
+        title: "SerializeHeader conflicts with SerializeOrder",
+        messageFormat: "Member '{0}' declares both [SerializeHeader(...)] and [SerializeOrder(...)]",
+        category: "Serialization",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix serialization members should not declare both SerializeHeader and SerializeOrder. SerializeHeader is a specialized form of ordering for header fields.");
+
+    public static readonly DiagnosticDescriptor ReservedOpCodeRange = new(
+        id: "NALIX035",
+        title: "PacketOpcode is in reserved range",
+        messageFormat: "Handler method '{0}' uses OpCode 0x{1:X4}, which is in the reserved system range (0x0000 - 0x00FF)",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "OpCodes between 0x0000 and 0x00FF are reserved for internal Nalix system packets and should not be used for application handlers.");
+
+    public static readonly DiagnosticDescriptor GlobalDuplicateOpcode = new(
+        id: "NALIX036",
+        title: "PacketOpcode is already used in a different controller",
+        messageFormat: "Handler method '{0}' uses OpCode 0x{1:X4}, which is already defined by '{2}' in controller '{3}'",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Nalix dispatch requires unique opcodes across all registered controllers in a compilation unit.");
+
+    public static readonly DiagnosticDescriptor AllocationInHotPath = new(
+        id: "NALIX037",
+        title: "Potential allocation in hot path",
+        messageFormat: "Method '{0}' is a high-frequency Nalix hot path. Allocating '{1}' via 'new' may impact performance; consider using ObjectPoolManager or recycling instances.",
+        category: "Performance",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Nalix middleware and handlers are executed frequently. Avoiding allocations in these paths is critical for low-latency networking.");
+
+    public static readonly DiagnosticDescriptor OpCodeDocMismatch = new(
+        id: "NALIX038",
+        title: "OpCode in documentation does not match attribute",
+        messageFormat: "Documentation for '{0}' mentions OpCode 0x{1:X4}, but the attribute value is 0x{2:X4}",
+        category: "Documentation",
+        defaultSeverity: DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "XML documentation summaries should be synchronized with PacketOpcode values for clarity and automated protocol documentation.");
+
+    public static readonly DiagnosticDescriptor PotentialBufferLeaseLeak = new(
+        id: "NALIX039",
+        title: "Potential IBufferLease leak",
+        messageFormat: "Local variable or parameter '{0}' of type IBufferLease might be leaked; ensure it is disposed of exactly once on all code paths",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "IBufferLease represents a pooled resource that must be returned to the pool exactly once via Dispose() or an explicit return call.");
 }

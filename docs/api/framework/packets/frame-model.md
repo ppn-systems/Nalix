@@ -7,6 +7,8 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 - `src/Nalix.Framework/DataFrames/FrameBase.cs`
 - `src/Nalix.Framework/DataFrames/PacketBase.cs`
 - `src/Nalix.Framework/DataFrames/FrameTransformer.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/PacketCipher.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/PacketCompression.cs`
 
 ## Main types
 
@@ -20,7 +22,9 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 |---|---|
 | `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `Protocol`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
 | `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)` |
-| `FrameTransformer` | `Encrypt`, `TryEncrypt`, `Decrypt`, `TryDecrypt`, `Compress`, `TryCompress`, `Decompress`, `TryDecompress`, size helpers |
+| `FrameTransformer` | low-level payload transform helpers and size calculations |
+| `PacketCipher` | shared framed packet encrypt/decrypt helper |
+| `PacketCompression` | shared framed packet compress/decompress helper |
 
 ## FrameBase
 
@@ -82,17 +86,23 @@ public sealed class ChatMessage : PacketBase<ChatMessage>
 `FrameTransformer` applies payload-level transforms while preserving the packet header region.
 
 It works on the bytes after `PacketHeaderOffset.Region`, leaving the frame header untouched.
+The shared `PacketCipher` and `PacketCompression` helpers build on top of this layer for full framed packet flows.
+
+For higher-level frame workflows, prefer the shared helpers:
+
+- `PacketCipher`
+- `PacketCompression`
 
 ### Common operations
 
-- `Encrypt(...)` / `TryEncrypt(...)`
-- `Decrypt(...)` / `TryDecrypt(...)`
-- `Compress(...)` / `TryCompress(...)`
-- `Decompress(...)` / `TryDecompress(...)`
-- `GetMaxCiphertextSize(...)`
-- `GetPlaintextLength(...)`
-- `GetMaxCompressedSize(...)`
-- `GetDecompressedLength(...)`
+- `PacketCipher.EncryptFrame(...)`
+- `PacketCipher.DecryptFrame(...)`
+- `PacketCompression.CompressFrame(...)`
+- `PacketCompression.DecompressFrame(...)`
+- `FrameTransformer.GetMaxCiphertextSize(...)`
+- `FrameTransformer.GetPlaintextLength(...)`
+- `FrameTransformer.GetMaxCompressedSize(...)`
+- `FrameTransformer.GetDecompressedLength(...)`
 
 ## Basic usage
 
@@ -109,8 +119,8 @@ bool encrypted = FrameTransformer.Encrypt(sourceLease, destLease, key, CipherSui
 - header bytes are copied through unchanged
 - encryption uses `EnvelopeCipher`
 - compression uses pooled `LZ4Codec`
-- `Try*` overloads still catch failures and return `false`
-- non-`Try*` overloads now raise exceptions for invalid input, malformed envelopes, or transform failures
+- the shared `PacketCipher` and `PacketCompression` helpers also manage packet flags and buffer ownership for common frame flows
+- `FrameTransformer` remains the low-level transform layer for callers that want direct control
 
 ### Common pitfalls
 
@@ -124,7 +134,8 @@ bool encrypted = FrameTransformer.Encrypt(sourceLease, destLease, key, CipherSui
 |---|---|
 | Define a new packet type | `PacketBase<TSelf>` |
 | Inspect common packet header fields | `FrameBase` |
-| Encrypt or compress packet payload bytes | `FrameTransformer` |
+| Encrypt or compress a full framed packet | `PacketCipher` / `PacketCompression` |
+| Work on raw payload transforms directly | `FrameTransformer` |
 | Discover or deserialize packets at runtime | [Packet Registry](./packet-registry.md) |
 
 ## Related APIs

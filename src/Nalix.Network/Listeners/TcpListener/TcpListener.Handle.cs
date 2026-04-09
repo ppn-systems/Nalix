@@ -14,7 +14,6 @@ using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Pipeline;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 
@@ -94,17 +93,8 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
-        // Unwire pipeline (instead of unwiring _protocol.ProcessMessage).
-        if (args.Connection.Attributes.TryGetValue(ProtocolPipeline.AttributeKey, out object? boxed)
-            && boxed is ProtocolPipeline pipeline)
-        {
-            // Unbind the pipeline from the connection to stop processing any new messages.
-            s_pool.Return(pipeline);
-
-            _ = args.Connection.Attributes.Remove(ProtocolPipeline.AttributeKey);
-        }
-
         // Keep unwiring post-process as before (if you subscribed it).
+        args.Connection.OnProcessEvent -= _protocol.ProcessFrame;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
 
         s_logger?.Trace(
@@ -168,15 +158,8 @@ public abstract partial class TcpListenerBase
         connection.OnCloseEvent += this.HandleConnectionClose;
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-        // 1) Create pipeline: final stage is your existing _protocol (application protocol).
-        ProtocolPipeline pipeline = s_pool.Get<ProtocolPipeline>();
-        pipeline.Initialize(connection, _protocol);
-
-        // 2) Store pipeline on connection so close handler can unbind/dispose.
-        connection.Attributes[ProtocolPipeline.AttributeKey] = pipeline;
-
-        // 3) Wire pipeline as the ONLY OnProcessEvent handler for inbound frames.
-        pipeline.Bind();
+        // Wire the protocol directly as the ONLY OnProcessEvent handler for inbound frames.
+        connection.OnProcessEvent += _protocol.ProcessFrame;
 
         // Keep post-process as you already have (optional).
         // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK

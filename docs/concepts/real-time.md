@@ -42,7 +42,7 @@ A normal TCP request usually looks like this:
 
 1. socket accepted
 2. `Protocol.OnAccept(...)` starts receive
-3. protocol forwards frames into `PacketDispatchChannel`
+3. protocol receives frames through `ProcessFrame(...)` and forwards them into `PacketDispatchChannel`
 4. dispatch deserializes, runs middleware, and invokes handler
 5. handler returns or sends a response
 
@@ -51,6 +51,8 @@ For client work, the simplest mental model is:
 - TCP = reliable command/request flow
 - dispatch = application entry point
 - middleware = policy layer
+
+The same real-time model applies whether your handler uses built-in packets or custom packet types.
 
 ## 3. Low-latency datagrams
 
