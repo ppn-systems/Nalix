@@ -87,6 +87,8 @@ public sealed class SampleProtocol : Protocol
 }
 ```
 
+Custom packet handlers fit the same hosting model through `PacketContext<TPacket>` and the generic dispatch pipeline.
+
 ## Related packages
 
 - [Nalix.Network](./nalix-network.md): Transport and listeners.
