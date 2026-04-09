@@ -12,6 +12,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Hosting.Internal;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
@@ -37,7 +38,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureLogging(ILogger logger)
     {
+        InstanceManager.Instance.Register<ILogger>(logger);
         _state.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+
         return this;
     }
 
@@ -177,6 +180,24 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _state.UdpBindings.Add(new UdpProtocolBinding(
             typeof(TProtocol),
             dispatch => factory(dispatch)));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder UseBufferPoolManager(BufferPoolManager manager)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        InstanceManager.Instance.Register<BufferPoolManager>(manager);
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder UseBufferPoolManager(Func<BufferPoolManager> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        InstanceManager.Instance.Register<BufferPoolManager>(factory());
 
         return this;
     }

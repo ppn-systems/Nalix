@@ -4,23 +4,24 @@
 
 ## What it includes
 
-- `NetworkHost.CreateBuilder()`
-- fluent `NetworkBuilder` configuration
+- `NetworkApplication.CreateBuilder()`
+- fluent `NetworkApplicationBuilder` configuration
 - automatic packet registry discovery
 - packet dispatch bootstrap and runtime lifecycle
-- TCP server startup via `StartAsync`, `StopAsync`, and `RunAsync`
+- TCP server startup via `ActivateAsync`, `DeactivateAsync`, and `RunAsync`
 
 ## Typical use
 
 ```csharp
-NetworkHost host = NetworkHost.CreateBuilder()
-                              .UseLogger(logger)
-                              .Configure<NetworkSocketOptions>(options => options.Port = 57206)
-                              .AddPacketHandlersFromAssemblyContaining<PacketCommandHandler>()
-                              .AddPacketsFromAssemblyContaining<HandshakePacket>()
-                              .AddPacketMetadataProvider<PacketTagMetadataProvider>()
-                              .AddTcpServer<ExamplePacketProtocol>()
-                              .Build();
+NetworkApplication host = NetworkApplication.CreateBuilder()
+                                            .ConfigureLogging(logger)
+                                            .Configure<NetworkSocketOptions>(options => options.Port = 57206)
+                                            .AddHandlers<PacketCommandHandler>()
+                                            .AddPacketAssemblies<HandshakePacket>()
+                                            .AddMetadataProvider<PacketTagMetadataProvider>()
+                                            .AddTcp<ExamplePacketProtocol>()
+                                            .AddUdp<ExamplePacketProtocol>()
+                                            .Build();
 
 await host.RunAsync();
 ```

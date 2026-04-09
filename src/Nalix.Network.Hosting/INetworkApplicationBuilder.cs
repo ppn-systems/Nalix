@@ -9,6 +9,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Network.Hosting;
 
@@ -141,4 +142,18 @@ public interface INetworkApplicationBuilder
     /// <param name="factory">The factory used to create the protocol instance.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Explicitly registers a <see cref="BufferPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseBufferPoolManager(BufferPoolManager manager);
+
+    /// <summary>
+    /// Configures and registers a <see cref="BufferPoolManager"/> using an explicit factory.
+    /// </summary>
+    /// <param name="factory">The factory used to create the buffer pool manager.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder UseBufferPoolManager(Func<BufferPoolManager> factory);
 }
