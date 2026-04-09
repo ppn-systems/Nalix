@@ -40,14 +40,14 @@ public static class Csprng
             f(probe);
             s_f = f;
         }
-        catch (InvalidOperationException)
+        catch (Exception ex) when (!IsFatal(ex))
         {
-            OsRandom.Attach();
             s_f = OsRandom.Fill;
+            throw new InvalidOperationException("Nalix CSPRNG initialization failed. OS cryptographic randomness is unavailable.", ex);
         }
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[FW.Csprng] init using {(s_f == OsCsprng.Fill ? "OS_CSPRNG" : "FA_RANDOM")}");
+                                .Info($"[FW.Csprng] init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}");
     }
 
     #endregion Constructor
@@ -256,4 +256,12 @@ public static class Csprng
     #endregion Next
 
     #endregion APIs
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsFatal(Exception ex)
+        => ex is OutOfMemoryException
+        or StackOverflowException
+        or AccessViolationException
+        or AppDomainUnloadedException
+        or BadImageFormatException;
 }
