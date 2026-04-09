@@ -7,12 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
-#endif
-
-namespace Nalix.Framework.Memory.Internal;
+namespace Nalix.Framework.Security.Primitives;
 
 /// <summary>
 /// Provides helper methods for securely clearing sensitive data from memory.
@@ -21,7 +16,7 @@ namespace Nalix.Framework.Memory.Internal;
 /// from memory immediately after usage.
 /// </summary>
 [DebuggerNonUserCode]
-internal static class MemorySecurity
+public static class MemorySecurity
 {
     /// <summary>
     /// Overwrites the provided <paramref name="buffer"/> with zeros.
@@ -63,9 +58,7 @@ internal static class MemorySecurity
         for (int i = 0; i < buffer.Length; i++)
         {
             // Volatile.Write acts as a barrier against certain optimizations.
-            Volatile.Write(
-                ref Unsafe.Add(ref r0, i),
-                0);
+            Volatile.Write(ref Unsafe.Add(ref r0, i), 0);
         }
     }
 }
