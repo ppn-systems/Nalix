@@ -33,10 +33,4 @@ It serves as the foundation for building complex message-processing workflows, o
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
-
-	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
-
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
-	</ItemGroup>
 </Project>

@@ -58,7 +58,7 @@ public sealed class Example
         const string source = """
 namespace Demo;
 using Nalix.Common.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Dispatching;
 
 public sealed class SomePacket : Nalix.Framework.DataFrames.PacketBase<SomePacket>
 {
@@ -73,7 +73,7 @@ public sealed class Example
 {
     public void Run()
     {
-        new PacketDispatchOptions<SomePacket>().WithBufferMiddleware((Nalix.Network.Middleware.INetworkBufferMiddleware)(object)new NotBufferMiddleware());
+        new PacketDispatchOptions<SomePacket>().WithBufferMiddleware((Nalix.Runtime.Middleware.INetworkBufferMiddleware)(object)new NotBufferMiddleware());
     }
 }
 """;

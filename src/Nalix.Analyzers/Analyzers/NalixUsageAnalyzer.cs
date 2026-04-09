@@ -1,9 +1,12 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -51,7 +54,13 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.PacketMiddlewareMissingOrder,
             DiagnosticDescriptors.BufferMiddlewareMissingOrder,
             DiagnosticDescriptors.InboundMiddlewareAlwaysExecuteIgnored,
-            DiagnosticDescriptors.MiddlewareRegistrationDuplicateOrder
+            DiagnosticDescriptors.MiddlewareRegistrationDuplicateOrder,
+            DiagnosticDescriptors.SerializeHeaderConflictsWithOrder,
+            DiagnosticDescriptors.ReservedOpCodeRange,
+            DiagnosticDescriptors.GlobalDuplicateOpcode,
+            DiagnosticDescriptors.AllocationInHotPath,
+            DiagnosticDescriptors.OpCodeDocMismatch,
+            DiagnosticDescriptors.PotentialBufferLeaseLeak
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -66,9 +75,19 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
+            ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes = new();
+
             startContext.RegisterSymbolAction(
-                symbolContext => AnalyzeNamedType(symbolContext, symbols),
+                symbolContext => AnalyzeNamedType(symbolContext, symbols, globalOpcodes),
                 SymbolKind.NamedType);
+
+            startContext.RegisterSymbolAction(
+                symbolContext => AnalyzeMethod(symbolContext, symbols),
+                SymbolKind.Method);
+
+            startContext.RegisterOperationAction(
+                operationContext => AnalyzeObjectCreation(operationContext, symbols),
+                OperationKind.ObjectCreation);
 
             startContext.RegisterOperationAction(
                 operationContext => AnalyzeInvocation(operationContext, symbols),
@@ -80,7 +99,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         });
     }
 
-    private static void AnalyzeNamedType(SymbolAnalysisContext context, SymbolSet symbols)
+    private static void AnalyzeNamedType(SymbolAnalysisContext context, SymbolSet symbols, ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes)
     {
         INamedTypeSymbol typeSymbol = (INamedTypeSymbol)context.Symbol;
 
@@ -91,7 +110,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         if (HasAttribute(typeSymbol, symbols.ControllerAttribute))
         {
-            AnalyzeControllerType(context, typeSymbol, symbols);
+            AnalyzeControllerType(context, typeSymbol, symbols, globalOpcodes);
         }
 
         AnalyzePacketType(context, typeSymbol, symbols);
@@ -236,6 +255,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static void AnalyzePopulateMethod(
         SymbolAnalysisContext context,
         INamedTypeSymbol typeSymbol,
@@ -320,7 +340,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             {
                 Report(
                     context,
-                    DiagnosticDescriptors.SerializeIgnoreConflictsWithOrder, // wait, should be a new conflict descriptor
+                    DiagnosticDescriptors.SerializeHeaderConflictsWithOrder,
                     member,
                     member.Name);
             }
@@ -483,7 +503,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private static void AnalyzeControllerType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
+    private static void AnalyzeControllerType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols, ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes)
     {
         ImmutableArray<IMethodSymbol> methods = [.. typeSymbol.GetMembers()
             .OfType<IMethodSymbol>()
@@ -518,11 +538,25 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            bool hasOpcode = HasAttribute(methodSymbol, symbols.PacketOpcodeAttribute);
+            ushort? opcode = GetOpcode(methodSymbol, symbols.PacketOpcodeAttribute);
             bool isCandidate = IsNalixHandlerCandidate(methodSymbol, symbols.PacketInterface, symbols.PacketContextType);
 
-            if (hasOpcode)
+            if (opcode.HasValue)
             {
+                if (opcode.Value < 0x0100)
+                {
+                    Report(context, DiagnosticDescriptors.ReservedOpCodeRange, methodSymbol, methodSymbol.Name, opcode.Value);
+                }
+
+                if (globalOpcodes.TryGetValue(opcode.Value, out (IMethodSymbol Method, INamedTypeSymbol Controller) existing) && !SymbolEqualityComparer.Default.Equals(existing.Controller, typeSymbol))
+                {
+                    Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, existing.Method.Name, existing.Controller.Name);
+                }
+                else
+                {
+                    globalOpcodes[opcode.Value] = (methodSymbol, typeSymbol);
+                }
+
                 if (!HasSupportedSignature(methodSymbol, symbols))
                 {
                     Report(context, DiagnosticDescriptors.InvalidControllerHandlerSignature, methodSymbol, methodSymbol.Name);
@@ -1348,6 +1382,144 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static void Report(OperationAnalysisContext context, DiagnosticDescriptor descriptor, Location location, params object[] messageArgs)
         => context.ReportDiagnostic(Diagnostic.Create(descriptor, location, messageArgs));
 
+    private static void Report(OperationAnalysisContext context, DiagnosticDescriptor descriptor, SyntaxNode syntax, params object[] messageArgs)
+    {
+        Location location = syntax.GetLocation();
+        context.ReportDiagnostic(Diagnostic.Create(descriptor, location, messageArgs));
+    }
+
+    private static void AnalyzeMethod(SymbolAnalysisContext context, SymbolSet symbols)
+    {
+        IMethodSymbol method = (IMethodSymbol)context.Symbol;
+        AnalyzeOpCodeDocumentation(context, method, symbols);
+        AnalyzeBufferLeaseLeak(context, method, symbols);
+    }
+
+    private static void AnalyzeObjectCreation(OperationAnalysisContext context, SymbolSet symbols)
+    {
+        IObjectCreationOperation creation = (IObjectCreationOperation)context.Operation;
+        if (creation.IsImplicit)
+        {
+            return;
+        }
+
+        if (context.ContainingSymbol is not IMethodSymbol method)
+        {
+            return;
+        }
+
+        if (IsNalixHotPath(method, symbols))
+        {
+            ITypeSymbol? type = creation.Type;
+            if (type is null)
+            {
+                return;
+            }
+
+            // Warn for reference types that are not explicitly allowed in hot paths
+            if (type.IsReferenceType && !IsAllowedInHotPath(type))
+            {
+                Report(context, DiagnosticDescriptors.AllocationInHotPath, creation.Syntax, method.Name, type.Name);
+            }
+        }
+    }
+
+    private static bool IsAllowedInHotPath(ITypeSymbol type)
+    {
+        if (type.IsValueType)
+        {
+            return true;
+        }
+
+        if (type.SpecialType == SpecialType.System_String)
+        {
+            return true;
+        }
+
+        string name = type.Name;
+        return name.EndsWith("Exception") || name == "CancellationTokenSource" || name == "StringBuilder";
+    }
+
+    private static bool IsNalixHotPath(IMethodSymbol method, SymbolSet symbols)
+    {
+        if (HasAttribute(method, symbols.PacketOpcodeAttribute))
+        {
+            return true;
+        }
+
+        if (method.Name == "InvokeAsync" && (ImplementsOpenGeneric(method.ContainingType, symbols.PacketMiddlewareType) || Implements(method.ContainingType, symbols.NetworkBufferMiddlewareType)))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void AnalyzeOpCodeDocumentation(SymbolAnalysisContext context, IMethodSymbol method, SymbolSet symbols)
+    {
+        ushort? opcode = GetOpcode(method, symbols.PacketOpcodeAttribute);
+        if (!opcode.HasValue)
+        {
+            return;
+        }
+
+        string? xml = method.GetDocumentationCommentXml();
+        if (string.IsNullOrEmpty(xml))
+        {
+            return;
+        }
+
+        // Look for 0xXXXX patterns
+        Match match = Regex.Match(xml, @"0x([0-9A-Fa-f]{1,4})");
+        if (match.Success)
+        {
+            if (ushort.TryParse(match.Groups[1].Value, NumberStyles.HexNumber, null, out ushort docOpcode))
+            {
+                if (docOpcode != opcode.Value)
+                {
+                    Report(context, DiagnosticDescriptors.OpCodeDocMismatch, method, method.Name, docOpcode, opcode.Value);
+                }
+            }
+        }
+    }
+
+    private static void AnalyzeBufferLeaseLeak(SymbolAnalysisContext context, IMethodSymbol method, SymbolSet symbols)
+    {
+        if (method.MethodKind != MethodKind.Ordinary)
+        {
+            return;
+        }
+
+        List<IParameterSymbol> leaseParams = [.. method.Parameters.Where(p => SymbolEqualityComparer.Default.Equals(p.Type, symbols.BufferLeaseType))];
+        if (leaseParams.Count == 0)
+        {
+            return;
+        }
+
+        foreach (SyntaxReference reference in method.DeclaringSyntaxReferences)
+        {
+            SyntaxNode syntax = reference.GetSyntax(context.CancellationToken);
+            string code = syntax.ToString();
+
+            // Look for disposal or return via next delegate
+            // This is still a heuristic but we'll make it slightly more specific
+            foreach (IParameterSymbol p in leaseParams)
+            {
+                string name = p.Name;
+                bool isDisposed = code.Contains($"{name}.Dispose()")
+                                || code.Contains($"using (var {name}")
+                                || code.Contains($"using var {name}")
+                                || code.Contains($"next({name}")
+                                || code.Contains($"nextHandler({name}");
+
+                if (!isDisposed)
+                {
+                    Report(context, DiagnosticDescriptors.PotentialBufferLeaseLeak, p, name);
+                }
+            }
+        }
+    }
+
     private sealed class SymbolSet
     {
         private SymbolSet(
@@ -1384,6 +1556,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol valueTaskType,
             INamedTypeSymbol genericValueTaskType,
             INamedTypeSymbol cancellationTokenType,
+            INamedTypeSymbol bufferLeaseType,
             int packetHeaderRegionOffset)
         {
             this.PacketOpcodeAttribute = packetOpcodeAttribute;
@@ -1419,6 +1592,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             this.ValueTaskType = valueTaskType;
             this.GenericValueTaskType = genericValueTaskType;
             this.CancellationTokenType = cancellationTokenType;
+            this.BufferLeaseType = bufferLeaseType;
             this.PacketHeaderRegionOffset = packetHeaderRegionOffset;
         }
 
@@ -1455,6 +1629,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         public INamedTypeSymbol ValueTaskType { get; }
         public INamedTypeSymbol GenericValueTaskType { get; }
         public INamedTypeSymbol CancellationTokenType { get; }
+        public INamedTypeSymbol BufferLeaseType { get; }
         public int PacketHeaderRegionOffset { get; }
 
         public static SymbolSet? Create(Compilation compilation)
@@ -1470,29 +1645,30 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol? serializeDynamicSizeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeDynamicSizeAttribute");
             INamedTypeSymbol? serializeLayoutType = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeLayout");
             INamedTypeSymbol? packetHeaderOffsetType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketHeaderOffset");
-            INamedTypeSymbol? packetContextType = compilation.GetTypeByMetadataName("Nalix.Network.Routing.PacketContext`1");
+            INamedTypeSymbol? packetContextType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketContext`1");
             INamedTypeSymbol? connectionType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.IConnection");
-            INamedTypeSymbol? packetDispatchOptionsType = compilation.GetTypeByMetadataName("Nalix.Network.Routing.PacketDispatchOptions`1");
+            INamedTypeSymbol? packetDispatchOptionsType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketDispatchOptions`1");
             INamedTypeSymbol? packetRegistryFactoryType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketRegistryFactory");
             INamedTypeSymbol? packetDeserializerType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketDeserializer`1");
-            INamedTypeSymbol? packetMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Network.Middleware.IPacketMiddleware`1");
-            INamedTypeSymbol? networkBufferMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Network.Middleware.INetworkBufferMiddleware");
+            INamedTypeSymbol? packetMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.IPacketMiddleware`1");
+            INamedTypeSymbol? networkBufferMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.INetworkBufferMiddleware");
             INamedTypeSymbol? middlewareOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareOrderAttribute");
             INamedTypeSymbol? middlewareStageAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStageAttribute");
             INamedTypeSymbol? middlewareStageType = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStage");
             INamedTypeSymbol? configurationLoaderType = compilation.GetTypeByMetadataName("Nalix.Framework.Configuration.Binding.ConfigurationLoader");
             INamedTypeSymbol? configuredIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ConfiguredIgnoreAttribute");
-            INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Network.Routing.IPacketMetadataProvider");
-            INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Network.Routing.PacketMetadataBuilder");
+            INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
+            INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
             INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
             INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Configuration.RequestOptions");
             INamedTypeSymbol? requestExtensionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Extensions.RequestExtensions");
-            INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSessionBase");
+            INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSession");
             INamedTypeSymbol? taskType = compilation.GetTypeByMetadataName(typeof(Task).FullName);
             INamedTypeSymbol? genericTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
             INamedTypeSymbol? valueTaskType = compilation.GetTypeByMetadataName(typeof(ValueTask).FullName);
             INamedTypeSymbol? genericValueTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
             INamedTypeSymbol? cancellationTokenType = compilation.GetTypeByMetadataName(typeof(CancellationToken).FullName);
+            INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.IBufferLease");
             int? packetHeaderRegionOffset = packetHeaderOffsetType?
                 .GetMembers("Region")
                 .OfType<IFieldSymbol>()
@@ -1532,6 +1708,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                 || valueTaskType is null
                 || genericValueTaskType is null
                 || cancellationTokenType is null
+                || bufferLeaseType is null
                 || packetHeaderRegionOffset is null
                 ? null
                 : new SymbolSet(
@@ -1568,6 +1745,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     valueTaskType,
                     genericValueTaskType,
                     cancellationTokenType,
+                    bufferLeaseType,
                     packetHeaderRegionOffset.Value);
         }
     }
