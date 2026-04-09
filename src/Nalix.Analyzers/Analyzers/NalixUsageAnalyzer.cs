@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -356,16 +357,6 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, finalOrder.Value);
                 }
 
-                if (InheritsPacketBase(typeSymbol, symbols) && finalOrder.Value < symbols.PacketHeaderRegionOffset)
-                {
-                    Report(
-                        context,
-                        DiagnosticDescriptors.PacketMemberOverlapsHeaderRegion,
-                        member,
-                        member.Name,
-                        finalOrder.Value,
-                        symbols.PacketHeaderRegionOffset);
-                }
             }
             else if (isExplicitLayout && !hasIgnore)
             {
@@ -453,28 +444,6 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                         location,
                         typeSymbol.Name,
                         selfTypeArgument.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
-                }
-            }
-            else if (!HasAnyPacketDeserializeMethod(typeSymbol))
-            {
-                Location? location = typeSymbol.Locations.FirstOrDefault(static l => l.IsInSource);
-                if (location is not null)
-                {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        DiagnosticDescriptors.PacketBaseMissingDeserializeMethod,
-                        location,
-                        typeSymbol.Name));
-                }
-            }
-            else if (!HasValidPacketDeserializeMethod(typeSymbol))
-            {
-                Location? location = typeSymbol.Locations.FirstOrDefault(static l => l.IsInSource);
-                if (location is not null)
-                {
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        DiagnosticDescriptors.PacketDeserializeSignatureInvalid,
-                        location,
-                        typeSymbol.Name));
                 }
             }
         }
@@ -844,7 +813,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        INamedTypeSymbol expectedDeserializer = symbols.PacketDeserializerType.Construct(packetType);
+        INamedTypeSymbol? expectedDeserializer = symbols.PacketDeserializerType?.Construct(packetType);
         bool hasDeserializer = packetType.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, expectedDeserializer));
         if (!hasDeserializer)
         {
@@ -987,7 +956,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool IsNalixHandlerCandidate(IMethodSymbol methodSymbol, INamedTypeSymbol packetInterfaceSymbol, INamedTypeSymbol packetContextSymbol)
+    private static bool IsNalixHandlerCandidate(IMethodSymbol methodSymbol, INamedTypeSymbol? packetInterfaceSymbol, INamedTypeSymbol? packetContextSymbol)
     {
         if (methodSymbol.Parameters.Length is < 1 or > 3)
         {
@@ -998,7 +967,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         return Implements(firstParameterType, packetInterfaceSymbol) || IsPacketContext(firstParameterType, packetContextSymbol);
     }
 
-    private static bool TryGetPacketContextType(IMethodSymbol methodSymbol, INamedTypeSymbol packetContextSymbol, out ITypeSymbol? packetType)
+    private static bool TryGetPacketContextType(IMethodSymbol methodSymbol, INamedTypeSymbol? packetContextSymbol, out ITypeSymbol? packetType)
     {
         packetType = null;
 
@@ -1035,7 +1004,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         return Implements(firstParameterType, symbols.PacketInterface) ? firstParameterType : null;
     }
 
-    private static ushort? GetOpcode(IMethodSymbol methodSymbol, INamedTypeSymbol packetAttributeSymbol)
+    private static ushort? GetOpcode(IMethodSymbol methodSymbol, INamedTypeSymbol? packetAttributeSymbol)
     {
         AttributeData? attribute = methodSymbol.GetAttributes()
             .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, packetAttributeSymbol));
@@ -1048,30 +1017,36 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         return attribute.ConstructorArguments[0].Value is ushort opcode ? opcode : null;
     }
 
-    private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol attributeSymbol)
-        => symbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeSymbol));
+    private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol? attributeSymbol)
+        => attributeSymbol is not null && symbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeSymbol));
 
-    private static bool IsPacketContext(ITypeSymbol typeSymbol, INamedTypeSymbol packetContextSymbol)
-        => typeSymbol is INamedTypeSymbol namedType
+    private static bool IsPacketContext(ITypeSymbol typeSymbol, INamedTypeSymbol? packetContextSymbol)
+        => packetContextSymbol is not null
+           && typeSymbol is INamedTypeSymbol namedType
            && namedType.IsGenericType
            && SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, packetContextSymbol);
 
-    private static bool Implements(ITypeSymbol typeSymbol, INamedTypeSymbol interfaceSymbol)
-        => SymbolEqualityComparer.Default.Equals(typeSymbol, interfaceSymbol)
-           || typeSymbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, interfaceSymbol));
+    private static bool Implements(ITypeSymbol typeSymbol, INamedTypeSymbol? interfaceSymbol)
+        => interfaceSymbol is not null && (SymbolEqualityComparer.Default.Equals(typeSymbol, interfaceSymbol)
+           || typeSymbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, interfaceSymbol)));
 
-    private static bool ImplementsOpenGeneric(ITypeSymbol typeSymbol, INamedTypeSymbol openGenericInterfaceSymbol)
-        => typeSymbol.AllInterfaces
+    private static bool ImplementsOpenGeneric(ITypeSymbol typeSymbol, INamedTypeSymbol? openGenericInterfaceSymbol)
+        => openGenericInterfaceSymbol is not null && typeSymbol.AllInterfaces
             .OfType<INamedTypeSymbol>()
             .Any(i => i.IsGenericType && SymbolEqualityComparer.Default.Equals(i.ConstructedFrom, openGenericInterfaceSymbol));
 
-    private static bool IsAssignable(ITypeSymbol from, ITypeSymbol to)
-        => SymbolEqualityComparer.Default.Equals(from, to)
+    private static bool IsAssignable(ITypeSymbol from, ITypeSymbol? to)
+        => to is not null && (SymbolEqualityComparer.Default.Equals(from, to)
            || from.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, to))
-           || HasBaseType(from, to);
+           || HasBaseType(from, to));
 
-    private static bool HasBaseType(ITypeSymbol typeSymbol, ITypeSymbol expectedBase)
+    private static bool HasBaseType(ITypeSymbol typeSymbol, ITypeSymbol? expectedBase)
     {
+        if (expectedBase is null)
+        {
+            return false;
+        }
+
         ITypeSymbol? current = typeSymbol.BaseType;
         while (current is not null)
         {
@@ -1085,9 +1060,6 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         return false;
     }
-
-    private static bool HasAnyPacketDeserializeMethod(INamedTypeSymbol typeSymbol)
-        => typeSymbol.GetMembers("Deserialize").OfType<IMethodSymbol>().Any();
 
     private static bool InheritsPacketBase(INamedTypeSymbol typeSymbol, SymbolSet symbols)
     {
@@ -1105,20 +1077,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private static bool HasValidPacketDeserializeMethod(INamedTypeSymbol typeSymbol)
-        => typeSymbol.GetMembers("Deserialize")
-            .OfType<IMethodSymbol>()
-            .Any(method =>
-                method.IsStatic
-                && method.DeclaredAccessibility == Accessibility.Public
-                && method.ReturnType is INamedTypeSymbol returnType
-                && SymbolEqualityComparer.Default.Equals(returnType, typeSymbol)
-                && method.Parameters.Length == 1
-                && method.Parameters[0].Type is INamedTypeSymbol { Name: "ReadOnlySpan", IsRefLikeType: true } spanType
-                && spanType.TypeArguments.Length == 1
-                && spanType.TypeArguments[0].SpecialType == SpecialType.System_Byte);
-
-    private static bool IsExplicitSerializeLayout(AttributeData serializePackable, INamedTypeSymbol serializeLayoutType)
+    private static bool IsExplicitSerializeLayout(AttributeData serializePackable, INamedTypeSymbol? serializeLayoutType)
     {
         if (serializePackable.ConstructorArguments.Length != 1)
         {
@@ -1132,7 +1091,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                && rawValue == 1;
     }
 
-    private static int? GetSerializeOrder(ISymbol symbol, INamedTypeSymbol serializeOrderAttribute)
+    private static int? GetSerializeOrder(ISymbol symbol, INamedTypeSymbol? serializeOrderAttribute)
     {
         AttributeData? attribute = symbol.GetAttributes()
             .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, serializeOrderAttribute));
@@ -1152,7 +1111,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
         };
     }
 
-    private static int? GetMiddlewareOrder(ITypeSymbol typeSymbol, INamedTypeSymbol middlewareOrderAttribute)
+    private static int? GetMiddlewareOrder(ITypeSymbol typeSymbol, INamedTypeSymbol? middlewareOrderAttribute)
     {
         AttributeData? attribute = typeSymbol.GetAttributes()
             .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, middlewareOrderAttribute));
@@ -1320,7 +1279,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             Name.Identifier.ValueText: "Opcode"
         } && identifier == builderParameterName;
 
-    private static bool IsInboundAlwaysExecute(AttributeData stageAttribute, INamedTypeSymbol middlewareStageType)
+    private static bool IsInboundAlwaysExecute(AttributeData stageAttribute, INamedTypeSymbol? middlewareStageType)
     {
         if (stageAttribute.ConstructorArguments.Length != 1
             || stageAttribute.ConstructorArguments[0].Type is null
@@ -1485,13 +1444,19 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     private static void AnalyzeBufferLeaseLeak(SymbolAnalysisContext context, IMethodSymbol method, SymbolSet symbols)
     {
-        if (method.MethodKind != MethodKind.Ordinary)
+        if (method.MethodKind != MethodKind.Ordinary || (method.ContainingType.TypeKind == TypeKind.Interface && method.IsAbstract))
         {
             return;
         }
 
         List<IParameterSymbol> leaseParams = [.. method.Parameters.Where(p => SymbolEqualityComparer.Default.Equals(p.Type, symbols.BufferLeaseType))];
         if (leaseParams.Count == 0)
+        {
+            return;
+        }
+
+        // Skip if the method itself is marked as [Pure]
+        if (method.GetAttributes().Any(a => a.AttributeClass?.Name == "PureAttribute"))
         {
             return;
         }
@@ -1505,12 +1470,22 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             // This is still a heuristic but we'll make it slightly more specific
             foreach (IParameterSymbol p in leaseParams)
             {
+                // Skip parameters explicitly marked as borrowed/no-dispose, or 'out' parameters 
+                // where ownership is transferred to the caller.
+                if (p.GetAttributes().Any(a => a.AttributeClass?.Name is "BorrowedAttribute" or "NoDisposeAttribute") || p.RefKind == RefKind.Out)
+                {
+                    continue;
+                }
+
                 string name = p.Name;
+                // Heuristic: check if the lease is disposed, used in a using block, 
+                // passed to a next delegate, or returned in any form.
                 bool isDisposed = code.Contains($"{name}.Dispose()")
                                 || code.Contains($"using (var {name}")
                                 || code.Contains($"using var {name}")
-                                || code.Contains($"next({name}")
-                                || code.Contains($"nextHandler({name}");
+                                || Regex.IsMatch(code, $@"\b(next|nextHandler|ExecuteAsync)\s*\([^)]*\b{name}\b")
+                                || Regex.IsMatch(code, $@"return\s+[^;]*\b{name}\b")
+                                || Regex.IsMatch(code, $@"=> \s*[^;]*\b{name}\b");
 
                 if (!isDisposed)
                 {
@@ -1523,40 +1498,40 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
     private sealed class SymbolSet
     {
         private SymbolSet(
-            INamedTypeSymbol packetOpcodeAttribute,
-            INamedTypeSymbol controllerAttribute,
-            INamedTypeSymbol packetInterface,
-            INamedTypeSymbol packetBaseType,
-            INamedTypeSymbol serializePackableAttribute,
-            INamedTypeSymbol serializeHeaderAttribute,
-            INamedTypeSymbol serializeOrderAttribute,
-            INamedTypeSymbol serializeIgnoreAttribute,
-            INamedTypeSymbol serializeDynamicSizeAttribute,
-            INamedTypeSymbol serializeLayoutType,
-            INamedTypeSymbol packetContextType,
-            INamedTypeSymbol connectionType,
-            INamedTypeSymbol packetDispatchOptionsType,
-            INamedTypeSymbol packetRegistryFactoryType,
-            INamedTypeSymbol packetDeserializerType,
-            INamedTypeSymbol packetMiddlewareType,
-            INamedTypeSymbol networkBufferMiddlewareType,
-            INamedTypeSymbol middlewareOrderAttribute,
-            INamedTypeSymbol middlewareStageAttribute,
-            INamedTypeSymbol middlewareStageType,
-            INamedTypeSymbol configurationLoaderType,
-            INamedTypeSymbol configuredIgnoreAttribute,
-            INamedTypeSymbol packetMetadataProviderType,
-            INamedTypeSymbol packetMetadataBuilderType,
-            INamedTypeSymbol methodInfoType,
-            INamedTypeSymbol requestOptionsType,
-            INamedTypeSymbol requestExtensionsType,
-            INamedTypeSymbol tcpSessionBaseType,
-            INamedTypeSymbol taskType,
-            INamedTypeSymbol genericTaskType,
-            INamedTypeSymbol valueTaskType,
-            INamedTypeSymbol genericValueTaskType,
-            INamedTypeSymbol cancellationTokenType,
-            INamedTypeSymbol bufferLeaseType,
+            INamedTypeSymbol? packetOpcodeAttribute,
+            INamedTypeSymbol? controllerAttribute,
+            INamedTypeSymbol? packetInterface,
+            INamedTypeSymbol? packetBaseType,
+            INamedTypeSymbol? serializePackableAttribute,
+            INamedTypeSymbol? serializeHeaderAttribute,
+            INamedTypeSymbol? serializeOrderAttribute,
+            INamedTypeSymbol? serializeIgnoreAttribute,
+            INamedTypeSymbol? serializeDynamicSizeAttribute,
+            INamedTypeSymbol? serializeLayoutType,
+            INamedTypeSymbol? packetContextType,
+            INamedTypeSymbol? connectionType,
+            INamedTypeSymbol? packetDispatchOptionsType,
+            INamedTypeSymbol? packetRegistryFactoryType,
+            INamedTypeSymbol? packetDeserializerType,
+            INamedTypeSymbol? packetMiddlewareType,
+            INamedTypeSymbol? networkBufferMiddlewareType,
+            INamedTypeSymbol? middlewareOrderAttribute,
+            INamedTypeSymbol? middlewareStageAttribute,
+            INamedTypeSymbol? middlewareStageType,
+            INamedTypeSymbol? configurationLoaderType,
+            INamedTypeSymbol? configuredIgnoreAttribute,
+            INamedTypeSymbol? packetMetadataProviderType,
+            INamedTypeSymbol? packetMetadataBuilderType,
+            INamedTypeSymbol? methodInfoType,
+            INamedTypeSymbol? requestOptionsType,
+            INamedTypeSymbol? requestExtensionsType,
+            INamedTypeSymbol? tcpSessionBaseType,
+            INamedTypeSymbol? taskType,
+            INamedTypeSymbol? genericTaskType,
+            INamedTypeSymbol? valueTaskType,
+            INamedTypeSymbol? genericValueTaskType,
+            INamedTypeSymbol? cancellationTokenType,
+            INamedTypeSymbol? bufferLeaseType,
             int packetHeaderRegionOffset)
         {
             this.PacketOpcodeAttribute = packetOpcodeAttribute;
@@ -1596,40 +1571,40 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             this.PacketHeaderRegionOffset = packetHeaderRegionOffset;
         }
 
-        public INamedTypeSymbol PacketOpcodeAttribute { get; }
-        public INamedTypeSymbol ControllerAttribute { get; }
-        public INamedTypeSymbol PacketInterface { get; }
-        public INamedTypeSymbol PacketBaseType { get; }
-        public INamedTypeSymbol SerializePackableAttribute { get; }
-        public INamedTypeSymbol SerializeHeaderAttribute { get; }
-        public INamedTypeSymbol SerializeOrderAttribute { get; }
-        public INamedTypeSymbol SerializeIgnoreAttribute { get; }
-        public INamedTypeSymbol SerializeDynamicSizeAttribute { get; }
-        public INamedTypeSymbol SerializeLayoutType { get; }
-        public INamedTypeSymbol PacketContextType { get; }
-        public INamedTypeSymbol ConnectionType { get; }
-        public INamedTypeSymbol PacketDispatchOptionsType { get; }
-        public INamedTypeSymbol PacketRegistryFactoryType { get; }
-        public INamedTypeSymbol PacketDeserializerType { get; }
-        public INamedTypeSymbol PacketMiddlewareType { get; }
-        public INamedTypeSymbol NetworkBufferMiddlewareType { get; }
-        public INamedTypeSymbol MiddlewareOrderAttribute { get; }
-        public INamedTypeSymbol MiddlewareStageAttribute { get; }
-        public INamedTypeSymbol MiddlewareStageType { get; }
-        public INamedTypeSymbol ConfigurationLoaderType { get; }
-        public INamedTypeSymbol ConfiguredIgnoreAttribute { get; }
-        public INamedTypeSymbol PacketMetadataProviderType { get; }
-        public INamedTypeSymbol PacketMetadataBuilderType { get; }
-        public INamedTypeSymbol MethodInfoType { get; }
-        public INamedTypeSymbol RequestOptionsType { get; }
-        public INamedTypeSymbol RequestExtensionsType { get; }
-        public INamedTypeSymbol TcpSessionBaseType { get; }
-        public INamedTypeSymbol TaskType { get; }
-        public INamedTypeSymbol GenericTaskType { get; }
-        public INamedTypeSymbol ValueTaskType { get; }
-        public INamedTypeSymbol GenericValueTaskType { get; }
-        public INamedTypeSymbol CancellationTokenType { get; }
-        public INamedTypeSymbol BufferLeaseType { get; }
+        public INamedTypeSymbol? PacketOpcodeAttribute { get; }
+        public INamedTypeSymbol? ControllerAttribute { get; }
+        public INamedTypeSymbol? PacketInterface { get; }
+        public INamedTypeSymbol? PacketBaseType { get; }
+        public INamedTypeSymbol? SerializePackableAttribute { get; }
+        public INamedTypeSymbol? SerializeHeaderAttribute { get; }
+        public INamedTypeSymbol? SerializeOrderAttribute { get; }
+        public INamedTypeSymbol? SerializeIgnoreAttribute { get; }
+        public INamedTypeSymbol? SerializeDynamicSizeAttribute { get; }
+        public INamedTypeSymbol? SerializeLayoutType { get; }
+        public INamedTypeSymbol? PacketContextType { get; }
+        public INamedTypeSymbol? ConnectionType { get; }
+        public INamedTypeSymbol? PacketDispatchOptionsType { get; }
+        public INamedTypeSymbol? PacketRegistryFactoryType { get; }
+        public INamedTypeSymbol? PacketDeserializerType { get; }
+        public INamedTypeSymbol? PacketMiddlewareType { get; }
+        public INamedTypeSymbol? NetworkBufferMiddlewareType { get; }
+        public INamedTypeSymbol? MiddlewareOrderAttribute { get; }
+        public INamedTypeSymbol? MiddlewareStageAttribute { get; }
+        public INamedTypeSymbol? MiddlewareStageType { get; }
+        public INamedTypeSymbol? ConfigurationLoaderType { get; }
+        public INamedTypeSymbol? ConfiguredIgnoreAttribute { get; }
+        public INamedTypeSymbol? PacketMetadataProviderType { get; }
+        public INamedTypeSymbol? PacketMetadataBuilderType { get; }
+        public INamedTypeSymbol? MethodInfoType { get; }
+        public INamedTypeSymbol? RequestOptionsType { get; }
+        public INamedTypeSymbol? RequestExtensionsType { get; }
+        public INamedTypeSymbol? TcpSessionBaseType { get; }
+        public INamedTypeSymbol? TaskType { get; }
+        public INamedTypeSymbol? GenericTaskType { get; }
+        public INamedTypeSymbol? ValueTaskType { get; }
+        public INamedTypeSymbol? GenericValueTaskType { get; }
+        public INamedTypeSymbol? CancellationTokenType { get; }
+        public INamedTypeSymbol? BufferLeaseType { get; }
         public int PacketHeaderRegionOffset { get; }
 
         public static SymbolSet? Create(Compilation compilation)
@@ -1669,47 +1644,20 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
             INamedTypeSymbol? genericValueTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.ValueTask`1");
             INamedTypeSymbol? cancellationTokenType = compilation.GetTypeByMetadataName(typeof(CancellationToken).FullName);
             INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.IBufferLease");
-            int? packetHeaderRegionOffset = packetHeaderOffsetType?
-                .GetMembers("Region")
-                .OfType<IFieldSymbol>()
-                .FirstOrDefault()?
-                .ConstantValue as int?;
+            int packetHeaderRegionOffset = 12;
+            if (packetHeaderOffsetType is not null)
+            {
+                foreach (ISymbol member in packetHeaderOffsetType.GetMembers())
+                {
+                    if (member is IFieldSymbol { Name: "Region", HasConstantValue: true } field)
+                    {
+                        packetHeaderRegionOffset = Convert.ToInt32(field.ConstantValue, CultureInfo.InvariantCulture);
+                        break;
+                    }
+                }
+            }
 
-            return packetOpcodeAttribute is null
-                || controllerAttribute is null
-                || packetInterface is null
-                || packetBaseType is null
-                || serializePackableAttribute is null
-                || serializeHeaderAttribute is null
-                || serializeOrderAttribute is null
-                || serializeIgnoreAttribute is null
-                || serializeDynamicSizeAttribute is null
-                || serializeLayoutType is null
-                || packetContextType is null
-                || connectionType is null
-                || packetDispatchOptionsType is null
-                || packetRegistryFactoryType is null
-                || packetDeserializerType is null
-                || packetMiddlewareType is null
-                || networkBufferMiddlewareType is null
-                || middlewareOrderAttribute is null
-                || middlewareStageAttribute is null
-                || middlewareStageType is null
-                || configurationLoaderType is null
-                || configuredIgnoreAttribute is null
-                || packetMetadataProviderType is null
-                || packetMetadataBuilderType is null
-                || methodInfoType is null
-                || requestOptionsType is null
-                || requestExtensionsType is null
-                || tcpSessionBaseType is null
-                || taskType is null
-                || genericTaskType is null
-                || valueTaskType is null
-                || genericValueTaskType is null
-                || cancellationTokenType is null
-                || bufferLeaseType is null
-                || packetHeaderRegionOffset is null
+            return (packetOpcodeAttribute is null || controllerAttribute is null)
                 ? null
                 : new SymbolSet(
                     packetOpcodeAttribute,
@@ -1746,7 +1694,7 @@ public sealed class NalixUsageAnalyzer : DiagnosticAnalyzer
                     genericValueTaskType,
                     cancellationTokenType,
                     bufferLeaseType,
-                    packetHeaderRegionOffset.Value);
+                    packetHeaderRegionOffset);
         }
     }
 }

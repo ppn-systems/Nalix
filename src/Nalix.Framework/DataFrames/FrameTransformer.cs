@@ -106,7 +106,7 @@ public static class FrameTransformer
     /// Thrown when the selected cipher rejects the supplied key or destination envelope.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Encrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType suite)
+    public static void Encrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType suite)
     {
         ArgumentNullException.ThrowIfNull(src);
         ArgumentNullException.ThrowIfNull(dest);
@@ -152,7 +152,7 @@ public static class FrameTransformer
     /// <exception cref="CryptographicException">Thrown when AEAD authentication fails during payload decryption.</exception>
     /// <exception cref="NotSupportedException">Thrown when the encrypted payload declares an unsupported cipher suite.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Decrypt(IBufferLease src, IBufferLease dest, ReadOnlySpan<byte> key)
+    public static void Decrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key)
     {
         ArgumentNullException.ThrowIfNull(src);
         ArgumentNullException.ThrowIfNull(dest);
@@ -195,7 +195,7 @@ public static class FrameTransformer
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when the packet header or payload buffers are too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Compress(IBufferLease src, IBufferLease dest)
+    public static void Compress([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest)
     {
         ArgumentNullException.ThrowIfNull(src);
         ArgumentNullException.ThrowIfNull(dest);
@@ -225,7 +225,7 @@ public static class FrameTransformer
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="src"/> or <paramref name="dest"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when the packet header or payload buffers are too small.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Decompress(IBufferLease src, IBufferLease dest)
+    public static void Decompress([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest)
     {
         ArgumentNullException.ThrowIfNull(src);
         ArgumentNullException.ThrowIfNull(dest);

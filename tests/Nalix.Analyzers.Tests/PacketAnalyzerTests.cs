@@ -128,34 +128,4 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
             expectedEquivalenceKey: "Nalix.PacketDeserializer.SelfType.Fix");
     }
 
-    [Fact]
-    public async Task MissingDeserializeMethod_ProducesDiagnosticAndFix()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Framework.DataFrames;
-
-public sealed class MyPacket : PacketBase<MyPacket>
-{
-}
-""";
-
-        const string fixedSource = """
-namespace Demo;
-using Nalix.Framework.DataFrames;
-
-public sealed class MyPacket : PacketBase<MyPacket>
-{
-    public static new MyPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<MyPacket>.Deserialize(buffer);
-}
-""";
-
-        await Verifier<PacketDeserializeCodeFixProvider>.VerifyCodeFixAsync(
-            source,
-            fixedSource,
-            "NALIX012",
-            actionIndex: 0,
-            expectedTitle: "Add Deserialize(ReadOnlySpan<byte>)",
-            expectedEquivalenceKey: "Nalix.Packet.Deserialize.Add");
-    }
 }
