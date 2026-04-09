@@ -10,6 +10,7 @@ This page documents the internal framing helpers behind `TransportSession` and `
 
 - `src/Nalix.SDK/Transport/Internal/FRAME_READER.cs`
 - `src/Nalix.SDK/Transport/Internal/FRAME_SENDER.cs`
+- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
 - `src/Nalix.SDK/Transport/TransportSession.cs`
 - `src/Nalix.SDK/Transport/TcpSession.cs`
 
@@ -113,6 +114,7 @@ This keeps the SDK transform logic in one place while still reusing the common f
 - background receive scheduling
 - reconnect handling
 - heartbeat and bandwidth sampling through `SessionMonitor`
+- shared packet framing helpers for the active transport options
 
 ## When clients should care
 

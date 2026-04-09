@@ -55,6 +55,15 @@ For a method-by-method breakdown, see the dedicated API page: [Network Applicati
 ## Minimal example
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Logging;
+using Nalix.Network.Hosting;
+using Nalix.Network.Options;
+using Nalix.Runtime.Dispatching;
+
+ILogger logger = NLogix.Host.Instance;
+
 var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)
     .Configure<NetworkSocketOptions>(options =>
@@ -72,7 +81,7 @@ await app.RunAsync(cancellationToken);
 public sealed class SampleHandlers
 {
     [PacketOpcode(0x1001)]
-    public ValueTask<Control> Handle(IPacketContext<Control> request)
+    public ValueTask<Control> Handle(PacketContext<Control> request)
         => ValueTask.FromResult(new Control { Type = ControlType.PONG });
 }
 
@@ -87,7 +96,7 @@ public sealed class SampleProtocol : Protocol
 }
 ```
 
-Custom packet handlers fit the same hosting model through `PacketContext<TPacket>` and the generic dispatch pipeline.
+Custom packet handlers fit the same hosting model through `PacketContext<TPacket>` and the generic dispatch pipeline, so the same bootstrap works for built-in and custom packet types.
 
 ## Related packages
 

@@ -5,9 +5,9 @@
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/UdpSession.cs`
-- `src/Nalix.Framework/DataFrames/FrameTransformer.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCipher.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCompression.cs`
+- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
 
 ## Key Features
 
@@ -50,3 +50,4 @@ await client.SendAsync(myPacket);
 - [Transport Session](./transport-session.md)
 - [TCP Session](./tcp-session.md)
 - [Transport Options](./options/transport-options.md)
+- [Frame Reader and Sender](./frame-reader-and-sender.md)

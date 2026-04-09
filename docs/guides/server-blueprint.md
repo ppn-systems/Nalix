@@ -67,6 +67,12 @@ At minimum, register:
 - `IPacketRegistry`
 
 ```csharp
+using Microsoft.Extensions.Logging;
+using Nalix.Framework.Injection;
+using Nalix.Logging;
+
+ILogger logger = NLogix.Host.Instance;
+
 InstanceManager.Instance.Register<ILogger>(logger);
 InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 ```

@@ -32,11 +32,12 @@ flowchart LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `Configure<TOptions>(...)`, `AddPacketAssemblies(...)`, `AddPacketAssembly<TMarker>(...)`, `AddHandlers(...)`, `AddHandlers<TMarker>(...)`, `AddHandler<THandler>(...)`, `AddMetadataProvider<TProvider(...)`, `ConfigureDispatch(...)`, `AddTcp<TProtocol>(...)`, `AddUdp<TProtocol>(...)`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `Configure<TOptions>(...)`, `AddPacketAssemblies(...)`, `AddPacketAssembly<TMarker>(...)`, `AddHandlers(...)`, `AddHandlers<TMarker>(...)`, `AddHandler<THandler>(...)`, `AddMetadataProvider<TProvider>()`, `ConfigureDispatch(...)`, `AddTcp<TProtocol>(...)`, `AddUdp<TProtocol>(...)`, `Build()` |
 
 ## `NetworkApplication`
 
 `NetworkApplication` manages the lifecycle of the server runtime. It handles the activation and deactivation of the packet dispatcher, protocols, and listeners in the correct order.
+The hosted pipeline remains generic-friendly, so the same builder flow works for built-in packets and custom packet types.
 
 ### Lifecycle methods
 

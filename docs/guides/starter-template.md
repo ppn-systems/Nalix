@@ -39,11 +39,12 @@ SampleServer/
 ## `Program.cs`
 
 ```csharp
-using Nalix.Common.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
+using Nalix.Logging;
 using Nalix.Network.Options;
 using Nalix.Network.Listeners.Tcp;
 using Nalix.Network.Protocols;
@@ -99,8 +100,7 @@ listener.Dispose();
 
 static ILogger BuildLogger()
 {
-    // Replace with your logger registration
-    throw new NotImplementedException();
+    return NLogix.Host.Instance;
 }
 
 static IPacketRegistry BuildPacketRegistry()
@@ -257,7 +257,6 @@ At minimum, keep access to:
 
 When you copy this template into a real project, replace:
 
-- `BuildLogger()`
 - `BuildPacketRegistry()`
 - `Control`
 - `PacketTenantAttribute`
@@ -266,7 +265,7 @@ When you copy this template into a real project, replace:
 Those placeholders are there only to give your team a stable starting shape.
 
 !!! caution "Do not ship the placeholders"
-    Replace `BuildLogger()`, `BuildPacketRegistry()`, and the sample packet and metadata types before treating this as production code.
+    Replace `BuildPacketRegistry()` and the sample packet and metadata types before treating this as production code.
 
 ## Related pages
 
