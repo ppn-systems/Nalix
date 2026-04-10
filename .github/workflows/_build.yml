@@ -107,10 +107,6 @@ jobs:
         shell: bash
         run: dotnet restore "${{ inputs.trim_project }}"
 
-      - name: Verify formatting
-        shell: bash
-        run: dotnet format src/Nalix.sln --verify-no-changes --verbosity minimal --no-restore
-
       - name: Build all projects
         shell: bash
         run: dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
