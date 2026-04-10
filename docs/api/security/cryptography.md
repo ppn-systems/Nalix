@@ -18,16 +18,15 @@ Nalix ships several cryptography primitives in `Nalix.Framework.Security`, but t
 |---|---|---|
 | Hashing and MAC | `Keccak256`, `Poly1305` | [Hashing and MAC](./hashing-and-mac.md) |
 | AEAD and envelope encryption | `ChaCha20Poly1305`, `Salsa20Poly1305`, `EnvelopeCipher` | [AEAD and Envelope](./aead-and-envelope.md) |
-| Handshake protocol | `HandshakeStage`, `X25519` | [Handshake Protocol](./handshake.md) |
+| Handshake protocol | `HandshakeHandlers`, `X25519` | [Handshake Protocol](./handshake.md) |
 
 ## Quick guidance
 
 - use `X25519` for session key agreement
-- use `Keccak256` only when you explicitly want Keccak, not FIPS SHA3
+- use `Keccak256` for transcript hashing and proofs
 - use `EnvelopeCipher` when you want the high-level transport-facing encryption entry point
 - use `Pbkdf2` for credential hashing helpers
 - use `Csprng` when you need secure random bytes, nonces, or unbiased random integers
-- treat `Ed25519` as legacy because it is marked obsolete in source
 
 ## Quick example
 
