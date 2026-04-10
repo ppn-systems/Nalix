@@ -1,99 +1,77 @@
 # Packet Dispatch
 
-`PacketDispatchChannel` is the main asynchronous dispatch loop for raw network frames. It accepts `IBufferLease` payloads, queues them by connection and packet priority, runs buffer middleware, deserializes `IPacket`, and then invokes the compiled handler pipeline.
-The dispatch model is still generic at the handler layer, so the same runtime can drive built-in packets and custom packet types.
+`PacketDispatchChannel` is the engine of the Nalix runtime. It is responsible for the asynchronous queuing, processing, and routing of incoming network frames. By decoupling network I/O from handler execution, it enables high concurrency and provides backpressure and priority-aware scheduling.
+
+## Dispatch Pipeline
+
+```mermaid
+graph TD
+    subgraph Ingress
+        A[Socket.Receive] --> B[IBufferLease]
+        B --> C[DispatchChannel]
+    end
+    
+    subgraph Workers [Worker Loop]
+        C --> W[Wake Signal]
+        W --> D[Network Middleware]
+        D --> E[TryDeserialize]
+        E --> F[Compiled Handler]
+        F --> G[Dispose Lease]
+    end
+    
+    subgraph Registry
+        E -.-> R[IPacketRegistry]
+    end
+```
 
 ## Source mapping
 
 - `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
 - `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
 - `src/Nalix.Runtime/Dispatching/PacketDispatchOptions.cs`
-- `src/Nalix.Runtime/Dispatching/PacketDispatchOptions.Execution.cs`
-- `src/Nalix.Runtime/Dispatching/PacketDispatchOptions.PublicMethods.cs`
 
-## Runtime model
+## Architecture and Performance
 
-- `_dispatch` is a priority-aware `DispatchChannel<IPacket>`
-- `_wakeChannel` is an unbounded `Channel<byte>` used for wake-up signaling
-- `Activate(...)` starts `DispatchLoopCount` workers, or defaults to `Environment.ProcessorCount` (clamped 1–64)
-- `Deactivate(...)` cancels workers and pushes wake signals to the channel so loops can exit
+The dispatcher is designed for maximum throughput with minimal overhead. It uses a custom `DispatchChannel` that organizes work by connection and priority, preventing "noisy neighbors" from starving other clients.
 
-## Public members at a glance
+- **Asynchronous Workers**: Starts `DispatchLoopCount` workers (defaulting to CPU core count) to process packets in parallel.
+- **Coalesced Wake-ups**: Uses a low-overhead signaling mechanism (`Channel<byte>`) to wake idle workers only when new work is available.
+- **Priority Awareness**: Supports `PacketPriority` (Low, Normal, High, Urgent) to ensure critical control traffic is processed before bulk data.
+- **Allocation-Free**: Heavily utilizes `ValueTask` and object pooling to maintain zero-allocation paths during steady-state processing.
 
-| Type | Public members |
+## API Reference
+
+### Primary Methods
+| Method | Description |
 |---|---|
-| `PacketDispatchChannel` | `Activate(...)`, `Deactivate(...)`, `HandlePacket(...)` overloads, `GenerateReport()`, `Dispose()` |
-| `PacketDispatcherBase<TPacket>` | compiled handler and middleware execution helpers used by the channel for any packet type `TPacket` |
+| `Activate()` | Boots the background worker loops and clears diagnostic counters. |
+| `Deactivate()`| Gracefully shuts down workers and signals the exit path. |
+| `HandlePacket(lease, conn)` | The primary entry point for raw network data. Enqueues the lease for processing. |
+| `HandlePacket(packet, conn)`| A fast-path for pre-deserialized packets; skips the queue and executes immediately. |
 
-## Input paths
+## Inbound Flow
 
-`HandlePacket(IBufferLease, IConnection)`:
+1. **Ingress**: A raw `IBufferLease` is accepted from the transport (TCP/UDP).
+2. **Buffering**: The lease is pushed into the `DispatchChannel`.
+3. **Waking**: A worker is signaled via the wake channel.
+4. **Middleware**: Raw `INetworkBufferMiddleware` is executed (e.g., integrity checks or logging).
+5. **Deserialization**: The `IPacketRegistry` attempts to turn the buffer into a typed `IPacket`.
+6. **Execution**: The compiled handler pipeline (including `IPacketMiddleware`) is invoked.
+7. **Cleanup**: The `IBufferLease` is disposed, returning memory to the pool.
 
-- rejects empty leases
-- pushes the lease into `_dispatch`
-- releases the semaphore once
+## Diagnostics and Telemetry
 
-`HandlePacket(IPacket, IConnection)`:
+The dispatcher provides deep visibility into the runtime state via `GenerateReport()` and `GetReportData()`.
 
-- is a typed fast-path for internal callers and directly executes the compiled handler pipeline
-- should be treated as an exception to the queue-based runtime flow, not the primary ingress path
-- remains generic-friendly at the handler boundary even though the fast-path itself uses `IPacket`
-
-## Worker loop
-
-Each worker:
-
-1. waits on a wake signal from `_wakeChannel`
-2. pulls the next `(connection, lease)` pair from `_dispatch`
-3. runs `Options.NetworkPipeline.ExecuteAsync(...)`
-4. deserializes through `IPacketRegistry.TryDeserialize(...)`
-5. calls `ExecutePacketHandlerAsync(packet, connection)`
-6. disposes the lease
-
-If middleware returns `null`, the packet is dropped before deserialization. If deserialization fails, the dispatcher logs the packet head in hex and drops the lease.
-
-### Failure modes worth knowing
-
-- a full queue can delay or drop incoming work before it reaches handlers
-- middleware returning `null` is an intentional drop path, not a silent failure
-- deserialization failures mean the packet registry or packet bytes are out of sync
-
-## Diagnostics
-
-`GenerateReport()` includes:
-
-- running state
-- dispatch loop count
-- total pending packets
-- total and ready connection counts
-- pending ready connections per priority
-- top connections by pending packet count
-- wake signal and read counts
-- wake request status
-
-### Common pitfalls
-
-- calling the typed `HandlePacket(IPacket, IConnection)` path as if it were the normal ingress path
-- assuming a packet made it to middleware just because the socket accepted the bytes
-- forgetting to inspect queue pressure when handler latency grows
-
-## Basic usage
+- **Monitoring**: Track pending packet counts and ready connection counts.
+- **Hotspots**: Identify "top connections" that are generating the most load.
+- **Throughput**: Monitor wake signals and read signals to verify worker efficiency.
 
 ```csharp
-dispatch.Activate(ct);
-
-dispatch.HandlePacket(lease, connection);
-
-string report = dispatch.GenerateReport();
-Console.WriteLine(report);
+// Export structured data for Prometheus or custom dashboards
+var metrics = dispatchChannel.GetReportData();
+Console.WriteLine($"Queue Depth: {metrics["TotalPackets"]}");
 ```
-
-Typical flow:
-
-1. accept a raw buffer lease from the connection
-2. queue it into the dispatcher
-3. run middleware and deserialization in the worker loop
-4. invoke handlers and dispose the lease
 
 ## Related APIs
 
@@ -102,5 +80,3 @@ Typical flow:
 - [Handler Results](./handler-results.md)
 - [Middleware Pipeline](../middleware/pipeline.md)
 - [Dispatch Options](../options/dispatch-options.md)
-- [Connection Limiter](../../network/connection/connection-limiter.md)
-- [Protocol](../../network/protocol.md)

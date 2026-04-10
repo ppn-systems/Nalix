@@ -361,7 +361,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingMissingBufferPoolManager = new(
         id: "NALIX040",
         title: "NetworkApplicationBuilder should configure BufferPoolManager",
-        messageFormat: "NetworkApplicationBuilder.Build() is called without UseBufferPoolManager(...); configuring a BufferPoolManager can improve network allocation performance",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without ConfigureBufferPoolManager(...); configuring a BufferPoolManager can improve network allocation performance",
         category: "Performance",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,

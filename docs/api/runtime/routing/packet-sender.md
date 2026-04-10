@@ -1,103 +1,83 @@
 # Packet Sender
 
-`PacketSender<TPacket>` is the default runtime implementation of `IPacketSender<TPacket>`.
+`PacketSender<TPacket>` is the default runtime component responsible for serializing and transforming outbound packets. It is automatically resolved and paired with every `PacketContext`, providing a type-safe API for handlers to send replies without worrying about low-level framing, compression, or encryption.
 
-It is the explicit outbound path used by `PacketContext<TPacket>.Sender` when a handler wants to send one or more replies under the current connection and metadata rules.
-The same sender model works for built-in packets and custom packet types.
+## Transform Pipeline
+
+```mermaid
+flowchart LR
+    P[IPacket] --> S[Serialize]
+    S --> C{Compress?}
+    C -- Yes --> CL[LZ4 Compression]
+    C -- No --> E{Encrypt?}
+    CL --> E
+    E -- Yes --> EL[AEAD Encryption]
+    E -- No --> SK[Socket.SendAsync]
+    EL --> SK
+```
 
 ## Source mapping
 
 - `src/Nalix.Runtime/Dispatching/PacketSender.cs`
 
-## Main type
+## Role and Design
 
-- `PacketSender<TPacket>`
+The sender acts as the "exit gate" for the runtime. It ensures that every outbound message is correctly framed and transformed according to both the global server configuration and per-connection security states.
 
-## What it does
+- **Automated Transforms**: Automatically detects if a packet meets the threshold for compression or requires encryption based on the `PacketMetadata`.
+- **Zero-Allocation Execution**: Managed by the `ObjectPoolManager`, senders are rented and returned as part of the `PacketContext` lifecycle to avoid GC pressure.
+- **Atomic Operations**: Uses `BufferLease` to manage raw memory across transformation boundaries, ensuring that buffers are safely returned to the pool even if a transform fails.
 
-`PacketSender<TPacket>` reads the current `PacketContext<TPacket>` and decides how outbound bytes should be emitted.
+## Outbound Logic Branches
 
-It handles:
+The sender dynamically chooses one of four execution paths for every message:
 
-- packet serialization
-- packet leasing through the pooled context sender pipeline
-- compression decisions through `CompressionOptions`
-- encryption decisions through the current connection secret and cipher suite
-- flag updates for compressed and encrypted frames
-- sending through `context.Connection.TCP`
+| Scenario | Rule | Resulting Packet Flags |
+|---|---|---|
+| **Plain** | Small payload, no encryption required. | `CONTROL.NONE` |
+| **Compress only** | Payload $>$ `MinSizeToCompress`. | `PacketFlags.COMPRESSED` |
+| **Encrypt only** | `Security` required for the session. | `PacketFlags.ENCRYPTED` |
+| **Full Transform**| Large, sensitive payload. | `COMPRESSED \| ENCRYPTED` |
 
-## Initialization model
+> [!NOTE]
+> Compression always happens **before** encryption. This ensures data is as small as possible before being scrambled, which maximizes compression efficiency and reduces encrypted payload size.
 
-This type is pooled and must be initialized before use.
+## API Reference
 
-`PacketContext<TPacket>.Initialize(...)` rents and configures a sender for the current request, and reset/return logic clears that state after the handler completes.
-The surrounding packet flow also uses pooled packet and lease helpers from `Nalix.Framework.DataFrames.Pooling`.
-
-## Send behavior
-
-There are two public paths:
-
-- `SendAsync(packet, ct)` uses `context.Attributes.Encryption?.IsEncrypted`
-- `SendAsync(packet, forceEncrypt, ct)` overrides that decision
-
-Both paths now use exception-based failure reporting from the transport layer.
-
-## Runtime cases
-
-The sender splits into four main branches:
-
-| Case | Behavior |
+### Primary Methods
+| Method | Description |
 |---|---|
-| plain | serialize and send directly |
-| compress only | compress, set `PacketFlags.COMPRESSED`, send |
-| encrypt only | encrypt, set `PacketFlags.ENCRYPTED`, send |
-| compress + encrypt | compress first, then encrypt, then send |
-
-Compression activates only when `CompressionOptions.Enabled` is true and the serialized payload meets `MinSizeToCompress`.
-
-Encryption uses the connection's current:
-
-- `Secret`
-- `Algorithm`
-
-If compression or encryption cannot complete, the sender now throws instead of returning a failure flag.
+| `SendAsync(packet, ct)` | Sends a packet using the default security rules resolved for the request. |
+| `SendAsync(packet, force, ct)` | Overrides the default security rules to force encryption on a specific message. |
 
 ## Basic usage
 
+### Manual Response in handler
 ```csharp
-public async ValueTask Handle(PacketContext<Handshake> context, CancellationToken ct)
+public async ValueTask Handle(IPacketContext<Handshake> context, CancellationToken ct)
 {
-    Handshake reply = new(
-        0x1002,
-        HandshakeStage.SERVER_HELLO,
-        serverPublicKey,
-        serverNonce,
-        serverProof);
-    await context.Sender.SendAsync(reply, ct);
+    // The sender is already initialized and scoped to this context.
+    await context.Sender.SendAsync(new LoginSuccess(), ct);
 }
 ```
 
-Forced encryption:
-
+### Forcing Encryption
 ```csharp
-await context.Sender.SendAsync(
-    new Handshake(0x1003, HandshakeStage.SERVER_FINISH, [], [], []),
-    forceEncrypt: true,
-    ct);
+// Force encryption for a sensitive reply, even if the request was plain text.
+await context.Sender.SendAsync(sensitivePacket, forceEncrypt: true, ct);
 ```
 
-## Ownership and pooling
+## Internal Mechanics
 
-- `PacketSender<TPacket>` implements `IPoolable`
-- `Initialize(...)` stores the active context
-- `ResetForPool()` clears the context reference
-- using the sender before initialization throws
-- the sender itself participates in the same pooling model as `PacketLease<TPacket>` and `PacketPool<TPacket>`
+1. **Renting**: A raw buffer is rented from the pool based on the `packet.Length`.
+2. **Serialization**: The `IPacket` is serialized into the rented span.
+3. **Branching**: The sender evaluates `CompressionOptions` and `context.Attributes.Encryption`.
+4. **Transforming**: If needed, new leases are rented for compressed or encrypted results, and the intermediate leases are disposed immediately.
+5. **Transmitting**: The final `ReadOnlyMemory<byte>` is passed to the `ITcpSession` or `IUdpSession`.
 
 ## Related APIs
 
 - [Packet Context](./packet-context.md)
 - [Packet Dispatch](./packet-dispatch.md)
-- [Handler Return Types](./handler-results.md)
-- [Compression Options](../../network/options/compression-options.md)
-- [Connection](../../network/connection/connection.md)
+- [Compression Options](../../framework/options/compression-options.md)
+- [Connection Security](../../security/handshake.md)

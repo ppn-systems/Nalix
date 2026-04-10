@@ -4,9 +4,11 @@
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Logging;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
+using Nalix.Network.Connections;
 using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Middleware;
@@ -21,16 +23,18 @@ internal class Program
     {
         // Turn on debug logs so the sample shows the full packet and connection flow.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Trace;
+                            .MinLevel = LogLevel.Debug;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
 
         using NetworkApplication host = NetworkApplication.CreateBuilder()
             .ConfigureLogging(logger)
+            .ConfigureConnectionHub(new ConnectionHub())
+            .ConfigureBufferPoolManager(new BufferPoolManager())
             .Configure<NetworkSocketOptions>(options => options.Port = 57206)
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
-            .AddPacketAssembly<Handshake>()
+            .AddPacket<Handshake>()
             .AddHandler<PacketCommandHandler>()
             .AddHandlers<HandshakeHandlers>()
             .AddMetadataProvider<PacketTagMetadataProvider>()

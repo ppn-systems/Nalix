@@ -12,6 +12,20 @@
 - `src/Nalix.Framework/Options/WorkerOptions.cs`
 - `src/Nalix.Framework/Options/RecurringOptions.cs`
 
+## Architecture
+
+```mermaid
+graph TD
+    A[TaskManager] --> B[Worker Tasks]
+    A --> C[Recurring Jobs]
+    A --> D[Concurrency Gates]
+    D --> E[Global Limit]
+    D --> F[Group Limits]
+    B --> G[Worker Context]
+    G --> H[Heartbeats/Progress]
+    C --> I[Recurring Handle]
+```
+
 ## Main types
 
 - `TaskManager`
@@ -49,7 +63,7 @@ The parameterless constructor loads `TaskManagerOptions` from `ConfigurationMana
 | `GetRecurring()` | Read back recurring handles. |
 | `TryGetRecurring(...)` | Try to read one recurring job by name. |
 | `GenerateReport()` | Return a text snapshot of runtime state. |
-| `GenerateReportData()` | Return a machine-readable diagnostics snapshot. |
+| `GetReportData()` | Return a machine-readable diagnostics snapshot. |
 
 ## Worker scheduling
 
@@ -109,7 +123,7 @@ Useful members include:
 - group concurrency usage
 - top running workers
 
-`GenerateReportData()` returns the same state as a dictionary for programmatic consumption.
+`GetReportData()` returns the same state as a dictionary for programmatic consumption.
 
 ## Basic usage
 
