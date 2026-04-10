@@ -146,11 +146,11 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void AddWhenStreamHasTimedOutEvictsStreamAndReturnsNull()
     {
-        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
+        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1000 };
         FragmentHeader first = new(15, 0, 2, false);
         FragmentHeader second = new(15, 1, 2, true);
         _ = assembler.Add(first, [1], out _);
-        Thread.Sleep(100);
+        Thread.Sleep(1500);
 
         FragmentAssemblyResult? assembled = assembler.Add(second, [2], out bool streamEvicted);
 
@@ -162,9 +162,9 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void EvictExpiredAndClearWhenStreamsExistRemovesTrackedStreams()
     {
-        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
+        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1000 };
         _ = assembler.Add(new FragmentHeader(21, 0, 2, false), [1, 2], out _);
-        Thread.Sleep(100);
+        Thread.Sleep(1500);
 
         int evicted = assembler.EvictExpired();
         _ = assembler.Add(new FragmentHeader(22, 0, 2, false), [3, 4], out _);
@@ -177,10 +177,10 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void AddWhenEvictIntervalIsReachedAutomaticallySweepsExpiredStreams()
     {
-        using FragmentAssembler assembler = new() { StreamTimeoutMs = 1 };
+        using FragmentAssembler assembler = new() { StreamTimeoutMs = 2000 };
 
         _ = assembler.Add(new FragmentHeader(40, 0, 2, false), [1], out _);
-        Thread.Sleep(100);
+        Thread.Sleep(2500);
 
         for (ushort streamId = 41; streamId < 41 + FragmentAssembler.EvictInterval - 1; streamId++)
         {
