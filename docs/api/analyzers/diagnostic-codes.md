@@ -28,8 +28,9 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 | `NALIX014` | SerializeOrder value is duplicated | Warning | Serialization | SerializeOrder values should be unique within a serializable type. |
 | `NALIX015` | SerializeIgnore conflicts with SerializeOrder | Warning | Serialization | A member cannot be both ignored and explicitly ordered for serialization. |
 | `NALIX016` | SerializeDynamicSize is unnecessary on fixed-size member | Info | Serialization | SerializeDynamicSize should be used only for variable-size serialization members such as strings, arrays, or variable-size collections. |
-| `NALIX021` | SerializeOrder should not be negative | Warning | Serialization | Nalix explicit serialization layout should not use negative SerializeOrder values. |
-| `NALIX022` | Packet member SerializeOrder overlaps packet header region | Warning | Serialization | Packet payload members on PacketBase-derived types should start at or after PacketHeaderOffset.Region. |
+| `NALIX021` | `SerializeOrder` should not be negative | Warning | Serialization | Nalix explicit serialization layout should not use negative `SerializeOrder` values. |
+| `NALIX022` | Packet member `SerializeOrder` overlaps packet header region | Warning | Serialization | Packet payload members on `PacketBase`-derived types should start at or after `PacketHeaderOffset.Region`. |
+| `NALIX034` | `SerializeHeader` conflicts with `SerializeOrder` | Warning | Serialization | Nalix serialization members should not declare both `SerializeHeader` and `SerializeOrder`. |
 
 ## Middleware and Routing Codes (NALIX006 - NALIX007, NALIX025 - NALIX026, NALIX030 - NALIX033)
 
@@ -42,7 +43,10 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 | `NALIX030` | Packet middleware should declare MiddlewareOrder | Info | Middleware | Nalix packet middleware ordering is more predictable when each middleware declares MiddlewareOrderAttribute explicitly. |
 | `NALIX031` | Buffer middleware should declare MiddlewareOrder | Info | Middleware | Nalix network buffer middleware ordering is determined solely by MiddlewareOrderAttribute. |
 | `NALIX032` | Inbound middleware ignores AlwaysExecute | Info | Middleware | Nalix AlwaysExecute only changes outbound middleware behavior. It has no effect on inbound-only middleware. |
-| `NALIX033` | Registered middleware shares MiddlewareOrder with another | Info | Middleware | Nalix middleware registration chains are easier to reason about when MiddlewareOrder values are unique within the same builder chain. |
+| `NALIX033` | Registered middleware shares `MiddlewareOrder` with another | Info | Middleware | Nalix middleware registration chains are easier to reason about when `MiddlewareOrder` values are unique within the same builder chain. |
+| `NALIX035` | `PacketOpcode` is in reserved range | Warning | Routing | OpCodes between `0x0000` and `0x00FF` are reserved for internal Nalix system packets. |
+| `NALIX036` | `PacketOpcode` is already used in a different controller | Warning | Routing | Nalix dispatch requires unique opcodes across all registered controllers. |
+| `NALIX038` | OpCode in documentation does not match attribute | Info | Documentation | XML documentation summaries should be synchronized with `PacketOpcode` values. |
 
 ## Lifecycle and Configuration Codes (NALIX020, NALIX023 - NALIX024)
 
@@ -50,7 +54,9 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 |---|---|---|---|---|
 | `NALIX020` | Packet ResetForPool should call base.ResetForPool | Warning | Lifecycle | Nalix packets derived from PacketBase<TSelf> should call base.ResetForPool() to restore header fields and default metadata. |
 | `NALIX023` | Configuration property type is not supported | Warning | Configuration | Nalix ConfigurationLoader binds only supported scalar, Guid, TimeSpan, DateTime, and enum property types. |
-| `NALIX024` | Configuration property is not bindable | Info | Configuration | Nalix ConfigurationLoader binds only public instance properties with public setters. |
+| `NALIX024` | Configuration property is not bindable | Info | Configuration | Nalix `ConfigurationLoader` binds only public instance properties with public setters. |
+| `NALIX037` | Potential allocation in hot path | Info | Performance | Network hot paths should avoid `new` allocations to minimize latency. |
+| `NALIX039` | Potential `IBufferLease` leak | Warning | Usage | `IBufferLease` represents a pooled resource that must be returned to the pool exactly once. |
 
 ## SDK Codes (NALIX027 - NALIX029)
 
@@ -64,8 +70,8 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 
 | ID | Title | Severity | Category | Description |
 |---|---|---|---|---|
-| `NALIX040` | NetworkApplicationBuilder should configure BufferPoolManager | Info | Performance | Nalix network hosting can reduce allocation pressure by registering an explicit BufferPoolManager before building the application. |
-| `NALIX041` | NetworkApplicationBuilder should configure ConnectionHub | Info | Usage | Nalix network hosting can use an explicitly configured ConnectionHub instead of relying on the default fallback instance. |
+| `NALIX040` | `NetworkApplicationBuilder` should configure `BufferPoolManager` | Info | Performance | Nalix network hosting can reduce allocation pressure by registering an explicit `BufferPoolManager` before building. |
+| `NALIX041` | `NetworkApplicationBuilder` should configure `ConnectionHub` | Info | Usage | Nalix network hosting can use an explicitly configured `ConnectionHub` instead of the default fallback. |
 | `NALIX042` | NetworkApplicationBuilder handler type is not constructible | Warning | Usage | Nalix handler registration creates instances at runtime, so the handler type should be a concrete class. |
 | `NALIX043` | NetworkApplicationBuilder metadata provider type is not constructible | Warning | Usage | Nalix metadata provider registration creates instances at runtime, so the provider type should be a concrete class. |
 | `NALIX044` | NetworkApplicationBuilder should configure a TCP binding | Info | Usage | Nalix network hosting usually needs at least one TCP binding to serve clients. |

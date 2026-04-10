@@ -50,7 +50,7 @@ flowchart LR
 
 | Type | Public members |
 |---|---|
-| `UdpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `IsAuthenticated(...)`, `IsListening`, `Metrics` |
+| `UdpListenerBase` | `Activate(...)`, `Deactivate(...)`, `Dispose()`, `GenerateReport()`, `GetReportData()`, `IsAuthenticated(...)`, `IsListening`, `Metrics` |
 
 ## Inbound authentication model
 

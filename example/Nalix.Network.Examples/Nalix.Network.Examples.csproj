@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -9,8 +9,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Nalix.Logging" Version="12.0.5" />
-		<PackageReference Include="Nalix.Network.Hosting" Version="12.0.5" />
+		<PackageReference Include="Nalix.Logging" Version="12.0.6" />
+		<PackageReference Include="Nalix.Network.Hosting" Version="12.0.6" />
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
 	</ItemGroup>
 
