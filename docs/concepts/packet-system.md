@@ -25,16 +25,40 @@ public sealed class TradePacket : PacketBase<TradePacket>
 ### Serialization Attributes
 
 | Attribute | Purpose |
-|---|---|
+| :--- | :-- |
 | `[SerializePackable]` | Marks a class for source-generated serialization. |
-| `[SerializeOrder(int)]` | Sets the explicit position of a field in the byte stream. |
+| `[SerializeOrder(int)]` | Sets the explicit position of a field in the byte stream (Explicit layout only). |
 | `[SerializeDynamicSize(int)]` | Defines the maximum size (bytes) for variable-length strings or arrays. |
 | `[SerializeIgnore]` | Excludes a property from network serialization. |
 | `[SerializeHeader]` | Maps a property to a specific header region (Advanced). |
 
 ---
 
-## 2. Common Use Cases
+## 2. Serialization Layouts
+
+The `[SerializePackable]` attribute allows you to choose how fields are ordered in the byte stream. Choosing the right layout is critical for performance and version stability.
+
+| Layout | Behavior | Member Discovery | Use Case |
+|---|---|---|---|
+| `SerializeLayout.Auto` | **Default.** Reorders fields to minimize padding (usually by size: 8-byte, 4-byte, 1-byte). | Includes **all** public properties/fields except those marked with `[SerializeIgnore]`. | DTOs where size is critical. |
+| `SerializeLayout.Sequential` | Preserves source code order. | Includes **all** public properties/fields except those marked with `[SerializeIgnore]`. | Simple packets. |
+| `SerializeLayout.Explicit` | Requires `[SerializeOrder]` on every member. Fields are ordered by metadata values. | **Only** includes members decorated with `[SerializeOrder]`. | **Production Packets.** Best for stability. |
+
+```csharp
+[SerializePackable(SerializeLayout.Sequential)]
+public sealed class SimplePacket : PacketBase<SimplePacket>
+{
+    public int Id { get; set; }     // Byte 13-16
+    public string Name { get; set; } // Byte 17+
+}
+```
+
+> [!WARNING]
+> In `SerializeLayout.Auto`, adding a new field might change the offsets of ALL existing fields because the serializer re-sorts them. **Always use `Explicit` for public-facing network packets.**
+
+---
+
+## 3. Common Use Cases
 
 ### Case A: Strings and Arrays
 Variable-length data requires `[SerializeDynamicSize]` to protect against buffer overflow and large allocation attacks.
@@ -92,20 +116,6 @@ public sealed class RegionalPacket : PacketBase<RegionalPacket>
 
 ---
 
-## 3. Advanced Packet Metadata
-
-Metadata attributes allow you to define runtime behavior directly on your packet contracts or handlers.
-
-| Attribute | Behavior |
-|---|---|
-| `[PacketOpcode(ushort)]` | Maps a method to handle a specific OpCode. |
-| `[PacketPermission(level)]` | Enforces authorization rules via middleware. |
-| `[PacketTimeout(ms)]` | Sets a per-packet execution timeout. |
-| `[PacketRateLimit(burst, rate)]` | Protects the server from spamming specific packets. |
-| `[PacketConcurrencyLimit(count)]` | Limits how many instances of this packet process simultaneously. |
-
----
-
 ## 4. Packet Versioning
 
 Nalix supports versioning through **Additive Evolution**:
@@ -114,6 +124,7 @@ Nalix supports versioning through **Additive Evolution**:
 2. **Backward Compatibility**: To add a new field, simply use a higher `SerializeOrder`. Older clients reading newer packets will simply ignore the trailing bytes. Newer clients reading older packets will receive default values for the missing fields.
 
 **Example: Adding a field**
+
 ```csharp
 // Version 1
 [SerializeOrder(0)] public int Id { get; set; }
@@ -125,11 +136,12 @@ Nalix supports versioning through **Additive Evolution**:
 
 ---
 
-## 5. Custom Formatters
+## 6. Custom Formatters
 
 If your data type is not supported out-of-the-box (e.g., a third-party GeoLocation struct), you can implement a custom formatter.
 
 ### Steps:
+
 1. Implement `IFormatter<T>`.
 2. Register it using `LiteSerializer.Register<T>(formatter)`.
 
