@@ -19,6 +19,7 @@ using Nalix.Runtime.Handlers;
 
 internal class Program
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
     private static async Task Main(string[] args)
     {
         // Turn on debug logs so the sample shows the full packet and connection flow.
@@ -26,12 +27,14 @@ internal class Program
                             .MinLevel = LogLevel.Debug;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
+        ConnectionHub hub = new();
+        BufferPoolManager buffer = new();
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
 
         using NetworkApplication host = NetworkApplication.CreateBuilder()
             .ConfigureLogging(logger)
-            .ConfigureConnectionHub(new ConnectionHub())
-            .ConfigureBufferPoolManager(new BufferPoolManager())
+            .ConfigureConnectionHub(hub)
+            .ConfigureBufferPoolManager(buffer)
             .Configure<NetworkSocketOptions>(options => options.Port = 57206)
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
             .AddPacket<Handshake>()
@@ -55,9 +58,13 @@ internal class Program
             shutdown.Cancel();
         };
 
-        //Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
-        //Console.WriteLine("Press Ctrl+C to stop.");
+        Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
+        Console.WriteLine("Press Ctrl+C to stop.");
 
-        await host.RunAsync(shutdown.Token).ConfigureAwait(false);
+        await host.ActivateAsync(shutdown.Token).ConfigureAwait(false);
+
+        Console.WriteLine(hub.GenerateReport());
+
+        _ = Console.ReadKey();
     }
 }

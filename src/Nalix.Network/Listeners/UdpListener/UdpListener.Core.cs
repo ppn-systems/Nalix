@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -43,7 +43,6 @@ public abstract partial class UdpListenerBase
 
     private static readonly NetworkSocketOptions s_config;
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly IConnectionHub? s_hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     private readonly ushort _port;
@@ -58,7 +57,7 @@ public abstract partial class UdpListenerBase
     /// <summary>
     /// Fast-path endpoint binding cache. After the first successful token-based
     /// lookup, the <c>EndPoint → Connection</c> mapping is cached so subsequent
-    /// packets from the same endpoint skip the <see cref="ConnectionHub"/> entirely.
+    /// packets from the same endpoint skip the <see cref="IConnectionHub"/> entirely.
     /// </summary>
     private readonly ConcurrentDictionary<EndPoint, Connection> _endpointCache = new();
 
@@ -193,23 +192,37 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void SubscribeToHubEvents()
     {
-        if (s_hub is null || Interlocked.CompareExchange(ref _hubEventsSubscribed, 1, 0) != 0)
+        if (Interlocked.CompareExchange(ref _hubEventsSubscribed, 1, 0) != 0)
         {
             return;
         }
 
-        s_hub.ConnectionUnregistered += this.OnConnectionUnregistered;
+        IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
+
+        if (hub is null)
+        {
+            return;
+        }
+
+        hub.ConnectionUnregistered += this.OnConnectionUnregistered;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void UnsubscribeFromHubEvents()
     {
-        if (s_hub is null || Interlocked.CompareExchange(ref _hubEventsSubscribed, 0, 1) != 1)
+        if (Interlocked.CompareExchange(ref _hubEventsSubscribed, 0, 1) != 1)
         {
             return;
         }
 
-        s_hub.ConnectionUnregistered -= this.OnConnectionUnregistered;
+        IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
+
+        if (hub is null)
+        {
+            return;
+        }
+
+        hub.ConnectionUnregistered -= this.OnConnectionUnregistered;
     }
 
     private void OnConnectionUnregistered(IConnection connection)

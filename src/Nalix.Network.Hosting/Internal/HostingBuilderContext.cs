@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing;
@@ -57,6 +58,11 @@ internal sealed class HostingBuilderContext
     /// Gets the UDP protocol bindings configured for the host.
     /// </summary>
     public List<UdpProtocolBinding> UdpBindings { get; } = [];
+
+    /// <summary>
+    /// Gets the list of hosted background services.
+    /// </summary>
+    public List<Func<IActivatableAsync>> HostedServices { get; } = [];
 
     /// <summary>
     /// Gets the configuration delegates applied to
@@ -134,9 +140,13 @@ internal sealed record PacketMetadataProviderDescriptor(
 /// A factory delegate that creates the protocol using an
 /// <see cref="IPacketDispatch"/> instance.
 /// </param>
+/// <param name="Port">
+/// Optional explicit port to listen on. If null, the default configured port is used.
+/// </param>
 internal sealed record TcpProtocolBinding(
     Type ProtocolType,
-    Func<IPacketDispatch, IProtocol> Factory);
+    Func<IPacketDispatch, IProtocol> Factory,
+    ushort? Port = null);
 
 /// <summary>
 /// Represents a binding between a UDP transport and a protocol implementation.
@@ -148,6 +158,10 @@ internal sealed record TcpProtocolBinding(
 /// A factory delegate that creates the protocol using an
 /// <see cref="IPacketDispatch"/> instance.
 /// </param>
+/// <param name="Port">
+/// Optional explicit port to listen on. If null, the default configured port is used.
+/// </param>
 internal sealed record UdpProtocolBinding(
     Type ProtocolType,
-    Func<IPacketDispatch, IProtocol> Factory);
+    Func<IPacketDispatch, IProtocol> Factory,
+    ushort? Port = null);
