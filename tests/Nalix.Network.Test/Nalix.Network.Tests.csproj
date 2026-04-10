@@ -15,6 +15,7 @@
 		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Network.Pipeline\Nalix.Network.Pipeline.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
 	</ItemGroup>
 
 </Project>

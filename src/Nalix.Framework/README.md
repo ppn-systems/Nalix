@@ -1,26 +1,44 @@
 # Nalix.Framework
 
-`Nalix.Framework` provides shared runtime services for configuration, service registration, scheduling, identifiers, packet/frame helpers, and serialization support used by the Nalix ecosystem.
+The engine room of Nalix. Provides high-performance serialization, memory management, and shared data structures.
 
-## Install
+## Features
+
+- **LiteSerializer**: Resource-efficient, zero-allocation serialization for POCOs and packets.
+- **BufferPoolManager**: Advanced, shard-aware buffer pooling for LOH and stack-friendly allocations.
+- **ObjectPoolManager**: High-throughput object pooling with periodic scrubbing.
+- **DataFrames**: Base abstractions for packet models and framing.
+- **Identifiers**: High-performance 56-bit Snowflake-style unique ID generation.
+
+## Installation
 
 ```bash
 dotnet add package Nalix.Framework
 ```
 
-## What it includes
+## Quick Example: Pooling
 
-- `ConfigurationManager` for typed configuration loading
-- `InstanceManager` for shared service registration and lookup
-- `TaskManager` for recurring jobs and background workers
-- `Snowflake`, `Clock`, and `TimingScope` for IDs and timing
-- Packet registry, built-in frames, pooling, fragmentation, and serialization helpers
+```csharp
+using Nalix.Framework.Memory.Buffers;
 
-## Typical use
+// Rent a buffer from the global pool
+using IBufferLease lease = BufferPoolManager.Rent(1024);
+Span<byte> data = lease.Span;
 
-Add this package when you need the shared runtime infrastructure that sits underneath `Nalix.Network`, `Nalix.SDK`, and other Nalix modules.
+// No need to manually return; lease.Dispose() handles it
+```
+
+## Quick Example: Serialization
+
+```csharp
+[SerializePackable(SerializeLayout.Explicit)]
+public class MyData {
+    [SerializeOrder(0)] public int Id { get; set; }
+}
+
+byte[] encoded = LiteSerializer.Serialize(new MyData { Id = 1 });
+```
 
 ## Documentation
 
-- Package docs: [Nalix.Framework](https://ppn-systems.github.io/Nalix/packages/nalix-framework/)
-- API docs: [Framework API](https://ppn-systems.github.io/Nalix/api/framework/runtime/configuration/)
+For deep dives into memory management and serialization, see the [official documentation](https://ppn-systems.me/concepts/packet-system).
