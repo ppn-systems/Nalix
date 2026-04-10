@@ -1,173 +1,104 @@
-# Nalix.SDK.Transport.Extensions — TcpSession Helpers for Control, Directive, and Request Flows
+# Session Extensions
 
-The `Nalix.SDK.Transport.Extensions` namespace enriches `TcpSession` with helpers for protocol control packets, directives, request/response coordination, throttling safety, and subscription management. The helpers keep receive loops resilient by owning leases and catching handler faults.
+The `Nalix.SDK.Transport.Extensions` namespace provides high-level abstractions for managing control flows, cryptographic handshakes, and event subscriptions. These helpers turn raw transport sessions into a rich, packet-oriented client runtime.
+
+## Capability Map
+
+```mermaid
+graph TD
+    A[TransportSession / TcpSession] --> B[Control Helpers]
+    A --> C[Cryptographic Handshake]
+    A --> D[Request/Response]
+    A --> E[Subscription System]
+    
+    B --> B1[NewControl Builder]
+    B --> B2[AwaitControlAsync]
+    
+    C --> C1[X25519 Handshake]
+    C --> C2[AEAD Key Derivation]
+    
+    D --> D1[RequestAsync with Retry]
+    
+    E --> E1[On / OnOnce]
+    E --> E2[CompositeSubscription]
+```
 
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionX25519Extensions.cs`
+- `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 
----
+## Core Modules
 
-## Key capabilities
+### 1. Control Helpers (`ControlExtensions`)
+Facilitates the creation and awaiting of `CONTROL` frames. These are system-level packets used for signaling, keep-alives, and protocol state management.
 
-- Checklist:
-  - Control helpers: `NewControl`, `AwaitControlAsync`, `SendControlAsync`.
-  - Security: `HandshakeAsync` (X25519 key exchange).
-  - Requests: `RequestAsync` with `RequestOptions` (timeout, retry, encrypt).
-  - Subscriptions: `On`, `OnOnce`, `SubscribeTemp`, `CompositeSubscription`.
+| Method | Target | Description |
+|---|---|---|
+| `NewControl` | `TransportSession` | Starts a fluent `ControlBuilder` for pre-stamped control frames. |
+| `AwaitControlAsync`| `TcpSession` | Correlates and waits for a specific control response. |
+| `SendControlAsync` | `TcpSession` | Fluent shortcut for creating and transmitting a control frame. |
 
-- Fluent `Control` builders and awaiters that use `PacketAwaiter` to avoid race conditions.
-- Cryptographic handshake (`HandshakeAsync`) that performs an anonymous X25519 key exchange and enables AEAD encryption.
-- Request/response helpers (`RequestAsync`, `RequestOptions`) that send, await, optionally encrypt, and retry safely.
-- Subscription helpers (`On<T>`, `OnOnce<T>`, `SubscribeTemp`, `Subscribe`) that automatically dispose leases and log handler errors.
+### 2. Cryptographic Handshake (`TcpSessionX25519Extensions`)
+Implements an anonymous X25519 key exchange to secure the connection.
 
-## Public members at a glance
+- **Handshake Flow**: Performs ECDH, verifies server proofs, and derives a 32-byte session key.
+- **Auto-Activation**: Upon success, it automatically enables `ChaCha20Poly1305` encryption on the session.
 
-| Type | Public members |
-|---|---|
-| `ControlExtensions` | `NewControl(...)`, `AwaitPacketAsync(...)`, `AwaitControlAsync(...)`, `SendControlAsync(...)`, `ControlBuilder` |
-| `TcpSessionX25519Extensions` | `HandshakeAsync(...)` |
-| `RequestExtensions` | `RequestAsync<TResponse>(...)` |
-| `TcpSessionSubscriptions` | `On<TPacket>(...)`, `On(...)`, `OnOnce<TPacket>(...)`, `SubscribeTemp<TPacket>(...)`, `Subscribe(...)` |
-| `CompositeSubscription` | `Add(...)`, `Dispose()` |
+### 3. Request/Response (`RequestExtensions`)
+Provides an unified `RequestAsync<TResponse>` method that handles the full cycle of subscribing, sending a request, awaiting the response with a timeout, and retrying if necessary.
 
----
+- **Race-Free**: Subscribes before sending to ensure no responses are missed.
+- **Resilient**: Configurable retry logic via `RequestOptions`.
 
-## Control helpers (ControlExtensions)
+### 4. Subscriptions (`TcpSessionSubscriptions`)
+A specialized event system that handles buffer ownership and fault tolerance.
 
-- `NewControl(opCode, ControlType, ProtocolType)` starts a fluent builder that stamps `MonoTicks`/`Timestamp` and lets you chain `.WithSeq()`, `.WithReason()`, `.WithTransport()`, then `.Build()`.
-- `AwaitPacketAsync<TPkt>` / `AwaitControlAsync` waits for a matching packet/control with timeout and cancellation.
-- `SendControlAsync` materializes the builder, applies any extra configuration, and transmits the CONTROL frame.
-- All helpers use `PACKET_AWAITER` to avoid races and to ensure timeouts/reconnects are handled uniformly.
+- **Safe Disposal**: Handlers are automatically wrapped to ensure `IBufferLease` is released.
+- **Lifecycle Management**: Supports `OnOnce` for transient events and `CompositeSubscription` for bulk cleanup.
 
-### Common pitfalls
+## Basic usage
 
-- using `AwaitControlAsync(...)` without a prior send when you actually need a correlated request/response flow
-- forgetting that `ControlBuilder` is a `ref struct`, so it cannot be captured in lambdas
-- assuming `SendControlAsync(...)` is a separate transport layer instead of a convenience wrapper around `TcpSession.SendAsync(...)`
-
----
-
-## Cryptographic Handshake (TcpSessionX25519Extensions)
-
-- `HandshakeAsync` performs an anonymous Elliptic Curve Diffie-Hellman (ECDH) handshake using Curve25519.
-- It generates an ephemeral key pair, exchanges public keys with the server, verifies server proofs, and derives a 32-byte shared session key.
-- Upon success, it automatically updates the session's encryption settings (`Secret`, `Algorithm`, and `EncryptionEnabled`) to enable `ChaCha20Poly1305` encryption for subsequent traffic.
-
-### Common pitfalls
-
-- calling `HandshakeAsync` before the session is connected
-- neglecting the cancellation token during the multi-step handshake process
-- assuming the handshake is required for all connections; some servers may allow unencrypted signaling
-
-### Example
-
+### Handshake & Secure Request
 ```csharp
-await session.ConnectAsync("127.0.0.1", 5000);
-await session.HandshakeAsync(ct);
+// 1. Connect and secure
+await client.ConnectAsync();
+await client.HandshakeAsync();
 
-// All subsequent sends are now encrypted
-await session.SendControlAsync(0, ControlType.NOTICE);
+// 2. Perform a secure request
+var response = await client.RequestAsync<ProfileData>(
+    new GetProfilePacket { UserId = 101 },
+    RequestOptions.Default.WithEncrypt()
+);
 ```
 
----
-
-## Request/response helpers (RequestExtensions)
-
-- `RequestAsync<TRequest, TResponse>` combines send+await into a single, race-free operation.
-- Overload with `RequestOptions` controls timeout, retry count, and optional encryption (`Encrypt = true` requires `TcpSession`).
-- `RequestOptions.Default` ships with 5s timeout, no retries, and no encryption; fluent builders (`WithTimeout`, `WithRetry`, `WithEncrypt`) make tweaks easy.
-- Only `TimeoutException` is retried; other fatal errors (disconnects, invalid packets) propagate immediately.
-- `RequestAsync<TResponse>(IPacket request, RequestOptions? options = null, Func<TResponse, bool>? predicate = null)` handles both wildcard and filtered waits.
-- The helpers log retry attempts via `ILogger` when `InstanceManager` provides one.
-
-### Common pitfalls
-
-- using `Encrypt = true` on a client that is not `TcpSession`
-- assuming non-timeout failures should be retried
-- forgetting to supply a predicate when you need to correlate a specific reply
-
-### Example
-
+### Control Flow
 ```csharp
-Control request = session.NewControl(opCode: 1, type: ControlType.NOTICE).Build();
-Control reply = await session.RequestAsync<Control>(
-    request,
-    RequestOptions.Default.WithTimeout(5_000),
-    r => r.Type == ControlType.PONG,
-    ct: ct);
+// Build a tagged PING
+var ping = client.NewControl(opCode: 10, ControlType.PING)
+                 .WithSeq(42)
+                 .Build();
+
+// Send and wait for PONG
+await client.SendAsync(ping);
+var pong = await client.AwaitControlAsync(c => c.Type == ControlType.PONG && c.SequenceId == 42, 5000);
 ```
 
----
-
-## Subscription helpers (TcpSessionSubscriptions)
-
-- `On<TPacket>` / `On(predicate, handler)` register handlers that own the `IBufferLease` and dispose it inside a `finally` block.
-- `OnOnce<TPacket>` fires exactly once, auto-unsubscribing even under concurrent arrivals.
-- `SubscribeTemp<TPacket>` combines a temporary message handler with an optional `OnDisconnected` hook for request/response scenarios.
-- `Subscribe` op encodes multiple subscriptions into a `CompositeSubscription` for easy disposal.
-- Exceptions thrown by subscribers are caught and logged so that the receive loop never faults.
-
-### Common pitfalls
-
-- forgetting to dispose the returned subscription
-- expecting subscriber exceptions to bubble out of the receive loop
-- using `On(...)` when `OnOnce<TPacket>(...)` or `SubscribeTemp<TPacket>(...)` would better match the request shape
-
-### Example
-
+### Temporary Subscriptions
 ```csharp
-using var sub = session.On<Control>(packet =>
+using var sub = client.On<NoticePacket>(notice => 
 {
-    Console.WriteLine(packet.ToString());
+    Console.WriteLine($"[SYSTEM]: {notice.Message}");
 });
 
-using var once = session.OnOnce<Directive>(directive =>
-{
-    Console.WriteLine(directive.Type);
-});
-```
-
----
-
-## Best practices
-
-Flow: connect session → perform handshake → use `RequestAsync` with awaiters → dispose subscriptions.
-
-- Always dispose the `IDisposable` returned by subscription helpers (use `using var`), especially before issuing `RequestAsync` calls.
-- Use `RequestOptions.WithEncrypt()` only on `TcpSession`; the concrete client exposes `SendAsync(packet, encrypt: true)` for encryption-aware transport sends.
-
-### Quick flow
-
-1. connect the session
-2. perform cryptographic handshake
-3. create a control helper or request helper
-4. subscribe only for the duration you need
-5. dispose subscriptions when the flow is done
-
-## Example
-
-```csharp
-using var sub = session.On<Control>(packet =>
-{
-    Console.WriteLine("pong received");
-});
-
-Control reply = await session.RequestAsync<Control>(
-    new Control { Type = ControlType.PING },
-    RequestOptions.Default.WithTimeout(TimeSpan.FromSeconds(3)),
-    r => r.Type == ControlType.PONG,
-    ct);
+// Subscription auto-removed when 'sub' is disposed
 ```
 
 ## Related APIs
 
 - [TCP Session](./tcp-session.md)
-- [Subscriptions](./subscriptions.md)
 - [Request Options](./options/request-options.md)
-- [Cryptography](../security/cryptography.md)
 - [Handshake Protocol](../security/handshake.md)
-- [Built-in Frames](../framework/packets/built-in-frames.md)
+- [Control Type Enum](../common/protocols/control-type.md)

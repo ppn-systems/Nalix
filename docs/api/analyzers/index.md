@@ -2,106 +2,62 @@
 
 `Nalix.Analyzers` provides Roslyn diagnostics that help catch invalid packet, serialization, middleware, configuration, and SDK usage at compile time.
 
-Use this package when you want feedback before runtime instead of discovering a mistake in a handler, packet model, or startup path later.
+## Workflow
+
+```mermaid
+graph LR
+    A[Code Authoring] --> B[Roslyn Analyzer]
+    B -->|Violation| C[Diagnostic List]
+    B -->|QuickFix| D[Code Fix Provider]
+    D --> E[Correction Applied]
+    C --> F{Developer Decision}
+    F -->|Fix manually| A
+    F -->|Suppress| A
+```
 
 ## Source mapping
 
 - `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.cs`
 - `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`
 
-## Main pieces
+## Role and Design
 
-- `NalixUsageAnalyzer`
-- `DiagnosticDescriptors`
+The Nalix analyzer suite is the first line of defense for the framework's strict performance and safety requirements. It ensures that complex features like zero-copy serialization and high-concurrency dispatch are implemented correctly before a single byte of traffic is sent.
 
-## What it checks
+- **Non-Invasive**: Runs in the background as you type in IDEs (VS, Rider, VS Code).
+- **Instructional**: Diagnostics include detailed explanations of *why* a pattern is preferred.
+- **Automated**: Integrated with `Nalix.Analyzers.CodeFixes` for one-click resolution of common issues.
 
-The current analyzer surface covers:
+## Diagnostic Summary
 
-- packet controller usage and handler signatures
-- packet registry and packet deserializer contracts
-- `PacketBase<TSelf>` shape and `ResetForPool()` usage
-- serialization layout issues such as `SerializeOrder`, `SerializeIgnore`, and `SerializeDynamicSize`
-- middleware registration and middleware signature issues
-- configuration binding issues
-- SDK request option issues
-- hosting bootstrap issues such as `UseBufferPoolManager(...)`, `ConfigureConnectionHub(...)`, handler constructibility, and TCP/UDP binding coverage
+### Serialization & Layout
+| ID | Title | Summary |
+|---|---|---|
+| `NALIX013` | Missing `SerializeOrder` | Layout is explicit but member has no order. |
+| `NALIX014` | Duplicate `SerializeOrder` | Two members share the same order index. |
+| `NALIX015` | Attribute Conflict | Member has both `SerializeIgnore` and `SerializeOrder`. |
+| `NALIX022` | Header Overlap | Member order overlaps reserved header region. |
+| `NALIX034` | Header Conflict | Member has both `SerializeHeader` and `SerializeOrder`. |
 
-## Diagnostic groups
+### Dispatch & Routing
+| ID | Title | Summary |
+|---|---|---|
+| `NALIX001` | Duplicate Opcode | Two handlers in a controller share an opcode. |
+| `NALIX035` | Reserved Opcode | Opcode is in the system range (0x00 - 0xFF). |
+| `NALIX036` | Global Duplicate | Opcode is duplicated across different controllers. |
+| `NALIX038` | Doc Mismatch | XML summary opcode differs from attribute value. |
 
-### Packet controllers and handlers
-
-- `NALIX001` duplicate `PacketOpcode` in a controller
-- `NALIX002` missing `PacketOpcode`
-- `NALIX003` invalid handler signature
-- `NALIX004` `PacketContext<T>` packet type mismatch
-- `NALIX005` handler packet type mismatch
-- `NALIX008` missing `PacketController`
-
-### Packet registry and packet base
-
-- `NALIX009` packet missing `Deserialize`
-- `NALIX010` wrong `PacketBase<TSelf>` self type
-- `NALIX011` wrong `IPacketDeserializer<T>` self type
-- `NALIX012` missing static `Deserialize(ReadOnlySpan<byte>)`
-- `NALIX017` invalid `Deserialize` signature
-- `NALIX018` packet type is not concrete
-
-### Serialization layout
-
-- `NALIX013` explicit serialization member missing `SerializeOrder`
-- `NALIX014` duplicate `SerializeOrder`
-- `NALIX015` `SerializeIgnore` conflicts with `SerializeOrder`
-- `NALIX016` `SerializeDynamicSize` on a fixed-size member
-- `NALIX021` negative `SerializeOrder`
-- `NALIX022` serialized member overlaps the packet header region
-
-### Middleware and routing
-
-- `NALIX006` middleware type mismatch
-- `NALIX007` buffer middleware ignores `MiddlewareStage`
-- `NALIX025` metadata provider clears opcode
-- `NALIX026` metadata provider overwrites opcode without guard
-- `NALIX030` packet middleware missing `MiddlewareOrder`
-- `NALIX031` buffer middleware missing `MiddlewareOrder`
-- `NALIX032` inbound middleware ignores `AlwaysExecute`
-- `NALIX033` duplicate middleware order in the same chain
-
-### Configuration and SDK
-
-- `NALIX023` unsupported configuration property type
-- `NALIX024` configuration property is not bindable
-- `NALIX027` negative `RequestOptions.RetryCount`
-- `NALIX028` negative `RequestOptions.TimeoutMs`
-- `NALIX029` encrypted `RequestAsync` requires `TcpSession`
-
-### Hosting bootstrap
-
-- `NALIX040` missing `UseBufferPoolManager`
-- `NALIX041` missing `ConfigureConnectionHub`
-- `NALIX042` handler type is not constructible
-- `NALIX043` metadata provider type is not constructible
-- `NALIX044` missing `AddTcp`
-- `NALIX045` UDP configured without TCP
-
-## Practical notes
-
-- The analyzer is opinionated on purpose. It prefers catching common misuse early over being silent.
-- Some diagnostics are warnings, while others are informational nudges to make code more explicit.
-- The diagnostics are designed to match the current source conventions in `Nalix.Common`, `Nalix.Framework`, `Nalix.Network`, and `Nalix.SDK`.
-
-## Common pitfalls
-
-- assuming a packet type is valid just because it compiles
-- forgetting `PacketOpcode` on controller methods
-- mixing explicit serialization layout with missing or duplicate order values
-- registering middleware with the wrong packet type
-- using `RequestAsync(..., Encrypt = true)` on a client type that is not `TcpSession`
+### Performance & Safety
+| ID | Title | Summary |
+|---|---|---|
+| `NALIX037` | Hot Path Allocation | Allocation (`new`) detected in a high-frequency method. |
+| `NALIX039` | `IBufferLease` Leak | Pooled lease may not be disposed on all paths. |
+| `NALIX040` | Missing Pool Config | Host built without `ConfigureBufferPoolManager`. |
 
 ## Related APIs
 
-- [Serialization Attributes](../common/serialization-attributes.md)
+- [Full Diagnostic Codes](./diagnostic-codes.md)
+- [Code Fixes Reference](./code-fixes.md)
+- [Network Application Builder](../network/hosting/network-application.md)
 - [Serialization Basics](../framework/serialization/serialization-basics.md)
 - [Packet Registry](../framework/packets/packet-registry.md)
-- [Diagnostic Codes](./diagnostic-codes.md)
-- [Middleware](../../concepts/middleware.md)

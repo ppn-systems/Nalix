@@ -1,45 +1,52 @@
 # Protocol String Extensions
 
-`ProtocolStringExtensions` turns low-level protocol enums into short user-facing strings.
-
-Use this page when you want readable text for UI, logs, or error messages without exposing raw enum names.
+`ProtocolStringExtensions` converts low-level protocol and network enums into human-readable strings. These are designed for display in client UIs, toast notifications, and human-oriented logs.
 
 ## Source mapping
 
 - `src/Nalix.SDK/Extensions/ProtocolStringExtensions.cs`
 
-## Main types
+## Role and Design
 
-- `ProtocolStringExtensions`
+While raw enum values are efficient for transmission and logic, they often contain underscores or tech-heavy names (e.g., `BACKOFF_RETRY`) that are non-ideal for end users. This module provides a centralized "localization-lite" layer for standard protocol outcomes.
 
-## What it provides
+- **Centralized Mapping**: Ensures the entire application uses consistent terminology for the same protocol states.
+- **UI Ready**: Strings are trimmed of technical prefixes and use standard English sentence casing.
+- **Zero Allocation switch**: Uses a high-performance C# switch expression for O(1) retrieval.
 
-The extension methods currently cover:
+## API Reference
 
-- `ProtocolAdvice.ToString()`
-- `ProtocolReason.ToString()`
+### Extended Enums
+| Enum | Extension Method | Purpose |
+|---|---|---|
+| `ProtocolAdvice` | `ToDisplayString()` | Translates the "What should I do?" hint from the server. |
+| `ProtocolReason` | `ToDisplayString()` | Translates the "Why did this happen?" error code. |
 
-## Why this exists
+## Mappings at a glance
 
-The raw protocol enums are useful in code, but they are not always ideal for:
+| Enum Value | Display String |
+|---|---|
+| `ProtocolAdvice.RETRY` | "Please try again." |
+| `ProtocolAdvice.BACKOFF_RETRY` | "Please wait and try again." |
+| `ProtocolReason.RATE_LIMITED` | "Too many requests." |
+| `ProtocolReason.TOKEN_EXPIRED` | "Session expired." |
+| `ProtocolReason.THROTTLED` | "Request throttled." |
 
-- client UI messages
-- toast or dialog text
-- logs that should stay readable for operators
-
-These helpers give you a compact display string without making the calling code repeat the same mapping logic everywhere.
-
-## Example
+## Basic usage
 
 ```csharp
-string advice = ProtocolAdvice.BACKOFF_RETRY.ToString();
-string reason = ProtocolReason.RATE_LIMITED.ToString();
+// Receive a control frame from the server
+var control = await client.AwaitControlAsync(...);
 
-Console.WriteLine($"{reason}: {advice}");
+// Convert tech codes to user info
+string userReason = control.Reason.ToDisplayString(); // "Session expired."
+string userAdvice = ProtocolAdvice.REAUTHENTICATE.ToDisplayString(); // "Sign in again required."
+
+ShowToast($"{userReason} {userAdvice}");
 ```
 
 ## Related APIs
 
 - [SDK Overview](./index.md)
-- [TCP Session Extensions](./tcp-session-extensions.md)
-- [Session Diagnostics](./diagnostics.md)
+- [Session Extensions](./tcp-session-extensions.md)
+- [Control Type Enum](../common/protocols/control-type.md)
