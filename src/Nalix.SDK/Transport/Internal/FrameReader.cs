@@ -40,8 +40,8 @@ internal sealed class FrameReader : IDisposable
         Action<Exception> onError)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
-        _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
+        _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
     }
 
@@ -65,7 +65,7 @@ internal sealed class FrameReader : IDisposable
                     }
 
                     int payloadLen = totalLen - TcpSession.HeaderSize;
-                    byte[] rented = BufferLease.ByteArrayPool.Rent(totalLen);
+                    byte[]? rented = BufferLease.ByteArrayPool.Rent(totalLen);
                     try
                     {
                         BinaryPrimitives.WriteUInt16LittleEndian(rented.AsSpan(0, TcpSession.HeaderSize), totalLen);
@@ -87,14 +87,20 @@ internal sealed class FrameReader : IDisposable
 
                         this.PROCESS_NORMAL_FRAME(lease);
                     }
-                    catch { if (rented != null) BufferLease.ByteArrayPool.Return(rented); throw; }
+                    catch { if (rented != null) { BufferLease.ByteArrayPool.Return(rented); } throw; }
                 }
                 finally { System.Buffers.ArrayPool<byte>.Shared.Return(headerBuffer); }
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception ex) { _onError(ex); }
-        finally { _fragmentAssembler.Dispose(); }
+        catch (Exception ex)
+        {
+            _onError(ex);
+        }
+        finally
+        {
+            _fragmentAssembler.Dispose();
+        }
     }
 
     private void PROCESS_FRAGMENTED_FRAME(BufferLease chunkLease, FragmentHeader header)
