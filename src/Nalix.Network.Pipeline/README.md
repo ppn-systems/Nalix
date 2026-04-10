@@ -14,13 +14,6 @@ Standard middleware components and pipeline abstractions for Nalix connection ma
 dotnet add package Nalix.Network.Pipeline
 ```
 
-## Quick Example: Adding a Connection Guard
-
-```csharp
-var hub = new ConnectionHub(options);
-hub.AddGuard(new IpAddressLimiter(100)); // Limit 100 conns per IP
-```
-
 ## Documentation
 
 See [Middleware & Pipeline](https://ppn-systems.me/api/pipeline/index) for more details.

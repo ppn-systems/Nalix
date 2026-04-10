@@ -68,4 +68,4 @@ var client = new TcpSession(options, catalog);
 - [TCP Session](../tcp-session.md)
 - [UDP Session](../udp-session.md)
 - [Request Options](./request-options.md)
-- [Configuration Loader](../../framework/options/configuration-loader.md)
+- [Configuration Loader](../../framework/runtime/configuration.md#configurationloader)

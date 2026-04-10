@@ -60,7 +60,7 @@ public sealed class NetworkApplication : IActivatableAsync
 
     #region Fields
 
-    private readonly Lock _gate = new();
+    private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly ILogger _logger;
     private readonly Action _prepareCallbacks;
     private readonly Func<IPacketDispatch> _dispatchFactory;
@@ -68,6 +68,7 @@ public sealed class NetworkApplication : IActivatableAsync
 
     private readonly List<IListener> _listeners = [];
     private readonly List<IProtocol> _protocols = [];
+    private readonly IReadOnlyList<IActivatableAsync> _hostedServices;
 
     private bool _isStarted;
     private IPacketDispatch? _packetDispatch;
@@ -80,12 +81,14 @@ public sealed class NetworkApplication : IActivatableAsync
         ILogger logger,
         Action prepareCallbacks,
         Func<IPacketDispatch> dispatchFactory,
-        IReadOnlyList<Func<IPacketDispatch, ListenerBinding>> serverFactories)
+        IReadOnlyList<Func<IPacketDispatch, ListenerBinding>> serverFactories,
+        IReadOnlyList<IActivatableAsync> hostedServices)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _prepareCallbacks = prepareCallbacks ?? throw new ArgumentNullException(nameof(prepareCallbacks));
         _dispatchFactory = dispatchFactory ?? throw new ArgumentNullException(nameof(dispatchFactory));
         _serverFactories = serverFactories ?? throw new ArgumentNullException(nameof(serverFactories));
+        _hostedServices = hostedServices ?? throw new ArgumentNullException(nameof(hostedServices));
     }
 
     #endregion Constructors
@@ -121,13 +124,14 @@ public sealed class NetworkApplication : IActivatableAsync
     }
 
     /// <inheritdoc />
-    public Task ActivateAsync(CancellationToken cancellationToken = default)
+    public async Task ActivateAsync(CancellationToken cancellationToken = default)
     {
-        lock (_gate)
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
             if (_isStarted)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             _prepareCallbacks();
@@ -154,20 +158,28 @@ public sealed class NetworkApplication : IActivatableAsync
                 }
             }
 
+            for (int i = 0; i < _hostedServices.Count; i++)
+            {
+                await _hostedServices[i].ActivateAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             _isStarted = true;
         }
-
-        return Task.CompletedTask;
+        finally
+        {
+            _ = _gate.Release();
+        }
     }
 
     /// <inheritdoc />
-    public Task DeactivateAsync(CancellationToken cancellationToken = default)
+    public async Task DeactivateAsync(CancellationToken cancellationToken = default)
     {
-        lock (_gate)
+        await _gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
             if (!_isStarted)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             for (int i = _listeners.Count - 1; i >= 0; i--)
@@ -199,6 +211,18 @@ public sealed class NetworkApplication : IActivatableAsync
 
             _protocols.Clear();
 
+            for (int i = _hostedServices.Count - 1; i >= 0; i--)
+            {
+                try
+                {
+                    await _hostedServices[i].DeactivateAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to stop hosted service cleanly.");
+                }
+            }
+
             try
             {
                 _packetDispatch?.Deactivate(cancellationToken);
@@ -211,8 +235,10 @@ public sealed class NetworkApplication : IActivatableAsync
             _packetDispatch = null;
             _isStarted = false;
         }
-
-        return Task.CompletedTask;
+        finally
+        {
+            _ = _gate.Release();
+        }
     }
 
     /// <inheritdoc />

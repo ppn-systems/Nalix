@@ -8,7 +8,6 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Network.Connections;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 
@@ -34,11 +33,11 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureLogging(ILogger logger);
 
     /// <summary>
-    /// Sets the <see cref="ConnectionHub"/> instance used by the hosted Nalix runtime.
+    /// Sets the <see cref="IConnectionHub"/> instance used by the hosted Nalix runtime.
     /// </summary>
     /// <param name="connectionHub">The connection hub to register into the Nalix runtime.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub);
+    INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub);
 
     /// <summary>
     /// Explicitly registers a <see cref="BufferPoolManager"/> instance to be used by the application.
@@ -144,6 +143,23 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
 
     /// <summary>
+    /// Adds a TCP protocol using the default Nalix activator on a specific port.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="port">The port to listen on.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddTcp<TProtocol>(ushort port) where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Adds a TCP protocol using an explicit factory on a specific port.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="port">The port to listen on.</param>
+    /// <param name="factory">The factory used to create the protocol instance.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddTcp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
+
+    /// <summary>
     /// Adds a UDP protocol using the default Nalix activator.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
@@ -157,4 +173,21 @@ public interface INetworkApplicationBuilder
     /// <param name="factory">The factory used to create the protocol instance.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Adds a UDP protocol using the default Nalix activator on a specific port.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="port">The port to listen on.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port) where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Adds a UDP protocol using an explicit factory on a specific port.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <param name="port">The port to listen on.</param>
+    /// <param name="factory">The factory used to create the protocol instance.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
 }

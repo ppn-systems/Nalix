@@ -176,35 +176,32 @@ public class UdpSession : TransportSession
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
         packet.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
-        using BufferLease src = BufferLease.Rent(packet.Length);
-        int written = packet.Serialize(src.Span);
-        src.CommitLength(written);
-
-        // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
-        BufferLease transformed = this.TransformOutbound(src);
-
+        BufferLease src = BufferLease.Rent(packet.Length);
         try
         {
+            int written = packet.Serialize(src.Span);
+            src.CommitLength(written);
+
+            // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
+            this.TransformOutbound(ref src);
+
             // Step 3: Check MTU (Token + Packet)
-            if (transformed.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            if (src.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
             {
-                throw new NetworkException($"UDP packet too large after transformation: {transformed.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+                throw new NetworkException($"UDP packet too large after transformation: {src.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
             }
 
             // Step 4: Final Envelope [Token + Packet]
-            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + transformed.Length);
+            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + src.Length);
             _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
-            transformed.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
-            finalLease.CommitLength(Snowflake.Size + transformed.Length);
+            src.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
+            finalLease.CommitLength(Snowflake.Size + src.Length);
 
             await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }
         finally
         {
-            if (transformed != src)
-            {
-                transformed.Dispose();
-            }
+            src.Dispose();
         }
     }
 
@@ -219,33 +216,30 @@ public class UdpSession : TransportSession
         }
 
         // Step 1: Wrap raw payload into a BufferLease
-        using BufferLease src = BufferLease.Rent(payload.Length);
-        payload.Span.CopyTo(src.Span);
-        src.CommitLength(payload.Length);
-
-        // Step 2: Transform
-        BufferLease transformed = this.TransformOutbound(src);
-
+        BufferLease src = BufferLease.Rent(payload.Length);
         try
         {
-            if (transformed.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            payload.Span.CopyTo(src.Span);
+            src.CommitLength(payload.Length);
+
+            // Step 2: Transform
+            this.TransformOutbound(ref src);
+
+            if (src.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
             {
-                throw new NetworkException($"UDP payload too large after transformation: {transformed.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+                throw new NetworkException($"UDP payload too large after transformation: {src.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
             }
 
-            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + transformed.Length);
+            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + src.Length);
             _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
-            transformed.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
-            finalLease.CommitLength(Snowflake.Size + transformed.Length);
+            src.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
+            finalLease.CommitLength(Snowflake.Size + src.Length);
 
             await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }
         finally
         {
-            if (transformed != src)
-            {
-                transformed.Dispose();
-            }
+            src.Dispose();
         }
     }
 
@@ -284,30 +278,11 @@ public class UdpSession : TransportSession
         while (!ct.IsCancellationRequested)
         {
             byte[] rawBuffer = BufferLease.ByteArrayPool.Rent(bufferSize);
+            int received;
 
             try
             {
-                int received = await _socket.ReceiveAsync(rawBuffer, SocketFlags.None, ct).ConfigureAwait(false);
-                if (received == 0)
-                {
-                    continue;
-                }
-
-                // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
-                // (Server-to-Client UDP does not include the 7-byte token)
-                BufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
-
-                // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
-                BufferLease transformed = this.TransformInbound(datagram);
-
-                try
-                {
-                    this.OnMessageReceived?.Invoke(this, transformed);
-                }
-                finally
-                {
-                    transformed.Dispose();
-                }
+                received = await _socket.ReceiveAsync(rawBuffer, SocketFlags.None, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -323,6 +298,27 @@ public class UdpSession : TransportSession
                 }
                 break;
             }
+
+            if (received <= 0)
+            {
+                BufferLease.ByteArrayPool.Return(rawBuffer);
+                continue;
+            }
+
+            // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
+            // (Server-to-Client UDP does not include the 7-byte token)
+            BufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
+
+            try
+            {
+                // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
+                this.TransformInbound(ref datagram);
+                this.OnMessageReceived?.Invoke(this, datagram);
+            }
+            finally
+            {
+                datagram.Dispose();
+            }
         }
     }
 
@@ -330,11 +326,11 @@ public class UdpSession : TransportSession
 
     #region Transformation
 
-    private BufferLease TransformOutbound(BufferLease src)
-        => PacketFrameTransforms.TransformOutbound(src, this.Options);
+    private void TransformOutbound(ref BufferLease src)
+        => PacketFrameTransforms.TransformOutbound(ref src, this.Options);
 
-    private BufferLease TransformInbound(BufferLease lease)
-        => PacketFrameTransforms.TransformInbound(lease, this.Options.Secret);
+    private void TransformInbound(ref BufferLease lease)
+        => PacketFrameTransforms.TransformInbound(ref lease, this.Options.Secret);
 
     #endregion Transformation
 

@@ -386,7 +386,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 {
                     try
                     {
-                        _ = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>()
+                        _ = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?
                                                     .ForceClose(key);
                     }
                     catch (Exception ex)

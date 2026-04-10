@@ -30,7 +30,7 @@ Use a `Directory.Build.props` file in the root directory to manage package versi
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NalixVersion>11.8.0</NalixVersion>
+    <NalixVersion>12.0.7</NalixVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,8 +48,8 @@ The contracts project must be a `Class Library` referenced by both the Server an
 
 ```bash
 dotnet new classlib -n MyProject.Contracts
-dotnet add MyProject.Contracts package Nalix.Common --version 11.8.0
-dotnet add MyProject.Contracts package Nalix.Framework --version 11.8.0
+dotnet add MyProject.Contracts package Nalix.Common --version 12.0.7
+dotnet add MyProject.Contracts package Nalix.Framework --version 12.0.7
 ```
 
 ### Key Rules:
@@ -79,7 +79,7 @@ The server project should be a `Console Application` or `Worker Service` that us
 ```bash
 dotnet new console -n MyProject.Server
 dotnet add MyProject.Server reference MyProject.Contracts
-dotnet add MyProject.Server package Nalix.Network.Hosting --version 11.8.0
+dotnet add MyProject.Server package Nalix.Network.Hosting --version 12.0.7
 ```
 
 ### Best Practice: `NetworkApplication`
@@ -104,7 +104,7 @@ The client project should use the `Nalix.SDK` package.
 ```bash
 dotnet new console -n MyProject.Client
 dotnet add MyProject.Client reference MyProject.Contracts
-dotnet add MyProject.Client package Nalix.SDK --version 11.8.0
+dotnet add MyProject.Client package Nalix.SDK --version 12.0.7
 ```
 
 ---
