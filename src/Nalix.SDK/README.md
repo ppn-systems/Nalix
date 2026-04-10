@@ -1,25 +1,30 @@
 # Nalix.SDK
 
-`Nalix.SDK` is the client-side transport package for connecting .NET applications to Nalix servers over TCP and working with request/response, subscriptions, and transport lifecycle helpers.
+A high-level client SDK for building Nalix-compatible client applications with ease.
 
-## Install
+## Features
+
+- **TcpSession / UdpSession**: Managed session life cycles with automatic reconnection.
+- **Request / Response**: Correlated request-response pattern out-of-the-box.
+- **Buffer Management**: Transparently handles buffer pooling for outgoing and incoming packets.
+- **Encryption Support**: Built-in support for encrypted packet flows.
+
+## Installation
 
 ```bash
 dotnet add package Nalix.SDK
 ```
 
-## What it includes
+## Quick Example: Sending a Request
 
-- `TransportSession` and `TcpSession`
-- Transport and request option models
-- Request helpers and control/directive extensions
-- Subscription and dispatching helpers for client applications
+```csharp
+await using var session = new TcpSession(options, registry);
+await session.ConnectAsync();
 
-## Typical use
-
-Add this package when you are building a .NET client that connects to a Nalix server and needs the standard transport and request workflow.
+var response = await session.RequestAsync<MyResponse>(new MyRequest { Id = 1 });
+Console.WriteLine(response.Data);
+```
 
 ## Documentation
 
-- Package docs: [Nalix.SDK](https://ppn-systems.github.io/Nalix/packages/nalix-sdk/)
-- API docs: [SDK API](https://ppn-systems.github.io/Nalix/api/sdk/)
+Check the [Client Guide](https://ppn-systems.me/api/sdk/index) for session configuration and error handling.

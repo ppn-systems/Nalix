@@ -108,6 +108,8 @@ nav:
   - Concepts:
       - Choose the Right Building Block: concepts/choose-the-right-building-block.md
       - Architecture: concepts/architecture.md
+      - Performance Optimizations: concepts/performance-optimizations.md
+      - Packet System: concepts/packet-system.md
       - Packet Lifecycle: concepts/packet-lifecycle.md
       - Middleware: concepts/middleware.md
       - Configuration and Runtime: concepts/configuration-and-runtime.md
@@ -118,6 +120,7 @@ nav:
     - Build a Server:
         - Starter Template: guides/starter-template.md
         - End-to-End Sample: guides/end-to-end.md
+        - Production End-to-End: guides/production-end-to-end.md
         - Server Blueprint: guides/server-blueprint.md
     - Extend Behavior:
         - Middleware Guide: guides/middleware.md
@@ -181,6 +184,7 @@ nav:
         - Handshake Protocol: api/security/handshake.md
       - Runtime:
         - Routing:
+          - Overview: api/runtime/routing/index.md
           - Attributes: api/runtime/routing/packet-attributes.md
           - Metadata: api/runtime/routing/packet-metadata.md
           - Context: api/runtime/routing/packet-context.md
@@ -191,6 +195,7 @@ nav:
           - Handler Return Types: api/runtime/routing/handler-results.md
           - Dispatch Options: api/runtime/options/dispatch-options.md
         - Middleware:
+          - Overview: api/runtime/middleware/index.md
           - Pipeline: api/runtime/middleware/pipeline.md
           - Network Buffer Pipeline: api/runtime/middleware/network-buffer-pipeline.md
           - Concurrency Gate: api/runtime/middleware/concurrency-gate.md

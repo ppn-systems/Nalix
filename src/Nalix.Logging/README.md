@@ -1,25 +1,27 @@
 # Nalix.Logging
 
-`Nalix.Logging` provides the built-in structured logging implementation for the Nalix stack, including logger bootstrap, option models, and built-in targets.
+High-performance logging system optimized for low-latency networking environments.
 
-## Install
+## Features
+
+- **NLogix**: A zero-allocation logger built for hot-path networking execution.
+- **Batched Sinks**: Prevents logging from blocking network throughput by using asynchronous batching.
+- **Modular Targets**: Support for Console, File, and external collector targets.
+- **Diagnostic API**: Built-in support for statistics and metrics reporting.
+
+## Installation
 
 ```bash
 dotnet add package Nalix.Logging
 ```
 
-## What it includes
+## Quick Example: Usage
 
-- `NLogix` and `NLogix.Host` for application-wide logging
-- Shared `ILogger` integration
-- Logging options for console and file targets
-- Built-in batching and output target abstractions
-
-## Typical use
-
-Add this package when you want the default Nalix logger and its configuration model inside servers, workers, or shared runtime services.
+```csharp
+ILogger logger = NLogix.Host.Instance;
+logger.LogInformation("Nalix system initialized successfully.");
+```
 
 ## Documentation
 
-- Package docs: [Nalix.Logging](https://ppn-systems.github.io/Nalix/packages/nalix-logging/)
-- API docs: [Logging API](https://ppn-systems.github.io/Nalix/api/logging/)
+See [Logging Targets](https://ppn-systems.me/api/logging/targets) for a list of available sinks.
