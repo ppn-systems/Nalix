@@ -20,26 +20,8 @@ namespace Nalix.Framework.Memory.Internal;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class MatchFinder
 {
-    #region Constants
-
-    /// <summary>
-    /// 64k entries
-    /// </summary>
-    private const int HashTableBits = 16;
-
-    private const int HashShift = 32 - HashTableBits;
-
-    /// <summary>
-    /// Size of the hash table used for storing offsets of previously seen sequences.
-    /// </summary>
-    public const int HashTableSize = 1 << HashTableBits;
-
-    /// <summary>
-    /// Consider using a pool or limiting stackalloc in extreme cases
-    /// </summary>
-    public const int MaxStackallocHashTableSize = HashTableSize * sizeof(int);
-
-    #endregion Constants
+    // Max constants for bounds checking if needed, otherwise removed.
+    // Hash sizes are now dynamically calculated per payload to avoid excessive memory clearing.
 
     #region Constructors
 
@@ -87,6 +69,8 @@ internal static unsafe class MatchFinder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Match FindLongestMatch(
         int* hashTable,
+        int hashShift,
+        int hashMask,
         byte* inputBase,
         byte* currentInputPtr,
         byte* inputLimit,
@@ -125,10 +109,10 @@ internal static unsafe class MatchFinder
         else
 #endif
         {
-            hash = (currentSequence * 2654435761u) >> HashShift;
+            hash = (currentSequence * 2654435761u) >> hashShift;
         }
 
-        hash &= HashTableSize - 1;
+        hash &= (uint)hashMask;
 
         // Retrieve the candidate match offset and update the hash table
         int matchCandidateOffset = hashTable[hash];

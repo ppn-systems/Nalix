@@ -49,7 +49,7 @@ public static class LZ4BlockEncoder
     /// </returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public static unsafe int EncodeBlock(ReadOnlySpan<byte> input, Span<byte> output, int* hashTable)
+    public static unsafe int EncodeBlock(ReadOnlySpan<byte> input, Span<byte> output, int* hashTable, int hashBits)
     {
         if (input.IsEmpty || output.IsEmpty)
         {
@@ -61,7 +61,7 @@ public static class LZ4BlockEncoder
         {
             fixed (byte* outputBase = &MemoryMarshal.GetReference(output))
             {
-                return EncodeInternal(inputBase, input.Length, outputBase, output.Length, hashTable);
+                return EncodeInternal(inputBase, input.Length, outputBase, output.Length, hashTable, hashBits);
             }
         }
     }
@@ -84,7 +84,7 @@ public static class LZ4BlockEncoder
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static unsafe int EncodeInternal(byte* inputBase, int inputLength, byte* outputBase, int outputLength, int* hashTable)
+    private static unsafe int EncodeInternal(byte* inputBase, int inputLength, byte* outputBase, int outputLength, int* hashTable, int hashBits)
     {
 #if DEBUG
         Debug.Assert(hashTable is not null, "Hash table cannot be null");
@@ -163,13 +163,16 @@ public static class LZ4BlockEncoder
             matchFindInputLimit = inputBase;
         }
 
+        int hashShift = 32 - hashBits;
+        int hashMask = (1 << hashBits) - 1;
+
         while (inputPtr < matchFindInputLimit)
         {
             int currentInputOffset = (int)(inputPtr - inputBase);
             byte* windowStartPtr = inputBase + Math.Max(0, currentInputOffset - LZ4CompressionConstants.MaxOffset);
 
             MatchFinder.Match match = MatchFinder.FindLongestMatch(
-                hashTable, inputBase, inputPtr,
+                hashTable, hashShift, hashMask, inputBase, inputPtr,
                 inputEnd - LZ4CompressionConstants.LastLiteralSize,
                 windowStartPtr, currentInputOffset);
 
