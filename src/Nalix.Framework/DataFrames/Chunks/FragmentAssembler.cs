@@ -16,8 +16,8 @@ namespace Nalix.Framework.DataFrames.Chunks;
 /// when the last chunk arrives.
 ///
 /// <para>
-/// <b>Shared contract</b> — this instance is embedded into <c>FRAME_READER</c> (SDK)
-/// and <c>FramedSocketConnection</c> (Server). Each connection holds its own instance.
+/// <b>Shared contract</b> — this instance is embedded into <c>FrameReader</c> (SDK)
+/// and <c>SocketConnection</c> (Server). Each connection holds its own instance.
 /// </para>
 ///
 /// <para><b>Thread safety:</b> designed for a single-threaded receive loop.
@@ -61,10 +61,7 @@ public sealed class FragmentAssembler : IDisposable
             LastActivityMs = Environment.TickCount64;
         }
 
-        public void Dispose()
-        {
-            Interlocked.Exchange(ref AccumLease!, null!)?.Dispose();
-        }
+        public void Dispose() => Interlocked.Exchange(ref AccumLease!, null!)?.Dispose();
     }
 
     #endregion Inner state per stream
@@ -72,6 +69,7 @@ public sealed class FragmentAssembler : IDisposable
     #region Fields
 
     private bool _disposed;
+    private int _chunksSinceLastSweep;
 
     // Use regular Dictionary since this is for a single-threaded per-connection receive loop.
     // Avoid ConcurrentDictionary overhead, which is unnecessary here.
@@ -134,6 +132,12 @@ public sealed class FragmentAssembler : IDisposable
         }
 
         long now = Environment.TickCount64;
+
+        if (++_chunksSinceLastSweep >= EvictInterval)
+        {
+            _chunksSinceLastSweep = 0;
+            _ = this.EvictExpired();
+        }
 
         // ── Retrieve or create StreamState ────────────────────────────────
         if (!_streams.TryGetValue(header.StreamId, out StreamState? state))

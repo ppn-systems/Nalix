@@ -48,7 +48,6 @@ public sealed class BenchConfigC : ConfigurationLoader { }
 /// <see cref="ConfigurationManager.ReloadAll"/> và <see cref="ConfigurationManager.SetConfigFilePath"/>
 /// có file hợp lệ để đọc — tránh false result do exception bị nuốt trong reload path.
 /// </remarks>
-[MemoryDiagnoser]
 [Config(typeof(BenchmarkConfig))]
 public class ConfigurationManagerBenchmarks
 {

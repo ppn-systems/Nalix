@@ -28,6 +28,8 @@ public abstract partial class TcpListenerBase : IListener
     #region Constants
 
     private const int MinWorkerThreads = 4;
+    private const int MaxAcceptWorkers = 64;
+    private const int MaxThreadPoolWorkers = 512;
 
     #endregion Constants
 
@@ -121,7 +123,7 @@ public abstract partial class TcpListenerBase : IListener
 
         if (OperatingSystem.IsWindows() && s_config.TuneThreadPool)
         {
-            int parallelism = Math.Max(Environment.ProcessorCount * MinWorkerThreads, 16);
+            int parallelism = Math.Clamp(Environment.ProcessorCount * MinWorkerThreads, 16, MaxThreadPoolWorkers);
             // Thread pool optimization for IOCP
             ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
             _ = ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelism), Math.Max(completionPortThreads, parallelism));

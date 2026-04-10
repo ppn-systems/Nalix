@@ -14,7 +14,10 @@ This repository is the **Nalix** ecosystem. Generated code, docs, and refactors 
   - `Nalix.Common`
   - `Nalix.Framework`
   - `Nalix.Logging`
+  - `Nalix.Runtime`
   - `Nalix.Network`
+  - `Nalix.Network.Pipeline`
+  - `Nalix.Network.Hosting`
   - `Nalix.SDK`
   - `Nalix.Analyzers`
   - `Nalix.Analyzers.CodeFixes`
@@ -57,14 +60,31 @@ Builds on `Nalix.Common` and `Nalix.Framework`:
 - internal formatters and pooling helpers
 - logging configuration objects
 
+### `Nalix.Runtime`
+Builds on `Nalix.Common` and `Nalix.Framework`:
+- packet processing and middleware infrastructure
+- middleware pipeline orchestration
+- packet dispatching channels
+- execution management for message-oriented traffic
+
 ### `Nalix.Network`
 Builds on `Nalix.Common` and `Nalix.Framework`:
-- TCP/UDP listeners
-- connection and hub management
-- protocol lifecycle / metrics / public methods
-- middleware pipelines
-- routing and dispatch infrastructure
-- throttling and timing systems
+- TCP/UDP listeners and connection management
+- protocol lifecycle orchestration
+- routing and packet dispatch infrastructure
+- adaptive throttling and timing systems
+
+### `Nalix.Network.Pipeline`
+Builds on `Nalix.Common` and `Nalix.Framework`:
+- reusable middleware for permissions and rate limiting
+- traffic shaping and concurrency gates
+- timekeeping and clock coordination primitives
+
+### `Nalix.Network.Hosting`
+Builds on `Nalix.Common`, `Nalix.Framework`, `Nalix.Network`, and `Nalix.Runtime`:
+- Microsoft-style host and builder APIs
+- simplified bootstrapping for packet registry and dispatch
+- TCP listener lifecycle management
 
 ### `Nalix.SDK`
 Builds on `Nalix.Common` and `Nalix.Framework`:
@@ -78,11 +98,10 @@ Builds on `Nalix.Common` and `Nalix.Framework`:
 ## 3. Dependency Rules
 
 ```
-Nalix.Common      ← no Nalix dependencies
-Nalix.Framework   ← Nalix.Common only
-Nalix.Logging     ← Nalix.Common, Nalix.Framework
-Nalix.Network     ← Nalix.Common, Nalix.Framework
-Nalix.SDK         ← Nalix.Common, Nalix.Framework
+Level 0: Nalix.Common, Nalix.Analyzers
+Level 1: Nalix.Framework (deps: Common)
+Level 2: Nalix.Logging, Nalix.Runtime, Nalix.Network, Nalix.Network.Pipeline, Nalix.SDK (deps: Common, Framework)
+Level 3: Nalix.Network.Hosting (deps: Common, Framework, Network, Runtime)
 ```
 
 Do not introduce circular references. Do not add references that violate the above graph.
@@ -155,13 +174,16 @@ The repository uses GitHub Actions. Workflows live in `.github/workflows/`:
 | `ci-linux.yml`                   | Build & test on Ubuntu via `_build.yml`              |
 | `ci-windows.yml`                 | Build & test on Windows via `_build.yml`             |
 | `_build.yml`                     | Reusable template: restore → build → test → publish  |
+| `benchmark.yml`                  | Run BenchmarkDotNet on `master`, upload artifacts, compare against the previous benchmark artifact |
 | `_codeql.yml`                    | CodeQL security analysis (C#, scheduled + PR)        |
 | `docs.yml`                       | MkDocs build and deploy to GitHub Pages              |
-| `release-please.yml`             | Bump `.csproj` versions from release-please manifest |
 | `community-welcome.yml`          | Greet first-time contributors                        |
 | `community-stale.yml`            | Mark and close stale issues/PRs                      |
 | `security-dependency-review.yml` | Scan NuGet deps for CVEs on every PR                 |
 | `repo-label-sync.yml`            | Sync labels from `.github/labels.yml`                |
+| `nuget.yml`                      | Automated NuGet packaging and versioning              |
+
+Release/versioning rules are documented in `CONTRIBUTING.md` and follow Conventional Commits (`fix` = patch, `feat` = minor, breaking changes = major).
 
 **Label gate**: PRs labelled `documentation` skip build and CodeQL workflows — they only trigger `docs.yml`. Do not remove or rename this label.
 
@@ -175,5 +197,8 @@ When generating README text, XML docs, comments, or architecture notes, use the 
 - `Common` = contracts / primitives / shared foundations
 - `Framework` = foundational runtime utilities
 - `Logging` = logging subsystem
-- `Network` = networking runtime
+- `Runtime` = packet processing / middleware core
+- `Network` = networking transport runtime
+- `Network.Hosting` = high-level host/builder support
+- `Network.Pipeline` = reusable middleware components
 - `SDK` = client-side / session-facing API layer

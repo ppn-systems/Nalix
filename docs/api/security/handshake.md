@@ -15,6 +15,12 @@ The handshake process is anonymous and provides mutual authentication of the der
 
 Once the handshake is complete, both sides enable symmetric encryption (typically ChaCha20Poly1305) using the derived session key.
 
+Current validation rules in the built-in handler include:
+
+- the peer public key must be a valid 32-byte X25519 key payload
+- transcript/proof mismatches reject the handshake immediately
+- temporary shared-secret state is cleared when the handshake finishes or is rejected
+
 ## Server-side Protocol: HandshakeStage
 
 The `HandshakeStage` class implements the server-side logic within the protocol receive path. It is an internal sealed class that manages the state machine for client hello, server hello, and final verification.

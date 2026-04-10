@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
@@ -64,6 +65,7 @@ public abstract partial class UdpListenerBase
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
+    private int _hubEventsSubscribed;
 
     // Diagnostic counters — grouped for clarity, accessed via Interlocked.
     private long _rxPackets;
@@ -155,6 +157,7 @@ public abstract partial class UdpListenerBase
         if (disposing)
         {
             this.Deactivate();
+            this.UnsubscribeFromHubEvents();
 
             try
             {
@@ -184,4 +187,64 @@ public abstract partial class UdpListenerBase
     }
 
     #endregion IDisposable
+
+    #region Hub Event Cleanup
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void SubscribeToHubEvents()
+    {
+        if (s_hub is null || Interlocked.CompareExchange(ref _hubEventsSubscribed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        s_hub.ConnectionUnregistered += this.OnConnectionUnregistered;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void UnsubscribeFromHubEvents()
+    {
+        if (s_hub is null || Interlocked.CompareExchange(ref _hubEventsSubscribed, 0, 1) != 1)
+        {
+            return;
+        }
+
+        s_hub.ConnectionUnregistered -= this.OnConnectionUnregistered;
+    }
+
+    private void OnConnectionUnregistered(IConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        if (_endpointCache.IsEmpty)
+        {
+            return;
+        }
+
+        int removed = 0;
+
+        foreach (KeyValuePair<EndPoint, Connection> entry in _endpointCache)
+        {
+            Connection cachedConnection = entry.Value;
+            if (!ReferenceEquals(cachedConnection, connection) &&
+                !Equals(cachedConnection.ID, connection.ID))
+            {
+                continue;
+            }
+
+            if (_endpointCache.TryRemove(entry.Key, out _))
+            {
+                removed++;
+            }
+        }
+
+        if (removed > 0)
+        {
+            s_logger?.Debug(
+                $"[NW.{nameof(UdpListenerBase)}] endpoint-cache-pruned " +
+                $"id={connection.ID} removed={removed}");
+        }
+    }
+
+    #endregion Hub Event Cleanup
 }

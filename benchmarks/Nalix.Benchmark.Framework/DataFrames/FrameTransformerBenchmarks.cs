@@ -1,24 +1,23 @@
-using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.TextFrames;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Random;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
-[MemoryDiagnoser]
 [Config(typeof(BenchmarkConfig))]
 public class FrameTransformerBenchmarks
 {
     private readonly byte[] _key = new byte[32];
 
-    private byte[] _rawPacket;
-    private BufferLease _source;
-    private BufferLease _compressed;
-    private BufferLease _encrypted;
+    private byte[] _rawPacket = null!;
+    private BufferLease _source = null!;
+    private BufferLease _compressed = null!;
+    private BufferLease _encrypted = null!;
 
     [Params(64, 256)]
     public int PayloadBytes { get; set; }
@@ -31,8 +30,8 @@ public class FrameTransformerBenchmarks
             _key[i] = (byte)(i + 1);
         }
 
-        Text256 frame = new();
-        frame.Initialize(new string('a', this.PayloadBytes), ProtocolType.TCP);
+        Handshake frame = new();
+        frame.Initialize(0, HandshakeStage.SERVER_HELLO, Csprng.GetBytes(32), Csprng.GetBytes(32), Csprng.GetBytes(32), ProtocolType.TCP);
         frame.Flags = PacketFlags.NONE;
         _rawPacket = frame.Serialize();
 
@@ -49,14 +48,6 @@ public class FrameTransformerBenchmarks
         _encrypted.Dispose();
     }
 
-    [IterationSetup]
-    public void ResetBuffers()
-    {
-        _source.CommitLength(_rawPacket.Length);
-        _rawPacket.AsSpan().CopyTo(_source.SpanFull);
-        _compressed.CommitLength(0);
-        _encrypted.CommitLength(0);
-    }
 
     [Benchmark]
     public int Compress()

@@ -75,6 +75,8 @@ Common built-in packet middleware:
 - `ConcurrencyMiddleware`
 - `TimeoutMiddleware`
 
+`RateLimitMiddleware` uses handler-specific metadata when a packet has `[PacketRateLimit(...)]` and otherwise falls back to the global per-endpoint token bucket. That means reserved/control packets without an explicit attribute still go through ingress throttling.
+
 ## Mental model
 
 ```text

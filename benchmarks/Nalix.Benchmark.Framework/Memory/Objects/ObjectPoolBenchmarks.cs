@@ -5,7 +5,6 @@ using Nalix.Framework.Memory.Pools;
 
 namespace Nalix.Benchmark.Framework.Memory.Objects;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class ObjectPoolBenchmarks
 {
@@ -42,8 +41,8 @@ public class ObjectPoolBenchmarks
 
     public sealed class PooledNode : IPoolable
     {
-        public int Value;
+        public int Value { get; set; }
 
-        public void ResetForPool() => Value = 0;
+        public void ResetForPool() => this.Value = 0;
     }
 }

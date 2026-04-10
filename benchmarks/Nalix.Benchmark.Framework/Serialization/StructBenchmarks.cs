@@ -1,36 +1,59 @@
 using System.Runtime.CompilerServices;
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
+using BenchmarkDotNet.Engines;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Benchmark.Framework.Serialization;
 
-[SimpleJob(RuntimeMoniker.Net10_0, launchCount: 1, warmupCount: 5, iterationCount: 15)]
-[MemoryDiagnoser]
-[Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.FastestToSlowest)]
-[RankColumn]
 [DisassemblyDiagnoser(printSource: true)]
+[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class StructBenchmarks
 {
-    private BenchPoint _point;
+    private ComplexStruct _payload;
     private byte[] _buffer = null!;
+    private readonly Consumer _consumer = new();
 
     [GlobalSetup]
     public void Setup()
     {
-        _point = new BenchPoint(123, 456);
+        _payload = new ComplexStruct(
+            Id: 1000,
+            Name: "Nalix Core Engine",
+            Flags: [1, 2, 3, 4, 5, 6, 7, 8],
+            Location: new BenchPoint(1, 2, 3, 4)
+        );
 
-        // ✅ FIX: không gọi Serialize ở đây
-        _buffer = new byte[Unsafe.SizeOf<BenchPoint>()];
+        // Chuẩn bị sẵn buffer thừa thãi cho Variable-Length Allocation
+        _buffer = new byte[1024];
     }
 
     [Benchmark(Baseline = true)]
-    public byte[] Serialize()
-        => LiteSerializer.Serialize(_point);
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void Serialize()
+        => _consumer.Consume(LiteSerializer.Serialize(_payload));
 
     [Benchmark]
-    public int Serialize_IntoSpan()
-        => LiteSerializer.Serialize(_point, _buffer);
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void Serialize_IntoSpan()
+        => _consumer.Consume(LiteSerializer.Serialize(_payload, _buffer));
 
-    public readonly record struct BenchPoint(int X, int Y);
+    // Mẫu Struct Unmanaged
+    public readonly record struct BenchPoint(long A, long B, long C, long D);
+
+    // Mẫu Struct Thực tế chứa cả Value Type, Reference Type, và Nested Formatter
+    public struct ComplexStruct
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public int[] Flags { get; set; }
+        public BenchPoint Location { get; set; }
+
+        public ComplexStruct(int Id, string Name, int[] Flags, BenchPoint Location)
+        {
+            this.Id = Id;
+            this.Name = Name;
+            this.Flags = Flags;
+            this.Location = Location;
+        }
+    }
 }

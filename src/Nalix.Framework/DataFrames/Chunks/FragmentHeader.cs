@@ -29,7 +29,7 @@ namespace Nalix.Framework.DataFrames.Chunks;
 /// <summary>
 /// Fixed-size <b>7-byte</b> header located at the start of the payload for each chunk.
 /// <para>
-/// <b>Shared contract</b> between SDK (<c>FRAME_SENDER</c> / <c>FRAME_READER</c>)
+/// <b>Shared contract</b> between SDK (<c>FrameSender</c> / <c>FrameReader</c>)
 /// and Server (<c>SocketConnection</c>).
 /// Both sides use <see cref="WriteTo"/> when sending and <see cref="ReadFrom"/> when receiving.
 /// </para>
