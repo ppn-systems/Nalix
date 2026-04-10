@@ -16,7 +16,6 @@ public abstract partial class Protocol
     private int _accepting;
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly IConnectionHub? s_hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
     #endregion Fields
 
@@ -80,7 +79,8 @@ public abstract partial class Protocol
                 connection.TCP.BeginReceive(cancellationToken);
 
                 // Register the connection with the hub for management
-                s_hub?.RegisterConnection(connection);
+                InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?
+                                        .RegisterConnection(connection);
 
                 return;
             }

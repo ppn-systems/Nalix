@@ -13,6 +13,7 @@ using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Transport;
@@ -113,7 +114,7 @@ public abstract partial class UdpListenerBase
     /// <para>
     /// The session token is the connection's <see cref="ISnowflake"/> ID (7 bytes)
     /// issued during TCP login. It maps 1:1 to a <see cref="Connection"/> in the
-    /// <see cref="ConnectionHub"/>. Lightweight by design — sensitive operations
+    /// <see cref="IConnectionHub"/>. Lightweight by design — sensitive operations
     /// go through the TCP channel.
     /// </para>
     /// </remarks>
@@ -205,19 +206,20 @@ public abstract partial class UdpListenerBase
         // Parse session token (7-byte ISnowflake) → hub lookup → cache.
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
+        IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
-        if (s_hub is null)
+        if (hub is null)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
 
             s_logger?.Error(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"[{nameof(ConnectionHub)}] null");
+                $"[{nameof(IConnectionHub)}] null");
             return;
         }
 
-        if (!this.TryResolveConnection(s_hub, sessionToken, out connection) || connection == null)
+        if (!this.TryResolveConnection(hub, sessionToken, out connection) || connection == null)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();
