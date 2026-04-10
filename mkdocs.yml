@@ -121,6 +121,7 @@ nav:
         - Starter Template: guides/starter-template.md
         - End-to-End Sample: guides/end-to-end.md
         - Production End-to-End: guides/production-end-to-end.md
+        - Project Setup: guides/project-setup.md
         - Server Blueprint: guides/server-blueprint.md
     - Extend Behavior:
         - Middleware Guide: guides/middleware.md
@@ -146,9 +147,11 @@ nav:
   - API:
       - Analyzers:
         - Overview: api/analyzers/index.md
+        - Diagnostic Codes: api/analyzers/diagnostic-codes.md
         - Code Fixes: api/analyzers/code-fixes.md
       - Common:
         - Directories: api/common/directories.md
+        - Control Type: api/common/protocols/control-type.md
         - Diagnostics Contracts: api/common/diagnostics-contracts.md
         - Packet Contracts: api/common/packet-contracts.md
         - Connection Contracts: api/common/connection-contracts.md
@@ -159,6 +162,7 @@ nav:
         - Snowflake: api/framework/runtime/snowflake.md
         - Clock: api/framework/runtime/clock.md
         - Timing Scope: api/framework/runtime/timing-scope.md
+        - Singleton Base: api/framework/runtime/singleton-base.md
         - Worker Options: api/framework/options/worker-options.md
         - Recurring Options: api/framework/options/recurring-options.md
         - Frame Model: api/framework/packets/frame-model.md
@@ -171,6 +175,7 @@ nav:
         - Reader, Writer, and Header Extensions: api/framework/packets/reader-writer-and-header-extensions.md
         - LZ4: api/framework/memory/lz4.md
         - Buffer and Pooling: api/framework/memory/buffer-and-pooling.md
+        - Object Map and Typed Pools: api/framework/memory/object-map-and-typed-pools.md
         - Serialization: api/framework/packets/serialization.md
       - Logging:
         - Overview: api/logging/index.md
@@ -182,9 +187,12 @@ nav:
         - Hashing and MAC: api/security/hashing-and-mac.md
         - AEAD and Envelope: api/security/aead-and-envelope.md
         - Handshake Protocol: api/security/handshake.md
+        - Permission Levels: api/security/permission-level.md
       - Runtime:
+        - Overview: api/runtime/index.md
         - Routing:
           - Overview: api/runtime/routing/index.md
+          - Handlers: api/runtime/handlers/index.md
           - Attributes: api/runtime/routing/packet-attributes.md
           - Metadata: api/runtime/routing/packet-metadata.md
           - Context: api/runtime/routing/packet-context.md
@@ -201,6 +209,8 @@ nav:
           - Concurrency Gate: api/runtime/middleware/concurrency-gate.md
           - Policy Rate Limiter: api/runtime/middleware/policy-rate-limiter.md
           - Token Bucket Limiter: api/runtime/middleware/token-bucket-limiter.md
+          - Permission Middleware: api/runtime/middleware/permission-middleware.md
+          - Timeout Middleware: api/runtime/middleware/timeout-middleware.md
       - Network:
         - Protocol: api/network/protocol.md
         - TCP Listener: api/network/tcp-listener.md
@@ -234,6 +244,8 @@ nav:
         - Session Diagnostics: api/sdk/diagnostics.md
         - Session Subscriptions: api/sdk/subscriptions.md
         - Thread Dispatching: api/sdk/thread-dispatching.md
+        - Frame Reader and Sender: api/sdk/frame-reader-and-sender.md
+        - Transport Session: api/sdk/transport-session.md
         - Protocol String Extensions: api/sdk/protocol-string-extensions.md
         - Options:
           - Transport Options: api/sdk/options/transport-options.md
