@@ -50,11 +50,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub)
+    public INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub)
     {
         ArgumentNullException.ThrowIfNull(connectionHub);
 
-        InstanceManager.Instance.Register(connectionHub);
+        InstanceManager.Instance.Register<IConnectionHub>(connectionHub);
         return this;
     }
 
@@ -347,11 +347,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             return;
         }
 
-        InstanceManager.Instance.Register(new ConnectionHub());
+        InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub());
     }
 
-    private static void RegisterLogger(HostingBuilderContext state)
-        => InstanceManager.Instance.Register<ILogger>(state.Logger);
+    private static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);
 
     private static void ApplyOptions(HostingBuilderContext state)
     {
@@ -413,6 +412,9 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _ = dispatchOptions.WithHandler(() => (THandler)factory());
     }
+
+    /// <inheritdoc/>
+    public INetworkApplicationBuilder ConfigureConnectionHub(ConnectionHub connectionHub) => throw new NotImplementedException();
 
     #endregion
 }
