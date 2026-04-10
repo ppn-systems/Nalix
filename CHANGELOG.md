@@ -5,6 +5,19 @@ This project follows [Semantic Versioning](https://semver.org/) guidelines.
 
 ---
 
+# [12.0.7] - 2026-04-10
+
+### Added
+
+- Multi-port support for TCP/UDP listeners in `Nalix.Network.Hosting`.
+- Background service lifecycle management via `IActivatableAsync` in `NetworkApplication`.
+- Improved documentation with better navigation and fixed cross-links.
+
+### Fixed
+
+- Resolved double-disposal bugs in `BufferLease` management within `FrameReader` and `UdpSession`.
+- Corrected documentation warnings and broken links across the API reference.
+
 # [11.8.0] - 2026-03-24
 
 ### Added
