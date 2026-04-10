@@ -16,4 +16,4 @@ A lower-level pipeline that operates on raw `IBufferLease` objects before deseri
 - [Permission Middleware](./permission-middleware.md): Enforces connection-level permission checks.
 - [Policy Rate Limiter](./policy-rate-limiter.md): Implements complex rate-limiting policies.
 - [Timeout Middleware](./timeout-middleware.md): Enforces processing timeouts for packet handlers.
-- [Token Bucket Limiter](./token-bucket-limiter.md): A high-performance, predictable rate limiter.
+- [Policy Rate Limiter](./policy-rate-limiter.md): Implements complex rate-limiting policies.
