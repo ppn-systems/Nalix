@@ -77,6 +77,7 @@ internal sealed class FrameReader : IDisposable
 
                         // Ownership of 'rented' is taken by BufferLease.
                         BufferLease lease = BufferLease.TakeOwnership(rented, TcpSession.HeaderSize, payloadLen);
+                        rented = null; // Transferred
 
                         if (FragmentAssembler.IsFragmentedFrame(lease.Span, out FragmentHeader header))
                         {
@@ -86,7 +87,7 @@ internal sealed class FrameReader : IDisposable
 
                         this.PROCESS_NORMAL_FRAME(lease);
                     }
-                    catch { BufferLease.ByteArrayPool.Return(rented); throw; }
+                    catch { if (rented != null) BufferLease.ByteArrayPool.Return(rented); throw; }
                 }
                 finally { System.Buffers.ArrayPool<byte>.Shared.Return(headerBuffer); }
             }
@@ -102,14 +103,13 @@ internal sealed class FrameReader : IDisposable
         {
             ReadOnlySpan<byte> chunkBody = chunkLease.Span[FragmentHeader.WireSize..];
             FragmentAssemblyResult? assembled = _fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
-            chunkLease.Dispose();
 
             if (assembled is not null)
             {
                 this.PROCESS_NORMAL_FRAME(assembled.Value.Lease);
             }
         }
-        catch (Exception)
+        finally
         {
             chunkLease.Dispose();
         }
@@ -119,17 +119,10 @@ internal sealed class FrameReader : IDisposable
     {
         try
         {
-            BufferLease transformed = PacketFrameTransforms.TransformInbound(lease, _options.Secret);
-            try
-            {
-                _onMessage(transformed);
-            }
-            finally
-            {
-                transformed.Dispose();
-            }
+            PacketFrameTransforms.TransformInbound(ref lease, _options.Secret);
+            _onMessage(lease);
         }
-        catch (Exception)
+        finally
         {
             lease.Dispose();
         }

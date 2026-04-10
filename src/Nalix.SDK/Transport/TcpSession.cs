@@ -226,7 +226,6 @@ public class TcpSession : TransportSession
             {
                 if (asyncPayload is { } copiedPayload)
                 {
-                    lease.Dispose();
                     _ = Task.Run(async () =>
                     {
                         try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
@@ -235,6 +234,7 @@ public class TcpSession : TransportSession
                     return;
                 }
 
+                lease.Retain();
                 _ = Task.Run(async () =>
                 {
                     try { await asyncHandler(lease.Memory).ConfigureAwait(false); }
@@ -243,13 +243,10 @@ public class TcpSession : TransportSession
                 });
                 return;
             }
-
-            lease.Dispose();
         }
         catch (Exception ex)
         {
             this.OnError?.Invoke(this, ex);
-            lease.Dispose();
         }
     }
 

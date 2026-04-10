@@ -19,70 +19,46 @@ internal static class PacketFrameTransforms
     /// <summary>
     /// Applies inbound transforms in transport order: decrypt first, then decompress.
     /// </summary>
-    public static BufferLease TransformInbound(BufferLease src, ReadOnlySpan<byte> secret)
+    public static void TransformInbound(ref BufferLease current, ReadOnlySpan<byte> secret)
     {
-        BufferLease current = src;
+        PacketFlags flags = current.Span.ReadFlagsLE();
 
-        try
+        if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
-            PacketFlags flags = current.Span.ReadFlagsLE();
-
-            if (flags.HasFlag(PacketFlags.ENCRYPTED))
-            {
-                BufferLease next = PacketCipher.DecryptFrame(current, secret);
-                current.Dispose();
-                current = next;
-                flags = current.Span.ReadFlagsLE();
-            }
-
-            if (flags.HasFlag(PacketFlags.COMPRESSED))
-            {
-                BufferLease next = PacketCompression.DecompressFrame(current);
-                current.Dispose();
-                current = next;
-            }
-
-            return current;
-        }
-        catch
-        {
+            BufferLease next = PacketCipher.DecryptFrame(current, secret);
             current.Dispose();
-            throw;
+            current = next;
+            flags = current.Span.ReadFlagsLE();
+        }
+
+        if (flags.HasFlag(PacketFlags.COMPRESSED))
+        {
+            BufferLease next = PacketCompression.DecompressFrame(current);
+            current.Dispose();
+            current = next;
         }
     }
 
     /// <summary>
     /// Applies outbound transforms in transport order: compress first, then encrypt.
     /// </summary>
-    public static BufferLease TransformOutbound(BufferLease src, TransportOptions options, bool? encrypt = null)
+    public static void TransformOutbound(ref BufferLease current, TransportOptions options, bool? encrypt = null)
     {
         bool doEncrypt = encrypt ?? options.EncryptionEnabled;
-        bool doCompress = options.CompressionEnabled && (src.Length - FrameTransformer.Offset) >= options.CompressionThreshold;
+        bool doCompress = options.CompressionEnabled && (current.Length - FrameTransformer.Offset) >= options.CompressionThreshold;
 
-        BufferLease current = src;
-
-        try
+        if (doCompress)
         {
-            if (doCompress)
-            {
-                BufferLease next = PacketCompression.CompressFrame(current);
-                current.Dispose();
-                current = next;
-            }
-
-            if (doEncrypt)
-            {
-                BufferLease next = PacketCipher.EncryptFrame(current, options.Secret, options.Algorithm);
-                current.Dispose();
-                current = next;
-            }
-
-            return current;
-        }
-        catch
-        {
+            BufferLease next = PacketCompression.CompressFrame(current);
             current.Dispose();
-            throw;
+            current = next;
+        }
+
+        if (doEncrypt)
+        {
+            BufferLease next = PacketCipher.EncryptFrame(current, options.Secret, options.Algorithm);
+            current.Dispose();
+            current = next;
         }
     }
 }
