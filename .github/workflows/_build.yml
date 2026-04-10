@@ -109,11 +109,13 @@ jobs:
 
       - name: Build all projects
         shell: bash
-        run: dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
+        run: |
+          dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
+          dotnet build "${{ inputs.test }}" --configuration Release --no-restore -p:UseSharedCompilation=false
 
       - name: Run all tests
         shell: bash
-        run: dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore --logger "trx;LogFileName=tests_results.trx" --results-directory "$TEST_RESULTS_DIR" --collect:"XPlat Code Coverage" -p:UseSharedCompilation=false
+        run: dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore --logger "trx" --results-directory "$TEST_RESULTS_DIR" --collect:"XPlat Code Coverage" -p:UseSharedCompilation=false
 
       - name: Detect coverage reports
         id: coverage_files
