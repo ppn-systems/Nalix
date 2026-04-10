@@ -4,7 +4,6 @@ using Nalix.Framework.Identifiers;
 
 namespace Nalix.Benchmark.Framework.Identifiers;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class SnowflakeBenchmarks
 {

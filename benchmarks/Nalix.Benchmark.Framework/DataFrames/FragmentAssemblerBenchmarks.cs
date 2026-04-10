@@ -1,11 +1,8 @@
-using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class FragmentAssemblerBenchmarks
 {
@@ -41,7 +38,7 @@ public class FragmentAssemblerBenchmarks
     public int Assemble_SequentialChunks()
     {
         using FragmentAssembler assembler = new();
-        BufferLease? completed = null;
+        FragmentAssemblyResult? completed = null;
         try
         {
             for (int i = 0; i < _headers.Length; i++)
@@ -53,7 +50,7 @@ public class FragmentAssemblerBenchmarks
         }
         finally
         {
-            completed?.Dispose();
+            completed?.Lease.Dispose();
         }
     }
 

@@ -1,15 +1,14 @@
-using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.TextFrames;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Random;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
-[MemoryDiagnoser]
 [Config(typeof(BenchmarkConfig))]
 public class FrameTransformerBenchmarks
 {
@@ -31,8 +30,8 @@ public class FrameTransformerBenchmarks
             _key[i] = (byte)(i + 1);
         }
 
-        Text256 frame = new();
-        frame.Initialize(new string('a', this.PayloadBytes), ProtocolType.TCP);
+        Handshake frame = new();
+        frame.Initialize(0, HandshakeStage.SERVER_HELLO, Csprng.GetBytes(32), Csprng.GetBytes(32), Csprng.GetBytes(32), ProtocolType.TCP);
         frame.Flags = PacketFlags.NONE;
         _rawPacket = frame.Serialize();
 

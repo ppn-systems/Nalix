@@ -1,10 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Benchmark.Framework.Serialization;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class ObjectBenchmarks
 {
@@ -35,12 +33,14 @@ public class ObjectBenchmarks
     }
 
     [Benchmark(Baseline = true)]
-    public byte[] Serialize_Object()
-        => LiteSerializer.Serialize(_payload);
+    public byte[] Serialize_Object() => LiteSerializer.Serialize(_payload);
 
     [Benchmark]
-    public BenchPayload Deserialize_Object()
-        => LiteSerializer.Deserialize<BenchPayload>(_bytes, out _)!;
+    public int Deserialize_Object()
+    {
+        BenchPayload obj = LiteSerializer.Deserialize<BenchPayload>(_bytes, out _)!;
+        return obj.Values[10]; // force use
+    }
 
     public sealed class BenchPayload
     {

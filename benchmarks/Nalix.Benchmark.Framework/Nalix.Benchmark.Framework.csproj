@@ -9,12 +9,18 @@
 
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
-		<PackageReference Include="Nalix.Common" Version="12.0.2" />
-		<PackageReference Include="Nalix.Framework" Version="12.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
 		<Optimize>true</Optimize>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
 
 </Project>

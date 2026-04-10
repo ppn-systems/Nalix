@@ -3,7 +3,6 @@ using Nalix.Framework.Random;
 
 namespace Nalix.Benchmark.Framework.Random;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class CsprngBenchmarks
 {

@@ -4,7 +4,6 @@ using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Benchmark.Framework.Memory.Buffers;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class BufferLeaseBenchmarks
 {

@@ -1,13 +1,8 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Benchmark.Framework.Serialization;
 
-[MemoryDiagnoser]
-[HardwareCounters(
-    BenchmarkDotNet.Diagnosers.HardwareCounter.CacheMisses,
-    BenchmarkDotNet.Diagnosers.HardwareCounter.BranchMispredictions)]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class ArrayBenchmarks
 {
