@@ -42,7 +42,7 @@ public class ObjectPoolBenchmarks
 
     public sealed class PooledNode : IPoolable
     {
-        public int Value;
+        public int Value { get; set; }
 
         public void ResetForPool() => Value = 0;
     }

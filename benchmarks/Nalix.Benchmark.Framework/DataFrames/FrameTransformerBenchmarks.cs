@@ -15,10 +15,10 @@ public class FrameTransformerBenchmarks
 {
     private readonly byte[] _key = new byte[32];
 
-    private byte[] _rawPacket;
-    private BufferLease _source;
-    private BufferLease _compressed;
-    private BufferLease _encrypted;
+    private byte[] _rawPacket = null!;
+    private BufferLease _source = null!;
+    private BufferLease _compressed = null!;
+    private BufferLease _encrypted = null!;
 
     [Params(64, 256)]
     public int PayloadBytes { get; set; }
@@ -49,14 +49,6 @@ public class FrameTransformerBenchmarks
         _encrypted.Dispose();
     }
 
-    [IterationSetup]
-    public void ResetBuffers()
-    {
-        _source.CommitLength(_rawPacket.Length);
-        _rawPacket.AsSpan().CopyTo(_source.SpanFull);
-        _compressed.CommitLength(0);
-        _encrypted.CommitLength(0);
-    }
 
     [Benchmark]
     public int Compress()

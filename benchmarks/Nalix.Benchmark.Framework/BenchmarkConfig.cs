@@ -29,8 +29,6 @@ public sealed class BenchmarkConfig : ManualConfig
                 .WithLaunchCount(2)
                 .WithWarmupCount(10)
                 .WithIterationCount(20)
-                .WithInvocationCount(1)
-                .WithUnrollFactor(1)
                 .WithMinIterationTime(TimeInterval.FromMilliseconds(250))
                 .WithId("Net10"));
 
