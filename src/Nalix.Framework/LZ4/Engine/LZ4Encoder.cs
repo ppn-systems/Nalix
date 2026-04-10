@@ -124,10 +124,17 @@ internal static class LZ4Encoder
         }
 
         int bits = System.Numerics.BitOperations.Log2((uint)inputLength);
-        
+
         // Clamp to avoid tiny hash tables handling too much traffic or huge tables for empty data
-        if (bits < 8) bits = 8;
-        if (bits > 16) bits = 16;
+        if (bits < 8)
+        {
+            bits = 8;
+        }
+
+        if (bits > 16)
+        {
+            bits = 16;
+        }
 
         return bits;
     }

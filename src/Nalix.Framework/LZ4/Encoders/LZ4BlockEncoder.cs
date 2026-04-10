@@ -44,6 +44,7 @@ public static class LZ4BlockEncoder
     /// <param name="hashTable">
     /// A pointer to a hash table used for finding matches. This can be stack-allocated or pooled.
     /// </param>
+    /// <param name="hashBits"></param>
     /// <returns>
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>
@@ -78,6 +79,7 @@ public static class LZ4BlockEncoder
     /// <param name="outputBase">Pointer to the start of the output buffer.</param>
     /// <param name="outputLength">Length of the output buffer.</param>
     /// <param name="hashTable">Pointer to the hash table for finding matches.</param>
+    /// <param name="hashBits">Hash</param>
     /// <returns>
     /// The length of the compressed data, or -1 if the output buffer is too small.
     /// </returns>

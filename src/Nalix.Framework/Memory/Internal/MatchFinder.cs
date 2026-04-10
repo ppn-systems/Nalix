@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
-using System.Diagnostics;
+
 using System.Runtime.CompilerServices;
 using Nalix.Framework.LZ4.Encoders;
 
 #if DEBUG
+using System.Diagnostics;
+
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
@@ -60,6 +62,8 @@ internal static unsafe class MatchFinder
     /// Finds the longest match for the current input position within the sliding window.
     /// </summary>
     /// <param name="hashTable">Hash table mapping hash values to input offsets.</param>
+    /// <param name="hashShift">Hash</param>
+    /// <param name="hashMask">Hash</param>
     /// <param name="inputBase">Pointer to the start of the input buffer.</param>
     /// <param name="currentInputPtr">Pointer to the current position in the input buffer.</param>
     /// <param name="inputLimit">Pointer to the end of the input buffer or match limit.</param>
