@@ -1,29 +1,36 @@
 # Nalix.Analyzers
 
-Roslyn-based static analysis to enforce high-performance coding standards and serialization correctness in Nalix projects.
+> [!NOTE]
+> Roslyn-based static analysis to enforce high-performance coding standards and serialization correctness in Nalix projects.
 
-## Features
+`Nalix.Analyzers` is a developer-productivity package that identifies common pitfalls when working with the Nalix networking framework. It provides real-time feedback in your IDE and during CI/CD to ensure your application remains efficient, secure, and maintainable.
 
-- **Serialization Validation**: Catches overlapping orders, missing attributes, and forbidden types in packet definitions.
-- **Hot-Path Enforcement**: Warns about heap allocations and boxing in performance-critical methods.
-- **OpCode Verification**: Ensures OpCode values are synchronized with documentation and registry logic.
-- **Buffer Leak Protection**: Detects potential `IBufferLease` leaks in middlewares and handlers.
+## Key Features
 
-## Installation
+- **⚡ Performance First**: Detects heap allocations and unnecessary boxing in performance-critical hot paths.
+- **📦 Reliable Serialization**: Validates `SerializeOrder` continuity and detects header region overlaps.
+- **🛡️ Secure Routing**: Prevents duplicate `PacketOpcode` assignments and enforces system-reserved ranges.
+- **💧 Resource Management**: Identifies potential `IBufferLease` leaks before they cause production memory pressure.
+
+## Critical Diagnostics
+
+| ID | Title | Level | Summary |
+|---|---|---|---|
+| `NALIX013` | Missing `SerializeOrder` | **Error** | Layout is explicit but member has no order index. |
+| `NALIX014` | Duplicate `SerializeOrder` | **Error** | Two members share the same order; order must be unique. |
+| `NALIX022` | Header Overlap | **Warning** | Payload member overlaps the reserved 12-byte header. |
+| `NALIX037` | Hot Path Allocation | **Info** | Method is high-frequency; avoid `new` where possible. |
+
+## Quick Start
+
+Add the analyzer package to your project:
 
 ```bash
 dotnet add package Nalix.Analyzers
 ```
 
-## Supported Diagnostics
-
-| ID | Title | Level |
-|---|---|---|
-| `NALIX013` | Explicit serialization member missing Order | Error |
-| `NALIX014` | Duplicate SerializeOrder | Error |
-| `NALIX022` | Member overlaps header region | Warning |
-| `NALIX001` | Allocation in Hot Path | Warning |
+The analyzer will automatically start providing suggestions in Visual Studio, Rider, and VS Code. Most diagnostics include **Quick Fixes** to resolve issues with a single click.
 
 ## Documentation
 
-View the full [Diagnostic Catalog](https://ppn-systems.me/api/analyzers/diagnostic-codes) for explanations and fix suggestions.
+For a complete list of all 45+ rules, visit the [Diagnostic Catalog](https://ppn-systems.me/api/analyzers/diagnostic-codes).
