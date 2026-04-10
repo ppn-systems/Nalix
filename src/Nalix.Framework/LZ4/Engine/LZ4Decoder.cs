@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using Nalix.Framework.LZ4.Encoders;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Internal;
+using Nalix.Framework.Security.Primitives;
 
 namespace Nalix.Framework.LZ4.Engine;
 

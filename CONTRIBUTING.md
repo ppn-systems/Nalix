@@ -107,6 +107,16 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 - Use an optional scope when it helps identify the affected package or area
 - Prefer one logical change per commit when possible
 
+### 📦 Version Bump Rules
+
+When release automation is enabled for the repository, Conventional Commit types are interpreted as:
+
+- `fix`: patch release
+- `feat`: minor release
+- any commit with `!` in the type/scope section or a `BREAKING CHANGE:` footer: major release
+
+This means `fix(network): ...` will be grouped into the next patch release, while `feat(runtime): ...` will be grouped into the next minor release unless a breaking-change marker is present.
+
 ### Examples
 
 ```text
@@ -149,6 +159,29 @@ We strive to follow SOLID principles in our codebase:
 4. The PR should work on our CI pipeline without errors
 5. A maintainer will review your PR and may request changes
 6. Once approved, your PR will be merged into the main branch
+
+## 🧪 CI Quality Gates
+
+Pull requests and pushes to `master` are expected to pass the shared `_build.yml` workflow checks:
+
+- `dotnet format --verify-no-changes`
+- Release build for the configured solution
+- Test execution with TRX results and XPlat Code Coverage collection
+- Coverage artifact generation in Cobertura format
+- Linux trim smoke publish (`linux-x64`, `PublishTrimmed=true`, `--self-contained true`) for the example host
+
+In addition, the benchmark workflow runs BenchmarkDotNet on pushes to `master`, exports JSON/CSV artifacts, and compares the latest run with the previous benchmark artifact to highlight regressions or improvements.
+
+## 🚢 Release Automation
+
+Release automation follows Conventional Commits and is designed around the `master` branch:
+
+- Release preparation is triggered from commits that land on `master`
+- `fix` commits roll into the next patch release
+- `feat` commits roll into the next minor release
+- `BREAKING CHANGE:` footers and `!` markers trigger a major release
+
+If you are preparing a patch/minor/major change, prefer one commit (or squash-merge result) that clearly communicates the highest-severity change so the version bump is unambiguous.
 
 ## 🐛 Issue Reporting Guidelines
 

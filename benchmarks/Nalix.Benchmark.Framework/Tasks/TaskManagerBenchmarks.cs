@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Nalix.Framework.Options;
@@ -8,7 +7,6 @@ using Nalix.Framework.Tasks;
 
 namespace Nalix.Benchmark.Framework.Tasks;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class TaskManagerBenchmarks
 {

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Security.Asymmetric;
@@ -11,6 +12,11 @@ namespace Nalix.Framework.Security.Asymmetric;
 /// </summary>
 public static class X25519
 {
+    /// <summary>
+    /// Size in bytes of an X25519 private key, public key, and derived shared secret.
+    /// </summary>
+    public const int KeySize = 32;
+
     /// <summary>
     /// Represents an X25519 key pair consisting of a private key and a public key.
     /// </summary>
@@ -35,7 +41,7 @@ public static class X25519
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyPair()
     {
-        X25519KeyPair key = new() { PrivateKey = new byte[32] };
+        X25519KeyPair key = new() { PrivateKey = new byte[KeySize] };
         Csprng.Fill(key.PrivateKey);
 
         // Clamp per https://cr.yp.to/ecdh.html
@@ -55,6 +61,9 @@ public static class X25519
     [return: System.Diagnostics.CodeAnalysis.NotNull]
     public static X25519KeyPair GenerateKeyFromPrivateKey([System.Diagnostics.CodeAnalysis.NotNull] byte[] privateKey)
     {
+        ArgumentNullException.ThrowIfNull(privateKey);
+        ArgumentOutOfRangeException.ThrowIfNotEqual(privateKey.Length, KeySize, nameof(privateKey));
+
         X25519KeyPair key = new() { PrivateKey = privateKey };
         key.PublicKey = Curve25519.ScalarMultiplication(key.PrivateKey, Curve25519.Basepoint);
         return key;
@@ -68,5 +77,13 @@ public static class X25519
     /// <param name="otherPublicKey">The remote 32-byte public key.</param>
     /// <returns>A 32-byte shared secret that can be used for session key derivation.</returns>
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public static byte[] Agreement([System.Diagnostics.CodeAnalysis.NotNull] byte[] myPrivateKey, [System.Diagnostics.CodeAnalysis.NotNull] byte[] otherPublicKey) => Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
+    public static byte[] Agreement([System.Diagnostics.CodeAnalysis.NotNull] byte[] myPrivateKey, [System.Diagnostics.CodeAnalysis.NotNull] byte[] otherPublicKey)
+    {
+        ArgumentNullException.ThrowIfNull(myPrivateKey);
+        ArgumentNullException.ThrowIfNull(otherPublicKey);
+        ArgumentOutOfRangeException.ThrowIfNotEqual(myPrivateKey.Length, KeySize, nameof(myPrivateKey));
+        ArgumentOutOfRangeException.ThrowIfNotEqual(otherPublicKey.Length, KeySize, nameof(otherPublicKey));
+
+        return Curve25519.ScalarMultiplication(myPrivateKey, otherPublicKey);
+    }
 }

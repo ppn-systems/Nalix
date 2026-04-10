@@ -182,12 +182,11 @@ public abstract partial class UdpListenerBase
 
                     try
                     {
-                        _protocol.ProcessMessage(this, fastArgs);
+                        _protocol.ProcessFrame(this, fastArgs);
                     }
                     catch (Exception ex)
                     {
                         s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID} msg={ex.Message}");
-                        fastArgs.Dispose();
                     }
                 }
                 else
@@ -268,13 +267,12 @@ public abstract partial class UdpListenerBase
 
         try
         {
-            // Route through Protocol for standardized processing (decryption, framing, etc.)
-            _protocol.ProcessMessage(this, args);
+            // Route through the full frame pipeline so args/lease ownership matches the TCP path.
+            _protocol.ProcessFrame(this, args);
         }
         catch (Exception ex)
         {
             s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID} msg={ex.Message}");
-            args.Dispose();
         }
 
 #if DEBUG

@@ -18,10 +18,10 @@ using Nalix.SDK.Options;
 namespace Nalix.SDK.Transport.Internal;
 
 /// <summary>
-/// Optimized frame sender that serializes all outbound frames through a bounded channel 
+/// Optimized frame sender that serializes all outbound frames through a bounded channel
 /// to prevent message interleaving. Handles chunking/fragmentation of large payloads.
 /// </summary>
-internal sealed class FRAME_SENDER : IDisposable
+internal sealed class FrameSender : IDisposable
 {
     #region Fields
 
@@ -36,7 +36,7 @@ internal sealed class FRAME_SENDER : IDisposable
 
     #endregion Fields
 
-    public FRAME_SENDER(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
+    public FrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();

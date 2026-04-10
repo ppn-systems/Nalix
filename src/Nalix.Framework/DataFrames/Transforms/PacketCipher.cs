@@ -4,10 +4,12 @@
 using System;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Security;
 
 namespace Nalix.Framework.DataFrames.Transforms;
 
@@ -23,6 +25,12 @@ public static class PacketCipher
     public static BufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key)
     {
         ArgumentNullException.ThrowIfNull(src);
+
+        if (src.Length < FrameTransformer.Offset + EnvelopeCipher.HeaderSize)
+        {
+            throw new CipherException(
+                $"Ciphertext frame is too short: length={src.Length}, required>={FrameTransformer.Offset + EnvelopeCipher.HeaderSize}.");
+        }
 
         BufferLease dest = BufferLease.Rent(FrameTransformer
                                       .GetPlaintextLength(src.Span));

@@ -15,15 +15,15 @@ using Nalix.SDK.Transport.Internal;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// Provides a TCP transport session built on <see cref="FRAME_READER"/> and <see cref="FRAME_SENDER"/>.
+/// Provides a TCP transport session built on <see cref="FrameReader"/> and <see cref="FrameSender"/>.
 /// </summary>
 public class TcpSession : TransportSession
 {
     #region Fields
 
     // Low-level components for reading and sending frames
-    private readonly FRAME_SENDER _sender;
-    private readonly FRAME_READER _reader;
+    private readonly FrameSender _sender;
+    private readonly FrameReader _reader;
 
     private Socket? _socket;
     private CancellationTokenSource? _loopCts;
@@ -77,8 +77,8 @@ public class TcpSession : TransportSession
         this.Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
 
         // Initialize frame helpers with a factory to get the latest socket instance
-        _sender = new FRAME_SENDER(() => _socket!, options, this.HandleError);
-        _reader = new FRAME_READER(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
+        _sender = new FrameSender(() => _socket!, options, this.HandleError);
+        _reader = new FrameReader(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
     }
 
     #endregion Constructor
@@ -125,16 +125,32 @@ public class TcpSession : TransportSession
             return Task.CompletedTask;
         }
 
-        // Signal background loops to stop
-        _loopCts?.Cancel();
-        _loopCts?.Dispose();
-        _loopCts = null;
+        CancellationTokenSource? loopCts = Interlocked.Exchange(ref _loopCts, null);
+        Socket? socket = Interlocked.Exchange(ref _socket, null);
 
-        if (_socket != null)
+        try
         {
-            try { if (_socket.Connected) { _socket.Shutdown(SocketShutdown.Both); } } catch (SocketException) { }
-            _socket.Dispose();
-            _socket = null;
+            loopCts?.Cancel();
+        }
+        finally
+        {
+            loopCts?.Dispose();
+        }
+
+        if (socket is not null)
+        {
+            try
+            {
+                if (socket.Connected)
+                {
+                    socket.Shutdown(SocketShutdown.Both);
+                }
+            }
+            catch (SocketException)
+            {
+            }
+
+            socket.Dispose();
             this.OnDisconnected?.Invoke(this, new InvalidOperationException("The TCP session was disconnected."));
         }
 
@@ -154,7 +170,7 @@ public class TcpSession : TransportSession
 
         packet.Protocol = Common.Networking.Protocols.ProtocolType.TCP;
 
-        // Rent a buffer, serialize the packet, and delegate sending to FRAME_SENDER
+        // Rent a buffer, serialize the packet, and delegate sending to FrameSender
         using BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));
         _ = await _sender.SendAsync(lease.Memory, encrypt, ct).ConfigureAwait(false);
@@ -188,31 +204,47 @@ public class TcpSession : TransportSession
     }
 
     /// <summary>
-    /// Handles messages received by <see cref="FRAME_READER"/>.
+    /// Handles messages received by <see cref="FrameReader"/>.
     /// </summary>
     private void HandleReceiveMessage(BufferLease lease)
     {
+        Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
+        EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;
+
         try
         {
-            // First notify synchronous subscribers
-            this.OnMessageReceived?.Invoke(this, lease);
+            ReadOnlyMemory<byte>? asyncPayload = null;
 
-            // Then notify asynchronous subscriber if present
-            if (this.OnMessageAsync is { } handler)
+            if (asyncHandler is not null && syncHandler is not null)
             {
-                // Run async handler in background and ensure lease disposal in finally block
+                asyncPayload = lease.Memory.ToArray();
+            }
+
+            syncHandler?.Invoke(this, lease);
+
+            if (asyncHandler is not null)
+            {
+                if (asyncPayload is { } copiedPayload)
+                {
+                    lease.Dispose();
+                    _ = Task.Run(async () =>
+                    {
+                        try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
+                        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                    });
+                    return;
+                }
+
                 _ = Task.Run(async () =>
                 {
-                    try { await handler(lease.Memory).ConfigureAwait(false); }
+                    try { await asyncHandler(lease.Memory).ConfigureAwait(false); }
                     catch (Exception ex) { this.OnError?.Invoke(this, ex); }
                     finally { lease.Dispose(); }
                 });
+                return;
             }
-            else
-            {
-                // No async handler, dispose now
-                lease.Dispose();
-            }
+
+            lease.Dispose();
         }
         catch (Exception ex)
         {

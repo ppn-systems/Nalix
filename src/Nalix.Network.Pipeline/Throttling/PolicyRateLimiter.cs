@@ -192,14 +192,11 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         // Hot-path: avoid per-evaluation string allocation.
         public string Address => _inner.Address;
 
-        [Obsolete("Port is not used for rate limiting and should not be accessed.", error: true)]
-        public int Port => throw new NotImplementedException();
+        public int Port => _inner.Port;
 
-        [Obsolete("IPv6 status is not used for rate limiting and should not be accessed.", error: true)]
-        public bool HasPort => throw new NotImplementedException();
+        public bool HasPort => _inner.HasPort;
 
-        [Obsolete("IPv6 status is not used for rate limiting and should not be accessed.", error: true)]
-        public bool IsIPv6 => throw new NotImplementedException();
+        public bool IsIPv6 => _inner.IsIPv6;
 
         public override int GetHashCode() => HashCode.Combine(_op, _inner);
 

@@ -2,11 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
-using System.Diagnostics;
+
 using System.Runtime.CompilerServices;
 using Nalix.Framework.LZ4.Encoders;
 
 #if DEBUG
+using System.Diagnostics;
+
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
@@ -20,26 +22,8 @@ namespace Nalix.Framework.Memory.Internal;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class MatchFinder
 {
-    #region Constants
-
-    /// <summary>
-    /// 64k entries
-    /// </summary>
-    private const int HashTableBits = 16;
-
-    private const int HashShift = 32 - HashTableBits;
-
-    /// <summary>
-    /// Size of the hash table used for storing offsets of previously seen sequences.
-    /// </summary>
-    public const int HashTableSize = 1 << HashTableBits;
-
-    /// <summary>
-    /// Consider using a pool or limiting stackalloc in extreme cases
-    /// </summary>
-    public const int MaxStackallocHashTableSize = HashTableSize * sizeof(int);
-
-    #endregion Constants
+    // Max constants for bounds checking if needed, otherwise removed.
+    // Hash sizes are now dynamically calculated per payload to avoid excessive memory clearing.
 
     #region Constructors
 
@@ -78,6 +62,8 @@ internal static unsafe class MatchFinder
     /// Finds the longest match for the current input position within the sliding window.
     /// </summary>
     /// <param name="hashTable">Hash table mapping hash values to input offsets.</param>
+    /// <param name="hashShift">Hash</param>
+    /// <param name="hashMask">Hash</param>
     /// <param name="inputBase">Pointer to the start of the input buffer.</param>
     /// <param name="currentInputPtr">Pointer to the current position in the input buffer.</param>
     /// <param name="inputLimit">Pointer to the end of the input buffer or match limit.</param>
@@ -87,6 +73,8 @@ internal static unsafe class MatchFinder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Match FindLongestMatch(
         int* hashTable,
+        int hashShift,
+        int hashMask,
         byte* inputBase,
         byte* currentInputPtr,
         byte* inputLimit,
@@ -125,10 +113,10 @@ internal static unsafe class MatchFinder
         else
 #endif
         {
-            hash = (currentSequence * 2654435761u) >> HashShift;
+            hash = (currentSequence * 2654435761u) >> hashShift;
         }
 
-        hash &= HashTableSize - 1;
+        hash &= (uint)hashMask;
 
         // Retrieve the candidate match offset and update the hash table
         int matchCandidateOffset = hashTable[hash];

@@ -27,6 +27,7 @@ They currently:
 - take spans first, with minimal-allocation overloads
 - authenticate `AAD || pad16 || ciphertext || pad16 || lengths`
 - verify the tag before returning decrypted data
+- bind the Nalix envelope `header || nonce || userAAD` into AEAD authentication, so tampering with sequence/header fields is rejected during decrypt
 
 ## Size rules from source
 
@@ -66,6 +67,7 @@ EnvelopeCipher.Encrypt(
 - non-AEAD suites route into `SymmetricEngine`
 - decryption throws `CipherException` on parse or authentication failure
 - AEAD encryption generates a fresh random nonce internally per call
+- AEAD decryption treats envelope header mutations such as sequence-number changes as authentication failures
 
 ## Related APIs
 

@@ -3,6 +3,8 @@ using System.Globalization;
 using System.IO;
 using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
+using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Engines;
 using BenchmarkDotNet.Environments;
 using BenchmarkDotNet.Exporters;
 using BenchmarkDotNet.Jobs;
@@ -16,33 +18,32 @@ public sealed class BenchmarkConfig : ManualConfig
 {
     public BenchmarkConfig()
     {
-        string artifactsPath = Path.Combine(
-            Environment.CurrentDirectory,
-            "BenchmarkDotNet.Artifacts",
-            "runs",
-            DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
+        string artifactsPath = Path.Combine(Environment.CurrentDirectory, "BenchmarkDotNet.Artifacts", DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
 
         this.Add(DefaultConfig.Instance);
         _ = this.AddJob(
              Job.Default
                 .WithRuntime(CoreRuntime.Core10_0) // .NET 10
+                .WithAffinity(new IntPtr(1))
+                .WithPowerPlan(PowerPlan.HighPerformance)
                 .WithLaunchCount(1)
                 .WithWarmupCount(6)
-                .WithIterationCount(15)
-                .WithInvocationCount(1)
-                .WithUnrollFactor(1)
+                .WithIterationCount(10)
                 .WithMinIterationTime(TimeInterval.FromMilliseconds(250))
+                .WithGcServer(true)
+                .WithStrategy(RunStrategy.Throughput)
                 .WithId("Net10"));
 
         _ = this.AddColumnProvider(DefaultColumnProviders.Instance);
         _ = this.AddColumn(StatisticColumn.P95);
         _ = this.AddExporter(MarkdownExporter.GitHub);
-        _ = this.WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(32));
+        _ = this.AddDiagnoser(MemoryDiagnoser.Default);
         _ = this.WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest));
+        _ = this.WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(32));
 
         _ = this.WithArtifactsPath(artifactsPath)
                 .WithOption(ConfigOptions.DisableLogFile, true)
-                .WithOption(ConfigOptions.JoinSummary, true)
+                .WithOption(ConfigOptions.JoinSummary, false)
                 .WithWakeLock(WakeLockType.None);
     }
 }

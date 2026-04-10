@@ -5,7 +5,6 @@ using Nalix.Framework.Security.Engine;
 
 namespace Nalix.Benchmark.Framework.Security;
 
-[MemoryDiagnoser]
 [Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class EngineBenchmarks
 {
@@ -33,11 +32,30 @@ public class EngineBenchmarks
         _plaintext = new byte[this.PayloadBytes];
         _output = new byte[this.PayloadBytes + 128];
 
-        for (int i = 0; i < _key.Length; i++) _key[i] = (byte)(i + 1);
-        for (int i = 0; i < _nonce12.Length; i++) _nonce12[i] = (byte)(i + 2);
-        for (int i = 0; i < _nonce8.Length; i++) _nonce8[i] = (byte)(i + 3);
-        for (int i = 0; i < _aad.Length; i++) _aad[i] = (byte)(i + 4);
-        for (int i = 0; i < _plaintext.Length; i++) _plaintext[i] = (byte)(i % 211);
+        for (int i = 0; i < _key.Length; i++)
+        {
+            _key[i] = (byte)(i + 1);
+        }
+
+        for (int i = 0; i < _nonce12.Length; i++)
+        {
+            _nonce12[i] = (byte)(i + 2);
+        }
+
+        for (int i = 0; i < _nonce8.Length; i++)
+        {
+            _nonce8[i] = (byte)(i + 3);
+        }
+
+        for (int i = 0; i < _aad.Length; i++)
+        {
+            _aad[i] = (byte)(i + 4);
+        }
+
+        for (int i = 0; i < _plaintext.Length; i++)
+        {
+            _plaintext[i] = (byte)(i % 211);
+        }
 
         _symEnvelope = new byte[this.PayloadBytes + 64];
         SymmetricEngine.Encrypt(_key, _plaintext, _symEnvelope, _nonce12, 7u, CipherSuiteType.Chacha20, out _symWritten);

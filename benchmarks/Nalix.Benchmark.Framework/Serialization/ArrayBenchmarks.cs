@@ -1,16 +1,9 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Benchmark.Framework.Serialization;
 
-[SimpleJob(RuntimeMoniker.Net10_0, launchCount: 1, warmupCount: 5, iterationCount: 15)]
-[MemoryDiagnoser]
-[HardwareCounters(
-    BenchmarkDotNet.Diagnosers.HardwareCounter.CacheMisses,
-    BenchmarkDotNet.Diagnosers.HardwareCounter.BranchMispredictions)]
-[Orderer(BenchmarkDotNet.Order.SummaryOrderPolicy.FastestToSlowest)]
-[RankColumn]
+[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
 public class ArrayBenchmarks
 {
     private int[] _array = null!;
