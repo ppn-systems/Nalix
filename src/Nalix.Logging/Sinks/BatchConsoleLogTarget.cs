@@ -67,6 +67,7 @@ public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
     #region API
 
     /// <inheritdoc/>
+    [SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]
     public void Publish(
         DateTime timestampUtc,
         LogLevel logLevel,
@@ -74,12 +75,15 @@ public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
         string message,
         Exception? exception)
     {
+#if DEBUG
         if (!_provider.TryEnqueue(timestampUtc, logLevel, eventId, message, exception))
         {
-#if DEBUG
+
             Debug.WriteLine($"[LG.BatchConsoleLogTarget] dropped-log msg={message}");
-#endif
         }
+#else
+        _provider.TryEnqueue(timestampUtc, logLevel, eventId, message, exception);
+#endif
     }
 
     #endregion API
