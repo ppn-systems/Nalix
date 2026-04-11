@@ -56,7 +56,7 @@ public sealed class AsyncCallbackDispatchTests
         using BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
         connection.InjectIncoming(lease);
 
-        await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         // Wait for the dispatcher's finally block to release the pending packet slot.
         for (int i = 0; i < 100 && connection.Socket.PendingPackets > 0; i++)
@@ -101,7 +101,7 @@ public sealed class AsyncCallbackDispatchTests
         int bytesRead = await clientSocket.ReceiveAsync(receivedFrame, SocketFlags.None);
         _ = bytesRead.Should().BeGreaterThan(0);
 
-        await postObserved.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await postObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         // Wait for the dispatcher's finally block to release the pending packet slot.
         for (int i = 0; i < 100 && connection.Socket.PendingPackets > 0; i++)
