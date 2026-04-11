@@ -50,7 +50,7 @@ public static class TcpSessionX25519Extensions
         byte[] clientNonce = Csprng.GetBytes(Handshake.DynamicSize);
 
         // OpCode ignore
-        Handshake clientHello = new(0, HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
+        Handshake clientHello = new(HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
 
         TaskCompletionSource<Handshake> serverHelloTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
         TaskCompletionSource<Handshake> serverFinishTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -121,7 +121,7 @@ public static class TcpSessionX25519Extensions
 
             byte[] sessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
 
-            Handshake clientFinish = new(0, HandshakeStage.CLIENT_FINISH, [], [], HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
+            Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, [], [], HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
             {
                 TranscriptHash = transcriptHash
             };
