@@ -299,25 +299,27 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
 
         // Wait for the in-flight operation to finish. Five seconds is generous;
         // a real teardown should cancel the socket first so the OS aborts the op.
-        bool receiveIdle = _idle.Wait(timeout);
-        if (!receiveIdle)
-        {
+
 #if DEBUG
+        if (!_idle.Wait(timeout))
+        {
             Debug.WriteLine(
                 $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for idle activeOps={_activeOps} ctx={RuntimeHelpers.GetHashCode(this)}");
-#endif
+
             // Still proceed — better to risk a brief race than to leak the context
             // forever if the kernel or caller fails to complete promptly.
         }
 
-        bool consumerIdle = _consumerIdle.Wait(timeout);
-        if (!consumerIdle)
+        if (!_consumerIdle.Wait(timeout))
         {
-#if DEBUG
             Debug.WriteLine(
                 $"[PooledSocketReceiveContext] ResetForPool TIMEOUT waiting for consumer idle pending={_consumerAwaitPending} ctx={RuntimeHelpers.GetHashCode(this)}");
-#endif
+
         }
+#else
+        _idle.Wait(timeout);
+        _consumerIdle.Wait(timeout);
+#endif
 
         if (_args != null)
         {
