@@ -274,9 +274,9 @@ internal sealed class PropertyMetadata
             TypeCode.Object when type == typeof(Snowflake) => 7,
 
             _ when type.IsEnum => ComputeFixedSize(Enum.GetUnderlyingType(type)),
-            TypeCode.Empty => 4,
-            TypeCode.DBNull => 4,
-            TypeCode.String => 4,
+            TypeCode.Empty => 0,
+            TypeCode.DBNull => 0,
+            TypeCode.String => 0,
             _ => 0
         };
 
