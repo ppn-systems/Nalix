@@ -13,7 +13,6 @@ using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Runtime.Options;
 
@@ -26,21 +25,21 @@ public sealed class MemorySessionManager : ISessionManager
 {
     private const string EstablishedAttributeKey = "nalix.handshake.established";
 
-    private readonly ConcurrentDictionary<ulong, SessionEntry> _snapshots = new();
-    private readonly ConcurrentDictionary<ulong, IConnection> _activeConnections = new();
-    private readonly ConcurrentDictionary<ulong, ulong> _connectionTokens = new();
-    private readonly ConcurrentDictionary<ulong, byte> _subscribedConnections = new();
+    private readonly ConcurrentDictionary<UInt56, SessionEntry> _snapshots = new();
+    private readonly ConcurrentDictionary<UInt56, IConnection> _activeConnections = new();
+    private readonly ConcurrentDictionary<UInt56, UInt56> _connectionTokens = new();
+    private readonly ConcurrentDictionary<UInt56, byte> _subscribedConnections = new();
     private readonly SessionManagerOptions _options;
     private readonly ILogger? _logger;
 
     /// <summary>
     /// Initializes a new in-memory session manager using the current configuration.
     /// </summary>
-    public MemorySessionManager()
+    public MemorySessionManager(ILogger? logger)
     {
         _options = ConfigurationManager.Instance.Get<SessionManagerOptions>();
         _options.Validate();
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _logger = logger;
     }
 
     /// <inheritdoc/>
@@ -53,8 +52,8 @@ public sealed class MemorySessionManager : ISessionManager
         Snowflake sessionToken = Snowflake.NewId(SnowflakeType.Session);
         SessionSnapshot snapshot = this.CreateSnapshotCore(sessionToken, connection);
 
-        _snapshots[ToKey(sessionToken)] = new SessionEntry(snapshot);
-        this.BindActiveConnection(sessionToken, connection);
+        _snapshots[sessionToken.ToUInt56()] = new SessionEntry(snapshot);
+        this.BindActiveConnection(sessionToken.ToUInt56(), connection);
 
         _logger?.Trace($"[RT.{nameof(MemorySessionManager)}] snapshot-created token={sessionToken} conn={connection.ID}");
         return snapshot;
@@ -72,8 +71,7 @@ public sealed class MemorySessionManager : ISessionManager
 
         this.PruneExpiredSnapshots();
 
-        ulong tokenKey = (ulong)sessionToken;
-        if (!_snapshots.TryGetValue(tokenKey, out SessionEntry? entry))
+        if (!_snapshots.TryGetValue(sessionToken, out SessionEntry? entry))
         {
             return new SessionResumeResult(false, ProtocolReason.SESSION_NOT_FOUND, sessionToken, snapshot: null);
         }
@@ -92,8 +90,8 @@ public sealed class MemorySessionManager : ISessionManager
             SessionSnapshot rotated = CloneSnapshot(snapshot, replacementToken);
 
             this.RemoveToken(sessionToken);
-            _snapshots[ToKey(replacementToken)] = new SessionEntry(rotated);
-            this.BindActiveConnection(replacementToken, connection);
+            _snapshots[replacementToken.ToUInt56()] = new SessionEntry(rotated);
+            this.BindActiveConnection(replacementToken.ToUInt56(), connection);
             RestoreConnection(connection, rotated);
 
             _logger?.Trace($"[RT.{nameof(MemorySessionManager)}] session-resumed token={sessionToken} rotated={replacementToken} conn={connection.ID}");
@@ -110,7 +108,7 @@ public sealed class MemorySessionManager : ISessionManager
     public bool TryGetActiveConnection(UInt56 sessionToken, [NotNullWhen(true)] out IConnection? connection)
     {
         this.PruneExpiredSnapshots();
-        return _activeConnections.TryGetValue((ulong)sessionToken, out connection);
+        return _activeConnections.TryGetValue(sessionToken, out connection);
     }
 
     /// <inheritdoc/>
@@ -118,7 +116,7 @@ public sealed class MemorySessionManager : ISessionManager
     {
         this.PruneExpiredSnapshots();
 
-        if (_snapshots.TryGetValue((ulong)sessionToken, out SessionEntry? entry))
+        if (_snapshots.TryGetValue(sessionToken, out SessionEntry? entry))
         {
             snapshot = entry.Snapshot;
             return true;
@@ -165,25 +163,20 @@ public sealed class MemorySessionManager : ISessionManager
             Attributes = new Dictionary<string, object>(snapshot.Attributes, StringComparer.Ordinal)
         };
 
-    private void BindActiveConnection(Snowflake sessionToken, IConnection connection)
+    /// <summary>
+    /// Gắn sessionToken với connection, đồng thời quản lý mapping kết nối cũ nếu có.
+    /// </summary>
+    private void BindActiveConnection(UInt56 sessionToken, IConnection connection)
     {
-        ulong tokenKey = ToKey(sessionToken);
-        this.BindActiveConnection(tokenKey, connection);
-    }
+        UInt56 connectionKey = connection.ID.ToUInt56();
 
-    private void BindActiveConnection(UInt56 sessionToken, IConnection connection) => this.BindActiveConnection((ulong)sessionToken, connection);
-
-    private void BindActiveConnection(ulong tokenKey, IConnection connection)
-    {
-        ulong connectionKey = ToKey(connection.ID);
-
-        if (_connectionTokens.TryGetValue(connectionKey, out ulong previousToken))
+        if (_connectionTokens.TryGetValue(connectionKey, out UInt56 previousToken))
         {
             _ = _activeConnections.TryRemove(previousToken, out _);
         }
 
-        _activeConnections[tokenKey] = connection;
-        _connectionTokens[connectionKey] = tokenKey;
+        _activeConnections[sessionToken] = connection;
+        _connectionTokens[connectionKey] = sessionToken;
 
         if (_subscribedConnections.TryAdd(connectionKey, 0))
         {
@@ -207,8 +200,8 @@ public sealed class MemorySessionManager : ISessionManager
 
     private void OnConnectionClosed(object? sender, IConnectEventArgs args)
     {
-        ulong connectionKey = ToKey(args.Connection.ID);
-        if (_connectionTokens.TryRemove(connectionKey, out ulong tokenKey))
+        UInt56 connectionKey = args.Connection.ID.ToUInt56();
+        if (_connectionTokens.TryRemove(connectionKey, out UInt56 tokenKey))
         {
             if (_activeConnections.TryGetValue(tokenKey, out IConnection? existing) &&
                 ReferenceEquals(existing, args.Connection))
@@ -223,19 +216,18 @@ public sealed class MemorySessionManager : ISessionManager
 
     private void RemoveToken(UInt56 sessionToken)
     {
-        ulong tokenKey = (ulong)sessionToken;
-        _ = _snapshots.TryRemove(tokenKey, out _);
+        _ = _snapshots.TryRemove(sessionToken, out _);
 
-        if (_activeConnections.TryRemove(tokenKey, out IConnection? active))
+        if (_activeConnections.TryRemove(sessionToken, out IConnection? active))
         {
-            _ = _connectionTokens.TryRemove(ToKey(active.ID), out _);
+            _ = _connectionTokens.TryRemove(active.ID.ToUInt56(), out _);
         }
     }
 
     private void PruneExpiredSnapshots()
     {
         long now = Clock.UnixMillisecondsNow();
-        foreach (KeyValuePair<ulong, SessionEntry> item in _snapshots)
+        foreach (KeyValuePair<UInt56, SessionEntry> item in _snapshots)
         {
             if (item.Value.ExpiresAtUnixMilliseconds > now)
             {
@@ -246,14 +238,10 @@ public sealed class MemorySessionManager : ISessionManager
 
             if (_activeConnections.TryRemove(item.Key, out IConnection? active))
             {
-                _ = _connectionTokens.TryRemove(ToKey(active.ID), out _);
+                _ = _connectionTokens.TryRemove(active.ID.ToUInt56(), out _);
             }
         }
     }
-
-    private static ulong ToKey(Snowflake snowflake) => (ulong)snowflake.ToUInt56();
-
-    private static ulong ToKey(ISnowflake snowflake) => (ulong)snowflake.ToUInt56();
 
     private sealed class SessionEntry(SessionSnapshot snapshot)
     {
