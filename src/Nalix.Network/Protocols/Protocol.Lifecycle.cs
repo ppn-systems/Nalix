@@ -128,7 +128,7 @@ public abstract partial class Protocol
         {
             dest = PacketCipher.DecryptFrame(lease, secret);
 
-            IBufferLease? old = replaceable.ReplaceLease(dest);
+            IBufferLease? old = replaceable.ExchangeLease(dest);
             old?.Dispose();
         }
         catch
@@ -170,7 +170,7 @@ public abstract partial class Protocol
         {
             dest = (BufferLease?)PacketCompression.DecompressFrame(lease);
 
-            IBufferLease? old = replaceable.ReplaceLease(dest);
+            IBufferLease? old = replaceable.ExchangeLease(dest);
             old?.Dispose();
         }
         catch
