@@ -264,10 +264,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         void prepareCallbacks()
         {
             RegisterLogger(_state);
-            this.EnsureConnectionHubRegistered();
-            EnsureBufferPoolManagerRegistered();
             ApplyOptions(_state);
             RegisterPacketRegistry(_state);
+
+            this.EnsureConnectionHubRegistered();
+            this.EnsureBufferPoolManagerRegistered();
 
             if (!metadataRegistered)
             {
@@ -414,14 +415,14 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub(_state.Logger));
     }
 
-    private static void EnsureBufferPoolManagerRegistered()
+    private void EnsureBufferPoolManagerRegistered()
     {
         if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is not null)
         {
             return;
         }
 
-        InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager());
+        InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager(_state.Logger));
     }
 
     private static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);
