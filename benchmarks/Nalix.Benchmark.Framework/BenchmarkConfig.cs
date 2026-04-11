@@ -19,7 +19,7 @@ public sealed class BenchmarkConfig : ManualConfig
 {
     public BenchmarkConfig()
     {
-        string artifactsPath = Path.Combine(Environment.CurrentDirectory, "BenchmarkDotNet.Artifacts", DateTime.Now.ToString("yyyyMMdd", CultureInfo.InvariantCulture));
+        string artifactsPath = Path.Combine(Environment.CurrentDirectory, "BenchmarkDotNet.Artifacts");
 
         this.Add(DefaultConfig.Instance);
         _ = this.AddJob(
@@ -43,7 +43,7 @@ public sealed class BenchmarkConfig : ManualConfig
         _ = this.AddDiagnoser(MemoryDiagnoser.Default);
         _ = this.WithOrderer(new DefaultOrderer(SummaryOrderPolicy.FastestToSlowest));
         _ = this.WithSummaryStyle(SummaryStyle.Default.WithMaxParameterColumnWidth(32));
-        _ = this.AddLogicalGroupRule(BenchmarkDotNet.Configs.LogicalGroupRule.ByCategory);
+        _ = this.AddLogicalGroupRules(BenchmarkLogicalGroupRule.ByCategory);
 
         _ = this.WithArtifactsPath(artifactsPath)
                 .WithOption(ConfigOptions.DisableLogFile, true)
