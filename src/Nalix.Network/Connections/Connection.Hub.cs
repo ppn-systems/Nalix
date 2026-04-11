@@ -756,7 +756,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         if (measureLatency)
         {
-            _logger?.Info($"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            _logger.Info($"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
 
         return true;
