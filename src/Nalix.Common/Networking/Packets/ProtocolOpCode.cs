@@ -18,4 +18,9 @@ public enum ProtocolOpCode : ushort
     /// Used for system-level control packets like PING, PONG, ERROR, DISCONNECT.
     /// </summary>
     SYSTEM_CONTROL = 0x0001,
+
+    /// <summary>
+    /// Dedicated packet flow for restoring an authenticated session after reconnect.
+    /// </summary>
+    SESSION_RESUME = 0x0002,
 }
