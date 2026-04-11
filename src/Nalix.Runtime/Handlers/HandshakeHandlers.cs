@@ -7,9 +7,11 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
@@ -156,6 +158,9 @@ public sealed class HandshakeHandlers
 
         _ = connection.Attributes.Remove(StateAttributeKey);
 
+        ISessionManager? sessionManager = InstanceManager.Instance.GetExistingInstance<ISessionManager>();
+        SessionSnapshot? snapshot = sessionManager?.CreateSnapshot(connection);
+
         Handshake reply = new(
             HandshakeStage.SERVER_FINISH,
             [],
@@ -163,7 +168,7 @@ public sealed class HandshakeHandlers
             HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash), packet.Protocol)
         {
             TranscriptHash = state.TranscriptHash,
-            SessionToken = (Snowflake)connection.ID
+            SessionToken = snapshot is not null ? Snowflake.NewId(snapshot.SessionToken) : (Snowflake)connection.ID
         };
 
         MemorySecurity.ZeroMemory(state.SessionKey);
