@@ -43,10 +43,17 @@ public static class DisconnectExtensions
                     configure: ctrl => ctrl.Reason = reason,
                     ct: ct).ConfigureAwait(false);
             }
-            catch
+            catch (OperationCanceledException)
             {
-                // It's safe to ignore transmission exceptions during a disconnect process
-                // (e.g., if the socket is already dropping).
+                // Best-effort graceful shutdown: cancellation during send is acceptable.
+            }
+            catch (ObjectDisposedException)
+            {
+                // Best-effort graceful shutdown: connection resources may already be disposed.
+            }
+            catch (InvalidOperationException)
+            {
+                // Best-effort graceful shutdown: session may no longer be in a sendable state.
             }
         }
 
