@@ -710,7 +710,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
             if (measureLatency)
             {
-                _logger?.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+                _logger.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
             }
 
             return RegisterResult.Success;
