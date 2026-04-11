@@ -21,7 +21,7 @@ public class DataWriterBenchmarks : NalixBenchmarkBase
     {
         _payload = new byte[PayloadBytes];
         _fixedBuffer = new byte[PayloadBytes * 2];
-        Random.Shared.NextBytes(_payload);
+        System.Random.Shared.NextBytes(_payload);
     }
 
     [Benchmark]

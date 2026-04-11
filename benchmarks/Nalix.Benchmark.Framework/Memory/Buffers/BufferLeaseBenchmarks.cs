@@ -19,7 +19,7 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
     public void Setup()
     {
         _source = new byte[PayloadBytes];
-        Random.Shared.NextBytes(_source);
+        System.Random.Shared.NextBytes(_source);
     }
 
     [Benchmark]
