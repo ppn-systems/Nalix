@@ -185,6 +185,20 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         return shard.TryGetValue(key, out IConnection? connection) ? connection : null;
     }
 
+    /// <inheritdoc />
+    /// <summary>
+    /// Retrieves a connection by its identifier.
+    /// </summary>
+    /// <param name="id">The identifier of the connection to retrieve.</param>
+    /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [return: MaybeNull]
+    public IConnection? GetConnection(UInt56 id)
+    {
+        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(id);
+        return shard.TryGetValue(id, out IConnection? connection) ? connection : null;
+    }
+
     /// <summary>
     /// Retrieves a connection by its serialized identifier.
     /// </summary>

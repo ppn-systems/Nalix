@@ -3,7 +3,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Nalix.Common.Identity;
+using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Networking;
 
@@ -22,6 +24,15 @@ public interface IConnectionHub
     /// Raised after a connection is successfully unregistered.
     /// </summary>
     event Action<IConnection>? ConnectionUnregistered;
+
+    /// <inheritdoc />
+    /// <summary>
+    /// Retrieves a connection by its identifier.
+    /// </summary>
+    /// <param name="id">The identifier of the connection to retrieve.</param>
+    /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    IConnection? GetConnection(UInt56 id);
 
     /// <summary>
     /// Retrieves a client connection by its unique identifier.

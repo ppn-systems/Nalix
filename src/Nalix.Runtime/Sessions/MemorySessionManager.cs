@@ -13,33 +13,37 @@ using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Time;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Sessions;
 
 /// <summary>
-/// Stores resumable session snapshots in process memory.
+/// Stores resumable session snapshots in process memory and links snapshot with runtime connections managed by ConnectionHub.
 /// </summary>
 public sealed class MemorySessionManager : ISessionManager
 {
     private const string EstablishedAttributeKey = "nalix.handshake.established";
 
+    // Quản lý snapshot phiên làm việc
     private readonly ConcurrentDictionary<UInt56, SessionEntry> _snapshots = new();
-    private readonly ConcurrentDictionary<UInt56, IConnection> _activeConnections = new();
-    private readonly ConcurrentDictionary<UInt56, UInt56> _connectionTokens = new();
-    private readonly ConcurrentDictionary<UInt56, byte> _subscribedConnections = new();
+    // Map sessionToken -> connectionId (UInt56)
+    private readonly ConcurrentDictionary<UInt56, UInt56> _sessionConnectionMap = new();
+
     private readonly SessionManagerOptions _options;
     private readonly ILogger? _logger;
+    private readonly IConnectionHub _connectionHub;
 
     /// <summary>
-    /// Initializes a new in-memory session manager using the current configuration.
+    /// Initializes a new in-memory session manager using the current configuration, and an existing connection hub.
     /// </summary>
-    public MemorySessionManager(ILogger? logger)
+    public MemorySessionManager(IConnectionHub connectionHub)
     {
         _options = ConfigurationManager.Instance.Get<SessionManagerOptions>();
         _options.Validate();
-        _logger = logger;
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _connectionHub = connectionHub ?? throw new ArgumentNullException(nameof(connectionHub));
     }
 
     /// <inheritdoc/>
@@ -53,7 +57,7 @@ public sealed class MemorySessionManager : ISessionManager
         SessionSnapshot snapshot = this.CreateSnapshotCore(sessionToken, connection);
 
         _snapshots[sessionToken.ToUInt56()] = new SessionEntry(snapshot);
-        this.BindActiveConnection(sessionToken.ToUInt56(), connection);
+        _sessionConnectionMap[sessionToken.ToUInt56()] = connection.ID.ToUInt56();
 
         _logger?.Trace($"[RT.{nameof(MemorySessionManager)}] snapshot-created token={sessionToken} conn={connection.ID}");
         return snapshot;
@@ -84,22 +88,28 @@ public sealed class MemorySessionManager : ISessionManager
         }
 
         SessionSnapshot snapshot = entry.Snapshot;
+
+        // Lấy connection thực tế trong ConnectionHub để mapping lại
+        UInt56 oldConnectionId = this.GetConnectionIdForSession(sessionToken);
         if (_options.RotateTokenOnResume)
         {
             Snowflake replacementToken = Snowflake.NewId(SnowflakeType.Session);
             SessionSnapshot rotated = CloneSnapshot(snapshot, replacementToken);
 
-            this.RemoveToken(sessionToken);
+            this.RemoveToken(sessionToken); // Xoá token cũ, mapping cũ
             _snapshots[replacementToken.ToUInt56()] = new SessionEntry(rotated);
-            this.BindActiveConnection(replacementToken.ToUInt56(), connection);
+            _sessionConnectionMap[replacementToken.ToUInt56()] = connection.ID.ToUInt56();
+
             RestoreConnection(connection, rotated);
 
             _logger?.Trace($"[RT.{nameof(MemorySessionManager)}] session-resumed token={sessionToken} rotated={replacementToken} conn={connection.ID}");
             return new SessionResumeResult(true, ProtocolReason.NONE, replacementToken.ToUInt56(), rotated, tokenRotated: true);
         }
 
-        this.BindActiveConnection(sessionToken, connection);
+        // Giữ nguyên mapping sessionToken->connectionId
+        _sessionConnectionMap[sessionToken] = connection.ID.ToUInt56();
         RestoreConnection(connection, snapshot);
+
         _logger?.Trace($"[RT.{nameof(MemorySessionManager)}] session-resumed token={sessionToken} conn={connection.ID}");
         return new SessionResumeResult(true, ProtocolReason.NONE, sessionToken, snapshot);
     }
@@ -107,8 +117,14 @@ public sealed class MemorySessionManager : ISessionManager
     /// <inheritdoc/>
     public bool TryGetActiveConnection(UInt56 sessionToken, [NotNullWhen(true)] out IConnection? connection)
     {
-        this.PruneExpiredSnapshots();
-        return _activeConnections.TryGetValue(sessionToken, out connection);
+        connection = null;
+        if (!_sessionConnectionMap.TryGetValue(sessionToken, out UInt56 connId))
+        {
+            return false;
+        }
+
+        connection = _connectionHub.GetConnection(connId);
+        return connection != null;
     }
 
     /// <inheritdoc/>
@@ -164,66 +180,32 @@ public sealed class MemorySessionManager : ISessionManager
         };
 
     /// <summary>
-    /// Gắn sessionToken với connection, đồng thời quản lý mapping kết nối cũ nếu có.
+    /// Khôi phục dữ liệu bảo mật, thuật toán,... lên connection object đang đăng nhập lại.
     /// </summary>
-    private void BindActiveConnection(UInt56 sessionToken, IConnection connection)
-    {
-        UInt56 connectionKey = connection.ID.ToUInt56();
-
-        if (_connectionTokens.TryGetValue(connectionKey, out UInt56 previousToken))
-        {
-            _ = _activeConnections.TryRemove(previousToken, out _);
-        }
-
-        _activeConnections[sessionToken] = connection;
-        _connectionTokens[connectionKey] = sessionToken;
-
-        if (_subscribedConnections.TryAdd(connectionKey, 0))
-        {
-            connection.OnCloseEvent += this.OnConnectionClosed;
-        }
-    }
-
     private static void RestoreConnection(IConnection connection, SessionSnapshot snapshot)
     {
         connection.Secret = [.. snapshot.Secret];
         connection.Algorithm = snapshot.Algorithm;
         connection.Level = snapshot.Level;
-
         foreach (KeyValuePair<string, object> item in snapshot.Attributes)
         {
             connection.Attributes[item.Key] = item.Value;
         }
-
         connection.Attributes[EstablishedAttributeKey] = true;
     }
 
-    private void OnConnectionClosed(object? sender, IConnectEventArgs args)
-    {
-        UInt56 connectionKey = args.Connection.ID.ToUInt56();
-        if (_connectionTokens.TryRemove(connectionKey, out UInt56 tokenKey))
-        {
-            if (_activeConnections.TryGetValue(tokenKey, out IConnection? existing) &&
-                ReferenceEquals(existing, args.Connection))
-            {
-                _ = _activeConnections.TryRemove(tokenKey, out _);
-            }
-        }
-
-        _ = _subscribedConnections.TryRemove(connectionKey, out _);
-        args.Connection.OnCloseEvent -= this.OnConnectionClosed;
-    }
-
+    /// <summary>
+    /// Xoá tất cả dữ liệu mapping, snapshot cho sessionToken.
+    /// </summary>
     private void RemoveToken(UInt56 sessionToken)
     {
         _ = _snapshots.TryRemove(sessionToken, out _);
-
-        if (_activeConnections.TryRemove(sessionToken, out IConnection? active))
-        {
-            _ = _connectionTokens.TryRemove(active.ID.ToUInt56(), out _);
-        }
+        _ = _sessionConnectionMap.TryRemove(sessionToken, out _);
     }
 
+    /// <summary>
+    /// Quét dọn snapshot hết hạn (O(N)).
+    /// </summary>
     private void PruneExpiredSnapshots()
     {
         long now = Clock.UnixMillisecondsNow();
@@ -235,18 +217,26 @@ public sealed class MemorySessionManager : ISessionManager
             }
 
             _ = _snapshots.TryRemove(item.Key, out _);
-
-            if (_activeConnections.TryRemove(item.Key, out IConnection? active))
-            {
-                _ = _connectionTokens.TryRemove(active.ID.ToUInt56(), out _);
-            }
+            _ = _sessionConnectionMap.TryRemove(item.Key, out _);
         }
+    }
+
+    /// <summary>
+    /// Lấy connectionId nếu session còn bản ghi ánh xạ
+    /// </summary>
+    private UInt56 GetConnectionIdForSession(UInt56 sessionToken)
+    {
+        if (_sessionConnectionMap.TryGetValue(sessionToken, out UInt56 connectionId))
+        {
+            return connectionId;
+        }
+
+        return UInt56.Zero;
     }
 
     private sealed class SessionEntry(SessionSnapshot snapshot)
     {
         public SessionSnapshot Snapshot { get; } = snapshot;
-
         public long ExpiresAtUnixMilliseconds => this.Snapshot.ExpiresAtUnixMilliseconds;
     }
 }
