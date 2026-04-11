@@ -39,6 +39,6 @@ Console.WriteLine(snapshot.SendBytesPerSecond);
 ## Related APIs
 
 - [TCP Session](./tcp-session.md)
-- [Session Extensions](./tcp-session-extensions.md)
+- [Handshake Extensions](./handshake-extensions.md)
 - [Thread Dispatching](./thread-dispatching.md)
 - [Transport Options](./options/transport-options.md)

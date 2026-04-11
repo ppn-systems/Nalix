@@ -84,6 +84,7 @@ var response = await client.RequestAsync<UserLoginResponse>(
 - [TCP Session](./tcp-session.md) — Reliable, stream-oriented client.
 - [UDP Session](./udp-session.md) — Low-latency, datagram-oriented client.
 - [Transport Session](./transport-session.md) — The base transport contract.
+- [Handshake Extensions](./handshake-extensions.md) — Perform the client-side X25519 handshake.
 - [Session Extensions](./tcp-session-extensions.md) — Handshakes, Controls, Requests, and cipher switching.
 - [Cipher Updates](./cipher-extensions.md) — Rotate the active cipher on a live TCP session.
 - [Subscriptions](./subscriptions.md) — Packet-aware event system.

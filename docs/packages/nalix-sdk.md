@@ -95,6 +95,7 @@ It controls:
 
 - [Transport Session](../api/sdk/transport-session.md)
 - [TCP Session](../api/sdk/tcp-session.md)
+- [Handshake Extensions](../api/sdk/handshake-extensions.md)
 - [Session Extensions](../api/sdk/tcp-session-extensions.md)
 - [Cipher Updates](../api/sdk/cipher-extensions.md)
 - [Request Options](../api/sdk/options/request-options.md)

@@ -48,5 +48,5 @@ ShowToast($"{userReason} {userAdvice}");
 ## Related APIs
 
 - [SDK Overview](./index.md)
-- [Session Extensions](./tcp-session-extensions.md)
+- [Handshake Extensions](./handshake-extensions.md)
 - [Control Type Enum](../common/protocols/control-type.md)
