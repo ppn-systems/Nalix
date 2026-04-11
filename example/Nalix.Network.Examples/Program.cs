@@ -23,7 +23,7 @@ internal class Program
     {
         // Turn on debug logs so the sample shows the full packet and connection flow.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Debug;
+                            .MinLevel = LogLevel.Trace;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();

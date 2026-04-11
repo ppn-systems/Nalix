@@ -1,11 +1,14 @@
 using System;
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Time;
 
 namespace Nalix.Benchmark.Framework.Time;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class ClockBenchmarks
+/// <summary>
+/// Benchmarks for Clock and timestamp generation performance.
+/// </summary>
+public class TimestampBenchmarks : NalixBenchmarkBase
 {
     private DateTime _syncTargetUtc;
 
@@ -16,27 +19,23 @@ public class ClockBenchmarks
         _syncTargetUtc = DateTime.UtcNow.AddMilliseconds(1500);
     }
 
-    [IterationCleanup(Target = nameof(SynchronizeUnixMilliseconds_WithRtt))]
+    [IterationCleanup(Target = nameof(SynchronizeUnixMilliseconds))]
     public void CleanupSync() => Clock.ResetSynchronization();
 
     [Benchmark]
-    public DateTime NowUtc()
-        => Clock.NowUtc();
+    public DateTime GetNowUtc() => Clock.NowUtc();
 
     [Benchmark]
-    public long UnixMillisecondsNow()
-        => Clock.UnixMillisecondsNow();
+    public long GetUnixMillisecondsNow() => Clock.UnixMillisecondsNow();
 
     [Benchmark]
-    public long EpochMillisecondsNow()
-        => Clock.EpochMillisecondsNow();
+    public long GetEpochMillisecondsNow() => Clock.EpochMillisecondsNow();
 
     [Benchmark]
-    public long MonoTicksNow()
-        => Clock.MonoTicksNow();
+    public long GetMonoTicksNow() => Clock.MonoTicksNow();
 
     [Benchmark]
-    public double SynchronizeUnixMilliseconds_WithRtt()
+    public double SynchronizeUnixMilliseconds()
         => Clock.SynchronizeUnixMilliseconds(
             new DateTimeOffset(_syncTargetUtc).ToUnixTimeMilliseconds(),
             rttMs: 25,

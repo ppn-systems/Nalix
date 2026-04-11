@@ -1,10 +1,13 @@
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.DataFrames.Chunks;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class FragmentAssemblerBenchmarks
+/// <summary>
+/// Benchmarks for fragment assembly performance and frame detection.
+/// </summary>
+public class FragmentAssemblerBenchmarks : NalixBenchmarkBase
 {
     private byte[][] _chunks = null!;
     private FragmentHeader[] _headers = null!;
@@ -16,14 +19,14 @@ public class FragmentAssemblerBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        int chunkSize = 256;
-        _headers = new FragmentHeader[this.ChunkCount];
-        _chunks = new byte[this.ChunkCount][];
+        const int chunkSize = 256;
+        _headers = new FragmentHeader[ChunkCount];
+        _chunks = new byte[ChunkCount][];
         _fragmentedPayload = new byte[FragmentHeader.WireSize + chunkSize];
 
-        for (int i = 0; i < this.ChunkCount; i++)
+        for (int i = 0; i < ChunkCount; i++)
         {
-            _headers[i] = new FragmentHeader(1, (ushort)i, (ushort)this.ChunkCount, i == this.ChunkCount - 1);
+            _headers[i] = new FragmentHeader(1, (ushort)i, (ushort)ChunkCount, i == ChunkCount - 1);
             _chunks[i] = new byte[chunkSize];
             for (int j = 0; j < chunkSize; j++)
             {
@@ -35,26 +38,26 @@ public class FragmentAssemblerBenchmarks
     }
 
     [Benchmark]
-    public int Assemble_SequentialChunks()
+    public int AssembleSequentialChunks()
     {
         using FragmentAssembler assembler = new();
-        FragmentAssemblyResult? completed = null;
+        FragmentAssemblyResult? result = null;
         try
         {
             for (int i = 0; i < _headers.Length; i++)
             {
-                completed = assembler.Add(_headers[i], _chunks[i], out _);
+                result = assembler.Add(_headers[i], _chunks[i], out _);
             }
 
-            return completed?.Length ?? 0;
+            return result?.Length ?? 0;
         }
         finally
         {
-            completed?.Lease.Dispose();
+            result?.Lease.Dispose();
         }
     }
 
     [Benchmark]
-    public bool IsFragmentedFrame()
+    public bool DetectFragmentedFrame()
         => FragmentAssembler.IsFragmentedFrame(_fragmentedPayload, out _);
 }

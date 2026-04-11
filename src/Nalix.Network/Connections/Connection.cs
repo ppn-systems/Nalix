@@ -269,7 +269,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(Connection)}:{this.Dispose}] dispose-error msg={ex.Message}");
+            s_logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
         }
 
         GC.SuppressFinalize(this);

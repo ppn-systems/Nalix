@@ -12,13 +12,16 @@ public sealed class LiteSerializerObjectTests
     [Fact]
     public void SerializeDeserialize_Handshake_RoundTripsState()
     {
+        byte[] proof = new byte[32]; proof[0] = 9; proof[1] = 8; proof[2] = 7; proof[3] = 6;
+        byte[] hash = new byte[32]; "nalix-handshake"u8.CopyTo(hash);
+
         Handshake input = new(
             stage: HandshakeStage.CLIENT_HELLO,
             publicKey: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32],
             nonce: [32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1],
-            proof: [9, 8, 7, 6],
+            proof: proof,
             transport: ProtocolType.TCP);
-        input.UpdateTranscriptHash("nalix-handshake"u8);
+        input.UpdateTranscriptHash(hash);
         input.SessionToken = Snowflake.NewId(0x01020304, 0x0506, (Nalix.Common.Identity.SnowflakeType)0x07);
 
         Handshake? output = null;

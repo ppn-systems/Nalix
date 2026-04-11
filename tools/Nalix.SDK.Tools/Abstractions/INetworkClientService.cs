@@ -63,7 +63,7 @@ public interface INetworkClientService : IDisposable
     /// </summary>
     /// <param name="packet">The packet to send.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task SendPacketAsync(IPacket packet, CancellationToken cancellationToken = default);
+    Task SendPacketAsync(IPacket packet, bool? encrypt = null, CancellationToken cancellationToken = default);
     
     /// <summary>
     /// Performs the cryptographic handshake to establish a secure session.

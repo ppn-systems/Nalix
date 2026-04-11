@@ -44,12 +44,6 @@ public sealed class HandshakeHandlers
         Handshake packet = context.Packet;
         IConnection connection = context.Connection;
 
-        if (IsEstablished(connection))
-        {
-            this.RejectHandshake(connection, ProtocolReason.UNEXPECTED_MESSAGE);
-            return null;
-        }
-
         switch (packet.Stage)
         {
             case HandshakeStage.CLIENT_HELLO:
@@ -72,19 +66,6 @@ public sealed class HandshakeHandlers
     }
 
     #region Private Methods
-
-    private static bool IsEstablished(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-
-        if (connection.Attributes.TryGetValue(EstablishedAttributeKey, out object? boxed) &&
-            boxed is bool established)
-        {
-            return established;
-        }
-
-        return false;
-    }
 
     private Handshake? HandleClientHello(IConnection connection, Handshake packet)
     {
@@ -173,9 +154,6 @@ public sealed class HandshakeHandlers
 
         connection.Attributes[EstablishedAttributeKey] = true;
 
-        MemorySecurity.ZeroMemory(state.SessionKey);
-        MemorySecurity.ZeroMemory(state.SharedSecret);
-
         _ = connection.Attributes.Remove(StateAttributeKey);
 
         Handshake reply = new(
@@ -187,6 +165,9 @@ public sealed class HandshakeHandlers
             TranscriptHash = state.TranscriptHash,
             SessionToken = (Snowflake)connection.ID
         };
+
+        MemorySecurity.ZeroMemory(state.SessionKey);
+        MemorySecurity.ZeroMemory(state.SharedSecret);
 
         return reply;
     }

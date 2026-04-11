@@ -1,11 +1,14 @@
 using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Memory.Pools;
 
 namespace Nalix.Benchmark.Framework.Memory.Objects;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class ListPoolBenchmarks
+/// <summary>
+/// Benchmarks for ListPool performance including renting, filling, and returning lists.
+/// </summary>
+public class ListPoolBenchmarks : NalixBenchmarkBase
 {
     private ListPool<int> _pool = null!;
 
@@ -16,14 +19,14 @@ public class ListPoolBenchmarks
     public void Setup()
     {
         _pool = new ListPool<int>(256, 16);
-        _pool.Prealloc(32, this.ItemCount);
+        _pool.Prealloc(32, ItemCount);
     }
 
     [Benchmark]
-    public List<int> Rent_Fill_Return()
+    public List<int> RentFillAndReturn()
     {
-        List<int> list = _pool.Rent(this.ItemCount);
-        for (int i = 0; i < this.ItemCount; i++)
+        List<int> list = _pool.Rent(ItemCount);
+        for (int i = 0; i < ItemCount; i++)
         {
             list.Add(i);
         }
@@ -33,6 +36,5 @@ public class ListPoolBenchmarks
     }
 
     [Benchmark]
-    public int Trim()
-        => _pool.Trim(16);
+    public int TrimPool() => _pool.Trim(16);
 }

@@ -1,26 +1,29 @@
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Benchmark.Framework.Memory.Objects;
 
-[Config(typeof(global::Nalix.Benchmark.Framework.BenchmarkConfig))]
-public class ObjectMapBenchmarks
+/// <summary>
+/// Benchmarks for ObjectMap performance including renting, adding, and looking up items.
+/// </summary>
+public class ObjectMapBenchmarks : NalixBenchmarkBase
 {
     [Params(32, 256)]
     public int ItemCount { get; set; }
 
     [Benchmark]
-    public int Rent_Add_Read_Return()
+    public int RentAddAndLookup()
     {
         ObjectMap<int, string> map = ObjectMap<int, string>.Rent();
         try
         {
-            for (int i = 0; i < this.ItemCount; i++)
+            for (int i = 0; i < ItemCount; i++)
             {
                 map.Add(i, $"value-{i}");
             }
 
-            _ = map.TryGetValue(this.ItemCount / 2, out _);
+            _ = map.TryGetValue(ItemCount / 2, out _);
             return map.Count;
         }
         finally
