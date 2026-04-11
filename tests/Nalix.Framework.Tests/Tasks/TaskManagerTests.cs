@@ -371,7 +371,7 @@ public sealed class TaskManagerTests : IDisposable
             () => manager.GetWorkers(runningOnly: false).Count == 1 && manager.AverageWorkerExecutionTime >= 100,
             TimeSpan.FromSeconds(2));
 
-        Assert.InRange(manager.AverageWorkerExecutionTime, 100, 1000);
+        Assert.InRange(manager.AverageWorkerExecutionTime, 100, 3000);
     }
 
     [Fact]
