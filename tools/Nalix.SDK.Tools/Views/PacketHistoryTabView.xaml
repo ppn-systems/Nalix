@@ -31,17 +31,17 @@
         </GroupBox>
 
         <Border Grid.Column="2"
-                Padding="16"
                 Background="{DynamicResource SurfaceBrush}"
                 CornerRadius="10"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                </Grid.RowDefinitions>
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <Grid Margin="16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="220" />
@@ -63,9 +63,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <controls:DynamicPropertyForm ItemsSource="{Binding Detail.Properties}" />
-                </ScrollViewer>
+                <controls:DynamicPropertyForm Grid.Row="1" ItemsSource="{Binding Detail.Properties}" />
 
                 <StackPanel Grid.Row="1" Grid.Column="1" Margin="16,0,0,0">
                     <Button Width="100"
@@ -74,9 +72,8 @@
                             Command="{Binding Detail.CopyHexCommand}"
                             Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonCopyHex}" />
                     <TextBox Padding="10"
-                             VerticalAlignment="Stretch"
                              AcceptsReturn="True"
-                             VerticalScrollBarVisibility="Auto"
+                             VerticalScrollBarVisibility="Hidden"
                              HorizontalScrollBarVisibility="Auto"
                              TextWrapping="Wrap"
                              FontFamily="Consolas"
@@ -96,7 +93,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <TextBlock FontWeight="SemiBold"
@@ -111,14 +108,15 @@
                                  Padding="10"
                                  AcceptsReturn="True"
                                  IsReadOnly="True"
-                                 VerticalScrollBarVisibility="Auto"
+                                 VerticalScrollBarVisibility="Hidden"
                                  HorizontalScrollBarVisibility="Auto"
                                  FontFamily="Consolas"
                                  TextWrapping="Wrap"
                                  Text="{Binding DiffText, Mode=OneWay}" />
-                    </Grid>
-                </Border>
-            </Grid>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </ScrollViewer>
         </Border>
     </Grid>
 </UserControl>

@@ -66,6 +66,7 @@ public sealed class HandshakeHandlers
     }
 
     #region Private Methods
+
     private Handshake? HandleClientHello(IConnection connection, Handshake packet)
     {
         if (!Handshake.IsValid(packet) || packet.PublicKey.Length != X25519.KeySize)
