@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
@@ -19,13 +19,13 @@ internal static class PacketFrameTransforms
     /// <summary>
     /// Applies inbound transforms in transport order: decrypt first, then decompress.
     /// </summary>
-    public static void TransformInbound(ref BufferLease current, ReadOnlySpan<byte> secret)
+    public static void TransformInbound(ref IBufferLease current, ReadOnlySpan<byte> secret)
     {
         PacketFlags flags = current.Span.ReadFlagsLE();
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
-            BufferLease next = PacketCipher.DecryptFrame(current, secret);
+            IBufferLease next = PacketCipher.DecryptFrame(current, secret);
             current.Dispose();
             current = next;
             flags = current.Span.ReadFlagsLE();
@@ -33,7 +33,7 @@ internal static class PacketFrameTransforms
 
         if (flags.HasFlag(PacketFlags.COMPRESSED))
         {
-            BufferLease next = PacketCompression.DecompressFrame(current);
+            IBufferLease next = PacketCompression.DecompressFrame(current);
             current.Dispose();
             current = next;
         }
@@ -42,21 +42,21 @@ internal static class PacketFrameTransforms
     /// <summary>
     /// Applies outbound transforms in transport order: compress first, then encrypt.
     /// </summary>
-    public static void TransformOutbound(ref BufferLease current, TransportOptions options, bool? encrypt = null)
+    public static void TransformOutbound(ref IBufferLease current, TransportOptions options, bool? encrypt = null)
     {
         bool doEncrypt = encrypt ?? options.EncryptionEnabled;
         bool doCompress = options.CompressionEnabled && (current.Length - FrameTransformer.Offset) >= options.CompressionThreshold;
 
         if (doCompress)
         {
-            BufferLease next = PacketCompression.CompressFrame(current);
+            IBufferLease next = PacketCompression.CompressFrame(current);
             current.Dispose();
             current = next;
         }
 
         if (doEncrypt)
         {
-            BufferLease next = PacketCipher.EncryptFrame(current, options.Secret, options.Algorithm);
+            IBufferLease next = PacketCipher.EncryptFrame(current, options.Secret, options.Algorithm);
             current.Dispose();
             current = next;
         }

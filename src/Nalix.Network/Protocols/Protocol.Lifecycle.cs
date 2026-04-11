@@ -122,7 +122,7 @@ public abstract partial class Protocol
             throw new InvalidOperationException("Encrypted frame received before session key establishment.");
         }
 
-        BufferLease? dest = null;
+        IBufferLease? dest = null;
 
         try
         {
@@ -168,7 +168,7 @@ public abstract partial class Protocol
 
         try
         {
-            dest = PacketCompression.DecompressFrame(lease);
+            dest = (BufferLease?)PacketCompression.DecompressFrame(lease);
 
             IBufferLease? old = replaceable.ReplaceLease(dest);
             old?.Dispose();

@@ -206,7 +206,7 @@ public class TcpSession : TransportSession
     /// <summary>
     /// Handles messages received by <see cref="FrameReader"/>.
     /// </summary>
-    private void HandleReceiveMessage(BufferLease lease)
+    private void HandleReceiveMessage(IBufferLease lease)
     {
         Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
         EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;

@@ -1,6 +1,9 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable IDE0079
+#pragma warning disable CA1859
+
 using System;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
@@ -22,7 +25,7 @@ public static class PacketCipher
     /// Decrypts a framed packet and clears the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key)
+    public static IBufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key)
     {
         ArgumentNullException.ThrowIfNull(src);
 
@@ -32,8 +35,8 @@ public static class PacketCipher
                 $"Ciphertext frame is too short: length={src.Length}, required>={FrameTransformer.Offset + EnvelopeCipher.HeaderSize}.");
         }
 
-        BufferLease dest = BufferLease.Rent(FrameTransformer
-                                      .GetPlaintextLength(src.Span));
+        IBufferLease dest = BufferLease.Rent(FrameTransformer
+                                       .GetPlaintextLength(src.Span));
         try
         {
             FrameTransformer.Decrypt(src, dest, key);
@@ -51,12 +54,12 @@ public static class PacketCipher
     /// Encrypts a framed packet and sets the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BufferLease EncryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, CipherSuiteType suite)
+    public static IBufferLease EncryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, CipherSuiteType suite)
     {
         ArgumentNullException.ThrowIfNull(src);
 
-        BufferLease dest = BufferLease.Rent(FrameTransformer
-                                      .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
+        IBufferLease dest = BufferLease.Rent(FrameTransformer
+                                       .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
         try
         {
             FrameTransformer.Encrypt(src, dest, key, suite);

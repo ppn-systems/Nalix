@@ -23,8 +23,12 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Handshake")]
 public sealed class HandshakeHandlers
 {
+    #region Const
+
     internal const string StateAttributeKey = "nalix.handshake.state";
     internal const string EstablishedAttributeKey = "nalix.handshake.established";
+
+    #endregion Const
 
     /// <summary>
     /// Handles incoming handshake signal packets.
@@ -39,6 +43,12 @@ public sealed class HandshakeHandlers
 
         Handshake packet = context.Packet;
         IConnection connection = context.Connection;
+
+        if (IsEstablished(connection))
+        {
+            this.RejectHandshake(connection, ProtocolReason.UNEXPECTED_MESSAGE);
+            return null;
+        }
 
         switch (packet.Stage)
         {
@@ -56,15 +66,14 @@ public sealed class HandshakeHandlers
             case HandshakeStage.SERVER_HELLO:
             case HandshakeStage.SERVER_FINISH:
             default:
-                this.Reject(connection, ProtocolReason.UNEXPECTED_MESSAGE);
+                this.RejectHandshake(connection, ProtocolReason.UNEXPECTED_MESSAGE);
                 return null;
         }
     }
 
-    /// <summary>
-    /// Checks if the handshake has been established for a given connection.
-    /// </summary>
-    public static bool IsEstablished(IConnection connection)
+    #region Private Methods
+
+    private static bool IsEstablished(IConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
 
@@ -81,7 +90,7 @@ public sealed class HandshakeHandlers
     {
         if (!Handshake.IsValid(packet) || packet.PublicKey.Length != X25519.KeySize)
         {
-            this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
+            this.RejectHandshake(connection, ProtocolReason.MALFORMED_PACKET);
             return null;
         }
 
@@ -92,7 +101,7 @@ public sealed class HandshakeHandlers
         {
             MemorySecurity.ZeroMemory(sharedSecret);
             MemorySecurity.ZeroMemory(serverKey.PrivateKey);
-            this.Reject(connection, ProtocolReason.DECRYPTION_FAILED);
+            this.RejectHandshake(connection, ProtocolReason.DECRYPTION_FAILED);
             return null;
         }
 
@@ -105,7 +114,7 @@ public sealed class HandshakeHandlers
                 serverKey.PublicKey,
                 serverNonce));
 
-        HandshakeSessionState state = new()
+        HandshakeContext state = new()
         {
             ClientPublicKey = packet.PublicKey,
             ClientNonce = packet.Nonce,
@@ -119,12 +128,9 @@ public sealed class HandshakeHandlers
         connection.Attributes[StateAttributeKey] = state;
 
         Handshake reply = new(
-            packet.OpCode,
             HandshakeStage.SERVER_HELLO,
-            serverKey.PublicKey,
-            serverNonce,
-            HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash),
-            packet.Protocol)
+            serverKey.PublicKey, serverNonce,
+            HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash), packet.Protocol)
         {
             TranscriptHash = transcriptHash
         };
@@ -135,21 +141,21 @@ public sealed class HandshakeHandlers
 
     private Handshake? HandleClientFinish(IConnection connection, Handshake packet)
     {
-        if (!TryGetState(connection, out HandshakeSessionState? state) || state is null)
+        if (!TryGetState(connection, out HandshakeContext? state) || state is null)
         {
-            this.Reject(connection, ProtocolReason.STATE_VIOLATION);
+            this.RejectHandshake(connection, ProtocolReason.STATE_VIOLATION);
             return null;
         }
 
         if (packet.Proof.Length != Handshake.DynamicSize || packet.TranscriptHash.Length != Handshake.DynamicSize)
         {
-            this.Reject(connection, ProtocolReason.MALFORMED_PACKET);
+            this.RejectHandshake(connection, ProtocolReason.MALFORMED_PACKET);
             return null;
         }
 
         if (!BitwiseOperations.FixedTimeEquals(packet.TranscriptHash, state.TranscriptHash))
         {
-            this.Reject(connection, ProtocolReason.CHECKSUM_FAILED);
+            this.RejectHandshake(connection, ProtocolReason.CHECKSUM_FAILED);
             return null;
         }
 
@@ -157,7 +163,7 @@ public sealed class HandshakeHandlers
         if (!BitwiseOperations.FixedTimeEquals(packet.Proof, expectedProof))
         {
             MemorySecurity.ZeroMemory(expectedProof);
-            this.Reject(connection, ProtocolReason.SIGNATURE_INVALID);
+            this.RejectHandshake(connection, ProtocolReason.SIGNATURE_INVALID);
             return null;
         }
 
@@ -166,16 +172,17 @@ public sealed class HandshakeHandlers
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
         connection.Attributes[EstablishedAttributeKey] = true;
-        ClearSensitiveState(state);
+
+        MemorySecurity.ZeroMemory(state.SessionKey);
+        MemorySecurity.ZeroMemory(state.SharedSecret);
+
         _ = connection.Attributes.Remove(StateAttributeKey);
 
         Handshake reply = new(
-            packet.OpCode,
             HandshakeStage.SERVER_FINISH,
             [],
             [],
-            HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash),
-            packet.Protocol)
+            HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash), packet.Protocol)
         {
             TranscriptHash = state.TranscriptHash,
             SessionToken = (Snowflake)connection.ID
@@ -184,11 +191,12 @@ public sealed class HandshakeHandlers
         return reply;
     }
 
-    private void Reject(IConnection connection, ProtocolReason reason)
+    private void RejectHandshake(IConnection connection, ProtocolReason reason)
     {
-        if (TryGetState(connection, out HandshakeSessionState? state) && state is not null)
+        if (TryGetState(connection, out HandshakeContext? state) && state is not null)
         {
-            ClearSensitiveState(state);
+            MemorySecurity.ZeroMemory(state.SessionKey);
+            MemorySecurity.ZeroMemory(state.SharedSecret);
             _ = connection.Attributes.Remove(StateAttributeKey);
         }
 
@@ -204,10 +212,10 @@ public sealed class HandshakeHandlers
         }
     }
 
-    private static bool TryGetState(IConnection connection, [NotNullWhen(true)] out HandshakeSessionState? state)
+    private static bool TryGetState(IConnection connection, [NotNullWhen(true)] out HandshakeContext? state)
     {
         if (connection.Attributes.TryGetValue(StateAttributeKey, out object? boxed) &&
-            boxed is HandshakeSessionState typed)
+            boxed is HandshakeContext typed)
         {
             state = typed;
             return true;
@@ -217,7 +225,7 @@ public sealed class HandshakeHandlers
         return false;
     }
 
-    private sealed class HandshakeSessionState
+    private sealed class HandshakeContext
     {
         public byte[] ClientPublicKey { get; init; } = [];
         public byte[] ClientNonce { get; init; } = [];
@@ -228,17 +236,5 @@ public sealed class HandshakeHandlers
         public byte[] SessionKey { get; init; } = [];
     }
 
-    private static void ClearSensitiveState(HandshakeSessionState state)
-    {
-        ClearBuffer(state.SharedSecret);
-        ClearBuffer(state.SessionKey);
-    }
-
-    private static void ClearBuffer(byte[]? buffer)
-    {
-        if (buffer is { Length: > 0 })
-        {
-            MemorySecurity.ZeroMemory(buffer);
-        }
-    }
+    #endregion Private Methods
 }
