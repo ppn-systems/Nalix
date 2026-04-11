@@ -52,7 +52,9 @@ Upon `CLIENT_FINISH` verification, the handler:
 1. Derives the 32-byte session key.
 2. Sets `connection.Secret` and `connection.Algorithm` (ChaCha20Poly1305).
 3. Marks the connection as established via `connection.Attributes["nalix.handshake.established"]`.
-4. Clears all ephemeral sensitive data (shared secrets, private keys) from memory.
+4. Creates a resumable session snapshot through `ISessionManager`.
+5. Returns a `SessionToken` to the client in `SERVER_FINISH`.
+6. Clears all ephemeral sensitive data (shared secrets, private keys) from memory.
 
 ---
 
@@ -80,6 +82,7 @@ await session.SendAsync(new SecurePacket());
 - **Zero-Allocation**: Handshake packets are pooled via `PacketBase`.
 - **Memory Safety**: Private keys and shared secrets are passed as `ReadOnlySpan<byte>` and zeroed out explicitly using `MemorySecurity.ZeroMemory` after use.
 - **Transcript Integrity**: Any modification to keys or nonces during transit will cause a `TranscriptHash` mismatch, resulting in an immediate `ProtocolReason.CHECKSUM_FAILED` rejection.
+- **Resume Token**: The session token now comes from the session manager and can be rotated on resume. Treat the token as resumable session state, not as a cryptographic secret by itself.
 
 ---
 
@@ -87,3 +90,4 @@ await session.SendAsync(new SecurePacket());
 - [AEAD & Envelope Encryption](./aead-and-envelope.md)
 - [X25519 Primitives](./cryptography.md)
 - [Snowflake Identifiers](../framework/runtime/snowflake.md)
+- [Session Resume](./session-resume.md)

@@ -8,6 +8,7 @@
 - **Middleware Pipeline:** Extensible pipeline for both raw buffers and typed packets.
 - **Handler Compilation:** Uses Expressions/IL to compile handler methods into high-speed delegates, avoiding reflection during the hot path.
 - **Metadata Management:** Bridges declarative attributes to runtime behavior.
+- **Session Resume:** Restores authenticated connection state through the dedicated `SessionResume` packet flow.
 
 ## Core Components
 
@@ -23,6 +24,10 @@ Supports both `NetworkBufferMiddleware` (for raw bytes) and `PacketMiddleware` (
 ### [Routing](../api/runtime/routing/packet-attributes.md)
 
 Attribute-based routing allows you to define packet handlers simply by annotating methods with `[PacketOpcode]`.
+
+### [Session Resume](../api/security/session-resume.md)
+
+The built-in resume flow is handled by `SessionHandlers` and backed by `ISessionManager`.
 
 ## Usage
 
