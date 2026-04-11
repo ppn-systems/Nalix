@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
+using Nalix.Common.Concurrency;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
