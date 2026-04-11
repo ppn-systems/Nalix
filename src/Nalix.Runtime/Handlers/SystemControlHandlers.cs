@@ -6,6 +6,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 
 namespace Nalix.Runtime.Handlers;
@@ -33,10 +34,12 @@ public sealed class SystemControlHandlers
             ControlType.PING => HandlePing(packet),
             ControlType.TIMESYNCREQUEST => HandleTimeSyncRequest(packet),
             ControlType.DISCONNECT => HandleDisconnect(context.Connection, packet),
+            ControlType.CIPHER_UPDATE => HandleCipherUpdate(context.Connection, packet),
 
             // Server generally does not need to send back automatic replies for these
             ControlType.HEARTBEAT => null, // Transport layer might track last-seen
             ControlType.PONG => null, // PONG received if Server pings Client
+            ControlType.CIPHER_UPDATE_ACK => null, // Client ACK (if Server inititated)
             ControlType.ERROR => null,
             ControlType.FAIL => null,
             ControlType.NOTICE => null,
@@ -55,6 +58,19 @@ public sealed class SystemControlHandlers
             ControlType.RESERVED2 => null,
             _ => null,
         };
+    }
+
+    private static Control? HandleCipherUpdate(IConnection connection, Control packet)
+    {
+        // HACK: Payload Overloading.
+        // Since we reused the 'Control' packet to avoid defining a new packet structure,
+        // we explicitly crammed the 1-byte CipherSuiteType enum into the 2-byte ProtocolReason field.
+        // Here we safely extract it back into the proper CipherSuiteType.
+        connection.Algorithm = (CipherSuiteType)(byte)packet.Reason;
+
+        Control ack = new();
+        ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Reason, packet.Protocol);
+        return ack;
     }
 
     private static Control HandlePing(Control ping)
