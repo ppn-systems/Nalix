@@ -12,6 +12,11 @@ using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 
+#if DEBUG
+using Nalix.Framework.Injection;
+using Microsoft.Extensions.Logging;
+#endif
+
 namespace Nalix.Runtime.Dispatching;
 
 /// <summary>
