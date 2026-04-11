@@ -50,9 +50,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     #region Fields
 
     private readonly int _maxPerEndpoint;
-    private readonly ConnectionLimitOptions _config;
     private readonly TimeSpan _cleanupInterval;
     private readonly TimeSpan _inactivityThreshold;
+    private readonly ConnectionLimitOptions _config;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
     private ILogger? _logger;

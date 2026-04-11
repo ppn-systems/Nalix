@@ -71,4 +71,4 @@ var secureResponse = await client.RequestAsync<SecretData>(sensitivePacket, opts
 
 - [TCP Session](../tcp-session.md)
 - [Transport Options](./transport-options.md)
-- [Request Extensions](../tcp-session-extensions.md)
+- [Session Extensions](../tcp-session-extensions.md)

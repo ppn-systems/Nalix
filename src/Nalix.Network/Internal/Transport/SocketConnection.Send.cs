@@ -58,17 +58,17 @@ internal sealed partial class SocketConnection
             try
             {
 #if DEBUG
-                s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                 $"stackalloc len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];
                 WRITE_FRAME_HEADER(frameS, (ushort)totalLength, data);
 
 #if DEBUG
-                if (s_logger is not null)
+                if (_logger is not null)
                 {
                     Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
-                    s_logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                    _logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                    $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} ep={_socket.RemoteEndPoint}");
                 }
 #endif
@@ -80,7 +80,7 @@ internal sealed partial class SocketConnection
                     if (n == 0)
                     {
 #if DEBUG
-                        s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                        _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                         $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
 #endif
                         this.CANCEL_RECEIVE_ONCE();
@@ -101,13 +101,13 @@ internal sealed partial class SocketConnection
                 if (IS_BENIGN_DISCONNECT(ex))
                 {
 #if DEBUG
-                    s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                    _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                     $"stackalloc-benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
 #endif
                 }
                 else
                 {
-                    s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                    _logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                     $"stackalloc-error ep={FORMAT_ENDPOINT(_socket)}", ex);
                 }
                 throw;
@@ -119,17 +119,17 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+            _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                             $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
             BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength);
             data.CopyTo(MemoryExtensions.AsSpan(heapBuf, HeaderSize));
 
 #if DEBUG
-            if (s_logger is not null)
+            if (_logger is not null)
             {
                 Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
-                s_logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                _logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
                                $"ep={_socket.RemoteEndPoint}");
             }
@@ -143,7 +143,7 @@ internal sealed partial class SocketConnection
                 if (n == 0)
                 {
 #if DEBUG
-                    s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                    _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                     $"pooled peer-closed ep={_socket.RemoteEndPoint}");
 #endif
                     this.CANCEL_RECEIVE_ONCE();
@@ -161,13 +161,13 @@ internal sealed partial class SocketConnection
             if (IS_BENIGN_DISCONNECT(ex))
             {
 #if DEBUG
-                s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                 $"pooled-benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
 #endif
             }
             else
             {
-                s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                _logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
                                 $"pooled-error ep={FORMAT_ENDPOINT(_socket)}", ex);
             }
             throw;
@@ -216,16 +216,16 @@ internal sealed partial class SocketConnection
         try
         {
 #if DEBUG
-            s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
+            _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                             $"len={data.Length} ep={_socket.RemoteEndPoint}");
 #endif
             WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength, data.Span);
 
 #if DEBUG
-            if (s_logger is not null)
+            if (_logger is not null)
             {
                 ReadOnlySpan<byte> payloadSpan = data.Span;
-                s_logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
+                _logger.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                                $"sending async frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
                                $"ep={_socket.RemoteEndPoint}");
             }
@@ -241,7 +241,7 @@ internal sealed partial class SocketConnection
                 if (n == 0)
                 {
 #if DEBUG
-                    s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
+                    _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                                     $"peer-closed ep={_socket.RemoteEndPoint}");
 #endif
                     this.CANCEL_RECEIVE_ONCE();
@@ -259,13 +259,13 @@ internal sealed partial class SocketConnection
             if (IS_BENIGN_DISCONNECT(ex))
             {
 #if DEBUG
-                s_logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
+                _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                                 $"benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
 #endif
             }
             else
             {
-                s_logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
+                _logger?.Error($"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
                                 $"error ep={FORMAT_ENDPOINT(_socket)}", ex);
             }
             throw;
