@@ -81,6 +81,18 @@
                             <Button Command="{Binding SendPacketCommand}" Content="{Binding Source={StaticResource ToolTexts}, Path=ButtonSend}" />
                         </UniformGrid>
 
+                        <UniformGrid Columns="3" Margin="0,0,0,12">
+                            <RadioButton Content="Auto (Handshake)" Height="28"
+                                         IsChecked="{Binding IsEncryptionDefault}" 
+                                         Style="{StaticResource {x:Type ToggleButton}}" />
+                            <RadioButton Content="Force Plain" Height="28"
+                                         IsChecked="{Binding IsEncryptionPlain}" 
+                                         Style="{StaticResource {x:Type ToggleButton}}" />
+                            <RadioButton Content="Force Encrypt" Height="28"
+                                         IsChecked="{Binding IsEncryptionForce}" 
+                                         Style="{StaticResource {x:Type ToggleButton}}" />
+                        </UniformGrid>
+
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="78" />

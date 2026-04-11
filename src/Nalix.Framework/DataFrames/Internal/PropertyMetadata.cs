@@ -123,13 +123,16 @@ internal sealed class PropertyMetadata
 
         this.IsReadable = prop.CanRead;
 
-        this.IsDynamic = CustomAttributeExtensions.GetCustomAttribute<SerializeDynamicSizeAttribute>(prop) is not null;
+        var dynAttr = CustomAttributeExtensions.GetCustomAttribute<SerializeDynamicSizeAttribute>(prop);
+        this.IsDynamic = dynAttr is not null && dynAttr.Size == 0;
 
         this.NullWireSize = ComputeNullWireSize(this.DeclaredType);
         (this.DynamicKind, this.ElementSize) = ComputeDynamicKind(this.DeclaredType);
 
         this.DefaultValue = ComputeDefaultValue(this.DeclaredType);
-        this.FixedSize = this.IsDynamic ? (ushort)0 : ComputeFixedSize(this.DeclaredType);
+        this.FixedSize = dynAttr is not null && dynAttr.Size > 0 
+            ? (ushort)dynAttr.Size 
+            : (this.IsDynamic ? (ushort)0 : ComputeFixedSize(this.DeclaredType));
 
         // Getter delegate: (object instance) => (object) ((TDeclaring)instance).Prop
         if (prop.CanRead && prop.GetMethod is not null)

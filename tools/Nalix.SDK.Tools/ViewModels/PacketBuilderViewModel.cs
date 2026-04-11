@@ -42,6 +42,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     private bool _currentPacketIsReadOnly;
     private bool _suppressAutoLoad;
     private CancellationTokenSource? _repeatSendCts;
+    private int _selectedEncryptionMode;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketBuilderViewModel"/> class.
@@ -214,6 +215,50 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
             }
 
             this.NotifyCommandStates();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to use default encryption logic.
+    /// </summary>
+    public bool IsEncryptionDefault
+    {
+        get => _selectedEncryptionMode == 0;
+        set { if (value) this.SelectedEncryptionMode = 0; }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to force plain text communication.
+    /// </summary>
+    public bool IsEncryptionPlain
+    {
+        get => _selectedEncryptionMode == 1;
+        set { if (value) this.SelectedEncryptionMode = 1; }
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether to force encrypted communication.
+    /// </summary>
+    public bool IsEncryptionForce
+    {
+        get => _selectedEncryptionMode == 2;
+        set { if (value) this.SelectedEncryptionMode = 2; }
+    }
+
+    /// <summary>
+    /// Gets or sets the selected encryption override mode index.
+    /// </summary>
+    public int SelectedEncryptionMode
+    {
+        get => _selectedEncryptionMode;
+        set
+        {
+            if (this.SetProperty(ref _selectedEncryptionMode, value))
+            {
+                this.OnPropertyChanged(nameof(this.IsEncryptionDefault));
+                this.OnPropertyChanged(nameof(this.IsEncryptionPlain));
+                this.OnPropertyChanged(nameof(this.IsEncryptionForce));
+            }
         }
     }
 
@@ -459,7 +504,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
         try
         {
-            await _tcpClientService.SendPacketAsync(_currentPacket).ConfigureAwait(true);
+            bool? encryptOverride = this.SelectedEncryptionMode switch
+            {
+                1 => false,
+                2 => true,
+                _ => null
+            };
+            await _tcpClientService.SendPacketAsync(_currentPacket, encryptOverride).ConfigureAwait(true);
         }
         catch (Exception exception)
         {
@@ -493,7 +544,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
             for (int index = 0; index < count; index++)
             {
                 token.ThrowIfCancellationRequested();
-                await _tcpClientService.SendPacketAsync(_currentPacket, token).ConfigureAwait(true);
+                bool? encryptOverride = this.SelectedEncryptionMode switch
+                {
+                    1 => false,
+                    2 => true,
+                    _ => null
+                };
+                await _tcpClientService.SendPacketAsync(_currentPacket, encryptOverride, token).ConfigureAwait(true);
                 sentCount++;
 
                 if (delayMs > 0 && index < count - 1)

@@ -100,6 +100,13 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static IReturnHandler<TPacket> CreateDynamicHandler(Type returnType)
     {
+        // Any type that implements IPacket (or is TPacket itself) should be
+        // handled as an outbound packet response.
+        if (typeof(IPacket).IsAssignableFrom(returnType))
+        {
+            return new PacketReturnHandler<TPacket>();
+        }
+
         if (returnType.IsGenericType)
         {
             Type genericArg = returnType.GetGenericArguments()[0];

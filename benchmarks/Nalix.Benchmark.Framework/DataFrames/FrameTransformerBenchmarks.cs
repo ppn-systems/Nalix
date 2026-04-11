@@ -1,4 +1,5 @@
 using BenchmarkDotNet.Attributes;
+using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
@@ -9,8 +10,10 @@ using Nalix.Framework.Random;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
-[Config(typeof(BenchmarkConfig))]
-public class FrameTransformerBenchmarks
+/// <summary>
+/// Benchmarks for frame transformations including compression and encryption.
+/// </summary>
+public class FrameTransformerBenchmarks : NalixBenchmarkBase
 {
     private readonly byte[] _key = new byte[32];
 
@@ -31,7 +34,7 @@ public class FrameTransformerBenchmarks
         }
 
         Handshake frame = new();
-        frame.Initialize(0, HandshakeStage.SERVER_HELLO, Csprng.GetBytes(32), Csprng.GetBytes(32), Csprng.GetBytes(32), ProtocolType.TCP);
+        frame.Initialize(HandshakeStage.SERVER_HELLO, Csprng.GetBytes(32), Csprng.GetBytes(32), Csprng.GetBytes(32), ProtocolType.TCP);
         frame.Flags = PacketFlags.NONE;
         _rawPacket = frame.Serialize();
 
@@ -48,16 +51,15 @@ public class FrameTransformerBenchmarks
         _encrypted.Dispose();
     }
 
-
     [Benchmark]
-    public int Compress()
+    public int CompressFrame()
     {
         FrameTransformer.Compress(_source, _compressed);
         return _compressed.Length;
     }
 
     [Benchmark]
-    public int Encrypt()
+    public int EncryptFrame()
     {
         FrameTransformer.Encrypt(_source, _encrypted, _key, CipherSuiteType.Chacha20Poly1305);
         return _encrypted.Length;

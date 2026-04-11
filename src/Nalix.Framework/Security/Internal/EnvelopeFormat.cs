@@ -17,7 +17,6 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
 
@@ -139,7 +138,7 @@ internal static class EnvelopeFormat
         int required = HeaderSize + nonceLen + ciphertext.Length + tag.Length;
         if (dest.Length < required)
         {
-            throw new CryptographicException(
+            throw new CipherException(
                 $"Destination too small: length={dest.Length}, required>={required}.");
         }
 
@@ -177,7 +176,7 @@ internal static class EnvelopeFormat
         int required = HeaderSize + nonceLen + ciphertext.Length;
         if (dest.Length < required)
         {
-            throw new CryptographicException(
+            throw new CipherException(
                 $"Destination too small: length={dest.Length}, required>={required}.");
         }
 
