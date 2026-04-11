@@ -15,7 +15,6 @@ using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
-using Nalix.Runtime.Handlers;
 
 internal class Program
 {
@@ -39,7 +38,6 @@ internal class Program
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
             .AddPacket<Handshake>()
             .AddHandler<PacketCommandHandler>()
-            .AddHandlers<HandshakeHandlers>()
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .ConfigureDispatch(dispatchOptions =>
             {
@@ -61,10 +59,6 @@ internal class Program
         Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
         Console.WriteLine("Press Ctrl+C to stop.");
 
-        await host.ActivateAsync(shutdown.Token).ConfigureAwait(false);
-
-        Console.WriteLine(hub.GenerateReport());
-
-        _ = Console.ReadKey();
+        await host.RunAsync(shutdown.Token).ConfigureAwait(false);
     }
 }

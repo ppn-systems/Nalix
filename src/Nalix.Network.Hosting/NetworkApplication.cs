@@ -219,7 +219,7 @@ public sealed class NetworkApplication : IActivatableAsync
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to stop hosted service cleanly.");
+                    _logger.Warn("Failed to stop hosted service cleanly. {Ex}", ex);
                 }
             }
 

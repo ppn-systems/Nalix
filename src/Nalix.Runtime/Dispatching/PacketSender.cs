@@ -4,13 +4,11 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Transforms;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 
@@ -117,7 +115,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 s_logger?.Debug("[NW.PacketSender] Case 2: Compress Only");
 #endif
 
-                BufferLease compressedLease = PacketCompression.CompressFrame(rawLease);
+                BufferLease compressedLease = (BufferLease)PacketCompression.CompressFrame(rawLease);
                 try
                 {
                     await context.Connection.TCP.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
@@ -137,7 +135,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 s_logger?.Debug("[NW.PacketSender] Case 3: Encrypt Only");
 #endif
 
-                BufferLease encryptedLease = PacketCipher.EncryptFrame(
+                IBufferLease encryptedLease = PacketCipher.EncryptFrame(
                     rawLease,
                     context.Connection.Secret,
                     context.Connection.Algorithm);
@@ -160,10 +158,10 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 s_logger?.Debug("[NW.PacketSender] Case 4: Compress + Encrypt");
 #endif
 
-                BufferLease compressedLease = PacketCompression.CompressFrame(rawLease);
+                IBufferLease compressedLease = PacketCompression.CompressFrame(rawLease);
                 try
                 {
-                    BufferLease encryptedLease = PacketCipher.EncryptFrame(
+                    IBufferLease encryptedLease = PacketCipher.EncryptFrame(
                         compressedLease,
                         context.Connection.Secret,
                         context.Connection.Algorithm);
