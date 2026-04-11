@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Sessions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.DataFrames;
@@ -19,6 +20,7 @@ using Nalix.Network.Hosting.Internal;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
+using Nalix.Runtime.Sessions;
 
 namespace Nalix.Network.Hosting;
 
@@ -39,6 +41,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         _state = state ?? throw new ArgumentNullException(nameof(state));
         _ = this.AddHandler<HandshakeHandlers>()
+                .AddHandler<SessionHandlers>()
                 .AddHandler<SystemControlHandlers>();
     }
 
@@ -270,6 +273,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             this.EnsureConnectionHubRegistered();
             this.EnsureBufferPoolManagerRegistered();
+            EnsureSessionManagerRegistered();
 
             if (!metadataRegistered)
             {
@@ -424,6 +428,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
 
         InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager(_state.Logger));
+    }
+
+    private static void EnsureSessionManagerRegistered()
+    {
+        if (InstanceManager.Instance.GetExistingInstance<ISessionManager>() is not null)
+        {
+            return;
+        }
+
+        InstanceManager.Instance.Register<ISessionManager>(new MemorySessionManager());
     }
 
     private static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);
