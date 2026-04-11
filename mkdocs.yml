@@ -241,6 +241,7 @@ nav:
         - TCP Session: api/sdk/tcp-session.md
         - UDP Session: api/sdk/udp-session.md
         - Session Extensions: api/sdk/tcp-session-extensions.md
+        - Cipher Updates: api/sdk/cipher-extensions.md
         - Session Diagnostics: api/sdk/diagnostics.md
         - Session Subscriptions: api/sdk/subscriptions.md
         - Thread Dispatching: api/sdk/thread-dispatching.md

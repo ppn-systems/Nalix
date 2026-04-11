@@ -22,7 +22,7 @@ flowchart LR
 - `UdpSession` (with 7-byte session token support)
 - `TransportOptions`
 - `RequestOptions`
-- transport extensions such as `ControlExtensions`, `RequestExtensions`, `TcpSessionSubscriptions`, and `TcpSessionX25519Extensions`
+- transport extensions such as `ControlExtensions`, `RequestExtensions`, `HandshakeExtensions`, `CipherExtensions`, and `TcpSessionSubscriptions`
 - thread dispatching helpers such as `IThreadDispatcher` and `InlineDispatcher`
 - protocol string helpers such as `ProtocolStringExtensions`
 
@@ -96,6 +96,7 @@ It controls:
 - [Transport Session](../api/sdk/transport-session.md)
 - [TCP Session](../api/sdk/tcp-session.md)
 - [Session Extensions](../api/sdk/tcp-session-extensions.md)
+- [Cipher Updates](../api/sdk/cipher-extensions.md)
 - [Request Options](../api/sdk/options/request-options.md)
 - [Session Diagnostics](../api/sdk/diagnostics.md)
 - [Thread Dispatching](../api/sdk/thread-dispatching.md)

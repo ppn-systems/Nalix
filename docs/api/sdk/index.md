@@ -20,6 +20,7 @@ graph LR
     subgraph Logic
         EXT[Session Extensions]
         SUB[Subscription System]
+        CIPHER[Cipher Switch]
     end
     
     TO --> TS
@@ -28,6 +29,7 @@ graph LR
     TS --> UDP
     TCP --> EXT
     EXT --> SUB
+    EXT --> CIPHER
 ```
 
 ## Source mapping
@@ -39,6 +41,8 @@ graph LR
 - `src/Nalix.SDK/Options/RequestOptions.cs`
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
+- `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
+- `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 - `src/Nalix.SDK/IThreadDispatcher.cs`
 - `src/Nalix.SDK/Extensions/ProtocolStringExtensions.cs`
@@ -49,7 +53,7 @@ graph LR
 | --- | --- |
 | **Transports** | Abstract `TransportSession` with concrete `TcpSession` (reliable) and `UdpSession` (datagram) implementations. |
 | **Options** | Strongly-typed configuration for socket tuning, reconnect policies, and request-specific timeouts/retries. |
-| **Extensions** | Fluent builders for `CONTROL` frames, cryptographic handshakes, and race-condition-free `RequestAsync` helpers. |
+| **Extensions** | Fluent builders for `CONTROL` frames, cryptographic handshakes, cipher updates, and race-condition-free `RequestAsync` helpers. |
 | **Subscriptions** | Type-safe event system that handles `IBufferLease` ownership and automatic unsubscription. |
 | **Utils** | Thread dispatching abstractions for UI/Game engine integration and protocol string translation. |
 
@@ -80,7 +84,8 @@ var response = await client.RequestAsync<UserLoginResponse>(
 - [TCP Session](./tcp-session.md) — Reliable, stream-oriented client.
 - [UDP Session](./udp-session.md) — Low-latency, datagram-oriented client.
 - [Transport Session](./transport-session.md) — The base transport contract.
-- [Session Extensions](./tcp-session-extensions.md) — Handshakes, Controls, and Requests.
+- [Session Extensions](./tcp-session-extensions.md) — Handshakes, Controls, Requests, and cipher switching.
+- [Cipher Updates](./cipher-extensions.md) — Rotate the active cipher on a live TCP session.
 - [Subscriptions](./subscriptions.md) — Packet-aware event system.
 - [Transport Options](./options/transport-options.md) — Socket and connectivity settings.
 - [Request Options](./options/request-options.md) — Per-request tuning.
