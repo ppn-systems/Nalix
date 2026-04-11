@@ -253,7 +253,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        bool measureLatency = _options.IsEnableLatency && _logger?.IsEnabled(LogLevel.Information) == true;
+        ILogger? logger = _logger;
+        bool measureLatency = _options.IsEnableLatency && logger?.IsEnabled(LogLevel.Information) == true;
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         if (_options.BroadcastBatchSize > 0)
@@ -267,7 +268,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             {
                 if (measureLatency)
                 {
-                    _logger?.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
+                    logger.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
                 }
             }
 
@@ -288,7 +289,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             if (measureLatency)
             {
-                _logger?.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
+                logger.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
             }
         }
     }
