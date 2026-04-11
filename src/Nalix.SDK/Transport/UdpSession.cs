@@ -176,7 +176,7 @@ public class UdpSession : TransportSession
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
         packet.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
-        BufferLease src = BufferLease.Rent(packet.Length);
+        IBufferLease src = BufferLease.Rent(packet.Length);
         try
         {
             int written = packet.Serialize(src.Span);
@@ -216,7 +216,7 @@ public class UdpSession : TransportSession
         }
 
         // Step 1: Wrap raw payload into a BufferLease
-        BufferLease src = BufferLease.Rent(payload.Length);
+        IBufferLease src = BufferLease.Rent(payload.Length);
         try
         {
             payload.Span.CopyTo(src.Span);
@@ -307,7 +307,7 @@ public class UdpSession : TransportSession
 
             // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
             // (Server-to-Client UDP does not include the 7-byte token)
-            BufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
+            IBufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
 
             try
             {
@@ -326,10 +326,10 @@ public class UdpSession : TransportSession
 
     #region Transformation
 
-    private void TransformOutbound(ref BufferLease src)
+    private void TransformOutbound(ref IBufferLease src)
         => PacketFrameTransforms.TransformOutbound(ref src, this.Options);
 
-    private void TransformInbound(ref BufferLease lease)
+    private void TransformInbound(ref IBufferLease lease)
         => PacketFrameTransforms.TransformInbound(ref lease, this.Options.Secret);
 
     #endregion Transformation

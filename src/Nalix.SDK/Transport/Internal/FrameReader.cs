@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Memory.Buffers;
@@ -25,7 +26,7 @@ internal sealed class FrameReader : IDisposable
     private readonly TransportOptions _options;
     private readonly Func<Socket> _getSocket;
     private readonly Action<Exception> _onError;
-    private readonly Action<BufferLease> _onMessage;
+    private readonly Action<IBufferLease> _onMessage;
 
     private readonly FragmentAssembler _fragmentAssembler = new()
     {
@@ -36,7 +37,7 @@ internal sealed class FrameReader : IDisposable
     public FrameReader(
         Func<Socket> getSocket,
         TransportOptions options,
-        Action<BufferLease> onMessage,
+        Action<IBufferLease> onMessage,
         Action<Exception> onError)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -121,7 +122,7 @@ internal sealed class FrameReader : IDisposable
         }
     }
 
-    private void PROCESS_NORMAL_FRAME(BufferLease lease)
+    private void PROCESS_NORMAL_FRAME(IBufferLease lease)
     {
         try
         {
