@@ -1,6 +1,9 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable IDE0079
+#pragma warning disable CA1859
+
 using System;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
@@ -32,8 +35,8 @@ public static class PacketCipher
                 $"Ciphertext frame is too short: length={src.Length}, required>={FrameTransformer.Offset + EnvelopeCipher.HeaderSize}.");
         }
 
-        BufferLease dest = BufferLease.Rent(FrameTransformer
-                                      .GetPlaintextLength(src.Span));
+        IBufferLease dest = BufferLease.Rent(FrameTransformer
+                                       .GetPlaintextLength(src.Span));
         try
         {
             FrameTransformer.Decrypt(src, dest, key);
@@ -55,8 +58,8 @@ public static class PacketCipher
     {
         ArgumentNullException.ThrowIfNull(src);
 
-        BufferLease dest = BufferLease.Rent(FrameTransformer
-                                      .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
+        IBufferLease dest = BufferLease.Rent(FrameTransformer
+                                       .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
         try
         {
             FrameTransformer.Encrypt(src, dest, key, suite);
