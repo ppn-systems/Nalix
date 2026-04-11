@@ -55,10 +55,22 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     private static readonly Lazy<PropertyMetadata[]> s_metadata = new(
         static () =>
         [
-            .. EnumerateSerializableProperties().Select(static x => new PropertyMetadata(x.p))
+            .. ENUMERATE_SERIALIZABLE_PROPERTIES().Select(static x => new PropertyMetadata(x.p))
         ],
         isThreadSafe: true
     );
+
+    /// <summary>
+    /// Indicates whether <typeparamref name="TSelf"/> implements <see cref="IFixedSizeSerializable"/>.
+    /// </summary>
+    [SerializeIgnore]
+    private static readonly bool s_isFixedSize = typeof(IFixedSizeSerializable).IsAssignableFrom(typeof(TSelf));
+
+    /// <summary>
+    /// The fixed size of the packet if it implements <see cref="IFixedSizeSerializable"/>; otherwise 0.
+    /// </summary>
+    [SerializeIgnore]
+    private static readonly int s_fixedSize = s_isFixedSize ? FETCH_FIXED_SIZE() : 0;
 
     [SerializeIgnore]
     private static readonly Cache s_cache = InitializeCache();
@@ -84,6 +96,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
+            // O(1) path for fixed-size serializable packets.
+            if (s_isFixedSize)
+            {
+                return s_fixedSize;
+            }
+
             // Fast path: no dynamic getters -> fixed size.
             Func<TSelf, int>[] getters = s_cache.SizeGetters;
             if (getters.Length == 0)
@@ -169,6 +187,34 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         return packet;
     }
 
+    /// <inheritdoc/>    
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="buffer"/> is empty.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when deserialization reads zero bytes or no formatter is available for the packet type.
+    /// </exception>
+    /// <exception cref="SerializationFailureException">
+    /// Thrown when the payload is malformed or does not contain enough data to deserialize the packet.
+    /// </exception>
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
+    public static TSelf Deserialize(ReadOnlyMemory<byte> buffer, ref TSelf value)
+    {
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException(
+                $"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
+        }
+
+        int bytesRead = LiteSerializer.Deserialize(buffer.Span, ref value);
+        if (bytesRead == 0)
+        {
+            throw new InvalidOperationException(
+                $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={buffer.Length}.");
+        }
+        return value;
+    }
+
     /// <inheritdoc/>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override void ResetForPool()
@@ -194,7 +240,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         // Restore type identity — never reset to 0.
         this.MagicNumber = s_autoMagic;
     }
-
 
     #endregion APIs
 
@@ -251,8 +296,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     private readonly struct Cache
     {
-        public readonly PropertyMetadata[] All;
         public readonly int StaticSize;
+        public readonly PropertyMetadata[] All;
         public readonly Func<TSelf, int>[] SizeGetters;
 
         public Cache(PropertyMetadata[] all, int staticSize, Func<TSelf, int>[] sizeGetters)
@@ -268,6 +313,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     {
         PropertyMetadata[] all = s_metadata.Value;
 
+        // If the packet is explicitly marked as fixed-size, skip per-property discovery
+        // and use the provided size. Properties are still tracked for ResetForPool/Reports.
+        if (s_isFixedSize)
+        {
+            return new Cache(all, s_fixedSize, Array.Empty<Func<TSelf, int>>());
+        }
+
         int staticSize = PacketConstants.HeaderSize;
         List<Func<TSelf, int>> getters = new(capacity: all.Length);
 
@@ -282,46 +334,46 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
             // Dynamic or unknown-size => build a size getter.
             // This keeps Length() a tight loop over delegates.
-            getters.Add(BuildSizeGetter(meta));
+            getters.Add(BUILD_SIZE_GETTER(meta));
         }
 
         return new Cache(all, staticSize, [.. getters]);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<TSelf, int> BuildSizeGetter(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_SIZE_GETTER(PropertyMetadata meta)
     {
         // Localize meta reference for closure; this closure is created once per property per TSelf.
         // The returned delegate MUST be allocation-free per invocation.
         return meta.DynamicKind switch
         {
-            DynamicWireKind.String => BuildStringGetter(meta),
-            DynamicWireKind.ByteArray => BuildByteArrayGetter(meta),
-            DynamicWireKind.Packet => BuildPacketGetter(meta),
-            DynamicWireKind.UnmanagedArray => BuildUnmanagedArrayGetter(meta),
-            DynamicWireKind.None or DynamicWireKind.Other => BuildFallbackGetter(meta),
-            _ => BuildFallbackGetter(meta),
+            DynamicWireKind.String => BUILD_STRING_GETTER(meta),
+            DynamicWireKind.ByteArray => BUILD_BYTE_ARRAY_GETTER(meta),
+            DynamicWireKind.Packet => BUILD_PACKET_GETTER(meta),
+            DynamicWireKind.UnmanagedArray => BUILD_UNMANAGED_ARRAY_GETTER(meta),
+            DynamicWireKind.None or DynamicWireKind.Other => BUILD_FALLBACK_GETTER(meta),
+            _ => BUILD_FALLBACK_GETTER(meta),
         };
     }
 
-    private static Func<TSelf, int> BuildStringGetter(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_STRING_GETTER(PropertyMetadata meta)
     {
         return instance =>
         {
             object? value = meta.GetValue(instance);
+
             if (value is null)
             {
                 return meta.NullWireSize; // typically 4
             }
 
-            // Fast, safe over-estimate: int32 prefix + 4 bytes per char max.
-            // This avoids UTF8 byte counting (hot path).
-            int charCount = ((string)value).Length;
-            return sizeof(int) + (charCount << 2);
+            // StringFormatter writes an Int32 byte-count prefix followed by the UTF-8 payload.
+            // Length must match the wire format exactly because Serialize(Span<byte>) relies on it.
+            return sizeof(int) + Encoding.UTF8.GetByteCount((string)value);
         };
     }
 
-    private static Func<TSelf, int> BuildByteArrayGetter(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_BYTE_ARRAY_GETTER(PropertyMetadata meta)
     {
         return instance =>
         {
@@ -335,7 +387,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         };
     }
 
-    private static Func<TSelf, int> BuildPacketGetter(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_PACKET_GETTER(PropertyMetadata meta)
     {
         return instance =>
         {
@@ -353,11 +405,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
                 return 0;
             }
 
-            return p.Length;
+            // Packet properties are serialized through NullableObjectFormatter<T>,
+            // which prefixes a 1-byte presence marker before the nested packet payload.
+            return sizeof(byte) + p.Length;
         };
     }
 
-    private static Func<TSelf, int> BuildUnmanagedArrayGetter(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_UNMANAGED_ARRAY_GETTER(PropertyMetadata meta)
     {
         int elementSize = meta.ElementSize;
 
@@ -374,7 +428,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         };
     }
 
-    private static Func<TSelf, int> BuildFallbackGetter(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_FALLBACK_GETTER(PropertyMetadata meta)
     {
         return instance =>
         {
@@ -385,12 +439,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             }
 
             // Conservative runtime sizing for uncommon types.
-            return GetDynamicSizeFallback(instance, value);
+            return GET_DYNAMIC_SIZE_FALLBACK(instance, value);
         };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetDynamicSizeFallback(PacketBase<TSelf> self, object value)
+    private static int GET_DYNAMIC_SIZE_FALLBACK(PacketBase<TSelf> self, object value)
     {
         // NOTE: keep this only for rare cases.
         if (value is string s)
@@ -427,10 +481,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetDynamicSizeFallback(TSelf instance, object value) => GetDynamicSizeFallback((PacketBase<TSelf>)instance, value);
+    private static int GET_DYNAMIC_SIZE_FALLBACK(TSelf instance, object value) => PacketBase<TSelf>.GET_DYNAMIC_SIZE_FALLBACK((PacketBase<TSelf>)instance, value);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order)> EnumerateSerializableProperties()
+    private static IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order)> ENUMERATE_SERIALIZABLE_PROPERTIES()
     {
         IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order, SerializeIgnoreAttribute? ignore, SerializeHeaderAttribute? header)> candidates =
             typeof(TSelf)
@@ -450,6 +504,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
                 .Where(static x => x.order is not null)
                 .OrderBy(static x => x.order!.Order)
             : selected;
+    }
+
+    private static int FETCH_FIXED_SIZE()
+    {
+        return typeof(TSelf).GetProperty(nameof(IFixedSizeSerializable.Size), BindingFlags.Public | BindingFlags.Static)
+            ?.GetValue(null) is int size ? size : 0;
     }
 
     #endregion Private Methods

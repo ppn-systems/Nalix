@@ -201,7 +201,19 @@ internal sealed class PropertyMetadata
             return sizeof(byte);
         }
 
-        // SerializerBounds.Null is int32 -1 => 4 bytes for null reference/array/string sentinel.
+        // Strings and arrays use an Int32 sentinel (-1) in the current wire format.
+        if (declaredType == typeof(string) || declaredType.IsArray)
+        {
+            return sizeof(int);
+        }
+
+        // Other reference types use NullableObjectFormatter<T>, which writes a 1-byte marker.
+        if (!declaredType.IsValueType)
+        {
+            return sizeof(byte);
+        }
+
+        // Value types do not use a null marker, but keep the legacy fallback for unsupported cases.
         return sizeof(int);
     }
 
@@ -262,9 +274,9 @@ internal sealed class PropertyMetadata
             TypeCode.Object when type == typeof(Snowflake) => 7,
 
             _ when type.IsEnum => ComputeFixedSize(Enum.GetUnderlyingType(type)),
-            TypeCode.Empty => 4,
-            TypeCode.DBNull => 4,
-            TypeCode.String => 4,
+            TypeCode.Empty => 0,
+            TypeCode.DBNull => 0,
+            TypeCode.String => 0,
             _ => 0
         };
 

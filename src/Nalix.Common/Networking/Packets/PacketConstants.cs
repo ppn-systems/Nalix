@@ -10,20 +10,9 @@ public static class PacketConstants
 {
     /// <summary>
     /// The size, in bytes, of the fixed packet header.
+    /// Total header size = 13 bytes (offsets 0-12)
     /// </summary>
-    public const byte HeaderSize =
-        sizeof(uint) +    // MagicNumber = 4  (offset 0)
-        sizeof(ushort) +  // OpCode      = 2  (offset 4)
-        sizeof(byte) +    // Flags       = 1  (offset 6)
-        sizeof(byte) +    // Priority    = 1  (offset 7)
-        sizeof(byte) +    // Protocol    = 1  (offset 8)
-        sizeof(uint);     // SequenceId  = 4  (offset 9)
-                          // Total header size = 12 bytes (offsets 0-11)
-
-    /// <summary>
-    /// The default operation code value for packets.
-    /// </summary>
-    public const byte OpcodeDefault = 0x00;
+    public const byte HeaderSize = (byte)PacketHeaderOffset.Region;
 
     /// <summary>
     /// The threshold size, in bytes, above which memory is allocated from the heap instead of the stack.

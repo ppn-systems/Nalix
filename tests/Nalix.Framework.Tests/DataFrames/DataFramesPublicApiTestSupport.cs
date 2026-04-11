@@ -74,7 +74,7 @@ public sealed partial class DataFramesPublicApiTests
 
     private static Handshake CreateHandshakePacket()
     {
-        Handshake packet = new(17, HandshakeStage.SERVER_HELLO, [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], ProtocolType.UDP);
         packet.UpdateTranscriptHash([13, 14, 15, 16]);
         return packet;
     }
