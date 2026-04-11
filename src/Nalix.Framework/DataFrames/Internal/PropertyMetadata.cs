@@ -201,7 +201,19 @@ internal sealed class PropertyMetadata
             return sizeof(byte);
         }
 
-        // SerializerBounds.Null is int32 -1 => 4 bytes for null reference/array/string sentinel.
+        // Strings and arrays use an Int32 sentinel (-1) in the current wire format.
+        if (declaredType == typeof(string) || declaredType.IsArray)
+        {
+            return sizeof(int);
+        }
+
+        // Other reference types use NullableObjectFormatter<T>, which writes a 1-byte marker.
+        if (!declaredType.IsValueType)
+        {
+            return sizeof(byte);
+        }
+
+        // Value types do not use a null marker, but keep the legacy fallback for unsupported cases.
         return sizeof(int);
     }
 

@@ -19,7 +19,7 @@ public static class PacketCompression
     /// Decompresses a framed packet and clears the compressed flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BufferLease DecompressFrame([Borrowed] IBufferLease src)
+    public static IBufferLease DecompressFrame([Borrowed] IBufferLease src)
     {
         ArgumentNullException.ThrowIfNull(src);
 
@@ -42,7 +42,7 @@ public static class PacketCompression
     /// Compresses a framed packet and sets the compressed flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BufferLease CompressFrame([Borrowed] IBufferLease src)
+    public static IBufferLease CompressFrame([Borrowed] IBufferLease src)
     {
         ArgumentNullException.ThrowIfNull(src);
 

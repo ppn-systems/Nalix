@@ -80,17 +80,24 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     public HandshakeStage Stage { get; set; }
 
     /// <summary>
+    /// Gets or sets the session token assigned by the server.
+    /// Used primarily for UDP connection mapping.
+    /// </summary>
+    [SerializeOrder(1)]
+    public Snowflake SessionToken { get; set; }
+
+    /// <summary>
     /// Gets or sets the ephemeral public key for the current handshake side.
     /// X25519 public keys are expected to be 32 bytes.
     /// </summary>
-    [SerializeOrder(1)]
+    [SerializeOrder(2)]
     [SerializeDynamicSize(DynamicSize)]
     public byte[] PublicKey { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the handshake nonce or challenge bytes.
     /// </summary>
-    [SerializeOrder(2)]
+    [SerializeOrder(3)]
     [SerializeDynamicSize(DynamicSize)]
     public byte[] Nonce { get; set; } = [];
 
@@ -98,23 +105,16 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// Gets or sets the proof bytes for the current stage.
     /// This is typically a MAC or transcript-derived verifier.
     /// </summary>
-    [SerializeOrder(3)]
+    [SerializeOrder(4)]
     [SerializeDynamicSize(DynamicSize)]
     public byte[] Proof { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the Keccak-256 transcript hash associated with the handshake state.
     /// </summary>
-    [SerializeOrder(4)]
+    [SerializeOrder(5)]
     [SerializeDynamicSize(DynamicSize)]
     public byte[] TranscriptHash { get; set; } = [];
-
-    /// <summary>
-    /// Gets or sets the session token assigned by the server.
-    /// Used primarily for UDP connection mapping.
-    /// </summary>
-    [SerializeOrder(5)]
-    public Snowflake SessionToken { get; set; }
 
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with default transport metadata.

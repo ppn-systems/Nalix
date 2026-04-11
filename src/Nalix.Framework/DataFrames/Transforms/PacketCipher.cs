@@ -22,7 +22,7 @@ public static class PacketCipher
     /// Decrypts a framed packet and clears the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key)
+    public static IBufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key)
     {
         ArgumentNullException.ThrowIfNull(src);
 
@@ -51,7 +51,7 @@ public static class PacketCipher
     /// Encrypts a framed packet and sets the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BufferLease EncryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, CipherSuiteType suite)
+    public static IBufferLease EncryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, CipherSuiteType suite)
     {
         ArgumentNullException.ThrowIfNull(src);
 
