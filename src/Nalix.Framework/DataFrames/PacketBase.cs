@@ -60,6 +60,18 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         isThreadSafe: true
     );
 
+    /// <summary>
+    /// Indicates whether <typeparamref name="TSelf"/> implements <see cref="IFixedSizeSerializable"/>.
+    /// </summary>
+    [SerializeIgnore]
+    private static readonly bool s_isFixedSize = typeof(IFixedSizeSerializable).IsAssignableFrom(typeof(TSelf));
+
+    /// <summary>
+    /// The fixed size of the packet if it implements <see cref="IFixedSizeSerializable"/>; otherwise 0.
+    /// </summary>
+    [SerializeIgnore]
+    private static readonly int s_fixedSize = s_isFixedSize ? FETCH_FIXED_SIZE() : 0;
+
     [SerializeIgnore]
     private static readonly Cache s_cache = InitializeCache();
 
@@ -84,6 +96,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
+            // O(1) path for fixed-size serializable packets.
+            if (s_isFixedSize)
+            {
+                return s_fixedSize;
+            }
+
             // Fast path: no dynamic getters -> fixed size.
             Func<TSelf, int>[] getters = s_cache.SizeGetters;
             if (getters.Length == 0)
@@ -295,6 +313,13 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     {
         PropertyMetadata[] all = s_metadata.Value;
 
+        // If the packet is explicitly marked as fixed-size, skip per-property discovery
+        // and use the provided size. Properties are still tracked for ResetForPool/Reports.
+        if (s_isFixedSize)
+        {
+            return new Cache(all, s_fixedSize, Array.Empty<Func<TSelf, int>>());
+        }
+
         int staticSize = PacketConstants.HeaderSize;
         List<Func<TSelf, int>> getters = new(capacity: all.Length);
 
@@ -479,6 +504,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
                 .Where(static x => x.order is not null)
                 .OrderBy(static x => x.order!.Order)
             : selected;
+    }
+
+    private static int FETCH_FIXED_SIZE()
+    {
+        return typeof(TSelf).GetProperty(nameof(IFixedSizeSerializable.Size), BindingFlags.Public | BindingFlags.Static)
+            ?.GetValue(null) is int size ? size : 0;
     }
 
     #endregion Private Methods
