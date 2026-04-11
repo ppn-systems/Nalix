@@ -152,7 +152,7 @@ public static class TcpSessionX25519Extensions
             }
 
             // Apply established connection settings
-            session.Options.Secret = sessionKey;
+            session.Options.Secret = [.. sessionKey];
             session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
             session.Options.EncryptionEnabled = true;
             session.Options.SessionToken = serverFinish.SessionToken;
