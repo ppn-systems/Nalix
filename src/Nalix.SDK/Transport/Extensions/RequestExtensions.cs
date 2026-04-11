@@ -124,9 +124,9 @@ public static class RequestExtensions
                 $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires TcpSession. Got: {client.GetType().Name}", nameof(client));
         }
 
-        Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
         Exception? lastException = null;
         int totalAttempts = options.RetryCount + 1;
+        Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
 
         for (int attempt = 1; attempt <= totalAttempts; attempt++)
         {
@@ -145,10 +145,6 @@ public static class RequestExtensions
                         ? ((TcpSession)client).SendAsync(request, encrypt: true, token)
                         : client.SendAsync(request, token),
                     ct).ConfigureAwait(false);
-
-                if (attempt > 1)
-                {
-                }
 
                 return result;
             }

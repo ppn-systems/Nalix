@@ -1,33 +1,32 @@
 # Session Extensions
 
-The `Nalix.SDK.Transport.Extensions` namespace provides high-level abstractions for managing control flows, cryptographic handshakes, and event subscriptions. These helpers turn raw transport sessions into a rich, packet-oriented client runtime.
+The `Nalix.SDK.Transport.Extensions` namespace provides high-level abstractions for managing control flows, cipher updates, and event subscriptions. These helpers turn raw transport sessions into a rich, packet-oriented client runtime.
 
 ## Capability Map
 
 ```mermaid
 graph TD
     A[TransportSession / TcpSession] --> B[Control Helpers]
-    A --> C[Cryptographic Handshake]
     A --> D[Request/Response]
     A --> E[Subscription System]
+    A --> F[Cipher Updates]
     
     B --> B1[NewControl Builder]
     B --> B2[AwaitControlAsync]
-    
-    C --> C1[X25519 Handshake]
-    C --> C2[AEAD Key Derivation]
     
     D --> D1[RequestAsync with Retry]
     
     E --> E1[On / OnOnce]
     E --> E2[CompositeSubscription]
+
+    F --> F1[Control Update]
 ```
 
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/TcpSessionX25519Extensions.cs`
+- `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 
 ## Core Modules
@@ -41,11 +40,12 @@ Facilitates the creation and awaiting of `CONTROL` frames. These are system-leve
 | `AwaitControlAsync`| `TcpSession` | Correlates and waits for a specific control response. |
 | `SendControlAsync` | `TcpSession` | Fluent shortcut for creating and transmitting a control frame. |
 
-### 2. Cryptographic Handshake (`TcpSessionX25519Extensions`)
-Implements an anonymous X25519 key exchange to secure the connection.
+### 2. Cipher Updates (`CipherExtensions`)
+Lets an already connected `TcpSession` switch its active cipher suite in sync with the server.
 
-- **Handshake Flow**: Performs ECDH, verifies server proofs, and derives a 32-byte session key.
-- **Auto-Activation**: Upon success, it automatically enables `ChaCha20Poly1305` encryption on the session.
+- **Protocol-Safe Switch**: Uses a dedicated `CONTROL` update and sequence id to coordinate the change.
+- **Immediate Transition**: Sends the update with the old cipher, then swaps the local algorithm before awaiting the ACK.
+- **Session-Side Update**: Updates `TransportOptions.Algorithm` after the request is sent.
 
 ### 3. Request/Response (`RequestExtensions`)
 Provides an unified `RequestAsync<TResponse>` method that handles the full cycle of subscribing, sending a request, awaiting the response with a timeout, and retrying if necessary.
@@ -65,7 +65,6 @@ A specialized event system that handles buffer ownership and fault tolerance.
 ```csharp
 // 1. Connect and secure
 await client.ConnectAsync();
-await client.HandshakeAsync();
 
 // 2. Perform a secure request
 var response = await client.RequestAsync<ProfileData>(
@@ -99,6 +98,7 @@ using var sub = client.On<NoticePacket>(notice =>
 ## Related APIs
 
 - [TCP Session](./tcp-session.md)
+- [Handshake Extensions](./handshake-extensions.md)
 - [Request Options](./options/request-options.md)
-- [Handshake Protocol](../security/handshake.md)
+- [Cipher Updates](./cipher-extensions.md)
 - [Control Type Enum](../common/protocols/control-type.md)

@@ -31,7 +31,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
     #region Fields
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private readonly ILogger? _logger;
 
     private readonly Lock _lock;
     private readonly ConnectionEventArgs _args;
@@ -51,20 +51,22 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     /// <summary>Initializes a new instance of the <see cref="Connection"/> class.</summary>
     /// <param name="socket">The connected socket used for the connection.</param>
+    /// <param name="logger">The logger instance for logging connection events.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="socket"/> is null.</exception>
-    public Connection(Socket socket)
+    public Connection(Socket socket, ILogger? logger = null)
     {
         _lock = new Lock();
-        this.Secret = [];
         _disposed = false;
+        _logger = logger;
 
+        this.Secret = [];
         // Snapshot the remote endpoint up front so the connection can be logged
         // and tracked even before protocol-level events begin.
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
-        this.Socket = new SocketConnection(socket);
+        this.Socket = new SocketConnection(socket, logger);
 
         // Wire the socket-level events into the connection-level callback pipeline.
         this.Socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
@@ -72,7 +74,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.TCP = new SocketTcpTransport(this);
         this.Attributes = ObjectMap<string, object>.Rent();
 
-        s_logger?.Debug($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+        _logger?.Trace($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
     }
 
     #endregion Constructor
@@ -203,7 +205,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
 
 #if DEBUG
-        s_logger?.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
+        _logger?.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
 #endif
     }
 
@@ -269,7 +271,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
+            _logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
         }
 
         GC.SuppressFinalize(this);

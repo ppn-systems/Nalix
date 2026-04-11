@@ -94,6 +94,16 @@ public enum ControlType : byte
     TIMESYNCRESPONSE = 0x13,
 
     /// <summary>
+    /// Request to change the connection's cipher suite algorithm.
+    /// </summary>
+    CIPHER_UPDATE = 0x14,
+
+    /// <summary>
+    /// Acknowledges the cipher suite update.
+    /// </summary>
+    CIPHER_UPDATE_ACK = 0x15,
+
+    /// <summary>
     /// Reserved for future extension.
     /// </summary>
     RESERVED1 = 0xFE,
