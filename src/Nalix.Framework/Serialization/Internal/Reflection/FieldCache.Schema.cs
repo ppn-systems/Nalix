@@ -4,11 +4,10 @@
 using System;
 using System.ComponentModel;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
 namespace Nalix.Framework.Serialization.Internal.Reflection;
