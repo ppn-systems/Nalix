@@ -1,37 +1,35 @@
 # Session Resume
 
-Nalix supports a dedicated session-resume packet flow for reconnecting clients that already possess a valid session token and symmetric secret.
+Nalix supports a dedicated session-resume packet flow for reconnecting clients that already possess a valid session token and symmetric secret. This flow uses a unified `SESSION_SIGNAL` packet to manage the state machine.
 
 ## Source mapping
 
 - `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`
-- `src/Nalix.Framework/DataFrames/SignalFrames/SessionResumeAck.cs`
 - `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
 - `src/Nalix.Runtime/Sessions/MemorySessionManager.cs`
 
 ## Flow
 
-1. The client sends `SessionResume` with its existing `SessionToken`.
+1. The client sends a `SessionResume` packet with `Stage = REQUEST` and its existing `SessionToken`.
 2. The server looks up the snapshot through `ISessionManager`.
-3. On success, the server restores `Secret`, `Algorithm`, `Level`, and allowed attributes onto the new connection.
-4. The server returns `SessionResumeAck` with the active token to keep using.
-5. If token rotation is enabled, the response includes a replacement token and the old one is invalidated.
+3. On success:
+    - The server restores `Secret`, `Algorithm`, `Level`, and allowed attributes onto the new connection.
+    - The server returns a `SessionResume` packet with `Stage = RESPONSE`, `Reason = NONE`, and the (possibly rotated) `SessionToken`.
+4. On failure:
+    - The server returns a `SessionResume` packet with `Stage = RESPONSE`, an appropriate `Reason` (e.g., `SESSION_EXPIRED`), and disconnects.
 
-## Packet shape
+## Packet shape (`SESSION_SIGNAL` 0x0002)
 
-`SessionResume`
+`SessionResume` is a fixed-size packet (17 bytes):
 
-- `SessionToken`
-- `Timestamp`
-
-`SessionResumeAck`
-
-- `Success`
-- `Reason`
-- `SessionToken`
-- `Algorithm`
-- `Level`
-- `Timestamp`
+| Field | Type | Size | Description |
+|---|---|---|---|
+| `OpCode` | `ushort` | 2 | Fixed at `0x0002`. |
+| `Protocol` | `byte` | 1 | Transport protocol (TCP/UDP). |
+| `Priority` | `byte` | 1 | Packet priority (usually `URGENT`). |
+| `Stage` | `byte` | 1 | `0x01` for REQUEST, `0x02` for RESPONSE. |
+| `SessionToken` | `Snowflake` | 8 | The session identifier. |
+| `Reason` | `ProtocolReason` | 4 | Status code for the operation. |
 
 ## Notes
 
