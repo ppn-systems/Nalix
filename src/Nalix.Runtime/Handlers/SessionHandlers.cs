@@ -38,7 +38,7 @@ public sealed class SessionHandlers
 
         if (Hub is null)
         {
-            SendFailureAndDisconnect(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE);
+            SEND_FAILURE_AND_DISCONNECT(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE);
             return null;
         }
 
@@ -50,13 +50,13 @@ public sealed class SessionHandlers
 
         if (packet.SessionToken.IsEmpty)
         {
-            SendFailureAndDisconnect(context.Connection, ProtocolReason.TOKEN_REVOKED);
+            SEND_FAILURE_AND_DISCONNECT(context.Connection, ProtocolReason.TOKEN_REVOKED);
             return null;
         }
 
         if (!Hub.TryResumeSession(packet.SessionToken.ToUInt56(), context.Connection, out SessionEntry? session))
         {
-            SendFailureAndDisconnect(context.Connection, ProtocolReason.SESSION_EXPIRED);
+            SEND_FAILURE_AND_DISCONNECT(context.Connection, ProtocolReason.SESSION_EXPIRED);
             return null;
         }
 
@@ -75,7 +75,7 @@ public sealed class SessionHandlers
     /// </summary>
     /// <param name="connection">The connection to close.</param>
     /// <param name="reason">The failure reason to report.</param>
-    private static void SendFailureAndDisconnect(IConnection connection, ProtocolReason reason)
+    private static void SEND_FAILURE_AND_DISCONNECT(IConnection connection, ProtocolReason reason)
     {
         SessionSignal ack = new();
         ack.Initialize(
