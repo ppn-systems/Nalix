@@ -21,6 +21,7 @@ using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
 
@@ -242,7 +243,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         Snowflake sessionToken = Snowflake.NewId(SnowflakeType.Session);
         long now = Clock.UnixMillisecondsNow();
 
-        Dictionary<string, object> attributes = new(StringComparer.Ordinal);
+        IObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
         foreach (KeyValuePair<string, object> item in connection.Attributes)
         {
             attributes[item.Key] = item.Value;
@@ -261,6 +262,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         SessionEntry entry = new(snapshot, connection.ID.ToUInt56());
         _sessions[sessionToken.ToUInt56()] = entry;
+
+        connection.Attributes[ConnectionAttributes.SessionToken] = sessionToken.ToUInt56();
 
         if (_logger?.IsEnabled(LogLevel.Trace) == true)
         {
@@ -287,7 +290,11 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         long now = Clock.UnixMillisecondsNow();
         if (entry.Snapshot.ExpiresAtUnixMilliseconds <= now)
         {
-            _ = _sessions.TryRemove(sessionToken, out _);
+            if (_sessions.TryRemove(sessionToken, out SessionEntry? removed))
+            {
+                removed.Return();
+            }
+
             return false;
         }
 
@@ -306,18 +313,75 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         newConnection.Algorithm = snapshot.Algorithm;
         newConnection.Level = snapshot.Level;
 
-        foreach (KeyValuePair<string, object> item in snapshot.Attributes)
+        IObjectMap<string, object>? snapshotAttributes = snapshot.Attributes;
+        if (snapshotAttributes is not null)
         {
-            newConnection.Attributes[item.Key] = item.Value;
+            foreach (KeyValuePair<string, object> item in snapshotAttributes)
+            {
+                newConnection.Attributes[item.Key] = item.Value;
+            }
         }
 
         newConnection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        newConnection.Attributes[ConnectionAttributes.SessionToken] = sessionToken;
 
         session = entry;
 
         if (_logger?.IsEnabled(LogLevel.Trace) == true)
         {
             _logger.Trace($"[NW.{nameof(ConnectionHub)}] session-resumed token={sessionToken} id={newConnection.ID}");
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public bool UpdateSession(IConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        if (!connection.Attributes.TryGetValue(ConnectionAttributes.SessionToken, out object? boxedToken) ||
+            boxedToken is not UInt56 sessionToken)
+        {
+            return false;
+        }
+
+        if (!_sessions.TryGetValue(sessionToken, out SessionEntry? entry))
+        {
+            return false;
+        }
+
+        IObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
+        foreach (KeyValuePair<string, object> item in connection.Attributes)
+        {
+            // Skip temporary handshake state
+            if (item.Key == ConnectionAttributes.HandshakeState)
+            {
+                continue;
+            }
+
+            attributes[item.Key] = item.Value;
+        }
+
+        SessionSnapshot snapshot = new()
+        {
+            SessionToken = sessionToken,
+            CreatedAtUnixMilliseconds = entry.Snapshot.CreatedAtUnixMilliseconds,
+            ExpiresAtUnixMilliseconds = entry.Snapshot.ExpiresAtUnixMilliseconds,
+            Secret = [.. connection.Secret],
+            Algorithm = connection.Algorithm,
+            Level = connection.Level,
+            Attributes = attributes
+        };
+
+        SessionSnapshot oldSnapshot = entry.Snapshot;
+        entry.Snapshot = snapshot;
+        oldSnapshot.Return();
+
+        if (_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            _logger.Trace($"[NW.{nameof(ConnectionHub)}] session-updated token={sessionToken} id={connection.ID}");
         }
 
         return true;
@@ -531,6 +595,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             shard.Clear();
         }
+
+        foreach (KeyValuePair<UInt56, SessionEntry> kvp in _sessions)
+        {
+            kvp.Value.Return();
+        }
+        _sessions.Clear();
+
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
@@ -851,6 +922,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         IConnection removedConnection = existing ?? connection;
+        _ = this.UpdateSession(removedConnection);
+
         removedConnection.OnCloseEvent -= this.OnClientDisconnected;
         _ = Interlocked.Decrement(ref _count);
 
