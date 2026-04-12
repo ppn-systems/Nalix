@@ -31,6 +31,7 @@ public sealed class SessionHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SESSION_SIGNAL)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "NALIX037:Potential allocation in hot path", Justification = "<Pending>")]
     public static SessionSignal? Handle(IPacketContext<SessionSignal> context)
     {
         ArgumentNullException.ThrowIfNull(context);
