@@ -233,7 +233,7 @@ public static class NLogixExtensions
             {
                 if (i + 1 < format.Length && format[i + 1] == '{')
                 {
-                    builder.Append("{{");
+                    _ = builder.Append("{{");
                     i++;
                     continue;
                 }
@@ -241,7 +241,7 @@ public static class NLogixExtensions
                 int close = format.IndexOf('}', i + 1);
                 if (close < 0)
                 {
-                    builder.Append(c);
+                    _ = builder.Append(c);
                     continue;
                 }
 
@@ -251,26 +251,26 @@ public static class NLogixExtensions
 
                 if (TryParseIndexedPlaceholder(namePart, out _))
                 {
-                    builder.Append('{');
-                    builder.Append(token);
-                    builder.Append('}');
+                    _ = builder.Append('{');
+                    _ = builder.Append(token);
+                    _ = builder.Append('}');
                 }
                 else if (nextArgumentIndex < argumentCount)
                 {
-                    builder.Append('{');
-                    builder.Append(nextArgumentIndex.ToString(CultureInfo.InvariantCulture));
+                    _ = builder.Append('{');
+                    _ = builder.Append(nextArgumentIndex.ToString(CultureInfo.InvariantCulture));
                     if (separatorIndex >= 0)
                     {
-                        builder.Append(token[separatorIndex..]);
+                        _ = builder.Append(token[separatorIndex..]);
                     }
-                    builder.Append('}');
+                    _ = builder.Append('}');
                     nextArgumentIndex++;
                 }
                 else
                 {
-                    builder.Append('{');
-                    builder.Append(token);
-                    builder.Append('}');
+                    _ = builder.Append('{');
+                    _ = builder.Append(token);
+                    _ = builder.Append('}');
                 }
 
                 i = close;
@@ -279,12 +279,12 @@ public static class NLogixExtensions
 
             if (c == '}' && i + 1 < format.Length && format[i + 1] == '}')
             {
-                builder.Append("}}");
+                _ = builder.Append("}}");
                 i++;
                 continue;
             }
 
-            builder.Append(c);
+            _ = builder.Append(c);
         }
 
         return builder.ToString();
