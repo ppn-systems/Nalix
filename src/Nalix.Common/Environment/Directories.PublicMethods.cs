@@ -308,6 +308,7 @@ public static partial class Directories
         }
 
         _basePathOverride = path;
+        RESET_LAZIES();
     }
 
     /// <summary>
