@@ -101,9 +101,9 @@ public sealed class ConnectionHubSessionTests
 
         public void Dispose()
         {
-            try { ClientSocket.Dispose(); } catch { }
-            try { ServerSocket.Dispose(); } catch { }
-            try { ListenerSocket.Dispose(); } catch { }
+            try { ClientSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
+            try { ServerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
+            try { ListenerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
         }
     }
 }
