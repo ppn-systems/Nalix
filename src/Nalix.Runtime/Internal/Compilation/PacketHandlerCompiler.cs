@@ -545,7 +545,6 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static Func<object, PacketContext<TPacket>, ValueTask<object>> BuildContextBridgeInvoker(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
     {
         // This path is only used when a dispatcher registered with a broad packet type
