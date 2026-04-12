@@ -42,9 +42,9 @@ public sealed class SessionSignal : PacketBase<SessionSignal>, IFixedSizeSeriali
 {
     /// <inheritdoc/>
     [SerializeIgnore]
-    public static int Size => PacketConstants.HeaderSize 
-        + sizeof(SessionStage) 
-        + Snowflake.Size 
+    public static int Size => PacketConstants.HeaderSize
+        + sizeof(SessionStage)
+        + Snowflake.Size
         + sizeof(ProtocolReason);
 
     /// <summary>
