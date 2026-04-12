@@ -67,9 +67,9 @@ internal static class OsRandom
         Span<byte> seed = stackalloc byte[32];
 
         long ticks = DateTime.UtcNow.Ticks;
-        long tc64 = Environment.TickCount64;
-        int pid = Environment.ProcessId;
-        int tid = Environment.CurrentManagedThreadId;
+        long tc64 = System.Environment.TickCount64;
+        int pid = System.Environment.ProcessId;
+        int tid = System.Environment.CurrentManagedThreadId;
 
         MemoryMarshal.Write(seed[0..8], in ticks);
         MemoryMarshal.Write(seed[8..16], in tc64);
@@ -205,7 +205,7 @@ internal static class OsRandom
         ulong base2 = s_state[2];
         ulong base3 = s_state[3];
 
-        ulong tid = (ulong)Environment.CurrentManagedThreadId;
+        ulong tid = (ulong)System.Environment.CurrentManagedThreadId;
         ulong now = (ulong)DateTime.UtcNow.Ticks;
         ulong tagMix = SPLIT_MIX_64(s_tag0 ^ System.Numerics.BitOperations.RotateLeft(s_tag1, 11));
 
@@ -287,8 +287,8 @@ internal static class OsRandom
         Span<byte> seed = stackalloc byte[32];
 
         long ticks = DateTime.UtcNow.Ticks;
-        long tc64 = Environment.TickCount64;
-        int pid = Environment.ProcessId;
+        long tc64 = System.Environment.TickCount64;
+        int pid = System.Environment.ProcessId;
 
         MemoryMarshal.Write(seed[0..8], in ticks);
         MemoryMarshal.Write(seed[8..16], in tc64);
@@ -299,7 +299,7 @@ internal static class OsRandom
         ulong tag1 = READ_U64(s_instanceTag, 8);
         ulong mono = (ulong)Stopwatch.GetTimestamp();
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
-            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (ulong)Environment.WorkingSet);
+            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (ulong)System.Environment.WorkingSet);
 
         ulong a = SPLIT_MIX_64(READ_U64(seed, 0) ^ 0x9E3779B97F4A7C15UL);
         ulong b = SPLIT_MIX_64(READ_U64(seed, 8) ^ 0xBF58476D1CE4E5B9UL);

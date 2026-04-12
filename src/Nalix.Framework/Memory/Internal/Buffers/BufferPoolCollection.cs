@@ -224,7 +224,7 @@ internal sealed class BufferPoolCollection : IDisposable
         double usage = state.GetUsageRatio();
         double missRate = state.GetMissRate();
 
-        long now = Environment.TickCount64;
+        long now = System.Environment.TickCount64;
         int cooldown = GetAdaptiveCooldown(usage, missRate);
 
         if (this.IsCooldownActive(state.BufferSize, now, cooldown))

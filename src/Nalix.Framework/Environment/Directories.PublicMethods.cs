@@ -8,7 +8,7 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Framework.Environment;
 
 public static partial class Directories
 {

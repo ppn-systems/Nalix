@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Threading;
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Framework.Environment;
 
 /// <summary>
 /// Provides application-wide directories with environment-aware defaults,

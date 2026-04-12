@@ -678,7 +678,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private (long TargetBudget, long CurrentUsage, bool OverBudget) COMPUTE_MEMORY_BUDGET()
     {
         // Cache memory budget for 10 seconds to avoid repeated computation
-        long now = Environment.TickCount64;
+        long now = System.Environment.TickCount64;
         const long CacheDurationMs = 10_000;
 
         if (now - _lastBudgetComputeTime < CacheDurationMs && _cachedMemoryBudget > 0)
@@ -794,7 +794,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             metrics.TotalBytesReturned += (long)shrinkStep * info.BufferSize;
             metrics.ShrinkAttempted++;
-            metrics.LastChangeTime = Environment.TickCount64;
+            metrics.LastChangeTime = System.Environment.TickCount64;
             _metricsCache[info.BufferSize] = metrics;
         }
 
@@ -845,7 +845,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             m.TotalBytesReturned += (long)buffersToShrink * poolInfo.BufferSize;
             m.ShrinkAttempted++;
-            m.LastChangeTime = Environment.TickCount64;
+            m.LastChangeTime = System.Environment.TickCount64;
             _metricsCache[poolInfo.BufferSize] = m;
         }
 
@@ -909,7 +909,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         if (_metricsCache.TryGetValue(poolInfo.BufferSize, out BufferPoolMetrics metrics))
         {
             metrics.ExpandAttempted++;
-            metrics.LastChangeTime = Environment.TickCount64;
+            metrics.LastChangeTime = System.Environment.TickCount64;
             _metricsCache[poolInfo.BufferSize] = metrics;
         }
 

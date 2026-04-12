@@ -12,7 +12,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Framework.Environment;
 
 public static partial class Directories
 {
