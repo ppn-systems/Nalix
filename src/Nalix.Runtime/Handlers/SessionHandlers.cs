@@ -32,7 +32,7 @@ public sealed class SessionHandlers
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SESSION_SIGNAL)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "NALIX037:Potential allocation in hot path", Justification = "<Pending>")]
-    public static SessionSignal? Handle(IPacketContext<SessionSignal> context)
+    public static SessionResume? Handle(IPacketContext<SessionResume> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -42,8 +42,8 @@ public sealed class SessionHandlers
             return null;
         }
 
-        SessionSignal packet = context.Packet;
-        if (packet.Stage != SessionStage.REQUEST)
+        SessionResume packet = context.Packet;
+        if (packet.Stage != SessionResumeStage.REQUEST)
         {
             return null;
         }
@@ -60,9 +60,9 @@ public sealed class SessionHandlers
             return null;
         }
 
-        SessionSignal ack = new();
+        SessionResume ack = new();
         ack.Initialize(
-            stage: SessionStage.RESPONSE,
+            stage: SessionResumeStage.RESPONSE,
             sessionToken: Snowflake.NewId(session.Snapshot.SessionToken),
             reason: ProtocolReason.NONE,
             transport: packet.Protocol);
@@ -77,9 +77,9 @@ public sealed class SessionHandlers
     /// <param name="reason">The failure reason to report.</param>
     private static void SEND_FAILURE_AND_DISCONNECT(IConnection connection, ProtocolReason reason)
     {
-        SessionSignal ack = new();
+        SessionResume ack = new();
         ack.Initialize(
-            stage: SessionStage.RESPONSE,
+            stage: SessionResumeStage.RESPONSE,
             sessionToken: default,
             reason: reason,
             transport: ProtocolType.TCP);

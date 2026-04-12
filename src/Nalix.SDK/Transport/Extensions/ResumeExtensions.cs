@@ -37,14 +37,14 @@ public static class ResumeExtensions
             return false;
         }
 
-        SessionSignal request = new();
-        request.Initialize(SessionStage.REQUEST, session.Options.SessionToken);
+        SessionResume request = new();
+        request.Initialize(SessionResumeStage.REQUEST, session.Options.SessionToken);
 
         try
         {
-            SessionSignal response = await PacketAwaiter.AwaitAsync<SessionSignal>(
+            SessionResume response = await PacketAwaiter.AwaitAsync<SessionResume>(
                 session,
-                predicate: static packet => packet.Stage == SessionStage.RESPONSE,
+                predicate: static packet => packet.Stage == SessionResumeStage.RESPONSE,
                 timeoutMs: session.Options.ResumeTimeoutMillis,
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);

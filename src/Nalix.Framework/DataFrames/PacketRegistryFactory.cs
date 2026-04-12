@@ -88,7 +88,7 @@ public sealed class PacketRegistryFactory
         // Control / handshake / session signal packets
         _ = this.RegisterPacket<Control>()
                 .RegisterPacket<Handshake>()
-                .RegisterPacket<SessionSignal>()
+                .RegisterPacket<SessionResume>()
                 .RegisterPacket<Directive>();
     }
 
