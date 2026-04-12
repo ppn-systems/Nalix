@@ -1,13 +1,13 @@
 # Directories
 
-`Directories` is the shared path-resolution helper in `Nalix.Common.Environment`.
+`Directories` is the shared path-resolution helper in `Nalix.Framework.Environment`.
 
 ## Source mapping
 
-- `src/Nalix.Common/Environment/Directories.Lazy.cs`
-- `src/Nalix.Common/Environment/Directories.Properties.cs`
-- `src/Nalix.Common/Environment/Directories.PublicMethods.cs`
-- `src/Nalix.Common/Environment/Directories.UnixDirPerms.cs`
+- `src/Nalix.Framework/Environment/Directories.Lazy.cs`
+- `src/Nalix.Framework/Environment/Directories.Properties.cs`
+- `src/Nalix.Framework/Environment/Directories.PublicMethods.cs`
+- `src/Nalix.Framework/Environment/Directories.UnixDirPerms.cs`
 
 ## What it does
 
@@ -136,6 +136,6 @@ services:
 
 ## Related APIs
 
-- [Configuration and DI](../framework/runtime/configuration.md)
-- [Logging Targets](../logging/targets.md)
-- [Installation](../../installation.md)
+- [Configuration and DI](../runtime/configuration.md)
+- [Logging Targets](../../logging/targets.md)
+- [Installation](../../../installation.md)
