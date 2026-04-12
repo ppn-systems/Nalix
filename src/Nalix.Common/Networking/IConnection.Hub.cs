@@ -96,12 +96,4 @@ public interface IConnectionHub
     /// <param name="session">When this method returns, contains the resumed session entry if successful; otherwise, <c>null</c>.</param>
     /// <returns><c>true</c> if the session was successfully resumed; otherwise, <c>false</c>.</returns>
     bool TryResumeSession(UInt56 sessionToken, IConnection newConnection, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session);
-
-    /// <summary>
-    /// Attempts to resolve an active connection from a session token.
-    /// </summary>
-    /// <param name="sessionToken">The session token to look up.</param>
-    /// <param name="connection">When this method returns, contains the resolved connection if found; otherwise, <c>null</c>.</param>
-    /// <returns><c>true</c> if a matching active connection was found; otherwise, <c>false</c>.</returns>
-    bool TryGetActiveConnection(UInt56 sessionToken, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection? connection);
 }

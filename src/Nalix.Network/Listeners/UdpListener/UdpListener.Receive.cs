@@ -12,7 +12,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Sessions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
@@ -296,23 +295,7 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected virtual bool TryResolveConnection(IConnectionHub hub, ReadOnlySpan<byte> sessionToken, out Connection? connection)
     {
-        connection = null;
-
-        if (sessionToken.Length >= Snowflake.Size)
-        {
-            Snowflake token = Snowflake.FromBytes(sessionToken[..Snowflake.Size]);
-            if (hub?.TryGetActiveConnection(token.ToUInt56(), out IConnection? resumedConnection) == true)
-            {
-                connection = resumedConnection as Connection;
-                if (connection is not null)
-                {
-                    return true;
-                }
-            }
-        }
-
-        // Backward-compatible fallback: treat the token as the connection id.
-        connection = hub?.GetConnection(sessionToken) as Connection;
+        connection = hub?.GetConnection(sessionToken[..Snowflake.Size]) as Connection;
         return connection is not null;
     }
 }

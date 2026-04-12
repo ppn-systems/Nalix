@@ -272,7 +272,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryResumeSession(UInt56 sessionToken, IConnection newConnection, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session)
+    public bool TryResumeSession(
+        UInt56 sessionToken, IConnection newConnection,
+        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session)
     {
         ArgumentNullException.ThrowIfNull(newConnection);
         session = null;
@@ -319,20 +321,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         return true;
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryGetActiveConnection(UInt56 sessionToken, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection? connection)
-    {
-        connection = null;
-        if (!_sessions.TryGetValue(sessionToken, out SessionEntry? entry))
-        {
-            return false;
-        }
-
-        connection = this.GetConnection(entry.ConnectionId);
-        return connection != null;
     }
 
     /// <summary>
