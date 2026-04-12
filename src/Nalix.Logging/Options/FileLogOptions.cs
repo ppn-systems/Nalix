@@ -9,8 +9,8 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Environment;
 using Nalix.Framework.Configuration.Binding;
+using Nalix.Framework.Environment;
 using Nalix.Logging.Exceptions;
 
 namespace Nalix.Logging.Options;

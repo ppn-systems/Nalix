@@ -12,7 +12,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Security.AccessControl;
 using System.Security.Principal;
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Framework.Environment;
 
 public static partial class Directories
 {
@@ -76,7 +76,7 @@ public static partial class Directories
 
         path = Path.GetFullPath(path);
 
-        DirectoryLock.EnterReadLock();
+        s_directoryLock.EnterReadLock();
         try
         {
             if (Directory.Exists(path))
@@ -86,10 +86,10 @@ public static partial class Directories
         }
         finally
         {
-            DirectoryLock.ExitReadLock();
+            s_directoryLock.ExitReadLock();
         }
 
-        DirectoryLock.EnterWriteLock();
+        s_directoryLock.EnterWriteLock();
         try
         {
             if (!Directory.Exists(path))
@@ -107,7 +107,7 @@ public static partial class Directories
         }
         finally
         {
-            DirectoryLock.ExitWriteLock();
+            s_directoryLock.ExitWriteLock();
         }
     }
 

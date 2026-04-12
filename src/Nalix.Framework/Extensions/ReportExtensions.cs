@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 using Nalix.Common.Abstractions;
-using Nalix.Common.Environment;
+using Nalix.Framework.Environment;
 
 namespace Nalix.Framework.Extensions;
 
