@@ -135,6 +135,5 @@ public static class ResumeExtensions
     /// </summary>
     /// <param name="options">The transport options to inspect.</param>
     /// <returns><see langword="true"/> when the session has a token and secret.</returns>
-    private static bool CanResume(TransportOptions options)
-        => !options.SessionToken.IsEmpty && options.Secret is { Length: > 0 };
+    private static bool CanResume(TransportOptions options) => !options.SessionToken.IsEmpty && options.Secret is { Length: > 0 };
 }
