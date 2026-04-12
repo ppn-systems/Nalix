@@ -98,7 +98,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
         this.MonoTicks = 0;
         this.SequenceId = 0;
         this.Type = ControlType.NONE;
-        this.Priority = PacketPriority.URGENT;
+        this.Priority = PacketPriority.HIGH;
     }
 
     /// <inheritdoc/>

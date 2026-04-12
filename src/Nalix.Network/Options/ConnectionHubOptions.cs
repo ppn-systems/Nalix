@@ -62,6 +62,12 @@ public sealed class ConnectionHubOptions : ConfigurationLoader
     public bool IsEnableLatency { get; init; } = true;
 
     /// <summary>
+    /// Gets or sets the time-to-live for resumable sessions.
+    /// </summary>
+    [IniComment("Duration after which an inactive session expires (default 30m)")]
+    public System.TimeSpan SessionTtl { get; init; } = System.TimeSpan.FromMinutes(30);
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

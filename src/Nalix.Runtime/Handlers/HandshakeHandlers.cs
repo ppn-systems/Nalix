@@ -7,9 +7,11 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security;
 using Nalix.Framework.Security.Asymmetric;
@@ -23,20 +25,17 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Handshake")]
 public sealed class HandshakeHandlers
 {
-    #region Const
-
-    internal const string StateAttributeKey = "nalix.handshake.state";
-    internal const string EstablishedAttributeKey = "nalix.handshake.established";
-
-    #endregion Const
+    private static IConnectionHub? Hub => InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
     /// <summary>
     /// Handles incoming handshake signal packets.
     /// </summary>
     /// <param name="context">The packet context containing the handshake metadata.</param>
     /// <returns>A responding handshake packet or null if rejected/disconnected.</returns>
-    [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
     [ReservedOpcodePermitted]
+    [PacketEncryption(false)]
+    [PacketPermission(PermissionLevel.NONE)]
+    [PacketOpcode((ushort)ProtocolOpCode.HANDSHAKE)]
     public Handshake? Handle(IPacketContext<Handshake> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -106,11 +105,10 @@ public sealed class HandshakeHandlers
             SessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
         };
 
-        connection.Attributes[StateAttributeKey] = state;
+        connection.Attributes[ConnectionAttributes.HandshakeState] = state;
 
         Handshake reply = new(
-            HandshakeStage.SERVER_HELLO,
-            serverKey.PublicKey, serverNonce,
+            HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce,
             HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash), packet.Protocol)
         {
             TranscriptHash = transcriptHash
@@ -152,18 +150,18 @@ public sealed class HandshakeHandlers
         connection.Secret = [.. state.SessionKey];
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
-        connection.Attributes[EstablishedAttributeKey] = true;
+        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
 
-        _ = connection.Attributes.Remove(StateAttributeKey);
+        _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
+
+        SessionEntry? session = Hub?.CreateSession(connection);
 
         Handshake reply = new(
-            HandshakeStage.SERVER_FINISH,
-            [],
-            [],
+            HandshakeStage.SERVER_FINISH, [], [],
             HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash), packet.Protocol)
         {
             TranscriptHash = state.TranscriptHash,
-            SessionToken = (Snowflake)connection.ID
+            SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID
         };
 
         MemorySecurity.ZeroMemory(state.SessionKey);
@@ -178,7 +176,7 @@ public sealed class HandshakeHandlers
         {
             MemorySecurity.ZeroMemory(state.SessionKey);
             MemorySecurity.ZeroMemory(state.SharedSecret);
-            _ = connection.Attributes.Remove(StateAttributeKey);
+            _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
         }
 
         try
@@ -195,7 +193,7 @@ public sealed class HandshakeHandlers
 
     private static bool TryGetState(IConnection connection, [NotNullWhen(true)] out HandshakeContext? state)
     {
-        if (connection.Attributes.TryGetValue(StateAttributeKey, out object? boxed) &&
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? boxed) &&
             boxed is HandshakeContext typed)
         {
             state = typed;

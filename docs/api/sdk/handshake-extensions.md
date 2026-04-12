@@ -1,6 +1,7 @@
 # Handshake Extensions
 
 `HandshakeExtensions` provides the client-side X25519 handshake used to establish an encrypted `TransportSession`.
+For reconnect flows, see [`ResumeExtensions`](./resume-extensions.md).
 
 ## Source mapping
 

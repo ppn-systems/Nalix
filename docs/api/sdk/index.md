@@ -21,6 +21,7 @@ graph LR
         EXT[Session Extensions]
         SUB[Subscription System]
         CIPHER[Cipher Switch]
+        RESUME[Resume Flow]
     end
     
     TO --> TS
@@ -30,6 +31,7 @@ graph LR
     TCP --> EXT
     EXT --> SUB
     EXT --> CIPHER
+    EXT --> RESUME
 ```
 
 ## Source mapping
@@ -42,6 +44,7 @@ graph LR
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
+- `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 - `src/Nalix.SDK/IThreadDispatcher.cs`
@@ -85,6 +88,7 @@ var response = await client.RequestAsync<UserLoginResponse>(
 - [UDP Session](./udp-session.md) — Low-latency, datagram-oriented client.
 - [Transport Session](./transport-session.md) — The base transport contract.
 - [Handshake Extensions](./handshake-extensions.md) — Perform the client-side X25519 handshake.
+- [Resume Extensions](./resume-extensions.md) — Resume an existing session or fall back to a fresh handshake.
 - [Session Extensions](./tcp-session-extensions.md) — Handshakes, Controls, Requests, and cipher switching.
 - [Cipher Updates](./cipher-extensions.md) — Rotate the active cipher on a live TCP session.
 - [Subscriptions](./subscriptions.md) — Packet-aware event system.

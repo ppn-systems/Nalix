@@ -18,4 +18,9 @@ public enum ProtocolOpCode : ushort
     /// Used for system-level control packets like PING, PONG, ERROR, DISCONNECT.
     /// </summary>
     SYSTEM_CONTROL = 0x0001,
+
+    /// <summary>
+    /// Unified packet flow for session management (resume, ack, reject).
+    /// </summary>
+    SESSION_SIGNAL = 0x0002,
 }

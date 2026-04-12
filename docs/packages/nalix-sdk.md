@@ -11,8 +11,9 @@
 flowchart LR
     A["TransportOptions"] --> B["TransportSession / TcpSession / UdpSession"]
     B --> C["ConnectAsync"]
-    C --> D["Packet send / receive"]
-    D --> E["Request matching / subscriptions"]
+    C --> D["Session resume / handshake"]
+    D --> E["Packet send / receive"]
+    E --> F["Request matching / subscriptions"]
 ```
 
 ## Core pieces
@@ -22,7 +23,7 @@ flowchart LR
 - `UdpSession` (with 7-byte session token support)
 - `TransportOptions`
 - `RequestOptions`
-- transport extensions such as `ControlExtensions`, `RequestExtensions`, `HandshakeExtensions`, `CipherExtensions`, and `TcpSessionSubscriptions`
+- transport extensions such as `ControlExtensions`, `RequestExtensions`, `HandshakeExtensions`, `ResumeExtensions`, `CipherExtensions`, and `TcpSessionSubscriptions`
 - thread dispatching helpers such as `IThreadDispatcher` and `InlineDispatcher`
 - protocol string helpers such as `ProtocolStringExtensions`
 
@@ -60,6 +61,7 @@ client.Dispose();
 The extension layer covers the common client flows:
 
 - X25519 cryptographic handshakes
+- session resume with token rotation support
 - `RequestAsync<TResponse>(...)`
 - `AwaitControlAsync(...)` and `SendControlAsync(...)`
 
