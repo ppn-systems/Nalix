@@ -42,8 +42,12 @@ public class UdpSession : TransportSession
     /// </summary>
     public Snowflake? SessionToken
     {
-        get => _sessionToken;
-        set => _sessionToken = value;
+        get => _sessionToken ?? (this.Options.SessionToken.IsEmpty ? null : this.Options.SessionToken);
+        set
+        {
+            _sessionToken = value;
+            this.Options.SessionToken = value ?? Snowflake.Empty;
+        }
     }
 
     /// <inheritdoc/>
@@ -114,6 +118,7 @@ public class UdpSession : TransportSession
 
             // Initialize UDP socket
             _socket = new Socket(_remoteEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+            _sessionToken = this.Options.SessionToken.IsEmpty ? null : this.Options.SessionToken;
 
             // "Connect" the UDP socket to the remote endpoint so we can use Send/Receive instead of SendTo/ReceiveFrom
             await _socket.ConnectAsync(_remoteEndPoint, ct).ConfigureAwait(false);

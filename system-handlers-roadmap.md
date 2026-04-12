@@ -8,7 +8,8 @@
 
 ## 🏗 Implementation Milestones
 
-### [ ] 1. Resilient Error Logging & Spoofing Prevention
+### 1. Resilient Error Logging & Spoofing Prevention [ ]
+
 **Objective:** Handle client-originated `ControlType.ERROR` or `FAIL` packets securely without exposing the server to Log Spam or Disk I/O exhaustion (DDoS).
 
 - **Architectural Guidelines:**
@@ -20,7 +21,8 @@
 
 ---
 
-### [ ] 2. Dedicated Throttle Feedback Pipeline (`ThrottleFeedbackMiddleware`)
+### 2. Dedicated Throttle Feedback Pipeline (`ThrottleFeedbackMiddleware`) [ ]
+
 **Objective:** Provide adaptive backpressure signaling (UX feedback) without violating the Single Responsibility Principle (SRP) of inbound security blocks like `RateLimitMiddleware`.
 
 - **Architectural Guidelines:**
@@ -31,7 +33,7 @@
 
 ---
 
-### [ ] 3. Graceful Shutdown & Multi-Cast Broadcasting
+### 3. Graceful Shutdown & Multi-Cast Broadcasting [ ]
 **Objective:** Safely terminate server instances without memory corruption or data loss using the highly optimized `ConnectionHub.BroadcastAsync`.
 
 - **Architectural Guidelines:**
@@ -41,7 +43,7 @@
 
 ---
 
-### [ ] 4. Zero-RTT Session Resumption (Advanced Strategy)
+### 4. Zero-RTT Session Resumption (Advanced Strategy) [x] 
 **Objective:** Bypass compute-heavy Diffie-Hellman Handshakes for authenticated clients on unstable networks (e.g., Cellular dropping/reconnecting).
 
 - **Architectural Guidelines:**

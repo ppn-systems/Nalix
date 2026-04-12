@@ -23,6 +23,8 @@ public sealed class SystemControlHandlers
     /// <param name="context">The packet context.</param>
     /// <returns>A responding control packet or null.</returns>
     [ReservedOpcodePermitted]
+    [PacketEncryption(false)]
+    [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SYSTEM_CONTROL)]
     public static Control? Handle(IPacketContext<Control> context)
     {
@@ -60,6 +62,8 @@ public sealed class SystemControlHandlers
         };
     }
 
+    #region Private Methods
+
     private static Control? HandleCipherUpdate(IConnection connection, Control packet)
     {
         // HACK: Payload Overloading.
@@ -94,4 +98,6 @@ public sealed class SystemControlHandlers
         connection.Disconnect("Client requested disconnect via Control frame.");
         return null; // Do not send a reply
     }
+
+    #endregion Private Methods
 }
