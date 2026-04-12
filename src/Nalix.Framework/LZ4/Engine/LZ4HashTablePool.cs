@@ -4,7 +4,6 @@
 using System;
 using System.Buffers;
 using System.ComponentModel;
-using Nalix.Framework.Memory.Internal;
 
 namespace Nalix.Framework.LZ4.Engine;
 

@@ -259,7 +259,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static void AnalyzePopulateMethod(
         SymbolAnalysisContext context,
         INamedTypeSymbol typeSymbol,
