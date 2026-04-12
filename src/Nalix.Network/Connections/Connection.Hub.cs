@@ -16,9 +16,11 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
+using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
 
@@ -49,6 +51,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     private readonly int _shardMask;
     private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<UInt56, IConnection>[] _shards;
+    private readonly ConcurrentDictionary<UInt56, SessionEntry> _sessions = new();
 
     private readonly ILogger? _logger;
     private readonly ConnectionHubOptions _options;
@@ -230,6 +233,108 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         return this.CaptureConnectionSnapshot();
     }
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public SessionEntry CreateSession(IConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        Snowflake sessionToken = Snowflake.NewId(SnowflakeType.Session);
+        long now = Clock.UnixMillisecondsNow();
+
+        Dictionary<string, object> attributes = new(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, object> item in connection.Attributes)
+        {
+            attributes[item.Key] = item.Value;
+        }
+
+        SessionSnapshot snapshot = new()
+        {
+            SessionToken = sessionToken.ToUInt56(),
+            CreatedAtUnixMilliseconds = now,
+            ExpiresAtUnixMilliseconds = now + (long)_options.SessionTtl.TotalMilliseconds,
+            Secret = [.. connection.Secret],
+            Algorithm = connection.Algorithm,
+            Level = connection.Level,
+            Attributes = attributes
+        };
+
+        SessionEntry entry = new(snapshot, connection.ID.ToUInt56());
+        _sessions[sessionToken.ToUInt56()] = entry;
+
+        if (_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            _logger.Trace($"[NW.{nameof(ConnectionHub)}] session-created token={sessionToken} id={connection.ID}");
+        }
+
+        return entry;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public bool TryResumeSession(UInt56 sessionToken, IConnection newConnection, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session)
+    {
+        ArgumentNullException.ThrowIfNull(newConnection);
+        session = null;
+
+        if (!_sessions.TryGetValue(sessionToken, out SessionEntry? entry))
+        {
+            return false;
+        }
+
+        long now = Clock.UnixMillisecondsNow();
+        if (entry.Snapshot.ExpiresAtUnixMilliseconds <= now)
+        {
+            _ = _sessions.TryRemove(sessionToken, out _);
+            return false;
+        }
+
+        // Kiểm tra connectionId cũ còn tồn tại không (Đã có user online, từ chối resume)
+        if (this.GetConnection(entry.ConnectionId) is not null)
+        {
+            return false;
+        }
+
+        // OK, cho phép bind lại
+        entry.ConnectionId = newConnection.ID.ToUInt56();
+
+        // Restore state
+        SessionSnapshot snapshot = entry.Snapshot;
+        newConnection.Secret = [.. snapshot.Secret];
+        newConnection.Algorithm = snapshot.Algorithm;
+        newConnection.Level = snapshot.Level;
+
+        foreach (KeyValuePair<string, object> item in snapshot.Attributes)
+        {
+            newConnection.Attributes[item.Key] = item.Value;
+        }
+
+        newConnection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+
+        session = entry;
+
+        if (_logger?.IsEnabled(LogLevel.Trace) == true)
+        {
+            _logger.Trace($"[NW.{nameof(ConnectionHub)}] session-resumed token={sessionToken} id={newConnection.ID}");
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public bool TryGetActiveConnection(UInt56 sessionToken, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection? connection)
+    {
+        connection = null;
+        if (!_sessions.TryGetValue(sessionToken, out SessionEntry? entry))
+        {
+            return false;
+        }
+
+        connection = this.GetConnection(entry.ConnectionId);
+        return connection != null;
+    }
+
     /// <summary>
     /// Broadcasts a message to all active connections.
     /// </summary>
@@ -282,7 +387,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             {
                 if (measureLatency)
                 {
-                    logger.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
+                    logger!.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
                 }
             }
 
@@ -303,7 +408,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             if (measureLatency)
             {
-                logger.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
+                logger!.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
             }
         }
     }
@@ -724,7 +829,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
             if (measureLatency)
             {
-                _logger.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+                _logger!.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
             }
 
             return RegisterResult.Success;
@@ -770,7 +875,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         if (measureLatency)
         {
-            _logger.Info($"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            _logger!.Info($"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
 
         return true;

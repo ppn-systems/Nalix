@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Identity;
+using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Networking;
@@ -79,4 +80,28 @@ public interface IConnectionHub
     /// </summary>
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>
     IReadOnlyCollection<IConnection> ListConnections();
+
+    /// <summary>
+    /// Creates a new resumable session for the specified connection.
+    /// </summary>
+    /// <param name="connection">The connection to create a session for.</param>
+    /// <returns>The created session entry.</returns>
+    SessionEntry CreateSession(IConnection connection);
+
+    /// <summary>
+    /// Attempts to resume a session using a new connection.
+    /// </summary>
+    /// <param name="sessionToken">The token of the session to resume.</param>
+    /// <param name="newConnection">The new connection to bind the session to.</param>
+    /// <param name="session">When this method returns, contains the resumed session entry if successful; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if the session was successfully resumed; otherwise, <c>false</c>.</returns>
+    bool TryResumeSession(UInt56 sessionToken, IConnection newConnection, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session);
+
+    /// <summary>
+    /// Attempts to resolve an active connection from a session token.
+    /// </summary>
+    /// <param name="sessionToken">The session token to look up.</param>
+    /// <param name="connection">When this method returns, contains the resolved connection if found; otherwise, <c>null</c>.</param>
+    /// <returns><c>true</c> if a matching active connection was found; otherwise, <c>false</c>.</returns>
+    bool TryGetActiveConnection(UInt56 sessionToken, [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out IConnection? connection);
 }

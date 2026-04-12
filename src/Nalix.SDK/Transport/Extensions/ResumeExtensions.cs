@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
@@ -36,25 +37,24 @@ public static class ResumeExtensions
             return false;
         }
 
-        SessionResume request = new();
-        request.Initialize(session.Options.SessionToken);
+        SessionSignal request = new();
+        request.Initialize(SessionStage.REQUEST, session.Options.SessionToken);
 
         try
         {
-            SessionResumeAck response = await PacketAwaiter.AwaitAsync<SessionResumeAck>(
+            SessionSignal response = await PacketAwaiter.AwaitAsync<SessionSignal>(
                 session,
-                predicate: static packet => true,
+                predicate: static packet => packet.Stage == SessionStage.RESPONSE,
                 timeoutMs: session.Options.ResumeTimeoutMillis,
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);
 
-            if (!response.Success)
+            if (response.Reason != ProtocolReason.NONE)
             {
                 return false;
             }
 
             session.Options.SessionToken = response.SessionToken;
-            session.Options.Algorithm = response.Algorithm;
             session.Options.EncryptionEnabled = true;
             return true;
         }

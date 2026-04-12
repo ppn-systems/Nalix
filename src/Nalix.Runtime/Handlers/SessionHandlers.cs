@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Sessions;
+using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
@@ -20,69 +20,53 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Session")]
 public sealed class SessionHandlers
 {
+    private static IConnectionHub? Hub => InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
+
     /// <summary>
     /// Handles a session resume request and restores the connection state when the token is valid.
     /// </summary>
-    /// <param name="context">The typed packet context for the incoming resume packet.</param>
-    /// <returns>The acknowledgement packet when the resume succeeds; otherwise <see langword="null"/> after disconnecting.</returns>
+    /// <param name="context">The typed packet context for the incoming session signal.</param>
+    /// <returns>The acknowledgement signal when the resume succeeds; otherwise <see langword="null"/> after disconnecting.</returns>
     [ReservedOpcodePermitted]
-    [PacketOpcode((ushort)ProtocolOpCode.SESSION_RESUME)]
-    public static SessionResumeAck? Handle(IPacketContext<SessionResume> context)
+    [PacketEncryption(false)]
+    [PacketPermission(PermissionLevel.NONE)]
+    [PacketOpcode((ushort)ProtocolOpCode.SESSION_SIGNAL)]
+    public static SessionSignal? Handle(IPacketContext<SessionSignal> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        ISessionManager? sessionManager = InstanceManager.Instance.GetExistingInstance<ISessionManager>();
-        if (sessionManager is null)
+        if (Hub is null)
         {
             SendFailureAndDisconnect(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE);
             return null;
         }
 
-        SessionResume packet = context.Packet;
+        SessionSignal packet = context.Packet;
+        if (packet.Stage != SessionStage.REQUEST)
+        {
+            return null;
+        }
+
         if (packet.SessionToken.IsEmpty)
         {
             SendFailureAndDisconnect(context.Connection, ProtocolReason.TOKEN_REVOKED);
             return null;
         }
 
-        SessionResumeResult result = sessionManager.TryResume(packet.SessionToken.ToUInt56(), context.Connection);
-        if (!result.Success || result.Snapshot is null)
+        if (!Hub.TryResumeSession(packet.SessionToken.ToUInt56(), context.Connection, out SessionEntry? session))
         {
-            SendFailureAndDisconnect(context.Connection, result.Reason);
+            SendFailureAndDisconnect(context.Connection, ProtocolReason.SESSION_EXPIRED);
             return null;
         }
 
-        RestoreConnection(context.Connection, result.Snapshot);
-
-        SessionResumeAck ack = new();
+        SessionSignal ack = new();
         ack.Initialize(
-            success: true,
+            stage: SessionStage.RESPONSE,
+            sessionToken: Snowflake.NewId(session.Snapshot.SessionToken),
             reason: ProtocolReason.NONE,
-            sessionToken: Snowflake.FromUInt56(result.SessionToken),
-            algorithm: result.Snapshot.Algorithm,
-            level: result.Snapshot.Level,
             transport: packet.Protocol);
 
         return ack;
-    }
-
-    /// <summary>
-    /// Restores the live connection state from the supplied snapshot.
-    /// </summary>
-    /// <param name="connection">The connection receiving the restored state.</param>
-    /// <param name="snapshot">The snapshot to copy from.</param>
-    private static void RestoreConnection(IConnection connection, SessionSnapshot snapshot)
-    {
-        connection.Secret = [.. snapshot.Secret];
-        connection.Algorithm = snapshot.Algorithm;
-        connection.Level = snapshot.Level;
-
-        foreach (KeyValuePair<string, object> item in snapshot.Attributes)
-        {
-            connection.Attributes[item.Key] = item.Value;
-        }
-
-        connection.Attributes[HandshakeHandlers.EstablishedAttributeKey] = true;
     }
 
     /// <summary>
@@ -92,13 +76,11 @@ public sealed class SessionHandlers
     /// <param name="reason">The failure reason to report.</param>
     private static void SendFailureAndDisconnect(IConnection connection, ProtocolReason reason)
     {
-        SessionResumeAck ack = new();
+        SessionSignal ack = new();
         ack.Initialize(
-            success: false,
-            reason: reason,
+            stage: SessionStage.RESPONSE,
             sessionToken: default,
-            algorithm: connection.Algorithm,
-            level: connection.Level,
+            reason: reason,
             transport: ProtocolType.TCP);
 
         try

@@ -301,9 +301,7 @@ public abstract partial class UdpListenerBase
         if (sessionToken.Length >= Snowflake.Size)
         {
             Snowflake token = Snowflake.FromBytes(sessionToken[..Snowflake.Size]);
-            ISessionManager? sessionManager = InstanceManager.Instance.GetExistingInstance<ISessionManager>();
-
-            if (sessionManager?.TryGetActiveConnection(token.ToUInt56(), out IConnection? resumedConnection) == true)
+            if (hub?.TryGetActiveConnection(token.ToUInt56(), out IConnection? resumedConnection) == true)
             {
                 connection = resumedConnection as Connection;
                 if (connection is not null)

@@ -20,7 +20,7 @@ public enum ProtocolOpCode : ushort
     SYSTEM_CONTROL = 0x0001,
 
     /// <summary>
-    /// Dedicated packet flow for restoring an authenticated session after reconnect.
+    /// Unified packet flow for session management (resume, ack, reject).
     /// </summary>
-    SESSION_RESUME = 0x0002,
+    SESSION_SIGNAL = 0x0002,
 }

@@ -20,7 +20,7 @@ using Nalix.Network.Hosting.Internal;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
-using Nalix.Runtime.Sessions;
+// Remove Nalix.Runtime.Sessions as it is no longer used.
 
 namespace Nalix.Network.Hosting;
 
@@ -273,7 +273,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             this.EnsureConnectionHubRegistered();
             this.EnsureBufferPoolManagerRegistered();
-            EnsureSessionManagerRegistered();
 
             if (!metadataRegistered)
             {
@@ -430,15 +429,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager(_state.Logger));
     }
 
-    private static void EnsureSessionManagerRegistered()
-    {
-        if (InstanceManager.Instance.GetExistingInstance<ISessionManager>() is not null)
-        {
-            return;
-        }
-
-        InstanceManager.Instance.Register<ISessionManager>(new MemorySessionManager());
-    }
 
     private static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);
 
