@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Threading;
 
-namespace Nalix.Common.Environment;
+namespace Nalix.Framework.Environment;
 
 /// <summary>
 /// Provides application-wide directories with environment-aware defaults,
@@ -18,6 +18,7 @@ namespace Nalix.Common.Environment;
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
 [UnsupportedOSPlatform("browser")]
+[SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 public static partial class Directories
 {
     #region Private Properties
@@ -25,7 +26,7 @@ public static partial class Directories
     // ---------- Locks & Events ----------
 
     /// <summary>Global lock for thread-safe directory creation.</summary>
-    private static readonly ReaderWriterLockSlim DirectoryLock = new(LockRecursionPolicy.SupportsRecursion);
+    private static readonly ReaderWriterLockSlim s_directoryLock = new(LockRecursionPolicy.SupportsRecursion);
 
     /// <summary>
     /// Raised after a directory has been created. Handlers are isolated per-invocation.
@@ -35,7 +36,7 @@ public static partial class Directories
     // ---------- Configuration ----------
 
     /// <summary>Optional base path override (intended for tests).</summary>
-    private static string? _basePathOverride;
+    private static string? s_basePathOverride;
 
     /// <summary>
     /// Returns an environment variable value or <c>null</c> if empty/whitespace.
@@ -95,9 +96,9 @@ public static partial class Directories
     private static Lazy<string> BasePathLazy = new(() =>
     {
         // 1) Explicit test override
-        if (!string.IsNullOrEmpty(_basePathOverride))
+        if (!string.IsNullOrEmpty(s_basePathOverride))
         {
-            return Path.GetFullPath(_basePathOverride);
+            return Path.GetFullPath(s_basePathOverride);
         }
 
         // 2) Environment override
@@ -189,14 +190,14 @@ public static partial class Directories
     /// </summary>
     private static void RESET_LAZIES()
     {
-        DirectoryLock.EnterWriteLock();
+        s_directoryLock.EnterWriteLock();
         try
         {
             BasePathLazy = new(() =>
             {
-                if (!string.IsNullOrEmpty(_basePathOverride))
+                if (!string.IsNullOrEmpty(s_basePathOverride))
                 {
-                    return Path.GetFullPath(_basePathOverride);
+                    return Path.GetFullPath(s_basePathOverride);
                 }
                 string? env = GET_ENV("NALIX_BASE_PATH");
                 if (!string.IsNullOrEmpty(env))
@@ -243,7 +244,7 @@ public static partial class Directories
         }
         finally
         {
-            DirectoryLock.ExitWriteLock();
+            s_directoryLock.ExitWriteLock();
         }
     }
 

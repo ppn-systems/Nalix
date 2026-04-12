@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Environment;
+using Nalix.Framework.Environment;
 using Nalix.Logging.Exceptions;
 
 #if DEBUG
