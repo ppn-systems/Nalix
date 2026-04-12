@@ -23,7 +23,7 @@ public static class ResumeExtensions
     /// <param name="session">The connected TCP session to resume.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns><see langword="true"/> when the server accepted the resume request; otherwise <see langword="false"/>.</returns>
-    public static async Task<bool> TryResumeAsync(this TcpSession session, CancellationToken ct = default)
+    public static async Task<bool> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -32,7 +32,7 @@ public static class ResumeExtensions
             throw new InvalidOperationException("Session must be connected to perform resume.");
         }
 
-        if (!CanResume(session.Options))
+        if (!HasResumeState(session.Options))
         {
             return false;
         }
@@ -84,7 +84,7 @@ public static class ResumeExtensions
     /// <param name="port">The optional port override.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns><see langword="true"/> when resume succeeded; <see langword="false"/> when a fresh handshake was used.</returns>
-    public static async Task<bool> ConnectAndResumeOrHandshakeAsync(
+    public static async Task<bool> ConnectWithResumeAsync(
         this TcpSession session,
         string? host = null,
         ushort? port = null,
@@ -94,9 +94,9 @@ public static class ResumeExtensions
 
         await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
 
-        if (session.Options.ResumeEnabled && CanResume(session.Options))
+        if (session.Options.ResumeEnabled && HasResumeState(session.Options))
         {
-            bool resumed = await session.TryResumeAsync(ct).ConfigureAwait(false);
+            bool resumed = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
             if (resumed)
             {
                 return true;
@@ -135,5 +135,5 @@ public static class ResumeExtensions
     /// </summary>
     /// <param name="options">The transport options to inspect.</param>
     /// <returns><see langword="true"/> when the session has a token and secret.</returns>
-    private static bool CanResume(TransportOptions options) => !options.SessionToken.IsEmpty && options.Secret is { Length: > 0 };
+    private static bool HasResumeState(TransportOptions options) => !options.SessionToken.IsEmpty && options.Secret is { Length: > 0 };
 }
