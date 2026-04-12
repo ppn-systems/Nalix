@@ -322,8 +322,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
         }
 
-        newConnection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         newConnection.Attributes[ConnectionAttributes.SessionToken] = sessionToken;
+        newConnection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
 
         session = entry;
 
