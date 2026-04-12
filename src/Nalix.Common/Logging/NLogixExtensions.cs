@@ -25,8 +25,7 @@ public static class NLogixExtensions
     /// </summary>
     /// <param name="logger">The logger instance.</param>
     /// <param name="message">The rendered message to write.</param>
-    public static void Trace(this ILogger logger, string message)
-        => LogMessage(logger, LogLevel.Trace, default, message, null);
+    public static void Trace(this ILogger logger, string message) => LogMessage(logger, LogLevel.Trace, default, message, null);
 
     /// <summary>
     /// Logs a trace-level message built from a composite format string.

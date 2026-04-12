@@ -57,7 +57,12 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     private static readonly int[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
     private static readonly double[] s_burstTiers = [0.1, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64];
 
-    private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
+    private static readonly Lazy<TokenBucketOptions> s_defaults = new(() => ConfigurationManager.Instance.Get<TokenBucketOptions>());
+
+    /// <summary>
+    /// Gets the default rate limiting options shared across all policies.
+    /// </summary>
+    private static TokenBucketOptions Defaults => s_defaults.Value;
     private ILogger? _logger;
 
     #endregion Fields
@@ -525,15 +530,15 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         {
             CapacityTokens = (int)policy.Burst,
             RefillTokensPerSecond = policy.Rps,
-            TokenScale = s_defaults.TokenScale,
-            ShardCount = s_defaults.ShardCount,
-            HardLockoutSeconds = s_defaults.HardLockoutSeconds,
-            StaleEntrySeconds = s_defaults.StaleEntrySeconds,
-            CleanupIntervalSeconds = s_defaults.CleanupIntervalSeconds,
-            MaxTrackedEndpoints = s_defaults.MaxTrackedEndpoints,
-            MaxSoftViolations = s_defaults.MaxSoftViolations,
-            SoftViolationWindowSeconds = s_defaults.SoftViolationWindowSeconds,
-            InitialTokens = s_defaults.InitialTokens
+            TokenScale = Defaults.TokenScale,
+            ShardCount = Defaults.ShardCount,
+            HardLockoutSeconds = Defaults.HardLockoutSeconds,
+            StaleEntrySeconds = Defaults.StaleEntrySeconds,
+            CleanupIntervalSeconds = Defaults.CleanupIntervalSeconds,
+            MaxTrackedEndpoints = Defaults.MaxTrackedEndpoints,
+            MaxSoftViolations = Defaults.MaxSoftViolations,
+            SoftViolationWindowSeconds = Defaults.SoftViolationWindowSeconds,
+            InitialTokens = Defaults.InitialTokens
         };
     }
 
