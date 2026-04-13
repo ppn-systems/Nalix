@@ -150,13 +150,13 @@ nav:
         - Diagnostic Codes: api/analyzers/diagnostic-codes.md
         - Code Fixes: api/analyzers/code-fixes.md
       - Common:
-        - Directories: api/common/directories.md
         - Control Type: api/common/protocols/control-type.md
         - Diagnostics Contracts: api/common/diagnostics-contracts.md
         - Packet Contracts: api/common/packet-contracts.md
         - Connection Contracts: api/common/connection-contracts.md
         - Concurrency Contracts: api/common/concurrency-contracts.md
       - Framework:
+        - Directories: api/framework/environment/directories.md
         - Configuration & DI: api/framework/runtime/configuration.md
         - Task Manager: api/framework/runtime/task-manager.md
         - Snowflake: api/framework/runtime/snowflake.md
