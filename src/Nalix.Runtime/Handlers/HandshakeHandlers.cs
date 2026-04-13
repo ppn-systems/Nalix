@@ -159,7 +159,7 @@ public sealed class HandshakeHandlers
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
-        SessionEntry? session = Hub?.CreateSession(connection);
+        SessionEntry? session = Hub?.SessionStore.CreateSession(connection);
 
         using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
         Handshake reply = lease.Value;
