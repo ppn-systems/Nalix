@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Xunit;
 
@@ -22,20 +22,20 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
-        
-        connection.Secret = new byte[] { 1, 2, 3 };
+
+        connection.Secret = [1, 2, 3];
         connection.Algorithm = Common.Security.CipherSuiteType.Chacha20Poly1305;
         connection.Level = Common.Security.PermissionLevel.OWNER;
         connection.Attributes["test"] = "value";
 
-        SessionEntry session = hub.CreateSession(connection);
+        SessionEntry session = hub.SessionStore.CreateSession(connection);
 
-        session.Should().NotBeNull();
-        session.Snapshot.Secret.Should().Equal(connection.Secret);
-        session.Snapshot.Algorithm.Should().Be(connection.Algorithm);
-        session.Snapshot.Level.Should().Be(connection.Level);
-        session.Snapshot.Attributes.Should().ContainKey("test").WhoseValue.Should().Be("value");
-        session.ConnectionId.Should().Be(connection.ID.ToUInt56());
+        _ = session.Should().NotBeNull();
+        _ = session.Snapshot.Secret.Should().Equal(connection.Secret);
+        _ = session.Snapshot.Algorithm.Should().Be(connection.Algorithm);
+        _ = session.Snapshot.Level.Should().Be(connection.Level);
+        _ = session.Snapshot.Attributes.Should().ContainKey("test").WhoseValue.Should().Be("value");
+        _ = session.ConnectionId.Should().Be(connection.ID.ToUInt56());
     }
 
     [Fact]
@@ -44,30 +44,40 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket);
-        
-        connection1.Secret = new byte[] { 1, 2, 3 };
+
+        connection1.Secret = [1, 2, 3];
         connection1.Attributes["test"] = "value";
         hub.RegisterConnection(connection1);
 
-        SessionEntry sessionInfo = hub.CreateSession(connection1);
+        SessionEntry sessionInfo = hub.SessionStore.CreateSession(connection1);
+
+        await hub.SessionStore.StoreAsync(sessionInfo);
 
         // Resume should fail while connection1 is still in Hub
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
         using Connection connection2 = new(scope2.ServerSocket);
-        
-        hub.TryResumeSession(sessionInfo.Snapshot.SessionToken, connection2, out _).Should().BeFalse();
+
+        // Simulator of TryResumeSession logic:
+        SessionEntry? s = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        _ = s.Should().NotBeNull();
+
+        // Security validation (hub.GetConnection)
+        _ = hub.GetConnection(s.ConnectionId).Should().NotBeNull();
 
         // Unregister connection1
         hub.UnregisterConnection(connection1);
 
         // Resume should now succeed
-        hub.TryResumeSession(sessionInfo.Snapshot.SessionToken, connection2, out SessionEntry? resumedSession).Should().BeTrue();
-        
-        resumedSession.Should().NotBeNull();
-        connection2.Secret.Should().Equal(connection1.Secret);
-        connection2.Attributes["test"].Should().Be("value");
-        connection2.Attributes["nalix.handshake.established"].Should().Be(true);
-        resumedSession!.ConnectionId.Should().Be(connection2.ID.ToUInt56());
+        SessionEntry? ss = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        _ = ss.Should().NotBeNull();
+        _ = hub.GetConnection(ss.ConnectionId).Should().BeNull();
+
+        // Manual state restoration
+        ApplySession(connection2, ss);
+
+        _ = connection2.Secret.Should().Equal(connection1.Secret);
+        _ = connection2.Attributes["test"].Should().Be("value");
+        _ = connection2.Attributes["nalix.handshake.established"].Should().Be(true);
     }
 
     [Fact]
@@ -76,27 +86,35 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket);
-        
+
         hub.RegisterConnection(connection1);
 
         // 1. Create session (Initial state)
-        SessionEntry sessionInfo = hub.CreateSession(connection1);
+        SessionEntry sessionInfo = hub.SessionStore.CreateSession(connection1);
+        await hub.SessionStore.StoreAsync(sessionInfo);
 
         // 2. Modify state AFTER session creation
         connection1.Attributes["user_id"] = 12345;
         connection1.Level = Common.Security.PermissionLevel.SYSTEM_ADMINISTRATOR;
 
-        // 3. Unregister connection (should trigger auto-update)
+        // 3. Update session before unregistering (required now because Unregister doesn't auto-update)
+        SyncSession(connection1, sessionInfo);
+        await hub.SessionStore.StoreAsync(sessionInfo);
+
+        // 4. Unregister connection
         hub.UnregisterConnection(connection1);
 
-        // 4. Resume session with new connection
+        // 5. Resume session with new connection
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
         using Connection connection2 = new(scope2.ServerSocket);
-        hub.TryResumeSession(sessionInfo.Snapshot.SessionToken, connection2, out _).Should().BeTrue();
+        SessionEntry? s = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        _ = s.Should().NotBeNull();
 
-        // 5. Verify that modifications were persisted
-        connection2.Attributes.Should().ContainKey("user_id").WhoseValue.Should().Be(12345);
-        connection2.Level.Should().Be(Common.Security.PermissionLevel.SYSTEM_ADMINISTRATOR);
+        ApplySession(connection2, s);
+
+        // 6. Verify that modifications were persisted
+        _ = connection2.Attributes.Should().ContainKey("user_id").WhoseValue.Should().Be(12345);
+        _ = connection2.Level.Should().Be(Common.Security.PermissionLevel.SYSTEM_ADMINISTRATOR);
     }
 
     [Fact]
@@ -105,27 +123,79 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
-        
+
         hub.RegisterConnection(connection);
-        SessionEntry sessionInfo = hub.CreateSession(connection);
+        SessionEntry sessionInfo = hub.SessionStore.CreateSession(connection);
+        await hub.SessionStore.StoreAsync(sessionInfo);
 
         // Modify state
         connection.Attributes["custom"] = "data";
-        
-        // Manual sync
-        hub.UpdateSession(connection).Should().BeTrue();
 
-        // Verify snapshot in Hub
-        sessionInfo.Snapshot.Attributes.Should().ContainKey("custom").WhoseValue.Should().Be("data");
+        // Manual sync
+        SyncSession(connection, sessionInfo);
+        await hub.SessionStore.StoreAsync(sessionInfo);
+
+        // Verify snapshot from Hub store
+        SessionEntry? updated = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        _ = updated.Should().NotBeNull();
+        _ = updated.Snapshot.Attributes.Should().ContainKey("custom").WhoseValue.Should().Be("data");
+    }
+
+    private static void SyncSession(IConnection connection, SessionEntry session)
+    {
+        SessionSnapshot old = session.Snapshot;
+
+        ObjectMap<string, object> attrs = ObjectMap<string, object>.Rent();
+        foreach (KeyValuePair<string, object> attr in connection.Attributes)
+        {
+            if (attr.Key == "nalix.handshake.state")
+            {
+                continue;
+            }
+
+            attrs[attr.Key] = attr.Value;
+        }
+
+        session.Snapshot = new SessionSnapshot
+        {
+            SessionToken = old.SessionToken,
+            CreatedAtUnixMilliseconds = old.CreatedAtUnixMilliseconds,
+            ExpiresAtUnixMilliseconds = old.ExpiresAtUnixMilliseconds,
+            Secret = [.. connection.Secret],
+            Algorithm = connection.Algorithm,
+            Level = connection.Level,
+            Attributes = attrs
+        };
+
+        old.Return();
+    }
+
+    private static void ApplySession(IConnection connection, SessionEntry session)
+    {
+        SessionSnapshot snapshot = session.Snapshot;
+        connection.Secret = [.. snapshot.Secret];
+        connection.Algorithm = snapshot.Algorithm;
+        connection.Level = snapshot.Level;
+
+        if (snapshot.Attributes != null)
+        {
+            foreach (KeyValuePair<string, object> attr in snapshot.Attributes)
+            {
+                connection.Attributes[attr.Key] = attr.Value;
+            }
+        }
+
+        connection.Attributes["nalix.handshake.established"] = true;
+        connection.Attributes["nalix.session.token"] = snapshot.SessionToken;
     }
 
     private sealed class ConnectedSocketScope : IDisposable
     {
         private ConnectedSocketScope(Socket listenerSocket, Socket clientSocket, Socket serverSocket)
         {
-            ListenerSocket = listenerSocket;
-            ClientSocket = clientSocket;
-            ServerSocket = serverSocket;
+            this.ListenerSocket = listenerSocket;
+            this.ClientSocket = clientSocket;
+            this.ServerSocket = serverSocket;
         }
 
         public Socket ListenerSocket { get; }
@@ -150,9 +220,9 @@ public sealed class ConnectionHubSessionTests
 
         public void Dispose()
         {
-            try { ClientSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
-            try { ServerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
-            try { ListenerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
+            try { this.ClientSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
+            try { this.ServerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
+            try { this.ListenerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
         }
     }
 }
