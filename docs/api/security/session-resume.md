@@ -58,12 +58,14 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **23 bytes**.
 - **Control OpCode**: `ProtocolOpCode.SESSION_SIGNAL`
 - **Server Logic**: `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
 - **Hub State**: `src/Nalix.Network/Connections/Connection.Hub.cs`
+- **Session Store**: `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+- **Session Contract**: `src/Nalix.Common/Networking/Sessions/ISessionStore.cs`
 
 ### Server Handling Logic
 When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
 1. The server extracts the `SessionToken` from the payload.
-2. It attempts to resolve a valid `SessionEntry` via the `IConnectionHub`.
-3. If found, the hub restores the connection's `Secret`, `SecurityLevel`, and `Attributes`.
+2. It attempts to resolve a valid `SessionEntry` via the active `ISessionStore`.
+3. If found, the runtime restores the connection's `Secret`, `Level`, and `Attributes`.
 4. A `RESPONSE` is generated with `ProtocolReason.NONE`.
 5. If the token is invalid or expired, the server responds with an error code (e.g., `SESSION_EXPIRED`) and disconnects.
 
@@ -73,11 +75,12 @@ When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
 
 - **Token Confidentiality**: While the token is not a replacement for the symmetric secret, it should be treated as sensitive material as it identifies an active session.
 - **Rotation Policy**: Clients must update their local `TransportOptions.SessionToken` immediately upon receiving a successful `RESPONSE`.
-- **Invalidation**: Sessions are invalidated upon explicit disconnect or after the configured hub TTL (Time-To-Live) expires.
+- **Invalidation**: Sessions are invalidated upon explicit disconnect or after the configured session-store TTL (Time-To-Live) expires.
 
 ---
 
 ## Related Documentation
 - [Handshake Protocol (X25519)](./handshake.md)
+- [Session Contracts](../common/session-contracts.md)
 - [Snowflake Identifiers](../framework/runtime/snowflake.md)
 - [SDK Resume Extensions](../sdk/resume-extensions.md)
