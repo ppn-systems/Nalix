@@ -87,6 +87,7 @@ Enums keep policies consistent across the stack.
 
 - [Packet Contracts](../api/common/packet-contracts.md)
 - [Connection Contracts](../api/common/connection-contracts.md)
+- [Session Contracts](../api/common/session-contracts.md)
 - [Packet Attributes](../api/runtime/routing/packet-attributes.md)
 - [Packet Metadata](../api/runtime/routing/packet-metadata.md)
 - [Concurrency Contracts](../api/common/concurrency-contracts.md)

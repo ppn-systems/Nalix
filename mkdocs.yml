@@ -154,6 +154,7 @@ nav:
         - Diagnostics Contracts: api/common/diagnostics-contracts.md
         - Packet Contracts: api/common/packet-contracts.md
         - Connection Contracts: api/common/connection-contracts.md
+        - Session Contracts: api/common/session-contracts.md
         - Concurrency Contracts: api/common/concurrency-contracts.md
       - Framework:
         - Directories: api/framework/environment/directories.md
@@ -217,6 +218,7 @@ nav:
         - TCP Listener: api/network/tcp-listener.md
         - UDP Listener: api/network/udp-listener.md
         - Socket Connection: api/network/socket-connection.md
+        - Session Store: api/network/session-store.md
         - Connection:
           - Overview: api/network/connection/connection.md
           - Hub: api/network/connection/connection-hub.md

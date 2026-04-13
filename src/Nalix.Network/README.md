@@ -7,6 +7,7 @@ Low-level networking primitives for high-concurrency TCP and UDP applications.
 - **TcpServerListener**: High-throughput TCP listener using asynchronous socket patterns.
 - **UdpServerListener**: Session-aware UDP listener for low-latency communications.
 - **Connection Hub**: Central management for thousands of active sessions.
+- **Session Store**: Built-in session persistence and TTL-based resumable session retention.
 - **Session Admission Control**: Native support for IP filtering and connection limits.
 - **Protocols**: Pluggable protocol bridge to translate raw streams into packet contexts.
 
