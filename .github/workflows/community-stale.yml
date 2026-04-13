@@ -1,4 +1,6 @@
 name: "Community: Stale issue & PR cleanup"
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   schedule:
@@ -14,7 +16,7 @@ jobs:
     name: "Mark and close stale items"
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/stale@v9
+      - uses: actions/stale@v10
         with:
           # Issues
           days-before-issue-stale: 60
