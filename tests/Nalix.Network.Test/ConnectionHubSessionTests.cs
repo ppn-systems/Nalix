@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
@@ -220,9 +221,44 @@ public sealed class ConnectionHubSessionTests
 
         public void Dispose()
         {
-            try { this.ClientSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
-            try { this.ServerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
-            try { this.ListenerSocket.Dispose(); } catch (SocketException) { } catch (ObjectDisposedException) { }
+            try
+            {
+                this.ClientSocket.Dispose();
+            }
+            catch (SocketException ex)
+            {
+                Trace.WriteLine($"Ignoring SocketException while disposing ClientSocket: {ex}");
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Trace.WriteLine($"Ignoring ObjectDisposedException while disposing ClientSocket: {ex}");
+            }
+
+            try
+            {
+                this.ServerSocket.Dispose();
+            }
+            catch (SocketException ex)
+            {
+                Trace.WriteLine($"Ignoring SocketException while disposing ServerSocket: {ex}");
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Trace.WriteLine($"Ignoring ObjectDisposedException while disposing ServerSocket: {ex}");
+            }
+
+            try
+            {
+                this.ListenerSocket.Dispose();
+            }
+            catch (SocketException ex)
+            {
+                Trace.WriteLine($"Ignoring SocketException while disposing ListenerSocket: {ex}");
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Trace.WriteLine($"Ignoring ObjectDisposedException while disposing ListenerSocket: {ex}");
+            }
         }
     }
 }
