@@ -415,7 +415,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             return;
         }
 
-        InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub(_state.Logger));
+        InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub(logger: _state.Logger));
     }
 
     private void EnsureBufferPoolManagerRegistered()
