@@ -1,4 +1,7 @@
 name: "Template: Build & Test"
+# Force use of Node 24 for all actions due to Node 20 deprecation
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 permissions:
   contents: read
@@ -41,7 +44,7 @@ jobs:
     steps:
       - name: Detect 'documentation' label on PR
         id: label_check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: labels } = await github.rest.issues.listLabelsOnIssue({
@@ -72,15 +75,15 @@ jobs:
           echo "COVERAGE_REPORT_DIR=artifacts/coverage/${{ runner.os }}" >> "$GITHUB_ENV"
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "10.0.x"
 
       - name: Cache NuGet packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json', '**/*.csproj') }}
@@ -109,12 +112,14 @@ jobs:
 
       - name: Build all projects
         shell: bash
+        timeout-minutes: 15
         run: |
           dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
           dotnet build "${{ inputs.test }}" --configuration Release --no-restore -p:UseSharedCompilation=false
 
       - name: Run all tests
         shell: bash
+        timeout-minutes: 15
         run: dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore --logger "trx" --results-directory "$TEST_RESULTS_DIR" --collect:"XPlat Code Coverage" -p:UseSharedCompilation=false
 
       - name: Detect coverage reports
@@ -122,7 +127,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if find "$TEST_RESULTS_DIR" -name 'coverage.cobertura.xml' -print -quit | grep -q .; then
+          if [ -d "$TEST_RESULTS_DIR" ] && find "$TEST_RESULTS_DIR" -name 'coverage.cobertura.xml' -print -quit | grep -q .; then
             echo "found=true" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
@@ -143,7 +148,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-results-${{ runner.os }}
           path: ${{ env.TEST_RESULTS_DIR }}
@@ -151,7 +156,7 @@ jobs:
 
       - name: Upload coverage report
         if: always() && steps.coverage_files.outputs.found == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-report-${{ runner.os }}
           path: ${{ env.COVERAGE_REPORT_DIR }}
