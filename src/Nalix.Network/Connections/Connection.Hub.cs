@@ -20,10 +20,9 @@ using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Identifiers;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
+using Nalix.Network.Sessions;
 
 namespace Nalix.Network.Connections;
 
@@ -33,6 +32,10 @@ namespace Nalix.Network.Connections;
 /// <remarks>
 /// This class provides efficient connection management with minimal allocations and fast lookup operations.
 /// It is thread-safe and uses concurrent collections to handle multiple connections simultaneously.
+/// <para>
+/// Session persistence is delegated to an <see cref="ISessionStore"/>. By default an
+/// <see cref="InMemorySessionStore"/> is used; inject a custom implementation for distributed scenarios.
+/// </para>
 /// </remarks>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
@@ -52,7 +55,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     private readonly int _shardMask;
     private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<UInt56, IConnection>[] _shards;
-    private readonly ConcurrentDictionary<UInt56, SessionEntry> _sessions = new();
+
+    private readonly ISessionStore _sessionStore;
 
     private readonly ILogger? _logger;
     private readonly ConnectionHubOptions _options;
@@ -79,6 +83,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// </summary>
     public int Count => Volatile.Read(ref _count);
 
+    /// <inheritdoc />
+    public ISessionStore SessionStore => _sessionStore;
+
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
@@ -101,12 +108,17 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
     /// </summary>
+    /// <param name="sessionStore">
+    /// The session store used to persist connection sessions.
+    /// Defaults to <see cref="InMemorySessionStore"/> when <c>null</c>.
+    /// </param>
     /// <param name="logger">The logger instance to use for logging.</param>
-    public ConnectionHub(ILogger? logger = null)
+    public ConnectionHub(ISessionStore? sessionStore = null, ILogger? logger = null)
     {
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
+        _sessionStore = sessionStore ?? new InMemorySessionStore();
         _logger = logger;
         _maxConnections = _options.MaxConnections;
         _shardCount = Math.Max(1, _options.ShardCount);
@@ -234,159 +246,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         return this.CaptureConnectionSnapshot();
     }
 
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public SessionEntry CreateSession(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-
-        Snowflake sessionToken = Snowflake.NewId(SnowflakeType.Session);
-        long now = Clock.UnixMillisecondsNow();
-
-        ObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
-        foreach (KeyValuePair<string, object> item in connection.Attributes)
-        {
-            attributes[item.Key] = item.Value;
-        }
-
-        SessionSnapshot snapshot = new()
-        {
-            SessionToken = sessionToken.ToUInt56(),
-            CreatedAtUnixMilliseconds = now,
-            ExpiresAtUnixMilliseconds = now + (long)_options.SessionTtl.TotalMilliseconds,
-            Secret = [.. connection.Secret],
-            Algorithm = connection.Algorithm,
-            Level = connection.Level,
-            Attributes = attributes
-        };
-
-        SessionEntry entry = new(snapshot, connection.ID.ToUInt56());
-        _sessions[sessionToken.ToUInt56()] = entry;
-
-        connection.Attributes[ConnectionAttributes.SessionToken] = sessionToken.ToUInt56();
-
-        if (_logger?.IsEnabled(LogLevel.Trace) == true)
-        {
-            _logger.Trace($"[NW.{nameof(ConnectionHub)}] session-created token={sessionToken} id={connection.ID}");
-        }
-
-        return entry;
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryResumeSession(
-        UInt56 sessionToken, IConnection newConnection,
-        [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out SessionEntry? session)
-    {
-        ArgumentNullException.ThrowIfNull(newConnection);
-        session = null;
-
-        if (!_sessions.TryGetValue(sessionToken, out SessionEntry? entry))
-        {
-            return false;
-        }
-
-        long now = Clock.UnixMillisecondsNow();
-        if (entry.Snapshot.ExpiresAtUnixMilliseconds <= now)
-        {
-            if (_sessions.TryRemove(sessionToken, out SessionEntry? removed))
-            {
-                removed.Return();
-            }
-
-            return false;
-        }
-
-        // Kiểm tra connectionId cũ còn tồn tại không (Đã có user online, từ chối resume)
-        if (this.GetConnection(entry.ConnectionId) is not null)
-        {
-            return false;
-        }
-
-        // OK, cho phép bind lại
-        entry.ConnectionId = newConnection.ID.ToUInt56();
-
-        // Restore state
-        SessionSnapshot snapshot = entry.Snapshot;
-        newConnection.Secret = [.. snapshot.Secret];
-        newConnection.Algorithm = snapshot.Algorithm;
-        newConnection.Level = snapshot.Level;
-
-        IObjectMap<string, object>? snapshotAttributes = snapshot.Attributes;
-        if (snapshotAttributes is not null)
-        {
-            foreach (KeyValuePair<string, object> item in snapshotAttributes)
-            {
-                newConnection.Attributes[item.Key] = item.Value;
-            }
-        }
-
-        newConnection.Attributes[ConnectionAttributes.SessionToken] = sessionToken;
-        newConnection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
-
-        session = entry;
-
-        if (_logger?.IsEnabled(LogLevel.Trace) == true)
-        {
-            _logger.Trace($"[NW.{nameof(ConnectionHub)}] session-resumed token={sessionToken} id={newConnection.ID}");
-        }
-
-        return true;
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool UpdateSession(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-
-        if (!connection.Attributes.TryGetValue(ConnectionAttributes.SessionToken, out object? boxedToken) ||
-            boxedToken is not UInt56 sessionToken)
-        {
-            return false;
-        }
-
-        if (!_sessions.TryGetValue(sessionToken, out SessionEntry? entry))
-        {
-            return false;
-        }
-
-        ObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
-        foreach (KeyValuePair<string, object> item in connection.Attributes)
-        {
-            // Skip temporary handshake state
-            if (item.Key == ConnectionAttributes.HandshakeState)
-            {
-                continue;
-            }
-
-            attributes[item.Key] = item.Value;
-        }
-
-        SessionSnapshot snapshot = new()
-        {
-            Attributes = attributes,
-            Level = connection.Level,
-            SessionToken = sessionToken,
-            Secret = [.. connection.Secret],
-            Algorithm = connection.Algorithm,
-            CreatedAtUnixMilliseconds = entry.Snapshot.CreatedAtUnixMilliseconds,
-            ExpiresAtUnixMilliseconds = entry.Snapshot.ExpiresAtUnixMilliseconds,
-        };
-
-        SessionSnapshot oldSnapshot = entry.Snapshot;
-        entry.Snapshot = snapshot;
-        oldSnapshot.Return();
-
-        if (_logger?.IsEnabled(LogLevel.Trace) == true)
-        {
-            _logger.Trace($"[NW.{nameof(ConnectionHub)}] session-updated token={sessionToken} id={connection.ID}");
-        }
-
-        return true;
-    }
-
     /// <summary>
     /// Broadcasts a message to all active connections.
     /// </summary>
@@ -408,11 +267,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        if (_disposed)
-        {
-            return;
-        }
-
         IConnection[] connections = this.CaptureConnectionSnapshot();
         if (connections.Length == 0)
         {
@@ -430,59 +284,34 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         if (_options.BroadcastBatchSize > 0)
         {
-            try
-            {
-                await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
-                          .ConfigureAwait(false);
-            }
-            finally
-            {
-                if (measureLatency)
-                {
-                    logger!.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
-                }
-            }
-
-            return;
+            await this.BroadcastBatchedAsync(connections, message, sendFunc, cancellationToken)
+                      .ConfigureAwait(false);
         }
-
-        try
+        else
         {
             await this.BroadcastCoreAsync(
-                connections,
-                message,
-                sendFunc,
-                predicate: null,
-                cancellationToken,
+                connections, message, sendFunc,
+                predicate: null, cancellationToken,
                 nameof(BroadcastAsync)).ConfigureAwait(false);
         }
-        finally
+
+        if (measureLatency)
         {
-            if (measureLatency)
-            {
-                logger!.Info($"[PERF.NW.BroadcastAsync] send latency={scope.GetElapsedMilliseconds():F3} ms");
-            }
+            logger!.Info($"[PERF.NW.BroadcastAsync] total={connections.Length}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
     }
 
     /// <summary>
-    /// Broadcasts a message to connections that match a specified predicate.
+    /// Broadcasts a message to connections matching the given predicate.
     /// </summary>
-    /// <typeparam name="T">The type of the message to broadcast.</typeparam>
-    /// <param name="message">The message to broadcast.</param>
-    /// <param name="sendFunc">The function to send the message to a connection.</param>
-    /// <param name="predicate">The predicate to filter connections.</param>
-    /// <param name="cancellation">A token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous broadcast operation.</returns>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown if <paramref name="message"/>, <paramref name="sendFunc"/>, or <paramref name="predicate"/> is null.</exception>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public async Task BroadcastWhereAsync<T>(
         T message,
         Func<IConnection, T, Task> sendFunc,
-        Func<IConnection, bool> predicate, CancellationToken cancellation = default) where T : class
+        Func<IConnection, bool> predicate,
+        CancellationToken cancellation = default) where T : class
     {
-        if (message is null || sendFunc is null || predicate is null || _disposed)
+        if (message is null || sendFunc is null || _disposed)
         {
             return;
         }
@@ -494,11 +323,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         await this.BroadcastCoreAsync(
-            connections,
-            message,
-            sendFunc,
-            predicate,
-            cancellation,
+            connections, message, sendFunc,
+            predicate, cancellation,
             nameof(BroadcastWhereAsync)).ConfigureAwait(false);
     }
 
@@ -516,7 +342,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         if (_disposed)
         {
             _logger?.Warn($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
-
             return 0;
         }
 
@@ -527,9 +352,7 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             foreach (IConnection conn in shard.Values)
             {
-                string connAddress = conn.NetworkEndpoint.Address;
-
-                if (connAddress != targetAddress)
+                if (conn.NetworkEndpoint.Address != targetAddress)
                 {
                     continue;
                 }
@@ -541,14 +364,16 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
+                    _logger?.Error(
+                        $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
                 }
             }
         }
 
         if (closedCount > 0)
         {
-            _logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
+            _logger?.Info(
+                $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
         }
 
         return closedCount;
@@ -586,26 +411,22 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
             catch (Exception ex)
             {
-                _logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}", ex);
+                _logger?.Error(
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}",
+                    ex);
             }
         });
 
-        // Dispose all dictionaries
         foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
         {
             shard.Clear();
         }
 
-        foreach (KeyValuePair<UInt56, SessionEntry> kvp in _sessions)
-        {
-            kvp.Value.Return();
-        }
-        _sessions.Clear();
-
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
-        _logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Length}");
+        _logger?.Info(
+            $"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Length}");
     }
 
     /// <summary>
@@ -623,27 +444,29 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
 
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+            $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
         int total = Volatile.Read(ref _count);
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {total}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evicted Connections  : {Volatile.Read(ref _evictedConnections)}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Rejected Connections : {Volatile.Read(ref _rejectedConnections)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+            $"Evicted Connections  : {Volatile.Read(ref _evictedConnections)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+            $"Rejected Connections : {Volatile.Read(ref _rejectedConnections)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {_shardCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Anonymous Queue Depth: {this.CountAnonymousConnections()}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connections      : {(_maxConnections < 0 ? "Unlimited" : _maxConnections.ToString(CultureInfo.InvariantCulture))}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+            $"Anonymous Queue Depth: {this.CountAnonymousConnections()}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+            $"Max Connections      : {(_maxConnections < 0 ? "Unlimited" : _maxConnections.ToString(CultureInfo.InvariantCulture))}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {_options.DropPolicy}");
 
         foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
         {
             foreach (IConnection conn in shard.Values)
             {
-                // Bytes sent
                 sumBytesSent += conn.BytesSent;
 
-                // Uptime
                 long up = conn.UpTime;
                 sumUptime += up;
-
                 if (up > maxUptime)
                 {
                     maxUptime = up;
@@ -656,25 +479,23 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
                 string status = conn.Level.ToString();
                 string algo = conn.Algorithm.ToString();
-
                 algoCounts[algo] = algoCounts.TryGetValue(algo, out int n) ? n + 1 : 1;
-                statusCounts[status] = statusCounts.TryGetValue(status, out int current) ? current + 1 : 1;
+                statusCounts[status] = statusCounts.TryGetValue(status, out int cur) ? cur + 1 : 1;
             }
         }
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Sent   : {sumBytesSent:N0}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Uptime     : {(total > 0 ? sumUptime / total : 0)}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+            $"Average Uptime     : {(total > 0 ? sumUptime / total : 0)}s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connection Time: {maxUptime}s");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Min Connection Time: {(minUptime == long.MaxValue ? 0 : minUptime)}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+            $"Min Connection Time: {(minUptime == long.MaxValue ? 0 : minUptime)}s");
 
         _ = sb.AppendLine();
-        // ===== Connection Status Summary =====
-
         _ = sb.AppendLine("Connection Status Summary:");
         _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine("Status          | Count");
         _ = sb.AppendLine("----------------------------------------");
-
         foreach (KeyValuePair<string, int> kvp in statusCounts)
         {
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-15} | {kvp.Value,5}");
@@ -682,7 +503,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
         _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine();
-
         _ = sb.AppendLine("Algorithm Summary:");
         _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine("Algorithm         | Count");
@@ -691,10 +511,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         {
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-16} | {kvp.Value,5}");
         }
+
         _ = sb.AppendLine("----------------------------------------");
         _ = sb.AppendLine();
-
-        // ===== Active Connections =====
         _ = sb.AppendLine("Active Connections:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine("ID             | Username");
@@ -705,7 +524,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             foreach (KeyValuePair<UInt56, IConnection> kvp in shard)
             {
                 UInt56 id = kvp.Key;
-                string username = kvp.Value.Attributes.TryGetValue("username", out object? name) && name is string s ? s : "N/A";
+                string username = kvp.Value.Attributes.TryGetValue("username", out object? name) && name is string s
+                    ? s
+                    : "N/A";
                 _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{id,-14} | {username}");
 
                 if (++count >= Limit)
@@ -721,7 +542,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
 
         _ = sb.AppendLine("------------------------------------------------------------");
-
         return sb.ToString();
     }
 
@@ -743,7 +563,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             ["DropPolicy"] = _options.DropPolicy.ToString(),
         };
 
-        // Connection metrics summary
         long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
         Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
         Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
@@ -770,7 +589,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
                 string status = conn.Level.ToString();
                 string algo = conn.Algorithm.ToString();
-
                 algoCounts[algo] = algoCounts.TryGetValue(algo, out int n) ? n + 1 : 1;
                 statusCounts[status] = statusCounts.TryGetValue(status, out int cnt) ? cnt + 1 : 1;
 
@@ -794,11 +612,11 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
             }
         }
+
         report["TotalBytesSent"] = sumBytesSent;
         report["AverageUptimeSeconds"] = total > 0 ? (sumUptime / total) : 0;
         report["MaxConnectionTime"] = maxUptime;
         report["MinConnectionTime"] = minUptime == long.MaxValue ? 0 : minUptime;
-
         report["ConnectionStatusSummary"] = statusCounts;
         report["AlgorithmSummary"] = algoCounts;
         report["SampleConnections"] = sampleConnections;
@@ -869,7 +687,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             {
                 if (_logger?.IsEnabled(LogLevel.Debug) == true)
                 {
-                    _logger.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
+                    _logger.Debug(
+                        $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
                 }
 
                 return RegisterResult.Duplicate;
@@ -883,12 +702,14 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
             if (_logger?.IsEnabled(LogLevel.Trace) == true)
             {
-                _logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={Volatile.Read(ref _count)}");
+                _logger.Trace(
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={Volatile.Read(ref _count)}");
             }
 
             if (measureLatency)
             {
-                _logger!.Info($"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+                _logger!.Info(
+                    $"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
             }
 
             return RegisterResult.Success;
@@ -908,11 +729,13 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     {
         UInt56 connectionKey = connection.ID.ToUInt56();
         ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(connectionKey);
+
         if (!shard.TryRemove(connectionKey, out IConnection? existing))
         {
             if (_logger?.IsEnabled(LogLevel.Debug) == true)
             {
-                _logger.Debug($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
+                _logger.Debug(
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
             }
 
             return false;
@@ -922,21 +745,21 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         IConnection removedConnection = existing ?? connection;
-        _ = this.UpdateSession(removedConnection);
-
         removedConnection.OnCloseEvent -= this.OnClientDisconnected;
         _ = Interlocked.Decrement(ref _count);
 
         if (_logger?.IsEnabled(LogLevel.Trace) == true)
         {
-            _logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={Volatile.Read(ref _count)}");
+            _logger.Trace(
+                $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={Volatile.Read(ref _count)}");
         }
 
         ConnectionUnregistered?.Invoke(removedConnection);
 
         if (measureLatency)
         {
-            _logger!.Info($"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            _logger!.Info(
+                $"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
 
         return true;
@@ -1035,7 +858,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
 
             evictedConnection.OnCloseEvent -= this.OnClientDisconnected;
-
             _ = Interlocked.Decrement(ref _count);
             _ = Interlocked.Increment(ref _evictedConnections);
 
@@ -1044,7 +866,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
             if (_logger?.IsEnabled(LogLevel.Information) == true)
             {
-                _logger.Info($"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evicted id={evictedConnection.ID}");
+                _logger.Info(
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evicted id={evictedConnection.ID}");
             }
 
             try
@@ -1053,7 +876,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
             catch (Exception ex)
             {
-                _logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evict-disconnect-failed id={evictedConnection.ID}", ex);
+                _logger?.Error(
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evict-disconnect-failed id={evictedConnection.ID}",
+                    ex);
             }
 
             return true;
@@ -1096,7 +921,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(RejectIncomingConnection)}] reject-disconnect-failed id={incomingConnection.ID}", ex);
+            _logger?.Error(
+                $"[NW.{nameof(ConnectionHub)}:{nameof(RejectIncomingConnection)}] reject-disconnect-failed id={incomingConnection.ID}",
+                ex);
         }
     }
 
@@ -1152,7 +979,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     {
         Task[] tasks = System.Buffers.ArrayPool<Task>.Shared.Rent(connections.Length);
         IConnection[] owners = s_connectionPool.Rent(connections.Length);
-
         int taskCount = 0;
 
         try
@@ -1182,7 +1008,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error($"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={connection.ID}", ex);
+                    _logger?.Error(
+                        $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={connection.ID}", ex);
                 }
             }
 
@@ -1238,7 +1065,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
 
             IConnection owner = owners[i];
-            _logger?.Error($"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={owner.ID}", exception);
+            _logger?.Error(
+                $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={owner.ID}", exception);
         }
     }
 
@@ -1278,7 +1106,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastBatchedAsync)}] send-failure id={connection.ID}", ex);
+                    _logger?.Error(
+                        $"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastBatchedAsync)}] send-failure id={connection.ID}",
+                        ex);
                 }
 
                 if (taskCount < batchSize)
@@ -1286,8 +1116,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                     continue;
                 }
 
-                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken, nameof(BroadcastBatchedAsync))
-                          .ConfigureAwait(false);
+                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken,
+                              nameof(BroadcastBatchedAsync)).ConfigureAwait(false);
                 Array.Clear(tasks, 0, taskCount);
                 Array.Clear(owners, 0, taskCount);
                 taskCount = 0;
@@ -1295,8 +1125,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 
             if (taskCount > 0)
             {
-                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken, nameof(BroadcastBatchedAsync))
-                          .ConfigureAwait(false);
+                await this.AwaitBatchAsync(tasks, owners, taskCount, cancellationToken,
+                              nameof(BroadcastBatchedAsync)).ConfigureAwait(false);
             }
         }
         finally
@@ -1376,4 +1206,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
 /// <param name="maxConnections">Configured maximum connection count.</param>
 /// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
 /// <param name="reason">Reason token that describes the applied action.</param>
-public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);
+public delegate void CapacityLimitReachedHandler(
+    DropPolicy dropPolicy,
+    int currentConnections,
+    int maxConnections,
+    ISnowflake? triggeredConnectionId,
+    string reason);
