@@ -47,6 +47,8 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
     public string ButtonDisconnect { get; set; } = "Disconnect";
 
     public string ButtonHandshake { get; set; } = "Handshake";
+    public string ButtonResume { get; set; } = "Resume";
+    public string LabelAutoPing { get; set; } = "Auto-Ping (30s)";
 
     public string GroupPacketSelection { get; set; } = "Packet Selection";
 
@@ -215,6 +217,10 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
     public string StatusHandshakeSuccess { get; set; } = "Handshake completed successfully. Session is now encrypted.";
 
     public string StatusHandshakeFailedFormat { get; set; } = "Handshake failed: {0}";
+    public string StatusResumeSuccess { get; set; } = "Session resumed successfully. Encryption is enabled.";
+    public string StatusResumeFailedFormat { get; set; } = "Session resume failed: {0}";
+    public string StatusPingSuccessFormat { get; set; } = "Ping successful: {0:N2} ms";
+    public string StatusPingFailedFormat { get; set; } = "Ping failed: {0}";
     public string StatusSessionTokenAutoFilled { get; set; } = "UDP session token auto-filled from TCP handshake.";
 
     public string StatusTcpConnectionEstablished { get; set; } = "TCP connection established.";

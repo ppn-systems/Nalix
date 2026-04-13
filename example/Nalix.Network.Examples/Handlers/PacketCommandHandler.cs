@@ -18,7 +18,7 @@ public sealed class PacketCommandHandler
     /// Minimal "smoke test" route.
     /// If this packet comes back unchanged, the routing pipeline is wired correctly.
     /// </summary>
-    [PacketOpcode(1)]
+    [PacketOpcode(100)]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketTag("ping")]
@@ -32,7 +32,7 @@ public sealed class PacketCommandHandler
     /// Second smoke test route.
     /// Keeping both routes separate helps users see how opcode-to-method mapping works.
     /// </summary>
-    [PacketOpcode(2)]
+    [PacketOpcode(101)]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketTag("pong")]

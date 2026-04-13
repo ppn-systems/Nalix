@@ -70,4 +70,22 @@ public interface INetworkClientService : IDisposable
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task HandshakeAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Attempts to resume an existing session state.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    Task ResumeAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a ping to the server to measure round-trip time.
+    /// </summary>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The measured RTT in milliseconds.</returns>
+    Task<double> PingAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets or sets a value indicating whether auto-ping is enabled.
+    /// </summary>
+    bool AutoPingEnabled { get; set; }
 }

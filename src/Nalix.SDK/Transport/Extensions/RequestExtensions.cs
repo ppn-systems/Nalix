@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Options;
-using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
 
