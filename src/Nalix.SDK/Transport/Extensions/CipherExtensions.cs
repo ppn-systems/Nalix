@@ -9,7 +9,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
 

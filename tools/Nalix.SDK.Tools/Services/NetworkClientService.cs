@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Identifiers;
@@ -27,6 +28,10 @@ public sealed class NetworkClientService : INetworkClientService
     private readonly IAppConfigurationService _configurationService;
     private TransportSession? _session;
     private bool _disposed;
+    private bool _autoPingEnabled = true;
+    private CancellationTokenSource? _pingCts;
+    private byte[] _savedSecret = [];
+    private Snowflake _savedSessionToken = Snowflake.Empty;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NetworkClientService"/> class.
@@ -63,10 +68,40 @@ public sealed class NetworkClientService : INetworkClientService
     public event EventHandler<PacketLogEntry>? PacketReceived;
 
     /// <inheritdoc/>
+    public bool AutoPingEnabled
+    {
+        get => _autoPingEnabled;
+        set
+        {
+            if (_autoPingEnabled == value)
+            {
+                return;
+            }
+
+            _autoPingEnabled = value;
+            if (value)
+            {
+                this.StartPingLoop();
+            }
+            else
+            {
+                this.StopPingLoop();
+            }
+        }
+    }
+
+    /// <inheritdoc/>
     public async Task ConnectAsync(ConnectionSettings settings, CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(settings);
+
+        // Capture state from previous session if available BEFORE disconnecting
+        if (_session is not null)
+        {
+            _savedSecret = [.. _session.Options.Secret];
+            _savedSessionToken = _session.Options.SessionToken;
+        }
 
         await this.DisconnectAsync(cancellationToken).ConfigureAwait(false);
 
@@ -76,8 +111,17 @@ public sealed class NetworkClientService : INetworkClientService
             Port = settings.Port,
             NoDelay = true,
             CompressionEnabled = false,
-            EncryptionEnabled = false
+            EncryptionEnabled = false,
+            Secret = _savedSecret,
+            SessionToken = _savedSessionToken
         };
+
+        // If we are connecting to a DIFFERENT host/port, we should probably clear the saved state
+        // but for now let's just use what's in settings if it matches.
+        if (settings.Transport == ProtocolType.UDP && Snowflake.TryParse(settings.SessionToken, out Snowflake manualToken))
+        {
+            options.SessionToken = manualToken;
+        }
 
         _session = settings.Transport == ProtocolType.UDP
             ? new UdpSession(options, _catalogService.Catalog.Registry)
@@ -96,6 +140,8 @@ public sealed class NetworkClientService : INetworkClientService
         {
             udpRef.SessionToken = token;
         }
+
+        this.StartPingLoop();
 
         this.RaiseStatus(string.Format(
             CultureInfo.CurrentCulture,
@@ -117,6 +163,8 @@ public sealed class NetworkClientService : INetworkClientService
 
         _session = null;
         session.OnMessageReceived -= this.HandleMessageReceived;
+
+        this.StopPingLoop();
 
         await session.DisconnectAsync().ConfigureAwait(false);
         session.Dispose();
@@ -183,10 +231,113 @@ public sealed class NetworkClientService : INetworkClientService
         if (_session is TcpSession tcpSession)
         {
             await tcpSession.HandshakeAsync(cancellationToken).ConfigureAwait(false);
+
+            // Persist the newly established session state
+            _savedSecret = [.. tcpSession.Options.Secret];
+            _savedSessionToken = tcpSession.Options.SessionToken;
         }
         else
         {
             throw new NotSupportedException("Cryptographic handshake is currently only supported for TCP transport in this tool.");
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task ResumeAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_session is null)
+        {
+            throw new InvalidOperationException(_configurationService.Texts.StatusTcpSessionNotConnected);
+        }
+
+        if (_session is TcpSession tcpSession)
+        {
+            if (tcpSession.Options.SessionToken.IsEmpty || tcpSession.Options.Secret.Length == 0)
+            {
+                throw new NetworkException("No valid session state (token/secret) available to resume. Please perform a handshake first.");
+            }
+
+            bool success = await tcpSession.ResumeSessionAsync(cancellationToken).ConfigureAwait(false);
+            if (success)
+            {
+                // Update persisted token if server assigned a new one during resume
+                _savedSessionToken = tcpSession.Options.SessionToken;
+                this.RaiseStatus(_configurationService.Texts.StatusResumeSuccess);
+            }
+            else
+            {
+                throw new NetworkException("The server rejected the session resume request (session may have expired).");
+            }
+        }
+        else
+        {
+            throw new NotSupportedException("Session resume is current only supported for TCP transport in this tool.");
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<double> PingAsync(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_session is null)
+        {
+            throw new InvalidOperationException(_configurationService.Texts.StatusTcpSessionNotConnected);
+        }
+
+        if (_session is TcpSession tcpSession)
+        {
+            return await tcpSession.PingAsync(5000, cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            throw new NotSupportedException("Ping is currently only supported for TCP transport in this tool.");
+        }
+    }
+
+    private void StartPingLoop()
+    {
+        if (!_autoPingEnabled || _session is not TcpSession || _pingCts is not null)
+        {
+            return;
+        }
+
+        _pingCts = new CancellationTokenSource();
+        _ = Task.Run(() => this.PingLoopAsync(_pingCts.Token));
+    }
+
+    private void StopPingLoop()
+    {
+        _pingCts?.Cancel();
+        _pingCts?.Dispose();
+        _pingCts = null;
+    }
+
+    private async Task PingLoopAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
+
+                if (_session is TcpSession tcpSession && tcpSession.IsConnected)
+                {
+                    double rtt = await tcpSession.PingAsync(5000, ct).ConfigureAwait(false);
+                    this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusPingSuccessFormat, rtt));
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusPingFailedFormat, ex.Message));
+                await Task.Delay(TimeSpan.FromSeconds(5), ct).ConfigureAwait(false);
+            }
         }
     }
 

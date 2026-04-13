@@ -10,7 +10,6 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Time;
-using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
 
