@@ -6,17 +6,12 @@ labels: "bug"
 assignees: ""
 ---
 
-> [!IMPORTANT]
-> **DO NOT USE ISSUES FOR QUESTIONS.**
-> Issues submitted without using this template may be closed as `invalid`.
-
----
-
-**Remove everything above this line when submitting your issue.**
+<!-- ⚠️ DO NOT USE ISSUES FOR QUESTIONS — use Discussions instead. -->
+<!-- Issues submitted without using this template may be closed as `invalid`. -->
 
 ## 🐛 Bug Description
 
-Provide a clear and concise description of the bug.
+<!-- Provide a clear and concise description of the bug. -->
 
 ---
 
@@ -30,27 +25,25 @@ Provide a clear and concise description of the bug.
 
 ```csharp
 // Minimal reproducible example
-ExampleClass example = new();
-example.DoSomething();
 ```
 
 ---
 
 ## ✅ Expected Behavior
 
-Describe what you expected to happen.
+<!-- Describe what you expected to happen. -->
 
 ---
 
 ## ❌ Actual Behavior
 
-Describe what actually happened. Include any error messages or unexpected output.
+<!-- Describe what actually happened. Include any error messages or unexpected output. -->
 
 ---
 
 ## 📜 Stack Trace
 
-```shell
+```text
 # Paste the full stack trace here if an exception was thrown
 ```
 
@@ -58,18 +51,14 @@ Describe what actually happened. Include any error messages or unexpected output
 
 ## 🌍 Environment
 
-| Field         | Value                         |
-|---------------|-------------------------------|
-| OS            | e.g. Windows 11, Ubuntu 22.04 |
-| .NET Version  | e.g. .NET 10                  |
-| Nalix Version | e.g. 1.2.3                    |
+| Field | Value |
+| :--- | :--- |
+| OS | e.g. Windows 11, Ubuntu 22.04 |
+| .NET Version | e.g. .NET 10.0 |
+| Nalix Version | e.g. 12.0.7 |
 
 ---
 
 ## 📂 Additional Context
 
-Add any additional context, screenshots, or links to related issues here.
-
----
-
-*Thank you for reporting! We will review it and get back to you as soon as possible.*
+<!-- Add any additional context, screenshots, or links to related issues here. -->

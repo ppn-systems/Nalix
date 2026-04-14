@@ -1,82 +1,101 @@
-# 🚀 Contributing to Nalix
+# Contributing to Nalix
 
-First of all, thank you for considering contributing to Nalix! It's people like you that make Nalix such a great tool for real-time communication and data sharing.
+Thank you for considering contributing to Nalix! It's people like you that make Nalix a great tool for real-time communication and data sharing.
 
-## 📑 Table of Contents
+---
 
-- [Code of Conduct](https://github.com/ppn-systems/Nalix/blob/master/CODE_OF_CONDUCT.md)
-- [Coding Standards](https://github.com/ppn-systems/Nalix/blob/master/.editorconfig)
-- [Commit Convention](#-commit-convention)
-- [Pull Request Process](https://github.com/ppn-systems/Nalix/pulls)
-- [Issue Reporting Guidelines](https://github.com/ppn-systems/Nalix/issues)
-- [DDD Architecture](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice)
+## Table of Contents
 
-## 📜 Code of Conduct
+- [Code of Conduct](#code-of-conduct)
+- [Development Environment](#development-environment)
+- [How to Contribute](#how-to-contribute)
+- [Commit Convention](#commit-convention)
+- [Coding Standards](#coding-standards)
+- [Pull Request Process](#pull-request-process)
+- [CI Quality Gates](#ci-quality-gates)
+- [Release Automation](#release-automation)
+- [Issue Reporting](#issue-reporting)
+- [Architecture](#architecture)
+- [Community](#community)
 
-This project and everyone participating in it is governed by the [Nalix Code of Conduct](https://github.com/ppn-systems/Nalix/blob/master/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [ppn.system@gmail.com](mailto:ppn.system@gmail.com).
+---
 
-## 💻 Development Environment Setup
+## Code of Conduct
+
+This project and everyone participating in it is governed by the [Nalix Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [ppn.system@gmail.com](mailto:ppn.system@gmail.com).
+
+---
+
+## Development Environment
 
 ### Prerequisites
 
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) or later
-- [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) or [Visual Studio Code](https://code.visualstudio.com/) with C# extensions
-- [Git](https://git-scm.com/)
+| Tool | Version |
+| :--- | :--- |
+| [.NET SDK](https://dotnet.microsoft.com/download/dotnet/10.0) | 10.0+ |
+| IDE | [Visual Studio 2026](https://visualstudio.microsoft.com/vs/) / [VS Code](https://code.visualstudio.com/) / [Rider](https://www.jetbrains.com/rider/) |
+| [Git](https://git-scm.com/) | Latest |
 
 ### Getting Started
 
-1. Fork the repository on GitHub
-2. Clone your fork locally:
+1. **Fork** the repository on GitHub.
+
+2. **Clone** your fork locally:
 
    ```bash
-   git clone https://github.com/ppn-systems/Nalix.git
+   git clone https://github.com/<your-username>/Nalix.git
+   cd Nalix
    ```
 
-3. Add the original repository as upstream:
+3. **Add upstream** remote:
 
    ```bash
    git remote add upstream https://github.com/ppn-systems/Nalix.git
    ```
 
-4. Create a new branch for your feature or bugfix:
+4. **Create a branch** for your work:
 
    ```bash
    git checkout -b feature/your-feature-name
    ```
 
-5. Open the solution in Visual Studio or VS Code and build the project to ensure everything is working correctly
+5. **Build** the solution to verify everything compiles:
 
-## 🤝 How to Contribute
+   ```bash
+   dotnet build
+   ```
 
-### Contribution Workflow
+---
 
-1. Make sure you have the latest changes:
+## How to Contribute
 
-    ```bash
-        git pull upstream master
-    ```
+### Workflow
 
-2. Create a new branch for your work
-3. Make your changes
-4. Write or update tests as needed
-5. Run the tests to ensure they pass
-6. Commit your changes with a clear commit message
-7. Push your branch to your fork
-8. Create a Pull Request from your fork to the main repository
+1. Sync with upstream: `git pull upstream master`
+2. Create a feature branch.
+3. Make your changes.
+4. Write or update tests as needed.
+5. Run the test suite: `dotnet test`
+6. Commit with a [conventional message](#commit-convention).
+7. Push to your fork and open a Pull Request.
 
 ### Types of Contributions
 
-- Implementing new features
-- Fixing bugs
-- Improving documentation
-- Improving code quality and test coverage
-- Reporting issues
+| Type | Description |
+| :--- | :--- |
+| 🚀 Features | New functionality or capabilities |
+| 🐛 Bug Fixes | Corrections to existing behavior |
+| 📝 Documentation | Improvements to docs, comments, or examples |
+| 🧪 Tests | New or improved test coverage |
+| 🎨 Code Quality | Refactoring, formatting, or cleanup |
 
-## 📌 Commit Convention
+---
 
-We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification to keep commit history consistent and make automated versioning and changelog generation easier.
+## Commit Convention
 
-### 🧱 Format
+We follow the [Conventional Commits](https://www.conventionalcommits.org/) specification for consistent commit history and automated versioning.
+
+### Format
 
 ```text
 <type>(optional-scope): <short description>
@@ -86,36 +105,38 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) speci
 [optional footer]
 ```
 
-### 🔥 Commit Types
+### Commit Types
 
-- `feat`: A new feature
-- `fix`: A bug fix
-- `refactor`: A code change that neither fixes a bug nor adds a feature
-- `perf`: A performance improvement
-- `docs`: Documentation-only changes
-- `test`: Adding or updating tests
-- `build`: Changes affecting the build system or dependencies
-- `ci`: Changes to CI/CD pipelines or workflows
-- `chore`: Maintenance tasks with no production code change
-- `style`: Code style changes such as formatting or other non-functional cleanup
-- `revert`: Reverts a previous commit
+| Type | Purpose |
+| :--- | :--- |
+| `feat` | A new feature |
+| `fix` | A bug fix |
+| `refactor` | Code change (no feature/fix) |
+| `perf` | Performance improvement |
+| `docs` | Documentation only |
+| `test` | Adding or updating tests |
+| `build` | Build system or dependencies |
+| `ci` | CI/CD pipeline changes |
+| `chore` | Maintenance (no production code) |
+| `style` | Formatting or non-functional cleanup |
+| `revert` | Revert a previous commit |
 
-### ✅ Recommendations
+### Best Practices
 
-- Keep the subject line short, imperative, and lowercase
-- Avoid ending the subject with a period
-- Use an optional scope when it helps identify the affected package or area
-- Prefer one logical change per commit when possible
+- Keep the subject line short, imperative, and lowercase.
+- Do not end the subject with a period.
+- Use an optional scope to identify the affected package or area.
+- Prefer one logical change per commit.
 
-### 📦 Version Bump Rules
+### Version Bump Rules
 
-When release automation is enabled for the repository, Conventional Commit types are interpreted as:
+When release automation is enabled:
 
-- `fix`: patch release
-- `feat`: minor release
-- any commit with `!` in the type/scope section or a `BREAKING CHANGE:` footer: major release
-
-This means `fix(network): ...` will be grouped into the next patch release, while `feat(runtime): ...` will be grouped into the next minor release unless a breaking-change marker is present.
+| Commit Type | Release |
+| :--- | :--- |
+| `fix` | Patch (`x.x.+1`) |
+| `feat` | Minor (`x.+1.0`) |
+| `!` or `BREAKING CHANGE:` footer | Major (`+1.0.0`) |
 
 ### Examples
 
@@ -127,98 +148,117 @@ test(framework): add coverage for Snowflake overflow handling
 build(ci): align release-please changelog types
 ```
 
-## 📏 Coding Standards
+---
+
+## Coding Standards
 
 ### C# Code Style
 
-We follow the [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions) with some additional guidelines:
+We follow the [Microsoft C# Coding Conventions](https://docs.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/coding-conventions) with additional guidelines:
 
-- Use 4 spaces for indentation, not tabs
-- Use `var` when the type is obvious, explicit type declarations otherwise
-- Use expression-bodied members when appropriate
-- Prefer pattern matching (using `is` operator) over type checking and casting
-- Use C# latest features where they enhance readability and maintainability
-- Keep methods short and focused on a single responsibility
-- Avoid excessive comments - code should be self-documenting
+- Use **4 spaces** for indentation (no tabs).
+- Use `var` when the type is obvious; explicit type declarations otherwise.
+- Use expression-bodied members when appropriate.
+- Prefer pattern matching (`is`) over type checking and casting.
+- Keep methods short and focused on a single responsibility.
+- Write self-documenting code; avoid excessive comments.
+- Full formatting rules are codified in [`.editorconfig`](.editorconfig).
 
 ### SOLID Principles
 
-We strive to follow SOLID principles in our codebase:
+| Principle | Guideline |
+| :--- | :--- |
+| **S**ingle Responsibility | Each class should have only one reason to change. |
+| **O**pen/Closed | Open for extension, closed for modification. |
+| **L**iskov Substitution | Derived classes must be substitutable for their base classes. |
+| **I**nterface Segregation | Prefer many client-specific interfaces over one general-purpose interface. |
+| **D**ependency Inversion | Depend on abstractions, not concretions. |
 
-- **S**ingle Responsibility: Each class should have only one reason to change
-- **O**pen/Closed: Classes should be open for extension but closed for modification
-- **L**iskov Substitution: Derived classes must be substitutable for their base classes
-- **I**nterface Segregation: Many client-specific interfaces are better than one general-purpose interface
-- **D**ependency Inversion: Depend on abstractions, not concretions
+---
 
-## 🔄 Pull Request Process
+## Pull Request Process
 
-1. Ensure your code adheres to the coding standards outlined above
-2. Update the README.md or documentation with details of changes if applicable
-3. Include relevant tests for your changes
-4. The PR should work on our CI pipeline without errors
-5. A maintainer will review your PR and may request changes
-6. Once approved, your PR will be merged into the main branch
+1. Ensure your code adheres to the [coding standards](#coding-standards).
+2. Update documentation if your changes affect public APIs or behavior.
+3. Include relevant tests for your changes.
+4. Verify the PR passes all [CI quality gates](#ci-quality-gates).
+5. A maintainer will review your PR and may request changes.
+6. Once approved, your PR will be merged into the `master` branch.
 
-## 🧪 CI Quality Gates
+---
 
-Pull requests and pushes to `master` are expected to pass the shared `_build.yml` workflow checks:
+## CI Quality Gates
 
-- `dotnet format --verify-no-changes`
-- Release build for the configured solution
-- Test execution with TRX results and XPlat Code Coverage collection
-- Coverage artifact generation in Cobertura format
-- Linux trim smoke publish (`linux-x64`, `PublishTrimmed=true`, `--self-contained true`) for the example host
+Pull requests and pushes to `master` must pass the shared `_build.yml` workflow:
 
-In addition, the benchmark workflow runs BenchmarkDotNet on pushes to `master`, exports JSON/CSV artifacts, and compares the latest run with the previous benchmark artifact to highlight regressions or improvements.
+| Check | Description |
+| :--- | :--- |
+| `dotnet format --verify-no-changes` | Code formatting compliance |
+| Release build | Full solution compilation |
+| Test execution | TRX results with XPlat Code Coverage |
+| Coverage artifacts | Cobertura format generation |
+| Trim smoke test | `linux-x64` self-contained publish with `PublishTrimmed=true` |
 
-## 🚢 Release Automation
+Additionally, the **benchmark workflow** runs BenchmarkDotNet on pushes to `master`, exports JSON/CSV artifacts, and compares results with the previous run to highlight regressions.
 
-Release automation follows Conventional Commits and is designed around the `master` branch:
+---
 
-- Release preparation is triggered from commits that land on `master`
-- `fix` commits roll into the next patch release
-- `feat` commits roll into the next minor release
-- `BREAKING CHANGE:` footers and `!` markers trigger a major release
+## Release Automation
 
-If you are preparing a patch/minor/major change, prefer one commit (or squash-merge result) that clearly communicates the highest-severity change so the version bump is unambiguous.
+Releases follow Conventional Commits and are driven from the `master` branch:
 
-## 🐛 Issue Reporting Guidelines
+- `fix` commits → next **patch** release.
+- `feat` commits → next **minor** release.
+- `BREAKING CHANGE:` footers or `!` markers → next **major** release.
 
-When reporting issues, please use the provided issue templates and include:
+> **Tip:** Prefer one commit (or squash-merge result) that clearly communicates the highest-severity change so the version bump is unambiguous.
 
-1. A clear and descriptive title
-2. Steps to reproduce the issue
-3. Expected behavior
-4. Actual behavior
-5. Environment details (OS, .NET version, etc.)
-6. Any relevant logs or screenshots
+---
 
-## 🏗️ DDD Architecture
+## Issue Reporting
 
-Nalix follows Domain-Driven Design principles. When contributing, please respect the existing architecture:
+When reporting issues, please use the provided templates and include:
 
-- **Domain Layer**: Contains business logic, entities, value objects, and domain events
-- **Application Layer**: Orchestrates the domain objects to perform tasks
-- **Infrastructure Layer**: Provides technical capabilities (persistence, messaging, etc.)
-- **Presentation Layer**: Handles user interface and API endpoints
+1. A clear, descriptive title.
+2. Steps to reproduce the issue.
+3. Expected behavior.
+4. Actual behavior.
+5. Environment details (OS, .NET version, etc.).
+6. Any relevant logs or screenshots.
+
+---
+
+## Architecture
+
+Nalix follows [Domain-Driven Design](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/microservice-ddd-cqrs-patterns/ddd-oriented-microservice) principles:
+
+| Layer | Responsibility |
+| :--- | :--- |
+| **Domain** | Business logic, entities, value objects, and domain events. |
+| **Application** | Orchestration of domain objects to perform tasks. |
+| **Infrastructure** | Technical capabilities (persistence, messaging, etc.). |
+| **Presentation** | User interface and API endpoints. |
 
 ### Key DDD Concepts
 
-- **Bounded Contexts**: Clear boundaries between different parts of the system
-- **Entities**: Objects with a distinct identity that runs through time
-- **Value Objects**: Objects defined by their attributes, with no identity
-- **Aggregates**: Clusters of domain objects treated as a single unit
-- **Domain Events**: Things that happen which domain experts care about
-- **Repositories**: Methods for obtaining domain objects
+- **Bounded Contexts** — clear boundaries between system parts.
+- **Entities** — objects with a distinct identity over time.
+- **Value Objects** — objects defined by their attributes, without identity.
+- **Aggregates** — clusters of domain objects treated as a single unit.
+- **Domain Events** — significant occurrences that domain experts care about.
+- **Repositories** — methods for obtaining domain objects.
 
-## 👥 Community
+---
 
-Join our community channels to discuss development, ask questions, or just hang out:
+## Community
+
+Join the conversation:
 
 - [GitHub Discussions](https://github.com/ppn-systems/Nalix/discussions)
 - [GitHub Issues](https://github.com/ppn-systems/Nalix/issues)
 
 ---
 
-❤️ Thank you for contributing to Nalix!
+<p align="center">
+  ❤️ Thank you for contributing to Nalix!
+</p>

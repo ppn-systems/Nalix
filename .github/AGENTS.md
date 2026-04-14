@@ -6,7 +6,7 @@ This repository is the **Nalix** ecosystem — a performance-oriented C# network
 
 ## 1. Repository Layout
 
-```plaintext
+```text
 Nalix/
 ├── src/
 │   ├── Nalix.sln
@@ -24,16 +24,20 @@ Nalix/
 │   ├── Nalix.Tests.sln
 │   └── (mirror of src/ project structure)
 ├── docs/
+├── benchmarks/
+├── tools/
+│   └── Nalix.SDK.Tools/
 └── .github/
     ├── workflows/
     ├── ISSUE_TEMPLATE/
-    ├── PULL_REQUEST_TEMPLATE.md
-    ├── labels.yml
+    ├── AGENTS.md              ← this file
     ├── copilot-instructions.md
-    └── AGENTS.md          ← this file
+    ├── pull_request_template.md
+    ├── labels.yml
+    └── FUNDING.yml
 ```
 
-> Do not refer to `Nalix.Shared` — that name is outdated.
+> Do not refer to `Nalix.Shared` — that name is outdated and has been removed.
 
 ---
 
@@ -65,11 +69,15 @@ dotnet test tests/Nalix.Network.Tests/Nalix.Network.Tests.csproj --configuration
 
 ## 3. Project Responsibilities & Dependency Graph
 
-```plaintext
-Level 0: Nalix.Common, Nalix.Analyzers
-Level 1: Nalix.Framework (deps: Common)
-Level 2: Nalix.Logging, Nalix.Runtime, Nalix.Network, Nalix.Network.Pipeline, Nalix.SDK (deps: Common, Framework)
-Level 3: Nalix.Network.Hosting (deps: Common, Framework, Network, Runtime)
+```text
+Level 0 : Nalix.Common, Nalix.Analyzers
+Level 1 : Nalix.Framework            → Common
+Level 2 : Nalix.Logging              → Common, Framework
+           Nalix.Runtime              → Common, Framework
+           Nalix.Network              → Common, Framework
+           Nalix.Network.Pipeline     → Common, Framework
+           Nalix.SDK                  → Common, Framework
+Level 3 : Nalix.Network.Hosting      → Common, Framework, Network, Runtime
 ```
 
 **Never introduce a dependency that violates this graph. Never create circular references.**
@@ -110,16 +118,19 @@ Client-facing API layer: transport/session clients, SDK configuration, client ex
 
 ## 4. Coding Standards
 
-- **Language**: C# 14, `net10.0`
-- **Namespaces**: file-scoped only
-- **Nullable**: enabled project-wide — never disable
-- **Classes**: prefer `sealed` unless inheritance is a genuine requirement
-- **Structs**: prefer `readonly struct` and `readonly` members where applicable
-- **Fields**: private instance → `_fieldName`, private static → match surrounding file (`s_fieldName` or project-specific)
-- **Interfaces**: `IType`
-- **Async**: suffix `Async` on all async methods
-- **XML docs**: required on all public APIs (build generates XML documentation)
-- **Style**: match the existing style in the target file before introducing a new pattern
+| Rule | Guideline |
+| :--- | :--- |
+| Language | C# 14, `net10.0` |
+| Namespaces | File-scoped only |
+| Nullable | Enabled project-wide — never disable |
+| Classes | Prefer `sealed` unless inheritance is a genuine requirement |
+| Structs | Prefer `readonly struct` and `readonly` members where applicable |
+| Private instance fields | `_fieldName` |
+| Private static fields | Match surrounding file (`s_fieldName` or project-specific) |
+| Interfaces | `IType` |
+| Async methods | Suffix `Async` |
+| XML docs | Required on all public APIs (build generates XML documentation) |
+| Style | Match the existing style in the target file before introducing a new pattern |
 
 ---
 
@@ -127,11 +138,11 @@ Client-facing API layer: transport/session clients, SDK configuration, client ex
 
 Hot-path code must:
 
-- Use `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>`, and pooled buffers
-- Avoid allocations, boxing, unnecessary virtual/interface dispatch
-- Avoid LINQ — use simple loops when clearer and cheaper
-- Use `Try*` APIs when failure is expected
-- Prefer non-throwing fast paths for parsing, serialization, encoding, transport
+- Use `Span<T>`, `ReadOnlySpan<T>`, `Memory<T>`, and pooled buffers.
+- Avoid allocations, boxing, unnecessary virtual/interface dispatch.
+- Avoid LINQ — use simple loops when clearer and cheaper.
+- Use `Try*` APIs when failure is expected.
+- Prefer non-throwing fast paths for parsing, serialization, encoding, transport.
 
 Do not add complexity in the name of optimization unless it fits the local design of the module.
 
@@ -139,11 +150,11 @@ Do not add complexity in the name of optimization unless it fits the local desig
 
 ## 6. Security Rules
 
-- Validate all external input lengths, ranges, and boundaries before processing
-- Never log secrets, keys, tokens, or raw sensitive payloads
-- Reuse existing Nalix security primitives — do not invent new cryptographic designs
-- Keep nonce/IV/key handling explicit and safe
-- Prefer constant-time implementations for authentication and cryptography
+- Validate all external input lengths, ranges, and boundaries before processing.
+- Never log secrets, keys, tokens, or raw sensitive payloads.
+- Reuse existing Nalix security primitives — do not invent new cryptographic designs.
+- Keep nonce/IV/key handling explicit and safe.
+- Prefer constant-time implementations for authentication and cryptography.
 
 ---
 
@@ -151,10 +162,10 @@ Do not add complexity in the name of optimization unless it fits the local desig
 
 Test stack: **xUnit**, **FluentAssertions**, **Moq** (where needed), **Xunit.SkippableFact** (environment-dependent tests).
 
-- Place tests in the matching project under `tests/`
-- Follow naming conventions already used in that area
-- Cover: happy path, invalid input, edge cases
-- For serialization, cryptography, networking, memory, and timing — include regression-focused tests
+- Place tests in the matching project under `tests/`.
+- Follow naming conventions already used in that area.
+- Cover: happy path, invalid input, edge cases.
+- For serialization, cryptography, networking, memory, and timing — include regression-focused tests.
 
 ---
 
@@ -162,32 +173,32 @@ Test stack: **xUnit**, **FluentAssertions**, **Moq** (where needed), **Xunit.Ski
 
 Workflows in `.github/workflows/`:
 
-| File                             | Purpose                                              |
-|----------------------------------|------------------------------------------------------|
-| `ci-linux.yml`                   | Build & test on Ubuntu via `_build.yml`              |
-| `ci-windows.yml`                 | Build & test on Windows via `_build.yml`             |
-| `_build.yml`                     | Reusable template: restore → build → test → publish  |
-| `benchmark.yml`                  | Run BenchmarkDotNet on `master`, upload artifacts, compare against the previous benchmark artifact |
-| `_codeql.yml`                    | CodeQL security analysis (C#, scheduled + PR)        |
-| `docs.yml`                       | MkDocs build and deploy to GitHub Pages              |
-| `community-welcome.yml`          | Greet first-time contributors                        |
-| `community-stale.yml`            | Mark and close stale issues/PRs                      |
-| `security-dependency-review.yml` | Scan NuGet deps for CVEs on every PR                 |
-| `repo-label-sync.yml`            | Sync labels from `.github/labels.yml`                |
-| `nuget.yml`                      | Automated NuGet packaging and versioning              |
+| Workflow | Purpose |
+| :--- | :--- |
+| `ci-linux.yml` | Build & test on Ubuntu via `_build.yml` |
+| `ci-windows.yml` | Build & test on Windows via `_build.yml` |
+| `_build.yml` | Reusable template: restore → build → test → publish |
+| `benchmark.yml` | Run BenchmarkDotNet on `master`, upload artifacts, compare against previous run |
+| `_codeql.yml` | CodeQL security analysis (C#, scheduled + PR) |
+| `docs.yml` | MkDocs build and deploy to GitHub Pages |
+| `community-welcome.yml` | Greet first-time contributors |
+| `community-stale.yml` | Mark and close stale issues/PRs |
+| `security-dependency-review.yml` | Scan NuGet deps for CVEs on every PR |
+| `repo-label-sync.yml` | Sync labels from `.github/labels.yml` |
+| `nuget.yml` | Automated NuGet packaging and versioning |
 
 Release/versioning rules follow Conventional Commits (`fix` = patch, `feat` = minor, breaking changes = major).
 
-**Label gate**: PRs with the `documentation` label skip build and CodeQL — they only trigger `docs.yml`. Do not remove or rename this label.
+**Label gate:** PRs with the `documentation` label skip build and CodeQL — they only trigger `docs.yml`. Do not remove or rename this label.
 
 ---
 
 ## 9. What NOT to Do
 
-- Do not add projects or references outside the dependency graph above
-- Do not use `Nalix.Shared` (removed)
-- Do not disable nullable, warnings, or XML doc generation in `.csproj` files
-- Do not commit `.snk` files — the signing key `Nalix.snk` is injected by CI
-- Do not suggest `Debug` configuration in CI context — all CI builds use `Release`
-- Do not introduce `Thread.Sleep`, `Task.Delay` in production code without explicit justification
-- Do not use `dynamic` or suppress nullability warnings without a comment explaining why
+- Do not add projects or references outside the dependency graph above.
+- Do not use `Nalix.Shared` (removed).
+- Do not disable nullable, warnings, or XML doc generation in `.csproj` files.
+- Do not commit `.snk` files — the signing key `Nalix.snk` is injected by CI.
+- Do not suggest `Debug` configuration in CI context — all CI builds use `Release`.
+- Do not introduce `Thread.Sleep` or `Task.Delay` in production code without explicit justification.
+- Do not use `dynamic` or suppress nullability warnings without a comment explaining why.
