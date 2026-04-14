@@ -2,6 +2,12 @@
 
 `Nalix.Runtime.Dispatching` contains the execution APIs that map incoming packets to handlers with metadata-aware context and pooled senders.
 
+## Source Mapping
+
+- `src/Nalix.Runtime/Dispatching`
+- `src/Nalix.Runtime/Internal/Routing`
+- `src/Nalix.Runtime/Internal/Compilation`
+
 ## Why This Layer Exists
 
 The dispatch layer isolates handler execution policy from socket/listener concerns. `Nalix.Network` can focus on transport while dispatching focuses on packet-to-handler routing and middleware orchestration.

@@ -2,6 +2,14 @@
 
 `Nalix.SDK` is the client transport package for Nalix. It provides session lifecycle APIs (`TransportSession`, `TcpSession`, `UdpSession`), request/response helpers, handshake and resume extensions, and subscription helpers.
 
+## Source Mapping
+
+- `src/Nalix.SDK/Transport`
+- `src/Nalix.SDK/Transport/Extensions`
+- `src/Nalix.SDK/Options`
+- `src/Nalix.SDK/InlineDispatcher.cs`
+- `src/Nalix.SDK/IThreadDispatcher.cs`
+
 ## Why This Package Exists
 
 Client concerns differ from server runtime concerns. `Nalix.SDK` gives applications a stable client-facing API while keeping server execution details in `Nalix.Runtime` and `Nalix.Network`.

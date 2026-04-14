@@ -2,6 +2,13 @@
 
 `Nalix.Runtime` is the server-side execution layer that converts incoming packets into handler invocations through dispatch channels, packet contexts, metadata resolution, and middleware pipelines.
 
+## Source Mapping
+
+- `src/Nalix.Runtime/Dispatching`
+- `src/Nalix.Runtime/Middleware`
+- `src/Nalix.Runtime/Handlers`
+- `src/Nalix.Runtime/Options`
+
 ## Why This Package Exists
 
 `Nalix.Network` accepts traffic and manages connections, but packet execution policy lives in `Nalix.Runtime`. This split allows transport and handler execution to evolve independently.

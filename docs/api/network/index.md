@@ -2,6 +2,14 @@
 
 `Nalix.Network` contains the server-side transport runtime: listeners, connection lifecycle, protocol base classes, connection registry, and network-focused options.
 
+## Source Mapping
+
+- `src/Nalix.Network/Listeners`
+- `src/Nalix.Network/Protocols`
+- `src/Nalix.Network/Connections`
+- `src/Nalix.Network/Sessions`
+- `src/Nalix.Network/Options`
+
 ## Audit Summary
 
 - Network API section had detailed leaf pages but no package overview page.

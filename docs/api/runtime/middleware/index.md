@@ -2,6 +2,13 @@
 
 Middleware allows you to intercept and process packets or raw buffers before they reach the handler.
 
+## Source Mapping
+
+- `src/Nalix.Runtime/Middleware`
+- `src/Nalix.Runtime/Extentions`
+- `src/Nalix.Network.Pipeline/Inbound`
+- `src/Nalix.Common/Middleware`
+
 ## Core Pipelines
 
 ### [Packet Pipeline](./pipeline.md)
@@ -16,4 +23,3 @@ A lower-level pipeline that operates on raw `IBufferLease` objects before deseri
 - [Permission Middleware](./permission-middleware.md): Enforces connection-level permission checks.
 - [Policy Rate Limiter](./policy-rate-limiter.md): Implements complex rate-limiting policies.
 - [Timeout Middleware](./timeout-middleware.md): Enforces processing timeouts for packet handlers.
-- [Policy Rate Limiter](./policy-rate-limiter.md): Implements complex rate-limiting policies.

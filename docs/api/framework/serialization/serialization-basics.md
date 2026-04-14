@@ -9,9 +9,9 @@ Use this page when you want the lower-level model behind `LiteSerializer` and `F
 - `src/Nalix.Framework/Serialization/IFormatter.cs`
 - `src/Nalix.Framework/Serialization/FormatterProvider.cs`
 - `src/Nalix.Framework/Serialization/LiteSerializer.cs`
-- `src/Nalix.Framework/Serialization/Formatters/Primitives/*`
-- `src/Nalix.Framework/Serialization/Formatters/Collections/*`
-- `src/Nalix.Framework/Serialization/Formatters/Automatic/*`
+- `src/Nalix.Framework/Serialization/Formatters/Primitives`
+- `src/Nalix.Framework/Serialization/Formatters/Collections`
+- `src/Nalix.Framework/Serialization/Formatters/Automatic`
 
 ## Main types
 

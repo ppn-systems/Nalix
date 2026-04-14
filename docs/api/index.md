@@ -2,6 +2,16 @@
 
 Nalix API documentation is organized by package boundary and runtime responsibility so you can move from contracts (`Nalix.Common`) to execution (`Nalix.Runtime`, `Nalix.Network`) and then to client transport (`Nalix.SDK`) without mixing concerns.
 
+## Source Mapping
+
+- `src/Nalix.Common`
+- `src/Nalix.Framework`
+- `src/Nalix.Runtime`
+- `src/Nalix.Network`
+- `src/Nalix.Network.Hosting`
+- `src/Nalix.Network.Pipeline`
+- `src/Nalix.SDK`
+
 ## Why This Structure Exists
 
 Nalix is split into focused packages with explicit layering:

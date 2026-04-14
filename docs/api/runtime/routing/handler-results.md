@@ -20,8 +20,8 @@ This helps controller authors choose predictable return styles while keeping dis
 
 - `src/Nalix.Runtime/Internal/Results/ReturnTypeHandlerFactory.cs`
 - `src/Nalix.Runtime/Internal/Results/Packet/PacketReturnHandler.cs`
-- `src/Nalix.Runtime/Internal/Results/Task/*`
-- `src/Nalix.Runtime/Internal/Results/Memory/*`
+- `src/Nalix.Runtime/Internal/Results/Task`
+- `src/Nalix.Runtime/Internal/Results/Memory`
 - `src/Nalix.Runtime/Internal/Results/Primitives/ByteArrayReturnHandler.cs`
 - `src/Nalix.Runtime/Internal/Results/Void/VoidReturnHandler.cs`
 
