@@ -39,6 +39,7 @@ public static class CipherExtensions
         ArgumentNullException.ThrowIfNull(session);
 
         uint seq = unchecked((uint)Interlocked.Increment(ref s_cipherUpdateSeq));
+        CipherSuiteType previousCipher = session.Options.Algorithm;
 
         // HACK: Payload Overloading.
         // We reuse the existing 'Control' packet to avoid creating a dedicated cipher packet.
@@ -54,15 +55,39 @@ public static class CipherExtensions
         // 2. Send (Encrypted with Old Cipher)
         // 3. Switch Local Session Algorithm (New Cipher)
         // 4. Await Server's ACK (Which will be encrypted with New Cipher)
-        _ = await PacketAwaiter.AwaitAsync<Control>(
-            session,
-            predicate: p => p.Type == ControlType.CIPHER_UPDATE_ACK && p.SequenceId == seq,
-            timeoutMs: timeoutMs,
-            sendAsync: async token =>
-            {
-                await session.SendAsync(req, token).ConfigureAwait(false);
-                session.Options.Algorithm = cipherSuite;
-            },
-            ct: ct).ConfigureAwait(false);
+        try
+        {
+            _ = await PacketAwaiter.AwaitAsync<Control>(
+                session,
+                predicate: p => p.Type == ControlType.CIPHER_UPDATE_ACK && p.SequenceId == seq,
+                timeoutMs: timeoutMs,
+                sendAsync: async token =>
+                {
+                    await session.SendAsync(req, token).ConfigureAwait(false);
+                    session.Options.Algorithm = cipherSuite;
+                },
+                ct: ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            RestoreCipher(session, previousCipher);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Roll back the active cipher suite when a cipher update fails mid-flight.
+    /// </summary>
+    /// <param name="session">The client session whose cipher should be restored.</param>
+    /// <param name="previousCipher">The cipher suite active before the update attempt.</param>
+    /// <remarks>
+    /// This keeps the client from drifting out of sync with the server when the ACK never arrives.
+    /// </remarks>
+    private static void RestoreCipher(TcpSession session, CipherSuiteType previousCipher)
+    {
+        if (session.Options.Algorithm != previousCipher)
+        {
+            session.Options.Algorithm = previousCipher;
+        }
     }
 }

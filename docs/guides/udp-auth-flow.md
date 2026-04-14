@@ -1,35 +1,32 @@
 # UDP Auth Flow Example
 
-This guide explains the actual UDP authentication shape used by `UdpListenerBase` today, in a client-friendly way.
+This guide explains the actual UDP session shape used by `UdpListenerBase` today, in a client-friendly way.
 
 Use it when you already know you need UDP and want to understand the trust and replay rules before implementing a client.
 
 ## What the runtime expects
 
-When `UdpListenerBase` receives a datagram, it expects the payload to end with authentication metadata:
+When `UdpListenerBase` receives a datagram, it expects the first 7 bytes to be the session token:
 
-- connection/session identifier
-- timestamp
-- nonce
-- authentication tag
+- session token (`Snowflake`, 7 bytes)
+- payload
 
 In source, the listener validates:
 
-- session exists in `ConnectionHub`
-- replay window is still valid
-- Poly1305 tag matches payload + metadata + remote endpoint
+- the datagram is at least 7 bytes long
+- the packet explicitly identifies itself as UDP
+- the token resolves to a connection in `ConnectionHub`
 - your overridden `IsAuthenticated(...)` also returns `true`
 
 ## High-level flow
 
 ```mermaid
 flowchart LR
-    A["UDP datagram received"] --> B["Extract session id + timestamp + nonce + auth tag"]
+    A["UDP datagram received"] --> B["Read 7-byte session token prefix"]
     B --> C["Find connection in ConnectionHub"]
-    C --> D["Validate replay window"]
-    D --> E["Validate Poly1305 tag"]
-    E --> F["Call IsAuthenticated(...)"]
-    F --> G["Inject payload into connection"]
+    C --> D["Check UDP marker in packet header"]
+    D --> E["Call IsAuthenticated(...)"]
+    E --> F["Inject payload into connection"]
 ```
 
 ## Server shape
@@ -68,48 +65,31 @@ That means a common pattern is:
 The listener currently validates these parts:
 
 ```text
-[payload][session-id][timestamp][nonce][poly1305-tag]
+[session-token][payload]
 ```
 
-The authentication tag is computed from:
-
-- payload
-- session ID bytes
-- timestamp bytes
-- nonce bytes
-- encoded remote endpoint
-- the connection secret
+The token is the `Snowflake` session ID assigned to the connection after TCP login.
 
 ## Pseudocode for client-side send
 
 ```csharp
 byte[] payload = BuildGamePayload();
-byte[] sessionId = connectionId.ToBytes();
-long timestamp = CurrentUnixMilliseconds();
-ulong nonce = NextNonce();
+byte[] sessionToken = connectionId.ToBytes();
 
-byte[] tag = ComputePoly1305(
-    secret: sessionSecret,
-    payload: payload,
-    sessionId: sessionId,
-    timestamp: timestamp,
-    nonce: nonce,
-    remoteEndPoint: serverEndPoint);
-
-byte[] datagram = Concat(payload, sessionId, BitConverter.GetBytes(timestamp), BitConverter.GetBytes(nonce), tag);
+byte[] datagram = Concat(sessionToken, payload);
 await udp.SendAsync(datagram, serverEndPoint);
 ```
 
-## Replay protection
+## Transport rules
 
-The runtime rejects datagrams that fall outside the replay window.
+The runtime does not add timestamp, nonce, or Poly1305 metadata to UDP datagrams.
+Instead, it uses the session token plus the connection/auth state already established through TCP.
 
-Today the code uses a window of about 30 seconds, so clients should:
+For clients, that means:
 
-- keep clocks reasonably aligned
-- generate timestamps at send time
-- generate a fresh nonce per datagram
-- avoid replaying stale datagrams
+- send the 7-byte session token first
+- keep the payload small enough to fit `MaxUdpDatagramSize`
+- treat UDP as a fast datagram path, not a second authentication protocol
 
 ## What happens on failure
 
@@ -129,7 +109,7 @@ For a simple deployment:
 1. establish session over TCP
 2. assign/store session secret
 3. return session ID to the client
-4. let the client send authenticated UDP datagrams
+4. let the client send UDP datagrams prefixed with the session token
 5. verify in `IsAuthenticated(...)` that the session is ready for UDP
 
 ## Related pages

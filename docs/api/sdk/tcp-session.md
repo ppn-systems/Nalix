@@ -37,6 +37,7 @@ sequenceDiagram
 - **Asynchronous Loop**: A background task continuously monitors the socket for incoming frames.
 - **Unified Framing**: Shared with the server to ensure consistent `MagicNumber` and `Opcode` processing.
 - **Error Handling**: Centralized `OnError` and `OnDisconnected` events for resilient client behavior.
+- **Request Helpers**: `RequestAsync<TResponse>()` and the higher-level extension helpers handle subscribe-before-send request flows.
 
 ## Public API
 
@@ -56,6 +57,7 @@ sequenceDiagram
 | `DisconnectAsync()` | Gracefully shuts down the connection. |
 | `SendAsync(IPacket)` | Serializes and sends a packet with standard framing. |
 | `SendAsync(payload)` | Sends raw binary data with required framing. |
+| `RequestAsync<TResponse>(...)` | Sends a request and waits for a matching typed response. |
 | `Dispose()` | Full resource cleanup and socket closure. |
 
 ## Basic usage
@@ -77,7 +79,17 @@ client.OnMessageReceived += (s, lease) =>
 
 await client.ConnectAsync();
 await client.SendAsync(new LoginPacket { Username = "Ghost" });
+
+var loginResponse = await client.RequestAsync<LoginResponse>(
+    new LoginPacket { Username = "Ghost" },
+    RequestOptions.Default.WithTimeout(5_000));
 ```
+
+## Notes
+
+- `OnMessageReceived` provides raw `IBufferLease` access. If you need typed packet handling, use the subscription helpers in [Subscriptions](./subscriptions.md).
+- `RequestAsync<TResponse>()` subscribes before sending the packet, which avoids losing fast responses on low-latency servers.
+- `OnMessageAsync` is optional and is best for fire-and-forget processing that can safely run on the background receive flow.
 
 ## Related APIs
 

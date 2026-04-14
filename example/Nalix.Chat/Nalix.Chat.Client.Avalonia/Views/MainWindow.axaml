@@ -1,0 +1,48 @@
+<!-- Copyright (c) 2026 PPN Corporation. All rights reserved. -->
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:views="clr-namespace:Nalix.Chat.Client.Avalonia.Views"
+        mc:Ignorable="d" d:DesignWidth="1400" d:DesignHeight="860"
+        Width="1400" Height="860" MinWidth="980" MinHeight="620"
+        x:Class="Nalix.Chat.Client.Avalonia.Views.MainWindow"
+        Title="Nalix Secure Chat">
+
+  <Border Margin="16" CornerRadius="18" BorderThickness="1" BorderBrush="#3A5A78" Background="#112233">
+    <Grid RowDefinitions="Auto,*" ColumnDefinitions="250,*,320" ColumnSpacing="12" RowSpacing="12" Margin="14">
+      <Border Grid.Row="0" Grid.ColumnSpan="3" CornerRadius="10" Background="#17324D" Padding="14,10">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="2">
+            <TextBlock Text="Nalix Secure Chat" FontSize="24" FontWeight="Bold" Foreground="#EAF4FF" />
+            <TextBlock Text="Industrial-grade encrypted room messaging sample" Foreground="#AAC6E6" />
+          </StackPanel>
+
+          <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" VerticalAlignment="Center" Foreground="#D9F2FF" FontWeight="SemiBold" />
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Grid.Column="0" CornerRadius="12" Padding="12" Background="#16324C" BorderBrush="#2F4F6E" BorderThickness="1">
+        <StackPanel Spacing="10">
+          <TextBlock Text="Rooms" FontSize="18" FontWeight="SemiBold" Foreground="#F2F8FF" />
+
+          <ListBox ItemsSource="{Binding Rooms}" SelectedItem="{Binding SelectedRoom, Mode=TwoWay}" Height="240" />
+
+          <TextBlock Text="Participant" Foreground="#D5E7FF" />
+          <TextBox Text="{Binding ParticipantId, Mode=TwoWay}" Watermark="participant id" />
+
+          <TextBlock Text="Display Name" Foreground="#D5E7FF" />
+          <TextBox Text="{Binding DisplayName, Mode=TwoWay}" Watermark="display name" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Connect" Command="{Binding ConnectCommand}" MinWidth="90" />
+            <Button Content="Join" Command="{Binding JoinRoomCommand}" MinWidth="90" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <views:ChatRoomView Grid.Row="1" Grid.Column="1" DataContext="{Binding ChatRoom}" />
+      <views:DiagnosticsSidebar Grid.Row="1" Grid.Column="2" DataContext="{Binding Diagnostics}" />
+    </Grid>
+  </Border>
+</Window>

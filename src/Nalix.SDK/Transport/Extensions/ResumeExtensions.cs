@@ -50,6 +50,7 @@ public static class ResumeExtensions
 
             if (response.Reason != ProtocolReason.NONE)
             {
+                session.Options.SessionToken = response.SessionToken;
                 return false;
             }
 
@@ -106,10 +107,12 @@ public static class ResumeExtensions
                 throw new NetworkException("Session resume failed and handshake fallback is disabled.");
             }
 
-            if (!session.IsConnected)
+            if (session.IsConnected)
             {
-                await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
+                await session.DisconnectAsync().ConfigureAwait(false);
             }
+
+            await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
         }
 
         bool previousEncryption = session.Options.EncryptionEnabled;

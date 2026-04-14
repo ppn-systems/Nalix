@@ -46,6 +46,7 @@ Lets an already connected `TcpSession` switch its active cipher suite in sync wi
 - **Protocol-Safe Switch**: Uses a dedicated `CONTROL` update and sequence id to coordinate the change.
 - **Immediate Transition**: Sends the update with the old cipher, then swaps the local algorithm before awaiting the ACK.
 - **Session-Side Update**: Updates `TransportOptions.Algorithm` after the request is sent.
+- **Rollback Safety**: If the ACK does not arrive, the SDK restores the previous cipher to keep client and server aligned.
 
 ### 3. Request/Response (`RequestExtensions`)
 Provides an unified `RequestAsync<TResponse>` method that handles the full cycle of subscribing, sending a request, awaiting the response with a timeout, and retrying if necessary.
@@ -58,6 +59,7 @@ A specialized event system that handles buffer ownership and fault tolerance.
 
 - **Safe Disposal**: Handlers are automatically wrapped to ensure `IBufferLease` is released.
 - **Lifecycle Management**: Supports `OnOnce` for transient events and `CompositeSubscription` for bulk cleanup.
+- **Fault Isolation**: Subscriber exceptions are logged instead of faulting the receive loop.
 
 ## Basic usage
 
