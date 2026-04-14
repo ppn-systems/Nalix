@@ -1,0 +1,82 @@
+# System Protocol & Network Control — Expansion Roadmap
+
+> **Status:** Draft  
+> **Audience:** Core Network Engineers, Framework Maintainers  
+> **Context:** Strategic implementation plan for extending the Nalix System Protocol Handlers. This roadmap focuses on deep integration with Nalix's existing high-performance architecture — `ConnectionHub`, zero-allocation `SocketConnection`, and O(1) `TimingWheel`.
+
+---
+
+## Implementation Milestones
+
+### 1. Resilient Error Logging & Spoofing Prevention
+
+**Status:** 🔲 Not Started  
+**Objective:** Handle client-originated `ControlType.ERROR` / `FAIL` packets securely without exposing the server to log spam or disk I/O exhaustion (DDoS).
+
+**Architectural Guidelines:**
+
+- **Drop-on-Fail:** When a `FAIL` packet is received, the client state is considered corrupted. The pipeline MUST log the event exactly once, then immediately call `connection.Close(force: true)` to sever the connection and block further spam at the socket level.
+
+- **Trust-Level Diagnostics:**
+
+  | Connection Type | Log Level | Rationale |
+  | :--- | :--- | :--- |
+  | Anonymous | `Trace` / `Debug` | Prevents log pollution from unauthenticated bot sweeps. |
+  | Authenticated | `Warn` | Captures `packet.Reason` and `connection.ID` for admin tracing. |
+
+- **Duplicate Mitigation:** Set `connection.Attributes["IsErrorLogged"] = true` on first encounter. Subsequent error packets from the same physical socket are silently dropped before logging.
+
+---
+
+### 2. Dedicated Throttle Feedback Pipeline
+
+**Status:** 🔲 Not Started  
+**Objective:** Provide adaptive backpressure signaling (UX feedback) without violating the Single Responsibility Principle of inbound security blocks like `RateLimitMiddleware`.
+
+**Architectural Guidelines:**
+
+- **Decoupling:** `RateLimitMiddleware` drops malicious traffic. Combining outbound feedback within it risks "Outbound Amplification" (e.g., 10,000 inbound spam packets triggering 10,000 outbound `THROTTLE` packets).
+
+- **Dedicated Layer:** Introduce `ThrottleFeedbackMiddleware` as a distinct entity operating behind the primary limiters.
+
+- **Cooldown Tracker:** Issue exactly **one** `ControlType.THROTTLE` packet to an exceeding client, then record the timestamp in `connection.Attributes["LastThrottleSent"]`. Enforce a strict minimum cooldown (e.g., 5000 ms) before any subsequent throttle notifications.
+
+- **Client Contract:** The Nalix SDK listens for `THROTTLE` packets to temporarily lock UI/App inputs (`IsDelay = true`), enforcing a smooth "slow down" experience.
+
+---
+
+### 3. Graceful Shutdown & Multi-Cast Broadcasting
+
+**Status:** 🔲 Not Started  
+**Objective:** Safely terminate server instances without memory corruption or data loss using `ConnectionHub.BroadcastAsync`.
+
+**Architectural Guidelines:**
+
+- **Maintenance Broadcast:** During a server update trigger, use `BroadcastAsync` to push `ControlType.NOTICE` (Maintenance Warning) to all concurrent clients seamlessly across internal sharding dictionaries.
+
+- **Completion Barrier:** Enforce an intentional delay (`Task.Delay(5000)`) post-broadcast, enabling in-flight operations (database transactions, payment completions) to flush properly.
+
+- **Clean Teardown:** Finalize the lifecycle by invoking `_connectionHub.CloseAllConnections("Server shutting down")`, dropping all remaining references, and returning socket allocations to the pool manager.
+
+---
+
+### 4. Zero-RTT Session Resumption (Advanced Strategy)
+
+**Status:** ✅ Completed  
+**Objective:** Bypass compute-heavy Diffie-Hellman handshakes for authenticated clients on unstable networks (e.g., cellular dropping/reconnecting).
+
+**Architectural Guidelines:**
+
+- **Token Integration:** Extend `SystemControlHandlers` to parse `ControlType.RESUME` appending a previously established `SessionToken`.
+
+- **Session Manager (`ISessionManager`):** A dedicated module governing the lifecycle of `SessionSnapshot` records. Provides a unified abstraction over `MemoryCache` or distributed `Redis` instances, handling token generation, secure storage, and strict TTL expiration (e.g., 5-minute automatic eviction).
+
+- **Caching Strategy (TCP Half-Open Mitigation):** The `SessionSnapshot` MUST be generated and committed to cache **immediately** upon a successful handshake. Waiting for the socket `Dispose` event is a fatal anti-pattern — dead mobile connections (TCP Half-Open without FIN flags) may take 30+ seconds to trigger a disconnect, breaking the ultra-fast reconnect flow if the cache isn't pre-warmed.
+
+- **Hydration:** Validate the token via `ISessionManager` to retrieve the active `IConnection` cipher state.
+
+- **Instant Recovery:** Re-attach encryption algorithms and authentication stages dynamically, restoring the transport pipeline without allocating a new handshake sequence.
+
+---
+
+*Prepared for Nalix Open-Source Enterprise Development*
