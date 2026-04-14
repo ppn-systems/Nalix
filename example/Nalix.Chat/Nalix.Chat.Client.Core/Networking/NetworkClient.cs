@@ -226,7 +226,10 @@ public sealed class NetworkClient : INetworkClient
         {
             await this.DisconnectAsync().ConfigureAwait(false);
         }
-        catch
+        catch (OperationCanceledException) when (_disposeCts.IsCancellationRequested)
+        {
+        }
+        catch (TransportException ex) when (ex.Kind == TransportErrorKind.ConnectionClosed || ex.Kind == TransportErrorKind.NotConnected)
         {
         }
 
