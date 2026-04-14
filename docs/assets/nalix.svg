@@ -8,164 +8,122 @@
     </linearGradient>
 
     <!-- Accent gradient for the N letter -->
-    <linearGradient id="letterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#667eea"/>
+    <linearGradient id="letterGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#8b9cf7"/>
+      <stop offset="40%" stop-color="#667eea"/>
       <stop offset="100%" stop-color="#764ba2"/>
     </linearGradient>
 
-    <!-- Stroke gradient for border -->
+    <!-- Border gradient -->
     <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#667eea" stop-opacity="0.7"/>
-      <stop offset="50%" stop-color="#764ba2" stop-opacity="0.5"/>
-      <stop offset="100%" stop-color="#667eea" stop-opacity="0.7"/>
+      <stop offset="0%" stop-color="#667eea" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#764ba2" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#667eea" stop-opacity="0.6"/>
     </linearGradient>
 
-    <!-- Corner accent gradient -->
-    <linearGradient id="cornerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#667eea" stop-opacity="0.4"/>
+    <!-- Corner ambient light -->
+    <radialGradient id="cornerGlow" cx="10%" cy="10%" r="60%">
+      <stop offset="0%" stop-color="#667eea" stop-opacity="0.15"/>
       <stop offset="100%" stop-color="#667eea" stop-opacity="0"/>
-    </linearGradient>
+    </radialGradient>
 
-    <!-- Glow behind the letter -->
-    <radialGradient id="glowCenter" cx="50%" cy="48%" r="35%">
-      <stop offset="0%" stop-color="#667eea" stop-opacity="0.2"/>
-      <stop offset="70%" stop-color="#764ba2" stop-opacity="0.05"/>
+    <!-- Center glow behind letter -->
+    <radialGradient id="glowCenter" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#667eea" stop-opacity="0.15"/>
+      <stop offset="60%" stop-color="#764ba2" stop-opacity="0.04"/>
       <stop offset="100%" stop-color="#764ba2" stop-opacity="0"/>
     </radialGradient>
 
     <!-- Grid pattern -->
     <pattern id="grid" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
-      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#667eea" stroke-width="0.4" stroke-opacity="0.08"/>
+      <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#667eea" stroke-width="0.4" stroke-opacity="0.07"/>
     </pattern>
 
-    <!-- Dot pattern -->
-    <pattern id="dots" x="8" y="8" width="20" height="20" patternUnits="userSpaceOnUse">
-      <circle cx="1" cy="1" r="0.6" fill="#667eea" fill-opacity="0.1"/>
-    </pattern>
-
-    <!-- Text glow filter -->
-    <filter id="letterGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
-      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.4  0 0 0 0 0.49  0 0 0 0 0.92  0 0 0 0.6 0" result="glow"/>
+    <!-- Letter glow filter -->
+    <filter id="letterGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.4  0 0 0 0 0.49  0 0 0 0 0.92  0 0 0 0.5 0" result="glow"/>
       <feMerge>
         <feMergeNode in="glow"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
 
-    <!-- Subtle inner shadow -->
-    <filter id="innerShadow" x="-5%" y="-5%" width="110%" height="110%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.4"/>
-    </filter>
-
-    <!-- Clip for rounded square -->
+    <!-- Clip rounded square -->
     <clipPath id="roundClip">
-      <rect width="512" height="512" rx="96"/>
+      <rect width="512" height="512" rx="100"/>
     </clipPath>
   </defs>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!-- Base shape                              -->
-  <!-- ═══════════════════════════════════════ -->
+  <!-- Clipped container -->
   <g clip-path="url(#roundClip)">
-    <!-- Fill background -->
+
+    <!-- Background fill -->
     <rect width="512" height="512" fill="url(#bgGrad)"/>
-
-    <!-- Subtle patterns -->
     <rect width="512" height="512" fill="url(#grid)"/>
-    <rect width="512" height="512" fill="url(#dots)"/>
 
-    <!-- Corner glow - top left -->
-    <circle cx="0" cy="0" r="200" fill="url(#cornerGrad)"/>
-    <!-- Bottom right ambient -->
-    <circle cx="512" cy="512" r="250" fill="#764ba2" fill-opacity="0.06"/>
-
-    <!-- Center glow behind letter -->
+    <!-- Ambient lighting -->
+    <rect width="512" height="512" fill="url(#cornerGlow)"/>
     <rect width="512" height="512" fill="url(#glowCenter)"/>
+    <circle cx="480" cy="480" r="200" fill="#764ba2" fill-opacity="0.04"/>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- Network node decoration (subtle)       -->
-    <!-- ═══════════════════════════════════════ -->
-    <g opacity="0.12" stroke="#667eea" stroke-width="1">
-      <!-- Top-right cluster -->
-      <circle cx="390" cy="75" r="3" fill="#667eea"/>
-      <circle cx="430" cy="100" r="2" fill="#667eea"/>
-      <circle cx="410" cy="50" r="2" fill="#667eea"/>
-      <circle cx="455" cy="75" r="1.5" fill="#667eea"/>
-      <line x1="390" y1="75" x2="430" y2="100"/>
-      <line x1="390" y1="75" x2="410" y2="50"/>
-      <line x1="430" y1="100" x2="455" y2="75"/>
-      <line x1="410" y1="50" x2="455" y2="75"/>
-
-      <!-- Bottom-left cluster -->
-      <circle cx="80" cy="420" r="3" fill="#764ba2"/>
-      <circle cx="55" cy="445" r="2" fill="#764ba2"/>
-      <circle cx="110" cy="450" r="2" fill="#764ba2"/>
-      <circle cx="70" cy="460" r="1.5" fill="#764ba2"/>
-      <line x1="80" y1="420" x2="55" y2="445" stroke="#764ba2"/>
-      <line x1="80" y1="420" x2="110" y2="450" stroke="#764ba2"/>
-      <line x1="55" y1="445" x2="70" y2="460" stroke="#764ba2"/>
-      <line x1="110" y1="450" x2="70" y2="460" stroke="#764ba2"/>
+    <!-- Network nodes - top right (subtle) -->
+    <g opacity="0.1" stroke="#667eea" stroke-width="0.8">
+      <circle cx="400" cy="70" r="2.5" fill="#667eea"/>
+      <circle cx="435" cy="95" r="2" fill="#667eea"/>
+      <circle cx="420" cy="50" r="1.5" fill="#667eea"/>
+      <circle cx="460" cy="70" r="1.5" fill="#667eea"/>
+      <line x1="400" y1="70" x2="435" y2="95"/>
+      <line x1="400" y1="70" x2="420" y2="50"/>
+      <line x1="435" y1="95" x2="460" y2="70"/>
+      <line x1="420" y1="50" x2="460" y2="70"/>
     </g>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- Packet frame hint (bottom-right)       -->
-    <!-- ═══════════════════════════════════════ -->
-    <g opacity="0.06" transform="translate(330, 430)">
-      <rect x="0" y="0" width="80" height="20" rx="3" stroke="#667eea" stroke-width="0.8" fill="none"/>
-      <rect x="0" y="0" width="20" height="20" rx="3" fill="#667eea" fill-opacity="0.2"/>
+    <!-- Network nodes - bottom left (subtle) -->
+    <g opacity="0.08" stroke="#764ba2" stroke-width="0.8">
+      <circle cx="75" cy="430" r="2.5" fill="#764ba2"/>
+      <circle cx="50" cy="455" r="2" fill="#764ba2"/>
+      <circle cx="100" cy="455" r="1.5" fill="#764ba2"/>
+      <circle cx="65" cy="470" r="1.5" fill="#764ba2"/>
+      <line x1="75" y1="430" x2="50" y2="455"/>
+      <line x1="75" y1="430" x2="100" y2="455"/>
+      <line x1="50" y1="455" x2="65" y2="470"/>
+      <line x1="100" y1="455" x2="65" y2="470"/>
     </g>
 
-    <!-- Binary decoration -->
-    <g opacity="0.04" fill="#667eea" font-family="monospace" font-size="9">
-      <text x="40" y="490">01001110</text>
-      <text x="350" y="30">10110010</text>
-    </g>
-
-    <!-- ═══════════════════════════════════════ -->
-    <!-- The "N" letter                         -->
-    <!-- ═══════════════════════════════════════ -->
+    <!-- ═══════════════════════════════════ -->
+    <!-- The "N" letterform                 -->
+    <!-- ═══════════════════════════════════ -->
+    <!--
+      Geometric wide "N" for a bold, modern tech look.
+      Canvas: 512x512. Letter occupies ~130..382 x, ~120..392 y.
+      Stroke width: 50px. Diagonal width: 50px visual.
+    -->
     <g filter="url(#letterGlow)">
-      <!--
-        Custom geometric "N" built from paths for a sharp, modern look.
-        Proportions: centered in the 512x512 canvas.
-        Left vertical stroke: x=130 to x=178 (48px wide)
-        Right vertical stroke: x=334 to x=382 (48px wide)
-        Diagonal connecting stroke: 48px wide
-      -->
-      <path
-        d="
-          M 130 380
-          L 130 132
-          L 178 132
-          L 178 282
-          L 334 132
-          L 382 132
-          L 382 380
-          L 334 380
-          L 334 230
-          L 178 380
-          Z
-        "
-        fill="url(#letterGrad)"
-      />
+      <path d="
+        M 135 120
+        L 185 120
+        L 327 290
+        L 327 120
+        L 377 120
+        L 377 392
+        L 327 392
+        L 185 222
+        L 185 392
+        L 135 392
+        Z
+      " fill="url(#letterGrad)"/>
     </g>
 
-    <!-- Subtle highlight on top edge of N -->
-    <path
-      d="M 130 132 L 178 132 L 178 140 L 130 140 Z"
-      fill="white"
-      fill-opacity="0.12"
-    />
-    <path
-      d="M 334 132 L 382 132 L 382 140 L 334 140 Z"
-      fill="white"
-      fill-opacity="0.08"
-    />
+    <!-- Subtle highlight on top edges -->
+    <path d="M 135 120 L 185 120 L 185 127 L 135 127 Z" fill="white" fill-opacity="0.15"/>
+    <path d="M 327 120 L 377 120 L 377 127 L 327 127 Z" fill="white" fill-opacity="0.1"/>
+
+    <!-- Subtle reflection on left edge -->
+    <path d="M 135 120 L 140 120 L 140 392 L 135 392 Z" fill="white" fill-opacity="0.06"/>
+
   </g>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!-- Border glow                             -->
-  <!-- ═══════════════════════════════════════ -->
-  <rect x="2" y="2" width="508" height="508" rx="94" fill="none" stroke="url(#borderGrad)" stroke-width="2.5"/>
+  <!-- Border -->
+  <rect x="2" y="2" width="508" height="508" rx="98" fill="none" stroke="url(#borderGrad)" stroke-width="2.5"/>
 </svg>
