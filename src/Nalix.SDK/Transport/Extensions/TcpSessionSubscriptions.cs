@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Abstractions;
@@ -28,13 +29,50 @@ public static class TcpSessionSubscriptions
 {
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
-    /// <summary>Subscribes to strongly-typed packets.</summary>
+    /// <summary>
+    /// Subscribes to strongly-typed packets and ignores non-matching packets.
+    /// </summary>
     /// <typeparam name="TPacket">The packet type to receive.</typeparam>
     /// <param name="client">The transport session to subscribe to.</param>
     /// <param name="handler">The callback invoked for each received packet.</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On<TPacket>(this TransportSession client, Action<TPacket> handler)
+        where TPacket : class, IPacket
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(handler);
+
+        void Wrapper(object? _, IBufferLease buffer)
+        {
+            IPacket p = client.Catalog.Deserialize(buffer.Span);
+
+            if (p is not TPacket t)
+            {
+                Trace.TraceWarning(
+                    "Nalix.SDK.TcpSessionSubscriptions.On<{0}> ignored packet {1}.",
+                    typeof(TPacket).Name,
+                    p?.GetType().Name ?? "null");
+                return;
+            }
+
+            handler(t);
+        }
+
+        client.OnMessageReceived += Wrapper;
+        return new Unsub(() => client.OnMessageReceived -= Wrapper);
+    }
+
+    /// <summary>
+    /// Subscribes to strongly-typed packets and throws if a different packet type is received.
+    /// Use this only for debugging or for channels that are guaranteed to carry exactly one type.
+    /// </summary>
+    /// <typeparam name="TPacket">The packet type to receive.</typeparam>
+    /// <param name="client">The transport session to subscribe to.</param>
+    /// <param name="handler">The callback invoked for each received packet.</param>
+    /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static IDisposable OnExact<TPacket>(this TransportSession client, Action<TPacket> handler)
         where TPacket : class, IPacket
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -103,6 +141,7 @@ public static class TcpSessionSubscriptions
         where TPacket : class, IPacket
     {
         ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(handler);
 
         int fired = 0;
@@ -117,7 +156,7 @@ public static class TcpSessionSubscriptions
                 return;
             }
 
-            if (predicate is not null && !predicate(t))
+            if (!predicate(t))
             {
                 return;
             }
@@ -184,10 +223,7 @@ public static class TcpSessionSubscriptions
 
         client.OnDisconnected += DisconnectHandler;
 
-        // Return a composite that unsubscribes both handlers atomically.
-        return new CompositeSubscription(
-            msgSub,
-            new DelegateDisposable(() => client.OnDisconnected -= DisconnectHandler));
+        return client.Subscribe(msgSub, new DelegateDisposable(() => client.OnDisconnected -= DisconnectHandler));
     }
 
     /// <summary>
@@ -207,7 +243,6 @@ public static class TcpSessionSubscriptions
         ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(onMessage);
 
-        // Wrap predicate + handler into a single On<TPacket> subscription.
         IDisposable msgSub = client.On<TPacket>(p =>
         {
             if (predicate(p))
@@ -228,9 +263,7 @@ public static class TcpSessionSubscriptions
 
         client.OnDisconnected += DisconnectHandler;
 
-        return new CompositeSubscription(
-            msgSub,
-            new DelegateDisposable(() => client.OnDisconnected -= DisconnectHandler));
+        return client.Subscribe(msgSub, new DelegateDisposable(() => client.OnDisconnected -= DisconnectHandler));
     }
 
     // ── Subscribe (composite) ────────────────────────────────────────────────

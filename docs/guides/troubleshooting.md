@@ -114,9 +114,8 @@ Register it during startup, before building dispatch handlers.
 
 **Check first**
 
-- datagram contains session ID, timestamp, and auth tag
+- datagram contains the 7-byte session token prefix and payload
 - session exists in `ConnectionHub`
-- replay window is still valid
 - `IsAuthenticated(...)` returns true
 - connection secret is initialized
 
@@ -126,7 +125,7 @@ Start with:
 
 1. establish session over TCP
 2. ensure the connection is stored in `ConnectionHub`
-3. send authenticated UDP datagrams only after session setup completes
+3. send UDP datagrams only after session setup completes, with the session token prefix in place
 
 ## 7. Handler returns but no reply is sent
 

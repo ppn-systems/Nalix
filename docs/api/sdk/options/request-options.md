@@ -1,6 +1,6 @@
 # Request Options
 
-`RequestOptions` is a fluent configuration record that controls the behavior of the `RequestAsync` helper. It determines how long to wait for a response, how many times to retry on timeout, and whether the outbound request should be encrypted.
+`RequestOptions` is the fluent configuration record used by `RequestAsync<TResponse>()`. It controls per-attempt timeout, retry count, and whether the outbound request should be encrypted.
 
 ## Retry and Timeout Flow
 
@@ -25,11 +25,11 @@ sequenceDiagram
 
 ## Role and Design
 
-`RequestOptions` is designed as a C# `record` to support non-destructive mutation and fluent chaining. This makes it trivial to create one-off request configurations without affecting the global default.
+`RequestOptions` is designed as a C# `record` so you can clone and tweak options without mutating a shared instance. That makes it easy to build one-off request settings from `RequestOptions.Default`.
 
-- **Timeout per Attempt**: The `TimeoutMs` applies to each individual attempt, not the total request time.
-- **Selective Retries**: Retries are only triggered by `TimeoutException`. Fatal transport errors (like a closed socket) are propagated immediately to avoid redundant work on broken channels.
-- **Encryption Opt-in**: The `Encrypt` flag allows specific requests to be secured even if the base transport is not globally encrypting.
+- **Timeout per attempt**: `TimeoutMs` applies to each individual attempt, not the total request time.
+- **Selective retries**: retries are only triggered by `TimeoutException`. Fatal transport errors, send failures, and disconnects propagate immediately.
+- **Encryption opt-in**: `Encrypt` allows specific requests to be secured even if the base transport is not globally encrypting. The SDK only applies this to `TcpSession`.
 
 ## API Reference
 
@@ -60,15 +60,22 @@ var opts = RequestOptions.Default
     .WithEncrypt();
 
 var secureResponse = await client.RequestAsync<SecretData>(sensitivePacket, opts);
+
+// Explicit predicate for correlated replies
+var matchingResponse = await client.RequestAsync<SecretData>(
+    sensitivePacket,
+    RequestOptions.Default.WithTimeout(2000),
+    predicate: response => response.RequestId == sensitivePacket.RequestId);
 ```
 
 ## Important notes
 
-- **Total Wait Time**: The maximum delay a caller might face is approximately `TimeoutMs * (RetryCount + 1)`.
-- **Encryption Compatibility**: `Encrypt = true` is currently only supported when using `TcpSession`. Applying it to `UdpSession` will trigger a validation nudge from the analyzer.
+- **Total wait time**: the maximum delay a caller might face is approximately `TimeoutMs * (RetryCount + 1)`.
+- **Encryption compatibility**: `Encrypt = true` is only supported when using `TcpSession`. The helper validates this before sending.
+- **Predicate quality**: when you provide a predicate, it should identify the correlated response, not just the packet type.
 
 ## Related APIs
 
 - [TCP Session](../tcp-session.md)
 - [Transport Options](./transport-options.md)
-- [Session Extensions](../tcp-session-extensions.md)
+- [Subscriptions](../subscriptions.md)

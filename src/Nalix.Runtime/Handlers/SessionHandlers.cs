@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
@@ -63,6 +64,8 @@ public sealed class SessionHandlers
             return;
         }
 
+        ApplySession(context.Connection, session);
+
         using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
         SessionResume ack = lease.Value;
         ack.Initialize(
@@ -72,6 +75,31 @@ public sealed class SessionHandlers
             transport: packet.Protocol);
 
         await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Restores the saved session snapshot onto the live connection before acknowledging resume.
+    /// </summary>
+    /// <param name="connection">The connection being resumed.</param>
+    /// <param name="session">The stored session entry.</param>
+    private static void ApplySession(IConnection connection, SessionEntry session)
+    {
+        SessionSnapshot snapshot = session.Snapshot;
+
+        connection.Secret = [.. snapshot.Secret];
+        connection.Algorithm = snapshot.Algorithm;
+        connection.Level = snapshot.Level;
+
+        if (snapshot.Attributes is not null)
+        {
+            foreach (KeyValuePair<string, object> attribute in snapshot.Attributes)
+            {
+                connection.Attributes[attribute.Key] = attribute.Value;
+            }
+        }
+
+        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        connection.Attributes[ConnectionAttributes.SessionToken] = snapshot.SessionToken;
     }
 
     /// <summary>

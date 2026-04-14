@@ -4,9 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.SDK.Extensions;
 using Nalix.SDK.Transport.Extensions;
 
 namespace Nalix.SDK.Transport;
@@ -36,7 +34,6 @@ public static class PacketAwaiter
         int timeoutMs, Func<CancellationToken, Task> sendAsync, CancellationToken ct)
         where TPkt : class, IPacket
     {
-        // Parameter validation
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(sendAsync);
@@ -46,37 +43,44 @@ public static class PacketAwaiter
             throw new ArgumentOutOfRangeException(nameof(timeoutMs), "timeoutMs must be >= 0 (0 = infinite)");
         }
 
-        TaskCompletionSource<TPkt> tcs = new(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-
-        using CancellationTokenSource lcts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        TaskCompletionSource<TPkt> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         if (timeoutMs > 0)
         {
-            lcts.CancelAfter(timeoutMs);
+            linkedCts.CancelAfter(timeoutMs);
         }
 
-        // Register cancellation -> cancel the TCS. Use 'using' for the registration (not 'await using').
-        using CancellationTokenRegistration reg = lcts.Token.Register(() =>
+        using CancellationTokenRegistration registration = linkedCts.Token.Register(() =>
         {
-            try { _ = tcs.TrySetCanceled(lcts.Token); } catch { /* swallow */ }
+            try { _ = tcs.TrySetCanceled(linkedCts.Token); } catch { }
         });
 
-        // Subscribe BEFORE sending — no missed responses regardless of server latency.
-        using IDisposable sub = client.SubscribeTemp(OnMessageReceived, OnDisconnected);
+        using IDisposable subscription = client.SubscribeTemp<TPkt>(
+            onMessage: packet =>
+            {
+                if (!predicate(packet))
+                {
+                    return;
+                }
 
-        // Delegate to caller for the actual send (e.g. client.SendAsync, SendControlAsync, …)
+                _ = tcs.TrySetResult(packet);
+            },
+            onDisconnected: ex =>
+            {
+                Exception error = ex ?? new InvalidOperationException(
+                    $"Disconnected while waiting for {typeof(TPkt).Name}.");
+
+                try { _ = tcs.TrySetException(error); } catch { }
+            });
+
         try
         {
-
-            await sendAsync(lcts.Token).ConfigureAwait(false);
-
+            await sendAsync(linkedCts.Token).ConfigureAwait(false);
         }
         catch (Exception sendEx)
         {
-            // Ensure awaiting tasks are signalled about the send failure.
-            try { _ = tcs.TrySetException(sendEx); } catch { /* swallow */ }
-
+            try { _ = tcs.TrySetException(sendEx); } catch { }
             throw;
         }
 
@@ -91,30 +95,6 @@ public static class PacketAwaiter
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             throw new TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms.");
-        }
-
-        // Local handlers
-
-        void OnMessageReceived(object? _, IBufferLease buffer)
-        {
-            // Try deserialize — if it fails, let it propagate to the transport.
-            IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-            if (p is TPkt match)
-            {
-                if (predicate(match))
-                {
-                    // Found a match; try to set the result (may race with cancellation/disconnect).
-                    _ = tcs.TrySetResult(match);
-                }
-            }
-        }
-
-        void OnDisconnected(object? _, Exception ex)
-        {
-            Exception exToSet = ex ?? new InvalidOperationException($"Disconnected while waiting for {typeof(TPkt).Name}.");
-            try { _ = tcs.TrySetException(exToSet); } catch { /* swallow */ }
-
         }
     }
 }

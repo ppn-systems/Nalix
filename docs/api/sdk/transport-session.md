@@ -1,6 +1,6 @@
 # Transport Session
 
-`TransportSession` is the primary abstract contract for all client-side transport implementations in `Nalix.SDK`. It defines a unified lifecycle for connecting, disconnecting, and exchanging framed messages, allowing application logic to remain agnostic of the underlying protocol (TCP vs UDP).
+`TransportSession` is the abstract client transport contract used by `Nalix.SDK`. It gives the SDK a common shape for connection state, packet registry access, raw packet sends, and receive-event wiring, while concrete sessions add protocol-specific behavior.
 
 ## Inheritance Hierarchy
 
@@ -35,11 +35,12 @@ classDiagram
 
 ## Role and Design
 
-The abstract session provides the glue between the high-level application events and the low-level byte-oriented socket operations. By depending on `TransportSession` instead of a concrete class, features like request matching, subscriptions, and diagnostic logging can be implemented once and reused across different transport types.
+The abstract session sits between application code and the socket layer. It keeps higher-level code focused on packets instead of byte buffers, and it lets the SDK build request/response helpers, subscriptions, handshake flows, and diagnostics on top of the same contract.
 
-- **Unified Lifecycle**: All transport sessions follow a standard `Connect` -> `Send/Receive` -> `Disconnect` -> `Dispose` pattern.
-- **Pooled Buffers**: Integration with `IBufferLease` ensures that message payloads are handled with minimal heap allocations.
-- **Pluggable Protocols**: Easily switch between standard TCP for reliability and UDP for performance-critical updates.
+- **Unified lifecycle**: `ConnectAsync()` -> send/receive -> `DisconnectAsync()` -> `Dispose()`.
+- **Shared packet registry**: `Catalog` resolves packet types for both raw and typed helpers.
+- **Raw and typed receive paths**: `OnMessageReceived` exposes `IBufferLease`, while typed helpers like `On<T>()` and `RequestAsync<TResponse>()` live in extension APIs.
+- **Protocol-specific overrides**: `TcpSession` adds reliable stream semantics, while `UdpSession` stays datagram-oriented.
 
 ## API Reference
 
@@ -65,10 +66,13 @@ The abstract session provides the glue between the high-level application events
 | `DisconnectAsync()` | Orchestrates a graceful shutdown. |
 | `SendAsync(IPacket)` | Serializes and frames a packet for transport. |
 | `SendAsync(payload)` | Frames and sends a raw binary payload. |
+| `RequestAsync<TResponse>(...)` | Sends a request and waits for a matching typed response. |
 
 ## Related APIs
 
 - [TCP Session](./tcp-session.md)
 - [UDP Session](./udp-session.md)
 - [SDK Overview](./index.md)
+- [Subscriptions](./subscriptions.md)
+- [Request Options](./options/request-options.md)
 - [Transport Options](./options/transport-options.md)
