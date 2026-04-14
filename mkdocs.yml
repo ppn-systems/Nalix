@@ -237,6 +237,7 @@ nav:
           - Timing Wheel Options: api/network/options/timing-wheel-options.md
           - Pooling Options: api/network/options/pooling-options.md
           - Network Callback Options: api/network/options/network-callback-options.md
+          - Session Store Options: api/network/options/session-store-options.md
           - Compression Options: api/network/options/compression-options.md
           - Token Bucket Options: api/network/options/token-bucket-options.md
       - Hosting:

@@ -55,4 +55,5 @@ Clear ownership reduces configuration mistakes in modular deployments.
 - [TCP Listener](../tcp-listener.md)
 - [UDP Listener](../udp-listener.md)
 - [Connection Hub](../connection/connection-hub.md)
+- [Session Store Options](./session-store-options.md)
 - [Dispatch Options](../../runtime/options/dispatch-options.md)
