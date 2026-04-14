@@ -117,7 +117,7 @@ public sealed class ChatMessageHandler
                 service,
                 context.CancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             ChatHandlerCommon.Logger?.LogError(ex, "Failed to process ChatMessageRequest from participant {ParticipantId}", request.ParticipantId);
 
