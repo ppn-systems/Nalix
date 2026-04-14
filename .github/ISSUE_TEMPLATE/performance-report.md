@@ -6,33 +6,28 @@ labels: "performance"
 assignees: ""
 ---
 
-> [!IMPORTANT]
-> **This template is for performance issues and optimization suggestions only.**
-> For general bugs, please use the Bug Report template instead.
-
----
-
-**Remove everything above this line when submitting your performance issue.**
+<!-- This template is for performance issues and optimization suggestions only. -->
+<!-- For general bugs, please use the Bug Report template instead. -->
 
 ## ⚡ Performance Issue
 
-Describe the performance problem or the area you believe can be optimized.
+<!-- Describe the performance problem or the area you believe can be optimized. -->
 
 ---
 
 ## 📊 Benchmark / Measurement
 
-If you have benchmark results or profiling data, share them here.
+<!-- If you have benchmark results or profiling data, share them here. -->
 
 **Before (current behavior):**
 
-```shell
+```text
 # BenchmarkDotNet output or profiling result
 ```
 
 **After (expected or measured improvement):**
 
-```shell
+```text
 # BenchmarkDotNet output or profiling result
 ```
 
@@ -54,25 +49,21 @@ If you have benchmark results or profiling data, share them here.
 
 ## 🌍 Environment
 
-| Field         | Value                         |
-|---------------|-------------------------------|
-| OS            | e.g. Windows 11, Ubuntu 22.04 |
-| .NET Version  | e.g. .NET 10                  |
-| Nalix Version | e.g. 1.2.3                    |
-| CPU / RAM     | e.g. AMD Ryzen 9, 32 GB       |
+| Field | Value |
+| :--- | :--- |
+| OS | e.g. Windows 11, Ubuntu 22.04 |
+| .NET Version | e.g. .NET 10.0 |
+| Nalix Version | e.g. 12.0.7 |
+| CPU / RAM | e.g. AMD Ryzen 9, 32 GB |
 
 ---
 
 ## 💡 Suggested Optimization
 
-Describe any optimization approach you have in mind, if any.
+<!-- Describe any optimization approach you have in mind, if any. -->
 
 ---
 
 ## 📂 Additional Context
 
-Add any additional profiling screenshots, flame graphs, or related links here.
-
----
-
-*Thank you for helping us make Nalix faster!*
+<!-- Add any additional profiling screenshots, flame graphs, or related links here. -->
