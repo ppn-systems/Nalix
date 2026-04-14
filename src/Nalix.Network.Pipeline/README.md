@@ -1,12 +1,14 @@
 # Nalix.Network.Pipeline
 
-Standard middleware components and pipeline abstractions for Nalix connection management.
+> Standard middleware components and pipeline abstractions for Nalix connection management.
 
-## Features
+## Key Features
 
-- **Connection Guards**: IP-based admission control and session limiting.
-- **Pipeline Abstraction**: Pluggable pipeline that wraps any `IConnection` for pre-processing.
-- **Pre-built Middlewares**: Throttling, Authentication, and Audit logging implementations.
+| Feature | Description |
+| :--- | :--- |
+| 🛡️ **Connection Guards** | IP-based admission control and session limiting. |
+| 🔌 **Pipeline Abstraction** | Pluggable pipeline that wraps any `IConnection` for pre/post processing. |
+| ⚙️ **Pre-built Middleware** | Throttling, authentication, and audit logging implementations out of the box. |
 
 ## Installation
 
@@ -16,4 +18,4 @@ dotnet add package Nalix.Network.Pipeline
 
 ## Documentation
 
-See [Middleware & Pipeline](https://ppn-systems.me/api/pipeline/index) for more details.
+See [Middleware & Pipeline](https://ppn-systems.me/api/pipeline/index) for configuration details and custom middleware authoring.

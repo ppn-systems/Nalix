@@ -1,15 +1,17 @@
 # Nalix.SDK
 
-A high-level client SDK for building Nalix-compatible client applications with ease.
+> High-level client SDK for building Nalix-compatible client applications with ease.
 
-## Features
+## Key Features
 
-- **TcpSession / UdpSession**: Managed session life cycles with automatic reconnection.
-- **Request / Response**: Correlated request-response pattern out-of-the-box via `RequestAsync<TResponse>()`.
-- **Buffer Management**: Transparently handles buffer pooling for outgoing and incoming packets.
-- **Encryption Support**: Built-in support for encrypted packet flows.
-- **Session Extensions**: Handshake helpers, control helpers, cipher switching, and resume helpers on live TCP sessions.
-- **Typed Subscriptions**: Safe `On<T>()` subscriptions ignore non-matching packets; use `OnExact<T>()` only when you truly expect one packet type on the channel.
+| Feature | Description |
+| :--- | :--- |
+| 🔗 **TcpSession / UdpSession** | Managed session lifecycles with automatic reconnection. |
+| 🔄 **Request / Response** | Correlated request-response pattern via `RequestAsync<TResponse>()`. |
+| 🧠 **Buffer Management** | Transparent buffer pooling for outgoing and incoming packets. |
+| 🔐 **Encryption Support** | Built-in support for encrypted packet flows. |
+| 🤝 **Session Extensions** | Handshake, control, cipher switching, and resume helpers on live TCP sessions. |
+| 📡 **Typed Subscriptions** | Safe `On<T>()` subscriptions; use `OnExact<T>()` only for single-type channels. |
 
 ## Installation
 
@@ -30,16 +32,19 @@ await session.ConnectAsync();
 var response = await session.RequestAsync<MyResponse>(
     new MyRequest { Id = 1 },
     options: RequestOptions.Default.WithTimeout(5_000));
+
 Console.WriteLine(response.Data);
 ```
 
 ## Common Patterns
 
-- `await session.HandshakeAsync()` for the initial secure handshake.
-- `await session.ResumeSessionAsync()` to attempt session resumption before a fresh handshake.
-- `await session.UpdateCipherAsync(...)` to rotate the cipher mid-connection.
-- `session.On<TPacket>(handler)` for long-lived packet listeners.
-- `session.OnExact<TPacket>(handler)` only for debugging or single-type channels.
+| Pattern | Usage |
+| :--- | :--- |
+| Initial handshake | `await session.HandshakeAsync()` |
+| Session resumption | `await session.ResumeSessionAsync()` |
+| Cipher rotation | `await session.UpdateCipherAsync(...)` |
+| Packet listener | `session.On<TPacket>(handler)` |
+| Debug-only listener | `session.OnExact<TPacket>(handler)` |
 
 ## Documentation
 
