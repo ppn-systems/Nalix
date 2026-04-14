@@ -83,12 +83,15 @@ public static class PacketAwaiter
         {
             if (sendEx is InvalidOperationException)
             {
-                sendEx = new Nalix.Common.Exceptions.NetworkException(
+                Exception wrapped = new Nalix.Common.Exceptions.NetworkException(
                     $"Disconnected while sending {typeof(TPkt).Name}.", sendEx);
+
+                try { _ = tcs.TrySetException(wrapped); } catch { }
+                throw wrapped;
             }
 
             try { _ = tcs.TrySetException(sendEx); } catch { }
-            throw sendEx;
+            throw;
         }
 
         try
