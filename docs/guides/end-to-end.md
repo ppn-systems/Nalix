@@ -1,16 +1,18 @@
-# End-to-End Sample
+# Minimal Server (No Hosting)
 
-This guide shows the smallest useful Nalix TCP server flow:
+This guide shows the smallest useful Nalix TCP server flow **without** the hosting builder. It wires up shared services, dispatch, protocol, and a listener manually.
 
-1. register shared services
-2. build a packet dispatcher
-3. forward frames from `Protocol` into dispatch
-4. start a `TcpListenerBase`
-5. send one request and receive one response
+Use this approach when you need complete control over startup order or when you want to understand what `NetworkApplication.CreateBuilder()` does behind the scenes.
+
+The steps are:
+
+1. Register shared services
+2. Build a packet dispatcher
+3. Forward frames from `Protocol` into dispatch
+4. Start a `TcpListenerBase`
+5. Send one request and receive one response
 
 The sample stays intentionally small so you can copy the structure first and optimize later.
-
-Use it when you want the shortest path from a listener to a handler reply.
 
 ## Server
 
@@ -114,8 +116,9 @@ The same end-to-end structure works with a custom packet type if you replace `Co
 - switch some handlers to `PacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
 - remember that the listener flow is `ProcessFrame(...)` first, then `ProcessMessage(...)` for the protocol bridge
 
-## Related pages
+## Recommended Next Pages
 
-- [TCP Request/Response](./tcp-request-response.md)
-- [Custom Middleware](./custom-middleware-end-to-end.md)
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
+- [TCP Request/Response](./tcp-request-response.md) — Detailed TCP pattern guide
+- [Custom Middleware](./custom-middleware-end-to-end.md) — Build middleware from scratch
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [Quickstart](../quickstart.md) — The hosted-builder approach

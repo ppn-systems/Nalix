@@ -1,5 +1,5 @@
 site_name: Nalix
-site_description: High-performance real-time server framework for .NET
+site_description: Enterprise-grade real-time TCP networking framework for .NET
 site_url: https://ppn-systems.github.io/nalix-docs/
 copyright: Copyright © 2025-2026 PPN Corporation
 repo_url: https://github.com/ppn-systems/nalix
@@ -16,7 +16,7 @@ extra:
       link: mailto:ppn.system@gmail.com
   announcement: |
     🚀 Nalix is under active development. Star us on GitHub!
-  canonical_url: https://ppn-systems.github.io/ppn-systems.github.io/
+  canonical_url: https://ppn-systems.github.io/nalix-docs/
   meta:
     - name: keywords
       content: real-time server, .NET, networking, TCP, UDP
