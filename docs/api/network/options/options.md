@@ -1,71 +1,59 @@
 # Network Options
 
-This page summarizes the main `Nalix.Network.Options` types that shape listener behavior, dispatch pressure, throttling, compression, idle cleanup, and object pooling.
+Network options define listener behavior, connection admission policy, queueing pressure, timeout cleanup, callbacks, and related runtime controls.
 
-## Source mapping
+## Audit Summary
+
+- Existing page had useful coverage but mixed types from multiple packages without clear boundary notes.
+- Needed clearer package ownership mapping.
+
+## Missing Content Identified
+
+- Package ownership for each options type (`Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Network.Pipeline`).
+- Explicit startup validation recommendation.
+
+## Improvement Rationale
+
+Clear ownership reduces configuration mistakes in modular deployments.
+
+## Source Mapping
 
 - `src/Nalix.Network/Options/NetworkSocketOptions.cs`
 - `src/Nalix.Network/Options/PoolingOptions.cs`
-- `src/Nalix.Runtime/Options/DispatchOptions.cs`
 - `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
 - `src/Nalix.Network/Options/ConnectionHubOptions.cs`
 - `src/Nalix.Network/Options/TimingWheelOptions.cs`
 - `src/Nalix.Network/Options/NetworkCallbackOptions.cs`
+- `src/Nalix.Network/Options/SessionStoreOptions.cs`
+- `src/Nalix.Runtime/Options/DispatchOptions.cs`
 - `src/Nalix.Framework/Options/CompressionOptions.cs`
 - `src/Nalix.Network.Pipeline/Options/TokenBucketOptions.cs`
 
-## Core option types
+## Option Ownership Matrix
 
-| Type | Purpose | Examples |
+| Option type | Package | Primary scope |
 |---|---|---|
-| `NetworkSocketOptions` | Listen socket and accept worker tuning. | `Port`, `Backlog`, `MaxParallel`, `KeepAlive`, `ReuseAddress`, `EnableTimeout`, `EnableIPv6` |
-| `PoolingOptions` | Pool capacities and preallocation for listener/dispatch objects. | accept context pool, socket args pool, packet context pool |
-| `DispatchOptions` | Per-connection queue behavior inside dispatch. | `MaxPerConnectionQueue`, `DropPolicy`, `BlockTimeout` |
-| `ConnectionLimitOptions` | Per-endpoint connection caps and burst bans. | concurrent cap, rate window, ban duration, cleanup |
-| `ConnectionHubOptions` | Hub sharding, username rules, broadcast behavior. | `ShardCount`, `MaxConnections`, `DropPolicy`, `BroadcastBatchSize` |
-| `TimingWheelOptions` | Idle connection timeout wheel. | bucket count, tick duration, idle timeout |
-| `NetworkCallbackOptions` | Callback flood protection and pending callback caps. | per-connection and per-IP pending limits |
-| `CompressionOptions` | Frame compression trigger rules. | enable flag, minimum size |
-| `TokenBucketOptions` | Token bucket limiter behavior. | burst capacity, refill, cleanup, sharding |
+| `NetworkSocketOptions` | `Nalix.Network` | socket/listener behavior |
+| `PoolingOptions` (network) | `Nalix.Network` | network object pooling |
+| `ConnectionLimitOptions` | `Nalix.Network` | admission/rate controls |
+| `ConnectionHubOptions` | `Nalix.Network` | hub capacity/sharding |
+| `TimingWheelOptions` | `Nalix.Network` | idle timeout wheel |
+| `NetworkCallbackOptions` | `Nalix.Network` | callback pressure limits |
+| `SessionStoreOptions` | `Nalix.Network` | resumable session TTL |
+| `DispatchOptions` | `Nalix.Runtime` | dispatch queue behavior |
+| `CompressionOptions` | `Nalix.Framework` | compression thresholds |
+| `TokenBucketOptions` | `Nalix.Network.Pipeline` | reusable token-bucket limiter |
 
-## How they are used
+## Best Practices
 
-- `TcpListenerBase` depends on `NetworkSocketOptions`, `PoolingOptions`, `TimingWheelOptions`, and `ConnectionLimitOptions`.
-- `UdpListenerBase` uses `NetworkSocketOptions`.
-- `ConnectionHub` reads `ConnectionHubOptions`.
-- `PacketDispatchChannel` and routing infrastructure depend on `DispatchOptions`, `NetworkCallbackOptions`, `CompressionOptions`, and pooling-related settings.
-- throttling components consume `TokenBucketOptions` and related limits.
-
-## Basic usage
-
-```csharp
-NetworkSocketOptions socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-socket.Validate();
-
-PoolingOptions pooling = ConfigurationManager.Instance.Get<PoolingOptions>();
-pooling.Validate();
-
-ConnectionLimitOptions limits = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
-limits.Validate();
-```
-
-## Notes
-
-- Validate options during startup, before activating listeners or dispatchers.
-- `MaxConnections = -1` typically means unlimited where that pattern is used.
-- Timeout-related options only take effect when the owning runtime path enables them, for example `NetworkSocketOptions.EnableTimeout`.
+- Validate all option objects during startup before `Activate()`.
+- Keep network/runtime/pipeline options grouped by owning package in configuration files.
+- Tune queue limits, drop policy, and connection limits together.
 
 ## Related APIs
 
-- [Network Socket Options](./network-socket-options.md)
-- [Dispatch Options](../../runtime/options/dispatch-options.md)
-- [Connection Limit Options](./connection-limit-options.md)
-- [Connection Hub Options](../connection/connection-hub-options.md)
-- [Timing Wheel Options](./timing-wheel-options.md)
-- [Pooling Options](./pooling-options.md)
-- [Network Callback Options](./network-callback-options.md)
-- [Compression Options](./compression-options.md)
-- [Token Bucket Options](./token-bucket-options.md)
-- [Tcp Listener](../tcp-listener.md)
+- [TCP Listener](../tcp-listener.md)
+- [UDP Listener](../udp-listener.md)
 - [Connection Hub](../connection/connection-hub.md)
-- [Connection Limiter](../connection/connection-limiter.md)
+- [Session Store Options](./session-store-options.md)
+- [Dispatch Options](../../runtime/options/dispatch-options.md)

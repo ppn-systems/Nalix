@@ -1,37 +1,56 @@
 # Connection Extensions
 
-`ConnectionExtensions` adds convenience helpers on top of `IConnection`.
+`ConnectionExtensions` provides directive send helpers on top of `IConnection`.
 
-## Source mapping
+## Audit Summary
 
-- `src/Nalix.Runtime/Extensions/ConnectionExtensions.cs`
+- Existing page was mostly correct but needed explicit source path correction and tighter API mapping.
 
-## What it does
+## Missing Content Identified
 
-The main public helper is a directive-oriented `SendAsync(...)` extension that sends control messages over a connection without forcing callers to build the underlying directive payload manually.
+- Exact extension signature and options record fields from current implementation.
 
-The optional `ConnectionExtensions.ControlDirectiveOptions` record groups directive flags, correlation, and payload arguments into one value.
+## Improvement Rationale
 
-## Basic usage
+This avoids drift between helper docs and runtime call sites.
+
+## Source Mapping
+
+- `src/Nalix.Runtime/Extentions/ConnectionExtensions.cs`
+
+## Core API
+
+```csharp
+Task SendAsync(this IConnection connection,
+    ControlType controlType,
+    ProtocolReason reason,
+    ProtocolAdvice action,
+    ControlDirectiveOptions options = default)
+```
+
+Options payload:
+
+- `Flags`
+- `SequenceId`
+- `Arg0`
+- `Arg1`
+- `Arg2`
+
+## Why It Exists
+
+It centralizes creation/serialization/sending of `Directive` frames so callers can send control-plane responses without manual frame composition.
+
+## Practical Example
 
 ```csharp
 await connection.SendAsync(
     controlType: ControlType.THROTTLE,
     reason: ProtocolReason.RATE_LIMITED,
     action: ProtocolAdvice.RETRY,
-    options: new ConnectionExtensions.ControlDirectiveOptions(
+    options: new ControlDirectiveOptions(
         Flags: ControlFlags.NONE,
         SequenceId: 42));
 ```
-
-## Why it is useful
-
-Use this helper when the server wants to:
-
-- send throttling or redirect instructions
-- send control-plane responses with a reason and advice
-- attach correlation IDs to protocol directives
-- provide optional directive arguments without manually constructing `Directive`
 
 ## Related APIs
 

@@ -2,6 +2,12 @@
 
 `ResumeExtensions` provide high-level abstractions for managing session reconnection and state restoration. These helpers ensure that the transition from a disconnected state to a resumed secure session is handled atomically and with robust fallback mechanisms.
 
+## Source Mapping
+
+- `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
+- `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.SDK/Options/TransportOptions.cs`
+
 ## 1. Role and Design
 
 The primary role of these extensions is to orchestrate the `SESSION_SIGNAL` flow (REQUEST/RESPONSE) while abstracting the complexities of state restoration from the main application logic.

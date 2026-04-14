@@ -1,34 +1,101 @@
 # Nalix.Network.Pipeline
 
-`Nalix.Network.Pipeline` provides packet middleware, throttling, and time synchronization helpers used by `Nalix.Network`.
+`Nalix.Network.Pipeline` provides production-grade middleware, throttling primitives, and time synchronization helpers for the Nalix network runtime. It sits between `Nalix.Network` (transport) and the application dispatch layer, providing the protection and policy enforcement that production servers require.
 
-## What it gives you
+!!! note "When to add this package"
+    Add this package when your server needs built-in rate limiting, concurrency gating, permission enforcement, timeout management, or time synchronization. For development and testing, these features can be added incrementally.
 
-- packet middleware for permission, concurrency, rate-limit, and timeout checks
-- throttling primitives for opcode- and endpoint-based protection
-- time synchronization support for the network runtime
-
-## Core entry points
-
-- `ConcurrencyGate`
-- `PolicyRateLimiter`
-- `TokenBucketLimiter`
-- `TimeSynchronizer`
-- `TokenBucketOptions`
-
-## Where it fits
+## Where It Fits
 
 ```mermaid
 flowchart LR
-    A["Nalix.Network"] --> B["Nalix.Network.Pipeline"]
-    B --> C["Packet middleware"]
-    B --> D["Throttling"]
-    B --> E["Time sync"]
+    A["Nalix.Network (Transport)"] --> B["Nalix.Network.Pipeline"]
+    B --> C["Packet Middleware"]
+    B --> D["Throttling Primitives"]
+    B --> E["Time Synchronization"]
+    C --> F["Nalix.Runtime (Dispatch)"]
 ```
 
-## Related pages
+## Core Components
 
-- [Network Middleware](../api/runtime/middleware/pipeline.md)
-- [Concurrency Gate](../api/runtime/middleware/concurrency-gate.md)
-- [Policy Rate Limiter](../api/runtime/middleware/policy-rate-limiter.md)
-- [Token Bucket Limiter](../api/runtime/middleware/token-bucket-limiter.md)
+### Packet Middleware
+
+Pipeline middleware runs in the packet middleware layer — after deserialization but before handler execution. Each middleware has access to the full `PacketContext<TPacket>`, including handler metadata, connection state, and cancellation.
+
+| Middleware | Purpose |
+|---|---|
+| `PermissionMiddleware` | Enforces `[PacketPermission]` requirements. Rejects packets from connections below the required permission level. |
+| `TimeoutMiddleware` | Enforces `[PacketTimeout]` limits. Cancels handler execution that exceeds the declared timeout. |
+| `ConcurrencyGate` | Limits the number of concurrently executing handlers. Prevents thread pool exhaustion under burst load. |
+| `PolicyRateLimiter` | Applies per-opcode and per-endpoint rate limiting driven by `[PacketRateLimit]` metadata. |
+| `TokenBucketLimiter` | Global or per-connection token-bucket throttling with configurable burst and refill rates. |
+
+### Throttling Primitives
+
+Throttling primitives can be used independently or composed through the middleware pipeline.
+
+**Token Bucket Limiter**
+
+```csharp
+// Configure via options
+Configure<TokenBucketOptions>(options =>
+{
+    options.TokensPerInterval = 100;
+    options.IntervalMillis = 1000;
+    options.BurstSize = 50;
+});
+```
+
+**Policy Rate Limiter**
+
+The `PolicyRateLimiter` reads `[PacketRateLimit]` attributes from handler metadata and applies per-opcode rate limits. It supports configurable policy rules loaded from configuration.
+
+**Concurrency Gate**
+
+```csharp
+// Limit to 32 concurrent handlers
+var gate = new ConcurrencyGate(maxConcurrency: 32);
+```
+
+### Time Synchronization
+
+`TimeSynchronizer` provides server-client time alignment for latency-sensitive applications. It handles clock offset calculation and drift compensation.
+
+## Usage with PacketDispatchChannel
+
+Register pipeline middleware when building the dispatch channel:
+
+```csharp
+PacketDispatchChannel dispatch = new(options =>
+{
+    options.WithLogging(logger)
+           .WithMiddleware(new PermissionMiddleware<IPacket>())
+           .WithMiddleware(new TimeoutMiddleware<IPacket>())
+           .WithMiddleware(new ConcurrencyGate(maxConcurrency: 32))
+           .WithHandler(() => new MyHandlers());
+});
+```
+
+## Usage with NetworkApplication.CreateBuilder
+
+```csharp
+var app = NetworkApplication.CreateBuilder()
+    .ConfigureDispatch(options =>
+    {
+        options.WithMiddleware(new PermissionMiddleware<IPacket>());
+        options.WithMiddleware(new PolicyRateLimiter<IPacket>());
+    })
+    .AddHandlers<MyHandlers>()
+    .AddTcp<MyProtocol>()
+    .Build();
+```
+
+## Related Pages
+
+- [Middleware Pipeline](../api/runtime/middleware/pipeline.md) — Pipeline execution model
+- [Concurrency Gate](../api/runtime/middleware/concurrency-gate.md) — API reference
+- [Policy Rate Limiter](../api/runtime/middleware/policy-rate-limiter.md) — API reference
+- [Token Bucket Limiter](../api/runtime/middleware/token-bucket-limiter.md) — API reference
+- [Permission Middleware](../api/runtime/middleware/permission-middleware.md) — API reference
+- [Timeout Middleware](../api/runtime/middleware/timeout-middleware.md) — API reference
+- [Token Bucket Options](../api/network/options/token-bucket-options.md) — Configuration options

@@ -6,7 +6,7 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 
 - `src/Nalix.Framework/DataFrames/FrameBase.cs`
 - `src/Nalix.Framework/DataFrames/PacketBase.cs`
-- `src/Nalix.Framework/DataFrames/FrameTransformer.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/FrameTransformer.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCipher.cs`
 - `src/Nalix.Framework/DataFrames/Transforms/PacketCompression.cs`
 

@@ -1,8 +1,6 @@
 # Configuration and Runtime
 
-This page explains how configuration becomes a running Nalix server.
-
-Use it when you understand the network pieces individually, but want a clearer picture of how startup wiring is supposed to fit together.
+This page explains how configuration becomes a running Nalix server. It covers the startup wiring sequence, option validation, service registration, and the relationship between configuration, dispatch, and transport.
 
 ## The short version
 
@@ -125,9 +123,9 @@ Custom packet handlers fit the same startup path as built-in packet handlers bec
 
 That keeps startup deterministic and easier to debug.
 
-## Read this next
+## Recommended Next Pages
 
-- [Server Blueprint](../guides/server-blueprint.md)
-- [Production Checklist](../guides/production-checklist.md)
-- [Configuration & DI](../api/framework/runtime/configuration.md)
-- [Network Options](../api/network/options/options.md)
+- [Server Blueprint](../guides/server-blueprint.md) — Production-oriented project structure
+- [Production Checklist](../guides/production-checklist.md) — Pre-deployment verification
+- [Configuration & DI](../api/framework/runtime/configuration.md) — ConfigurationManager API reference
+- [Network Options](../api/network/options/options.md) — Options class reference

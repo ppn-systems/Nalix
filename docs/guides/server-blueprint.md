@@ -225,9 +225,9 @@ If you do not know what to optimize yet:
 - keep `ProcessFrame(...)` as the listener bridge and `ProcessMessage(...)` as the protocol handler hook
 - keep all startup wiring centralized
 
-## Read this next
+## Recommended Next Pages
 
-- [Production Checklist](./production-checklist.md)
-- [Custom Middleware](./custom-middleware-end-to-end.md)
-- [Custom Metadata Provider](./custom-metadata-provider.md)
-- [TCP Request/Response](./tcp-request-response.md)
+- [Production Checklist](./production-checklist.md) — Pre-deployment verification
+- [Custom Middleware](./custom-middleware-end-to-end.md) — Build middleware from scratch
+- [Custom Metadata Provider](./custom-metadata-provider.md) — Convention-based metadata
+- [TCP Request/Response](./tcp-request-response.md) — TCP pattern guide

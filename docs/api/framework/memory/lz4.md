@@ -6,8 +6,8 @@ This page covers the public compression surface in `Nalix.Framework.LZ4`.
 
 - `src/Nalix.Framework/LZ4/LZ4Codec.cs`
 - `src/Nalix.Framework/LZ4/LZ4BlockHeader.cs`
-- `src/Nalix.Framework/LZ4/Encoders/*`
-- `src/Nalix.Framework/LZ4/Engine/*`
+- `src/Nalix.Framework/LZ4/Encoders`
+- `src/Nalix.Framework/LZ4/Engine`
 
 ## Main types
 
