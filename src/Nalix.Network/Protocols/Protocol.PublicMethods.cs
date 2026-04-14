@@ -101,7 +101,7 @@ public abstract partial class Protocol
 
             connection.Disconnect();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             // Log exception if a logger is available
             this.OnConnectionError(connection, ex);

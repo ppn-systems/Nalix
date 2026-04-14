@@ -43,7 +43,7 @@ public static class PacketCipher
             dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
             return dest;
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             dest.Dispose();
             throw;
@@ -66,7 +66,7 @@ public static class PacketCipher
             dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
             return dest;
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             dest.Dispose();
             throw;

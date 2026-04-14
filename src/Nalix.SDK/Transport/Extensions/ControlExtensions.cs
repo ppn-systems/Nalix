@@ -108,7 +108,9 @@ public static class ControlExtensions
         ControlType type,
         bool reliable = true)
     {
+#pragma warning disable CA2000 // Ownership is transferred to ControlBuilder; callers own/dispose the materialized Control returned by Build().
         Control c = Control.Create();
+#pragma warning restore CA2000
         // Initialize already stamps MonoTicks + Timestamp internally.
         c.Initialize(opCode, type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.NONE);
         return new ControlBuilder(c);
@@ -130,7 +132,7 @@ public static class ControlExtensions
     /// <exception cref="NetworkException">Thrown when the client is not connected.</exception>
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    public static Task<TPkt> AwaitPacketAsync<TPkt>(
+    public static ValueTask<TPkt> AwaitPacketAsync<TPkt>(
         this TcpSession client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
@@ -147,7 +149,7 @@ public static class ControlExtensions
 
         // Delegate all TCS + subscribe + timeout logic to PacketAwaiter.
         // sendAsync = no-op because the caller has already sent (or will send externally).
-        return PacketAwaiter.AwaitAsync(client, predicate, timeoutMs, sendAsync: _ => Task.CompletedTask, ct);
+        return new ValueTask<TPkt>(PacketAwaiter.AwaitAsync(client, predicate, timeoutMs, sendAsync: _ => Task.CompletedTask, ct));
     }
 
     /// <summary>
@@ -165,7 +167,7 @@ public static class ControlExtensions
     /// <exception cref="TimeoutException">Thrown when no matching CONTROL is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task<Control> AwaitControlAsync(
+    public static ValueTask<Control> AwaitControlAsync(
         this TcpSession client,
         Func<Control, bool> predicate,
         int timeoutMs,
@@ -197,7 +199,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Task SendControlAsync(this TcpSession client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
+    public static async ValueTask SendControlAsync(this TcpSession client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 
@@ -207,8 +209,8 @@ public static class ControlExtensions
         }
 
         // Materialize the Control from the builder first; ref structs cannot be lambda-captured.
-        Control ctrl = client.NewControl(opCode, type).Build();
+        using Control ctrl = client.NewControl(opCode, type).Build();
         configure?.Invoke(ctrl);
-        return client.SendAsync(ctrl, encrypt: false, ct);
+        await client.SendAsync(ctrl, encrypt: false, ct).ConfigureAwait(false);
     }
 }

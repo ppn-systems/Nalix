@@ -34,7 +34,7 @@ public static class PacketCompression
             dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().RemoveFlag(PacketFlags.COMPRESSED));
             return dest;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             dest.Dispose();
             throw;
@@ -58,7 +58,7 @@ public static class PacketCompression
             dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
             return dest;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             dest.Dispose();
             throw;

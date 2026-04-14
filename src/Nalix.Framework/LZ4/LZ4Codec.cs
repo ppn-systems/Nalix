@@ -86,7 +86,7 @@ public static class LZ4Codec
             lease = rentedLease;
             bytesWritten = written;
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             rentedLease.Dispose();
             throw;

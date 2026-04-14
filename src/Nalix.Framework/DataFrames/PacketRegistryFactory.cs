@@ -405,7 +405,7 @@ public sealed class PacketRegistryFactory
             {
                 _ = s_bindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 throw new InternalErrorException(
                     $"Failed to bind deserialize pointer for packet type '{type.FullName}'.",
@@ -420,7 +420,7 @@ public sealed class PacketRegistryFactory
                 doDeserializeMi = tbl.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserialize), StaticNonPublic | StaticPublic)!;
                 doDeserializeIntoMi = tbl.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserializeInto), StaticNonPublic | StaticPublic)!;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 throw new InternalErrorException(
                     $"Failed to resolve deserialize trampoline for packet type '{type.FullName}'.",
@@ -432,7 +432,7 @@ public sealed class PacketRegistryFactory
                 deserializers[key] = (PacketDeserializer)Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
                 magicTypes[key] = type;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 throw new InternalErrorException(
                     $"Failed to create deserialize delegate for packet type '{type.FullName}'.",
@@ -544,7 +544,7 @@ public sealed class PacketRegistryFactory
             // Return the types that did load successfully; discard the rest.
             return Enumerable.OfType<Type>(ex.Types);
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             return [];
         }

@@ -38,7 +38,9 @@ public static class SubscriptionExtensions
     /// <param name="d">The disconnected handler to remove.</param>
     private sealed class Unsubscriber(TransportSession c, EventHandler<IBufferLease> p, EventHandler<Exception> d) : IDisposable
     {
+#pragma warning disable CA2213 // Borrowed session reference; Dispose only unregisters handlers and must not dispose the session.
         private readonly TransportSession _client = c;
+#pragma warning restore CA2213
         private readonly EventHandler<IBufferLease> _messageReceived = p;
         private readonly EventHandler<Exception> _disconnect = d;
 

@@ -128,7 +128,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 await this.HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);
@@ -160,7 +160,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             if (pending.IsCompletedSuccessfully)
             {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                 pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
                 return;
             }
 
