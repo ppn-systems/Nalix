@@ -11,6 +11,8 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
 using Nalix.Framework.Time;
+using System.IO;
+using System.Net.Sockets;
 
 namespace Nalix.Chat.Infrastructure.Handlers;
 
@@ -203,7 +205,19 @@ public sealed class ChatMessageHandler
             {
                 await target.TCP.SendAsync(broadcast, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (IOException ex)
+            {
+                ChatHandlerCommon.Logger?.LogError(ex, "Failed to broadcast message to participant {ParticipantId}", identity.ParticipantId);
+            }
+            catch (SocketException ex)
+            {
+                ChatHandlerCommon.Logger?.LogError(ex, "Failed to broadcast message to participant {ParticipantId}", identity.ParticipantId);
+            }
+            catch (ObjectDisposedException ex)
             {
                 ChatHandlerCommon.Logger?.LogError(ex, "Failed to broadcast message to participant {ParticipantId}", identity.ParticipantId);
             }
