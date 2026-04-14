@@ -1,58 +1,52 @@
 # Connection Limiter
 
-`ConnectionGuard` protects the TCP accept path by enforcing per-endpoint connection caps and rate windows.
+`ConnectionGuard` is the per-endpoint admission limiter used by `TcpListenerBase` to protect connection acceptance under burst or abusive traffic.
 
-## Source mapping
+## Audit Summary
+
+- Existing page was directionally correct; needed stronger alignment to concrete `ConnectionGuard` API and cleanup/log-throttle behavior.
+
+## Missing Content Identified
+
+- Explicit mention of close-event feedback loop (`OnConnectionClosed`) and report APIs.
+- Clarified boundary between admission guard and broader connection hub policy.
+
+## Improvement Rationale
+
+This improves operational tuning and avoids stale per-endpoint counters.
+
+## Source Mapping
 
 - `src/Nalix.Network/Connections/Connection.Guard.cs`
+- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
 
-## What it does
+## Why This Type Exists
 
-- tracks state per remote endpoint
-- enforces concurrent connection caps
-- enforces connection-attempt windows
-- applies temporary bans
-- throttles repeated reject and close logs per endpoint
-- schedules recurring cleanup
+`ConnectionGuard` enforces fast, per-endpoint admission checks before expensive protocol/dispatch work begins.
 
-## Basic usage
+## Core Public Surface
 
-```csharp
-ConnectionLimitOptions options = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
-options.Validate();
+- `TryAccept(IPEndPoint endPoint)`
+- `OnConnectionClosed(object? sender, IConnectEventArgs args)`
+- `GenerateReport()`
+- `GetReportData()`
+- `WithLogging(ILogger logger)`
+- `Dispose()` / `DisposeAsync()`
 
-ConnectionGuard limiter = new(options);
+## Operational Notes
 
-if (!limiter.TryAccept(remoteEndPoint))
-{
-    return;
-}
-```
+- Admission decisions include per-endpoint concurrency cap, windowed attempt cap, and temporary bans.
+- Repeated reject/DDOS/close logs are throttled per endpoint.
+- Cleanup runs periodically to remove stale endpoint state.
 
-## Important integration detail
+## Best Practices
 
-Always wire connection close events back into the limiter:
-
-```csharp
-connection.OnCloseEvent += limiter.OnConnectionClosed;
-```
-
-If you skip this, active connection counts can stay artificially high for an endpoint.
-
-`TryAccept(...)` returns `false` for over-limit, burst-window, or banned endpoints, and throws if the guard has already been disposed.
-
-## Diagnostics
-
-`GenerateReport()` includes:
-
-- tracked endpoint count
-- concurrent connection count
-- rejection totals
-- cleanup totals
-- top endpoints by load
+- Always wire `connection.OnCloseEvent += guard.OnConnectionClosed`.
+- Validate `ConnectionLimitOptions` at startup.
+- Use `GetReportData()` for metrics pipelines and `GenerateReport()` for operator diagnostics.
 
 ## Related APIs
 
 - [TCP Listener](../tcp-listener.md)
-- [Connection Hub](./connection-hub.md)
 - [Connection Limit Options](../options/connection-limit-options.md)
+- [Connection Hub](./connection-hub.md)
