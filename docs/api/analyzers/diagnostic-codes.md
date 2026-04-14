@@ -63,7 +63,7 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 | ID | Title | Severity | Category | Description |
 |---|---|---|---|---|
 | `NALIX027` | RequestOptions RetryCount should not be negative | Warning | SDK | Nalix RequestOptions retry count must be zero or greater. |
-| `NALIX028` | RequestOptions TimeoutMs should not be negative | Warning | SDK | Nalix RequestOptions timeout must be zero or greater. Use 0 to wait indefinitely. |
+| `NALIX028` | RequestOptions TimeoutMs should not be negative | Warning | SDK | Nalix RequestOptions `TimeoutMs` must be zero or greater. Use `0` to wait indefinitely. |
 | `NALIX029` | Encrypted RequestAsync requires TcpSessionBase | Warning | SDK | Nalix encrypted RequestAsync overload requires the client to be a TcpSessionBase. |
 
 ## Hosting Codes (NALIX040 - NALIX045)

@@ -86,14 +86,39 @@ dotnet add MyProject.Server package Nalix.Network.Hosting --version 12.0.7
 Use the fluent builder to assemble your server layers:
 
 ```csharp
+using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Network.Hosting;
+using Nalix.Network.Options;
+using Nalix.Runtime.Dispatching;
+
 using var app = NetworkApplication.CreateBuilder()
-    .AddPacket<JoinRequest>() // Scans assembly for contracts
-    .AddHandlers<MyHandlers>() // Scans assembly for controllers
+    .Configure<NetworkSocketOptions>(options => options.Port = 57206)
+    .AddPacket<JoinRequest>() // Scans the marker assembly for contracts
+    .AddHandlers<MyHandlers>() // Scans the marker assembly for controllers
     .AddTcp<MyProtocol>()
     .Build();
 
 await app.RunAsync();
+
+public sealed class MyProtocol : IProtocol
+{
+    private readonly IPacketDispatch _dispatch;
+
+    public MyProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
+
+    public void ProcessMessage(object sender, IConnectEventArgs args)
+        => _dispatch.HandlePacket(args.Lease, args.Connection);
+}
 ```
+
+### Builder Semantics
+
+- `AddPacket<TMarker>()` scans the assembly that contains `TMarker`.
+- `AddHandlers<TMarker>()` scans the assembly that contains `TMarker`.
+- `AddHandler<THandler>()` registers one handler type directly.
+- `ConfigureConnectionHub(...)` and `ConfigureBufferPoolManager(...)` are optional, but make host wiring explicit.
 
 ---
 

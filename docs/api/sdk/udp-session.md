@@ -28,6 +28,7 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 - **Zero-Allocation Receive**: Uses pooled `BufferLease` memory and direct `ReceiveAsync` to eliminate per-datagram allocations.
 - **MTU Enforcement**: Automatically prevents sending datagrams larger than `MaxUdpDatagramSize` (default: 1400 bytes) to avoid IP fragmentation.
 - **AEAD Integrated**: Automatically applies encryption if configured, utilizing the shared `PacketFrameTransforms` pipeline.
+- **Fail-Safe Cleanup**: Socket or receive-loop errors force a disconnect so the session never stays half-open.
 
 ## Public API
 
@@ -35,9 +36,9 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 | Member | Description |
 |---|---|
 | `OnConnected` | Raised when the UDP socket is initialized and bound to the remote endpoint. |
-| `OnDisconnected` | Raised when the session is closed. |
 | `OnMessageReceived` | Surfaces decrypted and decompressed payload for each inbound datagram. |
 | `OnError` | Reports socket or transformation faults. |
+| `OnDisconnected` | Uses `NetworkException` to report transport-level disconnects consistently. |
 
 ### Properties
 | Member | Description |

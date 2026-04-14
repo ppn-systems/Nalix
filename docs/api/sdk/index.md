@@ -57,7 +57,7 @@ graph LR
 | **Transports** | Abstract `TransportSession` with concrete `TcpSession` (reliable) and `UdpSession` (datagram) implementations. |
 | **Options** | Strongly-typed configuration for socket tuning, reconnect policies, and request-specific timeouts/retries. |
 | **Extensions** | Fluent builders for `CONTROL` frames, cryptographic handshakes, cipher updates, and race-condition-free `RequestAsync` helpers. |
-| **Subscriptions** | Type-safe event system that handles `IBufferLease` ownership and automatic unsubscription. |
+| **Subscriptions** | Type-safe event system that handles `IBufferLease` ownership and automatic unsubscription. `On<T>()` ignores non-matching packets; `OnExact<T>()` is available for fail-fast debugging. |
 | **Utils** | Thread dispatching abstractions for UI/Game engine integration and protocol string translation. |
 
 ## Quick Start
@@ -65,7 +65,7 @@ graph LR
 1. **Load Options**: Load `TransportOptions` from your configuration source.
 2. **Initialize Session**: Create a `TcpSession` or `UdpSession`.
 3. **Secure Connection**: Perform `HandshakeAsync` if encryption is required.
-4. **Exchange Packets**: Use `SendAsync`, `RequestAsync`, or `On<T>` to interact with the server.
+4. **Exchange Packets**: Use `SendAsync`, `RequestAsync`, `On<T>`, or `OnExact<T>` to interact with the server.
 
 ```csharp
 var options = ConfigurationManager.Instance.Get<TransportOptions>();
@@ -78,7 +78,7 @@ await client.HandshakeAsync();
 // Strongly-typed request with automatic retry
 var response = await client.RequestAsync<UserLoginResponse>(
     new UserLoginPacket { Username = "NalixUser" },
-    RequestOptions.Default.WithRetry(2)
+    RequestOptions.Default.WithTimeout(5_000).WithRetry(2)
 );
 ```
 
@@ -91,7 +91,7 @@ var response = await client.RequestAsync<UserLoginResponse>(
 - [Resume Extensions](./resume-extensions.md) — Resume an existing session or fall back to a fresh handshake.
 - [Session Extensions](./tcp-session-extensions.md) — Handshakes, Controls, Requests, and cipher switching.
 - [Cipher Updates](./cipher-extensions.md) — Rotate the active cipher on a live TCP session.
-- [Subscriptions](./subscriptions.md) — Packet-aware event system.
+- [Subscriptions](./subscriptions.md) — Packet-aware event system with safe and strict modes.
 - [Transport Options](./options/transport-options.md) — Socket and connectivity settings.
 - [Request Options](./options/request-options.md) — Per-request tuning.
 - [Thread Dispatching](./thread-dispatching.md) — Marshaling work to the UI thread.

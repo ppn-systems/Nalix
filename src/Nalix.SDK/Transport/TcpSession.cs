@@ -151,7 +151,7 @@ public class TcpSession : TransportSession
             }
 
             socket.Dispose();
-            this.OnDisconnected?.Invoke(this, new InvalidOperationException("The TCP session was disconnected."));
+            this.OnDisconnected?.Invoke(this, new NetworkException("The TCP session was disconnected."));
         }
 
         return Task.CompletedTask;

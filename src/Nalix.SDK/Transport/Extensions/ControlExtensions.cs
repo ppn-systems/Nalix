@@ -115,7 +115,7 @@ public static class ControlExtensions
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="client"/> or <paramref name="predicate"/> is <c>null</c>.
     /// </exception>
-    /// <exception cref="InvalidOperationException">Thrown when the client is not connected.</exception>
+    /// <exception cref="NetworkException">Thrown when the client is not connected.</exception>
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     public static Task<TPkt> AwaitPacketAsync<TPkt>(
@@ -174,7 +174,7 @@ public static class ControlExtensions
     /// <param name="ct">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="client"/> is <c>null</c>.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when the client is not connected.</exception>
+    /// <exception cref="NetworkException">Thrown when the client is not connected.</exception>
     /// <example>
     /// <code>
     /// await client.SendControlAsync(
