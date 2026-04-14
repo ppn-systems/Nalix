@@ -108,6 +108,10 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
             await this.SetStatusMessageAsync("Connected").ConfigureAwait(false);
             this.EnsureDiagnosticsLoop();
         }
+        catch (OperationCanceledException)
+        {
+            await this.SetStatusMessageAsync("Connection canceled").ConfigureAwait(false);
+        }
         catch (Exception ex)
         {
             await this.SetStatusMessageAsync($"Connect failed: {ex.Message}").ConfigureAwait(false);
