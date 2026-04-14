@@ -147,7 +147,11 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
 
             await this.SetStatusMessageAsync($"Join failed: {response.ErrorCode} ({response.Message})").ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException)
+        {
+            await this.SetStatusMessageAsync("Join canceled").ConfigureAwait(false);
+        }
+        catch (InvalidOperationException ex)
         {
             await this.SetStatusMessageAsync($"Join failed: {ex.Message}").ConfigureAwait(false);
         }
