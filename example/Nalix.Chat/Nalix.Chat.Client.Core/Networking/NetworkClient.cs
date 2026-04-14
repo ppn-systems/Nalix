@@ -373,6 +373,10 @@ public sealed class NetworkClient : INetworkClient
 
                 await this.RotateCipherAsync(_disposeCts.Token).ConfigureAwait(false);
             }
+            catch (OperationCanceledException)
+            {
+                // Expected during disposal/shutdown when cancellation is requested.
+            }
             catch (Exception ex)
             {
                 Error?.Invoke(this, ex);
