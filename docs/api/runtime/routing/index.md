@@ -1,22 +1,53 @@
 # Nalix.Runtime.Dispatching
 
-The dispatching layer is responsible for the parallel processing of network packets. It handles sharding, queuing, and the transition from raw buffers to typed packet objects.
+`Nalix.Runtime.Dispatching` contains the execution APIs that map incoming packets to handlers with metadata-aware context and pooled senders.
 
-## Core Components
+## Why This Layer Exists
 
-### [PacketDispatchChannel](./packet-dispatch.md)
-The central engine that manages worker loops and packet sharding.
+The dispatch layer isolates handler execution policy from socket/listener concerns. `Nalix.Network` can focus on transport while dispatching focuses on packet-to-handler routing and middleware orchestration.
 
-### [IPacketContext<T>](./packet-context.md)
-The request-scoped context carrying the packet, connection, and metadata.
+## Public Surface
 
-### [IPacketSender<T>](./packet-sender.md)
-The interface for sending replies back through the connection with automatic metadata application.
+### Contracts
 
-## Other Resources
+- [IDispatchChannel<TPacket>](./dispatch-channel-and-router.md): queue contract for connection-aware packet routing.
+- [IPacketDispatch](./dispatch-contracts.md): high-level dispatch entry points (`IBufferLease` and `IPacket` overloads).
+- [IPacketMetadataProvider](./packet-metadata.md): metadata provider abstraction.
 
-- [Dispatch Contracts](./dispatch-contracts.md)
-- [Handler Result Types](./handler-results.md)
+### Core Implementations
+
+- [PacketDispatchChannel](./packet-dispatch.md): runtime dispatcher used in production packet processing.
+- [PacketContext<TPacket>](./packet-context.md): pooled handler context.
+- [PacketSender<TPacket>](./packet-sender.md): send API honoring context metadata.
+- [PacketMetadataBuilder](./packet-metadata.md): builds packet metadata.
+- [PacketMetadataProviders](./packet-metadata.md): predefined provider helpers.
+
+### Base/Advanced
+
+- [PacketDispatcherBase<TPacket>](./dispatch-channel-and-router.md): base dispatch implementation.
+- `Nalix.Runtime.Internal.Routing.DispatchChannel<TPacket>` is public but located in an internal namespace; treat as advanced infrastructure API.
+
+## Mental Model
+
+```mermaid
+flowchart LR
+    A["IBufferLease or IPacket"] --> B["IPacketDispatch"]
+    B --> C["PacketDispatchChannel"]
+    C --> D["IPacketRegistry"]
+    D --> E["PacketContext<TPacket>"]
+    E --> F["Middleware + Handler"]
+    F --> G["PacketSender<TPacket>"]
+```
+
+## Best Practices
+
+- Register packet metadata providers before dispatch activation.
+- Use `IPacketContext<TPacket>.Sender` inside handlers instead of bypassing context.
+- Prefer `HandlePacket(IBufferLease, IConnection)` for normal inbound transport flow.
+
+## Related APIs
+
+- [Packet Dispatch](./packet-dispatch.md)
+- [Packet Context](./packet-context.md)
 - [Packet Metadata](./packet-metadata.md)
-- [Packet Attributes](./packet-attributes.md)
-- [Dispatch Channel and Router Internal Details](./dispatch-channel-and-router.md)
+- [Runtime Overview](../index.md)

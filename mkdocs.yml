@@ -145,6 +145,7 @@ nav:
       - Nalix.Network.Pipeline: packages/nalix-network-pipeline.md
       - Nalix.SDK: packages/nalix-sdk.md
   - API:
+      - Overview: api/index.md
       - Analyzers:
         - Overview: api/analyzers/index.md
         - Diagnostic Codes: api/analyzers/diagnostic-codes.md
@@ -214,6 +215,7 @@ nav:
           - Permission Middleware: api/runtime/middleware/permission-middleware.md
           - Timeout Middleware: api/runtime/middleware/timeout-middleware.md
       - Network:
+        - Overview: api/network/index.md
         - Protocol: api/network/protocol.md
         - TCP Listener: api/network/tcp-listener.md
         - UDP Listener: api/network/udp-listener.md

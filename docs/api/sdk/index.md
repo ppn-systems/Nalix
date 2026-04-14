@@ -1,98 +1,70 @@
 # SDK Overview
 
-`Nalix.SDK` is the high-performance client transport layer for the Nalix ecosystem. It provides the essential building blocks for building low-latency, resilient, and secure distributed applications. 
+`Nalix.SDK` is the client transport package for Nalix. It provides session lifecycle APIs (`TransportSession`, `TcpSession`, `UdpSession`), request/response helpers, handshake and resume extensions, and subscription helpers.
 
-## Client runtime shape
+## Why This Package Exists
 
-```mermaid
-graph LR
-    subgraph Options
-        TO[TransportOptions]
-        RO[RequestOptions]
-    end
-    
-    subgraph Transport
-        TS[TransportSession]
-        TCP[TcpSession]
-        UDP[UdpSession]
-    end
-    
-    subgraph Logic
-        EXT[Session Extensions]
-        SUB[Subscription System]
-        CIPHER[Cipher Switch]
-        RESUME[Resume Flow]
-    end
-    
-    TO --> TS
-    RO --> EXT
-    TS --> TCP
-    TS --> UDP
-    TCP --> EXT
-    EXT --> SUB
-    EXT --> CIPHER
-    EXT --> RESUME
-```
+Client concerns differ from server runtime concerns. `Nalix.SDK` gives applications a stable client-facing API while keeping server execution details in `Nalix.Runtime` and `Nalix.Network`.
 
-## Source mapping
+## Core API Areas
 
-- `src/Nalix.SDK/Transport/TransportSession.cs`
-- `src/Nalix.SDK/Transport/TcpSession.cs`
-- `src/Nalix.SDK/Transport/UdpSession.cs`
-- `src/Nalix.SDK/Options/TransportOptions.cs`
-- `src/Nalix.SDK/Options/RequestOptions.cs`
-- `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
-- `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
-- `src/Nalix.SDK/IThreadDispatcher.cs`
-- `src/Nalix.SDK/Extensions/ProtocolStringExtensions.cs`
+### Session Types
 
-## Module Summary
+- [TransportSession](./transport-session.md): abstract base contract.
+- [TcpSession](./tcp-session.md): stream transport over TCP.
+- [UdpSession](./udp-session.md): datagram transport over UDP.
 
-| Component | Description |
-| --- | --- |
-| **Transports** | Abstract `TransportSession` with concrete `TcpSession` (reliable) and `UdpSession` (datagram) implementations. |
-| **Options** | Strongly-typed configuration for socket tuning, reconnect policies, and request-specific timeouts/retries. |
-| **Extensions** | Fluent builders for `CONTROL` frames, cryptographic handshakes, cipher updates, and race-condition-free `RequestAsync` helpers. |
-| **Subscriptions** | Type-safe event system that handles `IBufferLease` ownership and automatic unsubscription. `On<T>()` ignores non-matching packets; `OnExact<T>()` is available for fail-fast debugging. |
-| **Utils** | Thread dispatching abstractions for UI/Game engine integration and protocol string translation. |
+### Extensions
 
-## Quick Start
+- [Handshake Extensions](./handshake-extensions.md): `HandshakeAsync` for secure session setup.
+- [Resume Extensions](./resume-extensions.md): session resume flow.
+- [Session Extensions](./tcp-session-extensions.md): control/request/session helpers.
+- [Cipher Extensions](./cipher-extensions.md): cipher update helpers.
+- [Protocol String Extensions](./protocol-string-extensions.md): protocol-to-string helpers.
+- [Subscriptions](./subscriptions.md): typed packet subscription APIs.
 
-1. **Load Options**: Load `TransportOptions` from your configuration source.
-2. **Initialize Session**: Create a `TcpSession` or `UdpSession`.
-3. **Secure Connection**: Perform `HandshakeAsync` if encryption is required.
-4. **Exchange Packets**: Use `SendAsync`, `RequestAsync`, `On<T>`, or `OnExact<T>` to interact with the server.
+### Options
+
+- [TransportOptions](./options/transport-options.md)
+- [RequestOptions](./options/request-options.md)
+
+### Dispatch Integration
+
+- [Thread Dispatching](./thread-dispatching.md): `IThreadDispatcher` and `InlineDispatcher`.
+- [Frame Reader and Sender](./frame-reader-and-sender.md): frame I/O internals exposed by SDK docs.
+
+## Mental Model
+
+1. Configure transport with `TransportOptions` and packet registry.
+2. Connect with `TcpSession` or `UdpSession`.
+3. Optionally perform `HandshakeAsync`.
+4. Send packets directly or use `RequestAsync<TResponse>`.
+5. Receive via event/subscription APIs.
+
+## Practical Example (From Current API)
 
 ```csharp
-var options = ConfigurationManager.Instance.Get<TransportOptions>();
-var client = new TcpSession(options, catalog);
+TransportOptions options = new();
+IPacketRegistry catalog = /* resolve registry */;
 
-// Secure the connection via X25519
-await client.ConnectAsync();
-await client.HandshakeAsync();
+using TcpSession session = new(options, catalog);
+await session.ConnectAsync();
 
-// Strongly-typed request with automatic retry
-var response = await client.RequestAsync<UserLoginResponse>(
-    new UserLoginPacket { Username = "NalixUser" },
-    RequestOptions.Default.WithTimeout(5_000).WithRetry(2)
-);
+await session.HandshakeAsync();
+
+MyResponse response = await session.RequestAsync<MyResponse>(
+    new MyRequest(),
+    RequestOptions.Default.WithTimeout(3_000).WithRetry(1));
 ```
 
-## Key Documentation
+## Best Practices
 
-- [TCP Session](./tcp-session.md) — Reliable, stream-oriented client.
-- [UDP Session](./udp-session.md) — Low-latency, datagram-oriented client.
-- [Transport Session](./transport-session.md) — The base transport contract.
-- [Handshake Extensions](./handshake-extensions.md) — Perform the client-side X25519 handshake.
-- [Resume Extensions](./resume-extensions.md) — Resume an existing session or fall back to a fresh handshake.
-- [Session Extensions](./tcp-session-extensions.md) — Handshakes, Controls, Requests, and cipher switching.
-- [Cipher Updates](./cipher-extensions.md) — Rotate the active cipher on a live TCP session.
-- [Subscriptions](./subscriptions.md) — Packet-aware event system with safe and strict modes.
-- [Transport Options](./options/transport-options.md) — Socket and connectivity settings.
-- [Request Options](./options/request-options.md) — Per-request tuning.
-- [Thread Dispatching](./thread-dispatching.md) — Marshaling work to the UI thread.
-- [Protocol Strings](./protocol-string-extensions.md) — Human-readable error codes.
+- Prefer `RequestAsync<TResponse>` over manual subscribe/send/wait to avoid response race windows.
+- Handle `OnError` and `OnDisconnected` for production resilience.
+- Keep packet registry consistent between client and server packet contracts.
+
+## Related APIs
+
+- [Packet Contracts](../common/packet-contracts.md)
+- [Runtime Routing](../runtime/routing/index.md)
+- [Network Protocol](../network/protocol.md)

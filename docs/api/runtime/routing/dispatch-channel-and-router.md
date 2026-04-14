@@ -1,71 +1,54 @@
 # Dispatch Channel and Router
 
-This page covers the lower-level queueing primitives used by the network dispatch runtime.
+This page documents the lower-level dispatch queue implementation used by runtime dispatchers.
 
-## Source mapping
+## Audit Summary
 
-- `src/Nalix.Network/Routing/Channel/DispatchChannel.cs`
-- `src/Nalix.Network/Routing/Channel/DispatchRouter.cs`
+- Existing page referenced outdated source paths and a `DispatchRouter<TPacket>` type that is not present in current code.
+- Needed alignment with current implementation (`DispatchChannel<TPacket>` only).
 
-## Main types
+## Missing Content Identified
 
-- `DispatchChannel<TPacket>`
-- `DispatchRouter<TPacket>`
+- Correct source mapping to `Nalix.Runtime.Internal.Routing`.
+- Accurate boundary between public type visibility and intended internal-runtime use.
 
-## DispatchChannel<TPacket>
+## Improvement Rationale
 
-`DispatchChannel<TPacket>` is the per-connection queueing layer used to stage packet leases before handler execution.
+Accurate internals docs prevent contributors from targeting removed or non-existent routing APIs.
 
-It keeps:
+## Source Mapping
 
-- one queue per connection
-- one ready queue per priority
-- per-connection counters
-- drop-policy handling through `DispatchOptions`
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
 
-## Basic usage
+## `DispatchChannel<TPacket>`
 
-```csharp
-channel.Push(connection, lease);
+`DispatchChannel<TPacket>` is a priority-aware, connection-associated queue implementation used under `PacketDispatchChannel`.
 
-if (channel.Pull(out IConnection nextConnection, out IBufferLease nextLease))
-{
-    // pass to the next processing stage
-}
-```
+### Why it exists
 
-### Public members
+Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection isolation and priority selection while remaining compatible with `IDispatchChannel<TPacket>`.
+
+### Publicly visible members
 
 - `TotalPackets`
 - `HasPacket`
-- `Push(connection, lease)`
-- `Pull(out connection, out lease)`
+- `Push(IConnection, IBufferLease)`
+- `Pull(out IConnection, out IBufferLease)`
 
-## DispatchRouter<TPacket>
+### Internal diagnostics members (not part of `IDispatchChannel<TPacket>`)
 
-`DispatchRouter<TPacket>` shards multiple `DispatchChannel<TPacket>` instances and spreads work by connection hash.
+- `TotalConnections`
+- `ReadyConnections`
+- `PendingPerPriority`
+- `PendingPerConnection`
+- `PushCore(IConnection, IBufferLease)`
 
-Use it when one channel is not enough and you want parallel shard routing without changing the higher-level queue contract.
+## Architecture Notes
 
-## Example
-
-```csharp
-var router = new DispatchRouter<IPacket>(shardCount: 8);
-
-router.Push(connection, lease);
-
-if (router.Pull(out IConnection nextConnection, out IBufferLease nextLease))
-{
-    // consume from the selected shard
-}
-```
-
-### Public members
-
-- constructor `(shardCount)`
-- `TotalPackets`
-- `Push(connection, lease)`
-- `Pull(out connection, out lease)`
+- Maintains per-connection state with per-priority queues.
+- Pull path prefers higher priority first.
+- Enqueue path uses `DispatchOptions` and drop policy behavior.
+- Integrates with `IConnectionHub.ConnectionUnregistered` for state cleanup.
 
 ## Related APIs
 

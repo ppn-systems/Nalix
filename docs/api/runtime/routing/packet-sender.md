@@ -1,83 +1,64 @@
 # Packet Sender
 
-`PacketSender<TPacket>` is the default runtime component responsible for serializing and transforming outbound packets. It is automatically resolved and paired with every `PacketContext`, providing a type-safe API for handlers to send replies without worrying about low-level framing, compression, or encryption.
+`PacketSender<TPacket>` is the default runtime sender implementation used by `PacketContext<TPacket>`.
 
-## Transform Pipeline
+## Audit Summary
 
-```mermaid
-flowchart LR
-    P[IPacket] --> S[Serialize]
-    S --> C{Compress?}
-    C -- Yes --> CL[LZ4 Compression]
-    C -- No --> E{Encrypt?}
-    CL --> E
-    E -- Yes --> EL[AEAD Encryption]
-    E -- No --> SK[Socket.SendAsync]
-    EL --> SK
-```
+- Existing page correctly described transform ordering but mixed some behavior details with assumptions.
+- Needed explicit mapping to actual branching logic in `SendAsync` implementation.
 
-## Source mapping
+## Missing Content Identified
 
+- Clear explanation of default encryption decision (`context.Attributes.Encryption?.IsEncrypted`).
+- Explicit runtime boundaries: sender is initialized by runtime and used through `IPacketSender<TPacket>`.
+
+## Improvement Rationale
+
+This prevents confusion between per-handler metadata policy and per-call override behavior.
+
+## Source Mapping
+
+- `src/Nalix.Common/Networking/Packets/IPacketSender.cs`
 - `src/Nalix.Runtime/Dispatching/PacketSender.cs`
 
-## Role and Design
+## Why This Type Exists
 
-The sender acts as the "exit gate" for the runtime. It ensures that every outbound message is correctly framed and transformed according to both the global server configuration and per-connection security states.
+Handlers need a safe send API that respects runtime metadata while keeping serialization/transform logic centralized and reusable.
 
-- **Automated Transforms**: Automatically detects if a packet meets the threshold for compression or requires encryption based on the `PacketMetadata`.
-- **Zero-Allocation Execution**: Managed by the `ObjectPoolManager`, senders are rented and returned as part of the `PacketContext` lifecycle to avoid GC pressure.
-- **Atomic Operations**: Uses `BufferLease` to manage raw memory across transformation boundaries, ensuring that buffers are safely returned to the pool even if a transform fails.
+## Send Behavior
 
-## Outbound Logic Branches
+`PacketSender<TPacket>` serializes packet data, then applies transforms based on payload size and encryption requirements.
 
-The sender dynamically chooses one of four execution paths for every message:
+### Decision inputs
 
-| Scenario | Rule | Resulting Packet Flags |
-|---|---|---|
-| **Plain** | Small payload, no encryption required. | `CONTROL.NONE` |
-| **Compress only** | Payload $>$ `MinSizeToCompress`. | `PacketFlags.COMPRESSED` |
-| **Encrypt only** | `Security` required for the session. | `PacketFlags.ENCRYPTED` |
-| **Full Transform**| Large, sensitive payload. | `COMPRESSED \| ENCRYPTED` |
+- Compression: `CompressionOptions.Enabled` and `MinSizeToCompress` threshold.
+- Encryption default: `context.Attributes.Encryption?.IsEncrypted ?? false`.
+- Encryption override: `SendAsync(packet, forceEncrypt, ...)`.
 
-> [!NOTE]
-> Compression always happens **before** encryption. This ensures data is as small as possible before being scrambled, which maximizes compression efficiency and reduces encrypted payload size.
+### Transform order
 
-## API Reference
+Compression happens before encryption when both are enabled.
 
-### Primary Methods
-| Method | Description |
-|---|---|
-| `SendAsync(packet, ct)` | Sends a packet using the default security rules resolved for the request. |
-| `SendAsync(packet, force, ct)` | Overrides the default security rules to force encryption on a specific message. |
+## Core API
 
-## Basic usage
+- `SendAsync(TPacket packet, CancellationToken ct = default)`
+- `SendAsync(TPacket packet, bool forceEncrypt, CancellationToken ct = default)`
 
-### Manual Response in handler
+## Practical Example
+
 ```csharp
-public async ValueTask Handle(IPacketContext<Handshake> context, CancellationToken ct)
-{
-    // The sender is already initialized and scoped to this context.
-    await context.Sender.SendAsync(new LoginSuccess(), ct);
-}
+await context.Sender.SendAsync(replyPacket, ct);
+await context.Sender.SendAsync(replyPacket, forceEncrypt: true, ct);
 ```
 
-### Forcing Encryption
-```csharp
-// Force encryption for a sensitive reply, even if the request was plain text.
-await context.Sender.SendAsync(sensitivePacket, forceEncrypt: true, ct);
-```
+## Best Practices
 
-## Internal Mechanics
-
-1. **Renting**: A raw buffer is rented from the pool based on the `packet.Length`.
-2. **Serialization**: The `IPacket` is serialized into the rented span.
-3. **Branching**: The sender evaluates `CompressionOptions` and `context.Attributes.Encryption`.
-4. **Transforming**: If needed, new leases are rented for compressed or encrypted results, and the intermediate leases are disposed immediately.
-5. **Transmitting**: The final `ReadOnlyMemory<byte>` is passed to the `ITcpSession` or `IUdpSession`.
+- Use default `SendAsync(packet)` for normal metadata-driven behavior.
+- Use `forceEncrypt: true` only when you intentionally override handler metadata policy.
+- Do not use `PacketSender<TPacket>` without runtime initialization (`PacketContext` initializes it).
 
 ## Related APIs
 
 - [Packet Context](./packet-context.md)
-- [Packet Dispatch](./packet-dispatch.md)
 - [Compression Options](../../network/options/compression-options.md)
-- [Connection Security](../../security/handshake.md)
+- [Packet Dispatch](./packet-dispatch.md)
