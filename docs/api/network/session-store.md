@@ -1,63 +1,56 @@
 # Session Store
 
-`Nalix.Network.Sessions` provides the default runtime session-store implementations used by the network layer.
+`Nalix.Network.Sessions` provides server-side session persistence abstractions and the default in-memory implementation used by resume flows.
 
-## Source mapping
+## Audit Summary
+
+- Existing page had correct architecture direction but needed stronger mapping to concrete methods and lifecycle semantics.
+- Source mapping remains valid.
+
+## Missing Content Identified
+
+- Explicit distinction between session creation and persistence.
+- Clear behavior notes for in-memory expiration/removal.
+
+## Improvement Rationale
+
+This prevents misuse in multi-node production deployments.
+
+## Source Mapping
 
 - `src/Nalix.Network/Sessions/SessionStoreBase.cs`
 - `src/Nalix.Network/Sessions/InMemorySessionStore.cs`
 - `src/Nalix.Network/Options/SessionStoreOptions.cs`
 
-## Main types
+## Core Types
 
-- `SessionStoreBase`
-- `InMemorySessionStore`
-- `SessionStoreOptions`
+### `SessionStoreBase`
 
-## SessionStoreBase
+Abstract base implementing shared `ISessionStore` behavior:
 
-`SessionStoreBase` is the shared base class for session-store implementations.
+- `CreateSession(IConnection connection)` builds `SessionEntry` snapshot from current connection state.
+- `StoreAsync(...)`, `RetrieveAsync(...)`, `RemoveAsync(...)` are abstract persistence operations.
 
-It implements the `ISessionStore` contract from `Nalix.Common` and provides the common session creation flow:
+### `InMemorySessionStore`
 
-- generates a new session token
-- captures the connection state into `SessionSnapshot`
-- copies the current connection attributes
-- records the token back onto the live connection
+Default single-node implementation backed by `ConcurrentDictionary<UInt56, SessionEntry>`:
 
-### Common pitfalls
+- `StoreAsync` upserts entry by session token.
+- `RetrieveAsync` lazily removes expired entries before returning.
+- `RemoveAsync` deletes entry and returns pooled resources.
 
-- treating `CreateSession(...)` as persistence; it only builds the entry
-- assuming the base class stores or deletes anything by itself
-- forgetting that the base class reads retention settings from configuration
+### `SessionStoreOptions`
 
-## InMemorySessionStore
+- `SessionTtl` defines resume-session retention duration.
 
-`InMemorySessionStore` is the built-in single-node implementation.
+## Best Practices
 
-It is backed by a `ConcurrentDictionary<UInt56, SessionEntry>` and:
-
-- stores entries by session token
-- removes entries on explicit delete
-- lazily evicts expired entries on retrieval
-
-### Common pitfalls
-
-- using the in-memory store in a multi-node deployment without a shared backend
-- assuming retrieval never removes entries; expired entries are pruned during lookup
-- forgetting that removed or expired entries are returned to the pool
-
-## SessionStoreOptions
-
-`SessionStoreOptions` controls how long resumable sessions are retained before expiration.
-
-### Common pitfalls
-
-- setting the TTL longer than the actual security policy allows
-- assuming TTL is refreshed automatically when a session is only read
+- Use `InMemorySessionStore` for single-node/local deployments.
+- Use distributed backing store for multi-node resume semantics.
+- Keep `SessionTtl` aligned with security and rotation policy.
 
 ## Related APIs
 
-- [Session Contracts](../common/session-contracts.md)
-- [Connection Contracts](../common/connection-contracts.md)
+- [Connection Hub](./connection/connection-hub.md)
 - [Session Resume](../security/session-resume.md)
+- [Session Contracts](../common/session-contracts.md)
