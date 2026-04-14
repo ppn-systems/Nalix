@@ -307,9 +307,14 @@ public sealed class NetworkClient : INetworkClient
             {
                 return;
             }
+            catch (Exception ex) when (ex is TransportException || ex is TimeoutException || ex is InvalidFrameException)
+            {
+                Error?.Invoke(this, ex);
+            }
             catch (Exception ex)
             {
                 Error?.Invoke(this, ex);
+                throw;
             }
 
             int exponent = attempt > 20 ? 20 : attempt;
