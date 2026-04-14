@@ -5,7 +5,6 @@ Middleware allows you to intercept and process packets or raw buffers before the
 ## Source Mapping
 
 - `src/Nalix.Runtime/Middleware`
-- `src/Nalix.Runtime/Extentions`
 - `src/Nalix.Network.Pipeline/Inbound`
 - `src/Nalix.Common/Middleware`
 
