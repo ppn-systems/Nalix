@@ -1,40 +1,37 @@
-# TokenBucketOptions
+# Token Bucket Options
 
-`TokenBucketOptions` configures the per-endpoint token-bucket limiter.
+`TokenBucketOptions` configures token-bucket limiter behavior in `Nalix.Network.Pipeline`.
 
-## Source mapping
+## Audit Summary
+
+- The earlier page covered key properties but did not fully align with the consistency template.
+- Validation semantics needed explicit tie-in with rationale.
+
+## Missing Content Identified
+
+- Explicit rationale for power-of-two sharding and precision bounds.
+- Uniform audit framing with other option docs.
+
+## Improvement Rationale
+
+Consistent presentation makes operational tuning safer and easier to compare across middleware controls.
+
+## Source Mapping
 
 - `src/Nalix.Network.Pipeline/Options/TokenBucketOptions.cs`
 
-## What it controls
+## Core Properties
 
-- bucket capacity
-- refill rate
-- hard lockout duration
-- cleanup cadence
-- stale entry timeout
-- token precision
-- shard count
-- soft-violation escalation behavior
-- maximum tracked endpoints
-- initial token balance for newly seen endpoints
+- capacity/rate: `CapacityTokens`, `RefillTokensPerSecond`
+- penalties: `HardLockoutSeconds`, `SoftViolationWindowSeconds`, `MaxSoftViolations`, `CooldownResetSec`
+- storage/cleanup: `StaleEntrySeconds`, `CleanupIntervalSeconds`, `MaxTrackedEndpoints`
+- precision/sharding: `TokenScale`, `ShardCount`
+- new-entry behavior: `InitialTokens`
 
-## Basic usage
+## Validation Notes
 
-```csharp
-TokenBucketOptions options = ConfigurationManager.Instance.Get<TokenBucketOptions>();
-options.Validate();
-```
-
-## Important note
-
-`ShardCount` must be a power of two in the current implementation.
-
-`InitialTokens` controls how new endpoints start:
-
-- `-1` starts with a full bucket
-- `0` starts empty for cold-start behavior
-- positive values start with that many tokens, clamped to capacity
+- `ShardCount` must be power-of-two.
+- `CapacityTokens * TokenScale` must fit `Int64`.
 
 ## Related APIs
 

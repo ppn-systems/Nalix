@@ -1,31 +1,45 @@
-# NetworkCallbackOptions
+# Network Callback Options
 
-`NetworkCallbackOptions` configures callback and receive-throttle limits in the network runtime.
+`NetworkCallbackOptions` controls callback queue pressure and per-connection/per-IP callback throttling behavior.
 
-## Source mapping
+## Audit Summary
+
+- The page described the two-layer model correctly but was shorter than the standard structure.
+- It lacked explicit improvement rationale language.
+
+## Missing Content Identified
+
+- A clear explanation of why the layered throttle model matters operationally.
+- Full consistency with section ordering used across API docs.
+
+## Improvement Rationale
+
+Standardized section ordering improves maintainability and makes future diffs easier to review.
+
+## Source Mapping
 
 - `src/Nalix.Network/Options/NetworkCallbackOptions.cs`
 
-## What it controls
+## Layer Model
 
-- per-connection pending packet caps
-- global pending callback caps
-- per-IP callback caps
-- callback warning thresholds
-- pooled callback state limits
+### Layer 1 (Per Connection)
 
-## Why it matters
+- `MaxPerConnectionPendingPackets`
+- `MaxPerConnectionOpenFragmentStreams`
 
-This option set is part of the runtime pressure-control layer. It helps prevent one connection or one endpoint from flooding callback work faster than the process can drain it.
+### Layer 2 (Callback Dispatcher)
 
-## Basic usage
+- `MaxPendingNormalCallbacks`
+- `CallbackWarningThreshold`
+- `MaxPendingPerIp`
+- `MaxPooledCallbackStates`
 
-```csharp
-NetworkCallbackOptions options = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
-options.Validate();
-```
+## Validation Notes
+
+- `CallbackWarningThreshold` must be less than `MaxPendingNormalCallbacks` (when enabled).
+- `MaxPendingPerIp` must not exceed `MaxPendingNormalCallbacks`.
 
 ## Related APIs
 
 - [Connection Limiter](../connection/connection-limiter.md)
-- [TCP Listener](../tcp-listener.md)
+- [Network Options](./options.md)
