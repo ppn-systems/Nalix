@@ -1,5 +1,5 @@
 site_name: Nalix
-site_description: High-performance real-time server framework for .NET
+site_description: Enterprise-grade real-time TCP networking framework for .NET
 site_url: https://ppn-systems.github.io/nalix-docs/
 copyright: Copyright © 2025-2026 PPN Corporation
 repo_url: https://github.com/ppn-systems/nalix
@@ -16,7 +16,7 @@ extra:
       link: mailto:ppn.system@gmail.com
   announcement: |
     🚀 Nalix is under active development. Star us on GitHub!
-  canonical_url: https://ppn-systems.github.io/ppn-systems.github.io/
+  canonical_url: https://ppn-systems.github.io/nalix-docs/
   meta:
     - name: keywords
       content: real-time server, .NET, networking, TCP, UDP
@@ -91,6 +91,9 @@ markdown_extensions:
           class: mermaid
           format: !!python/name:mermaid2.fence_mermaid_custom
   - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.betterem:
       smart_enable: all
   - pymdownx.tabbed:
@@ -145,6 +148,7 @@ nav:
       - Nalix.Network.Pipeline: packages/nalix-network-pipeline.md
       - Nalix.SDK: packages/nalix-sdk.md
   - API:
+      - Overview: api/index.md
       - Analyzers:
         - Overview: api/analyzers/index.md
         - Diagnostic Codes: api/analyzers/diagnostic-codes.md
@@ -214,6 +218,7 @@ nav:
           - Permission Middleware: api/runtime/middleware/permission-middleware.md
           - Timeout Middleware: api/runtime/middleware/timeout-middleware.md
       - Network:
+        - Overview: api/network/index.md
         - Protocol: api/network/protocol.md
         - TCP Listener: api/network/tcp-listener.md
         - UDP Listener: api/network/udp-listener.md
@@ -235,6 +240,7 @@ nav:
           - Timing Wheel Options: api/network/options/timing-wheel-options.md
           - Pooling Options: api/network/options/pooling-options.md
           - Network Callback Options: api/network/options/network-callback-options.md
+          - Session Store Options: api/network/options/session-store-options.md
           - Compression Options: api/network/options/compression-options.md
           - Token Bucket Options: api/network/options/token-bucket-options.md
       - Hosting:

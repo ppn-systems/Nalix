@@ -1,59 +1,54 @@
 # Connection Events
 
-Nalix.Network exposes event argument types for connection lifecycle and hub-capacity events.
+Connection event argument types carry structured data between transport callbacks and protocol/runtime layers.
 
-## Source mapping
+## Audit Summary
+
+- Existing page conceptually correct; needed precise boundary between connection event args and hub-capacity event/delegate usage.
+
+## Missing Content Identified
+
+- Explicit mention that `ConnectionEventArgs` is pooled and reused.
+- Clear source mapping and related event producers.
+
+## Improvement Rationale
+
+Clear event-payload semantics reduce callback misuse and lifecycle bugs.
+
+## Source Mapping
 
 - `src/Nalix.Network/Connections/Connection.EventArgs.cs`
-- `src/Nalix.Network/Connections/Connection.Hub.EventArgs.cs`
+- `src/Nalix.Network/Connections/Connection.Hub.cs`
 
-## ConnectionEventArgs
+## `ConnectionEventArgs`
 
-`ConnectionEventArgs` is the standard event payload for connection events.
+Used by connection-level events (`OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`).
 
-It provides:
+Key members:
 
 - `Connection`
 - `Lease`
 - `NetworkEndpoint`
+- lifecycle helpers: `Initialize(...)`, `ExchangeLease(...)`, `Dispose()`
 
-The current implementation is pool-aware and implements `IPoolable`.
+`ConnectionEventArgs` implements `IPoolable`; instances are returned to pool after use.
 
-## ConnectionHubEventArgs
+## Hub Capacity Events
 
-`ConnectionHubEventArgs` is raised when hub capacity-related limits are hit.
+`ConnectionHub` exposes:
 
-It provides:
+- `CapacityLimitReached` delegate event
 
-- active `DropPolicy`
-- current and max connection counts
-- triggering connection ID
-- textual reason
-- a statistics snapshot
+Use this event to react to registration admission pressure according to configured drop policy.
 
-## When you care about these types
+## Best Practices
 
-Use them when you:
-
-- subscribe to listener or connection lifecycle events
-- handle capacity notifications from `ConnectionHub`
-- want structured data instead of parsing log output
-
-## Example
-
-```csharp
-connection.OnCloseEvent += (_, args) =>
-{
-    Console.WriteLine($"closed: {args.Connection.ID} from {args.NetworkEndpoint}");
-};
-
-hub.CapacityLimitReached += (_, args) =>
-{
-    Console.WriteLine($"hub limit hit: {args.CurrentConnections}/{args.MaxConnections}");
-};
-```
+- Treat `Lease` ownership carefully in callback pipelines.
+- Do not cache pooled event arg instances beyond callback scope.
+- Use hub capacity callbacks for operational monitoring and alerting.
 
 ## Related APIs
 
 - [Connection](./connection.md)
 - [Connection Hub](./connection-hub.md)
+- [Protocol](../protocol.md)

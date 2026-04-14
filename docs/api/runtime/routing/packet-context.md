@@ -1,74 +1,78 @@
 # Packet Context
 
-`PacketContext<TPacket>` is the primary execution context for Nalix handlers. It provides a thread-safe, request-scoped container that carries the message, its connection state, resolved metadata, and a high-performance outbound sender.
+`PacketContext<TPacket>` is the pooled runtime context passed through middleware and handler execution.
 
-## Context Lifecycle
+## Audit Summary
+
+- Existing page had useful context but included generic claims not tied to explicit API boundaries.
+- Needed stronger mapping between interface contract (`IPacketContext<TPacket>`) and concrete lifecycle in `PacketContext<TPacket>`.
+
+## Missing Content Identified
+
+- Clear distinction between public contract members and runtime-managed setters/lifecycle.
+- Explicit note that initialization is runtime-internal and contexts are pool-returned, not user-constructed per request.
+
+## Improvement Rationale
+
+A precise lifecycle model helps contributors avoid context misuse and unnecessary allocations.
+
+## Source Mapping
+
+- `src/Nalix.Common/Networking/Packets/IPacketContext.cs`
+- `src/Nalix.Runtime/Dispatching/PacketContext.cs`
+
+## Why This Type Exists
+
+Handlers need a single object that carries packet, connection, metadata, sender, and cancellation state. The runtime also needs this object to be reusable across high-throughput dispatch loops.
+
+## Contract Surface (`IPacketContext<TPacket>`)
+
+- `Packet`
+- `Connection`
+- `Attributes`
+- `Sender`
+- `CancellationToken`
+- `SkipOutbound`
+
+## Runtime Lifecycle (`PacketContext<TPacket>`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Pooled: ObjectPoolManager.Get()
-    Pooled --> InUse: Initialize(packet, conn)
-    state InUse {
-        [*] --> HandlerExecution
-        HandlerExecution --> OutboundPipeline: SendAsync()
-    }
+    [*] --> Pooled
+    Pooled --> InUse: Initialize(...)
     InUse --> Returned: Return()
     Returned --> Pooled: ResetForPool()
 ```
 
-## Source mapping
+### Lifecycle notes
 
-- `src/Nalix.Runtime/Dispatching/PacketContext.cs`
+- Runtime initializes context via internal `Initialize(...)`.
+- `Sender` is automatically rented and attached during initialization.
+- `Return()` is guarded to avoid double-return races.
+- `ResetForPool()` clears references and returns nested sender to pool.
 
-## Role and Design
+## Practical Example
 
-To achieve millions of messages per second, Nalix avoids per-packet allocations for the context itself. Instances of `PacketContext<TPacket>` are pre-allocated and managed by the `ObjectPoolManager`.
-
-- **Type Safety**: The generic `TPacket` ensures that handlers work with deserialized objects rather than raw byte spans.
-- **Pooled Sender**: Every context is automatically paired with a `PacketSender<TPacket>` from the pool, enabling immediate, type-safe replies.
-- **Metadata Awareness**: The context carries `PacketMetadata`, allowing middleware and handlers to check permissions, timeouts, and other attributes declared via C# attributes.
-
-## API Reference
-
-### Properties
-| Member | Description |
-|---|---|
-| `Packet` | The deserialized message instance being processed. |
-| `Connection` | The `IConnection` that received the packet. |
-| `Sender` | A pooled `IPacketSender<TPacket>` for sending responses. |
-| `Attributes` | Resolved `PacketMetadata` (Permissions, OpCodes, etc.). |
-| `CancellationToken`| A token that triggers on session drop or request timeout. |
-| `SkipOutbound` | If true, redirects the handler result away from the normal outbound pipeline. |
-
-## Basic usage
-
-### Standard Handler Context
 ```csharp
-[PacketOpcode(0x1024)]
-public async ValueTask Handle(IPacketContext<LoginPacket> context, CancellationToken ct)
+public static async ValueTask HandleAsync(IPacketContext<MyPacket> context)
 {
-    // Access the identity
-    var user = context.Packet.Username;
-    
-    // Check permissions resolved by the dispatcher
-    if (context.Attributes.Permission.Level > 0)
+    MyPacket packet = context.Packet;
+
+    if (!context.SkipOutbound)
     {
-        // Send a direct reply using the pooled sender
-        await context.Sender.SendAsync(new LoginSuccessPacket(), ct);
+        await context.Sender.SendAsync(new MyReply());
     }
 }
 ```
 
-## Internal Mechanics
+## Best Practices
 
-1. **Pre-allocation**: The static constructor reads `PoolingOptions` and warms up the pool with `PacketContextPreallocate` instances.
-2. **Double-Return Guarding**: The `Return()` method uses an atomic `Interlocked.Exchange` to ensure a context is never returned to the pool twice, even under heavy concurrency.
-3. **Recursive Cleanup**: When a context is returned, it automatically returns its internal `PacketSender` to the pool before clearing its own references.
+- Prefer `context.Sender` over direct socket sends when handler metadata should apply.
+- Treat `PacketContext<TPacket>` as runtime-owned; avoid retaining references beyond handler scope.
+- Use `SkipOutbound` only for intentional outbound middleware bypass scenarios.
 
 ## Related APIs
 
-- [Packet Dispatch](./packet-dispatch.md)
 - [Packet Sender](./packet-sender.md)
 - [Packet Metadata](./packet-metadata.md)
-- [Packet Attributes](./packet-attributes.md)
-- [Handler Results](./handler-results.md)
+- [Packet Dispatch](./packet-dispatch.md)
