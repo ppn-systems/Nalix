@@ -213,7 +213,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IAsyncDispos
                 {
                     return;
                 }
-                catch (Exception ex)
+                catch (ObjectDisposedException ex)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        this.StatusMessage = $"Diagnostics error: {ex.Message}";
+                    });
+                }
+                catch (InvalidOperationException ex)
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
