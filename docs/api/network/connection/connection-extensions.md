@@ -16,7 +16,7 @@ This avoids drift between helper docs and runtime call sites.
 
 ## Source Mapping
 
-- `src/Nalix.Runtime/Extentions/ConnectionExtensions.cs`
+- `src/Nalix.Runtime/Extensions/ConnectionExtensions.cs`
 
 ## Core API
 
