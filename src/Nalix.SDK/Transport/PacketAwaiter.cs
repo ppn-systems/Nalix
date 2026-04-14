@@ -68,8 +68,9 @@ public static class PacketAwaiter
             },
             onDisconnected: ex =>
             {
-                Exception error = ex ?? new InvalidOperationException(
-                    $"Disconnected while waiting for {typeof(TPkt).Name}.");
+                Exception error = new Nalix.Common.Exceptions.NetworkException(
+                    $"Disconnected while waiting for {typeof(TPkt).Name}.",
+                    ex ?? new InvalidOperationException("The TCP session was disconnected."));
 
                 try { _ = tcs.TrySetException(error); } catch { }
             });
@@ -80,8 +81,14 @@ public static class PacketAwaiter
         }
         catch (Exception sendEx)
         {
+            if (sendEx is InvalidOperationException)
+            {
+                sendEx = new Nalix.Common.Exceptions.NetworkException(
+                    $"Disconnected while sending {typeof(TPkt).Name}.", sendEx);
+            }
+
             try { _ = tcs.TrySetException(sendEx); } catch { }
-            throw;
+            throw sendEx;
         }
 
         try
