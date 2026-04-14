@@ -2,9 +2,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Xunit;
@@ -50,7 +52,11 @@ public sealed class PacketAwaiterTests
 
         public override event EventHandler<Exception>? OnDisconnected;
 
-        public override event EventHandler<IBufferLease>? OnMessageReceived;
+        public override event EventHandler<IBufferLease>? OnMessageReceived
+        {
+            add { }
+            remove { }
+        }
 
         public override event EventHandler<Exception>? OnError;
 

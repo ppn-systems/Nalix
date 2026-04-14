@@ -45,18 +45,25 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-            if (p is not TPacket t)
+            try
             {
-                Trace.TraceWarning(
-                    "Nalix.SDK.TcpSessionSubscriptions.On<{0}> ignored packet {1}.",
-                    typeof(TPacket).Name,
-                    p?.GetType().Name ?? "null");
-                return;
-            }
+                IPacket p = client.Catalog.Deserialize(buffer.Span);
 
-            handler(t);
+                if (p is not TPacket t)
+                {
+                    Trace.TraceWarning(
+                        "Nalix.SDK.TcpSessionSubscriptions.On<{0}> ignored packet {1}.",
+                        typeof(TPacket).Name,
+                        p?.GetType().Name ?? "null");
+                    return;
+                }
+
+                handler(t);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On<{0}> failed: {1}", typeof(TPacket).Name, ex);
+            }
         }
 
         client.OnMessageReceived += Wrapper;
@@ -80,15 +87,25 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-            if (p is not TPacket t)
+            try
             {
-                throw new InvalidOperationException(
-                    $"Received packet of type {p?.GetType().Name ?? "null"}, expected {typeof(TPacket).Name}");
-            }
+                IPacket p = client.Catalog.Deserialize(buffer.Span);
 
-            handler(t);
+                if (p is not TPacket t)
+                {
+                    Trace.TraceError(
+                        "Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> received unexpected packet {1}.",
+                        typeof(TPacket).Name,
+                        p?.GetType().Name ?? "null");
+                    return;
+                }
+
+                handler(t);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> failed: {1}", typeof(TPacket).Name, ex);
+            }
         }
 
         client.OnMessageReceived += Wrapper;
@@ -111,14 +128,21 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-            if (p is null || !predicate(p))
+            try
             {
-                return;
-            }
+                IPacket p = client.Catalog.Deserialize(buffer.Span);
 
-            handler(p);
+                if (p is null || !predicate(p))
+                {
+                    return;
+                }
+
+                handler(p);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On(predicate) failed: {0}", ex);
+            }
         }
 
         client.OnMessageReceived += Wrapper;
@@ -148,30 +172,36 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            // Deserialize — if it fails, let it bubble up to FrameReader.
-            IPacket p = client.Catalog.Deserialize(buffer.Span);
-
-            if (p is not TPacket t)
+            try
             {
-                return;
-            }
+                IPacket p = client.Catalog.Deserialize(buffer.Span);
 
-            if (!predicate(t))
+                if (p is not TPacket t)
+                {
+                    return;
+                }
+
+                if (!predicate(t))
+                {
+                    return;
+                }
+
+                // Atomic once-guard: only the first arriving thread proceeds.
+                if (Interlocked.Exchange(ref fired, 1) != 0)
+                {
+                    return;
+                }
+
+                // Unsubscribe before invoking handler to avoid a second delivery
+                // if the handler itself triggers another message.
+                client.OnMessageReceived -= Wrapper;
+
+                handler(t);
+            }
+            catch (Exception ex)
             {
-                return;
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnOnce<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
-
-            // Atomic once-guard: only the first arriving thread proceeds.
-            if (Interlocked.Exchange(ref fired, 1) != 0)
-            {
-                return;
-            }
-
-            // Unsubscribe before invoking handler to avoid a second delivery
-            // if the handler itself triggers another message.
-            client.OnMessageReceived -= Wrapper;
-
-            handler(t);
         }
 
         client.OnMessageReceived += Wrapper;

@@ -68,6 +68,11 @@ public sealed record RequestOptions
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     public void Validate()
     {
+        if (this.TimeoutMs < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(this.TimeoutMs), this.TimeoutMs, $"{nameof(this.TimeoutMs)} must be >= 0.");
+        }
         if (this.RetryCount < 0)
         {
             throw new ArgumentOutOfRangeException(

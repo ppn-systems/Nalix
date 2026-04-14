@@ -97,7 +97,11 @@ internal sealed class FrameSender : IDisposable
             }
         }
         catch (OperationCanceledException) { }
-        catch (Exception ex) { _onError?.Invoke(ex); }
+        catch (Exception ex)
+        {
+            _onError?.Invoke(ex);
+            _ = _sendQueue.Writer.TryComplete(ex);
+        }
     }
 
     private async Task SEND_SOCKET_ASYNC(byte[] frame, int frameLen, TaskCompletionSource<bool> tcs, CancellationToken token)

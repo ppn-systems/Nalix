@@ -27,7 +27,7 @@ While `TransportSession.OnMessageReceived` provides raw access to byte buffers, 
 
 The subscription helpers provide:
 - **Type Safety**: `On<TPacket>()` ignores packets of other types and only invokes your handler when the payload matches.
-- **Strict Debugging**: `OnExact<TPacket>()` throws if a different packet type is observed on the channel.
+- **Strict Debugging**: `OnExact<TPacket>()` reports unexpected packets without crashing the receive loop.
 - **Lease Ownership**: The helper owns the `IBufferLease`. It ensures the lease is disposed even if your handler throws an exception.
 - **Predicated Filtering**: Filter messages before they even reach your handler (e.g., only `PONG` controls with a specific sequence ID).
 
@@ -36,7 +36,7 @@ The subscription helpers provide:
 | Method | Description |
 |---|---|
 | `On<TPacket>` | Subscribes to a packet type and ignores non-matching packets. |
-| `OnExact<TPacket>` | Strict subscription that throws if a different packet type is received. |
+| `OnExact<TPacket>` | Strict subscription that logs unexpected packet types without stopping the receive loop. |
 | `OnOnce<TPacket>` | Fires exactly once for the first matching packet, then auto-unsubscribes. |
 | `SubscribeTemp` | Combines a typed message handler with an `OnDisconnected` hook—ideal for transient flows. |
 | `CompositeSubscription` | A container to group and dispose multiple subscriptions at once. |
@@ -84,7 +84,8 @@ group.Dispose(); // Unsubscribes all
 
 - **Thread Safety**: Handlers are invoked on the background receive thread. Use a [Thread Dispatcher](./thread-dispatching.md) before updating UI state.
 - **Async Handlers**: If your handler is `async`, the lease is disposed as soon as the synchronous part of the handler finishes. Ensure you copy any data you need before the first `await`.
-- **Unexpected Packets**: `On<TPacket>()` silently skips non-matching packets by design. Use `OnExact<TPacket>()` when you want protocol violations to fail fast.
+- **Unexpected Packets**: `On<TPacket>()` silently skips non-matching packets by design. Use `OnExact<TPacket>()` when you want protocol violations to be logged explicitly without tearing down the session.
+- **Error Handling**: Any exception thrown by a subscription callback is isolated from the transport receive loop.
 
 ## Related APIs
 

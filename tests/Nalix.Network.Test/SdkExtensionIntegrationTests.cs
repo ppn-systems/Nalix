@@ -69,8 +69,8 @@ public sealed class SdkExtensionIntegrationTests
         rttMs.Should().BeGreaterThanOrEqualTo(0);
         adjustedMs.Should().NotBe(0);
 
-        await client.Session.UpdateCipherAsync(CipherSuiteType.XChaCha20Poly1305, timeoutMs: 2500);
-        client.Session.Options.Algorithm.Should().Be(CipherSuiteType.XChaCha20Poly1305);
+        await client.Session.UpdateCipherAsync(CipherSuiteType.Chacha20Poly1305, timeoutMs: 2500);
+        client.Session.Options.Algorithm.Should().Be(CipherSuiteType.Chacha20Poly1305);
 
         await client.Session.DisconnectAsync();
         bool resumed = await client.Session.ConnectWithResumeAsync();
@@ -131,7 +131,27 @@ public sealed class SdkExtensionIntegrationTests
         (await filteredObserved.Task.WaitAsync(TimeSpan.FromSeconds(5))).Type.Should().Be(ControlType.NOTICE);
 
         await client.Session.DisconnectGracefullyAsync(reason: ProtocolReason.CLIENT_QUIT);
-        (await disconnectedObserved.Task.WaitAsync(TimeSpan.FromSeconds(5))).Should().BeOfType<InvalidOperationException>();
+        (await disconnectedObserved.Task.WaitAsync(TimeSpan.FromSeconds(5))).Should().BeOfType<Nalix.Common.Exceptions.NetworkException>();
+    }
+
+    [Fact]
+    public async Task UpdateCipherAsync_WhenAckFails_RollsBackCipher()
+    {
+        EnsureInfrastructure();
+
+        using TestNetworkHost host = await TestNetworkHost.StartAsync();
+        using TestClient client = new(host.Port);
+
+        await client.Session.ConnectAsync();
+        await client.Session.HandshakeAsync();
+
+        CipherSuiteType before = client.Session.Options.Algorithm;
+
+        Func<Task> act = async () =>
+            await client.Session.UpdateCipherAsync(CipherSuiteType.Chacha20Poly1305, timeoutMs: 1);
+
+        await act.Should().ThrowAsync<TimeoutException>();
+        client.Session.Options.Algorithm.Should().Be(before);
     }
 
     private static void EnsureInfrastructure()

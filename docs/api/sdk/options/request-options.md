@@ -30,6 +30,7 @@ sequenceDiagram
 - **Timeout per attempt**: `TimeoutMs` applies to each individual attempt, not the total request time.
 - **Selective retries**: retries are only triggered by `TimeoutException`. Fatal transport errors, send failures, and disconnects propagate immediately.
 - **Encryption opt-in**: `Encrypt` allows specific requests to be secured even if the base transport is not globally encrypting. The SDK only applies this to `TcpSession`.
+- **Input validation**: `TimeoutMs` must be non-negative, and `RetryCount` must be non-negative.
 
 ## API Reference
 
@@ -73,6 +74,7 @@ var matchingResponse = await client.RequestAsync<SecretData>(
 - **Total wait time**: the maximum delay a caller might face is approximately `TimeoutMs * (RetryCount + 1)`.
 - **Encryption compatibility**: `Encrypt = true` is only supported when using `TcpSession`. The helper validates this before sending.
 - **Predicate quality**: when you provide a predicate, it should identify the correlated response, not just the packet type.
+- **Failure semantics**: transport disconnects surface as `NetworkException`; only `TimeoutException` is retryable.
 
 ## Related APIs
 
