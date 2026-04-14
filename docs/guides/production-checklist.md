@@ -194,8 +194,8 @@ Console.WriteLine(connectionHub.GenerateReport());
 await listener.Deactivate(ct);
 ```
 
-## Read this next
+## Recommended Next Pages
 
-- [Server Blueprint](./server-blueprint.md)
-- [Troubleshooting](./troubleshooting.md)
-- [Network Options](../api/network/options/options.md)
+- [Server Blueprint](./server-blueprint.md) — Production-oriented project structure
+- [Troubleshooting](./troubleshooting.md) — Common issues and diagnostics
+- [Network Options](../api/network/options/options.md) — Options class reference
