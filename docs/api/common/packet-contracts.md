@@ -1,104 +1,77 @@
 # Packet Contracts
 
-`Nalix.Common.Networking.Packets` contains the core packet contracts shared by server and client code.
-The packet model is generic-friendly, so the same contracts work for built-in packets and custom packet types.
+`Nalix.Common.Networking.Packets` defines the shared packet contracts used by both server and client packages.
 
-## Source mapping
+## Why These Contracts Exist
+
+Nalix uses one packet model across runtime and SDK code. Shared contracts prevent divergence between transport, dispatch, and application handlers.
+
+## Source Mapping
 
 - `src/Nalix.Common/Networking/Packets/IPacket.cs`
+- `src/Nalix.Common/Networking/Packets/IPacketContext.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketRegistry.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketSender.cs`
+- `src/Nalix.Common/Networking/Packets/PacketDeserializer.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketTimestamped.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketReasoned.cs`
 
-## Main types
+## Main Types
 
-- `IPacket`
-- `IPacketRegistry`
-- `IPacketSender<TPacket>`
-- `IPacketContext<TPacket>`
+### `IPacket`
 
-## Public members at a glance
+`IPacket` is the wire contract. It includes:
 
-| Type | Public members |
-|---|---|
-| `IPacket` | packet header members, `Length`, `Serialize()` overloads |
-| `IPacketRegistry` | registry lookup, registration checks, deserialization helpers |
-| `IPacketSender<TPacket>` | packet send helpers with metadata-aware behavior |
-| `IPacketContext<TPacket>` | `SkipOutbound`, `Packet`, `Connection`, `Attributes`, `Sender`, `CancellationToken` |
-
-## IPacket
-
-`IPacket` is the base packet contract.
-
-It includes:
-
-- header-level metadata such as magic number, opcode, flags, priority, and protocol
+- header metadata (`MagicNumber`, `OpCode`, `Flags`, `Priority`, `Protocol`, `SequenceId`)
 - `Length`
-- `Serialize()` overloads
+- serialization methods (`Serialize()`, `Serialize(Span<byte>)`)
 
-This is the contract that packet implementations on both sides of the wire ultimately conform to.
+### `IPacketRegistry`
 
-## IPacketRegistry
+`IPacketRegistry` provides read-only deserializer lookup for dispatch and client receive paths:
 
-`IPacketRegistry` is the read-only packet catalog used to map incoming data to packet deserializers.
+- `DeserializerCount`
+- `IsKnownMagic(uint)`
+- `IsRegistered<TPacket>()`
+- `Deserialize(ReadOnlySpan<byte>)`
+- `TryDeserialize(ReadOnlySpan<byte>, out IPacket?)`
 
-It supports:
+### `IPacketContext<TPacket>`
 
-- checking whether a magic number is known
-- checking whether a packet type is registered
-- deserializing raw bytes into `IPacket`
-- retrieving a deserializer by magic number
+Handler context contract shared with runtime context implementations:
 
-## IPacketSender<TPacket>
+- `Packet`, `Connection`, `Attributes`, `Sender`, `CancellationToken`
+- `SkipOutbound` for outbound middleware control
 
-`IPacketSender<TPacket>` abstracts packet sending with metadata-aware transform behavior.
+### `IPacketSender<TPacket>`
 
-It supports:
+Metadata-aware send contract:
 
-- sending with normal metadata-driven behavior
-- sending with an explicit encryption override
+- `SendAsync(TPacket, CancellationToken)`
+- `SendAsync(TPacket, bool forceEncrypt, CancellationToken)`
 
-## IPacketContext<TPacket>
+### Supporting Contracts
 
-`IPacketContext<TPacket>` is the handler context used when packet middleware or handlers need the current packet, connection, metadata, and sender together.
-Use the generic `TPacket` with built-in packets or your own custom packet types depending on the handler pipeline.
+- `PacketDeserializer`: delegate from raw bytes to `IPacket`
+- `IPacketTimestamped`: packet contract with timestamp semantics
+- `IPacketReasoned`: packet contract exposing reason/code semantics
 
-### Common pitfalls
+## Responsibility Boundaries
 
-- using `connection.TCP.SendAsync(...)` when `context.Sender` already knows the current packet metadata
-- ignoring `SkipOutbound` when a handler intentionally wants to suppress outbound middleware
-- treating `Attributes` as optional when your middleware depends on resolved packet metadata
+- `Nalix.Common`: only contracts and shared primitives.
+- `Nalix.Framework`: concrete packet model and registry implementations.
+- `Nalix.Runtime`: dispatch/context/sender implementations.
+- `Nalix.SDK`: client transport usage of the same contracts.
 
-## Example
+## Best Practices
 
-```csharp
-IPacket packet = new Handshake(
-    1,
-    HandshakeStage.CLIENT_HELLO,
-    clientPublicKey,
-    clientNonce);
-IPacketSender<Handshake> sender = /* resolved sender */;
-await sender.SendAsync((Handshake)packet, ct);
-
-if (registry.TryDeserialize(buffer, out IPacket? decoded))
-{
-    Console.WriteLine($"decoded opcode: {decoded.OpCode}");
-}
-```
-
-Typical flow:
-
-1. registry resolves raw bytes to a packet
-2. handler receives `IPacketContext<TPacket>` or `PacketContext<TPacket>`
-3. middleware reads metadata from `context.Attributes`
-4. handler sends through `context.Sender` when it needs packet-aware send behavior
-5. the same flow works for custom packet handlers as long as the generic packet type matches the dispatch pipeline
+- Keep packet serialization deterministic for registry deserialization.
+- Use `IPacketContext<TPacket>.Sender` in handlers to preserve metadata-driven send behavior.
+- Use `TryDeserialize` in hot paths where exception-free failure handling is preferred.
 
 ## Related APIs
 
 - [Frame Model](../framework/packets/frame-model.md)
 - [Packet Registry](../framework/packets/packet-registry.md)
-- [Packet Sender](../runtime/routing/packet-sender.md)
-- [Packet Dispatch](../runtime/routing/packet-dispatch.md)
-- [Packet Metadata](../runtime/routing/packet-metadata.md)
+- [Runtime Packet Context](../runtime/routing/packet-context.md)
+- [SDK Overview](../sdk/index.md)
