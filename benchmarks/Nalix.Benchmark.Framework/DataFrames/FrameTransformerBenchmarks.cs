@@ -37,9 +37,9 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
         Handshake frame = new();
         frame.Initialize(
             HandshakeStage.SERVER_HELLO,
-            new Fixed256(Csprng.GetBytes(32)),
-            new Fixed256(Csprng.GetBytes(32)),
-            new Fixed256(Csprng.GetBytes(32)),
+            new Bytes32(Csprng.GetBytes(32)),
+            new Bytes32(Csprng.GetBytes(32)),
+            new Bytes32(Csprng.GetBytes(32)),
             ProtocolType.TCP);
         frame.Flags = PacketFlags.NONE;
         _rawPacket = frame.Serialize();
