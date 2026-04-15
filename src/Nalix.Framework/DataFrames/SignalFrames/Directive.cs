@@ -138,10 +138,9 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = 0;
+        
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
-        this.SequenceId = 0;
     }
 
     /// <summary>

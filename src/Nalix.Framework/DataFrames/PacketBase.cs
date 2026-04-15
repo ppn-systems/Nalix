@@ -230,10 +230,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
         }
 
-        if (buffer.Length < PacketConstants.HeaderSize)
+        if (buffer.Length < s_cache.StaticSize)
         {
             throw new SerializationFailureException(
-                $"Insufficient buffer for header: type={typeof(TSelf).Name}, length={buffer.Length}, required={PacketConstants.HeaderSize}.");
+                $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={s_cache.StaticSize}.");
         }
 
         uint bufferMagic = buffer.ReadMagicNumberLE();
