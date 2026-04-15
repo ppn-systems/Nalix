@@ -103,7 +103,11 @@ public static class AeadEngine
         EnvelopeHeader.Encode(header, new EnvelopeHeader(EnvelopeFormat.CurrentVersion, algorithm, 0, (byte)nonce.Length, seqVal));
 
         byte[]? rentedAad = null;
-        int authenticatedDataLength = header.Length + nonce.Length + aad.Length;
+        int authenticatedDataLength;
+        checked
+        {
+            authenticatedDataLength = header.Length + nonce.Length + aad.Length;
+        }
         System.Span<byte> authenticatedData = authenticatedDataLength <= 256
             ? stackalloc byte[authenticatedDataLength]
             : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength));
@@ -184,7 +188,11 @@ public static class AeadEngine
 
         System.Span<byte> ptSlice = plaintext[..ctLen];
         byte[]? rentedAad = null;
-        int authenticatedDataLength = env.Header.Length + env.Nonce.Length + aad.Length;
+        int authenticatedDataLength;
+        checked
+        {
+            authenticatedDataLength = env.Header.Length + env.Nonce.Length + aad.Length;
+        }
         System.Span<byte> authenticatedData = authenticatedDataLength <= 256
             ? stackalloc byte[authenticatedDataLength]
             : (rentedAad = BufferLease.ByteArrayPool.Rent(authenticatedDataLength));

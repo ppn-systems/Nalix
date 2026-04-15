@@ -271,10 +271,21 @@ public static class EnvelopeCipher
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> envelope,
         Span<byte> plaintext,
-        ReadOnlySpan<byte> aad, out int written)
+        ReadOnlySpan<byte> aad,
+        CipherSuiteType expectedAlgorithm,
+        out int written)
     {
         written = 0;
         EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
+
+        // SEC-38: Enforce that the algorithm declared in the envelope matches the one 
+        // expected by the session state. Prevents AEAD -> non-AEAD downgrade attacks.
+        if (env.AeadType != expectedAlgorithm)
+        {
+            throw new CipherException(
+                $"Ciphertext algorithm mismatch: received='{env.AeadType}', expected='{expectedAlgorithm}'. " +
+                "Potential downgrade attack or protocol state divergence.");
+        }
 
         switch (env.AeadType)
         {
@@ -367,5 +378,6 @@ public static class EnvelopeCipher
         ReadOnlySpan<byte> key,
         ReadOnlySpan<byte> envelope,
         Span<byte> plaintext,
-        out int written) => Decrypt(key, envelope, plaintext, default, out written);
+        CipherSuiteType expectedAlgorithm,
+        out int written) => Decrypt(key, envelope, plaintext, default, expectedAlgorithm, out written);
 }
