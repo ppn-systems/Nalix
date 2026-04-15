@@ -418,8 +418,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     if (evicted > 0)
                     {
                         Interlocked.Add(ref _openFragmentStreams, -evicted);
-                        _logger?.Warn(
-                            $"[NW.{nameof(SocketConnection)}] " +
+                        _sender?.ThrottledWarn(
+                            _logger,
+                            "socket.receive.evicted_fragments",
                             $"evicted {evicted} stale fragment stream(s) " +
                             $"ep={_sender?.NetworkEndpoint.Address}");
                     }
@@ -436,8 +437,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 {
                     Interlocked.Decrement(ref _pendingProcessCallbacks);
 
-                    _logger?.Warn(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                    _sender?.ThrottledWarn(
+                        _logger,
+                        "socket.receive.throttle",
                         $"per-conn-throttle pending={pending} max={s_opts.MaxPerConnectionPendingPackets} " +
                         $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
 
@@ -477,8 +479,10 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                             if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
                             {
                                 Interlocked.Decrement(ref _openFragmentStreams);
-                                _logger?.Trace($"[[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                                                $"fragment-stream-limit open={openStreams} — stream dropped");
+                                _sender?.ThrottledTrace(
+                                    _logger,
+                                    "socket.receive.fragment_limit",
+                                    $"fragment-stream-limit open={openStreams} — stream dropped");
 
                                 Interlocked.Decrement(ref _pendingProcessCallbacks);
                                 lease.Dispose();
@@ -503,7 +507,14 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                             BufferLease assembledLease = assembled.Value.Lease;
                             assembledLease.Retain();
                             args.Initialize(assembledLease, _cachedArgs.Connection);
-                            AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true);
+                            if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
+                            {
+                                // Handoff failed (rejected by backpressure or queue limit).
+                                // Rollback the pending increments we did before handoff.
+                                Interlocked.Decrement(ref _pendingProcessCallbacks);
+                                Interlocked.Decrement(ref _openFragmentStreams);
+                                args.Dispose();
+                            }
 #if DEBUG
                             _logger?.Debug(
                                 $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
@@ -517,6 +528,8 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         else
                         {
                             args.Dispose();
+                            // Fragment was swallowed by the assembler, so release the pending slot
+                            // reserved at the start of the receive iteration.
                             Interlocked.Decrement(ref _pendingProcessCallbacks);
 
                             if (streamEvicted)
@@ -536,11 +549,18 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     {
                         lease.Retain();
                         args.Initialize(lease, _cachedArgs.Connection);
-                        bool queued = AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true);
+                        if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
+                        {
+                            // Handoff failed (rejected by backpressure or queue limit).
+                            // Rollback the pending increment we did before the handoff loop.
+                            Interlocked.Decrement(ref _pendingProcessCallbacks);
+                            args.Dispose();
+                        }
+
 #if DEBUG
                         _logger?.Debug(
                             $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address} callback-queued={queued}");
+                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
 #endif
                     }
                 }
@@ -569,8 +589,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         catch (Exception ex)
         {
             Exception e = (ex as AggregateException)?.Flatten() ?? ex;
-            _logger?.Error(
-                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+            _sender?.ThrottledError(
+                _logger,
+                "socket.receive.faulted",
                 $"faulted ep={_sender?.NetworkEndpoint.Address}", e);
         }
         finally

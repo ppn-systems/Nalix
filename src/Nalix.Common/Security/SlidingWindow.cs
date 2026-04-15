@@ -13,12 +13,18 @@ namespace Nalix.Common.Security;
 /// </summary>
 public sealed class SlidingWindow
 {
-    private const int WindowSize = 1024; // Bits
-    private const int ArraySize = WindowSize / 64;
-
+    private readonly int _windowSize;
+    private readonly int _arraySize;
     private long _maxSeen;
-    private readonly long[] _bitmap = new long[ArraySize];
+    private readonly long[] _bitmap;
     private readonly Lock _lock = new();
+
+    public SlidingWindow(int windowSize = 1024)
+    {
+        _windowSize = windowSize;
+        _arraySize = windowSize / 64;
+        _bitmap = new long[_arraySize];
+    }
 
     /// <summary>
     /// Attempts to check and mark a sequence number.
@@ -37,7 +43,7 @@ public sealed class SlidingWindow
             {
                 // Advance window
                 long shift = s - currentMax;
-                if (shift >= WindowSize)
+                if (shift >= _windowSize)
                 {
                     Array.Clear(_bitmap);
                 }
@@ -51,7 +57,7 @@ public sealed class SlidingWindow
             }
 
             long diff = currentMax - s;
-            if (diff >= WindowSize)
+            if (diff >= _windowSize)
             {
                 return false; // Too old
             }
@@ -74,7 +80,7 @@ public sealed class SlidingWindow
 
         if (wholeWords > 0)
         {
-            for (int i = ArraySize - 1; i >= wholeWords; i--)
+            for (int i = _arraySize - 1; i >= wholeWords; i--)
             {
                 _bitmap[i] = _bitmap[i - wholeWords];
             }
@@ -86,7 +92,7 @@ public sealed class SlidingWindow
 
         if (bits > 0)
         {
-            for (int i = ArraySize - 1; i >= 0; i--)
+            for (int i = _arraySize - 1; i >= 0; i--)
             {
                 _bitmap[i] <<= bits;
                 if (i > 0)

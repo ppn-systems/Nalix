@@ -164,7 +164,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     internal SocketUdpTransport? UdpTransport { get; private set; }
 
-    internal SlidingWindow UdpReplayWindow { get; } = new SlidingWindow();
+    internal SlidingWindow UdpReplayWindow { get; } = new(s_options.UdpReplayWindowSize);
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
