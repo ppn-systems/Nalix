@@ -2,6 +2,15 @@
 
 `Nalix.Network.Hosting` provides a Microsoft-style builder and host for Nalix servers. It simplifies the setup of protocols, listeners, dispatchers, and dependency injection into a single fluent flow.
 
+## Why use the Hosting Builder?
+
+While you can instantiate listeners and protocols manually, the `NetworkApplicationBuilder` is **highly recommended** for production applications.
+
+- **Unified Lifecycle**: Ensures that the memory pool, handler registry, dispatcher, and listeners are activated and deactivated in the correct order.
+- **Automatic Service Injection**: Automatically registers critical shared services (Logger, ConnectionHub, BufferPool) into the `InstanceManager`.
+- **Handler Discovery**: Scans assemblies for `[PacketController]` classes and performs high-performance **Handler Compilation** (Expression Trees) to eliminate reflection overhead.
+- **Coexistence**: Easily manages multiple listeners (e.g., TCP and UDP) within the same application process.
+
 The public API surface revolves around two main types:
 
 - `NetworkApplication` is the runnable host.

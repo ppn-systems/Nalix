@@ -23,7 +23,23 @@ Client sends a `Control` packet.
 
 Server replies with a `Control` packet.
 
-## Server setup
+## Choosing Your Initialization Strategy
+
+Before starting, you must decide how to initialize your server. Nalix provides two distinct paths:
+
+### 1. High-Level Hosting Builder (Recommended)
+Use `NetworkApplication.CreateBuilder()` to bootstrap your server.
+- **When to use**: 99% of production applications.
+- **Benefits**: Automatic handler discovery, Dependency Injection, built-in logging, easier middleware configuration, and support for multi-protocol listeners in a single application.
+
+### 2. Direct Transport Listener
+Manually instantiate `TcpListenerBase` and `Protocol` (as shown in the example below).
+- **When to use**: Building specialized transport libraries, low-level testing, or embedding Nalix into a non-standard server architecture.
+- **Benefits**: Absolute control over the listener lifecycle; zero overhead from the hosting layer.
+
+---
+
+## Server setup (Direct Transport Path)
 
 ### 1. Register shared services
 
