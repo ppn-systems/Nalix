@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Composition;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
@@ -42,15 +43,8 @@ public sealed class NullMiddlewareCodeFixProvider : CodeFixProvider
             return;
         }
 
-        ArgumentSyntax? nullArgument = null;
-        foreach (ArgumentSyntax argument in invocation.ArgumentList.Arguments)
-        {
-            if (argument.Expression.IsKind(SyntaxKind.NullLiteralExpression))
-            {
-                nullArgument = argument;
-                break;
-            }
-        }
+        ArgumentSyntax? nullArgument = invocation.ArgumentList.Arguments.FirstOrDefault(
+            argument => argument.Expression.IsKind(SyntaxKind.NullLiteralExpression));
 
         if (nullArgument is null)
         {
