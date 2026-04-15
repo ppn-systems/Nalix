@@ -35,6 +35,7 @@ This page provides a comprehensive index of all documentation available for the 
 ### Advanced Concepts
 - [**Shared Memory Pool**](./concepts/shared-memory-pool.md) — Buffer management.
 - [**Shard-Aware Dispatch**](./guides/shard-aware-dispatch.md) — Scaling and worker affinity.
+- [**Zero-Allocation Hot Path**](./guides/zero-allocation-hot-path.md) — Extreme performance engineering.
 - [**Design Trade-offs**](./concepts/advanced/design-tradeoffs.md) — Performance vs latency.
 
 ---

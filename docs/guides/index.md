@@ -19,6 +19,7 @@ Nalix guides help you move from a fresh project to a production-hardened binary.
 - :fontawesome-solid-filter: [**Middleware Guide**](./middleware.md) — Adding cross-cutting concerns (Auth, Rate Limit).
 - :fontawesome-solid-code-branch: [**Custom Middleware**](./custom-middleware-end-to-end.md) — Building your own pipeline components.
 - :fontawesome-solid-tags: [**Custom Metadata Provider**](./custom-metadata-provider.md) — Using attributes to drive custom logic.
+- :fontawesome-solid-floppy-disk: [**Custom Serialization Provider**](./custom-serialization-provider.md) — Registering `IFormatter<T>` with `LiteSerializer`.
 
 ## 🌐 Networking Patterns
 

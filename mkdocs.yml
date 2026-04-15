@@ -128,6 +128,7 @@ nav:
           - Guarantees & Invariants: concepts/advanced/guarantees-and-invariants.md
           - Failure Model: concepts/advanced/failure-model.md
           - Shard-Aware Dispatch: guides/shard-aware-dispatch.md
+          - Zero-Allocation Hot Path: guides/zero-allocation-hot-path.md
           - Design Tradeoffs: concepts/advanced/design-tradeoffs.md
   - Guides:
       - Overview: guides/index.md
@@ -142,6 +143,7 @@ nav:
           - Middleware Guide: guides/middleware.md
           - Custom Middleware: guides/custom-middleware-end-to-end.md
           - Custom Metadata Provider: guides/custom-metadata-provider.md
+          - Custom Serialization Provider: guides/custom-serialization-provider.md
       - Networking Patterns:
           - TCP Request/Response: guides/tcp-request-response.md
           - UDP Server: guides/udp-server.md
