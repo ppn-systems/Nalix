@@ -18,6 +18,8 @@ namespace Nalix.Analyzers.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 {
+    private const int UnusuallyLargeSerializeOrderGapThreshold = 16;
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         [
             DiagnosticDescriptors.DuplicateControllerOpcode,
@@ -64,7 +66,19 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.NetworkHostingHandlerTypeInvalid,
             DiagnosticDescriptors.NetworkHostingMetadataProviderTypeInvalid,
             DiagnosticDescriptors.NetworkHostingMissingTcpBinding,
-            DiagnosticDescriptors.NetworkHostingUdpWithoutTcpBinding
+            DiagnosticDescriptors.NetworkHostingUdpWithoutTcpBinding,
+            DiagnosticDescriptors.UnusuallyLargeSerializeOrderGap,
+            DiagnosticDescriptors.DispatchLoopCountOutOfRange,
+            DiagnosticDescriptors.UnsupportedControllerHandlerReturnType,
+            DiagnosticDescriptors.PacketOpcodeOnNonControllerType,
+            DiagnosticDescriptors.FixedSizeSerializableHasDynamicMember,
+            DiagnosticDescriptors.PacketDeserializeSpanOverloadMissing,
+            DiagnosticDescriptors.RequestEncryptVariableRequiresTcpSession,
+            DiagnosticDescriptors.DuplicatePacketControllerName,
+            DiagnosticDescriptors.RedundantPacketContextPacketCast,
+            DiagnosticDescriptors.MiddlewareRegistrationNullLiteral,
+            DiagnosticDescriptors.RequestOptionsInfiniteTimeoutWithRetry,
+            DiagnosticDescriptors.GenericPacketHandlerMethod
         ];
 
     public override void Initialize(AnalysisContext context)
@@ -80,9 +94,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             }
 
             ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes = new();
+            ConcurrentDictionary<string, INamedTypeSymbol> controllerNames = new(System.StringComparer.OrdinalIgnoreCase);
 
             startContext.RegisterSymbolAction(
-                symbolContext => AnalyzeNamedType(symbolContext, symbols, globalOpcodes),
+                symbolContext => AnalyzeNamedType(symbolContext, symbols, globalOpcodes, controllerNames),
                 SymbolKind.NamedType);
 
             startContext.RegisterSymbolAction(
@@ -103,7 +118,11 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         });
     }
 
-    private static void AnalyzeNamedType(SymbolAnalysisContext context, SymbolSet symbols, ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes)
+    private static void AnalyzeNamedType(
+        SymbolAnalysisContext context,
+        SymbolSet symbols,
+        ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes,
+        ConcurrentDictionary<string, INamedTypeSymbol> controllerNames)
     {
         INamedTypeSymbol typeSymbol = (INamedTypeSymbol)context.Symbol;
 
@@ -114,7 +133,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         if (HasAttribute(typeSymbol, symbols.ControllerAttribute))
         {
-            AnalyzeControllerType(context, typeSymbol, symbols, globalOpcodes);
+            AnalyzeControllerType(context, typeSymbol, symbols, globalOpcodes, controllerNames);
         }
 
         AnalyzePacketType(context, typeSymbol, symbols);
@@ -315,6 +334,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         bool isExplicitLayout = IsExplicitSerializeLayout(serializePackable, symbols.SerializeLayoutType);
         List<(ISymbol Member, int Order)> orderedMembers = [];
+        List<(ISymbol Member, int Order)> serializeOrderedMembers = [];
 
         foreach (ISymbol member in typeSymbol.GetMembers())
         {
@@ -353,6 +373,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             if (finalOrder.HasValue)
             {
                 orderedMembers.Add((member, finalOrder.Value));
+                if (order.HasValue)
+                {
+                    serializeOrderedMembers.Add((member, order.Value));
+                }
 
                 if (finalOrder.Value < 0)
                 {
@@ -389,23 +413,50 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                     typeSymbol.Name);
             }
         }
+
+        bool hasDuplicateSerializeOrder = serializeOrderedMembers
+            .GroupBy(static x => x.Order)
+            .Any(static g => g.Count() > 1);
+
+        if (hasDuplicateSerializeOrder)
+        {
+            return;
+        }
+
+        List<(ISymbol Member, int Order)> sortedSerializeOrders = [.. serializeOrderedMembers.OrderBy(static x => x.Order)];
+        for (int i = 1; i < sortedSerializeOrders.Count; i++)
+        {
+            (ISymbol currentMember, int currentOrder) = sortedSerializeOrders[i];
+            int previousOrder = sortedSerializeOrders[i - 1].Order;
+            int gap = currentOrder - previousOrder;
+            if (gap >= UnusuallyLargeSerializeOrderGapThreshold)
+            {
+                Report(
+                    context,
+                    DiagnosticDescriptors.UnusuallyLargeSerializeOrderGap,
+                    currentMember,
+                    currentMember.Name,
+                    currentOrder,
+                    previousOrder);
+            }
+        }
     }
 
     private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context, SymbolSet symbols)
     {
         MethodDeclarationSyntax methodDeclaration = (MethodDeclarationSyntax)context.Node;
-        if (methodDeclaration.Identifier.ValueText != "ResetForPool"
-            || methodDeclaration.ParameterList.Parameters.Count != 0)
-        {
-            return;
-        }
-
         if (context.SemanticModel.GetDeclaredSymbol(methodDeclaration, context.CancellationToken) is not IMethodSymbol methodSymbol)
         {
             return;
         }
 
-        if (!methodSymbol.IsOverride || methodSymbol.ContainingType is not INamedTypeSymbol containingType || !InheritsPacketBase(containingType, symbols))
+        AnalyzeRedundantPacketContextPacketCast(context, methodDeclaration, methodSymbol, symbols);
+
+        if (methodDeclaration.Identifier.ValueText != "ResetForPool"
+            || methodDeclaration.ParameterList.Parameters.Count != 0
+            || !methodSymbol.IsOverride
+            || methodSymbol.ContainingType is not INamedTypeSymbol containingType
+            || !InheritsPacketBase(containingType, symbols))
         {
             return;
         }
@@ -425,6 +476,53 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 DiagnosticDescriptors.ResetForPoolShouldCallBase,
                 methodDeclaration.Identifier.GetLocation(),
                 containingType.Name));
+        }
+    }
+
+    private static void AnalyzeRedundantPacketContextPacketCast(
+        SyntaxNodeAnalysisContext context,
+        MethodDeclarationSyntax methodDeclaration,
+        IMethodSymbol methodSymbol,
+        SymbolSet symbols)
+    {
+        if (methodSymbol.Parameters.Length == 0)
+        {
+            return;
+        }
+
+        if (methodSymbol.Parameters[0].Type is not INamedTypeSymbol firstParamType
+            || !firstParamType.IsGenericType
+            || !SymbolEqualityComparer.Default.Equals(firstParamType.ConstructedFrom, symbols.PacketContextType)
+            || firstParamType.TypeArguments.Length != 1)
+        {
+            return;
+        }
+
+        ITypeSymbol packetType = firstParamType.TypeArguments[0];
+        string contextParamName = methodSymbol.Parameters[0].Name;
+
+        foreach (CastExpressionSyntax cast in methodDeclaration.DescendantNodes().OfType<CastExpressionSyntax>())
+        {
+            ITypeSymbol? castType = context.SemanticModel.GetTypeInfo(cast.Type, context.CancellationToken).Type;
+            if (castType is null || !SymbolEqualityComparer.Default.Equals(castType, packetType))
+            {
+                continue;
+            }
+
+            if (cast.Expression is MemberAccessExpressionSyntax
+                {
+                    Expression: IdentifierNameSyntax { Identifier.ValueText: var identifierName },
+                    Name.Identifier.ValueText: "Packet"
+                }
+                && identifierName == contextParamName)
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DiagnosticDescriptors.RedundantPacketContextPacketCast,
+                    cast.GetLocation(),
+                    methodSymbol.Name,
+                    packetType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                    contextParamName));
+            }
         }
     }
 
@@ -472,10 +570,35 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
+
+        AnalyzeFixedSizeSerializableDynamics(context, typeSymbol, symbols);
+        AnalyzeDeserializeOverloads(context, typeSymbol, symbols);
     }
 
-    private static void AnalyzeControllerType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols, ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes)
+    private static void AnalyzeControllerType(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol typeSymbol,
+        SymbolSet symbols,
+        ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes,
+        ConcurrentDictionary<string, INamedTypeSymbol> controllerNames)
     {
+        string controllerName = GetPacketControllerName(typeSymbol, symbols.ControllerAttribute) ?? typeSymbol.Name;
+        if (controllerNames.TryGetValue(controllerName, out INamedTypeSymbol? existing)
+            && !SymbolEqualityComparer.Default.Equals(existing, typeSymbol))
+        {
+            Report(
+                context,
+                DiagnosticDescriptors.DuplicatePacketControllerName,
+                typeSymbol,
+                controllerName,
+                existing.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                typeSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+        }
+        else
+        {
+            controllerNames[controllerName] = typeSymbol;
+        }
+
         ImmutableArray<IMethodSymbol> methods = [.. typeSymbol.GetMembers()
             .OfType<IMethodSymbol>()
             .Where(static method => method.MethodKind == MethodKind.Ordinary && method.DeclaredAccessibility == Accessibility.Public && !method.IsImplicitlyDeclared)];
@@ -514,27 +637,42 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
             if (opcode.HasValue)
             {
+                if (methodSymbol.IsGenericMethod)
+                {
+                    Report(context, DiagnosticDescriptors.GenericPacketHandlerMethod, methodSymbol, methodSymbol.Name);
+                }
+
                 if (opcode.Value < 0x0100 && !HasInternalByPass(methodSymbol, typeSymbol, symbols))
                 {
                     Report(context, DiagnosticDescriptors.ReservedOpCodeRange, methodSymbol, methodSymbol.Name, opcode.Value);
                 }
 
-                if (globalOpcodes.TryGetValue(opcode.Value, out (IMethodSymbol Method, INamedTypeSymbol Controller) existing) && !SymbolEqualityComparer.Default.Equals(existing.Controller, typeSymbol))
+                if (globalOpcodes.TryGetValue(opcode.Value, out (IMethodSymbol Method, INamedTypeSymbol Controller) existingOpcode) && !SymbolEqualityComparer.Default.Equals(existingOpcode.Controller, typeSymbol))
                 {
-                    Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, existing.Method.Name, existing.Controller.Name);
+                    Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, existingOpcode.Method.Name, existingOpcode.Controller.Name);
                 }
                 else
                 {
                     globalOpcodes[opcode.Value] = (methodSymbol, typeSymbol);
                 }
 
-                if (!HasSupportedSignature(methodSymbol, symbols))
+                if (!HasSupportedParameterSignature(methodSymbol, symbols))
                 {
                     Report(context, DiagnosticDescriptors.InvalidControllerHandlerSignature, methodSymbol, methodSymbol.Name);
                 }
                 else
                 {
                     ReportPacketContextMismatchIfAny(context, methodSymbol, symbols);
+                }
+
+                if (!HasSupportedReturnType(methodSymbol.ReturnType, symbols))
+                {
+                    Report(
+                        context,
+                        DiagnosticDescriptors.UnsupportedControllerHandlerReturnType,
+                        methodSymbol,
+                        methodSymbol.Name,
+                        methodSymbol.ReturnType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
                 }
             }
             else if (isCandidate)
@@ -544,13 +682,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private static bool HasSupportedSignature(IMethodSymbol methodSymbol, SymbolSet symbols)
+    private static bool HasSupportedParameterSignature(IMethodSymbol methodSymbol, SymbolSet symbols)
     {
-        if (!HasSupportedReturnType(methodSymbol.ReturnType, symbols))
-        {
-            return false;
-        }
-
         ImmutableArray<IParameterSymbol> parameters = methodSymbol.Parameters;
         if (parameters.Length == 0)
         {
@@ -604,13 +737,131 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
+        if (returnType is IArrayTypeSymbol { ElementType.SpecialType: SpecialType.System_Byte })
+        {
+            return true;
+        }
+
+        if (SymbolEqualityComparer.Default.Equals(returnType, symbols.MemoryByteType)
+            || SymbolEqualityComparer.Default.Equals(returnType, symbols.ReadOnlyMemoryByteType))
+        {
+            return true;
+        }
+
         if (returnType is INamedTypeSymbol namedReturnType && namedReturnType.IsGenericType)
         {
-            return SymbolEqualityComparer.Default.Equals(namedReturnType.ConstructedFrom, symbols.GenericTaskType)
-                || SymbolEqualityComparer.Default.Equals(namedReturnType.ConstructedFrom, symbols.GenericValueTaskType);
+            if (SymbolEqualityComparer.Default.Equals(namedReturnType.ConstructedFrom, symbols.GenericTaskType)
+                || SymbolEqualityComparer.Default.Equals(namedReturnType.ConstructedFrom, symbols.GenericValueTaskType))
+            {
+                return namedReturnType.TypeArguments.Length == 1
+                    && HasSupportedReturnType(namedReturnType.TypeArguments[0], symbols);
+            }
         }
 
         return false;
+    }
+
+    private static void AnalyzeFixedSizeSerializableDynamics(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
+    {
+        if (!Implements(typeSymbol, symbols.FixedSizeSerializableType))
+        {
+            return;
+        }
+
+        foreach (ISymbol member in typeSymbol.GetMembers())
+        {
+            if (member is not IPropertySymbol and not IFieldSymbol
+                || member.IsStatic
+                || member.IsImplicitlyDeclared
+                || HasAttribute(member, symbols.SerializeIgnoreAttribute))
+            {
+                continue;
+            }
+
+            ITypeSymbol memberType = member is IPropertySymbol p ? p.Type : ((IFieldSymbol)member).Type;
+            if (IsDynamicSizeType(memberType, symbols))
+            {
+                Report(
+                    context,
+                    DiagnosticDescriptors.FixedSizeSerializableHasDynamicMember,
+                    member,
+                    typeSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                    member.Name,
+                    memberType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+            }
+        }
+    }
+
+    private static void AnalyzeDeserializeOverloads(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
+    {
+        bool hasAnyDeserialize = false;
+        bool hasReadOnlySpanDeserialize = false;
+
+        foreach (IMethodSymbol method in typeSymbol.GetMembers().OfType<IMethodSymbol>())
+        {
+            if (method.Name != "Deserialize"
+                || !method.IsStatic
+                || method.DeclaredAccessibility != Accessibility.Public)
+            {
+                continue;
+            }
+
+            hasAnyDeserialize = true;
+
+            if (method.Parameters.Length == 1
+                && method.Parameters[0].Type is INamedTypeSymbol parameterType
+                && parameterType.OriginalDefinition.MetadataName == "ReadOnlySpan`1"
+                && parameterType.OriginalDefinition.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System"
+                && parameterType.TypeArguments.Length == 1
+                && parameterType.TypeArguments[0].SpecialType == SpecialType.System_Byte
+                && SymbolEqualityComparer.Default.Equals(method.ReturnType, typeSymbol))
+            {
+                hasReadOnlySpanDeserialize = true;
+                break;
+            }
+        }
+
+        if (hasAnyDeserialize && !hasReadOnlySpanDeserialize)
+        {
+            Report(context, DiagnosticDescriptors.PacketDeserializeSpanOverloadMissing, typeSymbol, typeSymbol.Name);
+        }
+    }
+
+    private static bool IsDynamicSizeType(ITypeSymbol typeSymbol, SymbolSet symbols)
+    {
+        if (typeSymbol.SpecialType == SpecialType.System_String
+            || typeSymbol is IArrayTypeSymbol
+            || Implements(typeSymbol, symbols.PacketInterface))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string? GetPacketControllerName(INamedTypeSymbol typeSymbol, INamedTypeSymbol? controllerAttributeSymbol)
+    {
+        AttributeData? attribute = typeSymbol.GetAttributes()
+            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, controllerAttributeSymbol));
+        if (attribute is null)
+        {
+            return null;
+        }
+
+        if (attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string ctorName && !string.IsNullOrWhiteSpace(ctorName))
+        {
+            return ctorName;
+        }
+
+        foreach (KeyValuePair<string, TypedConstant> namedArg in attribute.NamedArguments)
+        {
+            if (namedArg.Key == "Name" && namedArg.Value.Value is string namedName && !string.IsNullOrWhiteSpace(namedName))
+            {
+                return namedName;
+            }
+        }
+
+        return null;
     }
 
     private static bool IsNalixHandlerCandidate(IMethodSymbol methodSymbol, SymbolSet symbols)
@@ -1024,8 +1275,29 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeMethod(SymbolAnalysisContext context, SymbolSet symbols)
     {
         IMethodSymbol method = (IMethodSymbol)context.Symbol;
+        AnalyzePacketOpcodeOnNonController(context, method, symbols);
         AnalyzeOpCodeDocumentation(context, method, symbols);
         AnalyzeBufferLeaseLeak(context, method, symbols);
+    }
+
+    private static void AnalyzePacketOpcodeOnNonController(SymbolAnalysisContext context, IMethodSymbol method, SymbolSet symbols)
+    {
+        if (!HasAttribute(method, symbols.PacketOpcodeAttribute))
+        {
+            return;
+        }
+
+        if (method.ContainingType is null || HasAttribute(method.ContainingType, symbols.ControllerAttribute))
+        {
+            return;
+        }
+
+        Report(
+            context,
+            DiagnosticDescriptors.PacketOpcodeOnNonControllerType,
+            method,
+            method.Name,
+            method.ContainingType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
     }
 
     private static void AnalyzeObjectCreation(OperationAnalysisContext context, SymbolSet symbols)
