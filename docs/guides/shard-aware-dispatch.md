@@ -90,6 +90,10 @@ While a shard processes packets sequentially, it is **Priority-Aware**. Each sha
 A custom `Protocol` can influence which queue a packet lands in by setting the **Priority Byte** in the Nalix header before hand-off:
 
 ```csharp
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Memory.Buffers;
+
 public override void ProcessMessage(object sender, IConnectEventArgs args)
 {
     IBufferLease lease = args.Lease;
@@ -113,6 +117,9 @@ In a typical scenario, packets are sharded by their underlying socket connection
 If a player logs in from multiple devices (e.g., Phone and Tablet), and you need to ensure their state is updated sequentially across all devices, shard them by `UserID` instead of `ConnectionID`.
 
 ```csharp
+using Nalix.Common.Networking;
+using Nalix.Framework.Memory.Buffers;
+
 public sealed class UserShardProxy : IConnection
 {
     public long UserID { get; }
@@ -143,6 +150,9 @@ A robust production setup must handle dispatch failures and per-packet exception
 Register a global observer to capture exceptions that escape handler logic before they trigger a protocol-level failure:
 
 ```csharp
+using Nalix.Network.Hosting;
+using Nalix.Common.Networking.Packets;
+
 builder.ConfigureDispatch(options =>
 {
     options.WithErrorHandling((exception, opCode) => 

@@ -38,6 +38,7 @@ High performance starts with how you define your data. Use `SerializeLayout.Expl
 
 ```csharp
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Serialization;
 
 [Packet(OpCodeValue)]
 [SerializePackable(SerializeLayout.Explicit)]
@@ -119,6 +120,8 @@ Exception handling can be expensive. In the hot path, Nalix provides mechanisms 
 Instead of per-packet `try-catch` blocks in your handlers, use the global observer:
 
 ```csharp
+using Nalix.Network.Hosting;
+
 builder.ConfigureDispatch(options =>
 {
     options.WithErrorHandling((exception, opCode) => 
@@ -140,6 +143,9 @@ Every connection tracks its own error count. If a handler throws, Nalix calls `c
 To enable this optimized path, ensure your hosting configuration is tuned for concurrency.
 
 ```csharp
+using System;
+using Nalix.Network.Hosting;
+
 var app = NetworkApplication.CreateBuilder()
     .AddHandlers<GameMarker>() // Triggers handler compilation
     .ConfigureDispatch(options => {
@@ -159,6 +165,9 @@ var app = NetworkApplication.CreateBuilder()
 You can programmatically verify that a block of code does not allocate in unit tests or integration tests:
 
 ```csharp
+using System;
+using Nalix.Common.Networking.Packets;
+
 long startingBytes = GC.GetAllocatedBytesForCurrentThread();
 
 // Execute the hot path (e.g., dispatch 10,000 packets)
@@ -174,6 +183,9 @@ Assert.Equal(0, allocated); // Should be exactly 0
 Use `MemoryDiagnoser` to verify that your handlers are truly "green" (0 B allocated).
 
 ```csharp
+using BenchmarkDotNet.Attributes;
+using Nalix.Common.Networking.Packets;
+
 [MemoryDiagnoser]
 public class ProtocolBenchmarks
 {

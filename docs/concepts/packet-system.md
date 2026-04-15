@@ -11,6 +11,9 @@ For a standard network packet, you must apply both of the following attributes:
 2. **`[SerializePackable]`**: Configures the wire layout. Without this, the serializer will fail with an `InvalidOperationException`.
 
 ```csharp
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Serialization;
+
 [Packet] // Discovery & Registration
 [SerializePackable(SerializeLayout.Explicit)] // Wire Formatting
 public sealed class TradePacket : PacketBase<TradePacket>
@@ -189,6 +192,10 @@ Network data can be malformed, truncated, or malicious. Nalix protects the hot p
 In a high-performance scenario, let the dispatcher handle these exceptions. It will log the failure, increment the connection's error count via `IConnection.IncrementErrorCount()`, and safely return the buffer to the pool.
 
 ```csharp
+using Nalix.Common.Exceptions;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+
 try 
 {
     var packet = MyPacket.Deserialize(buffer);
@@ -212,6 +219,8 @@ Packets must be registered with the `PacketRegistry` before they can be deserial
 When using `Nalix.Network.Hosting`, use the builder to scan assemblies:
 
 ```csharp
+using Nalix.Network.Hosting;
+
 var app = NetworkApplication.CreateBuilder()
     .AddPacket<PingRequest>()        // Scans the assembly containing PingRequest
     .AddHandlers<PingHandler>()
@@ -223,6 +232,8 @@ var app = NetworkApplication.CreateBuilder()
 When building the dispatch manually, create the registry explicitly:
 
 ```csharp
+using Nalix.Common.Networking.Packets;
+
 PacketRegistryFactory factory = new();
 factory.RegisterPacket<PingRequest>()
        .RegisterPacket<PingResponse>();
@@ -247,6 +258,11 @@ If your data type is not supported by the built-in serializer (e.g., a third-par
 In this scenario, we have a `UserProfile` class that we want to shared between server and client, but it requires a specialized serialization format (e.g., to handle legacy bit-flags or custom string encoding).
 
 ```csharp
+```csharp
+using System;
+using Nalix.Framework.Serialization;
+using Nalix.Common.Serialization;
+
 // 1. Define your data contract (shared)
 public sealed class UserProfile
 {
@@ -284,6 +300,9 @@ LiteSerializer.Register<UserProfile>(new UserProfileFormatter());
 2. Register it using `LiteSerializer.Register<T>(formatter)`.
 
 ```csharp
+using Nalix.Framework.Serialization;
+using Nalix.Common.Serialization;
+
 public class GeoLocationFormatter : IFormatter<GeoLocation>
 {
     public void Serialize(ref DataWriter writer, GeoLocation value)

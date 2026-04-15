@@ -150,6 +150,9 @@ To enable zero-allocation message reading in a production server, use the `Netwo
 
 ### 1. Configure the Application
 ```csharp
+using Nalix.Network.Hosting;
+using Nalix.Framework.Memory.Buffers;
+
 var app = NetworkApplication.CreateBuilder()
     .AddTcp<MyProtocol>(8080)
     // 1. Create and customize the manager

@@ -118,6 +118,10 @@ Handlers and Middlewares must be registered with the `NetworkApplicationBuilder`
 This is the recommended path for most applications. It provides automatic instance management and dependency injection.
 
 ```csharp
+using Nalix.Network.Hosting;
+using Nalix.Runtime.Dispatching;
+using Nalix.Common.Networking.Packets;
+
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Handlers
     .AddHandlers<MyGameMarker>() // Scans entire assembly
@@ -140,6 +144,10 @@ var app = NetworkApplication.CreateBuilder()
 If you are building a custom runtime or using the `PacketDispatchChannel` directly, use the specialized options:
 
 ```csharp
+using Nalix.Runtime.Dispatching;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+
 var options = new PacketDispatchOptions<IPacket>();
 
 // Manually bind the handler factory

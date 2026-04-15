@@ -96,6 +96,13 @@ Middlewares often need to inspect packet headers for auditing, routing, or secur
 ### Example: Comprehensive Audit Middleware
 
 ```csharp
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Nalix.Common.Middleware;
+using Nalix.Common.Networking.Packets;
+
 public sealed class AuditMiddleware : IPacketMiddleware
 {
     private readonly ILogger _logger;
@@ -141,6 +148,9 @@ socket buffer
 ## Basic usage
 
 ```csharp
+using Nalix.Runtime.Dispatching;
+using Nalix.Network.Hosting;
+
 options.NetworkPipeline.Use(new SampleAuditBufferMiddleware());
 options.PacketPipeline.Use(new SampleAuditMiddleware());
 ```
