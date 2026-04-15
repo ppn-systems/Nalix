@@ -74,6 +74,45 @@
   border-radius: 4px;
 }
 
+.nlx-hero-img {
+  display: block;
+  width: min(100%, 1080px);
+  margin: 0 auto 1.25rem auto;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--md-accent-fg-color) 35%, transparent);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
+  background: radial-gradient(circle at 20% 15%, rgba(0, 210, 255, 0.08), transparent 45%);
+}
+
+.nlx-highlight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem;
+  margin: 0.6rem 0 1.1rem;
+}
+
+.nlx-highlight-card {
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--md-accent-fg-color) 28%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--md-accent-fg-color) 11%, transparent),
+    color-mix(in srgb, var(--md-default-bg-color) 92%, transparent)
+  );
+}
+
+.nlx-highlight-card h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+}
+
+.nlx-highlight-card p {
+  margin: 0;
+  font-size: 0.78rem;
+  opacity: 0.9;
+}
+
 /* Keep the mobile drawer scroll area clear of the footer/meta block. */
 @media screen and (max-width: 76.234375em) {
   .md-sidebar--primary .md-sidebar__scrollwrap,
@@ -84,6 +123,10 @@
 
   .md-sidebar--primary .md-sidebar__scrollwrap {
     overscroll-behavior: contain;
+  }
+
+  .nlx-highlight-grid {
+    grid-template-columns: 1fr;
   }
 }
 

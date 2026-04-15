@@ -76,7 +76,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// </summary>
     public Directive()
     {
-        this.OpCode = 0;
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
     }
@@ -103,7 +103,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.Action = action;
         this.Control = flags;
         this.SequenceId = sequenceId;
-        this.OpCode = 0;
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
 
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
@@ -143,7 +143,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public override void ResetForPool()
     {
         base.ResetForPool();
-        
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
     }

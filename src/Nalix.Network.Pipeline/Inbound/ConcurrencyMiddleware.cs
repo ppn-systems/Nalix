@@ -71,7 +71,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                     try
                     {
                         directive.Initialize(
-                            ControlType.TIMEOUT,
+                            ControlType.FAIL,
                             ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
                             sequenceId: context.Packet.SequenceId,
                             flags: ControlFlags.IS_TRANSIENT,
@@ -101,7 +101,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
             try
             {
                 directive.Initialize(
-                    ControlType.TIMEOUT,
+                    ControlType.FAIL,
                     ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
                     sequenceId: context.Packet.SequenceId,
                     flags: ControlFlags.IS_TRANSIENT,
