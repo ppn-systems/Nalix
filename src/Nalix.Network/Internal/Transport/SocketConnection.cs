@@ -464,6 +464,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 {
                     this.LastPingTime = Clock.UnixMillisecondsNow();
                     BufferLease lease = BufferLease.TakeOwnership(currentBuf, HeaderSize, payload);
+                    lease.Protocol = ProtocolType.TCP;
                     ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
                     ReadOnlySpan<byte> payloadSpan = lease.Span;
 
@@ -505,6 +506,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         if (assembled is not null)
                         {
                             BufferLease assembledLease = assembled.Value.Lease;
+                            assembledLease.Protocol = ProtocolType.TCP;
                             assembledLease.Retain();
                             args.Initialize(assembledLease, _cachedArgs.Connection);
                             if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
@@ -524,6 +526,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                             // The stream is complete, so release one open-stream slot
                             // for this connection.
                             Interlocked.Decrement(ref _openFragmentStreams);
+                            assembledLease.Dispose();
                         }
                         else
                         {
@@ -537,8 +540,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                                 Interlocked.Decrement(ref _openFragmentStreams);
                             }
                         }
-
-                        lease.Dispose();
 #if DEBUG
                         _logger?.Debug(
                             $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
@@ -563,6 +564,8 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                             $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
 #endif
                     }
+
+                    lease.Dispose();
                 }
                 else
                 {
@@ -780,7 +783,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(_cachedArgs.Connection);
 
-        _ = AsyncCallback.Invoke(_callbackClose, _sender, args);
+        _ = AsyncCallback.InvokeHighPriority(_callbackClose, _sender, args);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -72,11 +72,10 @@ public abstract partial class UdpListenerBase
                     _anyEndPoint,
                     cancellationToken).ConfigureAwait(false);
 
-                // Wrap the buffer into a BufferLease — ownership is transferred,
-                // so the pool return happens when the lease is eventually disposed
-                // by ProcessDatagram or the downstream connection pipeline.
+                // wrap the buffer into a BufferLease
                 BufferLease lease = BufferLease.TakeOwnership(buffer, start: 0, length: result.ReceivedBytes);
-
+                lease.Protocol = ProtocolType.UDP;
+                
                 this.ProcessDatagram(lease, result.RemoteEndPoint);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -193,6 +192,7 @@ public abstract partial class UdpListenerBase
                     if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
                     {
                         BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
+                        fastPayload.Protocol = ProtocolType.UDP;
                         ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
                         fastArgs.Initialize(fastPayload, connection);
 
@@ -316,6 +316,7 @@ public abstract partial class UdpListenerBase
 
         // Create a new lease for the payload (7 bytes offset)
         BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
+        incomingLease.Protocol = ProtocolType.UDP;
 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(incomingLease, connection);
