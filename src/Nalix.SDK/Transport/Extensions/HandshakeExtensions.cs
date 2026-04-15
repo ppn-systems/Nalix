@@ -61,7 +61,7 @@ public static class HandshakeExtensions
 
         if (serverHello.Stage == HandshakeStage.ERROR)
         {
-            throw new NetworkException("Handshake error received from server.");
+            throw new NetworkException($"Handshake failed: {serverHello.Reason}");
         }
 
         if (!Handshake.IsValid(serverHello))
@@ -100,7 +100,7 @@ public static class HandshakeExtensions
 
         if (serverFinish.Stage == HandshakeStage.ERROR)
         {
-            throw new NetworkException("Handshake error received from server.");
+            throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
         }
 
         Fixed256 expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);

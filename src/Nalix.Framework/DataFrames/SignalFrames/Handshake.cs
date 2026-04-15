@@ -68,49 +68,53 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     public static int Size =>
         PacketConstants.HeaderSize +
         sizeof(HandshakeStage) +    // Stage
+        sizeof(ProtocolReason) +    // Reason
         Fixed256.Size +             // PublicKey
         Fixed256.Size +             // Nonce
         Fixed256.Size +             // Proof
         Fixed256.Size +             // TranscriptHash
         Snowflake.Size;             // SessionToken
 
-    /// <summary>
-    /// Gets or sets the handshake stage carried by this packet.
-    /// </summary>
     [SerializeOrder(0)]
     public HandshakeStage Stage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the protocol reason code (used primarily in error responses).
+    /// </summary>
+    [SerializeOrder(1)]
+    public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the session token assigned by the server.
     /// Used primarily for UDP connection mapping.
     /// </summary>
-    [SerializeOrder(1)]
+    [SerializeOrder(2)]
     public Snowflake SessionToken { get; set; }
 
     /// <summary>
     /// Gets or sets the ephemeral public key for the current handshake side.
     /// X25519 public keys are expected to be 32 bytes.
     /// </summary>
-    [SerializeOrder(2)]
+    [SerializeOrder(3)]
     public Fixed256 PublicKey { get; set; }
 
     /// <summary>
     /// Gets or sets the handshake nonce or challenge bytes.
     /// </summary>
-    [SerializeOrder(3)]
+    [SerializeOrder(4)]
     public Fixed256 Nonce { get; set; }
 
     /// <summary>
     /// Gets or sets the proof bytes for the current stage.
     /// This is typically a MAC or transcript-derived verifier.
     /// </summary>
-    [SerializeOrder(4)]
+    [SerializeOrder(5)]
     public Fixed256 Proof { get; set; }
 
     /// <summary>
     /// Gets or sets the Keccak-256 transcript hash associated with the handshake state.
     /// </summary>
-    [SerializeOrder(5)]
+    [SerializeOrder(6)]
     public Fixed256 TranscriptHash { get; set; }
 
     /// <summary>
@@ -154,9 +158,28 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
 
+        this.Reason = ProtocolReason.NONE;
         this.PublicKey = publicKey;
         this.Nonce = nonce;
         this.Proof = proof ?? Fixed256.Empty;
+        this.TranscriptHash = Fixed256.Empty;
+        this.SessionToken = Snowflake.Empty;
+    }
+
+    /// <summary>
+    /// Initializes the handshake packet with an error state and reason.
+    /// </summary>
+    public void InitializeError(ProtocolReason reason, ProtocolType transport = ProtocolType.TCP)
+    {
+        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
+        this.Stage = HandshakeStage.ERROR;
+        this.Protocol = transport;
+        this.Priority = PacketPriority.URGENT;
+        this.Reason = reason;
+        
+        this.PublicKey = Fixed256.Empty;
+        this.Nonce = Fixed256.Empty;
+        this.Proof = Fixed256.Empty;
         this.TranscriptHash = Fixed256.Empty;
         this.SessionToken = Snowflake.Empty;
     }
@@ -200,6 +223,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
 
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = HandshakeStage.NONE;
+        this.Reason = ProtocolReason.NONE;
         this.PublicKey = Fixed256.Empty;
         this.Nonce = Fixed256.Empty;
         this.Proof = Fixed256.Empty;

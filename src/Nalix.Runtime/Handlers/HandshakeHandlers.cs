@@ -195,10 +195,10 @@ public sealed class HandshakeHandlers
 
         try
         {
-            using PacketLease<Control> lease = PacketPool<Control>.Rent();
-            Control control = lease.Value;
-            control.Initialize(opCode: 0, type: ControlType.ERROR, reasonCode: reason, transport: ProtocolType.TCP);
-            await connection.TCP.SendAsync(control).ConfigureAwait(false);
+            using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+            Handshake error = lease.Value;
+            error.InitializeError(reason, connection.TCP is not null ? ProtocolType.TCP : ProtocolType.UDP);
+            await (connection.TCP ?? connection.UDP).SendAsync(error).ConfigureAwait(false);
         }
         finally
         {
