@@ -98,14 +98,14 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void ResetForPoolWhenHandshakeContainsDataClearsPayload()
     {
-        Handshake packet = new(HandshakeStage.CLIENT_HELLO, Fixed256.Empty, Fixed256.Empty, transport: ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.CLIENT_HELLO, Bytes32.Zero, Bytes32.Zero, transport: ProtocolType.UDP);
 
         packet.ResetForPool();
 
-        Assert.True(packet.PublicKey.IsEmpty);
-        Assert.True(packet.Nonce.IsEmpty);
-        Assert.True(packet.Proof.IsEmpty);
-        Assert.True(packet.TranscriptHash.IsEmpty);
+        Assert.True(packet.PublicKey.IsZero);
+        Assert.True(packet.Nonce.IsZero);
+        Assert.True(packet.Proof.IsZero);
+        Assert.True(packet.TranscriptHash.IsZero);
         Assert.Equal(HandshakeStage.NONE, packet.Stage);
         Assert.Equal(PacketFlags.NONE, packet.Flags);
         Assert.Equal(PacketPriority.URGENT, packet.Priority);
@@ -148,7 +148,7 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void HandshakeLengthWhenHandshakePayloadExistsMatchesActualSerializedBytes()
     {
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, Fixed256.Empty, Fixed256.Empty, Fixed256.Empty, ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero, Bytes32.Zero, ProtocolType.UDP);
         packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] bytes = packet.Serialize();
@@ -159,7 +159,7 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void HandshakeSerializeIntoLengthSizedBufferWhenHandshakePayloadExistsSucceeds()
     {
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, Fixed256.Empty, Fixed256.Empty, Fixed256.Empty, ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero, Bytes32.Zero, ProtocolType.UDP);
         packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
 
         byte[] buffer = new byte[packet.Length];

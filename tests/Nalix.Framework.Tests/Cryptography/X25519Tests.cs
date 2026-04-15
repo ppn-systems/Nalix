@@ -16,12 +16,12 @@ public sealed class X25519Tests
         X25519.X25519KeyPair bob = X25519.GenerateKeyPair();
 
         // 2. Perform agreement
-        Fixed256 aliceShared = X25519.Agreement(alice.PrivateKey, bob.PublicKey);
-        Fixed256 bobShared = X25519.Agreement(bob.PrivateKey, alice.PublicKey);
+        Bytes32 aliceShared = X25519.Agreement(alice.PrivateKey, bob.PublicKey);
+        Bytes32 bobShared = X25519.Agreement(bob.PrivateKey, alice.PublicKey);
 
         // 3. Verify
-        Assert.False(aliceShared.IsEmpty);
-        Assert.False(bobShared.IsEmpty);
+        Assert.False(aliceShared.IsZero);
+        Assert.False(bobShared.IsZero);
         Assert.Equal(aliceShared, bobShared);
     }
 
