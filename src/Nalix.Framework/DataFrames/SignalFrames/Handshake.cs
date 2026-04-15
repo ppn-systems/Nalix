@@ -7,6 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
+using Nalix.Common.Primitives;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Security.Hashing;
 
@@ -67,10 +68,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     public static int Size =>
         PacketConstants.HeaderSize +
         sizeof(HandshakeStage) +    // Stage
-        sizeof(int) + DynamicSize + // PublicKey
-        sizeof(int) + DynamicSize + // Nonce
-        sizeof(int) + DynamicSize + // Proof
-        sizeof(int) + DynamicSize + // TranscriptHash
+        Fixed256.Size +             // PublicKey
+        Fixed256.Size +             // Nonce
+        Fixed256.Size +             // Proof
+        Fixed256.Size +             // TranscriptHash
         Snowflake.Size;             // SessionToken
 
     /// <summary>
@@ -91,30 +92,26 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// X25519 public keys are expected to be 32 bytes.
     /// </summary>
     [SerializeOrder(2)]
-    [SerializeDynamicSize(DynamicSize)]
-    public byte[] PublicKey { get; set; } = [];
+    public Fixed256 PublicKey { get; set; }
 
     /// <summary>
     /// Gets or sets the handshake nonce or challenge bytes.
     /// </summary>
     [SerializeOrder(3)]
-    [SerializeDynamicSize(DynamicSize)]
-    public byte[] Nonce { get; set; } = [];
+    public Fixed256 Nonce { get; set; }
 
     /// <summary>
     /// Gets or sets the proof bytes for the current stage.
     /// This is typically a MAC or transcript-derived verifier.
     /// </summary>
     [SerializeOrder(4)]
-    [SerializeDynamicSize(DynamicSize)]
-    public byte[] Proof { get; set; } = [];
+    public Fixed256 Proof { get; set; }
 
     /// <summary>
     /// Gets or sets the Keccak-256 transcript hash associated with the handshake state.
     /// </summary>
     [SerializeOrder(5)]
-    [SerializeDynamicSize(DynamicSize)]
-    public byte[] TranscriptHash { get; set; } = [];
+    public Fixed256 TranscriptHash { get; set; }
 
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with default transport metadata.
@@ -131,9 +128,9 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="transport">The transport protocol.</param>
     public Handshake(
         HandshakeStage stage,
-        byte[] publicKey,
-        byte[] nonce,
-        byte[]? proof = null,
+        Fixed256 publicKey,
+        Fixed256 nonce,
+        Fixed256? proof = null,
         ProtocolType transport = ProtocolType.TCP) : this()
         => this.Initialize(stage, publicKey, nonce, proof, transport);
 
@@ -147,9 +144,9 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="transport">The transport protocol.</param>
     public void Initialize(
         HandshakeStage stage,
-        byte[] publicKey,
-        byte[] nonce,
-        byte[]? proof = null,
+        Fixed256 publicKey,
+        Fixed256 nonce,
+        Fixed256? proof = null,
         ProtocolType transport = ProtocolType.TCP)
     {
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
@@ -157,10 +154,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
 
-        this.PublicKey = publicKey is { Length: > 0 } ? publicKey : new byte[DynamicSize];
-        this.Nonce = nonce is { Length: > 0 } ? nonce : new byte[DynamicSize];
-        this.Proof = proof is { Length: > 0 } ? proof : new byte[DynamicSize];
-        this.TranscriptHash = new byte[DynamicSize];
+        this.PublicKey = publicKey;
+        this.Nonce = nonce;
+        this.Proof = proof ?? Fixed256.Empty;
+        this.TranscriptHash = Fixed256.Empty;
         this.SessionToken = Snowflake.Empty;
     }
 
@@ -168,7 +165,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// Validates if a hello packet has the correct cryptographic lengths.
     /// </summary>
     public static bool IsValid(Handshake packet)
-        => packet?.PublicKey.Length == DynamicSize && packet.Nonce.Length == DynamicSize;
+        => packet != null && !packet.PublicKey.IsEmpty && !packet.Nonce.IsEmpty;
 
     /// <summary>
     /// Computes the Keccak-256 transcript hash for the provided bytes.
@@ -176,8 +173,8 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     /// <param name="transcript">Handshake transcript bytes.</param>
     /// <returns>A 32-byte Keccak-256 hash.</returns>
     [return: NotNull]
-    public static byte[] ComputeTranscriptHash(ReadOnlySpan<byte> transcript)
-        => Keccak256.HashData(transcript);
+    public static Fixed256 ComputeTranscriptHash(ReadOnlySpan<byte> transcript)
+        => Keccak256.HashDataToFixed(transcript);
 
     /// <summary>
     /// Recomputes and stores the Keccak-256 transcript hash for this packet.
@@ -192,8 +189,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
     public override string ToString()
         => $"HANDSHAKE(Stage={this.Stage}, OpCode={this.OpCode}, Length={this.Length}, " +
            $"Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol}, " +
-           $"Pub={this.PublicKey.Length}, Nonce={this.Nonce.Length}, Proof={this.Proof.Length}, " +
-           $"Hash={this.TranscriptHash.Length}, SessionToken={this.SessionToken})";
+           $"SessionToken={this.SessionToken})";
 
     /// <summary>
     /// Resets this instance for safe pool reuse.
@@ -204,10 +200,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
 
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = HandshakeStage.NONE;
-        this.PublicKey = new byte[DynamicSize];
-        this.Nonce = new byte[DynamicSize];
-        this.Proof = new byte[DynamicSize];
-        this.TranscriptHash = new byte[DynamicSize];
+        this.PublicKey = Fixed256.Empty;
+        this.Nonce = Fixed256.Empty;
+        this.Proof = Fixed256.Empty;
+        this.TranscriptHash = Fixed256.Empty;
         this.SessionToken = Snowflake.Empty;
         this.Priority = PacketPriority.URGENT;
     }

@@ -16,6 +16,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames.Internal;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Framework.DataFrames;
@@ -168,20 +169,22 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
     public static TSelf Deserialize(ReadOnlySpan<byte> buffer)
     {
-        if (buffer.IsEmpty)
-        {
-            throw new ArgumentException(
-                $"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
-        }
+        VALIDATE_BUFFER_HEADER(buffer);
 
         TSelf packet = new();
-
         int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         if (bytesRead == 0)
         {
             throw new InvalidOperationException(
                 $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={buffer.Length}.");
+        }
+
+        if (bytesRead < buffer.Length)
+        {
+            throw new SerializationFailureException(
+                $"Deserialize incomplete: type={typeof(TSelf).Name}, bytesRead={bytesRead}, expected={buffer.Length}. " +
+                "Potential payload corruption or trailing unconsumed data.");
         }
 
         return packet;
@@ -200,11 +203,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
     public static TSelf Deserialize(ReadOnlyMemory<byte> buffer, ref TSelf value)
     {
-        if (buffer.IsEmpty)
-        {
-            throw new ArgumentException(
-                $"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
-        }
+        VALIDATE_BUFFER_HEADER(buffer.Span);
 
         int bytesRead = LiteSerializer.Deserialize(buffer.Span, ref value);
         if (bytesRead == 0)
@@ -212,7 +211,38 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
             throw new InvalidOperationException(
                 $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={buffer.Length}.");
         }
+
+        if (bytesRead < buffer.Length)
+        {
+            throw new SerializationFailureException(
+                $"Deserialize incomplete: type={typeof(TSelf).Name}, bytesRead={bytesRead}, expected={buffer.Length}. " +
+                "Potential payload corruption or trailing unconsumed data.");
+        }
+
         return value;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void VALIDATE_BUFFER_HEADER(ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
+        }
+
+        if (buffer.Length < PacketConstants.HeaderSize)
+        {
+            throw new SerializationFailureException(
+                $"Insufficient buffer for header: type={typeof(TSelf).Name}, length={buffer.Length}, required={PacketConstants.HeaderSize}.");
+        }
+
+        uint bufferMagic = buffer.ReadMagicNumberLE();
+        if (bufferMagic != s_autoMagic)
+        {
+            throw new SerializationFailureException(
+                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{bufferMagic:X8}, expected=0x{s_autoMagic:X8}. " +
+                "The received packet type does not match the target deserialization type.");
+        }
     }
 
     /// <inheritdoc/>

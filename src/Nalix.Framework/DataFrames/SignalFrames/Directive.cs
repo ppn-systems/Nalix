@@ -98,6 +98,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.Action = action;
         this.Control = flags;
         this.SequenceId = sequenceId;
+        this.OpCode = 0;
 
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
@@ -131,6 +132,16 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
 
         this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
+    }
+
+    /// <inheritdoc/>
+    public override void ResetForPool()
+    {
+        base.ResetForPool();
+        this.OpCode = 0;
+        this.Protocol = ProtocolType.TCP;
+        this.Priority = PacketPriority.HIGH;
+        this.SequenceId = 0;
     }
 
     /// <summary>
