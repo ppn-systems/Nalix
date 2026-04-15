@@ -76,7 +76,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     /// </summary>
     private volatile bool _directoryChecked;
 
-    private string _configFilePath;
+    private volatile string _configFilePath;
     private FileSystemWatcher? _configFileWatcher;
 
     #endregion Fields
@@ -430,6 +430,15 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 _configLock.ExitWriteLock();
             }
 
+            if (reloadException is not null)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-failed count={_configContainerDict.Count}", reloadException);
+
+                throw new InvalidOperationException(
+                    $"Configuration reload failed: {reloadException.Message}", reloadException);
+            }
+
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
         }
@@ -552,7 +561,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
         try
         {
-            _ = _reloadGate.Wait(TimeSpan.FromSeconds(5));
+            if (!_reloadGate.Wait(TimeSpan.FromSeconds(1)))
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[FW.{nameof(ConfigurationManager)}:Dispose] Timeout waiting for reload gate (1s). Shutdown may be incomplete.");
+            }
         }
         catch (ObjectDisposedException)
         {
@@ -671,7 +684,8 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             return;
         }
 
-        string? directory = Path.GetDirectoryName(_configFilePath);
+        string currentPath = _configFilePath; // volatile read
+        string? directory = Path.GetDirectoryName(currentPath);
 
         if (string.IsNullOrWhiteSpace(directory))
         {
