@@ -142,6 +142,67 @@ Useful methods:
 
 Trimming is controlled by `BufferConfig.EnableMemoryTrimming`. It uses a conservative `ShrinkSafetyPolicy` to ensure the pool does not collapse during short idle periods, maintaining a retention floor for efficiency.
 
+---
+
+## Production Configuration: End-to-End
+
+To enable zero-allocation message reading in a production server, use the `NetworkApplicationBuilder`. This ensures the `BufferPoolManager` is correctly registered and bound to the low-level `BufferLease` stack.
+
+### 1. Configure the Application
+```csharp
+using Nalix.Network.Hosting;
+using Nalix.Framework.Memory.Buffers;
+
+var app = NetworkApplication.CreateBuilder()
+    .AddTcp<MyProtocol>(8080)
+    // 1. Create and customize the manager
+    .ConfigureBufferPoolManager(new BufferPoolManager(
+        logger: myLogger, 
+        config: new BufferConfig 
+        {
+            TotalBuffers = 10_000,
+            MaxMemoryPercentage = 0.10, // Cap at 10% of system RAM
+            // 2. Define buckets matching your expected packet sizes
+            BufferAllocations = "512,0.40; 2048,0.40; 8192,0.20" 
+        }))
+    .Build();
+```
+
+### 2. Implementation Checklist
+- [x] **Call `ConfigureBufferPoolManager`**: This binds `BufferLease.ByteArrayPool` to the high-performance manager.
+- [x] **Tune `BufferAllocations`**: Ensure your buckets account for the header (11-24 bytes) and payload.
+- [x] **Set `MaxMemoryPercentage`**: Prevents the pool from growing indefinitely under extreme burst traffic.
+
+---
+
+## Monitoring & Diagnostics
+
+### Real-time Reports
+You can generate a human-readable report at any time to inspect pool utilization and miss rates:
+
+```csharp
+// Periodically log the pool state
+var manager = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
+logger.LogInformation(manager.GenerateReport());
+```
+
+### Key Metrics to Watch
+| Metric | Healthy Range | Action if Unhealthy |
+| :--- | :--- | :--- |
+| **MissRate** | < 2% | Increase `TotalBuffers` or adjust `BufferAllocations`. |
+| **UsageRatio** | 40% - 80% | High ratio (>90%) suggests you are near capacity; consider increasing `TotalBuffers`. |
+| **Misses** | Constant at startup | If misses grow continuously, you have a buffer leak (lease not disposed). |
+
+---
+
+## Tuning for Workload Profiles
+
+| Profile | Recommended `BufferAllocations` | Rationale |
+| :--- | :--- | :--- |
+| **Gaming (Low Latency)** | `256,0.60; 1024,0.30; 4096,0.10` | Small updates are frequent; prioritize tiny buckets. |
+| **API / JSON (Standard)** | `1024,0.40; 4096,0.40; 16384,0.20` | Larger payloads; balanced distribution. |
+| **Data Sync (Throughput)** | `4096,0.20; 16384,0.50; 65536,0.30` | Large chunks; focus on high-capacity buckets. |
+
 ## BufferPoolState
 
 `BufferPoolState` is the lightweight diagnostic snapshot for one pool bucket.

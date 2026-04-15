@@ -110,29 +110,56 @@ Attributes declare **policy** at registration time. The runtime uses this metada
 
 ---
 
-## 4. Registration
+## 4. Registration Deep Dive
 
-Handlers must be registered with the `NetworkApplicationBuilder` during startup.
+Handlers and Middlewares must be registered with the `NetworkApplicationBuilder` during startup to be active in the runtime.
 
-### Automatic Discovery (Recommended)
-
-Scan an entire assembly for all classes marked with `[PacketController]`:
+### Fluent Registration (Hosted Server)
+This is the recommended path for most applications. It provides automatic instance management and dependency injection.
 
 ```csharp
+using Nalix.Network.Hosting;
+using Nalix.Runtime.Dispatching;
+using Nalix.Common.Networking.Packets;
+
 var app = NetworkApplication.CreateBuilder()
-    .AddHandlers<MyMarkerType>() // Scans the assembly containing MyMarkerType
+    // 1. Register Handlers
+    .AddHandlers<MyGameMarker>() // Scans entire assembly
+    .AddHandler<ChatHandlers>()  // Explicit registration
+    
+    // 2. Register Middleware
+    .ConfigureDispatch(options => 
+    {
+        // Buffer Pipeline (Pre-deserialization)
+        options.NetworkPipeline.Use(new EncryptionMiddleware());
+        
+        // Packet Pipeline (Post-deserialization)
+        options.PacketPipeline.Use(new AuditMiddleware(logger));
+        options.PacketPipeline.Use(new RateLimitMiddleware());
+    })
     .Build();
 ```
 
-### Explicit Registration
-
-Register a specific controller class:
+### Manual Registration (Library/SDK)
+If you are building a custom runtime or using the `PacketDispatchChannel` directly, use the specialized options:
 
 ```csharp
-var app = NetworkApplication.CreateBuilder()
-    .AddHandler<ChatHandlers>()
-    .Build();
+using Nalix.Runtime.Dispatching;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+
+var options = new PacketDispatchOptions<IPacket>();
+
+// Manually bind the handler factory
+options.WithHandler(() => new ChatHandlers());
+
+// Manual middleware setup
+options.PacketPipeline.Use(new AuditMiddleware(logger));
+
+var channel = new PacketDispatchChannel(options);
 ```
+
+---
 
 ---
 

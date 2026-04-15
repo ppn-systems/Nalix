@@ -184,7 +184,7 @@ internal static class Verifier<TCodeFix>
             "Nalix.Runtime.Dispatching.IPacketMetadataProvider",
             "Nalix.Runtime.Dispatching.PacketMetadataBuilder",
             "System.Reflection.MethodInfo",
-            "Nalix.SDK.Configuration.RequestOptions",
+            "Nalix.SDK.Options.RequestOptions",
             "Nalix.SDK.Transport.Extensions.RequestExtensions",
             "Nalix.SDK.Transport.TcpSession"
         ];
@@ -227,3 +227,4 @@ internal static class Verifier<TCodeFix>
 
     private static string Normalize(string text) => text.Replace("\r\n", "\n").Trim();
 }
+
