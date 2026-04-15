@@ -36,6 +36,7 @@ public enum SessionResumeStage : byte
 /// Represents a unified signal packet for session management operations.
 /// Replaces redundant SessionResume and SessionResumeAck packets.
 /// </summary>
+[Packet]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("SESSION_SIGNAL Stage={Stage}, Token={SessionToken}, Reason={Reason}")]

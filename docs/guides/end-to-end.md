@@ -1,5 +1,10 @@
 # Minimal Server (No Hosting)
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-clock: **Time**: 10–15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+
 This guide shows the smallest useful Nalix TCP server flow **without** the hosting builder. It wires up shared services, dispatch, protocol, and a listener manually.
 
 Use this approach when you need complete control over startup order or when you want to understand what `NetworkApplication.CreateBuilder()` does behind the scenes.

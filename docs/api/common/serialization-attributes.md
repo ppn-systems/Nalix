@@ -1,11 +1,14 @@
 # Serialization Attributes
 
+# Serialization Attributes
+
 `Nalix.Common.Serialization` contains the low-level attributes and helpers that shape how packets and models are serialized.
 
 Use this page when you need to understand the attribute layer before you work with `PacketBase<TSelf>` or `LiteSerializer`.
 
 ## Source mapping
 
+- `src/Nalix.Common/Networking/Packets/PacketAttribute.cs`
 - `src/Nalix.Common/Serialization/SerializePackableAttribute.cs`
 - `src/Nalix.Common/Serialization/SerializeOrderAttribute.cs`
 - `src/Nalix.Common/Serialization/SerializeIgnoreAttribute.cs`
@@ -17,6 +20,7 @@ Use this page when you need to understand the attribute layer before you work wi
 
 ## Main types
 
+- `PacketAttribute` (aliased as `[Packet]`)
 - `SerializePackableAttribute`
 - `SerializeOrderAttribute`
 - `SerializeIgnoreAttribute`
@@ -51,6 +55,10 @@ For `LiteSerializer` automatic object and struct serialization, the effective ru
 
 ## Attributes
 
+### `PacketAttribute` (or `[Packet]`)
+
+Marks a class for automatic discovery and registration. It allows the `PacketRegistryFactory` to find and bind the type to its deserializer at runtime without explicit manual registration.
+
 ### `SerializePackableAttribute`
 
 Marks a type as packable and tells the serializer to treat it as an explicitly supported wire model.
@@ -64,85 +72,10 @@ Common use:
 
 Controls the order of serialized members.
 
+Important: `SerializeOrder` is an ordering key, not a byte offset.  
+`[SerializeOrder(10)]` means "after 9", not "start at byte 10".
+
 It is useful when:
-
-- wire order must stay stable
-- you need explicit header/body layout
-- a type has multiple fields or auto-properties that must serialize in a defined sequence
-
-### `SerializeIgnoreAttribute`
-
-Excludes a member from serialization.
-
-Use it for:
-
-- cached values
-- computed properties
-- runtime-only state
-
-On automatic serializers, this is especially useful on properties that expose derived state but should not participate in field discovery through a backing field.
-
-### `SerializeHeaderAttribute`
-
-Marks a member as part of the header region.
-
-This is mainly useful when your type has a strict packet header/body split.
-
-### `SerializeDynamicSizeAttribute`
-
-Declares that a member uses a runtime size instead of a fixed compile-time size.
-
-This matters for fields such as:
-
-- `string`
-- `byte[]`
-- other variable-length payload segments
-
-## Layout and bounds
-
-### `SerializeLayout`
-
-`SerializeLayout` controls whether a type is treated as explicit or automatic during serialization.
-
-### `SerializerBounds`
-
-`SerializerBounds` contains the internal size limits and helper constants used by the serialization layer.
-
-It exists so serializers can make consistent decisions about:
-
-- maximum element sizes
-- header offsets
-- safe length calculations
-
-## `IFixedSizeSerializable`
-
-`IFixedSizeSerializable` is the marker contract for types that can report a stable fixed serialized size.
-
-Use it when:
-
-- the serialized layout never changes length
-- you want the serializer to skip dynamic-size handling
-
-## Example
-
-```csharp
-[SerializePackable(SerializeLayout.Explicit)]
-public sealed class PingRequest
-{
-    [SerializeOrder(0)]
-    public ushort Opcode { get; set; }
-
-    [SerializeDynamicSize(64)]
-    [SerializeOrder(1)]
-    public string Message { get; set; } = string.Empty;
-}
-```
-
-For automatic member discovery, prefer straightforward fields or auto-properties for members that carry wire data.
-If a model is immutable by constructor design or depends on strict readonly semantics, use a custom formatter rather than assuming every property shape can be reconstructed automatically.
-
-## Relationship to `PacketBase<TSelf>`
-
 Most packet types use these attributes together with `PacketBase<TSelf>`.
 
 The typical flow is:

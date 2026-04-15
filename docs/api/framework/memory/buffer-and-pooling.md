@@ -97,10 +97,10 @@ Avoid it when:
 
 - `src/Nalix.Framework/Memory/Buffers/BufferLease.cs`
 
-It resolves the backing implementation once:
+It can be explicitly bound to a `BufferPoolManager` via `BufferLease.ByteArrayPool.Configure(...)` (the network host builder does this during startup):
 
-- if `BufferPoolManager` is registered, calls are routed there
-- otherwise it falls back to `ArrayPool<byte>.Shared`
+- if configured with `BufferPoolManager`, calls are routed there
+- if not configured, it falls back to `ArrayPool<byte>.Shared`
 
 This makes it the lowest-level pooled byte-array abstraction used by manual buffer workflows.
 
@@ -108,6 +108,7 @@ Useful methods:
 
 - `Rent(capacity)`
 - `Return(array)`
+- `Configure(bufferPoolManager)`
 
 ### Common pitfalls
 

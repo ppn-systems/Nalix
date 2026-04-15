@@ -20,7 +20,7 @@ public sealed class PacketDeserializeCodeFixProvider : CodeFixProvider
     private const string Title = "Add Deserialize(ReadOnlySpan<byte>)";
     private const string EquivalenceKey = "Nalix.Packet.Deserialize.Add";
 
-    public override ImmutableArray<string> FixableDiagnosticIds => ["NALIX012"];
+    public override ImmutableArray<string> FixableDiagnosticIds => ["NALIX012", "NALIX052"];
 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
@@ -41,15 +41,21 @@ public sealed class PacketDeserializeCodeFixProvider : CodeFixProvider
         }
 
         string typeName = typeDeclaration.Identifier.ValueText;
+        bool includeNewModifier = diagnostic.Id == "NALIX012";
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: Title,
-                createChangedDocument: cancellationToken => AddDeserializeMethodAsync(context.Document, typeDeclaration, typeName, cancellationToken),
+                createChangedDocument: cancellationToken => AddDeserializeMethodAsync(context.Document, typeDeclaration, typeName, includeNewModifier, cancellationToken),
                 equivalenceKey: EquivalenceKey),
             diagnostic);
     }
 
-    private static async Task<Document> AddDeserializeMethodAsync(Document document, TypeDeclarationSyntax typeDeclaration, string typeName, CancellationToken cancellationToken)
+    private static async Task<Document> AddDeserializeMethodAsync(
+        Document document,
+        TypeDeclarationSyntax typeDeclaration,
+        string typeName,
+        bool includeNewModifier,
+        CancellationToken cancellationToken)
     {
         DocumentEditor editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
 
@@ -58,8 +64,7 @@ public sealed class PacketDeserializeCodeFixProvider : CodeFixProvider
                 SyntaxFactory.Identifier("Deserialize"))
             .AddModifiers(
                 SyntaxFactory.Token(SyntaxKind.PublicKeyword),
-                SyntaxFactory.Token(SyntaxKind.StaticKeyword),
-                SyntaxFactory.Token(SyntaxKind.NewKeyword))
+                SyntaxFactory.Token(SyntaxKind.StaticKeyword))
             .AddParameterListParameters(
                 SyntaxFactory.Parameter(SyntaxFactory.Identifier("buffer"))
                     .WithType(
@@ -68,8 +73,8 @@ public sealed class PacketDeserializeCodeFixProvider : CodeFixProvider
                                 SyntaxFactory.TypeArgumentList(
                                     SyntaxFactory.SingletonSeparatedList<TypeSyntax>(
                                         SyntaxFactory.PredefinedType(SyntaxFactory.Token(SyntaxKind.ByteKeyword)))))))
-            .WithExpressionBody(
-                SyntaxFactory.ArrowExpressionClause(
+            .WithExpressionBody(includeNewModifier
+                ? SyntaxFactory.ArrowExpressionClause(
                     SyntaxFactory.InvocationExpression(
                             SyntaxFactory.MemberAccessExpression(
                                 SyntaxKind.SimpleMemberAccessExpression,
@@ -81,8 +86,22 @@ public sealed class PacketDeserializeCodeFixProvider : CodeFixProvider
                         .WithArgumentList(
                             SyntaxFactory.ArgumentList(
                                 SyntaxFactory.SingletonSeparatedList(
-                                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName("buffer")))))))
+                                    SyntaxFactory.Argument(SyntaxFactory.IdentifierName("buffer"))))))
+                : SyntaxFactory.ArrowExpressionClause(
+                    SyntaxFactory.ThrowExpression(
+                        SyntaxFactory.ObjectCreationExpression(
+                                SyntaxFactory.QualifiedName(
+                                    SyntaxFactory.AliasQualifiedName(
+                                        SyntaxFactory.IdentifierName(SyntaxFactory.Token(SyntaxKind.GlobalKeyword)),
+                                        SyntaxFactory.IdentifierName("System")),
+                                    SyntaxFactory.IdentifierName("NotImplementedException")))
+                            .WithArgumentList(SyntaxFactory.ArgumentList()))))
             .WithSemicolonToken(SyntaxFactory.Token(SyntaxKind.SemicolonToken));
+
+        if (includeNewModifier)
+        {
+            method = method.AddModifiers(SyntaxFactory.Token(SyntaxKind.NewKeyword));
+        }
 
         editor.InsertMembers(typeDeclaration, typeDeclaration.Members.Count, [method]);
         return editor.GetChangedDocument();
