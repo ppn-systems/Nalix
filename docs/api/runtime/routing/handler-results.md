@@ -43,6 +43,9 @@ Handlers should be able to return responses naturally (sync or async) while runt
 ## Practical Examples
 
 ```csharp
+using System.Threading.Tasks;
+using Nalix.Common.Networking.Packets;
+
 [PacketOpcode(0x1001)]
 public static LoginResponse Handle(LoginRequest request) => new();
 
@@ -57,6 +60,8 @@ public static async Task<LoginResponse> HandleAsync(LoginRequest request)
 public static ValueTask HandleNoReply(IPacketContext<LoginRequest> context)
     => ValueTask.CompletedTask;
 ```
+
+For detailed implementation patterns and error handling, see the [Implementing Packet Handlers](../../../../guides/implementing-packet-handlers.md) guide.
 
 ## Best Practices
 

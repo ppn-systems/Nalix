@@ -52,6 +52,7 @@ public enum HandshakeStage : byte
 /// <summary>
 /// Represents the default protocol handshake packet for key exchange and transcript verification.
 /// </summary>
+[Packet]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]

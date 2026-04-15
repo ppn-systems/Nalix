@@ -40,6 +40,7 @@ This page provides a comprehensive index of all documentation available for the 
 
 ### Build a Server
 - [**Starter Template**](./guides/starter-template.md) — Basic boilerplate.
+- [**Implement Packet Handlers**](./guides/implementing-packet-handlers.md) — Defining and routing message logic.
 - [**End-to-End Sample**](./guides/end-to-end.md) — Feature walkthrough.
 - [**Production End-to-End**](./guides/production-end-to-end.md) — Real-world implementation.
 - [**Project Setup**](./guides/project-setup.md) — Framework bootstrap.
