@@ -6,8 +6,8 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Serialization;
 using Nalix.Common.Primitives;
+using Nalix.Common.Serialization;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Security.Hashing;
 
@@ -52,6 +52,7 @@ public enum HandshakeStage : byte
 /// <summary>
 /// Represents the default protocol handshake packet for key exchange and transcript verification.
 /// </summary>
+[Packet]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -75,6 +76,9 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         Bytes32.Size +             // TranscriptHash
         Snowflake.Size;             // SessionToken
 
+    /// <summary>
+    /// Stages the current phase of the handshake process.
+    /// </summary>
     [SerializeOrder(0)]
     public HandshakeStage Stage { get; set; }
 
@@ -176,7 +180,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
         this.Reason = reason;
-        
+
         this.PublicKey = Bytes32.Zero;
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;

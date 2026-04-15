@@ -11,6 +11,7 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// <summary>
 /// Represents a directive frame used for control and server feedback.
 /// </summary>
+[Packet]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable

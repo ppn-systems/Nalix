@@ -30,6 +30,10 @@ Across the stack, Nalix keeps these pieces aligned between client and server:
 
 ## Mental Model
 
+At its simplest, the Nalix request flow follows this path:
+
+> **Client** → **Transport** → **Protocol**bridge → **Dispatch**channel → **Middleware**pipeline → **Handler**logic → **Response** → **Transport** → **Client**
+
 ### Server side
 
 A Nalix server follows this startup sequence:
@@ -78,10 +82,26 @@ MyApp.Client/           ← References Contracts + Nalix.SDK
 - **Not an HTTP framework.** Nalix operates at the TCP/UDP level with its own binary packet protocol. It does not provide HTTP routing, REST endpoints, or WebSocket support.
 - **Not a game engine.** Nalix provides the networking layer. Game logic, rendering, physics, and ECS are outside its scope.
 - **Not a message queue.** Nalix is designed for real-time bidirectional communication, not store-and-forward messaging.
+- **Not for beginners.** While we aim for clarity, Nalix requires an understanding of asynchronous programming and binary layouts for production depth.
 
-## Recommended Reading
+---
 
-1. [Installation](./installation.md) — Package selection and prerequisites
-2. [Quickstart](./quickstart.md) — End-to-end Ping/Pong example
-3. [Architecture](./concepts/architecture.md) — Layered component overview
-4. [Packages Overview](./packages/index.md) — What each package provides
+## 🏗️ Advanced Topics
+
+!!! warning "Senior Developers Only"
+    If you are building for production and need to understand the underlying framework contracts, explore our reliability model. Skip these if you are just getting started.
+
+- [**Guarantees & Invariants**](./concepts/advanced/guarantees-and-invariants.md) — What the framework promises (ordering, concurrency).
+- [**Failure Model**](./concepts/advanced/failure-model.md) — How Nalix behaves when things go wrong.
+- [**Design Tradeoffs**](./concepts/advanced/design-tradeoffs.md) — Why we chose performance over convenience.
+- [**Reliability Model**](./concepts/advanced/reliability-model.md) — The high-level production confidence layer.
+
+## Recommended Path
+
+If you are new to Nalix, we recommend following the learning path in order:
+
+1. [Architecture](./concepts/architecture.md) — Explore the layered component system.
+2. [Quickstart](./quickstart.md) — Build your first Ping/Pong server in minutes.
+3. [End-to-End Guide](./guides/end-to-end.md) — Move beyond basics with a full feature implementation.
+4. [Middleware](./guides/middleware.md) — Learn how to secure and scale your traffic.
+5. [Packages Overview](./packages/index.md) — Understand the Nalix stack module by module.

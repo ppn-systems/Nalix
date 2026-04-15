@@ -4,9 +4,10 @@ The Packet System is the foundation of Nalix's networking model. It provides a d
 
 ## 1. Defining Packets
 
-To define a packet, create a `sealed class` that inherits from `PacketBase<T>` and annotate it with `[SerializePackable]`.
+To define a packet, create a `sealed class` that inherits from `PacketBase<T>` and annotate it with both `[Packet]` (for discovery) and `[SerializePackable]` (for wire layout).
 
 ```csharp
+[Packet]
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class TradePacket : PacketBase<TradePacket>
 {
@@ -26,9 +27,10 @@ public sealed class TradePacket : PacketBase<TradePacket>
 
 | Attribute | Purpose |
 | :--- | :-- |
+| `[Packet]` | Marks a class for automatic discovery and registration. Recommended for all user packets. |
 | `[SerializePackable]` | Marks a class for serialization. Required on all packet types. |
 | `[SerializeOrder(int)]` | Sets the explicit position of a field in the byte stream (Explicit layout only). |
-| `[SerializeDynamicSize(int)]` | Defines the maximum size (bytes) for variable-length strings or arrays. |
+| `[SerializeDynamicSize(int)]` | Defines the maximum byte limit for variable-length strings or arrays. |
 | `[SerializeIgnore]` | Excludes a property from network serialization. |
 | `[SerializeHeader]` | Maps a property to a specific header region (advanced use). |
 
@@ -146,7 +148,29 @@ Nalix supports versioning through **additive evolution**:
 
 ---
 
-## 5. Packet Registration
+## 5. Sharing Packets (Server & Client)
+
+Packets are usually defined in a shared **Contracts** project referenced by both the Server and Client. This ensures both sides use the exact same wire layout and attributes.
+
+```csharp
+// Example: Defined in a shared 'Contracts' project
+[Packet]
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class PingRequest : PacketBase<PingRequest>
+{
+    public const ushort OpCodeValue = 0x1001;
+
+    [SerializeOrder(0)]
+    [SerializeDynamicSize(64)]
+    public string Message { get; set; } = string.Empty;
+
+    public PingRequest() => OpCode = OpCodeValue;
+}
+```
+
+---
+
+## 6. Packet Registration
 
 Packets must be registered with the `PacketRegistry` before they can be deserialized at runtime. The `PacketRegistryFactory` discovers packet types, binds their deserializers, and builds an immutable `FrozenDictionary`-backed catalog.
 
@@ -206,9 +230,8 @@ public class GeoLocationFormatter : IFormatter<GeoLocation>
 }
 ```
 
-## Recommended Next Steps
+## See it in action
 
-- [Packet Lifecycle](./packet-lifecycle.md) — How packets move through the dispatch pipeline
-- [Serialization Attributes](../api/common/serialization-attributes.md) — Full attribute reference
-- [Packet Registry](../api/framework/packets/packet-registry.md) — Registry API details
-- [Performance Optimizations](./performance-optimizations.md) — Zero-allocation design
+- [Quickstart](../quickstart.md) — Define and use your first packets.
+- [TCP Request/Response](../guides/tcp-request-response.md) — See how packet contracts are shared between projects.
+- [UDP Auth Flow](../guides/udp-auth-flow.md) — Observe packets used for authenticated session resumption.

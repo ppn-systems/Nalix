@@ -26,10 +26,9 @@ It can:
 ### Contract
 
 ```csharp
-Task<IBufferLease?> InvokeAsync(
+ValueTask<IBufferLease?> InvokeAsync(
     IBufferLease buffer,
     IConnection connection,
-    Func<IBufferLease, CancellationToken, Task<IBufferLease?>> nextHandler,
     CancellationToken ct);
 ```
 
@@ -54,7 +53,8 @@ It provides:
 - duplicate middleware instances are rejected
 - execution order comes from `[MiddlewareOrder]`
 - the pipeline takes a snapshot before execution instead of holding locks during invocation
-- middleware compose into a delegate chain similar to ASP.NET Core
+- when middleware returns a replacement lease, the old lease is disposed
+- when middleware returns `null`, current lease is disposed and processing stops
 
 ## Basic usage
 

@@ -9,9 +9,11 @@
 | Feature | Description |
 | :--- | :--- |
 | ⚡ **Performance First** | Detects heap allocations and unnecessary boxing in performance-critical hot paths. |
-| 📦 **Reliable Serialization** | Validates `SerializeOrder` continuity and detects header region overlaps. |
+| 📦 **Reliable Serialization** | Validates `SerializeOrder` consistency and detects header region overlaps. |
 | 🛡️ **Secure Routing** | Prevents duplicate `PacketOpcode` assignments and enforces system-reserved ranges. |
 | 💧 **Resource Management** | Identifies potential `IBufferLease` leaks before they cause production memory pressure. |
+
+`SerializeOrder` in Nalix represents member ordering, not byte offsets.
 
 ## Critical Diagnostics
 
@@ -32,4 +34,4 @@ The analyzer will automatically provide suggestions in Visual Studio, Rider, and
 
 ## Documentation
 
-For a complete list of all 45+ rules, visit the [Diagnostic Catalog](https://ppn-systems.me/api/analyzers/diagnostic-codes).
+For a complete list of all 55+ rules, visit the [Diagnostic Catalog](https://ppn-systems.me/api/analyzers/diagnostic-codes).

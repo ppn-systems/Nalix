@@ -149,19 +149,14 @@ internal sealed record TcpProtocolBinding(
     ushort? Port = null);
 
 /// <summary>
-/// Represents a binding between a UDP transport and a protocol implementation.
+/// Represents a binding between a protocol type and its creation factory for UDP.
 /// </summary>
-/// <param name="ProtocolType">
-/// The protocol runtime type.
-/// </param>
-/// <param name="Factory">
-/// A factory delegate that creates the protocol using an
-/// <see cref="IPacketDispatch"/> instance.
-/// </param>
-/// <param name="Port">
-/// Optional explicit port to listen on. If null, the default configured port is used.
-/// </param>
+/// <param name="ProtocolType">The type of the protocol.</param>
+/// <param name="Factory">The factory used to create the protocol instance.</param>
+/// <param name="Port">The optional port to listen on.</param>
+/// <param name="Authentication">The optional authentication predicate used to validate incoming datagrams.</param>
 internal sealed record UdpProtocolBinding(
     Type ProtocolType,
     Func<IPacketDispatch, IProtocol> Factory,
-    ushort? Port = null);
+    ushort? Port = null,
+    Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? Authentication = null);

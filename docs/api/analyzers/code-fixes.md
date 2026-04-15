@@ -7,28 +7,38 @@ Use this page when you want a quick sense of what the analyzer can usually fix f
 ## Source mapping
 
 - `src/Nalix.Analyzers.CodeFixes/ConfigurationIgnoreCodeFixProvider.cs`
+- `src/Nalix.Analyzers.CodeFixes/DispatchLoopCountCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/DuplicateSerializeOrderCodeFixProvider.cs`
+- `src/Nalix.Analyzers.CodeFixes/GenericPacketHandlerCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/MiddlewareCodeFixProvider.cs`
+- `src/Nalix.Analyzers.CodeFixes/NullMiddlewareCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/PacketControllerCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/PacketDeserializeCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/PacketOpcodeCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/PacketRegistryDeserializerCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/PacketSelfTypeCodeFixProvider.cs`
+- `src/Nalix.Analyzers.CodeFixes/RedundantPacketCastCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/ResetForPoolCodeFixProvider.cs`
+- `src/Nalix.Analyzers.CodeFixes/RequestOptionsConsistencyCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/SerializationConflictCodeFixProvider.cs`
 - `src/Nalix.Analyzers.CodeFixes/SerializeOrderMissingCodeFixProvider.cs`
 
 ## Main pieces
 
 - `ConfigurationIgnoreCodeFixProvider`
+- `DispatchLoopCountCodeFixProvider`
 - `DuplicateSerializeOrderCodeFixProvider`
+- `GenericPacketHandlerCodeFixProvider`
 - `MiddlewareCodeFixProvider`
+- `NullMiddlewareCodeFixProvider`
 - `PacketControllerCodeFixProvider`
 - `PacketDeserializeCodeFixProvider`
 - `PacketOpcodeCodeFixProvider`
 - `PacketRegistryDeserializerCodeFixProvider`
 - `PacketSelfTypeCodeFixProvider`
+- `RedundantPacketCastCodeFixProvider`
 - `ResetForPoolCodeFixProvider`
+- `RequestOptionsConsistencyCodeFixProvider`
 - `SerializationConflictCodeFixProvider`
 - `SerializeOrderMissingCodeFixProvider`
 
@@ -38,12 +48,17 @@ The available fixes currently cover these common workflows:
 
 - add missing packet or controller attributes
 - fix packet self-type inheritance or deserializer shape
+- clamp invalid dispatch loop counts into supported range
 - add missing `SerializeOrder`
 - resolve `SerializeIgnore` versus `SerializeOrder` conflicts
 - add `ConfiguredIgnore` for unsupported configuration properties
 - add middleware attributes or ordering helpers
+- remove redundant `PacketContext<T>.Packet` casts
+- resolve null middleware registrations
 - add a missing registry deserializer pattern
 - add a `base.ResetForPool()` call in packet reset code
+- normalize inconsistent request retry/timeout option combinations
+- remove `PacketOpcode` attributes from generic handlers
 
 ## Common fix groups
 

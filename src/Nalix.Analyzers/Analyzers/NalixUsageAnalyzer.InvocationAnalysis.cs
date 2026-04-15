@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using Nalix.Analyzers.Diagnostics;
@@ -70,6 +71,10 @@ public sealed partial class NalixUsageAnalyzer
         else if (methodName == "RegisterPacket")
         {
             AnalyzeRegisterPacketInvocation(context, invocation, symbols);
+        }
+        else if (methodName == "WithDispatchLoopCount")
+        {
+            AnalyzeDispatchLoopCountInvocation(context, invocation);
         }
     }
 
@@ -162,7 +167,20 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        bool? encryptValue = TryGetEncryptValue(optionsArgument.Value, symbols);
+        if (TryGetTimeoutAndRetryValues(optionsArgument.Value, symbols, out int? timeoutMsValue, out int? retryCountValue)
+            && timeoutMsValue == 0
+            && retryCountValue.HasValue
+            && retryCountValue.Value > 0)
+        {
+            Report(
+                context,
+                DiagnosticDescriptors.RequestOptionsInfiniteTimeoutWithRetry,
+                invocation.Syntax.GetLocation(),
+                retryCountValue.Value);
+        }
+
+        bool encryptFromVariable = optionsArgument.Value is ILocalReferenceOperation;
+        bool? encryptValue = TryGetEncryptValueWithLocalResolution(optionsArgument.Value, context, symbols);
         if (encryptValue != true)
         {
             return;
@@ -171,12 +189,159 @@ public sealed partial class NalixUsageAnalyzer
         ITypeSymbol clientType = GetUnderlyingType(invocation.Arguments[0].Value) ?? targetMethod.Parameters[0].Type;
         if (!IsAssignable(clientType, symbols.TcpSessionBaseType))
         {
-            Report(
-                context,
-                DiagnosticDescriptors.RequestEncryptRequiresTcpSession,
-                invocation.Syntax.GetLocation(),
-                clientType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+            if (encryptFromVariable && optionsArgument.Value is ILocalReferenceOperation localReference)
+            {
+                Report(
+                    context,
+                    DiagnosticDescriptors.RequestEncryptVariableRequiresTcpSession,
+                    invocation.Syntax.GetLocation(),
+                    localReference.Local.Name,
+                    clientType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+            }
+            else
+            {
+                Report(
+                    context,
+                    DiagnosticDescriptors.RequestEncryptRequiresTcpSession,
+                    invocation.Syntax.GetLocation(),
+                    clientType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+            }
         }
+    }
+
+    private static bool TryGetTimeoutAndRetryValues(
+        IOperation operation,
+        SymbolSet symbols,
+        out int? timeoutMs,
+        out int? retryCount)
+    {
+        timeoutMs = null;
+        retryCount = null;
+
+        if (operation is IPropertyReferenceOperation propertyReference
+            && propertyReference.Property.Name == "Default"
+            && SymbolEqualityComparer.Default.Equals(propertyReference.Member.ContainingType, symbols.RequestOptionsType))
+        {
+            timeoutMs = 5000;
+            retryCount = 0;
+            return true;
+        }
+
+        if (operation is IObjectCreationOperation creation
+            && SymbolEqualityComparer.Default.Equals(creation.Type, symbols.RequestOptionsType))
+        {
+            timeoutMs = 5000;
+            retryCount = 0;
+
+            IEnumerable<ISimpleAssignmentOperation> assignments = creation.Initializer?.Initializers
+                .OfType<ISimpleAssignmentOperation>() ?? [];
+
+            foreach (ISimpleAssignmentOperation assignment in assignments)
+            {
+                if (assignment.Target is not IPropertyReferenceOperation targetProperty)
+                {
+                    continue;
+                }
+
+                if (targetProperty.Property.Name == "TimeoutMs"
+                    && TryGetConstantInt(assignment.Value, out int timeout))
+                {
+                    timeoutMs = timeout;
+                }
+                else if (targetProperty.Property.Name == "RetryCount"
+                    && TryGetConstantInt(assignment.Value, out int retry))
+                {
+                    retryCount = retry;
+                }
+            }
+
+            return true;
+        }
+
+        if (operation is IInvocationOperation invocation
+            && SymbolEqualityComparer.Default.Equals(invocation.TargetMethod.ContainingType, symbols.RequestOptionsType))
+        {
+            bool hasInstanceValues = invocation.Instance is not null
+                && TryGetTimeoutAndRetryValues(invocation.Instance, symbols, out timeoutMs, out retryCount);
+
+            if (!hasInstanceValues)
+            {
+                timeoutMs = 5000;
+                retryCount = 0;
+            }
+
+            if (invocation.TargetMethod.Name == "WithTimeout"
+                && invocation.Arguments.Length == 1
+                && TryGetConstantInt(invocation.Arguments[0].Value, out int timeout))
+            {
+                timeoutMs = timeout;
+            }
+            else if (invocation.TargetMethod.Name == "WithRetry"
+                     && invocation.Arguments.Length == 1
+                     && TryGetConstantInt(invocation.Arguments[0].Value, out int retry))
+            {
+                retryCount = retry;
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool? TryGetEncryptValueWithLocalResolution(IOperation operation, OperationAnalysisContext context, SymbolSet symbols)
+    {
+        bool? direct = TryGetEncryptValue(operation, symbols);
+        if (direct.HasValue)
+        {
+            return direct;
+        }
+
+        if (operation is not ILocalReferenceOperation localReference)
+        {
+            return null;
+        }
+
+        foreach (SyntaxReference syntaxReference in localReference.Local.DeclaringSyntaxReferences)
+        {
+            if (syntaxReference.GetSyntax(context.CancellationToken) is not VariableDeclaratorSyntax declarator
+                || declarator.Initializer is null)
+            {
+                continue;
+            }
+
+            string initText = declarator.Initializer.Value.ToString();
+            bool? resolved = ResolveEncryptFromInitializerText(initText);
+            if (resolved == true || resolved == false)
+            {
+                return resolved;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool? ResolveEncryptFromInitializerText(string initializerText)
+    {
+        if (string.IsNullOrWhiteSpace(initializerText))
+        {
+            return null;
+        }
+
+        if (initializerText.IndexOf("WithEncrypt()", System.StringComparison.Ordinal) >= 0
+            || initializerText.IndexOf("WithEncrypt(true)", System.StringComparison.Ordinal) >= 0
+            || initializerText.IndexOf("Encrypt = true", System.StringComparison.Ordinal) >= 0)
+        {
+            return true;
+        }
+
+        if (initializerText.IndexOf("WithEncrypt(false)", System.StringComparison.Ordinal) >= 0
+            || initializerText.IndexOf("Encrypt = false", System.StringComparison.Ordinal) >= 0)
+        {
+            return false;
+        }
+
+        return null;
     }
 
     private static void AnalyzeRegisterPacketInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
@@ -264,6 +429,24 @@ public sealed partial class NalixUsageAnalyzer
         }
     }
 
+    private static void AnalyzeDispatchLoopCountInvocation(OperationAnalysisContext context, IInvocationOperation invocation)
+    {
+        if (invocation.Arguments.Length != 1)
+        {
+            return;
+        }
+
+        if (!TryGetConstantInt(invocation.Arguments[0].Value, out int loopCount))
+        {
+            return;
+        }
+
+        if (loopCount < 1 || loopCount > 64)
+        {
+            Report(context, DiagnosticDescriptors.DispatchLoopCountOutOfRange, invocation.Syntax.GetLocation(), loopCount);
+        }
+    }
+
     private static void ReportPacketContextMismatchIfAny(SymbolAnalysisContext context, IMethodSymbol methodSymbol, SymbolSet symbols)
     {
         if (!TryGetPacketContextType(methodSymbol, symbols.PacketContextType, out ITypeSymbol? packetContextType)
@@ -309,6 +492,12 @@ public sealed partial class NalixUsageAnalyzer
 
         ITypeSymbol dispatcherPacketType = dispatchOptionsType.TypeArguments[0];
         IArgumentOperation? middlewareArgument = invocation.Arguments.FirstOrDefault();
+        if (middlewareArgument is not null && IsNullLiteral(middlewareArgument.Value))
+        {
+            Report(context, DiagnosticDescriptors.MiddlewareRegistrationNullLiteral, invocation.Syntax.GetLocation(), invocation.TargetMethod.Name);
+            return;
+        }
+
         ITypeSymbol? middlewareType = middlewareArgument is null ? null : GetUnderlyingType(middlewareArgument.Value);
         if (middlewareType is null)
         {
@@ -400,6 +589,12 @@ public sealed partial class NalixUsageAnalyzer
     private static void AnalyzeWithBufferMiddlewareInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
     {
         IArgumentOperation? middlewareArgument = invocation.Arguments.FirstOrDefault();
+        if (middlewareArgument is not null && IsNullLiteral(middlewareArgument.Value))
+        {
+            Report(context, DiagnosticDescriptors.MiddlewareRegistrationNullLiteral, invocation.Syntax.GetLocation(), invocation.TargetMethod.Name);
+            return;
+        }
+
         IOperation? valueOperation = middlewareArgument?.Value;
         ITypeSymbol? middlewareType = valueOperation is IConversionOperation conversion
             ? conversion.Operand.Type
