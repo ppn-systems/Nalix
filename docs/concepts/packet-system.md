@@ -242,6 +242,44 @@ Built-in signal packets (`Control`, `Handshake`, `SessionResume`, `Directive`) a
 
 If your data type is not supported by the built-in serializer (e.g., a third-party struct), you can implement a custom formatter.
 
+### Example: Complete Custom Formatter
+
+In this scenario, we have a `UserProfile` class that we want to shared between server and client, but it requires a specialized serialization format (e.g., to handle legacy bit-flags or custom string encoding).
+
+```csharp
+// 1. Define your data contract (shared)
+public sealed class UserProfile
+{
+    public int UserId { get; set; }
+    public string DisplayName { get; set; } = string.Empty;
+    public DateTime LastSeen { get; set; }
+}
+
+// 2. Implement the specialized formatter
+public sealed class UserProfileFormatter : IFormatter<UserProfile>
+{
+    public void Serialize(ref DataWriter writer, UserProfile value)
+    {
+        writer.WriteInt32(value.UserId);
+        writer.WriteString(value.DisplayName);
+        writer.WriteInt64(value.LastSeen.ToBinary());
+    }
+
+    public UserProfile Deserialize(ref DataReader reader)
+    {
+        return new UserProfile
+        {
+            UserId = reader.ReadInt32(),
+            DisplayName = reader.ReadString(),
+            LastSeen = DateTime.FromBinary(reader.ReadInt64())
+        };
+    }
+}
+
+// 3. Register the formatter during startup
+LiteSerializer.Register<UserProfile>(new UserProfileFormatter());
+```
+
 1. Implement `IFormatter<T>`.
 2. Register it using `LiteSerializer.Register<T>(formatter)`.
 
