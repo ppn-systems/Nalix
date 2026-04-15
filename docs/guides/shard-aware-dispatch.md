@@ -48,9 +48,18 @@ graph TD
 
 ---
 
-## 2. Configuring Shards
+## 2. Configuring Shards for Production
 
 You can tune the parallelism of your application by adjusting the number of shards (worker loops) in the hosting builder.
+
+### Production Optimization Checklist
+
+| Option | Default | Tuning Strategy |
+|---|---|---|
+| `DispatchLoopCount` | `ProcessorCount` | Set to your **physical core count** for CPU-intensive handlers to avoid context switching. |
+| `MaxInternalQueueSize` | `100,000` | Limits total pending packets. Use to prevent memory exhaustion during spikes. |
+| `MaxDrainPerWake` | `2,048` | Max packets a worker processes before yielding. Higher values improve cache locality. |
+| `MaxDrainPerWakeMultiplier` | `8` | Multiplier applied to `DispatchLoopCount` for automatic batching. |
 
 ```csharp
 using Nalix.Network.Hosting;
@@ -59,13 +68,13 @@ var builder = NetworkApplication.CreateBuilder();
 
 builder.ConfigureDispatch(options =>
 {
-    // Explicitly set 4 shard workers
-    // Default: Math.Clamp(ProcessorCount, 1, 64)
-    options.DispatchLoopCount = 4;
+    // 1. Core Affinity: Match physical cores to avoid context switching
+    options.WithDispatchLoopCount(Environment.ProcessorCount / 2);
     
-    // Performance Tuning:
-    // How many packets one shard should "drain" from its queue before checking other shards.
-    // Higher values increase throughput but may slightly increase tail latency for others.
+    // 2. Backpressure: Set a hard limit on global queued packets
+    options.MaxInternalQueueSize = 500_000;
+    
+    // 3. Throughput Tuning: Process 16 packets per wake to improve cache locality
     options.MaxDrainPerWakeMultiplier = 16; 
 });
 ```
@@ -81,6 +90,10 @@ While a shard processes packets sequentially, it is **Priority-Aware**. Each sha
 A custom `Protocol` can influence which queue a packet lands in by setting the **Priority Byte** in the Nalix header before hand-off:
 
 ```csharp
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Memory.Buffers;
+
 public override void ProcessMessage(object sender, IConnectEventArgs args)
 {
     IBufferLease lease = args.Lease;
@@ -98,25 +111,72 @@ public override void ProcessMessage(object sender, IConnectEventArgs args)
 
 ### Custom Sharding Keys (Virtual Connections)
 
-If you need to shard multiple transport connections into a single sequential worker (e.g., for multi-path clients), you can pass a **Virtual Connection** wrapper to the dispatcher.
+In a typical scenario, packets are sharded by their underlying socket connection. However, you can force multiple physical sessions into the same sequential shard by wrapping them in a **Shard Proxy**.
 
-The dispatcher hashes the connection instance, so sharing the same wrapper instance forces affinity:
+#### Production Scenario: User-Based Affinity
+If a player logs in from multiple devices (e.g., Phone and Tablet), and you need to ensure their state is updated sequentially across all devices, shard them by `UserID` instead of `ConnectionID`.
 
 ```csharp
-// Example: Sharding by PlayerAccountID instead of raw Socket Connection
-public void RouteToPlayerShard(IConnection rawConnection, IBufferLease packet, IConnection playerShardProxy)
+using Nalix.Common.Networking;
+using Nalix.Framework.Memory.Buffers;
+
+public sealed class UserShardProxy : IConnection
 {
-    // The dispatcher will use 'playerShardProxy' for hashing, 
-    // ensuring all packets for this player hit the same worker.
-    _dispatch.HandlePacket(packet, playerShardProxy);
+    public long UserID { get; }
+    
+    // The dispatcher uses GetHashCode() for shard selection
+    public override int GetHashCode() => UserID.GetHashCode();
+    public override bool Equals(object obj) => obj is UserShardProxy other && other.UserID == UserID;
+
+    // Delegate other members (Disconnect, Secret, etc.) to the primary active connection
+}
+
+// In your Protocol or Middleware:
+public void RouteToUserShard(IConnection rawConnection, IBufferLease packet)
+{
+    // Retrieve the shared proxy instance for this user
+    var proxy = SessionManager.GetProxy(rawConnection);
+    _dispatch.HandlePacket(packet, proxy);
 }
 ```
 
 ---
 
-## 4. Monitoring Shard Health
+## 4. Error Handling & Backpressure
 
-Use the built-in diagnostic reports to see if your shards are balanced or if specific connections are bottlenecking a shard.
+A robust production setup must handle dispatch failures and per-packet exceptions gracefully.
+
+### Global Error Hook
+Register a global observer to capture exceptions that escape handler logic before they trigger a protocol-level failure:
+
+```csharp
+using Nalix.Network.Hosting;
+using Nalix.Common.Networking.Packets;
+
+builder.ConfigureDispatch(options =>
+{
+    options.WithErrorHandling((exception, opCode) => 
+    {
+        Log.Error($"Dispatch failed for OpCode 0x{opCode:X4}: {exception.Message}");
+    });
+});
+```
+
+### Backpressure with DropPolicy
+When the `MaxInternalQueueSize` is reached, Nalix uses a `DropPolicy` to decide how to handle new ingress:
+
+- **DropNewest**: Rejects the incoming packet. Safest for real-time latency.
+- **DropOldest**: Removes the head of the queue to make room. Ensures data freshness.
+- **Block**: Stalls the calling thread (usually the protocol reader). Highest reliability, but can lead to socket timeouts if handlers are slow.
+
+> [!WARNING]
+> Use `DropPolicy.Block` with caution. If a background worker stalls, it can trigger a backpressure ripple that eventually blocks the TCP accept loop.
+
+---
+
+## 5. Monitoring Shard Health
+
+Use the built-in diagnostic reports to identify hotspots or imbalanced shards.
 
 ```csharp
 // Get a human-readable report of shard status
@@ -134,5 +194,5 @@ The report provides:
 ## Best Practices
 
 - **Avoid Shard Blocking**: Never use `Thread.Sleep()` or long synchronous blocks in a handler. Since a worker processes one shard at a time, a blocked worker freezes all connections assigned to its shard.
-- **CPU Scaling**: Aim for a `DispatchLoopCount` near your physical core count for CPU-bound logic, or higher if your handlers perform significant asynchronous waiting.
+- **CPU Scaling**: Aim for a `DispatchLoopCount` near your physical core count for CPU-bound logic.
 - **Batching**: Use `MaxDrainPerWake` settings to tune the "granularity" of the worker loops. Larger batches improve cache locality but can introduce jitter.

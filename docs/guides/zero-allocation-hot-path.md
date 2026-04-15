@@ -38,6 +38,7 @@ High performance starts with how you define your data. Use `SerializeLayout.Expl
 
 ```csharp
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Serialization;
 
 [Packet(OpCodeValue)]
 [SerializePackable(SerializeLayout.Explicit)]
@@ -87,28 +88,64 @@ using var lease = bufferPool.Lease(1024);
 // Use lease.Span for zero-copy slicing
 ```
 
-### Context Reuse
-The `PacketContext<T>` tracks a request's lifetime. Instead of allocating a new context per packet, Nalix fetches them from the `ObjectPoolManager`.
+### Pattern: High-Performance Handler
+To keep the path zero-allocation, your handler must follow these constraints:
+
+1. **Accept `IPacketContext<T>`**: This ensures usage of the pooled context and the (potentially) struct-based packet.
+2. **Synchronous Completion**: If possible, avoid `await`. If you must use it, only await `ValueTask` or `Task` that you know is already completed.
+3. **No Closures**: Do not use lambda expressions that capture local variables, as this allocates a closure object.
 
 ```csharp
 [PacketOpcode(0x5001)]
 public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 {
-    // context.Packet is already deserialized into the pooled/stack memory
-    Process(context.Packet.EntityId);
+    // context.Packet is already deserialized into pooled/stack memory
+    var packet = context.Packet;
     
-    // Returning ValueTask avoids Task allocation if the method completes synchronously
+    // Process purely on the stack
+    GlobalState.UpdateEntity(packet.EntityId, packet.PositionX, packet.PositionY);
+    
+    // Returning ValueTask avoiding Task allocation for sync completion
     return ValueTask.CompletedTask;
 }
 ```
 
 ---
 
-## 4. Operational Setup
+## 4. Zero-Allocation Error Handling
+
+Exception handling can be expensive. In the hot path, Nalix provides mechanisms to track errors without triggering heap noise.
+
+### Global Error Hook
+Instead of per-packet `try-catch` blocks in your handlers, use the global observer:
+
+```csharp
+using Nalix.Network.Hosting;
+
+builder.ConfigureDispatch(options =>
+{
+    options.WithErrorHandling((exception, opCode) => 
+    {
+        // Log or increment a counter. 
+        // This is called only when a handler throws.
+        PerformanceCounters.DispatchErrors.Increment();
+    });
+});
+```
+
+### Health Monitoring
+Every connection tracks its own error count. If a handler throws, Nalix calls `connection.IncrementErrorCount()`. You can monitor this in your middleware to kick unstable connections without extra allocations.
+
+---
+
+## 5. Operational Setup
 
 To enable this optimized path, ensure your hosting configuration is tuned for concurrency.
 
 ```csharp
+using System;
+using Nalix.Network.Hosting;
+
 var app = NetworkApplication.CreateBuilder()
     .AddHandlers<GameMarker>() // Triggers handler compilation
     .ConfigureDispatch(options => {
@@ -122,24 +159,69 @@ var app = NetworkApplication.CreateBuilder()
 
 ---
 
-## Monitoring Performance
+## Verifying Zero-Allocations
 
-You can verify that the hot path is behaving correctly by checking the pool statistics and dispatch reports.
+### Runtime Verification
+You can programmatically verify that a block of code does not allocate in unit tests or integration tests:
 
 ```csharp
-// In your diagnostics loop or admin command:
-var report = app.Services.Get<PacketDispatchChannel>().GenerateReport();
-Console.WriteLine(report);
+using System;
+using Nalix.Common.Networking.Packets;
+
+long startingBytes = GC.GetAllocatedBytesForCurrentThread();
+
+// Execute the hot path (e.g., dispatch 10,000 packets)
+await RunLoadTestAsync();
+
+long endingBytes = GC.GetAllocatedBytesForCurrentThread();
+long allocated = endingBytes - startingBytes;
+
+Assert.Equal(0, allocated); // Should be exactly 0
 ```
 
-**Key Metrics to Watch:**
-- **WaitSignals**: High signal counts relative to processed packets suggest efficient batching.
-- **Top Connections**: If one connection owns a disproportionate amount of a shard's queue, consider increasing shard counts.
-- **Buffer Pressure**: Monitor `BufferPoolManager` metrics to ensure leases are being returned promptly.
+### Micro-benchmarking with BenchmarkDotNet
+Use `MemoryDiagnoser` to verify that your handlers are truly "green" (0 B allocated).
+
+```csharp
+using BenchmarkDotNet.Attributes;
+using Nalix.Common.Networking.Packets;
+
+[MemoryDiagnoser]
+public class ProtocolBenchmarks
+{
+    [Benchmark]
+    public async ValueTask HandlePacket()
+    {
+        await _dispatch.ExecutePacketHandlerAsync(_testPacket, _mockConnection);
+    }
+}
+```
+
+---
+
+## Advanced Monitoring
+
+To ensure the hot path remains stable in production, monitor these specific metrics:
+
+### 1. Buffer Pool Health (`BufferPoolManager`)
+- **MissRate**: If this is > 5%, your `BufferAllocations` are likely too small for your traffic spikes.
+- **UsageRatio**: A pool consistently at 90%+ usage suggests you are near capacity.
+
+### 2. Dispatch Health (`PacketDispatchChannel`)
+- **WakeSignals**: High signal counts relative to processed packets suggest efficient batching.
+- **Ready Connections**: A growing number here indicates your handlers are too slow or `DispatchLoopCount` is too low.
+
+### 3. CLI Monitoring
+Use `dotnet-counters` to monitor the framework in real-time:
+```bash
+dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc-rate,gen-0-gc-count]
+```
 
 ## Summary Checklist
 - [x] Use `struct` or pooled `class` for packets.
 - [x] Annotate controllers with `[PacketController]`.
+- [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Return `ValueTask` from handlers.
+- [x] Avoid `new`, `LINQ`, and closures inside handlers.
 - [x] Register handlers via assembly scanning to enable compilation.
-- [x] Avoid `new` and `LINQ` inside the handler method.
+- [x] Verify with `BenchmarkDotNet` [MemoryDiagnoser].

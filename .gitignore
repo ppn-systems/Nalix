@@ -55,3 +55,4 @@ nalix-docs
 BenchmarkDotNet.Artifacts
 site/
 .dotnethome/
+.cache/

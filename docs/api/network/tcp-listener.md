@@ -58,6 +58,17 @@ flowchart LR
 - `Dispose()`
 - `Metrics`
 
+## System Dependencies
+
+When initializing `TcpListenerBase` outside of the Hosting layer (`NetworkApplicationBuilder`), you must manually register the following services in the `InstanceManager`:
+
+- **`ILogger`**: Used for infrastructure diagnostics and error reporting.
+- **`IConnectionHub`**: Manages the global set of active connections.
+- **`TimingWheel`**: Required if `NetworkSocketOptions.EnableTimeout` is true (handles connection/handshake timeouts).
+- **`TaskManager`**: Manages the lifecycle of accept workers.
+- **`ConnectionGuard`**: Required for admission control and connection limiting.
+- **`ObjectPoolManager`**: Manages pools for `IBufferLease` and `SocketAsyncEventArgs`.
+
 ## Operational Notes
 
 - Startup transitions listener state and schedules accept workers.
