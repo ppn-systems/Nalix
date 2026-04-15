@@ -220,7 +220,10 @@ public sealed class PacketDispatchChannel
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void HandlePacket(IPacket packet, IConnection connection)
-        => this.ExecutePacketHandlerAsync(packet, connection).Await();
+    {
+        if (packet is null || connection is null) return;
+        _ = Task.Run(async () => await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false));
+    }
 
     #endregion Public Methods
 

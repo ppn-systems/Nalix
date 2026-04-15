@@ -137,19 +137,12 @@ public abstract partial class UdpListenerBase
         ReadOnlySpan<byte> payload = buffer[SessionTokenSize..];
 
         // --- 2. Protocol validation gate ---
-        // Ensure the packet explicitly identifies as UDP to prevent bypasses.
-        // Transport field is at PacketHeaderOffset.Transport (index 8 in payload).
-        if (payload.Length <= (int)PacketHeaderOffset.Transport ||
-            payload[(int)PacketHeaderOffset.Transport] != (byte)Common.Networking.Protocols.ProtocolType.UDP)
+        // SEC-72: Strict length guard. A valid UDP datagram must have at least Transport (1) + SequenceID (4) = 5 bytes of payload.
+        // Total buffer: Token(7) + Payload(>=5) = >=12 bytes.
+        if (payload.Length < 5)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
-
-#if DEBUG
-            s_logger?.Debug(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"invalid-protocol mismatch ep={remoteEndPoint}");
-#endif
             return;
         }
 
@@ -178,6 +171,16 @@ public abstract partial class UdpListenerBase
                 }
                 else
                 {
+                    // SEC-71 & SEC-70: Validate replay window and handle transformation in fast-path.
+                    // We must read the sequence ID to check for replays before proceeding.
+                    uint sequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
+                    if (!connection.UdpReplayWindow.TryCheck(sequenceId))
+                    {
+                        _ = Interlocked.Increment(ref _dropUnauth);
+                        lease.Dispose();
+                        return;
+                    }
+
                     if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
                     {
                         _ = Interlocked.Increment(ref _dropUnauth);
@@ -265,10 +268,10 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        // --- 4. Replay protection (SEC-27) ---
+        // --- 4. Replay protection (SEC-27, SEC-71) ---
         // Extract sequence ID and validate against a per-connection sliding window.
-        // Sequence ID is at offset 9 in the payload (Transport index is 8).
-        uint sequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[9..]);
+        // In the UDP payload header [Transport(1), SequenceId(4)], SequenceId starts at index 1.
+        uint sequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
         if (!connection.UdpReplayWindow.TryCheck(sequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);

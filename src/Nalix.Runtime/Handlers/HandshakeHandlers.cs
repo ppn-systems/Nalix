@@ -78,6 +78,13 @@ public sealed class HandshakeHandlers
 
     private static async ValueTask HandleClientHelloAsync(IConnection connection, Handshake packet)
     {
+        // BUG-75: Prevent re-entry during active handshake to mitigate CPU DoS
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeState))
+        {
+            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
+
         if (!Handshake.IsValid(packet))
         {
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
@@ -141,16 +148,16 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (packet.TranscriptHash != state.TranscriptHash)
-        {
-            await RejectHandshakeAsync(connection, ProtocolReason.CHECKSUM_FAILED).ConfigureAwait(false);
-            return;
-        }
-
         Fixed256 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
         if (packet.Proof != expectedProof)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
+            return;
+        }
+
+        if (packet.TranscriptHash != state.TranscriptHash)
+        {
+            await RejectHandshakeAsync(connection, ProtocolReason.CHECKSUM_FAILED).ConfigureAwait(false);
             return;
         }
 
