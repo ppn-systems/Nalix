@@ -18,12 +18,12 @@ namespace Nalix.Runtime.Internal.Compilation;
 /// used to execute a packet handler without reflection on the hot path.
 /// </summary>
 /// <typeparam name="TPacket">The packet type handled by this delegate.</typeparam>
-/// <param name="opCode"></param>
-/// <param name="metadata"></param>
-/// <param name="controllerInstance"></param>
-/// <param name="method"></param>
-/// <param name="returnType"></param>
-/// <param name="compiledInvoker"></param>
+/// <param name="opCode">The opcode mapped to this handler.</param>
+/// <param name="metadata">Dispatch metadata used for runtime policies.</param>
+/// <param name="controllerInstance">The controller instance that owns the handler method.</param>
+/// <param name="method">The reflected handler method information.</param>
+/// <param name="returnType">The handler return type.</param>
+/// <param name="compiledInvoker">Compiled delegate used to invoke the handler.</param>
 /// <param name="expectedPacketType">
 /// Cached concrete packet runtime type expected by the handler, or <see langword="null"/>
 /// when runtime packet type checks are not required.
@@ -105,7 +105,7 @@ internal readonly struct PacketHandler<TPacket>(
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.
     /// </summary>
-    /// <param name="_"></param>
+    /// <param name="context">The packet context to validate for execution.</param>
     /// <returns><see langword="true"/> if the handler can be executed; otherwise, <see langword="false"/>.</returns>
     /// <remarks>
     /// This method can be extended to implement validation logic such as:

@@ -245,6 +245,7 @@ public static class EnvelopeCipher
     /// Optional Associated Data (AEAD suites only). Must match the value (if any) used at encryption time.
     /// Ignored for non-AEAD suites.
     /// </param>
+    /// <param name="expectedAlgorithm">The cipher suite expected for this envelope. Used to prevent algorithm downgrade attacks.</param>
     /// <param name="written">Number of plaintext bytes written on success.</param>
     /// <remarks>
     /// For AEAD suites, the same AAD convention is used as in encryption:
@@ -352,6 +353,7 @@ public static class EnvelopeCipher
     /// <param name="plaintext">
     /// Destination buffer for the plaintext.
     /// </param>
+    /// <param name="expectedAlgorithm">The cipher suite expected for this envelope. Used to prevent algorithm downgrade attacks.</param>
     /// <param name="written">Number of plaintext bytes written on success.</param>
     /// <remarks>
     /// For AEAD suites, the same AAD convention is used as in encryption:

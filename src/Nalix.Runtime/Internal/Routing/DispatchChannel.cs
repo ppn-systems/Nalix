@@ -279,6 +279,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     /// </summary>
     /// <param name="connection">The destination connection.</param>
     /// <param name="raw">The packet lease to enqueue.</param>
+    /// <param name="noBlock">When <see langword="true"/>, block-mode overflow will fail fast instead of waiting for capacity.</param>
     /// <returns><see langword="true"/> if a ready queue entry was emitted.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     internal bool PushCore(IConnection connection, IBufferLease raw, bool noBlock = false)

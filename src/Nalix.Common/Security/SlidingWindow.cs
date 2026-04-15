@@ -19,6 +19,10 @@ public sealed class SlidingWindow
     private readonly long[] _bitmap;
     private readonly Lock _lock = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SlidingWindow"/> class.
+    /// </summary>
+    /// <param name="windowSize">The replay-protection window size in sequence numbers.</param>
     public SlidingWindow(int windowSize = 1024)
     {
         _windowSize = windowSize;

@@ -74,8 +74,8 @@ public abstract partial class UdpListenerBase
 
                 // wrap the buffer into a BufferLease
                 BufferLease lease = BufferLease.TakeOwnership(buffer, start: 0, length: result.ReceivedBytes);
-                lease.Protocol = ProtocolType.UDP;
-                
+                lease.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+
                 this.ProcessDatagram(lease, result.RemoteEndPoint);
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -119,8 +119,8 @@ public abstract partial class UdpListenerBase
     /// </remarks>
     protected virtual void ProcessDatagram(BufferLease lease, EndPoint remoteEndPoint)
     {
-        // --- 1. Minimum-size gate ---
-        if (lease == null || lease.Length < SessionTokenSize)
+        // --- 1. Minimum-size and null gate ---
+        if (lease == null || remoteEndPoint == null || lease.Length < SessionTokenSize)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease?.Dispose();
@@ -137,9 +137,10 @@ public abstract partial class UdpListenerBase
         ReadOnlySpan<byte> payload = buffer[SessionTokenSize..];
 
         // --- 2. Protocol validation gate ---
-        // SEC-72: Strict length guard. A valid UDP datagram must have at least Transport (1) + SequenceID (4) = 5 bytes of payload.
-        // Total buffer: Token(7) + Payload(>=5) = >=12 bytes.
-        if (payload.Length < 5)
+        // SEC-72: Strict length and type guard. 
+        // A valid UDP datagram must have at least the full packet header (13 bytes).
+        // And the transport byte must be UDP.
+        if (payload.Length < (int)PacketHeaderOffset.Region || payload[(int)PacketHeaderOffset.Transport] != (byte)Nalix.Common.Networking.Protocols.ProtocolType.UDP)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
@@ -173,8 +174,8 @@ public abstract partial class UdpListenerBase
                 {
                     // SEC-71 & SEC-70: Validate replay window and handle transformation in fast-path.
                     // We must read the sequence ID to check for replays before proceeding.
-                    uint sequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
-                    if (!connection.UdpReplayWindow.TryCheck(sequenceId))
+                    uint fastSequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
+                    if (!connection.UdpReplayWindow.TryCheck(fastSequenceId))
                     {
                         _ = Interlocked.Increment(ref _dropUnauth);
                         lease.Dispose();
@@ -195,7 +196,7 @@ public abstract partial class UdpListenerBase
                     if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
                     {
                         BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
-                        fastPayload.Protocol = ProtocolType.UDP;
+                        fastPayload.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
                         ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
                         fastArgs.Initialize(fastPayload, connection);
 
@@ -256,7 +257,7 @@ public abstract partial class UdpListenerBase
         // --- 3. IP pinning gate (SEC-30) ---
         // Ensure the UDP source IP matches the authorized TCP endpoint IP.
         // This prevents session hijacking via IP spoofing even if the Snowflake ID is known.
-        if (connection.NetworkEndpoint is null || 
+        if (connection.NetworkEndpoint is null ||
             !string.Equals(connection.NetworkEndpoint.Address, ((IPEndPoint)remoteEndPoint).Address.ToString(), StringComparison.Ordinal))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
@@ -319,7 +320,7 @@ public abstract partial class UdpListenerBase
 
         // Create a new lease for the payload (7 bytes offset)
         BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
-        incomingLease.Protocol = ProtocolType.UDP;
+        incomingLease.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(incomingLease, connection);

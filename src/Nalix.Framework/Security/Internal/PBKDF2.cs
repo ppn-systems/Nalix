@@ -293,7 +293,7 @@ internal sealed class PBKDF2 : System.IDisposable
     #region IDisposable
 
     /// <summary>
-    /// Releases all resources used by the current instance of the <see cref="PBKDF2_I"/> class
+    /// Releases all resources used by the current instance of the <see cref="PBKDF2"/> class
     /// and clears sensitive data such as the internal salt.
     /// </summary>
     public void Dispose()

@@ -169,7 +169,6 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
 
     #endregion Properties
 
-
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>

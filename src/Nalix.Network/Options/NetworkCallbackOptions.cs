@@ -58,21 +58,6 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
 
     #endregion Layer 1 — Per-connection receive throttle
 
-    #region Layer 1.5 — Error enforcement
-
-    /// <summary>
-    /// Maximum number of protocol errors (parse failure, pipeline failure, etc) 
-    /// allowed before the connection is automatically terminated.
-    /// <para>
-    /// Set to <c>0</c> to disable this enforcement. Default is <c>16</c>.
-    /// </para>
-    /// </summary>
-    [IniComment("Max protocol errors before automatic disconnection (default 16)")]
-    [System.ComponentModel.DataAnnotations.Range(0, 1000, ErrorMessage = "MaxErrorsPerConnection must be between 0 and 1000.")]
-    public int MaxErrorsPerConnection { get; set; } = 50;
-
-    #endregion Layer 1.5 — Error enforcement
-
     #region Layer 2 — Global and per-IP callback caps
 
     /// <summary>

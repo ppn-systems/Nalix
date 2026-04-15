@@ -618,7 +618,7 @@ public sealed class AeadEngineTests
         EnvelopeCipher.Encrypt(key, plaintext, ciphertext, aad, null, CipherSuiteType.Chacha20Poly1305, out int written);
         
         var decrypted = new byte[100];
-        EnvelopeCipher.Decrypt(key, ciphertext.AsSpan()[..written], decrypted, aad, out int decWritten);
+        EnvelopeCipher.Decrypt(key, ciphertext.AsSpan()[..written], decrypted, aad, CipherSuiteType.Chacha20Poly1305, out int decWritten);
         
         Assert.Equal(100, decWritten);
     }

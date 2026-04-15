@@ -160,6 +160,7 @@ public static class FrameTransformer
     /// <param name="src">The source buffer containing the encrypted packet.</param>
     /// <param name="dest">The destination buffer to write the decrypted packet.</param>
     /// <param name="key">The decryption key.</param>
+    /// <param name="expectedAlgorithm">The expected cipher suite to validate/decrypt the envelope.</param>
     /// <remarks>
     /// The header portion is copied unchanged.
     /// Only the payload is decrypted.
