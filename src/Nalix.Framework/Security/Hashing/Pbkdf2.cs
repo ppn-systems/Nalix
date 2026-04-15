@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Framework.Configuration;
+using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Security.Internal;
 using Nalix.Framework.Security.Primitives;
@@ -31,9 +33,10 @@ public static class Pbkdf2
     public const int SaltSize = 32;
 
     /// <summary>
-    /// Iteration count for PBKDF2_I.
+    /// Base iteration count for PBKDF2_I.
+    /// Loaded from SecurityOptions if available, otherwise defaults to 310,000.
     /// </summary>
-    public const int Iterations = 310_000;
+    public static int Iterations => ConfigurationManager.Instance.Get<SecurityOptions>().Pbkdf2Iterations;
 
     #endregion Constants
 
