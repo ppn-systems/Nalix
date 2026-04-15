@@ -164,41 +164,59 @@ public abstract partial class UdpListenerBase
             // since it was cached. If so, evict and fall through to the slow path.
             if (!connection.IsDisposed)
             {
-                if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
+                // SEC-04: Re-validate the session token on every datagram, not
+                // just on the first one. This prevents packet injection via
+                // endpoint spoofing or NAT rebinding because the token must
+                // match the cached connection's ID on every single packet.
+                ReadOnlySpan<byte> fastToken = buffer[..SessionTokenSize];
+                Common.Primitives.UInt56 tokenId = Common.Primitives.UInt56.ReadBytesLittleEndian(fastToken);
+                if (tokenId != connection.ID.ToUInt56())
                 {
+                    // Token mismatch — evict stale cache and fall through to slow path
+                    _ = _endpointCache.TryRemove(remoteEndPoint, out _);
                     _ = Interlocked.Increment(ref _dropUnauth);
-                    lease.Dispose();
-                    return;
-                }
-
-                _ = Interlocked.Increment(ref _rxPackets);
-                _ = Interlocked.Add(ref _rxBytes, lease.Length);
-
-                // Use the Protocol for processing even in the fast path
-                if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
-                {
-                    BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
-                    ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
-                    fastArgs.Initialize(fastPayload, connection);
-
-                    try
-                    {
-                        _protocol.ProcessFrame(this, fastArgs);
-                    }
-                    catch (Exception ex)
-                    {
-                        s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID} msg={ex.Message}");
-                    }
+                    // Do not return; fall through to slow path for fresh resolution.
                 }
                 else
                 {
-                    lease.Dispose();
-                }
-                return;
-            }
+                    if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
+                    {
+                        _ = Interlocked.Increment(ref _dropUnauth);
+                        lease.Dispose();
+                        return;
+                    }
 
-            // Connection no longer alive — remove stale cache entry.
-            _ = _endpointCache.TryRemove(remoteEndPoint, out _);
+                    _ = Interlocked.Increment(ref _rxPackets);
+                    _ = Interlocked.Add(ref _rxBytes, lease.Length);
+
+                    // Use the Protocol for processing even in the fast path
+                    if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
+                    {
+                        BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
+                        ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
+                        fastArgs.Initialize(fastPayload, connection);
+
+                        try
+                        {
+                            _protocol.ProcessFrame(this, fastArgs);
+                        }
+                        catch (Exception ex)
+                        {
+                            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID} msg={ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        lease.Dispose();
+                    }
+                    return;
+                }
+            }
+            else
+            {
+                // Connection no longer alive — remove stale cache entry.
+                _ = _endpointCache.TryRemove(remoteEndPoint, out _);
+            }
         }
 
         // ================================================================
@@ -232,7 +250,37 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        // Application-level authentication hook.
+        // --- 3. IP pinning gate (SEC-30) ---
+        // Ensure the UDP source IP matches the authorized TCP endpoint IP.
+        // This prevents session hijacking via IP spoofing even if the Snowflake ID is known.
+        if (connection.NetworkEndpoint is null || 
+            !string.Equals(connection.NetworkEndpoint.Address, ((IPEndPoint)remoteEndPoint).Address.ToString(), StringComparison.Ordinal))
+        {
+            _ = Interlocked.Increment(ref _dropUnauth);
+            lease.Dispose();
+
+            s_logger?.Warn(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"hijack-attempt id={connection.ID} ep={remoteEndPoint} expected={connection.NetworkEndpoint?.Address}");
+            return;
+        }
+
+        // --- 4. Replay protection (SEC-27) ---
+        // Extract sequence ID and validate against a per-connection sliding window.
+        // Sequence ID is at offset 9 in the payload (Transport index is 8).
+        uint sequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[9..]);
+        if (!connection.UdpReplayWindow.TryCheck(sequenceId))
+        {
+            _ = Interlocked.Increment(ref _dropUnauth);
+            lease.Dispose();
+
+            s_logger?.Warn(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                $"replay-detected id={connection.ID} seq={sequenceId} ep={remoteEndPoint}");
+            return;
+        }
+
+        // --- 5. Application authentication hook ---
         if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
@@ -244,8 +292,13 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        // Bind this endpoint for future fast-path lookups.
-        _ = _endpointCache.TryAdd(remoteEndPoint, connection);
+        // SEC-28: Bound the endpoint cache to prevent memory exhaustion from spoofed endpoints.
+        // If the cache is at capacity, new endpoints are simply not cached (they'll use slow path).
+        const int MaxEndpointCacheSize = 50_000;
+        if (_endpointCache.Count < MaxEndpointCacheSize)
+        {
+            _ = _endpointCache.TryAdd(remoteEndPoint, connection);
+        }
 
         // Ensure the connection has a UDP transport bound to our socket.
         SocketUdpTransport.CreateUDP(connection, (IPEndPoint)remoteEndPoint, _socket);
