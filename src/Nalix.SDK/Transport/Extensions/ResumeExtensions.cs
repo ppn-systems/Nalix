@@ -23,8 +23,8 @@ public static class ResumeExtensions
     /// </summary>
     /// <param name="session">The connected TCP session to resume.</param>
     /// <param name="ct">The cancellation token to observe.</param>
-    /// <returns><see langword="true"/> when the server accepted the resume request; otherwise <see langword="false"/>.</returns>
-    public static async Task<bool> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
+    /// <returns>The <see cref="ProtocolReason"/> reported by the server. <see cref="ProtocolReason.NONE"/> indicates success.</returns>
+    public static async Task<ProtocolReason> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -35,7 +35,7 @@ public static class ResumeExtensions
 
         if (!HasResumeState(session.Options))
         {
-            return false;
+            return ProtocolReason.SESSION_NOT_FOUND;
         }
 
         SessionResume request = new();
@@ -63,28 +63,28 @@ public static class ResumeExtensions
             if (response.Reason != ProtocolReason.NONE)
             {
                 session.Options.SessionToken = response.SessionToken;
-                return false;
+                return response.Reason;
             }
 
             session.Options.SessionToken = response.SessionToken;
             session.Options.EncryptionEnabled = true;
-            return true;
+            return ProtocolReason.NONE;
         }
         catch (OperationCanceledException)
         {
-            throw;
+            return ProtocolReason.CANCELLED;
         }
         catch (TimeoutException)
         {
-            return false;
+            return ProtocolReason.TIMEOUT;
         }
         catch (NetworkException)
         {
-            return false;
+            return ProtocolReason.NETWORK_ERROR;
         }
         catch (InvalidOperationException)
         {
-            return false;
+            return ProtocolReason.STATE_VIOLATION;
         }
     }
 
@@ -108,15 +108,15 @@ public static class ResumeExtensions
 
         if (session.Options.ResumeEnabled && HasResumeState(session.Options))
         {
-            bool resumed = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
-            if (resumed)
+            ProtocolReason reason = await session.ResumeSessionAsync(ct).ConfigureAwait(false);
+            if (reason == ProtocolReason.NONE)
             {
                 return true;
             }
 
             if (!session.Options.ResumeFallbackToHandshake)
             {
-                throw new NetworkException("Session resume failed and handshake fallback is disabled.");
+                throw new NetworkException($"Session resume failed: {reason}");
             }
 
             if (session.IsConnected)

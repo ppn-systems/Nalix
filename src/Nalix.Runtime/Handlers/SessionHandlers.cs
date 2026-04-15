@@ -46,6 +46,12 @@ public sealed class SessionHandlers
             return;
         }
 
+        if (context.Connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        {
+            await HandleFailureAsync(context.Connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            return;
+        }
+
         SessionResume packet = context.Packet;
         if (packet.Stage != SessionResumeStage.REQUEST)
         {

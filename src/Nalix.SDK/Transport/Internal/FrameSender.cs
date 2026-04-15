@@ -37,6 +37,12 @@ internal sealed class FrameSender : IDisposable
 
     #endregion Fields
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FrameSender"/> class.
+    /// </summary>
+    /// <param name="getSocket">A delegate that returns the active socket used for sending data.</param>
+    /// <param name="options">The transport options that control queue capacity and frame behavior.</param>
+    /// <param name="onError">The callback invoked when send processing encounters an error.</param>
     public FrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -54,6 +60,13 @@ internal sealed class FrameSender : IDisposable
         _ = Task.Run(() => this.DRAIN_LOOP_ASYNC(_drainCts.Token));
     }
 
+    /// <summary>
+    /// Queues a payload for sending after applying outbound compression and encryption transforms.
+    /// </summary>
+    /// <param name="payload">The payload to frame and send.</param>
+    /// <param name="encrypt">An optional encryption override. When <see langword="null"/>, the sender uses the configured default.</param>
+    /// <param name="ct">A cancellation token used to abort queueing or sending.</param>
+    /// <returns><see langword="true"/> when the frame is sent successfully; otherwise, <see langword="false"/>.</returns>
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
         // ── Transformation ──────────────────────────────────────────────────────
@@ -244,6 +257,9 @@ internal sealed class FrameSender : IDisposable
 
     #endregion Private Methods
 
+    /// <summary>
+    /// Stops the sender loop, fails pending sends, and releases queue resources.
+    /// </summary>
     public void Dispose()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
