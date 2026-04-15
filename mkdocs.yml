@@ -75,6 +75,7 @@ plugins:
   - mermaid2
 
 markdown_extensions:
+  - md_in_html
   - admonition
   - pymdownx.details
   - attr_list
@@ -108,7 +109,9 @@ nav:
       - Quick Start: quickstart.md
       - Introduction: introduction.md
       - Installation: installation.md
+      - Full Sitemap: sitemap.md
   - Concepts:
+      - Overview: concepts/index.md
       - Choose the Right Building Block: concepts/choose-the-right-building-block.md
       - Architecture: concepts/architecture.md
       - Performance Optimizations: concepts/performance-optimizations.md
@@ -120,24 +123,30 @@ nav:
       - Security Model: concepts/security-model.md
       - Error Reporting: concepts/error-reporting.md
       - Glossary: concepts/glossary.md
+      - Reliability & Internals:
+          - Overview: concepts/advanced/reliability-model.md
+          - Guarantees & Invariants: concepts/advanced/guarantees-and-invariants.md
+          - Failure Model: concepts/advanced/failure-model.md
+          - Design Tradeoffs: concepts/advanced/design-tradeoffs.md
   - Guides:
-    - Build a Server:
-        - Starter Template: guides/starter-template.md
-        - End-to-End Sample: guides/end-to-end.md
-        - Production End-to-End: guides/production-end-to-end.md
-        - Project Setup: guides/project-setup.md
-        - Server Blueprint: guides/server-blueprint.md
-    - Extend Behavior:
-        - Middleware Guide: guides/middleware.md
-        - Custom Middleware: guides/custom-middleware-end-to-end.md
-        - Custom Metadata Provider: guides/custom-metadata-provider.md
-    - Networking Patterns:
-        - TCP Request/Response: guides/tcp-request-response.md
-        - UDP Server: guides/udp-server.md
-        - UDP Auth Flow: guides/udp-auth-flow.md
-    - Operate and Debug:
-        - Production Checklist: guides/production-checklist.md
-        - Troubleshooting: guides/troubleshooting.md
+      - Overview: guides/index.md
+      - Build a Server:
+          - Starter Template: guides/starter-template.md
+          - End-to-End Sample: guides/end-to-end.md
+          - Production End-to-End: guides/production-end-to-end.md
+          - Project Setup: guides/project-setup.md
+          - Server Blueprint: guides/server-blueprint.md
+      - Extend Behavior:
+          - Middleware Guide: guides/middleware.md
+          - Custom Middleware: guides/custom-middleware-end-to-end.md
+          - Custom Metadata Provider: guides/custom-metadata-provider.md
+      - Networking Patterns:
+          - TCP Request/Response: guides/tcp-request-response.md
+          - UDP Server: guides/udp-server.md
+          - UDP Auth Flow: guides/udp-auth-flow.md
+      - Operate and Debug:
+          - Production Checklist: guides/production-checklist.md
+          - Troubleshooting: guides/troubleshooting.md
   - Packages:
       - Overview: packages/index.md
       - Nalix.Common: packages/nalix-common.md
@@ -155,6 +164,7 @@ nav:
         - Diagnostic Codes: api/analyzers/diagnostic-codes.md
         - Code Fixes: api/analyzers/code-fixes.md
       - Common:
+        - Overview: api/common/index.md
         - Control Type: api/common/protocols/control-type.md
         - Diagnostics Contracts: api/common/diagnostics-contracts.md
         - Packet Contracts: api/common/packet-contracts.md

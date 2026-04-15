@@ -49,21 +49,23 @@ If you're new to Nalix, follow this path to go from zero to production-ready:
 
 ![Nalix Data Flow](./assets/overview-flow.svg){ .nlx-hero-img }
 
-## Performance Highlights
+<div class="nlx-highlight-grid" markdown="1">
 
-<div class="nlx-highlight-grid">
-  <div class="nlx-highlight-card">
-    <h3>Zero-alloc hot path</h3>
-    <p>Pooled buffers, pooled contexts, and frozen lookups reduce GC pressure for sustained low-latency traffic.</p>
-  </div>
-  <div class="nlx-highlight-card">
-    <h3>Shard-aware dispatch</h3>
-    <p>Worker distribution prevents head-of-line blocking and scales packet handling across logical cores.</p>
-  </div>
-  <div class="nlx-highlight-card">
-    <h3>Built-in safety controls</h3>
-    <p>Timeouts, permission checks, concurrency gates, and token-bucket policies are middleware-ready from day one.</p>
-  </div>
+<div class="nlx-highlight-card" markdown="1">
+### :fontawesome-solid-bolt: Zero-alloc hot path
+Pooled buffers, pooled contexts, and frozen lookups reduce GC pressure for sustained low-latency traffic.
+</div>
+
+<div class="nlx-highlight-card" markdown="1">
+### :fontawesome-solid-sitemap: Shard-aware dispatch
+Worker distribution prevents head-of-line blocking and scales packet handling across logical cores.
+</div>
+
+<div class="nlx-highlight-card" markdown="1">
+### :fontawesome-solid-shield-halved: Fault Isolation
+Hander exceptions are trapped and logged without affecting other connections or crashing the worker loops.
+</div>
+
 </div>
 
 ---

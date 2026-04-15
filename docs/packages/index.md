@@ -18,7 +18,6 @@ Nalix is composed of focused packages that can be used together or independently
 | :fontawesome-solid-filter: [**Nalix.Network.Pipeline**](./nalix-network-pipeline.md) | Built-in packet middleware, throttling primitives, and time synchronization | `ConcurrencyGate`, `PolicyRateLimiter`, `TokenBucketLimiter`, `PermissionMiddleware`, `TimeSynchronizer` |
 | :fontawesome-solid-mobile-screen: [**Nalix.SDK**](./nalix-sdk.md) | Client transport sessions, request/response correlation, handshake and resume flows | `TransportSession`, `TcpSession`, `UdpSession`, `TransportOptions`, `RequestOptions` |
 | :fontawesome-solid-list-ul: [**Nalix.Logging**](./nalix-logging.md) | Structured logging with batched async sinks | `NLogix`, `NLogixOptions`, `INLogixTarget` |
-| :fontawesome-solid-magnifying-glass: [**Nalix.Analyzers**](./nalix-analyzers.md) | Compile-time Roslyn diagnostics and code fixes | `NalixUsageAnalyzer`, `DiagnosticDescriptors` |
 
 ## Dependency Graph
 

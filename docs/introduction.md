@@ -82,6 +82,19 @@ MyApp.Client/           ← References Contracts + Nalix.SDK
 - **Not an HTTP framework.** Nalix operates at the TCP/UDP level with its own binary packet protocol. It does not provide HTTP routing, REST endpoints, or WebSocket support.
 - **Not a game engine.** Nalix provides the networking layer. Game logic, rendering, physics, and ECS are outside its scope.
 - **Not a message queue.** Nalix is designed for real-time bidirectional communication, not store-and-forward messaging.
+- **Not for beginners.** While we aim for clarity, Nalix requires an understanding of asynchronous programming and binary layouts for production depth.
+
+---
+
+## 🏗️ Advanced Topics
+
+!!! warning "Senior Developers Only"
+    If you are building for production and need to understand the underlying framework contracts, explore our reliability model. Skip these if you are just getting started.
+
+- [**Guarantees & Invariants**](./concepts/advanced/guarantees-and-invariants.md) — What the framework promises (ordering, concurrency).
+- [**Failure Model**](./concepts/advanced/failure-model.md) — How Nalix behaves when things go wrong.
+- [**Design Tradeoffs**](./concepts/advanced/design-tradeoffs.md) — Why we chose performance over convenience.
+- [**Reliability Model**](./concepts/advanced/reliability-model.md) — The high-level production confidence layer.
 
 ## Recommended Path
 
