@@ -137,6 +137,36 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(64, 65535, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65535.")]
     public int MaxUdpDatagramSize { get; set; } = 1400;
 
+    /// <summary>
+    /// Gets or sets the maximum allowed error count before a connection is automatically severed.
+    /// SEC-54: Prevents persistent noisy or malformed connections from consuming CPU/logs.
+    /// </summary>
+    [IniComment("Maximum cumulative errors allowed per connection before disconnection (SEC-54, default 50)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxErrorThreshold must be at least 1.")]
+    public int MaxErrorThreshold { get; set; } = 50;
+
+    /// <summary>
+    /// Gets or sets the bit-size of the UDP replay protection sliding window.
+    /// SEC-27: Larger windows consume more memory but are more resilient to packet out-of-order arrival.
+    /// </summary>
+    [IniComment("UDP replay protection window size in bits (default 1024)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65536, ErrorMessage = "UdpReplayWindowSize must be between 64 and 65536.")]
+    public int UdpReplayWindowSize { get; set; } = 1024;
+
+    /// <summary>
+    /// Gets or sets the multiplier for minimum worker threads based on processor count.
+    /// </summary>
+    [IniComment("Multiplier for minimum worker threads based on CPU count (used when TuneThreadPool is true)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 128)]
+    public int MinWorkerThreadsMultiplier { get; set; } = 4;
+
+    /// <summary>
+    /// Gets or sets the maximum limit for thread pool auto-tuning.
+    /// </summary>
+    [IniComment("Maximum thread pool limit for auto-tuning (default 512)")]
+    [System.ComponentModel.DataAnnotations.Range(16, 4096)]
+    public int MaxThreadPoolWorkers { get; set; } = 512;
+
     #endregion Properties
 
 
