@@ -81,7 +81,9 @@ The builder uses a fluent API to configure the host before it is built.
 - `AddTcp<TProtocol>()`: Registers a TCP server for the specified protocol.
 - `AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a TCP server with a custom protocol factory.
 - `AddUdp<TProtocol>()`: Registers a UDP server for the specified protocol.
+- `AddUdp<TProtocol>(Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with a custom authentication predicate.
 - `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a UDP server with a custom protocol factory.
+- `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with both a custom factory and an authentication predicate.
 
 ## Basic usage
 

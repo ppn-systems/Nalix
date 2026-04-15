@@ -22,7 +22,7 @@ public sealed class SampleUdpListener : UdpListenerBase
 {
     public SampleUdpListener(IProtocol protocol) : base(protocol) { }
 
-    protected override bool IsAuthenticated(IConnection connection, in UdpReceiveResult result)
+    protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
         => true;
 }
 ```
@@ -40,6 +40,14 @@ Use it to:
 - validate source identity
 - reject spoofed or malformed datagrams
 - gate traffic until a handshake token or session secret is known
+
+> [!TIP]
+> If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. You can provide a predicate directly in the builder:
+> ```csharp
+> app.AddUdp<MyProtocol>((connection, endpoint, payload) => {
+>     return connection.Level >= PermissionLevel.USER;
+> });
+> ```
 
 ### 2. Protocol behavior
 
@@ -107,7 +115,8 @@ receive datagram
 - UDP should not invent a second identity model separate from TCP sessions
 - unauthenticated drops should be visible in diagnostics
 - `IsAuthenticated(...)` should stay fast and deterministic
-- the datagram prefix is the 7-byte `SessionToken` and the payload comes after it
+- the datagram layout is `[7-byte SessionToken][Payload]`
+- Payload itself follows the Nalix header format: `[Transport(1), SequenceId(4), ...]`
 
 ## Related APIs
 

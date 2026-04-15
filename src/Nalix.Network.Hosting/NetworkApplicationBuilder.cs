@@ -189,6 +189,18 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
+            Authentication: authen));
+
+        return this;
+    }
+
+    /// <inheritdoc />
     public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)
         where TProtocol : class, IProtocol
     {
@@ -197,6 +209,20 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _state.UdpBindings.Add(new UdpProtocolBinding(
             typeof(TProtocol),
             dispatch => factory(dispatch)));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => factory(dispatch),
+            Authentication: authen));
 
         return this;
     }
@@ -238,6 +264,19 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
+            port,
+            authen));
+
+        return this;
+    }
+
+    /// <inheritdoc />
     public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)
         where TProtocol : class, IProtocol
     {
@@ -247,6 +286,21 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProtocol),
             dispatch => factory(dispatch),
             port));
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
+        where TProtocol : class, IProtocol
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+
+        _state.UdpBindings.Add(new UdpProtocolBinding(
+            typeof(TProtocol),
+            dispatch => factory(dispatch),
+            port,
+            authen));
 
         return this;
     }
@@ -303,9 +357,20 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             {
                 this.EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
-                UdpServerListener listener = registration.Port.HasValue
-                    ? new(registration.Port.Value, protocol)
-                    : new(protocol);
+                UdpServerListener listener;
+
+                if (registration.Authentication != null)
+                {
+                    listener = registration.Port.HasValue
+                        ? new(registration.Port.Value, protocol, registration.Authentication)
+                        : new(protocol, registration.Authentication);
+                }
+                else
+                {
+                    listener = registration.Port.HasValue
+                        ? new(registration.Port.Value, protocol)
+                        : new(protocol);
+                }
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
             });
