@@ -57,7 +57,7 @@ flowchart LR
 - **Configurable Parallelism**: The number of shards is determined by `Options.DispatchLoopCount`.
 - **Low-Latency Signaling**: Shards use lock-free wake channels to minimize worker contention.
 
-For deep-dive configuration and sharding strategies, see the [Shard-Aware Dispatch](../../../../guides/shard-aware-dispatch.md) guide.
+For deep-dive configuration and sharding strategies, see the [Shard-Aware Dispatch](../../../guides/shard-aware-dispatch.md) guide.
 
 ## Operational Notes
 

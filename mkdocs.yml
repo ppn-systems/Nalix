@@ -32,6 +32,7 @@ extra:
 
 theme:
   name: material
+  custom_dir: docs/overrides
   language: en
   logo: assets/nalix.png
   favicon: assets/nalix.ico
@@ -285,4 +286,5 @@ nav:
       - Data Processing: benchmarks/data-processing.md
       - Security & Cryptography: benchmarks/security.md
       - Serialization: benchmarks/serialization.md
+      - Serialization Method Comparison: benchmarks/serialization-method-compare.md
       - Distributed Identifiers: benchmarks/identifiers.md

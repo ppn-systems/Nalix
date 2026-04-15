@@ -61,7 +61,7 @@ public static ValueTask HandleNoReply(IPacketContext<LoginRequest> context)
     => ValueTask.CompletedTask;
 ```
 
-For detailed implementation patterns and error handling, see the [Implementing Packet Handlers](../../../../guides/implementing-packet-handlers.md) guide.
+For detailed implementation patterns and error handling, see the [Implementing Packet Handlers](../../../guides/implementing-packet-handlers.md) guide.
 
 ## Best Practices
 
