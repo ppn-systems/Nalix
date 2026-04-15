@@ -39,7 +39,7 @@ All fixed-size primitives are written bit-for-bit using their standard represent
 | :--- | :--- | :--- |
 | `Guid` | 16 | .NET internal: `[Data1:int32][Data2:int16][Data3:int16][Data4:8 bytes]`. |
 | `decimal` | 16 | Four 32-bit integers: `[lo][mid][hi][flags]`. |
-| `DateTimeOffset`| 16 | `[DateTime:8 bytes][OffsetTicks:8 bytes]`. |
+| `DateTimeOffset` | 16 | `[DateTime:8 bytes][OffsetTicks:8 bytes]`. |
 
 ---
 
@@ -51,7 +51,7 @@ All fixed-size primitives are written bit-for-bit using their standard represent
 
 - **Format**: `[Element 0][Element 1]...[Element N]`
 
-### Memory<T> and ReadOnlyMemory<T>
+### Memory<`T`> and ReadOnlyMemory<`T`>
 
 Only unmanaged element types are supported for direct memory serialization.
 
@@ -105,6 +105,7 @@ When a class member is a reference type (e.g., `public MyClass? Item { get; set;
 ## 6. Collections
 
 ### Standard Layout
+
 Arrays, Lists, HashSets, Stacks, and Queues follow a uniform pattern:
 
 - **Format**: `[Count:int32][Element 0][Element 1]...`

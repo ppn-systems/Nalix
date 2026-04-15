@@ -43,21 +43,27 @@ flowchart LR
 Nalix includes industrial-strength handlers for standard protocol features. You can explore their implementations in the `src/Nalix.Runtime/Handlers` directory.
 
 ### `HandshakeHandlers`
+
 Manages the server-side **X25519 Handshake** flow.
--   **Stage Resolution**: Orchestrates `CLIENT_HELLO` and `CLIENT_FINISH` stages.
--   **Security**: Generates ephemeral keys, computes transcript hashes, and derives the session key.
--   **Session Integration**: Automatically creates a resumable session entry upon a successful handshake.
+
+- **Stage Resolution**: Orchestrates `CLIENT_HELLO` and `CLIENT_FINISH` stages.
+- **Security**: Generates ephemeral keys, computes transcript hashes, and derives the session key.
+- **Session Integration**: Automatically creates a resumable session entry upon a successful handshake.
 
 ### `SessionHandlers`
+
 Manages the **Session Resumption** protocol.
--   **Token Verification**: Validates session tokens against the `ISessionStore`.
--   **State Restoration**: Reloads secret keys, permission levels, and connection attributes to restore a dropped connection instantly.
+
+- **Token Verification**: Validates session tokens against the `ISessionStore`.
+- **State Restoration**: Reloads secret keys, permission levels, and connection attributes to restore a dropped connection instantly.
 
 ### `SystemControlHandlers`
+
 Handles global **Control Signaling** (`ProtocolOpCode.CONTROL`).
--   **Heartbeats**: Responds to Ping with Pong.
--   **Utility**: Processes TimeSync requests and CipherUpdate acknowledgements.
--   **Teardown**: Manages orderly disconnect sequences.
+
+- **Heartbeats**: Responds to Ping with Pong.
+- **Utility**: Processes TimeSync requests and CipherUpdate acknowledgements.
+- **Teardown**: Manages orderly disconnect sequences.
 
 ## Controller Implementation (Source-Verified)
 
@@ -77,10 +83,11 @@ public class MyController
 ```
 
 ### Key Attributes
--   `[PacketController(string tag)]`: Identifies a class as a candidate for scanning.
--   `[PacketOpcode(ushort opcode)]`: Maps a specific opcode to a method.
--   `[PacketEncryption(bool)]`: Overrides the default security requirement for this handler.
--   `[PacketPermission(PermissionLevel)]`: Enforces specific access levels before execution starts.
+
+- `[PacketController(string tag)]`: Identifies a class as a candidate for scanning.
+- `[PacketOpcode(ushort opcode)]`: Maps a specific opcode to a method.
+- `[PacketEncryption(bool)]`: Overrides the default security requirement for this handler.
+- `[PacketPermission(PermissionLevel)]`: Enforces specific access levels before execution starts.
 
 ## Related Information
 

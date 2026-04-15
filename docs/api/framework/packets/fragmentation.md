@@ -19,7 +19,7 @@ This page covers the chunking and reassembly helpers in `Nalix.Framework.DataFra
 ## Public members at a glance
 
 | Type | Public members |
-|---|---|
+| --- | --- |
 | `FragmentHeader` | `Magic`, `WireSize`, `StreamId`, `ChunkIndex`, `TotalChunks`, `Flags`, `IsLast`, `WriteTo(...)` |
 | `FragmentAssembler` | `IsFragmentedFrame(...)`, `Add(...)`, `EvictExpired()`, `Clear()`, `Dispose()` |
 | `FragmentOptions` | `MaxPayloadSize`, `ChunkThreshold`, `ChunkBodySize`, `MaxReassemblyBytes`, `ReassemblyTimeoutMs`, `Validate()` |

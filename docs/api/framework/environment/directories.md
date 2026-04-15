@@ -63,10 +63,10 @@ flowchart TD
 
 Paths are resolved using the following priority:
 
-1.  **Internal Override**: Primarily used for unit testing.
-2.  **Explicit Environment Variable**: Variables like `NALIX_BASE_PATH`, `NALIX_DATA_PATH`, `NALIX_LOGS_PATH`, etc.
-3.  **Container Defaults**: Prefers mounted volumes like `/data`, `/logs`, `/config`.
-4.  **OS Fallback**: Platform-specific user/system data directories.
+1. **Internal Override**: Primarily used for unit testing.
+2. **Explicit Environment Variable**: Variables like `NALIX_BASE_PATH`, `NALIX_DATA_PATH`, `NALIX_LOGS_PATH`, etc.
+3. **Container Defaults**: Prefers mounted volumes like `/data`, `/logs`, `/config`.
+4. **OS Fallback**: Platform-specific user/system data directories.
 
 !!! note "Container Detection"
     The helper detects containers via heuristics including `DOTNET_RUNNING_IN_CONTAINER`, `KUBERNETES_SERVICE_HOST`, presence of `/.dockerenv`, and `/proc/1/cgroup` markers.

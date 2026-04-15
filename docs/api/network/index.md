@@ -46,15 +46,16 @@ flowchart TD
 
 To understand the Nalix networking stack, we recommend reading the documentation in this order:
 
-1.  **[Socket Connection](./socket-connection.md)**: The lowest-level wrapper for .NET Sockets, handling Ri/Tx buffers and Layer 1 throttling.
-2.  **[TCP Listener](./tcp-listener.md) / [UDP Listener](./udp-listener.md)**: Entry points for accepting connections and detecting sessions.
-3.  **[Connection](./connection/connection.md)**: The high-level orchestrator that owns the session identity and security context.
-4.  **[Connection Hub](./connection/connection-hub.md)**: The central registry for looking up and managing thousands of active connections.
-5.  **[Timing Wheel](./time/timing-wheel.md)**: The high-efficiency timer used for cleaning up idle connections.
+1. **[Socket Connection](./socket-connection.md)**: The lowest-level wrapper for .NET Sockets, handling Ri/Tx buffers and Layer 1 throttling.
+2. **[TCP Listener](./tcp-listener.md) / [UDP Listener](./udp-listener.md)**: Entry points for accepting connections and detecting sessions.
+3. **[Connection](./connection/connection.md)**: The high-level orchestrator that owns the session identity and security context.
+4. **[Connection Hub](./connection/connection-hub.md)**: The central registry for looking up and managing thousands of active connections.
+5. **[Timing Wheel](./time/timing-wheel.md)**: The high-efficiency timer used for cleaning up idle connections.
 
 ## Core Areas
 
 ### Connection Subsystem
+
 - [Connection](./connection/connection.md)
 - [Connection Hub](./connection/connection-hub.md)
 - [Connection Events](./connection/connection-events.md)
@@ -62,6 +63,7 @@ To understand the Nalix networking stack, we recommend reading the documentation
 - [Connection Limiter](./connection/connection-limiter.md)
 
 ### Protocols & Transport
+
 - [Protocol](./protocol.md)
 - [Socket Connection](./socket-connection.md)
 - [TCP Listener](./tcp-listener.md)
@@ -69,6 +71,7 @@ To understand the Nalix networking stack, we recommend reading the documentation
 - [Session Store](./session-store.md)
 
 ### Network Options
+
 - [Options Overview](./options/options.md)
 - [Network Socket Options](./options/network-socket-options.md)
 - [Connection Limit Options](./options/connection-limit-options.md)

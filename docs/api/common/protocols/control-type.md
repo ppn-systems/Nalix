@@ -9,7 +9,7 @@
 ## Enum Definition
 
 | Hex | Name | Description |
-|---|---|---|
+| --- | --- | --- |
 | `0x00` | `NONE` | No control message specified. |
 | `0x01` | `PING` | Check connection liveness. |
 | `0x02` | `PONG` | Response sent to a ping. |

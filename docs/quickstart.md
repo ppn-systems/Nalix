@@ -11,10 +11,10 @@ This guide walks you through building a complete **Ping/Pong service** using Nal
 
 ## 🗺️ Roadmap
 
-1.  **Define Packets**: Create shared data contracts.
-2.  **Identity Setup**: Generate server security keys.
-3.  **Server Setup**: Route packets to a handler.
-4.  **Client Connectivity**: Send requests and await replies.
+1. **Define Packets**: Create shared data contracts.
+2. **Identity Setup**: Generate server security keys.
+3. **Server Setup**: Route packets to a handler.
+4. **Client Connectivity**: Send requests and await replies.
 
 ---
 
@@ -101,11 +101,18 @@ Nalix enforces mandatory security. Before running the server, you must generate 
 dotnet run --project tools/Nalix.Certificate
 ```
 
-This will generate `certificate.private` and `certificate.public` in your application's identity folder. The server will automatically load these at startup.
+This will generate `certificate.private` and `certificate.public` in your application's identity folder. The server will automatically load the default identity during `Build()`. If your certificate files live somewhere else, call `ConfigureCertificate(...)` before `Build()` so the hosting builder passes that path to the handshake subsystem.
+
+```csharp
+using var app = NetworkApplication.CreateBuilder()
+    .ConfigureCertificate("./identity/certificate.private")
+    // Add packets, handlers, and listeners here.
+    .Build();
+```
 
 ---
 
-## Step 3: Implement the Server
+## Step 4: Implement the Server
 
 The server requires a **Handler** for logic and a **Protocol** bridge to the network.
 
@@ -165,7 +172,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
 
 ---
 
-## Step 4: Connect the Client
+## Step 5: Connect the Client
 
 Nalix SDK provides a `TcpSession` that handles reconnection and type-safe request correlation automatically.
 
