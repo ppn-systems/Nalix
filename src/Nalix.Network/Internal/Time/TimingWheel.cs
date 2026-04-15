@@ -105,6 +105,7 @@ internal sealed class TimingWheel : IActivatable
     /// </summary>
     private readonly ConcurrentDictionary<IConnection, int> _active;
 
+    private int _activeListeners;
     private long _tick;
     private int _disposed;
     private IWorkerHandle? _worker;
@@ -201,7 +202,7 @@ internal sealed class TimingWheel : IActivatable
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(TimingWheel));
 
-        if (_cts is { IsCancellationRequested: false })
+        if (Interlocked.Increment(ref _activeListeners) > 1)
         {
             return;
         }
@@ -226,7 +227,7 @@ internal sealed class TimingWheel : IActivatable
         );
 
         s_logger?.Info(
-            $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated " +
+            $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated (ref={_activeListeners}) " +
             $"wheelsize={_wheelSize} tick={_tickMs}ms idle={_idleTimeoutMs}ms mask={_useMask}");
     }
 
@@ -237,6 +238,19 @@ internal sealed class TimingWheel : IActivatable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
+        int count = Interlocked.Decrement(ref _activeListeners);
+        if (count > 0)
+        {
+            return;
+        }
+
+        // Clip to zero in case of mismatched Deactivate calls
+        if (count < 0)
+        {
+            _ = Interlocked.Exchange(ref _activeListeners, 0);
+            return;
+        }
+
         CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
         if (cts is null)
         {
@@ -390,6 +404,8 @@ internal sealed class TimingWheel : IActivatable
         CancellationToken ct)
     {
         _ = Interlocked.Exchange(ref _tick, 0);
+        long startTime = Clock.MonoTicksNow();
+        long lastProcessedTick = -1;
 
         try
         {
@@ -399,102 +415,99 @@ internal sealed class TimingWheel : IActivatable
             {
                 ctx.Beat();
 
-                long tickSnapshot = Interlocked.Read(ref _tick);
-                int bucketIndex = _useMask
-                    ? (int)(tickSnapshot & _mask)
-                    : (int)(tickSnapshot % _wheelSize);
+                long currentMono = Clock.MonoTicksNow();
+                double elapsedMs = Clock.MonoTicksToMilliseconds(currentMono - startTime);
+                long expectedTick = (long)(elapsedMs / _tickMs);
 
-                ConcurrentQueue<TimeoutTask> queue = _wheel[bucketIndex];
-
-                while (queue.TryDequeue(out TimeoutTask? task))
+                // Catch up if we've missed any ticks due to system load or loop delay.
+                while (lastProcessedTick < expectedTick)
                 {
-                    // ── Defensive null-guard ──────────────────────────────────────────
-                    // Should never happen under normal operation, but guards against any
-                    // future code path that might return a task to the pool prematurely.
-                    if (task.Conn is null)
+                    lastProcessedTick++;
+                    long tickToProcess = lastProcessedTick;
+
+                    int bucketIndex = _useMask
+                        ? (int)(tickToProcess & _mask)
+                        : (int)(tickToProcess % _wheelSize);
+
+                    // Update the public tick count so that new registrations calculate
+                    // their destination bucket based on the current logical time.
+                    _ = Interlocked.Exchange(ref _tick, tickToProcess);
+
+                    ConcurrentQueue<TimeoutTask> queue = _wheel[bucketIndex];
+
+                    while (queue.TryDequeue(out TimeoutTask? task))
                     {
-                        s_poolManager.Return(task);
-                        continue;
-                    }
-
-                    // ── Stale-task check ──────────────────────────────────────────────
-                    // If the connection was Unregistered (_active has no entry) OR was
-                    // re-scheduled and this is an old copy (version mismatch), discard.
-                    // RUN_LOOP is the sole owner responsible for returning to the pool.
-                    if (!_active.TryGetValue(task.Conn, out int liveVersion)
-                        || liveVersion != task.Version)
-                    {
-                        s_poolManager.Return(task);
-                        continue;
-                    }
-
-                    // ── Rounds remaining ──────────────────────────────────────────────
-                    if (task.Rounds > 0)
-                    {
-                        task.Rounds--;
-                        // Keep the task in the same bucket until its full wheel
-                        // rotation budget is exhausted.
-                        queue.Enqueue(task); // stay in the same bucket for one more revolution
-                        continue;
-                    }
-
-                    // ── Idle-time check ───────────────────────────────────────────────
-                    long idleMs = Clock.UnixMillisecondsNow() - task.Conn.LastPingTime;
-
-                    if (idleMs >= _idleTimeoutMs)
-                    {
-                        s_logger?.Debug(
-                            $"[NW.{nameof(TimingWheel)}] timeout " +
-                            $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
-
-                        try
+                        // ── Defensive null-guard ──────────────────────────────────────────
+                        if (task.Conn is null)
                         {
-                            task.Conn.Close(force: true);
-                        }
-                        catch (Exception ex)
-                        {
-                            s_logger?.Error(
-                                $"[NW.{nameof(TimingWheel)}] close-error " +
-                                $"remote={task.Conn.NetworkEndpoint?.Address}", ex);
+                            s_poolManager.Return(task);
+                            continue;
                         }
 
-                        _ = _active.TryRemove(task.Conn, out _);
+                        // ── Stale-task check ──────────────────────────────────────────────
+                        if (!_active.TryGetValue(task.Conn, out int liveVersion)
+                            || liveVersion != task.Version)
+                        {
+                            s_poolManager.Return(task);
+                            continue;
+                        }
 
-                        // Close() fires OnCloseEvent -> Unregister() -> _active entry removed.
-                        // The task is now fully done; safe to return to pool.
-                        s_poolManager.Return(task);
-                        continue;
+                        // ── Rounds remaining ──────────────────────────────────────────────
+                        if (task.Rounds > 0)
+                        {
+                            task.Rounds--;
+                            queue.Enqueue(task);
+                            continue;
+                        }
+
+                        // ── Idle-time check ───────────────────────────────────────────────
+                        long idleMs = Clock.UnixMillisecondsNow() - task.Conn.LastPingTime;
+
+                        if (idleMs >= _idleTimeoutMs)
+                        {
+                            s_logger?.Debug(
+                                $"[NW.{nameof(TimingWheel)}] timeout " +
+                                $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
+
+                            try
+                            {
+                                task.Conn.Close(force: true);
+                            }
+                            catch (Exception ex)
+                            {
+                                s_logger?.Error(
+                                    $"[NW.{nameof(TimingWheel)}] close-error " +
+                                    $"remote={task.Conn.NetworkEndpoint?.Address}", ex);
+                            }
+
+                            _ = _active.TryRemove(task.Conn, out _);
+                            s_poolManager.Return(task);
+                            continue;
+                        }
+
+                        // ── Re-schedule ───────────────────────────────────────────────────
+                        long remainingMs = _idleTimeoutMs - idleMs;
+                        long ticksMore = Math.Max(1, remainingMs / _tickMs);
+
+                        int newVersion = task.Version + 1;
+                        task.Version = newVersion;
+                        task.Rounds = (int)(ticksMore / _wheelSize);
+
+                        int nextBucket = _useMask
+                            ? (int)((tickToProcess + ticksMore) & _mask)
+                            : (int)((tickToProcess + ticksMore) % _wheelSize);
+
+                        _active[task.Conn] = newVersion;
+                        _wheel[nextBucket].Enqueue(task);
                     }
 
-                    // ── Re-schedule ───────────────────────────────────────────────────
-                    // Connection is still alive but hasn't been idle long enough yet.
-                    // Bump the version so any stale copy of this task that surfaces later
-                    // will be discarded by the stale-task check above.
-                    long remainingMs = _idleTimeoutMs - idleMs;
-                    long ticksMore = Math.Max(1, remainingMs / _tickMs);
-
-                    int newVersion = task.Version + 1;
-                    task.Version = newVersion;
-                    task.Rounds = (int)(ticksMore / _wheelSize);
-
-                    int nextBucket = _useMask
-                        ? (int)((tickSnapshot + ticksMore) & _mask)
-                        : (int)((tickSnapshot + ticksMore) % _wheelSize);
-
-                    // Update the live version first so a racing Unregister turns the
-                    // task into a stale entry instead of a double-fire.
-                    _active[task.Conn] = newVersion;
-
-                    _wheel[nextBucket].Enqueue(task);
+                    ctx.Advance(1);
                 }
-
-                _ = Interlocked.Increment(ref _tick);
-                ctx.Advance(1);
             }
         }
         catch (OperationCanceledException)
         {
-            // Expected on shutdown — swallow silently.
+            // Expected on shutdown
         }
         catch (Exception ex)
         {

@@ -152,7 +152,7 @@ internal static partial class OsCsprng
                     if (errno == ENOSYS)
                     {
                         // switch dispatcher once so future calls skip getrandom
-                        s_f = D;
+                        Volatile.Write(ref s_f, D);
 
                         // fill the remaining part via fallback
                         int offset = (int)t;
@@ -202,7 +202,7 @@ internal static partial class OsCsprng
             int s = SecRandomCopyBytes(nint.Zero, b.Length, (nint)p);
             if (s != 0)
             {
-                s_f = D;
+                Volatile.Write(ref s_f, D);
                 D(b);
             }
         }

@@ -13,6 +13,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 
+
 namespace Nalix.Network.Pipeline.Inbound;
 
 /// <summary>
@@ -44,7 +45,9 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         ArgumentNullException.ThrowIfNull(next);
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context.Attributes.Permission is null ||
+        // SEC-37: Fail-closed by default. If no permission attribute is defined on the handler,
+        // deny the request to prevent accidental privilege escalation from missing annotations.
+        if (context.Attributes.Permission is not null &&
             context.Attributes.Permission.Level <= context.Connection.Level)
         {
             await next(context.CancellationToken).ConfigureAwait(false);
@@ -53,17 +56,17 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
 
         _logger?.Trace(
             $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
-            $"need={context.Attributes.Permission.Level} have={context.Connection.Level}");
+            $"need={context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)"} have={context.Connection.Level}");
 
         Directive directive = s_pool.Get<Directive>();
 
         try
         {
             directive.Initialize(
-                ControlType.TIMEOUT,
-                ProtocolReason.UNAUTHENTICATED, ProtocolAdvice.NONE,
+                ControlType.FAIL,
+                ProtocolReason.UNAUTHORIZED, ProtocolAdvice.NONE,
                 sequenceId: context.Packet.SequenceId,
-                flags: ControlFlags.IS_TRANSIENT,
+                flags: ControlFlags.NONE,
                 arg0: 0,
                 arg1: 0,
                 arg2: context.Attributes.PacketOpcode.OpCode);
@@ -76,7 +79,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
         catch (Exception ex)
         {
-            _logger?.Error($"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
+            context.Connection.ThrottledError(_logger, "middleware.permission.send_error", $"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
         }
         finally
         {

@@ -154,7 +154,7 @@ public sealed partial class DataFramesPublicApiTests
 
         FrameTransformer.Encrypt(source, encrypted, key, suite);
         int plaintextLength = FrameTransformer.GetPlaintextLength(encrypted.Span);
-        FrameTransformer.Decrypt(encrypted, decrypted, key);
+        FrameTransformer.Decrypt(encrypted, decrypted, key, suite);
 
         Assert.Equal(source.Length - FrameTransformer.Offset, plaintextLength);
         Assert.Equal(packetBytes, decrypted.Memory.ToArray());
@@ -216,7 +216,7 @@ public sealed partial class DataFramesPublicApiTests
         using BufferLease decrypted = BufferLease.Rent(packetBytes.Length);
 
         FrameTransformer.Encrypt(source, encrypted, key, suite);
-        FrameTransformer.Decrypt(encrypted, decrypted, key);
+        FrameTransformer.Decrypt(encrypted, decrypted, key, suite);
 
         Assert.True(decrypted.Length >= packetBytes.Length);
         Assert.Equal(packetBytes, decrypted.Memory.Span[..packetBytes.Length].ToArray());
@@ -228,6 +228,6 @@ public sealed partial class DataFramesPublicApiTests
         byte[] key = [.. Enumerable.Range(1, 32).Select(static x => (byte)x)];
         using BufferLease source = BufferLease.CopyFrom(new byte[FrameTransformer.Offset + 1]);
 
-        _ = Assert.Throws<CipherException>(() => PacketCipher.DecryptFrame(source, key));
+        _ = Assert.Throws<CipherException>(() => PacketCipher.DecryptFrame(source, key, CipherSuiteType.Chacha20));
     }
 }

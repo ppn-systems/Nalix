@@ -48,11 +48,14 @@ public static class FrameTransformer
     /// <exception cref="ArgumentException">Thrown when <paramref name="type"/> is not a supported cipher suite.</exception>
     public static int GetMaxCiphertextSize(CipherSuiteType type, int plaintextSize)
     {
-        int tagSize = EnvelopeCipher.GetTagLength(type);
-        int nonceSize = EnvelopeCipher.GetNonceLength(type);
+        checked
+        {
+            int tagSize = EnvelopeCipher.GetTagLength(type);
+            int nonceSize = EnvelopeCipher.GetNonceLength(type);
 
-        // Total envelope size: header + nonce + ciphertext + tag (if any)
-        return EnvelopeFormat.HeaderSize + nonceSize + plaintextSize + tagSize;
+            // Total envelope size: header + nonce + ciphertext + tag (if any)
+            return EnvelopeFormat.HeaderSize + nonceSize + plaintextSize + tagSize;
+        }
     }
 
     /// <summary>
@@ -88,6 +91,17 @@ public static class FrameTransformer
         }
 
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
+
+        // SEC-35: Validate OriginalLength before returning it for pre-allocation.
+        // Malicious payloads can declare any value here to trigger allocation-based DoS.
+        const int MaxDecompressedSize = 64 * 1024 * 1024; // 64 MB hard cap
+        if (header.OriginalLength <= 0 || header.OriginalLength > MaxDecompressedSize)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(src),
+                $"LZ4 header declares invalid OriginalLength={header.OriginalLength}. " +
+                $"Must be in range [1, {MaxDecompressedSize}].");
+        }
 
         return header.OriginalLength;
     }
@@ -146,6 +160,7 @@ public static class FrameTransformer
     /// <param name="src">The source buffer containing the encrypted packet.</param>
     /// <param name="dest">The destination buffer to write the decrypted packet.</param>
     /// <param name="key">The decryption key.</param>
+    /// <param name="expectedAlgorithm">The expected cipher suite to validate/decrypt the envelope.</param>
     /// <remarks>
     /// The header portion is copied unchanged.
     /// Only the payload is decrypted.
@@ -155,7 +170,7 @@ public static class FrameTransformer
     /// <exception cref="CipherException">Thrown when AEAD authentication fails during payload decryption.</exception>
     /// <exception cref="NotSupportedException">Thrown when the encrypted payload declares an unsupported cipher suite.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Decrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key)
+    public static void Decrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm)
     {
         ArgumentNullException.ThrowIfNull(src);
         ArgumentNullException.ThrowIfNull(dest);
@@ -182,7 +197,7 @@ public static class FrameTransformer
         Span<byte> cipherData = src.Span[Offset..];
         Span<byte> outData = dest.SpanFull[Offset..];
 
-        EnvelopeCipher.Decrypt(key, cipherData, outData, null, out int decrypted);
+        EnvelopeCipher.Decrypt(key, cipherData, outData, null, expectedAlgorithm, out int decrypted);
 
         dest.CommitLength(Offset + decrypted);
     }

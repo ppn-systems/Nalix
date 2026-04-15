@@ -2,6 +2,7 @@
 using System;
 using System.Text;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -74,13 +75,13 @@ public sealed partial class DataFramesPublicApiTests
 
     private static Handshake CreateHandshakePacket()
     {
-        byte[] pubKey = new byte[32]; pubKey[0] = 1; pubKey[1] = 2; pubKey[2] = 3; pubKey[3] = 4;
-        byte[] nonce = new byte[32]; nonce[0] = 5; nonce[1] = 6; nonce[2] = 7; nonce[3] = 8;
-        byte[] proof = new byte[32]; proof[0] = 9; proof[1] = 10; proof[2] = 11; proof[3] = 12;
-        byte[] hash = new byte[32]; hash[0] = 13; hash[1] = 14; hash[2] = 15; hash[3] = 16;
+        Span<byte> pubKey = stackalloc byte[32]; pubKey[0] = 1; pubKey[1] = 2; pubKey[2] = 3; pubKey[3] = 4;
+        Span<byte> nonce = stackalloc byte[32]; nonce[0] = 5; nonce[1] = 6; nonce[2] = 7; nonce[3] = 8;
+        Span<byte> proof = stackalloc byte[32]; proof[0] = 9; proof[1] = 10; proof[2] = 11; proof[3] = 12;
+        Span<byte> hash = stackalloc byte[32]; hash[0] = 13; hash[1] = 14; hash[2] = 15; hash[3] = 16;
         
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, pubKey, nonce, proof, ProtocolType.UDP);
-        packet.UpdateTranscriptHash(hash);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, new Fixed256(pubKey), new Fixed256(nonce), new Fixed256(proof), ProtocolType.UDP);
+        packet.TranscriptHash = new Fixed256(hash);
         return packet;
     }
 

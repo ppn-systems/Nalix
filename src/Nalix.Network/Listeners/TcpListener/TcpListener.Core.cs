@@ -123,7 +123,7 @@ public abstract partial class TcpListenerBase : IListener
 
         if (OperatingSystem.IsWindows() && s_config.TuneThreadPool)
         {
-            int parallelism = Math.Clamp(Environment.ProcessorCount * MinWorkerThreads, 16, MaxThreadPoolWorkers);
+            int parallelism = Math.Clamp(Environment.ProcessorCount * s_config.MinWorkerThreadsMultiplier, 16, s_config.MaxThreadPoolWorkers);
             // Thread pool optimization for IOCP
             ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
             _ = ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelism), Math.Max(completionPortThreads, parallelism));
@@ -168,6 +168,14 @@ public abstract partial class TcpListenerBase : IListener
 
             try
             {
+                // Acquire lock to prevent race with Activate
+                self._lock.Wait();
+
+                if (Volatile.Read(ref self._isDisposed) != 0)
+                {
+                    return;
+                }
+
                 // Cancel first -> signal all async loops to stop.
                 try { self._cts?.Cancel(); } catch { }
 
@@ -204,6 +212,8 @@ public abstract partial class TcpListenerBase : IListener
                 self._cts = null;
 
                 _ = Interlocked.Exchange(ref self._stopInitiated, 0);
+                
+                try { self._lock.Release(); } catch { }
             }
         }
 

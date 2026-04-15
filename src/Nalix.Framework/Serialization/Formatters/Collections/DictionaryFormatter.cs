@@ -181,9 +181,10 @@ internal sealed class DictionaryFormatter<
             return null;
         }
 
-        if (count < SerializerBounds.Null)
+        if (count < 0 || count > SerializerBounds.MaxArray)
         {
-            throw new SerializationFailureException("Dictionary count out of range.");
+            throw new SerializationFailureException(
+                $"Dictionary count out of range: {count}. Max allowed is {SerializerBounds.MaxArray}.");
         }
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);

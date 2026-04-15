@@ -218,6 +218,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[NW.{nameof(PacketHandlerCompiler<,>)}:Internal] failed-compile {x01} ex={ex.GetType().Name}", ex);
+
+                    throw; // BUG-78: Fail-fast instead of continuing with incomplete handlers
                 }
             }
 
@@ -757,7 +759,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         try
         {
-            bridgedContext.Initialize(concretePacket, context.Connection, context.Attributes, context.CancellationToken);
+            bridgedContext.Initialize(concretePacket, context.Connection, context.Attributes, context.Protocol, context.CancellationToken);
             bridgedContext.SkipOutbound = context.SkipOutbound;
 
             object? result = withToken

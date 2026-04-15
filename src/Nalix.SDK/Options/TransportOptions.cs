@@ -128,8 +128,16 @@ public sealed class TransportOptions : ConfigurationLoader
     /// <summary>
     /// When true, AEAD encryption is applied to all outbound packets.
     /// </summary>
-    [IniComment("Enable packet encryption")]
-    public bool EncryptionEnabled { get; set; } = false;
+    [IniComment("Enable packet encryption (secure by default — disable only for unencrypted dev/test environments)")]
+    public bool EncryptionEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the capacity of the asynchronous message processing queue.
+    /// SEC-56, SEC-59: Provides backpressure to prevent memory exhaustion under high load.
+    /// </summary>
+    [IniComment("Capacity of the asynchronous message processing queue (default 1024)")]
+    [Range(1, 65536, ErrorMessage = "AsyncQueueCapacity must be between 1 and 65536.")]
+    public int AsyncQueueCapacity { get; set; } = 1024;
 
     /// <summary>
     /// The maximum size (in bytes) allowed for a single UDP datagram (including the 7-byte Token).
@@ -162,6 +170,13 @@ public sealed class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Fall back to a full handshake when resume fails")]
     public bool ResumeFallbackToHandshake { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets whether the internal global clock can be synchronized with the server's time during SyncTimeAsync.
+    /// Disable this if the connection is untrusted to prevent cross-session clock skew.
+    /// </summary>
+    [IniComment("Allow global clock synchronization from this session (recommended: true for trusted servers)")]
+    public bool TimeSyncEnabled { get; set; } = true;
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.

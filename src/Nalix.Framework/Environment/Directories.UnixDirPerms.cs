@@ -132,30 +132,32 @@ public static partial class Directories
                 DirectoryInfo di = new(path);
                 DirectorySecurity ds = di.GetAccessControl();
 
-                SecurityIdentifier users =
-                    new(WellKnownSidType.BuiltinUsersSid, null);
+                // Disable inheritance to ensure we have full control over the ACL
+                ds.SetAccessRuleProtection(isProtected: true, preserveInheritance: false);
 
-                SecurityIdentifier admins =
-                    new(WellKnownSidType.BuiltinAdministratorsSid, null);
+                SecurityIdentifier admins = new(WellKnownSidType.BuiltinAdministratorsSid, null);
+                SecurityIdentifier system = new(WellKnownSidType.LocalSystemSid, null);
+                SecurityIdentifier owner = new(WellKnownSidType.CreatorOwnerSid, null);
+                SecurityIdentifier users = new(WellKnownSidType.BuiltinUsersSid, null);
 
-                FileSystemAccessRule ruleUsers =
-                    new(users,
-                        FileSystemRights.Modify,
-                        InheritanceFlags.ContainerInherit |
-                        InheritanceFlags.ObjectInherit,
-                        PropagationFlags.None,
-                        AccessControlType.Allow);
+                // Always allow Admins and System full control
+                ds.AddAccessRule(new FileSystemAccessRule(admins, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                ds.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                ds.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
 
-                FileSystemAccessRule ruleAdmins =
-                    new(admins,
-                        FileSystemRights.FullControl,
-                        InheritanceFlags.ContainerInherit |
-                        InheritanceFlags.ObjectInherit,
-                        PropagationFlags.None,
-                        AccessControlType.Allow);
+                if (perms != UnixDirPerms.Private700)
+                {
+                    FileSystemRights userRights = perms switch
+                    {
+                        UnixDirPerms.Shared750 => FileSystemRights.ReadAndExecute,
+                        UnixDirPerms.WorldReadable => FileSystemRights.ReadAndExecute | FileSystemRights.ListDirectory,
+                        UnixDirPerms.Default755 => FileSystemRights.ReadAndExecute | FileSystemRights.ListDirectory,
+                        _ => FileSystemRights.ReadAndExecute
+                    };
 
-                ds.AddAccessRule(ruleUsers);
-                ds.AddAccessRule(ruleAdmins);
+                    ds.AddAccessRule(new FileSystemAccessRule(users, userRights, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
+                }
+
                 di.SetAccessControl(ds);
             }
             else

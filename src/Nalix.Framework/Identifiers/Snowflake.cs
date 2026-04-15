@@ -8,13 +8,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
 using Nalix.Common.Identity;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Options;
-using Nalix.Framework.Time;
+using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Identifiers;
 
@@ -38,20 +37,10 @@ public readonly partial struct Snowflake : ISnowflake
     public const byte Size = 7;
 
     [SerializeIgnore]
-    private const ushort MaxSequence = 0xFFFF; // 16-bit max = 65535
-
     private readonly UInt56 _combined;
 
     [SerializeIgnore]
     private static readonly ushort s_machineId = LAZY_LOAD_MACHINE_ID();
-
-    [SerializeIgnore]
-    private static int s_sequence;
-    [SerializeIgnore]
-    private static long s_lastTimestampMs;
-
-    [SerializeIgnore]
-    private static readonly Lock s_generatorLock = new();
 
     #endregion Const
 
@@ -220,59 +209,8 @@ public readonly partial struct Snowflake : ISnowflake
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type, ushort machineId = 1)
     {
-        while (true)
-        {
-            long now = Clock.EpochMillisecondsNow();
-
-            long last = Volatile.Read(ref s_lastTimestampMs);
-
-            // Handle clock rollback
-            if (now < last)
-            {
-                now = last;
-            }
-
-            int seq;
-
-            if (now == last)
-            {
-                // same millisecond -> increment sequence
-                seq = Interlocked.Increment(ref s_sequence) & 0x0FFF;
-
-                if (seq == 0)
-                {
-                    SpinWait spin = new();
-                    do
-                    {
-                        spin.SpinOnce();
-                        now = Clock.EpochMillisecondsNow();
-                    }
-                    while (now <= last);
-
-                    continue; // retry loop
-                }
-            }
-            else
-            {
-                // new millisecond -> reset sequence
-                seq = 0;
-                _ = Interlocked.Exchange(ref s_sequence, 0);
-            }
-
-            // try publish timestamp (CAS)
-            if (Interlocked.CompareExchange(ref s_lastTimestampMs, now, last) != last)
-            {
-                continue; // race -> retry
-            }
-
-            // pack 32-bit value
-            uint timePart = (uint)(now & 0xFFFFF);   // 20-bit
-            uint seqPart = (uint)seq;               // 12-bit
-
-            uint value = (timePart << 12) | seqPart;
-
-            return new Snowflake(value, machineId, type);
-        }
+        uint value = Csprng.NextUInt32();
+        return new Snowflake(value, machineId, type);
     }
 
     /// <summary>

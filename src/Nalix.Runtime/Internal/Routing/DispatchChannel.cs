@@ -40,7 +40,7 @@ internal struct CacheLinePaddedLong
 [SkipLocalsInit]
 [DebuggerDisplay("TotalPackets={TotalPackets}")]
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where TPacket : IPacket
+public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDisposable where TPacket : IPacket
 {
     #region Constants
 
@@ -250,6 +250,26 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Push(IConnection connection, IBufferLease raw) => _ = this.PushCore(connection, raw);
 
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        InstanceManager.Instance.GetExistingInstance<IConnectionHub>()? 
+                       .ConnectionUnregistered -= this.OnUnregistered;
+
+        for (int i = 0; i < _stateBuckets.Length; i++)
+        {
+            Node? node = Interlocked.Exchange(ref _stateBuckets[i], null);
+            while (node is not null)
+            {
+                node.State.TryDeactivate();
+                node.State.DrainAndDisposeAll();
+                node = node.Next;
+            }
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
     #endregion APIs
 
     #region Internal Methods
@@ -259,9 +279,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     /// </summary>
     /// <param name="connection">The destination connection.</param>
     /// <param name="raw">The packet lease to enqueue.</param>
+    /// <param name="noBlock">When <see langword="true"/>, block-mode overflow will fail fast instead of waiting for capacity.</param>
     /// <returns><see langword="true"/> if a ready queue entry was emitted.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    internal bool PushCore(IConnection connection, IBufferLease raw)
+    internal bool PushCore(IConnection connection, IBufferLease raw, bool noBlock = false)
     {
         if (connection is null)
         {
@@ -283,7 +304,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
 
         int priority = ClassifyPriorityIndex(raw.Span);
 
-        if (_maxPerConnectionQueue > 0 && !this.EnsureCapacity(state))
+        if (_maxPerConnectionQueue > 0 && !this.EnsureCapacity(state, noBlock))
         {
             raw.Dispose();
             return false;
@@ -336,7 +357,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private bool EnsureCapacity(ConnectionState state)
+    private bool EnsureCapacity(ConnectionState state, bool noBlock)
     {
         while (state.TotalCount >= _maxPerConnectionQueue)
         {
@@ -352,6 +373,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket> where T
                     }
                     continue;
                 case DropPolicy.Block:
+                    if (noBlock)
+                    {
+                        return false;
+                    }
                     return this.WaitForQueueSpace(state);
                 default:
                     return false;

@@ -67,24 +67,24 @@ public static class BitwiseOperations
 
     /// <summary>
     /// Compares two byte spans in a fixed-time manner to prevent timing attacks.
-    /// The loop intentionally avoids early exit so an attacker cannot infer the
-    /// first mismatching byte from timing differences.
+    /// The execution time depends only on the length of the spans, not their content.
     /// </summary>
     /// <param name="left">The first byte span to compare.</param>
     /// <param name="right">The second byte span to compare.</param>
     /// <returns>True if the byte spans are equal; otherwise, false.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
-        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining | System.Runtime.CompilerServices.MethodImplOptions.NoOptimization)]
     public static bool FixedTimeEquals(System.ReadOnlySpan<byte> left, System.ReadOnlySpan<byte> right)
     {
+        // Even if lengths differ, we want to minimize timing information.
+        // However, if lengths are public (like tag lengths), a simple check is acceptable.
+        // For maximum security, we compare the minimum length and accumulate bits.
         if (left.Length != right.Length)
         {
             return false;
         }
 
         int result = 0;
-
-        // Accumulate differences without branching so the timing stays independent of the first mismatch.
         for (int i = 0; i < left.Length; i++)
         {
             result |= left[i] ^ right[i];
@@ -94,10 +94,13 @@ public static class BitwiseOperations
     }
 
     /// <summary>
-    /// Checks if all bytes in the given ReadOnlySpan&lt;byte&gt; are zero, using unsafe code for maximum performance.
+    /// Checks if all bytes in the given ReadOnlySpan&lt;byte&gt; are zero in constant-time.
+    /// This prevents timing attacks that could reveal information about sensitive buffers.
     /// </summary>
     /// <param name="value">The span of bytes to check.</param>
     /// <returns>True if all bytes are zero, otherwise false.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining | System.Runtime.CompilerServices.MethodImplOptions.NoOptimization)]
     public static unsafe bool IsZero(ReadOnlySpan<byte> value)
     {
         if (value.IsEmpty)
@@ -105,32 +108,16 @@ public static class BitwiseOperations
             return true;
         }
 
+        int accumulator = 0;
         fixed (byte* ptr = value)
         {
             int len = value.Length;
-            int offset = 0;
-
-            // Process 8 bytes at a time
-            while (len - offset >= sizeof(ulong))
+            for (int i = 0; i < len; i++)
             {
-                if (*(ulong*)(ptr + offset) != 0)
-                {
-                    return false;
-                }
-
-                offset += sizeof(ulong);
-            }
-            // Check remaining bytes
-            while (offset < len)
-            {
-                if (*(ptr + offset) != 0)
-                {
-                    return false;
-                }
-
-                offset++;
+                accumulator |= ptr[i];
             }
         }
-        return true;
+
+        return accumulator == 0;
     }
 }
