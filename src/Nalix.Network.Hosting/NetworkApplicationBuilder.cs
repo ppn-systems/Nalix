@@ -358,20 +358,13 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             {
                 this.EnsureConnectionHubRegistered();
                 IProtocol protocol = registration.Factory(dispatch);
-                UdpServerListener listener;
-
-                if (registration.Authentication != null)
-                {
-                    listener = registration.Port.HasValue
+                UdpServerListener listener = registration.Authentication != null
+                    ? (registration.Port.HasValue
                         ? new(registration.Port.Value, protocol, registration.Authentication)
-                        : new(protocol, registration.Authentication);
-                }
-                else
-                {
-                    listener = registration.Port.HasValue
+                        : new(protocol, registration.Authentication))
+                    : (registration.Port.HasValue
                         ? new(registration.Port.Value, protocol)
-                        : new(protocol);
-                }
+                        : new(protocol));
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
             });
