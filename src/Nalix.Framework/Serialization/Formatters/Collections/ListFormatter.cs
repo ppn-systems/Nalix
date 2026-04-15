@@ -50,8 +50,14 @@ internal sealed class ListFormatter<
         }
 
         ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
-        int totalBytes = span.Length * s_elementSize;
+        long totalBytesLong = (long)span.Length * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            throw new Common.Exceptions.SerializationFailureException(
+                $"List data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+        }
 
+        int totalBytes = (int)totalBytesLong;
         writer.Expand(totalBytes);
         ref byte destination = ref writer.GetFreeBufferReference();
         ref T source = ref MemoryMarshal.GetReference(span);
@@ -85,10 +91,22 @@ internal sealed class ListFormatter<
             return [];
         }
 
+        if (length < 0 || length > SerializerBounds.MaxArray)
+        {
+            throw new Common.Exceptions.SerializationFailureException("List length out of range.");
+        }
+
+        long totalBytesLong = (long)length * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            throw new Common.Exceptions.SerializationFailureException(
+                $"List data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+        }
+
         System.Collections.Generic.List<T> list = new(length);
         CollectionsMarshal.SetCount(list, length);
 
-        int totalBytes = length * s_elementSize;
+        int totalBytes = (int)totalBytesLong;
         Span<T> span = CollectionsMarshal.AsSpan(list);
         ref byte source = ref reader.GetSpanReference(totalBytes);
         ref T destination = ref MemoryMarshal.GetReference(span);

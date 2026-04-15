@@ -167,9 +167,10 @@ internal sealed class HashSetFormatter<
             return null;
         }
 
-        if (count < SerializerBounds.Null)
+        if (count < 0 || count > SerializerBounds.MaxArray)
         {
-            throw new SerializationFailureException("HashSet count out of range.");
+            throw new SerializationFailureException(
+                $"HashSet count out of range: {count}. Max allowed is {SerializerBounds.MaxArray}.");
         }
 
         System.Collections.Generic.HashSet<T> set = new(count);

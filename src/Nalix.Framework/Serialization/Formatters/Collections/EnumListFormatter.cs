@@ -57,7 +57,14 @@ internal sealed class EnumListFormatter<
         }
 
         ReadOnlySpan<T> span = CollectionsMarshal.AsSpan(value);
-        int totalBytes = span.Length * s_elementSize;
+        long totalBytesLong = (long)span.Length * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            throw new SerializationFailureException(
+                $"Enum list data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+        }
+
+        int totalBytes = (int)totalBytesLong;
         writer.Expand(totalBytes);
 
         ref byte destination = ref writer.GetFreeBufferReference();
@@ -95,7 +102,7 @@ internal sealed class EnumListFormatter<
             return null!;
         }
 
-        if (count > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializerBounds.MaxArray)
         {
             throw new SerializationFailureException("Enum list length out of range.");
         }
@@ -103,7 +110,14 @@ internal sealed class EnumListFormatter<
         System.Collections.Generic.List<T> result = new(count);
         CollectionsMarshal.SetCount(result, count);
 
-        int totalBytes = count * s_elementSize;
+        long totalBytesLong = (long)count * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            throw new SerializationFailureException(
+                $"Enum list data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+        }
+
+        int totalBytes = (int)totalBytesLong;
         Span<T> span = CollectionsMarshal.AsSpan(result);
         ref byte source = ref reader.GetSpanReference(totalBytes);
         ref T destination = ref MemoryMarshal.GetReference(span);

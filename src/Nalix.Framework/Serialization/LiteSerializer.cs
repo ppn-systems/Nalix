@@ -85,7 +85,14 @@ public static class LiteSerializer
                 return SerializerBounds.EmptyArrayMarker.ToArray();
             }
 
-            int dataSize = size * length;
+            long dataSizeLong = (long)size * length;
+            if (dataSizeLong > int.MaxValue - 4)
+            {
+                throw new SerializationFailureException(
+                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds maximum.");
+            }
+
+            int dataSize = (int)dataSizeLong;
             byte[] buffer = GC.AllocateUninitializedArray<byte>(dataSize + 4);
             ref byte ptr = ref MemoryMarshal.GetArrayDataReference(buffer);
 
@@ -283,7 +290,14 @@ public static class LiteSerializer
                 return 4;
             }
 
-            int dataSize = fixedSize * length;
+            long dataSizeLong = (long)fixedSize * length;
+            if (dataSizeLong > int.MaxValue - 4)
+            {
+                throw new SerializationFailureException(
+                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds maximum.");
+            }
+
+            int dataSize = (int)dataSizeLong;
             int totalSize = dataSize + 4; // 4-byte length prefix
 
             if (buffer.Length < totalSize)
@@ -574,7 +588,20 @@ public static class LiteSerializer
             int length = Unsafe.ReadUnaligned<int>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            int dataSize = size * length;
+            if (length < 0 || length > SerializerBounds.MaxArray)
+            {
+                throw new SerializationFailureException(
+                    $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
+            }
+
+            long dataSizeLong = (long)size * length;
+            if (dataSizeLong > int.MaxValue)
+            {
+                throw new SerializationFailureException(
+                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds int.MaxValue.");
+            }
+
+            int dataSize = (int)dataSizeLong;
             if (buffer.Length < dataSize + 4)
             {
                 throw new SerializationFailureException(
@@ -679,7 +706,20 @@ public static class LiteSerializer
             int length = Unsafe.ReadUnaligned<int>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            int dataSize = size * length;
+            if (length < 0 || length > SerializerBounds.MaxArray)
+            {
+                throw new SerializationFailureException(
+                    $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
+            }
+
+            long dataSizeLong = (long)size * length;
+            if (dataSizeLong > int.MaxValue)
+            {
+                throw new SerializationFailureException(
+                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds int.MaxValue.");
+            }
+
+            int dataSize = (int)dataSizeLong;
             if (buffer.Length < dataSize + 4)
             {
                 throw new SerializationFailureException(
