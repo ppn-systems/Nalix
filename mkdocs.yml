@@ -145,6 +145,7 @@ nav:
           - Custom Metadata Provider: guides/custom-metadata-provider.md
           - Custom Serialization Provider: guides/custom-serialization-provider.md
       - Networking Patterns:
+          - Client Session Connect: guides/client-session-connect.md
           - TCP Request/Response: guides/tcp-request-response.md
           - UDP Server: guides/udp-server.md
           - UDP Auth Flow: guides/udp-auth-flow.md

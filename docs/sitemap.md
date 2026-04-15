@@ -58,6 +58,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Custom Metadata Provider**](./guides/custom-metadata-provider.md) — Attribute-driven logic.
 
 ### Networking Patterns
+- [**Client Session Connect**](./guides/client-session-connect.md) — SDK client session bootstrap.
 - [**TCP Request/Response**](./guides/tcp-request-response.md) — Ordered communication.
 - [**UDP Server**](./guides/udp-server.md) — Low-latency datagrams.
 - [**UDP Auth Flow**](./guides/udp-auth-flow.md) — Secure session bootstrap.

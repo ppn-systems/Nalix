@@ -23,6 +23,7 @@ Nalix guides help you move from a fresh project to a production-hardened binary.
 
 ## 🌐 Networking Patterns
 
+- :fontawesome-solid-plug-circle-check: [**Client Session Connect**](./client-session-connect.md) — Creating and connecting TCP/UDP sessions with Nalix.SDK.
 - :fontawesome-solid-bridge: [**TCP Request/Response**](./tcp-request-response.md) — Synchronous communication patterns.
 - :fontawesome-solid-broadcast-tower: [**UDP Server**](./udp-server.md) — Building low-latency datagram services.
 - :fontawesome-solid-user-lock: [**UDP Auth Flow**](./udp-auth-flow.md) — Secure session bootstrap using TCP-backed handover.
