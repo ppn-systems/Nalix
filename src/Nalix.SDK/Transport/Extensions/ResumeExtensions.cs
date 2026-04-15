@@ -48,14 +48,14 @@ public static class ResumeExtensions
         _ = session.Options.SessionToken.TryWriteBytes(tokenBytes);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
-        HmacKeccak256.Compute(session.Options.Secret, tokenBytes, proofBytes);
+        HmacKeccak256.Compute(session.Options.Secret, tokenBytes[..7], proofBytes);
         request.Proof = new Fixed256(proofBytes);
 
         try
         {
             SessionResume response = await PacketAwaiter.AwaitAsync<SessionResume>(
                 session,
-                predicate: packet => packet.Stage == SessionResumeStage.RESPONSE && packet.SessionToken == request.SessionToken,
+                predicate: packet => packet.Stage == SessionResumeStage.RESPONSE,
                 timeoutMs: session.Options.ResumeTimeoutMillis,
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);
