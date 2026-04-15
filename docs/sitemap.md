@@ -32,6 +32,11 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Failure Model**](./concepts/advanced/failure-model.md) — Resilience and observable behavior.
 - [**Design Tradeoffs**](./concepts/advanced/design-tradeoffs.md) — Performance vs. Convenience.
 
+### Advanced Concepts
+- [**Shared Memory Pool**](./concepts/shared-memory-pool.md) — Buffer management.
+- [**Shard-Aware Dispatch**](./guides/shard-aware-dispatch.md) — Scaling and worker affinity.
+- [**Design Trade-offs**](./concepts/advanced/design-tradeoffs.md) — Performance vs latency.
+
 ---
 
 ## 📖 Practical Guides

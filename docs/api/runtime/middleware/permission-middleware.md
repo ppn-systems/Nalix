@@ -14,7 +14,7 @@ sequenceDiagram
     Note over M: Check context.Attributes.Permission
     
     alt Level Insufficient
-        M->>C: Send Directive(UNAUTHENTICATED)
+        M->>C: Send Directive(FAIL, UNAUTHORIZED)
         M-->>P: Terminate
     else Level Sufficient
         M->>P: next()
@@ -57,7 +57,7 @@ builder.ConfigureDispatch(options =>
 3. **Rejection**: If the level is insufficient:
     - Logs a `deny` event with the required and current levels.
     - Rents a `Directive` from the `ObjectPoolManager`.
-    - Initializes it with `ControlType.TIMEOUT` (or UNAUTHENTICATED) and `ProtocolReason.UNAUTHENTICATED`.
+    - Initializes it with `ControlType.FAIL` and `ProtocolReason.UNAUTHORIZED`.
     - Transmits the rejection and terminates the pipeline.
 
 ## Related APIs

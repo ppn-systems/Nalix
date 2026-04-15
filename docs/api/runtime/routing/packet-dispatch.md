@@ -49,6 +49,16 @@ flowchart LR
 - `GenerateReport()`
 - `GetReportData()`
 
+## Sharding and Scaling
+
+`PacketDispatchChannel` is **shard-aware**. It maintains internal connection queues and distributes them across a pool of worker loops.
+
+- **Connection Affinity**: Packets from the same connection are always processed sequentially to preserve order.
+- **Configurable Parallelism**: The number of shards is determined by `Options.DispatchLoopCount`.
+- **Low-Latency Signaling**: Shards use lock-free wake channels to minimize worker contention.
+
+For deep-dive configuration and sharding strategies, see the [Shard-Aware Dispatch](../../../../guides/shard-aware-dispatch.md) guide.
+
 ## Operational Notes
 
 - Worker loops count is `Options.DispatchLoopCount` when set, otherwise `Math.Clamp(Environment.ProcessorCount, 1, 64)`.

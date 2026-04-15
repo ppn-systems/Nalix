@@ -127,11 +127,13 @@ nav:
           - Overview: concepts/advanced/reliability-model.md
           - Guarantees & Invariants: concepts/advanced/guarantees-and-invariants.md
           - Failure Model: concepts/advanced/failure-model.md
+          - Shard-Aware Dispatch: guides/shard-aware-dispatch.md
           - Design Tradeoffs: concepts/advanced/design-tradeoffs.md
   - Guides:
       - Overview: guides/index.md
       - Build a Server:
           - Starter Template: guides/starter-template.md
+          - Implementing Packet Handlers: guides/implementing-packet-handlers.md
           - End-to-End Sample: guides/end-to-end.md
           - Production End-to-End: guides/production-end-to-end.md
           - Project Setup: guides/project-setup.md
