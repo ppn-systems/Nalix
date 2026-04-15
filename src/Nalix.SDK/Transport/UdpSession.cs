@@ -140,15 +140,15 @@ public class UdpSession : TransportSession
                     FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
                 });
 
-            _ = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token));
+            // Start background workers
+            _loopCts = new CancellationTokenSource();
+            _ = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), ct);
 
             _socket.SendBufferSize = this.Options.BufferSize;
             _socket.ReceiveBufferSize = this.Options.BufferSize;
 
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
-            // Start background worker for reading datagrams
-            _loopCts = new CancellationTokenSource();
             _ = Task.Factory.StartNew(() => this.ReceiveLoopAsync(_loopCts.Token),
                 _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
@@ -357,51 +357,64 @@ public class UdpSession : TransportSession
                 continue;
             }
 
-            // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
-            // (Server-to-Client UDP does not include the 7-byte token)
-            IBufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
-
             try
             {
-                // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
-                this.TransformInbound(ref datagram);
+                // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
+                // (Server-to-Client UDP does not include the 7-byte token)
+                IBufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
 
-                Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
-                EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;
+                try
+                {
+                    // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
+                    this.TransformInbound(ref datagram);
 
-                System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
-                if (asyncHandler is not null && writer is not null && syncHandler is not null)
-                {
-                    // Copy payload for async handler to prevent race with sync handler's implicit lifecycle.
-                    byte[] copy = datagram.Memory.ToArray();
-                    _ = writer.TryWrite(async () =>
+                    Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
+                    EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;
+
+                    System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
+                    if (asyncHandler is not null && writer is not null && syncHandler is not null)
                     {
-                        try { await asyncHandler(copy).ConfigureAwait(false); }
-                        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
-                    });
-                }
-                else if (asyncHandler is not null && writer is not null)
-                {
-                    datagram.Retain();
-                    if (!writer.TryWrite(async () =>
-                    {
-                        try { await asyncHandler(datagram.Memory).ConfigureAwait(false); }
-                        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
-                        finally 
-                        { 
-                            datagram.Dispose(); 
+                        // Copy payload for async handler to prevent race with sync handler's implicit lifecycle.
+                        byte[] copy = datagram.Memory.ToArray();
+                        if (!writer.TryWrite(async () =>
+                        {
+                            try { await asyncHandler(copy).ConfigureAwait(false); }
+                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                        }))
+                        {
+                            this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; dual-mode frame dropped."));
                         }
-                    }))
-                    {
-                        datagram.Dispose();
                     }
-                }
+                    else if (asyncHandler is not null && writer is not null)
+                    {
+                        datagram.Retain();
+                        if (!writer.TryWrite(async () =>
+                        {
+                            try { await asyncHandler(datagram.Memory).ConfigureAwait(false); }
+                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                            finally
+                            {
+                                datagram.Dispose();
+                            }
+                        }))
+                        {
+                            datagram.Dispose();
+                        }
+                    }
 
-                syncHandler?.Invoke(this, datagram);
+                    syncHandler?.Invoke(this, datagram);
+                }
+                finally
+                {
+                    datagram.Dispose();
+                }
             }
-            finally
+            catch (Exception ex)
             {
-                datagram.Dispose();
+                if (!ct.IsCancellationRequested)
+                {
+                    this.OnError?.Invoke(this, ex);
+                }
             }
         }
     }

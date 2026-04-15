@@ -275,7 +275,7 @@ public class TcpSession : TransportSession
             {
                 if (asyncPayload is { } copiedPayload)
                 {
-                if (!_asyncQueue.Writer.TryWrite(async () =>
+                if (writer.TryWrite(async () =>
                     {
                         try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
                         catch (Exception ex) { this.OnError?.Invoke(this, ex); }

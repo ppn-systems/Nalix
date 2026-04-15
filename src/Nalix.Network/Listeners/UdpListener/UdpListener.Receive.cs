@@ -205,7 +205,7 @@ public abstract partial class UdpListenerBase
                         }
                         catch (Exception ex)
                         {
-                            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID} msg={ex.Message}");
+                            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID}", ex);
                         }
                     }
                     else
@@ -331,7 +331,7 @@ public abstract partial class UdpListenerBase
         }
         catch (Exception ex)
         {
-            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID} msg={ex.Message}");
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID}", ex);
         }
 
 #if DEBUG

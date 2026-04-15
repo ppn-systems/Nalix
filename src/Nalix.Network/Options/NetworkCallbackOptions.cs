@@ -69,7 +69,7 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Max protocol errors before automatic disconnection (default 16)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1000, ErrorMessage = "MaxErrorsPerConnection must be between 0 and 1000.")]
-    public int MaxErrorsPerConnection { get; set; } = 16;
+    public int MaxErrorsPerConnection { get; set; } = 50;
 
     #endregion Layer 1.5 — Error enforcement
 

@@ -109,6 +109,13 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     /// </summary>
     public int MaxDispatchLoops { get; set; } = 64;
 
+    /// <summary>
+    /// The maximum number of packets that can be queued in the internal channel
+    /// before adding new packets starts blocking or dropping.
+    /// Default: 100,000.
+    /// </summary>
+    public int MaxInternalQueueSize { get; set; } = 100_000;
+
     internal int RegisteredHandlerCount => Volatile.Read(ref _handlerCount);
 
     #endregion Properties

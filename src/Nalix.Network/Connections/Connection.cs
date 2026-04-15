@@ -148,7 +148,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public void IncrementErrorCount()
     {
         int count = Interlocked.Increment(ref _errorCount);
-        if (count >= s_options.MaxErrorThreshold) // SEC-54: Disconnect persistent noisy/malformed connections
+        if (s_options.MaxErrorsPerConnection > 0 && count >= s_options.MaxErrorsPerConnection) // SEC-54: Disconnect persistent noisy/malformed connections
         {
             this.Disconnect("Exceeded maximum error threshold.");
         }

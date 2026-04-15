@@ -100,11 +100,24 @@ internal sealed class FrameSender : IDisposable
             {
                 while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
                 {
-                    await this.SEND_SOCKET_ASYNC(item.frame, item.frameLen, item.tcs, token).ConfigureAwait(false);
+                    try
+                    {
+                        await this.SEND_SOCKET_ASYNC(item.frame, item.frameLen, item.tcs, token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Individual send failed, but we must NOT poison the whole loop.
+                        // Log the error and continue with the next item.
+                        _onError?.Invoke(ex);
+                    }
                 }
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception ex)
         {
             _onError?.Invoke(ex);

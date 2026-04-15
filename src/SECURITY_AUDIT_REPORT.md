@@ -1,4 +1,4 @@
-# Bao Cao Ra Soat Bug & Bao Mat - Thu Muc `src`
+﻿# Bao Cao Ra Soat Bug & Bao Mat - Thu Muc `src`
 
 - Du an: `Nalix`
 - Pham vi: toan bo ma nguon trong `src` (bo qua `bin/obj`)
@@ -2313,7 +2313,7 @@ Trong tinh huong peer bi compromise/mitm/noise packet hop le kieu CONTROL respon
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2350,7 +2350,7 @@ Do receive loop duoc start fire-and-forget, su co nay de tro thanh loop death am
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2386,7 +2386,7 @@ Dieu nay tao behavior khong tin cay duoi tai cao: sync handler van nhan packet, 
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2421,7 +2421,7 @@ Khi co nhieu operation song song cung session (hoac kenh nhieu noise packet cung
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2459,7 +2459,7 @@ Neu payload da encrypt/compress, offset header khong con la plain frame header h
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2494,7 +2494,7 @@ He qua: sau khi endpoint da duoc cache, cac datagram replay (cung seq) co the bo
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2564,7 +2564,7 @@ Day la dead-config bug lam han che tuning khi mang co reorder cao/latency xau, d
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2601,7 +2601,7 @@ Dieu nay cho phep peer chua xac thuc thay doi crypto policy pre-auth. Du handsha
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2634,7 +2634,7 @@ Day la lo hong state-machine/reentrancy, mo ra vector CPU DoS o giai doan pre-au
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2670,7 +2670,7 @@ Neu packet control den tu kenh UDP (hoac framework cho phep forward control UDP)
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2709,7 +2709,7 @@ Dispatcher co thu thap metadata policy tu attribute va truyen vao `PacketHandler
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2778,7 +2778,7 @@ Neu code path nay duoc build nhu hien tai, day la loi compile nghiem trong; neu 
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2813,7 +2813,7 @@ Voi client auto-retry theo transient control, hanh vi deny quyen co the bi khu�
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2850,7 +2850,7 @@ Dieu nay co nghia producer thread nhan packet (ingress path) bi block tai cho, d
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2883,7 +2883,7 @@ Dieu nay tao cua so bypass throttling trong thoi diem he thong mong manh nhat (d
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2915,7 +2915,7 @@ Trong burst path, blocking wait tren async handler cung de gay thread starvation
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2947,7 +2947,7 @@ Thu tu nay tao race/null dereference on connect: lan ket noi dau co the nem `Nul
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -2980,7 +2980,7 @@ Neu disconnect xay ra cung luc (`TryComplete` va `_asyncQueue = null`), nhanh na
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -3013,7 +3013,7 @@ Bang gate duoc khai bao `static` va key chi theo `opcode`. Khi co nhieu `Concurr
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -3046,7 +3046,7 @@ Nhanh async-only ben duoi lai co kiem tra `if (!writer.TryWrite(...))` de xu ly 
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -3084,7 +3084,7 @@ Sau trang thai nay, send queue bi complete va khong co co che restart sender loo
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -3118,7 +3118,7 @@ Neu consumer lam theo contract va dispose trong callback, co the xay ra double-d
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 
@@ -3157,7 +3157,7 @@ Trong khi do `_callbackClose` tro den `Connection.OnCloseEventBridge`, va bridge
 
 **Trang thai**
 
-- ❗ NEW (chua fix)
+- ✅ FIXED (2026-04-15)
 
 **Mo ta**
 

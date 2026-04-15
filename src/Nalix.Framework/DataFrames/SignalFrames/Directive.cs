@@ -50,18 +50,23 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     [SerializeOrder(3)]
     public ControlFlags Control { get; set; }
 
-    /// <summary>Gets or sets the first directive argument.</summary>
+    /// <summary>
+    /// Gets or sets the first directive argument.
+    /// Usage: RetryAfterMs (for RATE_LIMITED), AlgorithmId (for CIPHER_UPDATE).
+    /// </summary>
     [SerializeOrder(4)]
     public uint Arg0 { get; set; }
 
     /// <summary>
     /// Gets or sets the second directive argument.
+    /// Usage: Credit (for RATE_LIMITED), SequenceId (for ACK/NACK).
     /// </summary>
     [SerializeOrder(5)]
     public uint Arg1 { get; set; }
 
     /// <summary>
     /// Gets or sets the third directive argument.
+    /// Usage: OpCode (for FAIL/ERROR), Port (for REDIRECT).
     /// </summary>
     [SerializeOrder(6)]
     public ushort Arg2 { get; set; }
