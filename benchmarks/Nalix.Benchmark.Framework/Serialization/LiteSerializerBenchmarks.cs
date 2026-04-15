@@ -50,27 +50,27 @@ public class LiteSerializerBenchmarks : NalixBenchmarkBase
     }
 
     /// <summary>Serializes a standard POCO object.</summary>
-    [BenchmarkCategory("Object"), Benchmark(Baseline = true)]
+    [BenchmarkCategory("Serialization"), Benchmark(Baseline = true, Description = "Serialize (Object)")]
     public byte[] SerializeObject() => LiteSerializer.Serialize(_objectPayload);
 
     /// <summary>Deserializes a standard POCO object.</summary>
-    [BenchmarkCategory("Object"), Benchmark]
+    [BenchmarkCategory("Deserialization"), Benchmark(Description = "Deserialize (Object)")]
     public BenchPayload DeserializeObject() => LiteSerializer.Deserialize<BenchPayload>(_objectBytes, out _)!;
 
     /// <summary>Serializes a complex value-type struct.</summary>
-    [BenchmarkCategory("Struct"), Benchmark(Baseline = true)]
+    [BenchmarkCategory("Serialization"), Benchmark(Description = "Serialize (Struct)")]
     public byte[] SerializeStruct() => LiteSerializer.Serialize(_structPayload);
 
     /// <summary>Deserializes a complex value-type struct.</summary>
-    [BenchmarkCategory("Struct"), Benchmark]
+    [BenchmarkCategory("Deserialization"), Benchmark(Description = "Deserialize (Struct)")]
     public ComplexStruct DeserializeStruct() => LiteSerializer.Deserialize<ComplexStruct>(_structBytes, out _);
 
     /// <summary>Serializes a primitive array.</summary>
-    [BenchmarkCategory("Array"), Benchmark(Baseline = true)]
+    [BenchmarkCategory("Serialization"), Benchmark(Description = "Serialize (Array)")]
     public byte[] SerializeArray() => LiteSerializer.Serialize(_arrayPayload);
 
     /// <summary>Deserializes a primitive array.</summary>
-    [BenchmarkCategory("Array"), Benchmark]
+    [BenchmarkCategory("Deserialization"), Benchmark(Description = "Deserialize (Array)")]
     public int[] DeserializeArray() => LiteSerializer.Deserialize<int[]>(_arrayBytes, out _)!;
 
     // --- Data Types ---

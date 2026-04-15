@@ -71,7 +71,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// Gets or sets the HMAC-SHA256 proof of session secret possession.
     /// </summary>
     [SerializeOrder(3)]
-    public Fixed256 Proof { get; set; }
+    public Bytes32 Proof { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SessionResume"/> packet.
@@ -81,7 +81,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// <summary>
     /// Initializes the packet with the specified stage and metadata.
     /// </summary>
-    public void Initialize(SessionResumeStage stage, Snowflake sessionToken, ProtocolReason reason = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP, Fixed256 proof = default)
+    public void Initialize(SessionResumeStage stage, Snowflake sessionToken, ProtocolReason reason = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP, Bytes32 proof = default)
     {
         this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
         this.Protocol = transport;
@@ -102,6 +102,6 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
         this.Stage = SessionResumeStage.NONE;
         this.SessionToken = Snowflake.Empty;
         this.Reason = ProtocolReason.NONE;
-        this.Proof = Fixed256.Empty;
+        this.Proof = Bytes32.Zero;
     }
 }

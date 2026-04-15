@@ -13,10 +13,10 @@ namespace Nalix.Common.Primitives;
 /// Used for storing cryptographic hashes, proofs, or signatures.
 /// </summary>
 [SerializePackable(SerializeLayout.Explicit)]
-public struct Fixed256 : IEquatable<Fixed256>
+public struct Bytes32 : IEquatable<Bytes32>
 {
     /// <summary>
-    /// The size of the <see cref="Fixed256"/> buffer in bytes.
+    /// The size of the <see cref="Bytes32"/> buffer in bytes.
     /// </summary>
     public const int Size = 32;
 
@@ -33,11 +33,11 @@ public struct Fixed256 : IEquatable<Fixed256>
     private readonly ulong _v4;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Fixed256"/> struct from a 32-byte span.
+    /// Initializes a new instance of the <see cref="Bytes32"/> struct from a 32-byte span.
     /// </summary>
     /// <param name="source">The source span containing at least 32 bytes.</param>
     /// <exception cref="ArgumentException">Thrown when the source span is smaller than 32 bytes.</exception>
-    public Fixed256(ReadOnlySpan<byte> source)
+    public Bytes32(ReadOnlySpan<byte> source)
     {
         if (source.Length < Size)
         {
@@ -52,19 +52,19 @@ public struct Fixed256 : IEquatable<Fixed256>
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Fixed256"/> struct from a 32-byte array.
+    /// Initializes a new instance of the <see cref="Bytes32"/> struct from a 32-byte array.
     /// </summary>
     /// <param name="source">The source array containing exactly 32 bytes.</param>
-    public Fixed256(byte[] source) : this(source.AsSpan()) { }
+    public Bytes32(byte[] source) : this(source.AsSpan()) { }
 
     /// <summary>
     /// Copies exactly 32 bytes from the source span into this buffer.
     /// </summary>
     /// <param name="source">The source span (at least 32 bytes).</param>
-    /// <returns>A new <see cref="Fixed256"/> instance.</returns>
+    /// <returns>A new <see cref="Bytes32"/> instance.</returns>
     /// <exception cref="ArgumentException">Thrown when the source span is smaller than 32 bytes.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Fixed256 CopyFrom(ReadOnlySpan<byte> source) => new(source);
+    public static Bytes32 CopyFrom(ReadOnlySpan<byte> source) => new(source);
 
     /// <summary>
     /// Writes the content of this 256-bit buffer into the destination span.
@@ -128,32 +128,32 @@ public struct Fixed256 : IEquatable<Fixed256>
     /// <summary>
     /// Gets a 256-bit buffer with all bits set to zero.
     /// </summary>
-    public static Fixed256 Empty => default;
+    public static Bytes32 Zero => default;
 
     /// <summary>
     /// Returns <see langword="true"/> if all bits in the buffer are zero.
     /// This comparison is performed in constant-time.
     /// </summary>
-    public readonly bool IsEmpty
+    public readonly bool IsZero
     {
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
         get => (_v1 | _v2 | _v3 | _v4) == 0;
     }
 
     /// <summary>
-    /// Compares two <see cref="Fixed256"/> instances in constant-time.
+    /// Compares two <see cref="Bytes32"/> instances in constant-time.
     /// </summary>
     /// <param name="other">The other instance to compare.</param>
     /// <returns><see langword="true"/> if both buffers are bitwise identical.</returns>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-    public readonly bool Equals(Fixed256 other)
+    public readonly bool Equals(Bytes32 other)
     {
         ulong res = (_v1 ^ other._v1) | (_v2 ^ other._v2) | (_v3 ^ other._v3) | (_v4 ^ other._v4);
         return res == 0;
     }
 
     /// <inheritdoc/>
-    public override readonly bool Equals(object? obj) => obj is Fixed256 other && this.Equals(other);
+    public override readonly bool Equals(object? obj) => obj is Bytes32 other && this.Equals(other);
 
     /// <inheritdoc/>
     public override readonly int GetHashCode() => HashCode.Combine(_v1, _v2, _v3, _v4);
@@ -164,8 +164,8 @@ public struct Fixed256 : IEquatable<Fixed256>
     public readonly ReadOnlySpan<byte> AsSpan() => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in _v1)), Size);
 
     /// <inheritdoc/>
-    public static bool operator ==(Fixed256 left, Fixed256 right) => left.Equals(right);
+    public static bool operator ==(Bytes32 left, Bytes32 right) => left.Equals(right);
 
     /// <inheritdoc/>
-    public static bool operator !=(Fixed256 left, Fixed256 right) => !left.Equals(right);
+    public static bool operator !=(Bytes32 left, Bytes32 right) => !left.Equals(right);
 }

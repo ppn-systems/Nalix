@@ -92,7 +92,7 @@ public sealed class SessionHandlers
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption to prevent DoS.
         HmacKeccak256.Compute(session.Snapshot.Secret, tokenBytes[..7], expectedProofBytes);
 
-        Fixed256 expectedProof = new(expectedProofBytes);
+        Bytes32 expectedProof = new(expectedProofBytes);
         if (packet.Proof != expectedProof)
         {
             session.Return();
