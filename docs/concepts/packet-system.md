@@ -4,20 +4,21 @@ The Packet System is the foundation of Nalix's networking model. It provides a d
 
 ## 1. Defining Packets
 
-To define a packet, create a `sealed class` that inherits from `PacketBase<T>` and annotate it with both `[Packet]` (for discovery) and `[SerializePackable]` (for wire layout).
+### The Mandatory Attribute Pair
+For a standard network packet, you must apply both of the following attributes:
+
+1. **`[Packet]`**: Registers the class in the `PacketRegistry` catalog for automatic discovery. Without this, the dispatcher will not know how to map an incoming OpCode to this class.
+2. **`[SerializePackable]`**: Configures the wire layout. Without this, the serializer will fail with an `InvalidOperationException`.
 
 ```csharp
-[Packet]
-[SerializePackable(SerializeLayout.Explicit)]
+[Packet] // Discovery & Registration
+[SerializePackable(SerializeLayout.Explicit)] // Wire Formatting
 public sealed class TradePacket : PacketBase<TradePacket>
 {
     public const ushort OpCodeValue = 0x5001;
 
-    [SerializeOrder(0)]
-    public long TradeId { get; set; }
-
-    [SerializeOrder(1)]
-    public double Price { get; set; }
+    [SerializeOrder(0)] public long TradeId { get; set; }
+    [SerializeOrder(1)] public double Price { get; set; }
 
     public TradePacket() => OpCode = OpCodeValue;
 }
@@ -170,7 +171,39 @@ public sealed class PingRequest : PacketBase<PingRequest>
 
 ---
 
-## 6. Packet Registration
+## 6. Edge Cases & Wire Integrity
+
+### Magic Numbers: Ensuring Type Safety
+Every packet in Nalix includes a hidden **Magic Number** derived from its full type name. During deserialization, `PacketBase<T>.Deserialize` validates this number before attempting to read the payload.
+
+If you attempt to deserialize a `PingRequest` buffer into a `TradePacket` object, the system will throw a `SerializationFailureException` due to a magic number mismatch. This prevents silent data corruption and type-conversion bugs.
+
+### Handling Serialization Failures
+Network data can be malformed, truncated, or malicious. Nalix protects the hot path by throwing a `SerializationFailureException` in the following cases:
+
+- **Buffer Too Small**: The incoming data is shorter than the fixed-size header or the expected static payload.
+- **Dynamic Size Limit Exceeded**: A string or array exceeds the limit set by `[SerializeDynamicSize]`.
+- **Magic Number Mismatch**: The incoming packet's type identity does not match the target deserialization class.
+
+#### Best Practice: Defensive Dispatch
+In a high-performance scenario, let the dispatcher handle these exceptions. It will log the failure, increment the connection's error count via `IConnection.IncrementErrorCount()`, and safely return the buffer to the pool.
+
+```csharp
+try 
+{
+    var packet = MyPacket.Deserialize(buffer);
+}
+catch (SerializationFailureException ex)
+{
+    Log.Warning($"Discarding malformed packet: {ex.Message}");
+    // Passive health tracking
+    connection.IncrementErrorCount();
+}
+```
+
+---
+
+## 7. Packet Registration
 
 Packets must be registered with the `PacketRegistry` before they can be deserialized at runtime. The `PacketRegistryFactory` discovers packet types, binds their deserializers, and builds an immutable `FrozenDictionary`-backed catalog.
 
