@@ -49,7 +49,7 @@ public static class HandshakeExtensions
 
         Span<byte> clientNonceBytes = stackalloc byte[Handshake.DynamicSize];
         Csprng.Fill(clientNonceBytes);
-        Fixed256 clientNonce = new(clientNonceBytes);
+        Bytes32 clientNonce = new(clientNonceBytes);
 
         Handshake clientHello = new(HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
 
@@ -69,25 +69,25 @@ public static class HandshakeExtensions
             throw new NetworkException("Malformed Handshake SERVER_HELLO packet.");
         }
 
-        Fixed256 sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
+        Bytes32 sharedSecret = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
 
-        if (sharedSecret.IsEmpty)
+        if (sharedSecret.IsZero)
         {
             throw new NetworkException("Handshake key agreement failed: Shared secret is all zero.");
         }
 
-        Fixed256 transcriptHash = Handshake.ComputeTranscriptHash(
+        Bytes32 transcriptHash = Handshake.ComputeTranscriptHash(
             HandshakeX25519.ComposeTranscriptBuffer(clientKey.PublicKey, clientNonce, serverHello.PublicKey, serverHello.Nonce));
 
-        Fixed256 expectedProof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
+        Bytes32 expectedProof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
         if (serverHello.Proof != expectedProof)
         {
             throw new NetworkException("Handshake SERVER_HELLO proof is invalid.");
         }
 
-        Fixed256 sessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
+        Bytes32 sessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, clientNonce, serverHello.Nonce, transcriptHash);
 
-        Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Fixed256.Empty, Fixed256.Empty, HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
+        Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(sharedSecret, transcriptHash))
         {
             TranscriptHash = transcriptHash
         };
@@ -103,7 +103,7 @@ public static class HandshakeExtensions
             throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
         }
 
-        Fixed256 expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);
+        Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash);
         if (serverFinish.Proof != expectedFinish)
         {
             throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");
