@@ -45,7 +45,7 @@ internal sealed class FrameSender : IDisposable
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
 
         _sendQueue = Channel.CreateBounded<(byte[], int, TaskCompletionSource<bool>)>(
-            new BoundedChannelOptions(1024)
+            new BoundedChannelOptions(options.AsyncQueueCapacity)
             {
                 FullMode = BoundedChannelFullMode.Wait,
                 SingleReader = true
@@ -75,7 +75,15 @@ internal sealed class FrameSender : IDisposable
             current.Memory.Span.CopyTo(frame.AsSpan(TcpSession.HeaderSize, current.Length));
 
             TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            await _sendQueue.Writer.WriteAsync((frame, totalLen, tcs), ct).ConfigureAwait(false);
+            try
+            {
+                await _sendQueue.Writer.WriteAsync((frame, totalLen, tcs), ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                BufferLease.ByteArrayPool.Return(frame);
+                throw;
+            }
             return await tcs.Task.ConfigureAwait(false);
         }
         finally { current.Dispose(); }
@@ -101,6 +109,13 @@ internal sealed class FrameSender : IDisposable
         {
             _onError?.Invoke(ex);
             _ = _sendQueue.Writer.TryComplete(ex);
+
+            // BUG-57: Drain any items already in the queue so callers are not hung forever.
+            while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
+            {
+                _ = item.tcs.TrySetException(new NetworkException("Sender loop faulted, message dropped.", ex));
+                BufferLease.ByteArrayPool.Return(item.frame);
+            }
         }
     }
 
@@ -226,5 +241,12 @@ internal sealed class FrameSender : IDisposable
         _drainCts.Cancel();
         _drainCts.Dispose();
         _ = _sendQueue.Writer.TryComplete();
+
+        // Drain any pending items and fail their TaskCompletionSource to avoid hanging callers.
+        while (_sendQueue.Reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
+        {
+            _ = item.tcs.TrySetException(new ObjectDisposedException(nameof(FrameSender)));
+            BufferLease.ByteArrayPool.Return(item.frame);
+        }
     }
 }

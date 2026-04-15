@@ -49,8 +49,12 @@ public static class TimeSyncExtensions
         double rttMs = Clock.MonoTicksToMilliseconds(endTicks - startTicks);
 
         // Synchronize the local client clock with the server's timestamp,
-        // accounting for half the round-trip latency.
-        double adjustedMs = Clock.SynchronizeUnixMilliseconds(res.Timestamp, rttMs);
+        // accounting for half the round-trip latency, ONLY if allowed for this session.
+        double adjustedMs = 0;
+        if (session.Options.TimeSyncEnabled)
+        {
+            adjustedMs = Clock.SynchronizeUnixMilliseconds(res.Timestamp, rttMs);
+        }
 
         return (rttMs, adjustedMs);
     }

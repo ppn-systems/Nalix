@@ -9,11 +9,13 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Sessions;
+using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Security.Hashing;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -56,25 +58,61 @@ public sealed class SessionHandlers
             return;
         }
 
-        SessionEntry? session = await Hub.SessionStore.RetrieveAsync(packet.SessionToken.ToUInt56())
-                                                      .ConfigureAwait(false);
+        // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
+        // Two parallel requests with the same token: only the first gets the entry,
+        // the second gets null because TryRemove is atomic.
+        SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken.ToUInt56())
+                                                       .ConfigureAwait(false);
         if (session == null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
             return;
         }
 
+        // SEC-16: Validate proof-of-possession (MAC) using the stored session secret.
+        // We compute HMAC-SHA256(Secret, SessionToken) and compare it with the client's proof.
+        // This ensures the client knows the secret without sending it over the wire.
+        if (session.Snapshot.Secret is not { Length: > 0 })
+        {
+            session.Return();
+            await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
+            return;
+        }
+
+        Span<byte> expectedProofBytes = stackalloc byte[32];
+        Span<byte> tokenBytes = stackalloc byte[8];
+        _ = packet.SessionToken.TryWriteBytes(tokenBytes);
+
+        // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption to prevent DoS.
+        HmacKeccak256.Compute(session.Snapshot.Secret, tokenBytes, expectedProofBytes);
+
+        Fixed256 expectedProof = new(expectedProofBytes);
+        if (packet.Proof != expectedProof)
+        {
+            session.Return();
+            await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
+            return;
+        }
+
+        // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
+
         ApplySession(context.Connection, session);
+
+        // Generate and store a new session entry with a rotated token for subsequent resume attempts.
+        SessionEntry newEntry = Hub.SessionStore.CreateSession(context.Connection);
+        await Hub.SessionStore.StoreAsync(newEntry).ConfigureAwait(false);
+        UInt56 newToken = newEntry.Snapshot.SessionToken;
 
         using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
-            sessionToken: Snowflake.NewId(session.Snapshot.SessionToken),
+            sessionToken: Snowflake.NewId(newToken),
             reason: ProtocolReason.NONE,
             transport: packet.Protocol);
 
         await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
+        session.Return();
     }
 
     /// <summary>

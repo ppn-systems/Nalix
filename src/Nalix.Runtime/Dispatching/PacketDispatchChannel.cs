@@ -39,6 +39,7 @@ public sealed class PacketDispatchChannel
 
     private readonly IPacketRegistry _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
+
     private readonly Channel<byte> _wakeChannel;
     private readonly int _maxDrainPerWake;
 
@@ -69,6 +70,7 @@ public sealed class PacketDispatchChannel
                        $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager.");
 
         _dispatch = new DispatchChannel<IPacket>();
+
         _wakeChannel = Channel.CreateUnbounded<byte>(
             new UnboundedChannelOptions
             {
@@ -77,7 +79,7 @@ public sealed class PacketDispatchChannel
                 SingleWriter = false
             });
 
-        _maxDrainPerWake = Math.Clamp(Environment.ProcessorCount * 8, 64, 2048);
+        _maxDrainPerWake = Math.Clamp(Environment.ProcessorCount * this.Options.MaxDrainPerWakeMultiplier, this.Options.MinDrainPerWake, this.Options.MaxDrainPerWake);
     }
 
     #endregion Constructors
@@ -121,7 +123,7 @@ public sealed class PacketDispatchChannel
 
         Volatile.Write(ref _activeLoops, 0);
 
-        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount, 1, 64);
+        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount, this.Options.MinDispatchLoops, this.Options.MaxDispatchLoops);
         _workerHandle = new IWorkerHandle[_dispatchLoops];
 
         for (int i = 0; i < _dispatchLoops; i++)
@@ -209,7 +211,7 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        if (_dispatch.PushCore(connection, packet))
+        if (_dispatch.PushCore(connection, packet, noBlock: true))
         {
             this.RequestWake();
         }

@@ -6,7 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Security.Hashing;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Extensions;
@@ -39,11 +41,21 @@ public static class ResumeExtensions
         SessionResume request = new();
         request.Initialize(SessionResumeStage.REQUEST, session.Options.SessionToken);
 
+        // SEC-16: Compute proof-of-possession using HMAC-SHA256(Secret, SessionToken).
+        // This proves to the server that we own the session secret.
+        Span<byte> proofBytes = stackalloc byte[32];
+        Span<byte> tokenBytes = stackalloc byte[8];
+        _ = session.Options.SessionToken.TryWriteBytes(tokenBytes);
+
+        // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
+        HmacKeccak256.Compute(session.Options.Secret, tokenBytes, proofBytes);
+        request.Proof = new Fixed256(proofBytes);
+
         try
         {
             SessionResume response = await PacketAwaiter.AwaitAsync<SessionResume>(
                 session,
-                predicate: static packet => packet.Stage == SessionResumeStage.RESPONSE,
+                predicate: packet => packet.Stage == SessionResumeStage.RESPONSE && packet.SessionToken == request.SessionToken,
                 timeoutMs: session.Options.ResumeTimeoutMillis,
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);
@@ -115,8 +127,10 @@ public static class ResumeExtensions
             await session.ConnectAsync(host, port, ct).ConfigureAwait(false);
         }
 
+        // Use explicit encrypt=false for the handshake send without mutating the shared
+        // EncryptionEnabled flag — this avoids a race condition where concurrent SendAsync
+        // calls could see a temporarily-disabled encryption state (SEC-06).
         bool previousEncryption = session.Options.EncryptionEnabled;
-        session.Options.EncryptionEnabled = false;
 
         try
         {
@@ -125,6 +139,8 @@ public static class ResumeExtensions
         }
         finally
         {
+            // Ensure encryption is restored/enabled after handshake completes.
+            // HandshakeAsync itself may enable encryption; only restore if it didn't.
             if (!session.Options.EncryptionEnabled)
             {
                 session.Options.EncryptionEnabled = previousEncryption && session.Options.Secret.Length > 0;

@@ -25,9 +25,14 @@ public class TcpSession : TransportSession
     private readonly FrameSender _sender;
     private readonly FrameReader _reader;
 
+    private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private Socket? _socket;
     private CancellationTokenSource? _loopCts;
     private int _disposed;
+
+    // Sequential dispatcher for async handlers (BUG-10)
+    private System.Threading.Channels.Channel<Func<Task>>? _asyncQueue;
+
 
     #endregion Fields
 
@@ -90,41 +95,75 @@ public class TcpSession : TransportSession
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
-        string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
-        ushort effectivePort = port ?? this.Options.Port;
-
-        // Ensure single connection at a time
-        if (this.IsConnected)
-        {
-            await this.DisconnectAsync().ConfigureAwait(false);
-        }
-
+        await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
+            string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
+            ushort effectivePort = port ?? this.Options.Port;
+
+            // Ensure single connection at a time
+            if (this.IsConnected)
+            {
+                await this.DisconnectInternalAsync().ConfigureAwait(false);
+            }
+
             // Initialize socket with NoDelay to reduce latency
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-            await _socket.ConnectAsync(effectiveHost, effectivePort, ct).ConfigureAwait(false);
+
+            using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
+
+            await _socket.ConnectAsync(effectiveHost, effectivePort, connectCts.Token).ConfigureAwait(false);
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
             // Start background worker for reading frames
             _loopCts = new CancellationTokenSource();
+
+            // Initialize sequential async dispatcher with backpressure (SEC-56)
+            _asyncQueue = System.Threading.Channels.Channel.CreateBounded<Func<Task>>(
+                new System.Threading.Channels.BoundedChannelOptions(this.Options.AsyncQueueCapacity)
+                {
+                    SingleReader = true,
+                    SingleWriter = true,
+                    FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
+                });
+
+            _ = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), ct);
             _ = Task.Run(() => _reader.ReceiveLoopAsync(_loopCts.Token), CancellationToken.None);
         }
         catch (Exception ex)
         {
+            await this.DisconnectInternalAsync().ConfigureAwait(false);
             this.OnError?.Invoke(this, ex);
             throw new NetworkException($"Connection failed: {ex.Message}", ex);
+        }
+        finally
+        {
+            _ = _connectionLock.Release();
         }
     }
 
     /// <inheritdoc/>
-    public override Task DisconnectAsync()
+    public override async Task DisconnectAsync()
     {
         if (Volatile.Read(ref _disposed) == 1)
         {
-            return Task.CompletedTask;
+            return;
         }
 
+        await _connectionLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            await this.DisconnectInternalAsync().ConfigureAwait(false);
+        }
+        finally
+        {
+            _ = _connectionLock.Release();
+        }
+    }
+
+    private Task DisconnectInternalAsync()
+    {
         CancellationTokenSource? loopCts = Interlocked.Exchange(ref _loopCts, null);
         Socket? socket = Interlocked.Exchange(ref _socket, null);
 
@@ -132,6 +171,7 @@ public class TcpSession : TransportSession
         {
             loopCts?.Cancel();
         }
+        catch (ObjectDisposedException) { }
         finally
         {
             loopCts?.Dispose();
@@ -146,13 +186,16 @@ public class TcpSession : TransportSession
                     socket.Shutdown(SocketShutdown.Both);
                 }
             }
-            catch (SocketException)
-            {
-            }
+            catch (SocketException) { }
+            catch (ObjectDisposedException) { }
 
             socket.Dispose();
             this.OnDisconnected?.Invoke(this, new NetworkException("The TCP session was disconnected."));
         }
+
+        // Close async queue
+        _ = (_asyncQueue?.Writer.TryComplete());
+        _asyncQueue = null;
 
         return Task.CompletedTask;
     }
@@ -173,7 +216,11 @@ public class TcpSession : TransportSession
         // Rent a buffer, serialize the packet, and delegate sending to FrameSender
         using BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));
-        _ = await _sender.SendAsync(lease.Memory, encrypt, ct).ConfigureAwait(false);
+        bool sent = await _sender.SendAsync(lease.Memory, encrypt, ct).ConfigureAwait(false);
+        if (!sent)
+        {
+            throw new NetworkException("Failed to send TCP packet: the frame was not delivered to the socket.");
+        }
     }
 
     /// <inheritdoc/>
@@ -187,9 +234,10 @@ public class TcpSession : TransportSession
             return;
         }
 
-        _ = this.DisconnectAsync();
+        _ = this.DisconnectInternalAsync();
         _sender.Dispose();
         _reader.Dispose();
+        _connectionLock.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -214,6 +262,7 @@ public class TcpSession : TransportSession
         try
         {
             ReadOnlyMemory<byte>? asyncPayload = null;
+            System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
 
             if (asyncHandler is not null && syncHandler is not null)
             {
@@ -222,31 +271,76 @@ public class TcpSession : TransportSession
 
             syncHandler?.Invoke(this, lease);
 
-            if (asyncHandler is not null)
+            if (asyncHandler is not null && writer is not null)
             {
                 if (asyncPayload is { } copiedPayload)
                 {
-                    _ = Task.Run(async () =>
+                if (!_asyncQueue.Writer.TryWrite(async () =>
                     {
                         try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
                         catch (Exception ex) { this.OnError?.Invoke(this, ex); }
-                    });
-                    return;
+                    }))
+                {
+                    this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
+                }
+                return;
                 }
 
                 lease.Retain();
-                _ = Task.Run(async () =>
+                if (!writer.TryWrite(async () =>
                 {
                     try { await asyncHandler(lease.Memory).ConfigureAwait(false); }
                     catch (Exception ex) { this.OnError?.Invoke(this, ex); }
                     finally { lease.Dispose(); }
-                });
+                }))
+                {
+                    this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
+                    lease.Dispose();
+                }
                 return;
             }
         }
         catch (Exception ex)
         {
             this.OnError?.Invoke(this, ex);
+        }
+    }
+
+    private async Task ProcessAsyncQueueAsync(CancellationToken ct)
+    {
+        System.Threading.Channels.ChannelReader<Func<Task>>? reader = _asyncQueue?.Reader;
+        if (reader is null)
+        {
+            return;
+        }
+
+        try
+        {
+            while (await reader.WaitToReadAsync(ct).ConfigureAwait(false))
+            {
+                while (reader.TryRead(out Func<Task>? work))
+                {
+                    try
+                    {
+                        await work().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        this.OnError?.Invoke(this, ex);
+                    }
+                }
+            }
+        }
+        finally
+        {
+            // Drain the queue to ensure any enqueued work (with finally { lease.Dispose() })
+            // is executed so we don't leak leases on shutdown.
+            while (reader.TryRead(out Func<Task>? work))
+            {
+                // We don't await because we're shutting down, but we must start it 
+                // so the 'finally' blocks inside 'work()' run.
+                _ = work();
+            }
         }
     }
 

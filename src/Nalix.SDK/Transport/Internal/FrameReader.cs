@@ -126,7 +126,7 @@ internal sealed class FrameReader : IDisposable
     {
         try
         {
-            PacketFrameTransforms.TransformInbound(ref lease, _options.Secret);
+            PacketFrameTransforms.TransformInbound(ref lease, _options);
             _onMessage(lease);
         }
         finally

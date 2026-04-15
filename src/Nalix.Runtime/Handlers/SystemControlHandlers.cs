@@ -76,11 +76,26 @@ public sealed class SystemControlHandlers
 
     private static async ValueTask HandleCipherUpdate(IConnection connection, Control packet)
     {
-        // HACK: Payload Overloading.
-        // Since we reused the 'Control' packet to avoid defining a new packet structure,
-        // we explicitly crammed the 1-byte CipherSuiteType enum into the 2-byte ProtocolReason field.
-        // Here we safely extract it back into the proper CipherSuiteType.
-        connection.Algorithm = (CipherSuiteType)(byte)packet.Reason;
+        // SEC-40: Validate the enum value to prevent protocol DoS via invalid algorithm state.
+        byte rawValue = (byte)packet.Reason;
+        if (!Enum.IsDefined(typeof(CipherSuiteType), (CipherSuiteType)rawValue))
+        {
+            return;
+        }
+
+        CipherSuiteType requestedSuite = (CipherSuiteType)rawValue;
+
+        // SEC-39: Prevent crypto policy tampering. 
+        // We do not allow changing the algorithm if a secret has already been established
+        // or if the algorithm is being changed randomly via a plaintext control frame.
+        // In a production system, cipher negotiation should happen during a secure handshake.
+        if (connection.Secret is { Length: > 0 } && connection.Algorithm != requestedSuite)
+        {
+            // Unauthorized tampering attempt while encrypted session is active.
+            return;
+        }
+
+        connection.Algorithm = requestedSuite;
 
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control ack = lease.Value;

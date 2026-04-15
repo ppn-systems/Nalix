@@ -75,9 +75,39 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
 
     /// <summary>
     /// Specifies how many dispatch loops the <see cref="PacketDispatchChannel"/> should start.
-    /// When <see langword="null"/>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount / 2, 1, 12)</c>.
+    /// When <see langword="null"/>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount, MinDispatchLoops, MaxDispatchLoops)</c>.
     /// </summary>
     public int? DispatchLoopCount { get; private set; }
+
+    /// <summary>
+    /// Multiplier for the number of packets to drain from the connection hub per wake signal.
+    /// Default: 8.
+    /// </summary>
+    public int MaxDrainPerWakeMultiplier { get; set; } = 8;
+
+    /// <summary>
+    /// Minimum number of packets to drain per wake signal.
+    /// Default: 64.
+    /// </summary>
+    public int MinDrainPerWake { get; set; } = 64;
+
+    /// <summary>
+    /// Maximum number of packets to drain per wake signal.
+    /// Default: 2048.
+    /// </summary>
+    public int MaxDrainPerWake { get; set; } = 2048;
+
+    /// <summary>
+    /// Minimum number of dispatch loops to start.
+    /// Default: 1.
+    /// </summary>
+    public int MinDispatchLoops { get; set; } = 1;
+
+    /// <summary>
+    /// Maximum number of dispatch loops to start.
+    /// Default: 64.
+    /// </summary>
+    public int MaxDispatchLoops { get; set; } = 64;
 
     internal int RegisteredHandlerCount => Volatile.Read(ref _handlerCount);
 

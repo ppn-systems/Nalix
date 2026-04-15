@@ -19,13 +19,13 @@ internal static class PacketFrameTransforms
     /// <summary>
     /// Applies inbound transforms in transport order: decrypt first, then decompress.
     /// </summary>
-    public static void TransformInbound(ref IBufferLease current, ReadOnlySpan<byte> secret)
+    public static void TransformInbound(ref IBufferLease current, TransportOptions options)
     {
         PacketFlags flags = current.Span.ReadFlagsLE();
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
-            IBufferLease next = PacketCipher.DecryptFrame(current, secret);
+            IBufferLease next = PacketCipher.DecryptFrame(current, options.Secret, options.Algorithm);
             current.Dispose();
             current = next;
             flags = current.Span.ReadFlagsLE();
