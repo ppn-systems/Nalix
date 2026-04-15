@@ -297,12 +297,11 @@ public struct ChaCha20
 
         // Advance block counter — UInt32 wraps naturally; check == 0 for overflow
         state[12] = BitwiseOperations.AddOne(state[12]);
-
-        if (state[12] == 0u)  // FIX: was `<= 0` which is misleading for UInt32
+ 
+        if (state[12] == 0u)
         {
-            // Counter overflow: carry into next word.
-            // The caller is responsible for not exceeding 2^70 bytes per nonce.
-            state[13] = BitwiseOperations.AddOne(state[13]);
+            // Counter overflow: MUST NOT reuse key/nonce (RFC 8439 §2.4)
+            throw new Common.Exceptions.CipherException("ChaCha20 block counter overflow. Maximum data limit (256 GiB) reached for a single key/nonce pair.");
         }
     }
 

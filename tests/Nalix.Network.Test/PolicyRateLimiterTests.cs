@@ -79,6 +79,8 @@ public sealed class PolicyRateLimiterTests
 
     private sealed class TestPacketContext(Connection connection, ushort opCode, PacketRateLimitAttribute rateLimit) : IPacketContext<IPacket>
     {
+        public WireProtocolType Protocol => WireProtocolType.TCP;
+
         public bool SkipOutbound => false;
 
         public IPacket Packet { get; } = new TestPacket(opCode);

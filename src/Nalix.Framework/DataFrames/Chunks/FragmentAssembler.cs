@@ -97,6 +97,16 @@ public sealed class FragmentAssembler : IDisposable
     /// </summary>
     public int MaxStreamBytes { get; init; } = 16 * 1024 * 1024;
 
+    /// <summary>
+    /// The maximum number of concurrent reassembly streams allowed per connection.
+    /// Streams exceeding this limit are rejected immediately. Default: 64.
+    /// </summary>
+    /// <remarks>
+    /// SEC-34 fix: Without this limit, an attacker could open thousands of streams
+    /// (each with a different streamId), each allocating a buffer, to exhaust memory.
+    /// </remarks>
+    public int MaxOpenStreams { get; init; } = 64;
+
     #endregion Configuration properties
 
     #region APIs
@@ -146,6 +156,13 @@ public sealed class FragmentAssembler : IDisposable
             {
                 throw new InvalidDataException(
                     $"Fragment stream {header.StreamId} started with chunk index {header.ChunkIndex} instead of 0.");
+            }
+
+            // SEC-34: Reject new streams when at capacity to prevent memory exhaustion.
+            if (_streams.Count >= this.MaxOpenStreams)
+            {
+                streamEvicted = true;
+                return null;
             }
 
             // Estimate buffer size: firstChunk * totalChunks, capped at MaxStreamBytes

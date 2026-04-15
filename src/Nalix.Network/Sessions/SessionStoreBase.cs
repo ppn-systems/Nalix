@@ -32,7 +32,8 @@ public abstract class SessionStoreBase : ISessionStore
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        Snowflake sessionToken = Snowflake.NewId(SnowflakeType.Session);
+        UInt56 sessionToken = Snowflake.NewId(SnowflakeType.Session).ToUInt56();
+
         long now = Clock.UnixMillisecondsNow();
 
         ObjectMap<string, object> attributes = ObjectMap<string, object>.Rent();
@@ -43,7 +44,7 @@ public abstract class SessionStoreBase : ISessionStore
 
         SessionSnapshot snapshot = new()
         {
-            SessionToken = sessionToken.ToUInt56(),
+            SessionToken = sessionToken,
             CreatedAtUnixMilliseconds = now,
             ExpiresAtUnixMilliseconds = now + (long)_options.SessionTtl.TotalMilliseconds,
             Secret = [.. connection.Secret],
@@ -54,7 +55,7 @@ public abstract class SessionStoreBase : ISessionStore
 
         SessionEntry entry = new(snapshot, connection.ID.ToUInt56());
 
-        connection.Attributes[ConnectionAttributes.SessionToken] = sessionToken.ToUInt56();
+        connection.Attributes[ConnectionAttributes.SessionToken] = sessionToken;
 
         return entry;
     }
@@ -64,6 +65,9 @@ public abstract class SessionStoreBase : ISessionStore
 
     /// <inheritdoc/>
     public abstract ValueTask<SessionEntry?> RetrieveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
+
+    /// <inheritdoc/>
+    public abstract ValueTask<SessionEntry?> ConsumeAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
 
     /// <inheritdoc/>
     public abstract ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);

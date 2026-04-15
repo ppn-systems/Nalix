@@ -364,7 +364,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                 }
                 catch (Exception ex)
                 {
-                    _logger?.Error(
+                    conn.ThrottledError(
+                        _logger,
+                        "hub.force_close_error",
                         $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
                 }
             }
@@ -386,11 +388,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void CloseAllConnections(string? reason = null)
     {
-        if (_disposed)
-        {
-            return;
-        }
-
         IConnection[] connections = this.CaptureConnectionSnapshot();
 
         foreach (IConnection connection in connections)
@@ -411,7 +408,9 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             }
             catch (Exception ex)
             {
-                _logger?.Error(
+                connection.ThrottledError(
+                    _logger,
+                    "hub.close_all_error",
                     $"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}",
                     ex);
             }
@@ -636,8 +635,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        this.CloseAllConnections("disposed");
         _disposed = true;
+        this.CloseAllConnections("disposed");
 
         _logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
@@ -814,6 +813,16 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
                     if (spinner.Count > 12)
                     {
                         _ = Thread.Yield();
+                    }
+
+                    // BUG-06: Prevent infinite spin by bounding the wait.
+                    // After ~10K iterations we reject the connection instead of
+                    // burning CPU indefinitely when the server is at capacity.
+                    if (spinner.Count > 10_000)
+                    {
+                        this.RejectIncomingConnection(incomingConnection, "block-timeout");
+                        failure = RegisterResult.CapacityLimitReached;
+                        return false;
                     }
 
                     continue;

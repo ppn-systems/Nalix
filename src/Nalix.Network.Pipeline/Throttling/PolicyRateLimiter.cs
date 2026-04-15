@@ -55,7 +55,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> _limiters = new();
 
     private static readonly int[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
-    private static readonly double[] s_burstTiers = [0.1, 0.2, 0.5, 1, 2, 4, 8, 16, 32, 64];
+    private static readonly double[] s_burstTiers = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
 
     private static readonly Lazy<TokenBucketOptions> s_defaults = new(() => ConfigurationManager.Instance.Get<TokenBucketOptions>());
 
@@ -189,23 +189,27 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
     private readonly record struct Policy(int Rps, double Burst);
 
-    private readonly struct RateLimitSubject(ushort op, INetworkEndpoint inner) : INetworkEndpoint, IEquatable<RateLimitSubject>
+    private readonly struct RateLimitSubject : INetworkEndpoint, IEquatable<RateLimitSubject>
     {
-        private readonly ushort _op = op;
-        private readonly INetworkEndpoint _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        private readonly ushort _op;
+        private readonly INetworkEndpoint _inner;
+        private readonly string _ip;
 
-        // Hot-path: avoid per-evaluation string allocation.
+        public RateLimitSubject(ushort op, INetworkEndpoint inner)
+        {
+            _op = op;
+            _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            _ip = inner.Address; // Use address only for subject identity to prevent port-rotation bypass
+        }
+
         public string Address => _inner.Address;
-
         public int Port => _inner.Port;
-
         public bool HasPort => _inner.HasPort;
-
         public bool IsIPv6 => _inner.IsIPv6;
 
-        public override int GetHashCode() => HashCode.Combine(_op, _inner);
+        public override int GetHashCode() => HashCode.Combine(_op, _ip);
 
-        public bool Equals(RateLimitSubject other) => _op == other._op && _inner.Equals(other._inner);
+        public bool Equals(RateLimitSubject other) => _op == other._op && _ip == other._ip;
 
         public override bool Equals(object? obj) => obj is RateLimitSubject other && this.Equals(other);
 
@@ -213,7 +217,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         public static bool operator !=(RateLimitSubject left, RateLimitSubject right) => !left.Equals(right);
 
-        public override string ToString() => $"op:{_op:X4}|ep:{_inner.Address}";
+        public override string ToString() => $"op:{_op:X4}|ip:{_ip}";
     }
 
     private readonly struct CheckResult
@@ -492,6 +496,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     {
         int rps = QUANTIZE_VALUE(rl.RequestsPerSecond, s_rpsTiers);
         double burst = QUANTIZE_VALUE(rl.Burst, s_burstTiers);
+        burst = Math.Max(1.0, burst); // Ensure CapacityTokens >= 1
 
         return new Policy(rps, burst);
     }

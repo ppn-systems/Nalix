@@ -37,6 +37,12 @@ internal sealed class FrameSender : IDisposable
 
     #endregion Fields
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="FrameSender"/> class.
+    /// </summary>
+    /// <param name="getSocket">A delegate that returns the active socket used for sending data.</param>
+    /// <param name="options">The transport options that control queue capacity and frame behavior.</param>
+    /// <param name="onError">The callback invoked when send processing encounters an error.</param>
     public FrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -45,7 +51,7 @@ internal sealed class FrameSender : IDisposable
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
 
         _sendQueue = Channel.CreateBounded<(byte[], int, TaskCompletionSource<bool>)>(
-            new BoundedChannelOptions(1024)
+            new BoundedChannelOptions(options.AsyncQueueCapacity)
             {
                 FullMode = BoundedChannelFullMode.Wait,
                 SingleReader = true
@@ -54,6 +60,13 @@ internal sealed class FrameSender : IDisposable
         _ = Task.Run(() => this.DRAIN_LOOP_ASYNC(_drainCts.Token));
     }
 
+    /// <summary>
+    /// Queues a payload for sending after applying outbound compression and encryption transforms.
+    /// </summary>
+    /// <param name="payload">The payload to frame and send.</param>
+    /// <param name="encrypt">An optional encryption override. When <see langword="null"/>, the sender uses the configured default.</param>
+    /// <param name="ct">A cancellation token used to abort queueing or sending.</param>
+    /// <returns><see langword="true"/> when the frame is sent successfully; otherwise, <see langword="false"/>.</returns>
     public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
         // ── Transformation ──────────────────────────────────────────────────────
@@ -75,7 +88,15 @@ internal sealed class FrameSender : IDisposable
             current.Memory.Span.CopyTo(frame.AsSpan(TcpSession.HeaderSize, current.Length));
 
             TaskCompletionSource<bool> tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            await _sendQueue.Writer.WriteAsync((frame, totalLen, tcs), ct).ConfigureAwait(false);
+            try
+            {
+                await _sendQueue.Writer.WriteAsync((frame, totalLen, tcs), ct).ConfigureAwait(false);
+            }
+            catch
+            {
+                BufferLease.ByteArrayPool.Return(frame);
+                throw;
+            }
             return await tcs.Task.ConfigureAwait(false);
         }
         finally { current.Dispose(); }
@@ -92,15 +113,35 @@ internal sealed class FrameSender : IDisposable
             {
                 while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
                 {
-                    await this.SEND_SOCKET_ASYNC(item.frame, item.frameLen, item.tcs, token).ConfigureAwait(false);
+                    try
+                    {
+                        await this.SEND_SOCKET_ASYNC(item.frame, item.frameLen, item.tcs, token).ConfigureAwait(false);
+                    }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        // Individual send failed, but we must NOT poison the whole loop.
+                        // Log the error and continue with the next item.
+                        _onError?.Invoke(ex);
+                    }
                 }
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception ex)
         {
             _onError?.Invoke(ex);
             _ = _sendQueue.Writer.TryComplete(ex);
+
+            // BUG-57: Drain any items already in the queue so callers are not hung forever.
+            while (reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
+            {
+                _ = item.tcs.TrySetException(new NetworkException("Sender loop faulted, message dropped.", ex));
+                BufferLease.ByteArrayPool.Return(item.frame);
+            }
         }
     }
 
@@ -216,6 +257,9 @@ internal sealed class FrameSender : IDisposable
 
     #endregion Private Methods
 
+    /// <summary>
+    /// Stops the sender loop, fails pending sends, and releases queue resources.
+    /// </summary>
     public void Dispose()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
@@ -226,5 +270,12 @@ internal sealed class FrameSender : IDisposable
         _drainCts.Cancel();
         _drainCts.Dispose();
         _ = _sendQueue.Writer.TryComplete();
+
+        // Drain any pending items and fail their TaskCompletionSource to avoid hanging callers.
+        while (_sendQueue.Reader.TryRead(out (byte[] frame, int frameLen, TaskCompletionSource<bool> tcs) item))
+        {
+            _ = item.tcs.TrySetException(new ObjectDisposedException(nameof(FrameSender)));
+            BufferLease.ByteArrayPool.Return(item.frame);
+        }
     }
 }

@@ -49,8 +49,14 @@ internal sealed class ArrayFormatter<
             return;
         }
 
-        int totalBytes = value.Length * s_elementSize;
+        long totalBytesLong = (long)value.Length * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            throw new SerializationFailureException(
+                $"Array data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+        }
 
+        int totalBytes = (int)totalBytesLong;
         writer.Expand(totalBytes);
         ref byte destination = ref writer.GetFreeBufferReference();
         ref T source = ref MemoryMarshal.GetArrayDataReference(value);
@@ -86,12 +92,19 @@ internal sealed class ArrayFormatter<
             return null!;
         }
 
-        if (length > SerializerBounds.MaxArray)
+        if (length < 0 || length > SerializerBounds.MaxArray)
         {
             throw new SerializationFailureException("Array length out of range");
         }
 
-        int total = length * s_elementSize;
+        long totalLong = (long)length * s_elementSize;
+        if (totalLong > int.MaxValue)
+        {
+            throw new SerializationFailureException(
+                $"Array data size overflow: {totalLong} bytes exceeds int.MaxValue.");
+        }
+
+        int total = (int)totalLong;
 
         ref byte src = ref reader.GetSpanReference(total);
 

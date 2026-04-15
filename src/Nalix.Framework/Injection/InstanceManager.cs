@@ -41,7 +41,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     private static readonly Lock s_processMutexInitSync = new();
 
     /// <inheritdoc/>
-    public static readonly string ApplicationMutexName = "LOW\\{{" + s_entryAssemblyLazy.Value.FullName + "}}";
+    public static readonly string ApplicationMutexName = "Global\\Nalix.Framework.Lock." + (s_entryAssemblyLazy.Value?.GetName().Name ?? "GenericApp");
 
     private static bool s_processMutexOwner;
     private static Mutex? s_processMutex;
@@ -76,6 +76,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
     private ILogger? _logger;
     private int _isDisposed;
+    private int _isLocked;
 
     #endregion Fields
 
@@ -228,6 +229,16 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     #region Public API
 
     /// <summary>
+    /// Locks the InstanceManager, preventing any further registrations or reloads.
+    /// This should be called after application initialization is complete to prevent service hijacking.
+    /// </summary>
+    public void Lockdown()
+    {
+        _ = Interlocked.Exchange(ref _isLocked, 1);
+        this.EmitLog(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(Lockdown)}] manager locked");
+    }
+
+    /// <summary>
     /// Assigns a logger instance used by the manager for diagnostic output.
     /// </summary>
     /// <param name="logger">The logger to use for subsequent diagnostics.</param>
@@ -250,6 +261,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(T instance, bool registerInterfaces = true) where T : class
     {
+        if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
+        {
+            throw new InvalidOperationException("InstanceManager is locked. Further registrations are not permitted.");
+        }
+
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
         RuntimeTypeHandle key = typeof(T).TypeHandle;
@@ -439,6 +455,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public object GetOrCreateInstance(Type type, [MaybeNull] params object?[] args)
     {
+        if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
+        {
+            throw new InvalidOperationException("InstanceManager is locked. Dynamic instance creation is not permitted.");
+        }
+
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
 
         ArgumentNullException.ThrowIfNull(type, nameof(type));
@@ -980,7 +1001,30 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                 return existing;
             }
 
+
             object instance = this.CREATE_VIA_ACTIVATOR(type, args);
+
+            object stored = _instanceCache.GetOrAdd(key, instance);
+
+            if (!ReferenceEquals(stored, instance))
+            {
+                // We lost the race: dispose the temporary instance if it was tracked.
+                if (instance is IDisposable lostDisp)
+                {
+                    _ = _disposables.TryRemove(lostDisp, out _);
+                    try
+                    {
+                        lostDisp.Dispose();
+                    }
+                    catch (ObjectDisposedException) { /* benign */ }
+                    catch (Exception dex)
+                    {
+                        this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] dispose-fail temp type={type.Name}", dex);
+                    }
+                }
+
+                return stored;
+            }
 
             if (instance is IDisposable d)
             {
@@ -989,7 +1033,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
             this.EmitLog(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] created type={type.Name}");
 
-            return _instanceCache.GetOrAdd(key, instance);
+            return instance;
         }
         catch (Exception ex)
         {

@@ -77,6 +77,12 @@ internal sealed class NullableValueListFormatter<
             return [];
         }
 
+        if (length < 0 || length > SerializerBounds.MaxArray)
+        {
+            throw new Common.Exceptions.SerializationFailureException(
+                $"Nullable list length out of range: {length}. Max allowed is {SerializerBounds.MaxArray}.");
+        }
+
         System.Collections.Generic.List<T?> list = new(length);
         CollectionsMarshal.SetCount(list, length);
         System.Span<T?> span = CollectionsMarshal.AsSpan(list);

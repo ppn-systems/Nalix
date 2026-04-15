@@ -52,7 +52,8 @@ public abstract class TransportSession : IDisposable
 
     /// <summary>
     /// Occurs when a message is received from the remote endpoint.
-    /// The handler receives temporary ownership of the buffer lease and must dispose it.
+    /// The lease is owned by the transport and will be disposed after the event returns;
+    /// handlers must call <see cref="IBufferLease.Retain"/> if they need to keep it.
     /// </summary>
     public abstract event EventHandler<IBufferLease>? OnMessageReceived;
 

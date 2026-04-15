@@ -7,7 +7,7 @@
 <p align="center">
   <a href="https://www.nuget.org/packages?q=Nalix"><img src="https://img.shields.io/nuget/v/Nalix.Network.svg?style=flat-square&label=NuGet" alt="NuGet version"/></a>
   <a href="https://github.com/ppn-systems/nalix/stargazers"><img src="https://img.shields.io/github/stars/ppn-systems/nalix.svg?style=flat-square&color=yellow" alt="GitHub stars"/></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix.svg?style=flat-square&color=blue" alt="License"/></a>
+  <a href="https://github.com/ppn-systems/nalix/blob/master/LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix.svg?style=flat-square&color=blue" alt="License"/></a>
 </p>
 
 Nalix is a real-time TCP and UDP networking framework for .NET 10. It provides a unified packet model shared between client and server, zero-allocation hot paths, shard-aware dispatch pipelines, and middleware-driven packet processing with production-grade transport infrastructure.
@@ -16,6 +16,27 @@ Nalix is a real-time TCP and UDP networking framework for .NET 10. It provides a
 
 [Get Started :material-arrow-right:](./quickstart.md){ .md-button .md-button--primary }
 [View Packages](./packages/index.md){ .md-button }
+
+---
+
+![Nalix Data Flow](./assets/overview-flow.svg){ .nlx-hero-img }
+
+## Performance Highlights
+
+<div class="nlx-highlight-grid">
+  <div class="nlx-highlight-card">
+    <h3>Zero-alloc hot path</h3>
+    <p>Pooled buffers, pooled contexts, and frozen lookups reduce GC pressure for sustained low-latency traffic.</p>
+  </div>
+  <div class="nlx-highlight-card">
+    <h3>Shard-aware dispatch</h3>
+    <p>Worker distribution prevents head-of-line blocking and scales packet handling across logical cores.</p>
+  </div>
+  <div class="nlx-highlight-card">
+    <h3>Built-in safety controls</h3>
+    <p>Timeouts, permission checks, concurrency gates, and token-bucket policies are middleware-ready from day one.</p>
+  </div>
+</div>
 
 ---
 
@@ -94,7 +115,8 @@ Choose the path that matches your role.
     1. [Architecture](./concepts/architecture.md) — System design and component boundaries
     2. [Packet System](./concepts/packet-system.md) — Serialization and wire format
     3. [Packet Lifecycle](./concepts/packet-lifecycle.md) — Request path from socket to handler
-    4. [Glossary](./concepts/glossary.md) — Term definitions
+    4. [Error Reporting](./concepts/error-reporting.md) — Runtime and protocol signaling
+    5. [Glossary](./concepts/glossary.md) — Term definitions
 
 ## Core Packages
 

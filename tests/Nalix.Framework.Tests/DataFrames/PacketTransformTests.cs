@@ -45,7 +45,7 @@ public sealed class PacketTransformTests
         Assert.True(encrypted.Length >= FrameTransformer.Offset + EnvelopeCipher.HeaderSize);
 
         // 3. Decrypt
-        using IBufferLease decrypted = PacketCipher.DecryptFrame(encrypted, s_testKey);
+        using IBufferLease decrypted = PacketCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305);
 
         Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(src.Length, decrypted.Length);
@@ -106,7 +106,7 @@ public sealed class PacketTransformTests
 
         // 3. Decompress then Decrypt
         using IBufferLease decompressed = PacketCompression.DecompressFrame(compressed);
-        using IBufferLease decrypted = PacketCipher.DecryptFrame(decompressed, s_testKey);
+        using IBufferLease decrypted = PacketCipher.DecryptFrame(decompressed, s_testKey, CipherSuiteType.Chacha20Poly1305);
 
         Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
         Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED));

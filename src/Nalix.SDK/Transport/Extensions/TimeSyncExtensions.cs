@@ -26,7 +26,13 @@ public static class TimeSyncExtensions
     /// <param name="session">The connected transport session.</param>
     /// <param name="timeoutMs">The maximum time to wait for a time sync response, in milliseconds.</param>
     /// <param name="ct">A cancellation token that can be used to abort the synchronization process.</param>
-    /// <returns>The measured round-trip time (RTT) in milliseconds.</returns>
+    /// <returns>
+    /// A tuple containing:
+    /// <list type="bullet">
+    /// <item><description><c>RttMs</c>: The measured round-trip time (RTT) in milliseconds.</description></item>
+    /// <item><description><c>AdjustedMs</c>: The clock adjustment applied in milliseconds; <c>0</c> when time sync is disabled.</description></item>
+    /// </list>
+    /// </returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="NetworkException">Thrown if the session is not connected.</exception>
     /// <exception cref="TimeoutException">Thrown if no response is received within the specified timeout.</exception>
@@ -49,8 +55,12 @@ public static class TimeSyncExtensions
         double rttMs = Clock.MonoTicksToMilliseconds(endTicks - startTicks);
 
         // Synchronize the local client clock with the server's timestamp,
-        // accounting for half the round-trip latency.
-        double adjustedMs = Clock.SynchronizeUnixMilliseconds(res.Timestamp, rttMs);
+        // accounting for half the round-trip latency, ONLY if allowed for this session.
+        double adjustedMs = 0;
+        if (session.Options.TimeSyncEnabled)
+        {
+            adjustedMs = Clock.SynchronizeUnixMilliseconds(res.Timestamp, rttMs);
+        }
 
         return (rttMs, adjustedMs);
     }

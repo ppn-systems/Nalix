@@ -25,7 +25,7 @@ public static class PacketCipher
     /// Decrypts a framed packet and clears the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IBufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key)
+    public static IBufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm)
     {
         ArgumentNullException.ThrowIfNull(src);
 
@@ -39,7 +39,7 @@ public static class PacketCipher
                                        .GetPlaintextLength(src.Span));
         try
         {
-            FrameTransformer.Decrypt(src, dest, key);
+            FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm);
             dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
             return dest;
         }

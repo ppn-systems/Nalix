@@ -6,7 +6,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Memory.Buffers;
@@ -109,7 +111,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
 #if DEBUG
                 s_logger?.Debug("[NW.PacketSender] Case 1: Plain Send");
 #endif
-                await context.Connection.TCP.SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
+                await GetTransport(context).SendAsync(rawLease.Memory, ct).ConfigureAwait(false);
                 return;
             }
 
@@ -123,7 +125,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 BufferLease compressedLease = (BufferLease)PacketCompression.CompressFrame(rawLease);
                 try
                 {
-                    await context.Connection.TCP.SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
+                    await GetTransport(context).SendAsync(compressedLease.Memory, ct).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -146,7 +148,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                     context.Connection.Algorithm);
                 try
                 {
-                    await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+                    await GetTransport(context).SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -172,7 +174,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                         context.Connection.Algorithm);
                     try
                     {
-                        await context.Connection.TCP.SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
+                        await GetTransport(context).SendAsync(encryptedLease.Memory, ct).ConfigureAwait(false);
                     }
                     finally
                     {
@@ -198,6 +200,12 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
             // The raw serialization buffer is always returned, regardless of which branch ran.
             rawLease.Dispose();
         }
+    }
+
+    private static IConnection.ITransport GetTransport(PacketContext<TPacket> context)
+    {
+        // BUG-76: Reply via the same transport the packet came from.
+        return context.Protocol == ProtocolType.UDP ? context.Connection.UDP : context.Connection.TCP;
     }
 
     private PacketContext<TPacket> GET_CONTEXT_OR_THROW()
