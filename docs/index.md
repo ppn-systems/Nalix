@@ -63,7 +63,7 @@ Worker distribution prevents head-of-line blocking and scales packet handling ac
 
 <div class="nlx-highlight-card" markdown="1">
 ### :fontawesome-solid-shield-halved: Fault Isolation
-Hander exceptions are trapped and logged without affecting other connections or crashing the worker loops.
+Handler exceptions are trapped and logged without affecting other connections or crashing the worker loops.
 </div>
 
 </div>

@@ -49,7 +49,7 @@ Nalix uses `CancellationToken` propagation to ensure that resources are not held
 Regardless of whether a request succeeds or fails, Nalix guarantees consistent resource cleanup.
 
 - **Buffer Disposal:** Every `BufferLease` (raw byte frame) is disposed via a `try-finally` block in the dispatch loop. This prevents memory leaks in the `BufferPoolManager`.
-- **Context Recyling:** `PacketContext` objects are recycled to their internal pools after handler execution, regardless of the outcome.
+- **Context Recycling:** `PacketContext` objects are recycled to their internal pools after handler execution, regardless of the outcome.
 
 ---
 
