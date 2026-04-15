@@ -33,8 +33,8 @@ public sealed class BufferLease : IBufferLease
     /// </remarks>
     public static class ByteArrayPool
     {
-        private static readonly Func<int, byte[]> s_rentFunc;
-        private static readonly Action<byte[], bool> s_returnFunc;
+        private static Func<int, byte[]> s_rentFunc = System.Buffers.ArrayPool<byte>.Shared.Rent;
+        private static Action<byte[], bool> s_returnFunc = System.Buffers.ArrayPool<byte>.Shared.Return;
 
         static ByteArrayPool()
         {
@@ -42,15 +42,22 @@ public sealed class BufferLease : IBufferLease
 
             if (pool != null)
             {
-                s_rentFunc = pool.Rent;
-                s_returnFunc = pool.Return;
+                Configure(pool);
             }
-            else
-            {
-                System.Buffers.ArrayPool<byte> shared = System.Buffers.ArrayPool<byte>.Shared;
-                s_rentFunc = shared.Rent;
-                s_returnFunc = shared.Return;
-            }
+        }
+
+        /// <summary>
+        /// Configures the pooled backend used by <see cref="Rent(int)"/> and <see cref="Return(byte[])"/>.
+        /// Call this during server startup so all hot-path leases route through the configured
+        /// <see cref="BufferPoolManager"/> even if <see cref="ByteArrayPool"/> was touched earlier.
+        /// </summary>
+        /// <param name="manager">The buffer pool manager to bind.</param>
+        public static void Configure(BufferPoolManager manager)
+        {
+            ArgumentNullException.ThrowIfNull(manager);
+
+            Volatile.Write(ref s_rentFunc, manager.Rent);
+            Volatile.Write(ref s_returnFunc, manager.Return);
         }
 
         /// <summary>
@@ -66,7 +73,8 @@ public sealed class BufferLease : IBufferLease
         /// The returned buffer may be larger than requested. The content of the buffer is undefined.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Rent(int capacity = 256) => s_rentFunc(capacity);
+        public static byte[] Rent(int capacity = 256)
+            => Volatile.Read(ref s_rentFunc)(capacity);
 
         /// <summary>
         /// Returns a previously rented buffer to the pool.
@@ -79,7 +87,8 @@ public sealed class BufferLease : IBufferLease
         /// After calling this method, the buffer should not be used again.
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Return(byte[] array) => s_returnFunc(array, true);
+        public static void Return(byte[] array)
+            => Volatile.Read(ref s_returnFunc)(array, true);
     }
 
     /// <summary>

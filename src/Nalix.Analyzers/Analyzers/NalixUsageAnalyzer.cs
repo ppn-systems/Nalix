@@ -796,6 +796,22 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static void AnalyzeDeserializeOverloads(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
     {
+        // NALIX052 is a packet-shape rule. Skip utility/static helper types that
+        // happen to expose Deserialize overloads (for example LiteSerializer).
+        bool isPacketLikeType =
+            InheritsPacketBase(typeSymbol, symbols)
+            || Implements(typeSymbol, symbols.PacketInterface)
+            || typeSymbol.AllInterfaces
+                .OfType<INamedTypeSymbol>()
+                .Any(interfaceSymbol =>
+                    interfaceSymbol.IsGenericType
+                    && SymbolEqualityComparer.Default.Equals(interfaceSymbol.ConstructedFrom, symbols.PacketDeserializerType));
+
+        if (!isPacketLikeType)
+        {
+            return;
+        }
+
         bool hasAnyDeserialize = false;
         bool hasReadOnlySpanDeserialize = false;
 

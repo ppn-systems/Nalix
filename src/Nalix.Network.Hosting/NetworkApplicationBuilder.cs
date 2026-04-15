@@ -310,6 +310,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<BufferPoolManager>(manager);
+        BufferLease.ByteArrayPool.Configure(manager);
 
         return this;
     }
@@ -485,12 +486,16 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     private void EnsureBufferPoolManagerRegistered()
     {
-        if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is not null)
+        BufferPoolManager? manager = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
+        if (manager is not null)
         {
+            BufferLease.ByteArrayPool.Configure(manager);
             return;
         }
 
-        InstanceManager.Instance.Register<BufferPoolManager>(new BufferPoolManager(_state.Logger));
+        manager = new BufferPoolManager(_state.Logger);
+        InstanceManager.Instance.Register<BufferPoolManager>(manager);
+        BufferLease.ByteArrayPool.Configure(manager);
     }
 
 

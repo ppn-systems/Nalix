@@ -54,12 +54,14 @@ The builder uses a fluent API to configure the host before it is built.
 
 - `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager`.
 - `ConfigureConnectionHub(IConnectionHub)`: Registers the shared connection hub into the `InstanceManager`.
-- `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager.
+- `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type. This is applied during the activation phase.
 
 > [!NOTE]
 > If you do not configure a connection hub or buffer pool manager, the builder can create default instances during build/activation.
 > The built-in handler set is registered automatically before user-defined handler discovery runs.
+>
+> The builder also re-binds `BufferLease.ByteArrayPool` during startup, so the server receive path stays on pooled buffers even if `BufferLease` was touched before host wiring.
 
 ### Packet and Handler Discovery
 
@@ -103,6 +105,14 @@ var app = NetworkApplication.CreateBuilder()
 
 await app.RunAsync(cancellationToken);
 ```
+
+## Zero-allocation receive checklist
+
+To keep message reading allocation-free on the server hot path:
+
+- register a `BufferPoolManager` with `ConfigureBufferPoolManager(...)` (or let the builder create one)
+- keep protocol `ProcessMessage(...)` lease-based (`args.Lease`) and forward directly to dispatch
+- avoid copying raw payload into new `byte[]` in middleware/protocol unless required by business logic
 
 ## Related APIs
 
