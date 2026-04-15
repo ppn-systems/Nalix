@@ -12,12 +12,14 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Security;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Security.Primitives;
 using Nalix.Network.Internal.Transport;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.Connections;
 
@@ -30,6 +32,8 @@ namespace Nalix.Network.Connections;
 public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
     #region Fields
+
+    private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
     private readonly ILogger? _logger;
 
@@ -141,7 +145,14 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     }
 
     /// <inheritdoc />
-    public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
+    public void IncrementErrorCount()
+    {
+        int count = Interlocked.Increment(ref _errorCount);
+        if (count >= s_options.MaxErrorThreshold) // SEC-54: Disconnect persistent noisy/malformed connections
+        {
+            this.Disconnect("Exceeded maximum error threshold.");
+        }
+    }
 
     #endregion Properties
 
@@ -152,6 +163,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     internal SocketConnection Socket { get; }
 
     internal SocketUdpTransport? UdpTransport { get; private set; }
+
+    internal SlidingWindow UdpReplayWindow { get; } = new SlidingWindow();
 
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

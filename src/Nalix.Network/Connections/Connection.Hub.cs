@@ -388,11 +388,6 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public void CloseAllConnections(string? reason = null)
     {
-        if (_disposed)
-        {
-            return;
-        }
-
         IConnection[] connections = this.CaptureConnectionSnapshot();
 
         foreach (IConnection connection in connections)
@@ -640,8 +635,8 @@ public sealed class ConnectionHub : IConnectionHub, IDisposable, IReportable
             return;
         }
 
-        this.CloseAllConnections("disposed");
         _disposed = true;
+        this.CloseAllConnections("disposed");
 
         _logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
