@@ -871,15 +871,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return ctorName;
         }
 
-        foreach (KeyValuePair<string, TypedConstant> namedArg in attribute.NamedArguments)
-        {
-            if (namedArg.Key == "Name" && namedArg.Value.Value is string namedName && !string.IsNullOrWhiteSpace(namedName))
-            {
-                return namedName;
-            }
-        }
-
-        return null;
+        return attribute.NamedArguments
+            .Where(namedArg => namedArg.Key == "Name" && namedArg.Value.Value is string namedName && !string.IsNullOrWhiteSpace(namedName))
+            .Select(namedArg => (string)namedArg.Value.Value!)
+            .FirstOrDefault();
     }
 
     private static bool IsNalixHandlerCandidate(IMethodSymbol methodSymbol, SymbolSet symbols)
