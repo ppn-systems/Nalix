@@ -2,7 +2,7 @@
 
 This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyzers`. These rules help ensure that your application uses the framework correctly and efficiently.
 
-## Usage Codes (NALIX001 - NALIX012, NALIX017 - NALIX019)
+## Usage Codes (NALIX001 - NALIX012, NALIX017 - NALIX019, NALIX047 - NALIX048, NALIX050, NALIX052, NALIX054 - NALIX056, NALIX058)
 
 | ID | Title | Severity | Category | Description |
 |---|---|---|---|---|
@@ -19,8 +19,16 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 | `NALIX017` | Packet Deserialize signature is invalid | Warning | Usage | Nalix packet types should expose a public static Deserialize(ReadOnlySpan<byte>) helper with the packet type as return value. |
 | `NALIX018` | Registered packet type must be concrete | Warning | Usage | Nalix packet registry should register only concrete, non-abstract, non-generic packet types. |
 | `NALIX019` | Registered buffer middleware does not implement INetworkBufferMiddleware | Warning | Usage | Nalix buffer middleware registration should pass a type implementing INetworkBufferMiddleware. |
+| `NALIX047` | Dispatch loop count is out of supported range | Warning | Usage | `WithDispatchLoopCount` expects a value in the range `1..64`. |
+| `NALIX048` | Packet controller handler return type is unsupported | Warning | Usage | Handler return type is not supported by Nalix return handlers. |
+| `NALIX050` | PacketOpcode is declared on a non-controller type | Info | Usage | `[PacketOpcode]` is expected on methods inside `[PacketController]` types. |
+| `NALIX052` | Packet Deserialize overload should include ReadOnlySpan<byte> | Warning | Usage | Packet types should expose `Deserialize(ReadOnlySpan<byte>)` for stable registry/discovery behavior. |
+| `NALIX054` | PacketController name is duplicated | Info | Usage | Duplicate `PacketController` names can reduce routing and diagnostics clarity. |
+| `NALIX055` | Redundant cast on PacketContext<T>.Packet | Info | Usage | In `PacketContext<T>` handlers, casting `context.Packet` to `T` is unnecessary. |
+| `NALIX056` | Middleware registration uses null | Warning | Usage | `WithMiddleware`/`WithBufferMiddleware` should not receive null middleware instances. |
+| `NALIX058` | Packet handler method should not be generic | Warning | Usage | Generic `[PacketOpcode]` handlers are not recommended for predictable dispatch binding. |
 
-## Serialization Codes (NALIX013 - NALIX016, NALIX021 - NALIX022)
+## Serialization Codes (NALIX013 - NALIX016, NALIX021 - NALIX022, NALIX034, NALIX046, NALIX051)
 
 | ID | Title | Severity | Category | Description |
 |---|---|---|---|---|
@@ -31,6 +39,8 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 | `NALIX021` | `SerializeOrder` should not be negative | Warning | Serialization | Nalix explicit serialization layout should not use negative `SerializeOrder` values. |
 | `NALIX022` | Packet member `SerializeOrder` overlaps packet header region | Warning | Serialization | Packet payload members on `PacketBase`-derived types should start at or after `PacketHeaderOffset.Region`. |
 | `NALIX034` | `SerializeHeader` conflicts with `SerializeOrder` | Warning | Serialization | Nalix serialization members should not declare both `SerializeHeader` and `SerializeOrder`. |
+| `NALIX046` | `SerializeOrder` gap is unusually large | Info | Serialization | `SerializeOrder` is ordering metadata, not a byte offset. Large jumps are allowed but may indicate accidental numbering. |
+| `NALIX051` | `IFixedSizeSerializable` type contains dynamic serialization member | Warning | Serialization | Fixed-size serializable types should avoid variable-size members such as `string`, arrays, or nested packets. |
 
 ## Middleware and Routing Codes (NALIX006 - NALIX007, NALIX025 - NALIX026, NALIX030 - NALIX033)
 
@@ -58,13 +68,15 @@ This page provides a detailed list of diagnostic codes emitted by `Nalix.Analyze
 | `NALIX037` | Potential allocation in hot path | Info | Performance | Network hot paths should avoid `new` allocations to minimize latency. |
 | `NALIX039` | Potential `IBufferLease` leak | Warning | Usage | `IBufferLease` represents a pooled resource that must be returned to the pool exactly once. |
 
-## SDK Codes (NALIX027 - NALIX029)
+## SDK Codes (NALIX027 - NALIX029, NALIX053, NALIX057)
 
 | ID | Title | Severity | Category | Description |
 |---|---|---|---|---|
 | `NALIX027` | RequestOptions RetryCount should not be negative | Warning | SDK | Nalix RequestOptions retry count must be zero or greater. |
 | `NALIX028` | RequestOptions TimeoutMs should not be negative | Warning | SDK | Nalix RequestOptions `TimeoutMs` must be zero or greater. Use `0` to wait indefinitely. |
 | `NALIX029` | Encrypted RequestAsync requires TcpSessionBase | Warning | SDK | Nalix encrypted RequestAsync overload requires the client to be a TcpSessionBase. |
+| `NALIX053` | Encrypted RequestAsync requires TcpSession (options variable path) | Warning | SDK | Same encrypted-request requirement, including options created through local variables. |
+| `NALIX057` | RequestOptions uses infinite timeout with retries | Info | SDK | `TimeoutMs=0` with `RetryCount>0` is often an ineffective retry configuration. |
 
 ## Hosting Codes (NALIX040 - NALIX045)
 

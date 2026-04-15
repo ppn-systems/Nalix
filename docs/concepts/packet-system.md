@@ -206,9 +206,8 @@ public class GeoLocationFormatter : IFormatter<GeoLocation>
 }
 ```
 
-## Recommended Next Steps
+## See it in action
 
-- [Packet Lifecycle](./packet-lifecycle.md) — How packets move through the dispatch pipeline
-- [Serialization Attributes](../api/common/serialization-attributes.md) — Full attribute reference
-- [Packet Registry](../api/framework/packets/packet-registry.md) — Registry API details
-- [Performance Optimizations](./performance-optimizations.md) — Zero-allocation design
+- [Quickstart](../quickstart.md) — Define and use your first packets.
+- [TCP Request/Response](../guides/tcp-request-response.md) — See how packet contracts are shared between projects.
+- [UDP Auth Flow](../guides/udp-auth-flow.md) — Observe packets used for authenticated session resumption.

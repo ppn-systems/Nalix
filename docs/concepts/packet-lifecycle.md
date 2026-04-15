@@ -133,10 +133,8 @@ The request path is easiest to reason about in three phases:
 
 If you know which phase your problem belongs to, you usually know which Nalix component to customize.
 
-## Recommended Next Pages
+## See it in action
 
-- [Architecture](./architecture.md) — Layered component overview
-- [Middleware](./middleware.md) — Buffer vs. packet middleware
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
-- [Packet Metadata](../api/runtime/routing/packet-metadata.md) — Metadata resolution details
-- [TCP Request/Response](../guides/tcp-request-response.md) — TCP pattern guide
+- [Quickstart](../quickstart.md) — Follow a Ping/Pong packet through the entire lifecycle.
+- [TCP Request/Response](../guides/tcp-request-response.md) — See the lifecycle applied to a standard request/reply pattern.
+- [Production End-to-End](../guides/production-end-to-end.md) — Observe the lifecycle in a high-performance environment.

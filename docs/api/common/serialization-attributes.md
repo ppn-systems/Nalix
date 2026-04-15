@@ -64,6 +64,9 @@ Common use:
 
 Controls the order of serialized members.
 
+Important: `SerializeOrder` is an ordering key, not a byte offset.  
+`[SerializeOrder(10)]` means "after 9", not "start at byte 10".
+
 It is useful when:
 
 - wire order must stay stable

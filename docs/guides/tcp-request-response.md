@@ -1,5 +1,10 @@
 # TCP Request/Response Example
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Beginner
+    - :fontawesome-solid-clock: **Time**: 5–10 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+
 This example shows a complete TCP request/response flow using:
 
 - `TcpListenerBase`

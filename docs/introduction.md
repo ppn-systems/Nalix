@@ -30,6 +30,10 @@ Across the stack, Nalix keeps these pieces aligned between client and server:
 
 ## Mental Model
 
+At its simplest, the Nalix request flow follows this path:
+
+> **Client** → **Transport** → **Protocol**bridge → **Dispatch**channel → **Middleware**pipeline → **Handler**logic → **Response** → **Transport** → **Client**
+
 ### Server side
 
 A Nalix server follows this startup sequence:
@@ -79,9 +83,12 @@ MyApp.Client/           ← References Contracts + Nalix.SDK
 - **Not a game engine.** Nalix provides the networking layer. Game logic, rendering, physics, and ECS are outside its scope.
 - **Not a message queue.** Nalix is designed for real-time bidirectional communication, not store-and-forward messaging.
 
-## Recommended Reading
+## Recommended Path
 
-1. [Installation](./installation.md) — Package selection and prerequisites
-2. [Quickstart](./quickstart.md) — End-to-end Ping/Pong example
-3. [Architecture](./concepts/architecture.md) — Layered component overview
-4. [Packages Overview](./packages/index.md) — What each package provides
+If you are new to Nalix, we recommend following the learning path in order:
+
+1. [Architecture](./concepts/architecture.md) — Explore the layered component system.
+2. [Quickstart](./quickstart.md) — Build your first Ping/Pong server in minutes.
+3. [End-to-End Guide](./guides/end-to-end.md) — Move beyond basics with a full feature implementation.
+4. [Middleware](./guides/middleware.md) — Learn how to secure and scale your traffic.
+5. [Packages Overview](./packages/index.md) — Understand the Nalix stack module by module.
