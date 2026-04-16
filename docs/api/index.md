@@ -24,7 +24,7 @@ If you're looking for the core interfaces and classes that drive Nalix:
 - `src/Nalix.Runtime`
 - `src/Nalix.Network`
 - `src/Nalix.Network.Hosting`
-- `src/Nalix.Network.Pipeline`
+- `src/Nalix.Runtime`
 - `src/Nalix.SDK`
 
 ## Why This Structure Exists
@@ -36,7 +36,7 @@ Nalix is split into focused packages with explicit layering:
 - `Nalix.Runtime` turns packets into handler execution.
 - `Nalix.Network` owns listeners, connections, protocols, and session stores.
 - `Nalix.Network.Hosting` adds host/builder composition on top of runtime + network.
-- `Nalix.Network.Pipeline` exposes reusable middleware and throttling components.
+- `Nalix.Runtime` exposes reusable middleware and throttling components.
 - `Nalix.SDK` provides client-side transport sessions and extension APIs.
 
 This keeps server runtime internals, transport lifecycle, and client APIs independently evolvable.
@@ -50,7 +50,7 @@ This keeps server runtime internals, transport lifecycle, and client APIs indepe
 | `Nalix.Runtime` | Packet dispatch and middleware execution | You are building handler execution pipelines | You only need socket listener primitives |
 | `Nalix.Network` | Connection + listener + protocol runtime | You are implementing server transport/runtime loops | You only need pure client transport |
 | `Nalix.Network.Hosting` | Host-style startup composition | You want builder-driven server bootstrapping | You prefer manual wiring |
-| `Nalix.Network.Pipeline` | Reusable inbound middleware and limiters | You need throttling/middleware components standalone | You need complete server hosting surface |
+| `Nalix.Runtime` | Reusable inbound middleware and limiters | You need throttling/middleware components standalone | You need complete server hosting surface |
 | `Nalix.SDK` | Client transport sessions and request/response helpers | You build Nalix clients | You implement server listeners |
 
 ## Progressive API Path

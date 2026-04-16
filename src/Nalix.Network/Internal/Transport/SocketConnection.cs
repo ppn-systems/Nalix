@@ -299,7 +299,11 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
                 while (_bufferDataLength - consumed >= HeaderSize)
                 {
-                    // Peek at the length header (2 bytes LE).
+                    /*
+                     * [Step 1: Header Peek]
+                     * Every Nalix frame starts with a 2-byte little-endian length prefix.
+                     * We peek at this header to determine the size of the incoming frame.
+                     */
                     ushort size = BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
                                                   .AsSpan(_buffer!, consumed, HeaderSize));
 
@@ -321,11 +325,20 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         break;
                     }
 
-                    // Dispatch complete frame.
+                    /*
+                     * [Step 2: Dispatch Frame]
+                     * If the full frame is present, we calculate the payload length
+                     * (Total Size - 2 byte header) and hand it off for processing.
+                     */
                     int payloadLen = size - HeaderSize;
                     this.PROCESS_FRAME_FROM_BUFFER(consumed + HeaderSize, payloadLen);
 
-                    // Re-integrate the FragmentAssembler eviction logic.
+                    /*
+                     * [Step 3: Fragment Cleanup]
+                     * Periodic check to evict stale fragment streams. This prevents 
+                     * "slow-drip" DDoS attacks where an attacker sends partial fragments 
+                     * to consume server memory.
+                     */
                     if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
                     {
                         FragmentAssembler? fragmentAssembler = _fragmentAssembler;
@@ -344,7 +357,11 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     parsedAtLeastOne = true;
                 }
 
-                // Step 2: Compact the buffer.
+                /*
+                 * [Step 4: Buffer Compaction]
+                 * Move any unconsumed data (partial frames) to the front of the 
+                 * buffer so we can read more data into the free space at the end.
+                 */
                 if (consumed > 0)
                 {
                     int remaining = _bufferDataLength - consumed;
@@ -355,8 +372,11 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     _bufferDataLength = remaining;
                 }
 
-                // Step 3: If we didn't parse any frames in this iteration, OR we still have a partial frame,
-                // we MUST await more data from the socket to avoid a tight-loop spin.
+                /*
+                 * [Step 5: Opportunistic Read]
+                 * If we didn't parse any frames or the buffer is empty, we await more
+                 * data from the socket. This avoids a tight CPU spin.
+                 */
                 if (!parsedAtLeastOne || _bufferDataLength < HeaderSize)
                 {
                     await this.RECEIVE_OPPORTUNISTIC_ASYNC(token).ConfigureAwait(false);
@@ -417,6 +437,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             return ValueTask.FromException(NetworkErrors.MessageSize);
         }
 
+        /*
+         * We perform an opportunistic read:
+         * 1. Check if the SAEA receive completes synchronously (Fast Path).
+         * 2. If not, we await the completion (Slow Path).
+         * This pattern minimizes task allocations when data is already available.
+         */
         ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, _bufferDataLength, freeSpace);
 
         if (vt.IsCompletedSuccessfully)
@@ -452,7 +478,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// </summary>
     private void PROCESS_FRAME_FROM_BUFFER(int offset, int payloadLen)
     {
-        // Layer 1 per-connection throttle check.
+        /*
+         * [Layer 1 Throttle Check]
+         * We check the number of packets already in the pipeline for this connection.
+         * If the connection is flooding, we drop the packet immediately at the 
+         * transport layer to protect the ThreadPool from exhaustion.
+         */
         int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
         if (pending > s_opts.MaxPerConnectionPendingPackets)
         {
@@ -465,7 +496,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             return;
         }
 
-        // Copy frame data into a new lease.
+        /*
+         * [Buffer Leasing]
+         * We copy the frame into a new BufferLease so the receive loop can 
+         * continue reading from the socket without waiting for the protocol 
+         * handler to finish.
+         */
         BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(_buffer, offset, payloadLen));
         lease.IsReliable = true;
 

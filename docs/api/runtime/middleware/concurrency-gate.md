@@ -7,10 +7,10 @@ requests to wait in a bounded queue.
 
 ## Source mapping
 
-- `src/Nalix.Network.Pipeline/Inbound/ConcurrencyMiddleware.cs`
-- `src/Nalix.Network.Pipeline/Throttling/ConcurrencyGate.cs`
+- `src/Nalix.Runtime/Middleware/Standard/ConcurrencyMiddleware.cs`
+- `src/Nalix.Runtime/Throttling/ConcurrencyGate.cs`
 - `src/Nalix.Common/Networking/Packets/PacketConcurrencyLimitAttribute.cs`
-- `src/Nalix.Network.Pipeline/Options/ConcurrencyOptions.cs`
+- `src/Nalix.Runtime/Options/ConcurrencyOptions.cs`
 
 ## Runtime role
 

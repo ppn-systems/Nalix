@@ -13,10 +13,10 @@ per-packet chain allocations.
 | `src/Nalix.Common/Middleware/IPacketMiddleware.cs` | Middleware invocation contract. |
 | `src/Nalix.Common/Middleware/MiddlewareOrderAttribute.cs` | Numeric middleware ordering metadata. |
 | `src/Nalix.Common/Middleware/MiddlewareStageAttribute.cs` | Stage metadata and outbound `AlwaysExecute` flag. |
-| `src/Nalix.Network.Pipeline/Inbound/PermissionMiddleware.cs` | Built-in fail-closed permission guard. |
-| `src/Nalix.Network.Pipeline/Inbound/RateLimitMiddleware.cs` | Built-in policy/global token-bucket throttling. |
-| `src/Nalix.Network.Pipeline/Inbound/ConcurrencyMiddleware.cs` | Built-in per-opcode concurrency guard. |
-| `src/Nalix.Network.Pipeline/Inbound/TimeoutMiddleware.cs` | Built-in timeout wrapper. |
+| `src/Nalix.Runtime/Middleware/Standard/PermissionMiddleware.cs` | Built-in fail-closed permission guard. |
+| `src/Nalix.Runtime/Middleware/Standard/RateLimitMiddleware.cs` | Built-in policy/global token-bucket throttling. |
+| `src/Nalix.Runtime/Middleware/Standard/ConcurrencyMiddleware.cs` | Built-in per-opcode concurrency guard. |
+| `src/Nalix.Runtime/Middleware/Standard/TimeoutMiddleware.cs` | Built-in timeout wrapper. |
 
 ## Middleware Contract
 

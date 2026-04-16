@@ -98,6 +98,10 @@ internal static class PacketAwaiter
         {
             await sendAsync(linkedCts.Token).ConfigureAwait(false);
         }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms (send phase).");
+        }
         catch (Exception sendEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(sendEx))
         {
             if (sendEx is InvalidOperationException)

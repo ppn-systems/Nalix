@@ -150,7 +150,26 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
     public readonly bool IsZero
     {
         [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
-        get => (_v1 | _v2 | _v3 | _v4) == 0;
+        get
+        {
+            ref byte a = ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in _v1));
+
+            if (Avx2.IsSupported)
+            {
+                Vector256<byte> v = Unsafe.ReadUnaligned<Vector256<byte>>(ref a);
+                // Vector256.EqualsAll is available in .NET 7+ and is safer than Avx.TestZ for bytes
+                return Vector256.EqualsAll(v, Vector256<byte>.Zero);
+            }
+
+            if (Sse41.IsSupported)
+            {
+                Vector128<byte> v1 = Unsafe.ReadUnaligned<Vector128<byte>>(ref a);
+                Vector128<byte> v2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref a, 16));
+                return Sse41.TestZ(Sse2.Or(v1, v2), Sse2.Or(v1, v2));
+            }
+
+            return (_v1 | _v2 | _v3 | _v4) == 0;
+        }
     }
 
     /// <summary>
@@ -168,38 +187,30 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
         {
             Vector256<byte> v = Unsafe.ReadUnaligned<Vector256<byte>>(ref a);
             Vector256<byte> o = Unsafe.ReadUnaligned<Vector256<byte>>(ref b);
-
             Vector256<byte> x = Avx2.Xor(v, o);
-
-            // reduce 256 → 128 → scalar
-            Vector128<byte> lo = Avx.ExtractVector128(x, 0x00);
-            Vector128<byte> hi = Avx.ExtractVector128(x, 0x01);
-            Vector128<byte> or = Sse2.Or(lo, hi);
-
-            return Sse2.MoveMask(or) == 0;
+            return Avx.TestZ(x, x);
         }
 
-        if (Sse2.IsSupported)
+        if (Sse41.IsSupported)
         {
             Vector128<byte> v1 = Unsafe.ReadUnaligned<Vector128<byte>>(ref a);
-            Vector128<byte> v2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref a, 0x10));
-
+            Vector128<byte> v2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref a, 16));
             Vector128<byte> o1 = Unsafe.ReadUnaligned<Vector128<byte>>(ref b);
-            Vector128<byte> o2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref b, 0x10));
+            Vector128<byte> o2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref b, 16));
 
             Vector128<byte> x1 = Sse2.Xor(v1, o1);
             Vector128<byte> x2 = Sse2.Xor(v2, o2);
-
-            return (Sse2.MoveMask(x1) | Sse2.MoveMask(x2)) == 0x00;
+            Vector128<byte> res = Sse2.Or(x1, x2);
+            return Sse41.TestZ(res, res);
         }
 
-        // scalar fallback (best for small size anyway)
-        ulong res = (_v1 ^ other._v1)
-                  | (_v2 ^ other._v2)
-                  | (_v3 ^ other._v3)
-                  | (_v4 ^ other._v4);
+        // constant-time scalar fallback
+        ulong res_scalar = (_v1 ^ other._v1)
+                         | (_v2 ^ other._v2)
+                         | (_v3 ^ other._v3)
+                         | (_v4 ^ other._v4);
 
-        return res == 0;
+        return res_scalar == 0;
     }
 
     /// <inheritdoc/>

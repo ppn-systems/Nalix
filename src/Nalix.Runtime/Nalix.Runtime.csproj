@@ -8,6 +8,13 @@
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<DisableImplicitMicrosoftCSharpReference>true</DisableImplicitMicrosoftCSharpReference>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="Nalix.Runtime.Tests" />
+	</ItemGroup>
+
+	<PropertyGroup>
 
 		<Description><![CDATA[
 Nalix.Runtime provides the core packet processing and middleware infrastructure for the Nalix ecosystem. It includes the middleware pipeline orchestration, packet dispatching channels, and execution management needed to handle message-oriented traffic with high efficiency and low latency.

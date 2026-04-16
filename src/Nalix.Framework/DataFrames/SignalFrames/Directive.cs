@@ -18,7 +18,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
 {
     /// <inheritdoc/>
     [SerializeIgnore]
-    public static int Size => PacketConstants.HeaderSize
+    public static int Size { get; } = PacketConstants.HeaderSize
         + sizeof(ControlType)
         + sizeof(ProtocolReason)
         + sizeof(ProtocolAdvice)

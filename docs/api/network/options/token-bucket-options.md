@@ -1,14 +1,14 @@
 # Token Bucket Options
 
 `TokenBucketOptions` configures the endpoint-keyed token-bucket limiter used by
-`Nalix.Network.Pipeline.Throttling.TokenBucketLimiter`. The limiter enforces burst
+`Nalix.Runtime.Throttling.TokenBucketLimiter`. The limiter enforces burst
 capacity, sustained refill rate, soft throttling, optional hard lockout, endpoint
 tracking caps, sharded storage, cleanup, and diagnostic report sizing.
 
 ## Source Mapping
 
-- `src/Nalix.Network.Pipeline/Options/TokenBucketOptions.cs`
-- `src/Nalix.Network.Pipeline/Throttling/TokenBucketLimiter.cs`
+- `src/Nalix.Runtime/Options/TokenBucketOptions.cs`
+- `src/Nalix.Runtime/Throttling/TokenBucketLimiter.cs`
 - `src/Nalix.Network.Hosting/Bootstrap.cs`
 
 ## Defaults and Validation

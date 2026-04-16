@@ -46,6 +46,12 @@ public sealed class BufferLease : IBufferLease
     /// Pops a lease shell from the free-list (or creates a new one).
     /// Maintains the atomic free-list count for O(1) capacity checks.
     /// </summary>
+    /*
+     * [Lease Shell Pooling]
+     * BufferLease itself is an object. To avoid GC pressure from millions 
+     * of lease allocations, we pool the 'shells' (the BufferLease instances).
+     * This makes BufferLease essentially allocation-free when rented.
+     */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BufferLease RentLeaseShell()
     {
@@ -261,6 +267,12 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Retain()
     {
+        /*
+         * [Reference Counting]
+         * Increment the ref-count atomically. If multiple consumers need 
+         * to hold the same buffer (e.g. broadcast), they call Retain().
+         * The buffer is only returned to the pool when the last owner calls Dispose().
+         */
         ObjectDisposedException.ThrowIf(_buffer is null, nameof(BufferLease));
 
         int newValue = Interlocked.Increment(ref _refCount);
@@ -373,6 +385,12 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool ReleaseOwnership(out byte[]? buffer, out int start, out int length)
     {
+        /*
+         * [Ownership Transfer]
+         * This allows a consumer to 'take' the raw byte[] out of the lease.
+         * The lease marks itself as 'detached' and will no longer return the 
+         * buffer to the pool when disposed.
+         */
         // Ensure single-owner detach (avoid breaking other holders)
         if (Volatile.Read(ref _refCount) != 1)
         {

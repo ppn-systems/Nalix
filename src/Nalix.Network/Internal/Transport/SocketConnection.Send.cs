@@ -52,7 +52,12 @@ internal sealed partial class SocketConnection
                 $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes.");
         }
 
-        // ── Fast path: stack-allocate frame for small packets ─────────────
+        /*
+         * [Fast Path: Stack Allocation]
+         * For small packets (determined by StackAllocLimit), we format the frame 
+         * directly on the stack. This is zero-allocation and extremely fast.
+         * The frame consists of: [2 bytes Length] + [Payload].
+         */
         if (data.Length <= PacketConstants.StackAllocLimit)
         {
             try
@@ -131,7 +136,12 @@ internal sealed partial class SocketConnection
             }
         }
 
-        // ── Slow path: pooled heap buffer ──────────────────────────────────
+        /*
+         * [Slow Path: Pooled Heap Buffer]
+         * For larger packets that don't fit on the stack, we rent a buffer from 
+         * the ArrayPool. This prevents GC pressure while still supporting large 
+         * payloads.
+         */
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
         try
         {
@@ -393,6 +403,12 @@ internal sealed partial class SocketConnection
 
         Span<byte> headerBuffer = stackalloc byte[FragmentHeader.WireSize];
 
+        /*
+         * [Fragmentation Logic]
+         * When a payload exceeds MaxChunkSize, we split it into multiple 
+         * fragments. Each fragment is wrapped in a FragmentHeader and sent 
+         * as a separate wire frame. The receiver will reassemble these chunks.
+         */
         for (int i = 0; i < totalChunks; i++)
         {
             int offset = i * chunkBodySize;
@@ -421,9 +437,11 @@ internal sealed partial class SocketConnection
                     $"Fragmented frame size {totalFrameSize} exceeds the {ushort.MaxValue}-byte wire header limit.");
             }
 
-            // Small fragments stay on the stack to avoid renting a buffer.
-            // This keeps the fast path allocation-free for fragments that fit
-            // comfortably within the stack allocation limit.
+            /*
+             * Small fragments stay on the stack to avoid renting a buffer.
+             * This keeps the fast path allocation-free for fragments that fit
+             * comfortably within the stack allocation limit.
+             */
             if (totalFrameSize <= PacketConstants.StackAllocLimit)
             {
                 Span<byte> frame = stackalloc byte[totalFrameSize];
@@ -439,8 +457,10 @@ internal sealed partial class SocketConnection
             }
             else
             {
-                // Large fragments use a pooled buffer so we do not allocate on
-                // every chunk and can reuse the same memory pressure budget.
+                /*
+                 * Large fragments use a pooled buffer so we do not allocate on
+                 * every chunk and can reuse the same memory pressure budget.
+                 */
                 byte[] rented = BufferLease.ByteArrayPool.Rent(totalFrameSize);
                 try
                 {
