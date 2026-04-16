@@ -1195,4 +1195,247 @@ public static class DispatchSetup
 
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
     }
+
+    [Fact]
+    public async Task WithHandlerPacketContextMismatch_ReportsNalix004()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames;
+using Nalix.Runtime.Dispatching;
+
+public sealed class DemoPacket : PacketBase<DemoPacket>
+{
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+
+public sealed class OtherPacket : PacketBase<OtherPacket>
+{
+    public static new OtherPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<OtherPacket>.Deserialize(buffer);
+}
+
+[PacketController]
+public sealed class DemoController
+{
+    [PacketOpcode(0x1250)]
+    public void Handle(PacketContext<OtherPacket> context) { }
+}
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new PacketDispatchOptions<DemoPacket>().WithHandler<DemoController>();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX004");
+    }
+
+    [Fact]
+    public async Task WithHandlerLegacyPacketMismatch_ReportsNalix005()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Common.Networking;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames;
+using Nalix.Runtime.Dispatching;
+
+public sealed class DemoPacket : PacketBase<DemoPacket>
+{
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+
+public sealed class OtherPacket : PacketBase<OtherPacket>
+{
+    public static new OtherPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<OtherPacket>.Deserialize(buffer);
+}
+
+[PacketController]
+public sealed class DemoController
+{
+    [PacketOpcode(0x1251)]
+    public void Handle(OtherPacket packet, IConnection connection) { }
+}
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new PacketDispatchOptions<DemoPacket>().WithHandler<DemoController>();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX005");
+    }
+
+    [Fact]
+    public async Task WithBufferMiddlewareTypeMismatch_ReportsNalix019()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Middleware;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames;
+
+public sealed class DemoPacket : PacketBase<DemoPacket>
+{
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+
+public sealed class NotABufferMiddleware
+{
+}
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new PacketDispatchOptions<DemoPacket>()
+            .WithBufferMiddleware((INetworkBufferMiddleware)(object)new NotABufferMiddleware());
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX019");
+    }
+
+    [Fact]
+    public async Task NetworkBuildWithoutRecommendedSetup_ReportsNalix040_041_044()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Network.Hosting;
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new NetworkApplicationBuilder().Build();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX040", "NALIX041", "NALIX044");
+    }
+
+    [Fact]
+    public async Task NetworkBuildWithUdpWithoutTcp_ReportsNalix045()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Network.Hosting;
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new NetworkApplicationBuilder()
+            .AddUdp(9000)
+            .Build();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX040", "NALIX041", "NALIX044", "NALIX045");
+    }
+
+    [Fact]
+    public async Task AddHandlerWithInvalidType_ReportsNalix042()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Network.Hosting;
+
+public interface IHandler { }
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new NetworkApplicationBuilder().AddHandler<IHandler>();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX042");
+    }
+
+    [Fact]
+    public async Task AddMetadataProviderWithInvalidType_ReportsNalix043()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Network.Hosting;
+
+public interface IProvider { }
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new NetworkApplicationBuilder().AddMetadataProvider<IProvider>();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX043");
+    }
+
+    [Fact]
+    public async Task PacketBaseMissingDeserializeMethod_ReportsNalix012()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Framework.DataFrames;
+
+public sealed class MissingDeserializePacket : PacketBase<MissingDeserializePacket>
+{
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX012");
+    }
+
+    [Fact]
+    public async Task PacketDeserializeSignatureInvalid_ReportsNalix017()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Framework.DataFrames;
+
+public sealed class BadDeserializePacket : PacketBase<BadDeserializePacket>
+{
+    public static int Deserialize(ReadOnlySpan<byte> buffer) => 0;
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX017", "NALIX052");
+    }
+
+    [Fact]
+    public async Task PacketMemberOverlapsHeaderRegion_ReportsNalix022()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Common.Serialization;
+using Nalix.Framework.DataFrames;
+
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class HeaderOverlapPacket : PacketBase<HeaderOverlapPacket>
+{
+    [SerializeOrder(1)]
+    public int Dangerous { get; set; }
+
+    public static new HeaderOverlapPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<HeaderOverlapPacket>.Deserialize(buffer);
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX022");
+    }
 }

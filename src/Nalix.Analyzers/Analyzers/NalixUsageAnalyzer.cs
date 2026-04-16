@@ -334,6 +334,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         bool isExplicitLayout = IsExplicitSerializeLayout(serializePackable, symbols.SerializeLayoutType);
+        bool isPacketBaseType = InheritsPacketBase(typeSymbol, symbols);
         List<(ISymbol Member, int Order)> orderedMembers = [];
         List<(ISymbol Member, int Order)> serializeOrderedMembers = [];
 
@@ -382,6 +383,19 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 if (finalOrder.Value < 0)
                 {
                     Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, finalOrder.Value);
+                }
+
+                if (isPacketBaseType
+                    && order.HasValue
+                    && order.Value < symbols.PacketHeaderRegionOffset)
+                {
+                    Report(
+                        context,
+                        DiagnosticDescriptors.PacketMemberOverlapsHeaderRegion,
+                        member,
+                        member.Name,
+                        order.Value,
+                        symbols.PacketHeaderRegionOffset);
                 }
 
             }
@@ -530,6 +544,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static void AnalyzePacketType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
     {
         INamedTypeSymbol? baseType = typeSymbol.BaseType;
+        bool isPacketBaseSelfType = false;
         if (baseType is not null
             && baseType.IsGenericType
             && SymbolEqualityComparer.Default.Equals(baseType.ConstructedFrom, symbols.PacketBaseType))
@@ -546,6 +561,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                         typeSymbol.Name,
                         selfTypeArgument.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
                 }
+            }
+            else
+            {
+                isPacketBaseSelfType = true;
             }
         }
 
@@ -570,6 +589,11 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                         selfTypeArgument.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
                 }
             }
+        }
+
+        if (isPacketBaseSelfType)
+        {
+            AnalyzePacketBaseDeserializeContract(context, typeSymbol);
         }
 
         AnalyzeFixedSizeSerializableDynamics(context, typeSymbol, symbols);
@@ -826,13 +850,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
             hasAnyDeserialize = true;
 
-            if (method.Parameters.Length == 1
-                && method.Parameters[0].Type is INamedTypeSymbol parameterType
-                && parameterType.OriginalDefinition.MetadataName == "ReadOnlySpan`1"
-                && parameterType.OriginalDefinition.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System"
-                && parameterType.TypeArguments.Length == 1
-                && parameterType.TypeArguments[0].SpecialType == SpecialType.System_Byte
-                && SymbolEqualityComparer.Default.Equals(method.ReturnType, typeSymbol))
+            if (IsValidPacketDeserializeSignature(method, typeSymbol))
             {
                 hasReadOnlySpanDeserialize = true;
                 break;
@@ -844,6 +862,53 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             Report(context, DiagnosticDescriptors.PacketDeserializeSpanOverloadMissing, typeSymbol, typeSymbol.Name);
         }
     }
+
+    private static void AnalyzePacketBaseDeserializeContract(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol)
+    {
+        ImmutableArray<IMethodSymbol> deserializeMethods = [.. typeSymbol.GetMembers()
+            .OfType<IMethodSymbol>()
+            .Where(static method => method.MethodKind == MethodKind.Ordinary && method.Name == "Deserialize")];
+
+        if (deserializeMethods.Length == 0)
+        {
+            Report(context, DiagnosticDescriptors.PacketBaseMissingDeserializeMethod, typeSymbol, typeSymbol.Name);
+            return;
+        }
+
+        bool reportedInvalidSignature = false;
+        foreach (IMethodSymbol method in deserializeMethods)
+        {
+            if (!IsReadOnlySpanByteType(method.Parameters.FirstOrDefault()?.Type))
+            {
+                continue;
+            }
+
+            if (IsValidPacketDeserializeSignature(method, typeSymbol))
+            {
+                return;
+            }
+
+            if (!reportedInvalidSignature)
+            {
+                Report(context, DiagnosticDescriptors.PacketDeserializeSignatureInvalid, typeSymbol, typeSymbol.Name);
+                reportedInvalidSignature = true;
+            }
+        }
+    }
+
+    private static bool IsValidPacketDeserializeSignature(IMethodSymbol method, INamedTypeSymbol containingType)
+        => method.IsStatic
+           && method.DeclaredAccessibility == Accessibility.Public
+           && method.Parameters.Length == 1
+           && IsReadOnlySpanByteType(method.Parameters[0].Type)
+           && SymbolEqualityComparer.Default.Equals(method.ReturnType, containingType);
+
+    private static bool IsReadOnlySpanByteType(ITypeSymbol? type)
+        => type is INamedTypeSymbol parameterType
+           && parameterType.OriginalDefinition.MetadataName == "ReadOnlySpan`1"
+           && parameterType.OriginalDefinition.ContainingNamespace.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::System"
+           && parameterType.TypeArguments.Length == 1
+           && parameterType.TypeArguments[0].SpecialType == SpecialType.System_Byte;
 
     private static bool IsDynamicSizeType(ITypeSymbol typeSymbol, SymbolSet symbols)
     {

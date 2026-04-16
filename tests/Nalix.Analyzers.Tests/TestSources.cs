@@ -220,6 +220,20 @@ namespace Nalix.Framework.Configuration.Binding
     {
     }
 }
+
+namespace Nalix.Network.Hosting
+{
+    public sealed class NetworkApplicationBuilder
+    {
+        public NetworkApplicationBuilder UseBufferPoolManager(object? manager = null) => this;
+        public NetworkApplicationBuilder ConfigureConnectionHub(object? hub = null) => this;
+        public NetworkApplicationBuilder AddTcp(ushort port = 0) => this;
+        public NetworkApplicationBuilder AddUdp(ushort port = 0) => this;
+        public NetworkApplicationBuilder AddHandler<THandler>() => this;
+        public NetworkApplicationBuilder AddMetadataProvider<TProvider>() => this;
+        public object Build() => new();
+    }
+}
 """;
 }
 
