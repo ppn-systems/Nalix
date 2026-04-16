@@ -17,7 +17,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -221,7 +220,11 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void HandlePacket(IPacket packet, IConnection connection)
     {
-        if (packet is null || connection is null) return;
+        if (packet is null || connection is null)
+        {
+            return;
+        }
+
         _ = Task.Run(async () => await this.ExecutePacketHandlerAsync(packet, connection).ConfigureAwait(false));
     }
 
