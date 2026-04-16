@@ -16,6 +16,7 @@ namespace Nalix.Network.Tests;
 public sealed class PacketAwaiterTests
 {
     [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit analyzer xUnit1030 forbids ConfigureAwait(false) in test methods.")]
     public async Task AwaitAsync_WhenSessionDisconnects_ThrowsNetworkException()
     {
         FakeSession session = new();
@@ -48,7 +49,11 @@ public sealed class PacketAwaiterTests
 
         public override bool IsConnected => true;
 
-        public override event EventHandler? OnConnected;
+        public override event EventHandler? OnConnected
+        {
+            add { }
+            remove { }
+        }
 
         public override event EventHandler<Exception>? OnDisconnected;
 
@@ -58,7 +63,11 @@ public sealed class PacketAwaiterTests
             remove { }
         }
 
-        public override event EventHandler<Exception>? OnError;
+        public override event EventHandler<Exception>? OnError
+        {
+            add { }
+            remove { }
+        }
 
         public override Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
             => Task.CompletedTask;

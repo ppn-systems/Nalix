@@ -1,4 +1,6 @@
 using Nalix.Analyzers.CodeFixes;
+using System.Threading.Tasks;
+using Xunit;
 
 namespace Nalix.Analyzers.Tests;
 
@@ -239,11 +241,11 @@ public static class RequestUsage
 {
     public static void Call(IClientConnection client, DemoPacket packet)
     {
-        RequestOptions options = RequestOptions.Default
-            .WithTimeout(0)
-            .WithRetry(2);
-
-        _ = client.RequestAsync<DemoPacket>(packet, options);
+        _ = client.RequestAsync<DemoPacket>(
+            packet,
+            RequestOptions.Default
+                .WithTimeout(0)
+                .WithRetry(2));
     }
 }
 """;
@@ -336,7 +338,7 @@ public static class DispatchSetup
 }
 """;
 
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX008");
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX008", "NALIX050");
     }
 
     [Fact]
@@ -609,7 +611,8 @@ public static class Setup
 {
     public static void Configure()
     {
-        _ = new PacketDispatchOptions<PacketA>().WithMiddleware(new PacketBMiddleware());
+        _ = new PacketDispatchOptions<PacketA>()
+            .WithMiddleware((IPacketMiddleware<PacketA>)(object)new PacketBMiddleware());
     }
 }
 """;
@@ -1064,11 +1067,6 @@ public sealed class ControllerA
     public async Task FixedSizeSerializableWithDynamicMember_ReportsNalix051()
     {
         const string source = """
-namespace Nalix.Common.Serialization
-{
-    public interface IFixedSizeSerializable { }
-}
-
 namespace Demo;
 using Nalix.Common.Serialization;
 
@@ -1437,5 +1435,102 @@ public sealed class HeaderOverlapPacket : PacketBase<HeaderOverlapPacket>
 """;
 
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX022");
+    }
+
+    [Fact]
+    public async Task RequestAsyncEncryptOnTcpSession_DoesNotReportNalix029Or053()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames;
+using Nalix.SDK.Options;
+using Nalix.SDK.Transport;
+using Nalix.SDK.Transport.Extensions;
+
+public sealed class DemoPacket : PacketBase<DemoPacket>
+{
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+
+public sealed class DemoTcpSession : TcpSession
+{
+}
+
+public static class RequestUsage
+{
+    public static void Call(DemoTcpSession client, DemoPacket packet)
+    {
+        _ = client.RequestAsync<DemoPacket>(packet, RequestOptions.Default.WithEncrypt(true));
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task MetadataProviderOverwritesOpcodeWithGuard_DoesNotReportNalix026()
+    {
+        const string source = """
+namespace Demo;
+using System.Reflection;
+using Nalix.Common.Networking.Packets;
+using Nalix.Runtime.Dispatching;
+
+public sealed class Provider : IPacketMetadataProvider
+{
+    public void Populate(MethodInfo method, PacketMetadataBuilder builder)
+    {
+        if (builder.Opcode is null)
+        {
+            builder.Opcode = new PacketOpcodeAttribute(0x1210);
+        }
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task DuplicateMiddlewareOrderAcrossDifferentChains_DoesNotReportNalix033()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Common.Middleware;
+using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames;
+using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Middleware;
+
+public sealed class DemoPacket : PacketBase<DemoPacket>
+{
+    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
+}
+
+[MiddlewareOrder(5)]
+public sealed class Mw1 : IPacketMiddleware<DemoPacket>
+{
+    public ValueTask InvokeAsync(IPacketContext<DemoPacket> context, Func<CancellationToken, ValueTask> next) => next(context.CancellationToken);
+}
+
+[MiddlewareOrder(5)]
+public sealed class Mw2 : IPacketMiddleware<DemoPacket>
+{
+    public ValueTask InvokeAsync(IPacketContext<DemoPacket> context, Func<CancellationToken, ValueTask> next) => next(context.CancellationToken);
+}
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new PacketDispatchOptions<DemoPacket>().WithMiddleware(new Mw1());
+        _ = new PacketDispatchOptions<DemoPacket>().WithMiddleware(new Mw2());
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
     }
 }

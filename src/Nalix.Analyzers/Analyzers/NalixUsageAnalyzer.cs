@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -345,7 +346,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            if (member.IsImplicitlyDeclared)
+            if (member.IsImplicitlyDeclared || member.IsStatic)
             {
                 continue;
             }
@@ -385,7 +386,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                     Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, finalOrder.Value);
                 }
 
-                if (isPacketBaseType
+                if (isExplicitLayout
+                    && isPacketBaseType
                     && order.HasValue
                     && order.Value < symbols.PacketHeaderRegionOffset)
                 {
@@ -1088,10 +1090,22 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         TypedConstant arg = serializePackable.ConstructorArguments[0];
-        return arg.Type is not null
-               && SymbolEqualityComparer.Default.Equals(arg.Type, serializeLayoutType)
-               && arg.Value is byte rawValue
-               && rawValue == 1;
+        if (arg.Type is null
+            || serializeLayoutType is null
+            || !SymbolEqualityComparer.Default.Equals(arg.Type, serializeLayoutType)
+            || arg.Value is null)
+        {
+            return false;
+        }
+
+        // Resolve by enum member value instead of hardcoded numeric constants.
+        object? explicitValue = serializeLayoutType.GetMembers()
+            .OfType<IFieldSymbol>()
+            .FirstOrDefault(static field => field.Name == "Explicit")
+            ?.ConstantValue;
+
+        return explicitValue is not null
+               && Equals(Convert.ToInt32(arg.Value, CultureInfo.InvariantCulture), Convert.ToInt32(explicitValue, CultureInfo.InvariantCulture));
     }
 
     private static int? GetSerializeOrder(ISymbol symbol, INamedTypeSymbol? serializeOrderAttribute)
