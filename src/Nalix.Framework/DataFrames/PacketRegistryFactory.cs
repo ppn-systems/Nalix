@@ -542,6 +542,5 @@ public sealed class PacketRegistryFactory
 
         Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
     }
-
     #endregion Private: Binding Helpers
 }

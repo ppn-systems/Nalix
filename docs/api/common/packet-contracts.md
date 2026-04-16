@@ -10,6 +10,7 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 
 - `src/Nalix.Common/Networking/Packets/IPacket.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketContext.cs`
+- `src/Nalix.Common/Networking/Packets/IPacketDeserializer.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketRegistry.cs`
 - `src/Nalix.Common/Networking/Packets/IPacketSender.cs`
 - `src/Nalix.Common/Networking/Packets/PacketDeserializer.cs`
@@ -53,6 +54,9 @@ Metadata-aware send contract:
 ### Supporting Contracts
 
 - `PacketDeserializer`: delegate from raw bytes to `IPacket`
+- `IPacketDeserializer<TPacket>`:
+  - `Deserialize(ReadOnlySpan<byte>)`
+  - `Deserialize(ReadOnlySpan<byte>, ref TPacket)`
 - `IPacketTimestamped`: packet contract with timestamp semantics
 - `IPacketReasoned`: packet contract exposing reason/code semantics
 

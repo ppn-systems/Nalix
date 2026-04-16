@@ -21,7 +21,7 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 | Type | Public members |
 |---|---|
 | `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `Protocol`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
-| `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)` |
+| `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)`, `Deserialize(ReadOnlySpan<byte>, ref TSelf)` |
 | `FrameTransformer` | low-level payload transform helpers and size calculations |
 | `PacketCipher` | shared framed packet encrypt/decrypt helper |
 | `PacketCompression` | shared framed packet compress/decompress helper |
@@ -80,6 +80,7 @@ public sealed class ChatMessage : PacketBase<ChatMessage>
 - `MagicNumber` is restored automatically during `ResetForPool()`, so pooled packets keep stable type identity.
 - fixed-size packets get a cached `Length`; dynamic fields such as `string` and `byte[]` are measured at runtime.
 - static `Deserialize(ReadOnlySpan<byte>)` throws on empty or malformed input instead of silently returning a partial packet.
+- static `Deserialize(ReadOnlySpan<byte>, ref TSelf)` supports reusing an existing packet instance while keeping the same validation behavior.
 
 ## FrameTransformer
 

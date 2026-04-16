@@ -201,11 +201,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Thrown when the payload is malformed or does not contain enough data to deserialize the packet.
     /// </exception>
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
-    public static TSelf Deserialize(ReadOnlyMemory<byte> buffer, ref TSelf value)
+    public static TSelf Deserialize(ReadOnlySpan<byte> buffer, ref TSelf value)
     {
-        VALIDATE_BUFFER_HEADER(buffer.Span);
+        VALIDATE_BUFFER_HEADER(buffer);
 
-        int bytesRead = LiteSerializer.Deserialize(buffer.Span, ref value);
+        int bytesRead = LiteSerializer.Deserialize(buffer, ref value);
         if (bytesRead == 0)
         {
             throw new InvalidOperationException(

@@ -65,7 +65,7 @@ public sealed class RuntimeOptionsAndMetadataTests
     {
         PacketMetadataBuilder builder = new();
 
-        InternalErrorException ex = Assert.Throws<InternalErrorException>(builder.Build);
+        InternalErrorException ex = Assert.Throws<InternalErrorException>(() => builder.Build());
 
         Assert.Contains("requires a non-null Opcode", ex.Message, StringComparison.Ordinal);
     }
@@ -114,6 +114,7 @@ public sealed class RuntimeOptionsAndMetadataTests
         Assert.Equal("after", fromBuilder!.Value);
     }
 
+    [AttributeUsage(AttributeTargets.All, AllowMultiple = false, Inherited = false)]
     private sealed class TestMarkerAttribute(string value) : Attribute
     {
         public string Value { get; } = value;
