@@ -126,7 +126,10 @@ public class UdpSession : TransportSession
 
             // BUG-62: Apply ConnectTimeoutMillis from options
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
+            if (this.Options.ConnectTimeoutMillis > 0)
+            {
+                connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
+            }
 
             // "Connect" the UDP socket to the remote endpoint
             await _socket.ConnectAsync(_remoteEndPoint, connectCts.Token).ConfigureAwait(false);

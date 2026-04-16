@@ -3,6 +3,7 @@
 
 using System;
 using System.Globalization;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -32,6 +33,8 @@ public sealed class NetworkClientService : INetworkClientService
     private CancellationTokenSource? _pingCts;
     private byte[] _savedSecret = [];
     private Snowflake _savedSessionToken = Snowflake.Empty;
+    private string? _savedHost;
+    private ushort _savedPort;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NetworkClientService"/> class.
@@ -96,23 +99,37 @@ public sealed class NetworkClientService : INetworkClientService
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(settings);
 
+        string host = settings.Host.Trim();
+        string? referenceHost = _session?.Options.Address ?? _savedHost;
+        ushort referencePort = _session?.Options.Port ?? _savedPort;
+        bool sameEndpoint = string.Equals(referenceHost, host, StringComparison.OrdinalIgnoreCase) && referencePort == settings.Port;
+
         // Capture state from previous session if available BEFORE disconnecting
         if (_session is not null)
         {
-            _savedSecret = [.. _session.Options.Secret];
+            this.ReplaceSavedSecret(_session.Options.Secret);
             _savedSessionToken = _session.Options.SessionToken;
+            _savedHost = host;
+            _savedPort = settings.Port;
         }
 
         await this.DisconnectAsync(cancellationToken).ConfigureAwait(false);
 
+        if (!sameEndpoint)
+        {
+            this.ClearSavedSessionState();
+        }
+
+        bool hasSavedSecret = _savedSecret.Length > 0;
+
         TransportOptions options = new()
         {
-            Address = settings.Host,
+            Address = host,
             Port = settings.Port,
             NoDelay = true,
             CompressionEnabled = false,
-            EncryptionEnabled = false,
-            Secret = _savedSecret,
+            EncryptionEnabled = hasSavedSecret,
+            Secret = [.. _savedSecret],
             SessionToken = _savedSessionToken
         };
 
@@ -134,7 +151,7 @@ public sealed class NetworkClientService : INetworkClientService
             this.StatusChanged?.Invoke(this, "Disconnected.");
         };
 
-        await _session.ConnectAsync(settings.Host, settings.Port, cancellationToken).ConfigureAwait(false);
+        await _session.ConnectAsync(host, settings.Port, cancellationToken).ConfigureAwait(false);
 
         if (_session is UdpSession udpRef && Snowflake.TryParse(settings.SessionToken, out Snowflake token))
         {
@@ -233,8 +250,10 @@ public sealed class NetworkClientService : INetworkClientService
             await tcpSession.HandshakeAsync(cancellationToken).ConfigureAwait(false);
 
             // Persist the newly established session state
-            _savedSecret = [.. tcpSession.Options.Secret];
+            this.ReplaceSavedSecret(tcpSession.Options.Secret);
             _savedSessionToken = tcpSession.Options.SessionToken;
+            _savedHost = tcpSession.Options.Address;
+            _savedPort = tcpSession.Options.Port;
         }
         else
         {
@@ -353,6 +372,7 @@ public sealed class NetworkClientService : INetworkClientService
         }
 
         _disposed = true;
+        this.ClearSavedSessionState();
         if (_session is not null)
         {
             try
@@ -426,5 +446,28 @@ public sealed class NetworkClientService : INetworkClientService
         }
 
         action();
+    }
+
+    private void ReplaceSavedSecret(byte[] source)
+    {
+        this.ClearSavedSecretBytes();
+        _savedSecret = [.. source];
+    }
+
+    private void ClearSavedSessionState()
+    {
+        this.ClearSavedSecretBytes();
+        _savedSessionToken = Snowflake.Empty;
+        _savedHost = null;
+        _savedPort = 0;
+    }
+
+    private void ClearSavedSecretBytes()
+    {
+        if (_savedSecret.Length > 0)
+        {
+            CryptographicOperations.ZeroMemory(_savedSecret);
+            _savedSecret = [];
+        }
     }
 }
