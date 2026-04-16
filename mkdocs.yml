@@ -38,20 +38,21 @@ theme:
   favicon: assets/nalix.ico
   font:
     text: Inter
-    code: "Fira Code"
+    code: "JetBrains Mono"
   palette:
-    - scheme: default
-      primary: black
-      accent: cyan
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
-    - scheme: slate
-      primary: black
-      accent: cyan
-      toggle:
-        icon: material/weather-sunny
-        name: Switch to light mode
+      - scheme: default
+        primary: white
+        accent: cyan
+        toggle:
+          icon: material/weather-night
+          name: Switch to dark mode
+
+      - scheme: slate
+        primary: black
+        accent: cyan
+        toggle:
+          icon: material/weather-sunny
+          name: Switch to light mode
   features:
     - navigation.path
     - navigation.tabs
