@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.Logging;
 /// Provides extension methods for throttled logging using connection attributes.
 /// This prevents log flooding (DDoS Log) for events that happen frequently per-connection.
 /// </summary>
-public static class ConnectionLoggingExtensions
+public static class ThrottleLogExtensions
 {
     private static readonly TimeSpan s_defaultWindow = TimeSpan.FromSeconds(10);
 

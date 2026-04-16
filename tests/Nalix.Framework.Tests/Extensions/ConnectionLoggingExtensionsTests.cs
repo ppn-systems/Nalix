@@ -77,7 +77,7 @@ public sealed class ConnectionLoggingExtensionsTests
     {
         TestLogger logger = new();
 
-        ConnectionLoggingExtensions.ThrottledTrace(null!, logger, "trace", "ping");
+        global::Microsoft.Extensions.Logging.ThrottleLogExtensions.ThrottledTrace(null!, logger, "trace", "ping");
 
         Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Trace, logger.Entries[0].Level);
