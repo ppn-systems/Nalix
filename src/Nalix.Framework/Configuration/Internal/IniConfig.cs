@@ -287,6 +287,7 @@ internal sealed class IniConfig : IDisposable
                 try
                 {
                     _comments[commentKey] = comment;
+                    _isDirty = true;
                 }
                 finally
                 {

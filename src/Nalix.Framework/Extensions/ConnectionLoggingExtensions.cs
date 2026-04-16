@@ -80,6 +80,7 @@ public static class ConnectionLoggingExtensions
         }
 
         string attrKey = "sys.log." + key;
+        bool created = false;
         if (!connection.Attributes.TryGetValue(attrKey, out object? val) || val is not LogThrottleState state)
         {
             state = new LogThrottleState { LastLogTicks = Clock.NowUtc().Ticks };
@@ -89,12 +90,18 @@ public static class ConnectionLoggingExtensions
             // Re-fetch to handle race conditions where another thread added it first
             if (connection.Attributes.TryGetValue(attrKey, out val) && val is LogThrottleState existingState)
             {
+                created = ReferenceEquals(existingState, state);
                 state = existingState;
             }
             else
             {
                 return true; // First time logging this key
             }
+        }
+
+        if (created)
+        {
+            return true;
         }
 
         long nowTicks = Clock.NowUtc().Ticks;
