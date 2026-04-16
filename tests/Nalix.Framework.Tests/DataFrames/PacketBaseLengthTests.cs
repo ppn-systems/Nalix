@@ -69,6 +69,20 @@ public sealed class PacketBaseLengthTests
         Assert.Equal(PacketConstants.HeaderSize + sizeof(byte), packet.Length);
     }
 
+    [Fact]
+    public void SerializeWhenBufferIsSmallerThanDynamicLengthThrowsArgumentException()
+    {
+        StringPacket packet = new()
+        {
+            Message = "dynamic payload"
+        };
+
+        byte[] buffer = new byte[packet.Length - 1];
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => packet.Serialize(buffer));
+
+        Assert.Contains("Buffer too small", ex.Message, StringComparison.Ordinal);
+    }
+
     [SerializePackable(SerializeLayout.Sequential)]
     private sealed class StringPacket : PacketBase<StringPacket>
     {

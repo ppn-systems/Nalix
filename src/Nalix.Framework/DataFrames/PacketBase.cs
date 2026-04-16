@@ -140,14 +140,28 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
-        int length = this.Length;
-        if (buffer.Length < length)
+        if (buffer.Length < s_cache.StaticSize)
         {
             throw new ArgumentException(
-                $"Buffer too small: length={buffer.Length}, required>={length}, type={typeof(TSelf).FullName}.");
+                $"Buffer too small: length={buffer.Length}, required>={s_cache.StaticSize}, type={typeof(TSelf).FullName}.");
         }
 
-        return LiteSerializer.Serialize((TSelf)this, buffer);
+        try
+        {
+            return LiteSerializer.Serialize((TSelf)this, buffer);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Dynamic-size packets can overflow a span-backed writer even when the static portion fits.
+            int required = this.Length;
+            if (buffer.Length < required)
+            {
+                throw new ArgumentException(
+                    $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}.", ex);
+            }
+
+            throw;
+        }
     }
 
     /// <summary>
@@ -388,89 +402,140 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     private static Func<TSelf, int> BUILD_STRING_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, string?> getter = BUILD_TYPED_GETTER<string>(meta);
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
-
+            string? value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize; // typically 4
+                return nullWireSize; // typically 4
             }
 
             // StringFormatter writes an Int32 byte-count prefix followed by the UTF-8 payload.
             // Length must match the wire format exactly because Serialize(Span<byte>) relies on it.
-            return sizeof(int) + Encoding.UTF8.GetByteCount((string)value);
+            return sizeof(int) + Encoding.UTF8.GetByteCount(value);
         };
     }
 
     private static Func<TSelf, int> BUILD_BYTE_ARRAY_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, byte[]?> getter = BUILD_TYPED_GETTER<byte[]>(meta);
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
+            byte[]? value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize; // 4
+                return nullWireSize; // 4
             }
 
-            return sizeof(int) + ((byte[])value).Length;
+            return sizeof(int) + value.Length;
         };
     }
 
     private static Func<TSelf, int> BUILD_PACKET_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, IPacket?> getter = BUILD_TYPED_GETTER<IPacket>(meta);
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
-            if (value is null)
+            IPacket? packet = getter(instance);
+            if (packet is null)
             {
-                return meta.NullWireSize; // 4
+                return nullWireSize; // 4
             }
 
-            IPacket p = (IPacket)value;
-
             // Minimal self-reference guard.
-            if (ReferenceEquals(p, instance))
+            if (ReferenceEquals(packet, instance))
             {
                 return 0;
             }
 
             // Packet properties are serialized through NullableObjectFormatter<T>,
             // which prefixes a 1-byte presence marker before the nested packet payload.
-            return sizeof(byte) + p.Length;
+            return sizeof(byte) + packet.Length;
         };
     }
 
     private static Func<TSelf, int> BUILD_UNMANAGED_ARRAY_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, Array?> getter = BUILD_TYPED_GETTER<Array>(meta);
         int elementSize = meta.ElementSize;
+        int nullWireSize = meta.NullWireSize;
 
         return instance =>
         {
-            object? value = meta.GetValue(instance);
+            Array? value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize; // 4
+                return nullWireSize; // 4
             }
 
-            Array arr = (Array)value;
-            return sizeof(int) + (arr.Length * elementSize);
+            return sizeof(int) + (value.Length * elementSize);
         };
     }
 
     private static Func<TSelf, int> BUILD_FALLBACK_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, object?> getter = BUILD_OBJECT_GETTER(meta);
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
+            object? value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize;
+                return nullWireSize;
             }
 
             // Conservative runtime sizing for uncommon types.
             return GET_DYNAMIC_SIZE_FALLBACK(instance, value);
         };
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Func<TSelf, TValue?> BUILD_TYPED_GETTER<TValue>(PropertyMetadata meta)
+        where TValue : class
+    {
+        MethodInfo? getMethod = meta.Property.GetMethod;
+        if (getMethod is null)
+        {
+            return static _ => null;
+        }
+
+        try
+        {
+            return getMethod.CreateDelegate<Func<TSelf, TValue?>>();
+        }
+        catch (Exception)
+        {
+            // Fallback for edge signatures where relaxed delegate binding cannot be created.
+            return instance => meta.GetValue(instance) as TValue;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Func<TSelf, object?> BUILD_OBJECT_GETTER(PropertyMetadata meta)
+    {
+        MethodInfo? getMethod = meta.Property.GetMethod;
+        if (getMethod is null)
+        {
+            return static _ => null;
+        }
+
+        try
+        {
+            return getMethod.CreateDelegate<Func<TSelf, object?>>();
+        }
+        catch (Exception)
+        {
+            // Fallback keeps behavior consistent for value-type return paths that require boxing.
+            return instance => meta.GetValue(instance);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

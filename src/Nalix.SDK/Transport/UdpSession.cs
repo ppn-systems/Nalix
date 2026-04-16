@@ -221,14 +221,16 @@ public class UdpSession : TransportSession
             throw new NetworkException("SessionToken must be set before sending UDP packets.");
         }
 
-        if (packet.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+        packet.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+        int packetLength = packet.Length;
+
+        if (packetLength + Snowflake.Size > this.Options.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP packet too large: {packet.Length + Snowflake.Size} bytes (including token). Max allowed is {this.Options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
+            throw new NetworkException($"UDP packet too large: {packetLength + Snowflake.Size} bytes (including token). Max allowed is {this.Options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
         }
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
-        packet.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
-        IBufferLease src = BufferLease.Rent(packet.Length);
+        IBufferLease src = BufferLease.Rent(packetLength);
         try
         {
             int written = packet.Serialize(src.Span);
