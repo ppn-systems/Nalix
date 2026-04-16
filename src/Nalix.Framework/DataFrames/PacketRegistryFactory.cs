@@ -129,7 +129,11 @@ public sealed class PacketRegistryFactory
         int count = 0;
         foreach (Type? type in SAFE_GET_TYPES(asm))
         {
-            if (type is null || !type.IsClass || type.IsAbstract || !typeof(IPacket).IsAssignableFrom(type))
+            if (type is null ||
+                type.IsAbstract ||
+                type.IsInterface ||
+                type.IsGenericTypeDefinition ||
+                !typeof(IPacket).IsAssignableFrom(type))
             {
                 continue;
             }
@@ -249,6 +253,7 @@ public sealed class PacketRegistryFactory
             Math.Max(16, _explicitPacketTypes.Count + Math.Min(64, _assemblies.Count * 8));
 
         Dictionary<uint, PacketDeserializer> deserializers = new(estimated);
+        Dictionary<uint, PacketDeserializerInto<IPacket>> deserializersInto = new(estimated);
 
         // ── 1. Collect candidates ────────────────────────────────────────────────
         HashSet<Type> candidates = [.. _explicitPacketTypes];
@@ -263,8 +268,8 @@ public sealed class PacketRegistryFactory
 
             foreach (Type type in SAFE_GET_TYPES(asm))
             {
-                // Must be a concrete class
-                if (!type.IsClass || type.IsAbstract || type.IsGenericTypeDefinition)
+                // Must be a concrete packet type (class or struct)
+                if (type.IsAbstract || type.IsInterface || type.IsGenericTypeDefinition)
                 {
                     TRACE($"skip reason=not-concrete type={type.Name}");
                     continue;
@@ -323,6 +328,12 @@ public sealed class PacketRegistryFactory
                 [typeof(ReadOnlySpan<byte>)]) ?? throw new InternalErrorException(
                     $"Packet type {type.FullName} does not implement the required static Deserialize(ReadOnlySpan<byte>) method.");
 
+            MethodInfo? miDeserializeInto = FIND_STATIC_METHOD(
+                type, StaticPublic,
+                nameof(IPacketDeserializer<>.Deserialize),
+                [typeof(ReadOnlySpan<byte>), type.MakeByRefType()]) ?? throw new InternalErrorException(
+                    $"Packet type {type.FullName} does not implement the required static Deserialize(ReadOnlySpan<byte>, ref {type.Name}) method.");
+
             if (deserializers.ContainsKey(key))
             {
                 Type existingType = magicTypes[key];
@@ -339,7 +350,7 @@ public sealed class PacketRegistryFactory
             // Bind deserialize pointer into PacketFunctionTable<TPacket>
             try
             {
-                _ = s_bindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize]);
+                _ = s_bindAllPtrsMi.MakeGenericMethod(type).Invoke(null, [miDeserialize, miDeserializeInto]);
             }
             catch (Exception ex)
             {
@@ -350,9 +361,11 @@ public sealed class PacketRegistryFactory
 
             Type tbl = typeof(PacketFunctionTable<>).MakeGenericType(type);
             MethodInfo doDeserializeMi;
+            MethodInfo doDeserializeIntoMi;
             try
             {
                 doDeserializeMi = tbl.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserialize), StaticNonPublic | StaticPublic)!;
+                doDeserializeIntoMi = tbl.GetMethod(nameof(PacketFunctionTable<>.InvokeDeserializeInto), StaticNonPublic | StaticPublic)!;
             }
             catch (Exception ex)
             {
@@ -364,6 +377,7 @@ public sealed class PacketRegistryFactory
             try
             {
                 deserializers[key] = (PacketDeserializer)Delegate.CreateDelegate(typeof(PacketDeserializer), doDeserializeMi);
+                deserializersInto[key] = (PacketDeserializerInto<IPacket>)Delegate.CreateDelegate(typeof(PacketDeserializerInto<IPacket>), doDeserializeIntoMi);
                 magicTypes[key] = type;
             }
             catch (Exception ex)
@@ -376,7 +390,9 @@ public sealed class PacketRegistryFactory
 
         TRACE($"build-ok packets={deserializers.Count}");
 
-        return new PacketRegistry(FrozenDictionary.ToFrozenDictionary(deserializers));
+        return new PacketRegistry(
+            FrozenDictionary.ToFrozenDictionary(deserializers),
+            FrozenDictionary.ToFrozenDictionary(deserializersInto));
     }
 
     /// <summary>
@@ -515,9 +531,19 @@ public sealed class PacketRegistryFactory
     private static unsafe class PacketFunctionTable<TPacket> where TPacket : IPacket
     {
         public static delegate* managed<ReadOnlySpan<byte>, TPacket> DeserializePtr;
+        public static delegate* managed<ReadOnlySpan<byte>, ref TPacket, TPacket> DeserializeIntoPtr;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IPacket InvokeDeserialize(ReadOnlySpan<byte> raw) => DeserializePtr(raw);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static IPacket InvokeDeserializeInto(ReadOnlySpan<byte> raw, ref IPacket value)
+        {
+            TPacket packet = value is TPacket existing ? existing : default!;
+            TPacket resolved = DeserializeIntoPtr(raw, ref packet);
+            value = resolved;
+            return resolved;
+        }
     }
 
     #endregion Private: Function Pointer Table
@@ -531,16 +557,25 @@ public sealed class PacketRegistryFactory
         return (delegate* managed<ReadOnlySpan<byte>, TPacket>)ptr;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static unsafe delegate* managed<ReadOnlySpan<byte>, ref TPacket, TPacket> BIND_DESERIALIZE_INTO_PTR<TPacket>(MethodInfo mi)
+    {
+        nint ptr = mi.MethodHandle.GetFunctionPointer();
+        return (delegate* managed<ReadOnlySpan<byte>, ref TPacket, TPacket>)ptr;
+    }
+
     /// <summary>
     /// Generic trampoline invoked via reflected <see cref="s_bindAllPtrsMi"/>.
     /// Assigns the deserialize function pointer to <see cref="PacketFunctionTable{TPacket}"/>.
     /// </summary>
     private static unsafe void BIND_PTRS<TPacket>(
-        MethodInfo miDeserialize) where TPacket : IPacket
+        MethodInfo miDeserialize,
+        MethodInfo miDeserializeInto) where TPacket : IPacket
     {
         PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
+        PacketFunctionTable<TPacket>.DeserializeIntoPtr = BIND_DESERIALIZE_INTO_PTR<TPacket>(miDeserializeInto);
 
-        Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
+        Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+ des_ref=+");
     }
     #endregion Private: Binding Helpers
 }
