@@ -99,8 +99,8 @@ public sealed class TenantGuardMiddleware<TPacket> : IPacketMiddleware<TPacket>
         {
             await context.Connection.SendAsync(
                 ControlType.FAIL,
-                ProtocolReason.PERMISSION_DENIED,
-                ProtocolAdvice.RETRY_LATER);
+                ProtocolReason.UNAUTHORIZED,
+                ProtocolAdvice.REAUTHENTICATE);
             return;
         }
 

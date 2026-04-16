@@ -98,6 +98,7 @@ public sealed class DataHandlers
 using Nalix.Network.Hosting;
 using Nalix.Logging;
 using Nalix.Network.Options;
+using Nalix.Network.Pipeline.Inbound;
 using Nalix.Runtime.Dispatching;
 
 var logger = NLogix.Host.Instance;
@@ -115,7 +116,7 @@ using var app = NetworkApplication.CreateBuilder()
     // 3. Configure Dispatch Middleware
     .ConfigureDispatch(dispatch => {
         dispatch.WithLogging(logger)
-                .WithConcurrencyLimit(100) // Max 100 concurrent handlers
+                .WithMiddleware(new ConcurrencyMiddleware())
                 .WithErrorHandling((ex, cmd) => logger.Error("Unhandled!", ex));
     })
     // 4. Bind Transport
@@ -162,7 +163,7 @@ Console.WriteLine($"Server said: {response.Message}");
 
 - [ ] **Logging**: Ensure `NLogix` is configured with a high-performance sink (e.g., `BatchConsoleLogTarget`).
 - [ ] **Timeouts**: Set `TimeoutMs` on all client calls via `RequestOptions`.
-- [ ] **Backpressure**: Configure `NetworkSocketOptions.Backlog` and `PacketDispatchOptions.ConcurrencyLimit`.
+- [ ] **Backpressure**: Configure `NetworkSocketOptions.Backlog` and `DispatchOptions` (`MaxPerConnectionQueue`, `DropPolicy`).
 - [ ] **Health Checks**: Use `IConnectionHub` to monitor live sessions.
 - [ ] **Resource Cleanup**: Ensure all `IBufferLease` objects are disposed (handled automatically if using `IPacketContext<T>`).
 

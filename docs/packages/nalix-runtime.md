@@ -22,7 +22,7 @@ flowchart LR
 `PacketDispatchChannel` is the engine that processes all incoming network traffic. It manages:
 
 - **Shard-aware worker loops** — Multiple workers (scaled to CPU core count) pull from the dispatch queue in parallel, preventing head-of-line blocking.
-- **Priority queueing** — Packets are prioritized by `PacketPriority` (Urgent, System, High, Normal, Low).
+- **Priority queueing** — Packets are prioritized by `PacketPriority` (`URGENT`, `HIGH`, `MEDIUM`, `LOW`, `NONE`).
 - **Deserialization** — Uses the `PacketRegistry` to convert raw bytes into typed packet instances.
 - **Middleware execution** — Runs the configured middleware chain before handler invocation.
 - **Handler invocation** — Calls the matched handler method with the appropriate context.
@@ -122,6 +122,7 @@ Call `dispatch.GenerateReport()` to inspect runtime state:
 ## Key API Pages
 
 - [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
+- [Packet Dispatch Options](../api/runtime/routing/packet-dispatch-options.md)
 - [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
 - [Packet Attributes](../api/runtime/routing/packet-attributes.md)
 - [Handler Return Types](../api/runtime/routing/handler-results.md)

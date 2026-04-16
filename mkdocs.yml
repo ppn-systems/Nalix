@@ -228,6 +228,7 @@ nav:
           - Packet Sender: api/runtime/routing/packet-sender.md
           - Dispatch Contracts: api/runtime/routing/dispatch-contracts.md
           - Dispatch: api/runtime/routing/packet-dispatch.md
+          - Packet Dispatch Options: api/runtime/routing/packet-dispatch-options.md
           - Dispatch Channel and Router: api/runtime/routing/dispatch-channel-and-router.md
           - Handler Return Types: api/runtime/routing/handler-results.md
           - Dispatch Options: api/runtime/options/dispatch-options.md

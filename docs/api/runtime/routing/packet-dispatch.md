@@ -61,7 +61,7 @@ For deep-dive configuration and sharding strategies, see the [Shard-Aware Dispat
 
 ## Operational Notes
 
-- Worker loops count is `Options.DispatchLoopCount` when set, otherwise `Math.Clamp(Environment.ProcessorCount, 1, 64)`.
+- Worker loops count is `Options.DispatchLoopCount` when set, otherwise `Math.Clamp(Environment.ProcessorCount, Options.MinDispatchLoops, Options.MaxDispatchLoops)`.
 - Raw buffer path executes network buffer middleware before deserialization.
 - Lease disposal is handled by runtime paths; callers should not dispose after successful handoff.
 
@@ -74,6 +74,7 @@ For deep-dive configuration and sharding strategies, see the [Shard-Aware Dispat
 ## Related APIs
 
 - [Dispatch Contracts](./dispatch-contracts.md)
+- [Packet Dispatch Options](./packet-dispatch-options.md)
 - [Packet Context](./packet-context.md)
 - [Middleware Pipeline](../middleware/pipeline.md)
 - [Dispatch Options](../options/dispatch-options.md)

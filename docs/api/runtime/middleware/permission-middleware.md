@@ -38,7 +38,7 @@ Security in Nalix is enforced at the message level. `PermissionMiddleware` acts 
 ### Securing a Packet
 ```csharp
 [PacketOpcode(0x2001)]
-[PacketPermission(PermissionLevel.Admin)]
+[PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
 public class AdminCommandPacket : IPacket { ... }
 ```
 
@@ -46,7 +46,7 @@ public class AdminCommandPacket : IPacket { ... }
 ```csharp
 builder.ConfigureDispatch(options =>
 {
-    options.WithMiddleware<PermissionMiddleware>();
+    options.WithMiddleware(new PermissionMiddleware());
 });
 ```
 

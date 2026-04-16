@@ -109,10 +109,11 @@ For higher-level frame workflows, prefer the shared helpers:
 
 ```csharp
 int maxCipher = FrameTransformer.GetMaxCiphertextSize(
-    CipherSuiteType.CHACHA20_POLY1305,
+    CipherSuiteType.Chacha20Poly1305,
     plaintextSize: payloadSize);
 
-bool encrypted = FrameTransformer.Encrypt(sourceLease, destLease, key, CipherSuiteType.CHACHA20_POLY1305);
+FrameTransformer.Encrypt(sourceLease, destLease, key, CipherSuiteType.Chacha20Poly1305);
+int encryptedLength = destLease.Length;
 ```
 
 ### Operational model

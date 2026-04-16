@@ -25,7 +25,7 @@ Accurate options documentation prevents misconfiguration in production.
 | Property | Meaning | Default |
 |---|---|---:|
 | `MaxConnections` | Maximum concurrent connections (`-1` = unlimited, `0` invalid). | `-1` |
-| `DropPolicy` | Admission behavior at capacity (`DropNewest`/`DropOldest`). | `DropNewest` |
+| `DropPolicy` | Admission behavior at capacity (`DropNewest`, `DropOldest`, `Block`, `Coalesce`). | `DropNewest` |
 | `ParallelDisconnectDegree` | Parallelism for bulk disconnect (`-1` = runtime default, `0` invalid). | `-1` |
 | `BroadcastBatchSize` | Batch size for broadcast fan-out (`0` = no batching mode). | `0` |
 | `ShardCount` | Number of connection storage shards (>= 1). | `Environment.ProcessorCount` |
