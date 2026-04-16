@@ -35,7 +35,7 @@ graph LR
     ShardN --> HandlerN["Handler"]
 ```
 
-- **Parallel execution** — Workers are scaled to match the logical CPU core count by default (`WorkerCount=0` in `DispatchOptions`).
+- **Parallel execution** — Workers are scaled to match logical CPU cores in auto mode (`WithDispatchLoopCount(null)` on `PacketDispatchOptions<TPacket>`).
 - **Wake-signaling** — Uses `System.Threading.Channels` for coalesced signaling. Under bursty traffic, multiple enqueue operations may trigger a single wake, reducing unnecessary CPU wake-ups.
 
 ## 3. 56-Bit Snowflake Identifiers
