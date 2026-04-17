@@ -109,15 +109,16 @@ internal static class AsyncCallback
         // Decrement the per-IP counter only after the callback actually runs.
         // Once the count reaches zero, remove the key so the fairness map stays
         // bounded and a short-lived remote endpoint does not leave stale entries.
-        if (w.Args.NetworkEndpoint is not null)
+        INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(w.Args);
+        if (endpoint is not null)
         {
-            _ = s_perIpPending.AddOrUpdate(w.Args.NetworkEndpoint, addValueFactory: static (_, _) => 0,
+            _ = s_perIpPending.AddOrUpdate(endpoint, addValueFactory: static (_, _) => 0,
                 updateValueFactory: static (_, current, _) => current > 1 ? current - 1 : 0, factoryArgument: 0);
 
             // Clean up zero-valued entries to prevent dictionary growth.
-            if (s_perIpPending.TryGetValue(w.Args.NetworkEndpoint, out int v) && v == 0)
+            if (s_perIpPending.TryGetValue(endpoint, out int v) && v == 0)
             {
-                _ = s_perIpPending.TryRemove(new KeyValuePair<INetworkEndpoint, int>(w.Args.NetworkEndpoint, 0));
+                _ = s_perIpPending.TryRemove(new KeyValuePair<INetworkEndpoint, int>(endpoint, 0));
             }
         }
 
@@ -171,22 +172,23 @@ internal static class AsyncCallback
             // Drop the callback before queuing work so one overloaded server path
             // cannot keep piling up work items and consuming the entire normal lane.
             Interlocked.Increment(ref s_droppedCallbacks);
-            args.Connection.ThrottledError(s_logger, "async.global_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={args.NetworkEndpoint}");
+            LOG_THROTTLED_ERROR_SAFE(args, "async.global_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={GET_ENDPOINT_SAFE(args)}");
             return false;
         }
 
         // Per-IP fairness is checked before the work item is queued so one remote
         // endpoint cannot reserve the global pool faster than others and starve
         // healthy peers.
-        if (args.NetworkEndpoint is not null)
+        INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
+        if (endpoint is not null)
         {
-            if (!TRY_RESERVE_ENDPOINT_SLOT(args.NetworkEndpoint, out int ipPending))
+            if (!TRY_RESERVE_ENDPOINT_SLOT(endpoint, out int ipPending))
             {
                 // Apply per-IP fairness first so a single remote endpoint cannot
                 // monopolize the queue even if there is still global headroom.
                 RELEASE_GLOBAL_SLOT();
                 Interlocked.Increment(ref s_droppedCallbacks);
-                args.Connection.ThrottledWarn(s_logger, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={args.NetworkEndpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+                LOG_THROTTLED_WARN_SAFE(args, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
                 return false;
             }
         }
@@ -195,7 +197,7 @@ internal static class AsyncCallback
         int warnThreshold = s_opts.CallbackWarningThreshold;
         if (warnThreshold > 0 && globalPending >= warnThreshold && globalPending % 1_000 == 0)
         {
-            args.Connection.ThrottledWarn(s_logger, "async.high_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
+            LOG_THROTTLED_WARN_SAFE(args, "async.high_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
         }
 
         Interlocked.Increment(ref s_totalInvoked);
@@ -263,6 +265,7 @@ internal static class AsyncCallback
 
         if (!ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
         {
+            INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
             // Queue failure — extremely rare. Undo the increments we already applied.
             if (!isHigh)
             {
@@ -270,14 +273,14 @@ internal static class AsyncCallback
                 // rejects the work item after we already reserved capacity.
                 RELEASE_GLOBAL_SLOT();
 
-                if (args.NetworkEndpoint is not null)
+                if (endpoint is not null)
                 {
-                    RELEASE_ENDPOINT_SLOT(args.NetworkEndpoint);
+                    RELEASE_ENDPOINT_SLOT(endpoint);
                 }
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
-            args.Connection.ThrottledError(s_logger, "async.queue_failed", $"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={args.NetworkEndpoint}");
+            LOG_THROTTLED_ERROR_SAFE(args, "async.queue_failed", $"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={endpoint}");
 
             wrapper.Dispose();
 
@@ -368,15 +371,94 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
+    private static IConnection? GET_CONNECTION_SAFE(IConnectEventArgs? args)
     {
+        if (args is null)
+        {
+            return null;
+        }
+
         try
         {
-            w.Callback?.Invoke(w.Sender, w.Args);
+            return args.Connection;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static INetworkEndpoint? GET_ENDPOINT_SAFE(IConnectEventArgs? args)
+    {
+        if (args is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return args.NetworkEndpoint;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LOG_THROTTLED_WARN_SAFE(IConnectEventArgs? args, string key, string message)
+    {
+        IConnection? connection = GET_CONNECTION_SAFE(args);
+        if (connection is not null)
+        {
+            connection.ThrottledWarn(s_logger, key, message);
+            return;
+        }
+
+        s_logger?.Warn(message);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void LOG_THROTTLED_ERROR_SAFE(IConnectEventArgs? args, string key, string message, Exception? ex = null)
+    {
+        IConnection? connection = GET_CONNECTION_SAFE(args);
+        if (connection is not null)
+        {
+            if (ex is null)
+            {
+                connection.ThrottledError(s_logger, key, message);
+            }
+            else
+            {
+                connection.ThrottledError(s_logger, key, message, ex);
+            }
+
+            return;
+        }
+
+        if (ex is null)
+        {
+            s_logger?.Error(message);
+        }
+        else
+        {
+            s_logger?.Error(message, ex);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
+    {
+        IConnectEventArgs? args = w.Args;
+
+        try
+        {
+            w.Callback?.Invoke(w.Sender, args!);
         }
         catch (Exception ex)
         {
-            w.Args.Connection.ThrottledError(s_logger, "async.callback_error", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
+            LOG_THROTTLED_ERROR_SAFE(args, "async.callback_error", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
         }
         finally
         {

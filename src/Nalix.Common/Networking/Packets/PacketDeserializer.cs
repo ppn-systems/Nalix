@@ -18,3 +18,15 @@ namespace Nalix.Common.Networking.Packets;
 /// </returns>
 [DebuggerDisplay("PacketDeserializer Delegate")]
 public delegate IPacket PacketDeserializer(ReadOnlySpan<byte> raw);
+
+/// <summary>
+/// Represents a delegate that deserializes packet data into an existing
+/// packet reference when possible.
+/// </summary>
+/// <param name="raw">The raw byte span containing serialized packet data.</param>
+/// <param name="value">
+/// Existing packet instance reference that may be reused or replaced by the concrete deserializer.
+/// </param>
+/// <returns>The deserialized packet instance.</returns>
+[DebuggerDisplay("PacketDeserializerInto Delegate")]
+public delegate TPacket PacketDeserializerInto<TPacket>(ReadOnlySpan<byte> raw, ref TPacket value) where TPacket : IPacket;

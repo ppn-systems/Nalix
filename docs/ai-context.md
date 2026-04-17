@@ -32,18 +32,18 @@ Nalix is an enterprise-grade, real-time TCP/UDP networking framework for .NET 10
 
 ## Implementation Secrets (Deep-Dives)
 - **Priority Dispatch:** `DispatchChannel` doesn't just dequeue; it checks `PriorityReadyQueue` based on `PacketPriority`. Workers use `SpinWait` followed by `SemaphoreSlim` to balance latency/CPU.
-- **Header Structure:** [2B Length][1B OpCode][8B SeqID/Metadata]. Bodies are 8-byte aligned for SIMD-friendly processing.
+- **Header Structure:** `[4B MagicNumber][2B OpCode][1B Flags][1B Priority][1B Transport][4B SequenceId]` (13-byte fixed header).
 - **Registry Freezer:** `PacketRegistry` freezes at startup into an array-backed lookup if opcodes are dense, otherwise `FrozenDictionary` for $O(1)$ access.
 - **Middleware Ordering:** Buffer-middleware (decryption/checksum) runs **before** deserialization. Packet-middleware (auth/logic) runs **after**.
-- **The "Directive" System:** System-level frames (0x0...0xF) bypass the normal dispatch channel for emergency signals (SHUTDOWN, HEARTBEAT).
+- **The "Directive" System:** `Directive` packets use `ProtocolOpCode.SYSTEM_CONTROL` (`0x0001`) for system-level signaling (for example `FAIL`, `TIMEOUT`, `NOTICE`).
 
 ## Shared Data Layouts
 - **`BufferLease`:** A wrapper around `Memory<byte>` with a `PoolNode` reference. **Safety:** Must use `_lease.Memory` only within the scope of the handler.
-- **`PacketContext`:** Pooled class containing `IConnection`, `Metadata`, and `TransportCancellationToken`.
+- **`PacketContext`:** Pooled class containing `IConnection`, packet metadata (`Attributes`), and `CancellationToken`.
 
 ## Service Orchestration (`InstanceManager`)
-- **Static Resolution:** Services are resolved via `InstanceManager.Get<T>()`.
-- **Dynamic Scopes:** For per-request dependencies, use the `Properties` dictionary on `IConnection` instead of creating DI scopes.
+- **Static Resolution:** Services are resolved via `InstanceManager.Instance.GetExistingInstance<T>()` / `GetOrCreateInstance<T>()`.
+- **Dynamic Scopes:** For per-request dependencies, use the `Attributes` dictionary on `IConnection` instead of creating DI scopes.
 
 ## Essential Tooling & Commands
 - **Test:** `dotnet test` (Unit/Integration).

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
@@ -377,6 +378,68 @@ public sealed class ConfigurationManagerTests : IDisposable
         Assert.Null(exception);
     }
 
+    [Fact]
+    public void FlushWhenInitializationAddsMissingCommentsPersistsCommentsToFile()
+    {
+        string filePath = this.WriteConfigFile(
+            "flush-comments.ini",
+            """
+            [CommentedSample]
+            Number = 9
+            """);
+
+        using ConfigurationManager manager = this.CreateManager(filePath);
+        _ = manager.Get<CommentedSampleConfig>();
+
+        manager.Flush();
+
+        string content = File.ReadAllText(filePath);
+        Assert.Contains("; section-comment", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FlushWhenSectionExistsWithoutCommentAddsSectionComment()
+    {
+        string filePath = this.WriteConfigFile(
+            "flush-section-comment.ini",
+            """
+            [CommentedSample]
+            Number = 1
+            """);
+
+        using ConfigurationManager manager = this.CreateManager(filePath);
+
+        _ = manager.Get<CommentedSampleConfig>();
+        manager.Flush();
+
+        string content = File.ReadAllText(filePath);
+        Assert.Contains("; section-comment", content, StringComparison.Ordinal);
+        Assert.Contains("Number", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConfigurationLoaderCloneWhenInitializedCopiesValuesAndMetadata()
+    {
+        string filePath = this.WriteConfigFile(
+            "clone.ini",
+            """
+            [Sample]
+            Number = 73
+            Message = cloned
+            """);
+
+        using ConfigurationManager manager = this.CreateManager(filePath);
+        SampleConfig original = manager.Get<SampleConfig>();
+
+        SampleConfig clone = original.Clone<SampleConfig>();
+
+        Assert.NotSame(original, clone);
+        Assert.True(clone.IsInitialized);
+        Assert.Equal(original.Number, clone.Number);
+        Assert.Equal(original.Message, clone.Message);
+        Assert.Equal(original.LastInitializationTime, clone.LastInitializationTime);
+    }
+
     private ConfigurationManager CreateManager(string? filePath = null)
     {
         ConfigurationManager manager = new();
@@ -428,5 +491,12 @@ public sealed class ConfigurationManagerTests : IDisposable
         /// Gets or sets a value indicating whether the configuration is enabled.
         /// </summary>
         public bool Enabled { get; set; }
+    }
+
+    [IniComment("section-comment")]
+    public sealed class CommentedSampleConfig : ConfigurationLoader
+    {
+        [IniComment("number-comment")]
+        public int Number { get; set; }
     }
 }

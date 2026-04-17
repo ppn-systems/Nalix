@@ -109,7 +109,7 @@ Failures during session resumption use the `SessionResume` packet with `Stage = 
 
 ## 4. Technical Constants
 
-- **OpCode Normalization:** `Directive` packets always use `OpCode = ProtocolOpCode.SYSTEM_CONTROL` (0xFFFF).
+- **OpCode Normalization:** `Directive` packets always use `OpCode = ProtocolOpCode.SYSTEM_CONTROL` (0x0001).
 - **Mapping Logic:** Exception-to-Reason mapping is centralized in `PacketDispatchOptions.Execution.cs`.
 - **Advice Flags:** 
     - `RETRY`: Suggests the client should attempt the request again.

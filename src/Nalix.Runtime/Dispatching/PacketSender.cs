@@ -86,13 +86,15 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         bool needEncrypt,
         CancellationToken ct)
     {
+        int packetLength = packet.Length;
+
 #if DEBUG
-        s_logger?.Debug($"[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packet.Length}, NeedEncrypt={needEncrypt}");
+        s_logger?.Debug($"[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packetLength}, NeedEncrypt={needEncrypt}");
 #endif
 
         // Serialize into a pooled buffer first so the subsequent compression/encryption
         // branches can reuse the same payload without reserializing the packet.
-        BufferLease rawLease = BufferLease.Rent(packet.Length);
+        BufferLease rawLease = BufferLease.Rent(packetLength);
         try
         {
             int written = packet.Serialize(rawLease.SpanFull);

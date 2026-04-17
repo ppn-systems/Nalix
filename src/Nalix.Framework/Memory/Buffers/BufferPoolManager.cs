@@ -43,6 +43,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private readonly ShrinkSafetyPolicy _shrinkPolicy;
 
     private int _trimCycleCount;
+    private int _disposed;
     private bool _isInitialized;
     private long _cachedMemoryBudget;
     private long _lastBudgetComputeTime;
@@ -1053,6 +1054,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </summary>
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        {
+            return;
+        }
+
         _suitablePoolSizeCache.Clear();
         _metricsCache.Clear();
         _poolManager.Dispose();

@@ -17,6 +17,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Extensions;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Framework.DataFrames;
@@ -140,14 +141,28 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
-        int length = this.Length;
-        if (buffer.Length < length)
+        if (buffer.Length < s_cache.StaticSize)
         {
             throw new ArgumentException(
-                $"Buffer too small: length={buffer.Length}, required>={length}, type={typeof(TSelf).FullName}.");
+                $"Buffer too small: length={buffer.Length}, required>={s_cache.StaticSize}, type={typeof(TSelf).FullName}.");
         }
 
-        return LiteSerializer.Serialize((TSelf)this, buffer);
+        try
+        {
+            return LiteSerializer.Serialize((TSelf)this, buffer);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // Dynamic-size packets can overflow a span-backed writer even when the static portion fits.
+            int required = this.Length;
+            if (buffer.Length < required)
+            {
+                throw new ArgumentException(
+                    $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}.", ex);
+            }
+
+            throw;
+        }
     }
 
     /// <summary>
@@ -201,11 +216,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     /// Thrown when the payload is malformed or does not contain enough data to deserialize the packet.
     /// </exception>
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
-    public static TSelf Deserialize(ReadOnlyMemory<byte> buffer, ref TSelf value)
+    public static TSelf Deserialize(ReadOnlySpan<byte> buffer, ref TSelf value)
     {
-        VALIDATE_BUFFER_HEADER(buffer.Span);
+        VALIDATE_BUFFER_HEADER(buffer);
 
-        int bytesRead = LiteSerializer.Deserialize(buffer.Span, ref value);
+        int bytesRead = LiteSerializer.Deserialize(buffer, ref value);
         if (bytesRead == 0)
         {
             throw new InvalidOperationException(
@@ -355,8 +370,10 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
         foreach (PropertyMetadata meta in all)
         {
-            // Fixed-size: pre-sum into staticSize and never touch getter in Length().
-            if (!meta.IsDynamic && meta.FixedSize != 0)
+            // Fixed-size only when the property has no dynamic wire shape.
+            // This avoids misclassifying members like string/arrays/reference-types
+            // that may carry [SerializeDynamicSize(...)] as a hint.
+            if (meta.DynamicKind == DynamicWireKind.None && meta.FixedSize != 0)
             {
                 staticSize += meta.FixedSize;
                 continue;
@@ -388,130 +405,145 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     private static Func<TSelf, int> BUILD_STRING_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, string?> getter = BUILD_TYPED_GETTER<string?>(meta);
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
-
+            string? value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize; // typically 4
+                return nullWireSize; // typically 4
             }
 
             // StringFormatter writes an Int32 byte-count prefix followed by the UTF-8 payload.
             // Length must match the wire format exactly because Serialize(Span<byte>) relies on it.
-            return sizeof(int) + Encoding.UTF8.GetByteCount((string)value);
+            return sizeof(int) + Encoding.UTF8.GetByteCount(value);
         };
     }
 
     private static Func<TSelf, int> BUILD_BYTE_ARRAY_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, byte[]?> getter = BUILD_TYPED_GETTER<byte[]?>(meta);
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
+            byte[]? value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize; // 4
+                return nullWireSize; // 4
             }
 
-            return sizeof(int) + ((byte[])value).Length;
+            return sizeof(int) + value.Length;
         };
     }
 
     private static Func<TSelf, int> BUILD_PACKET_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, IPacket?> getter = BUILD_TYPED_GETTER<IPacket?>(meta);
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
-            if (value is null)
+            IPacket? packet = getter(instance);
+            if (packet is null)
             {
-                return meta.NullWireSize; // 4
+                return nullWireSize; // 4
             }
 
-            IPacket p = (IPacket)value;
-
             // Minimal self-reference guard.
-            if (ReferenceEquals(p, instance))
+            if (ReferenceEquals(packet, instance))
             {
                 return 0;
             }
 
             // Packet properties are serialized through NullableObjectFormatter<T>,
             // which prefixes a 1-byte presence marker before the nested packet payload.
-            return sizeof(byte) + p.Length;
+            return sizeof(byte) + packet.Length;
         };
     }
 
     private static Func<TSelf, int> BUILD_UNMANAGED_ARRAY_GETTER(PropertyMetadata meta)
     {
+        Func<TSelf, Array?> getter = BUILD_TYPED_GETTER<Array?>(meta);
         int elementSize = meta.ElementSize;
+        int nullWireSize = meta.NullWireSize;
 
         return instance =>
         {
-            object? value = meta.GetValue(instance);
+            Array? value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize; // 4
+                return nullWireSize; // 4
             }
 
-            Array arr = (Array)value;
-            return sizeof(int) + (arr.Length * elementSize);
+            return sizeof(int) + (value.Length * elementSize);
         };
     }
 
     private static Func<TSelf, int> BUILD_FALLBACK_GETTER(PropertyMetadata meta)
     {
+        MethodInfo buildGeneric = typeof(PacketBase<TSelf>)
+            .GetMethod(nameof(BUILD_FALLBACK_GETTER_CORE), BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new InternalErrorException($"Missing method: {nameof(BUILD_FALLBACK_GETTER_CORE)}");
+        MethodInfo closed = buildGeneric.MakeGenericMethod(meta.DeclaredType);
+        return (Func<TSelf, int>)closed.Invoke(null, [meta])!;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Func<TSelf, int> BUILD_FALLBACK_GETTER_CORE<TValue>(PropertyMetadata meta)
+    {
+        Func<TSelf, TValue> getter = BUILD_TYPED_GETTER<TValue>(meta);
+        IFormatter<TValue> formatter = FormatterProvider.Get<TValue>();
+        int nullWireSize = meta.NullWireSize;
+
         return instance =>
         {
-            object? value = meta.GetValue(instance);
+            TValue value = getter(instance);
             if (value is null)
             {
-                return meta.NullWireSize;
+                return nullWireSize;
             }
 
-            // Conservative runtime sizing for uncommon types.
-            return GET_DYNAMIC_SIZE_FALLBACK(instance, value);
+            return MEASURE_SERIALIZED_SIZE(formatter, value);
         };
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GET_DYNAMIC_SIZE_FALLBACK(PacketBase<TSelf> self, object value)
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Func<TSelf, TValue> BUILD_TYPED_GETTER<TValue>(PropertyMetadata meta)
     {
-        // NOTE: keep this only for rare cases.
-        if (value is string s)
+        MethodInfo? getMethod = meta.Property.GetMethod;
+        if (getMethod is null)
         {
-            return string.IsNullOrEmpty(s) ? sizeof(int) : sizeof(int) + Encoding.UTF8.GetByteCount(s);
+            return static _ => default!;
         }
 
-        if (value is byte[] b)
+        try
         {
-            return sizeof(int) + b.Length;
+            return getMethod.CreateDelegate<Func<TSelf, TValue>>();
         }
-
-        if (value is IPacket p)
+        catch (Exception)
         {
-            if (ReferenceEquals(p, self))
-            {
-                return 0;
-            }
-
-            return p.Length;
+            // Fallback for edge signatures where relaxed delegate binding cannot be created.
+            return instance => (TValue)meta.GetValue(instance)!;
         }
-
-        if (value is Array arr)
-        {
-            Type? elementType = arr.GetType().GetElementType();
-            if (elementType is not null && Serialization.Internal.Types.TypeMetadata.IsUnmanaged(elementType))
-            {
-                int elementSize = PacketBaseElementSizer.GetElementSize(elementType);
-                return sizeof(int) + (arr.Length * elementSize);
-            }
-        }
-
-        throw new SerializationFailureException($"Unsupported dynamic property type: {value.GetType().FullName}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GET_DYNAMIC_SIZE_FALLBACK(TSelf instance, object value) => PacketBase<TSelf>.GET_DYNAMIC_SIZE_FALLBACK((PacketBase<TSelf>)instance, value);
+    private static int MEASURE_SERIALIZED_SIZE<TValue>(IFormatter<TValue> formatter, TValue value)
+    {
+        DataWriter writer = new(64);
+        try
+        {
+            formatter.Serialize(ref writer, value);
+            return writer.WrittenCount;
+        }
+        finally
+        {
+            writer.Dispose();
+        }
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static IEnumerable<(PropertyInfo p, SerializeOrderAttribute? order)> ENUMERATE_SERIALIZABLE_PROPERTIES()
