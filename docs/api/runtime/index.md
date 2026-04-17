@@ -63,6 +63,6 @@ flowchart TD
 
 ## Related APIs
 
-- [Framework Core](../../framework/index.md)
-- [Network Transport](../../network/index.md)
-- [Common Contracts](../../common/index.md)
+- [Framework Core](../framework/index.md)
+- [Network Transport](../network/index.md)
+- [Common Contracts](../common/index.md)

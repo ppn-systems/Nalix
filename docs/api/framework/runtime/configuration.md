@@ -1,11 +1,27 @@
 # Configuration
 
-This page documents the configuration runtime in `Nalix.Framework`, centered on:
+The `Nalix.Framework` configuration system is a high-performance, INI-based runtime that supports typed option binding, automatic reloading, and multi-thread safety.
 
-- `ConfigurationManager`
-- `ConfigurationLoader`
+## Configuration Lifecycle
 
-## Source mapping
+The following diagram illustrates how configuration flows from disk to your application code.
+
+```mermaid
+flowchart LR
+    Disk[(default.ini)] --> Loader[ConfigurationLoader]
+    Loader -->|Parse & Bind| Manager[ConfigurationManager]
+    Manager -->|Cache| Instance[Options Instance]
+    Instance -->|Usage| App[Application Code]
+    
+    Watcher[File Watcher] -.->|Change Detected| Debounce{Debounce 300ms}
+    Debounce -->|Trigger| Manager
+    Manager -.->|Update| Instance
+    
+    App -.->|Modify| Manager
+    Manager -.->|Flush| Disk
+```
+
+## Source Mapping
 
 - `src/Nalix.Framework/Configuration/ConfigurationManager.cs`
 - `src/Nalix.Framework/Configuration/Binding/ConfigurationLoader.cs`
@@ -16,114 +32,78 @@ This page documents the configuration runtime in `Nalix.Framework`, centered on:
 
 ## ConfigurationManager
 
-`ConfigurationManager` is the singleton entry point for loading and reloading typed options from an INI file.
+`ConfigurationManager` is the central singleton orchestrator. It manages the active file path, handles file-system watches, and maintains a thread-safe cache of bound configuration objects.
 
-### What it does
+### Core Features
 
-- resolves and validates the active config file path
-- lazily initializes typed option containers via `Get<TClass>()`
-- caches initialized option instances
-- reloads existing containers when file changes are detected
-- debounces file watcher events before reload
-- flushes pending writes through `Flush()`
+- **Exclusive Access**: Uses a `SemaphoreSlim` gate and `ReaderWriterLockSlim` to ensure that reloads and path changes do not conflict with active reads.
+- **Debounced Watcher**: Automatically detects file changes and reloads configurations after a 300ms silence period to avoid processing partial writes.
+- **Lazy Initialization**: Config instances are created and bound only when first requested via `Get<T>()`.
+- **Atomic Rollback**: If an auto-reload fails (e.g., due to a malformed INI), the manager rolls back to the previous stable state.
 
-### Key members
+### Key API Members
 
-- `Get<TClass>()`
-- `Get<TClass>(string configFilePath, bool autoReload = true)`
-- `SetConfigFilePath(string newConfigFilePath, bool autoReload = true)`
-- `ReloadAll()`
-- `Flush()`
-- `IsLoaded<TClass>()`
-- `Remove<TClass>()`
-- `ClearAll()`
-- `ConfigFilePath`
-- `ConfigFileExists`
-- `LastReloadTime`
+| Method | Description |
+| :--- | :--- |
+| `Get<T>()` | Resolves or creates a cached configuration instance. |
+| `ReloadAll()` | Forcefully re-reads the active INI file and updates all loaded instances. |
+| `SetConfigFilePath(...)` | Switches the active configuration source and optionally reloads immediately. |
+| `Flush()` | Commits any in-memory changes back to the physical INI file. |
+| `IsLoaded<T>()` | Checks if a specific config type is currently in the cache. |
 
-### Basic usage
+### Usage Example
 
 ```csharp
-NetworkSocketOptions socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-socket.Validate();
+// Simple resolution
+var network = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
-TransportOptions transport = ConfigurationManager.Instance.Get<TransportOptions>();
-transport.Validate();
+// Changing source at runtime
+ConfigurationManager.Instance.SetConfigFilePath("prod.ini", autoReload: true);
 ```
 
-### Runtime notes (source-verified)
-
-- `SetConfigFilePath(...)` and `ReloadAll()` are `void` APIs and throw on failure/timeout.
-- path changes are restricted to the allowed configuration directory.
-- reload/path-change operations are serialized by a gate (`SemaphoreSlim`) and protected by read/write locks.
-- watcher reload is debounce-based (300 ms) to absorb bursty file-system events.
-
-!!! important "Changes are not automatically persisted to disk"
-    Call `ConfigurationManager.Instance.Flush()` when you need to commit in-memory changes to the physical `.ini` file.
+!!! important "Persistence"
+    Changes made to configuration properties in code are **not** automatically saved to disk. You must call `ConfigurationManager.Instance.Flush()` to persist updates.
 
 ## ConfigurationLoader
 
-Typed option classes should inherit from `ConfigurationLoader`.
+Custom configuration sections are created by inheriting from `ConfigurationLoader`. The binder automatically maps INI sections and keys to your class properties.
+
+### Section Naming Convention
+
+By default, the section name is derived from the class name by removing standard suffixes like `Options`, `Config`, or `Settings`.
+
+- `ConnectionHubOptions` → `[ConnectionHub]`
+- `SecuritySettings` → `[Security]`
+
+### Binding Attributes
+
+- `[IniComment("...")]`: Adds a descriptive comment above the section or key in the generated INI file.
+- `[ConfiguredIgnore]`: Prevents a property from being bound to or from the INI file.
 
 ```csharp
-public sealed class MyServerOptions : ConfigurationLoader
+public sealed class ServerOptions : ConfigurationLoader
 {
-    public string Name { get; set; } = "sample";
+    [IniComment("The port the server will listen on")]
     public int Port { get; set; } = 57206;
+
+    [ConfiguredIgnore]
+    public string InternalId { get; set; } = "internal-use-only";
 }
 ```
 
-### Section naming
+### Supported Data Types
 
-Section names are derived from type names with suffix trimming (`Config`, `Option`, `Options`, `Setting`, `Settings`, `Configuration`, `Configurations`), then capitalized.
+The binder supports a wide range of types natively:
 
-Example:
+- **Primitives**: `bool`, `int`, `long`, `float`, `double`, `string`, etc.
+- **Specialized**: `DateTime`, `TimeSpan`, `Guid`, and `Enum` types.
 
-- `ConnectionHubOptions` -> `[ConnectionHub]`
-
-### Attributes
-
-- `[IniComment("...")]` adds section/key comments in generated INI.
-- `[ConfiguredIgnore("...")]` excludes a property from binding.
-
-```csharp
-[IniComment("Server security settings")]
-public sealed class SecurityOptions : ConfigurationLoader
-{
-    [IniComment("Max login attempts before IP ban")]
-    public int MaxAttempts { get; set; } = 5;
-
-    [ConfiguredIgnore("Resolved at runtime")]
-    public string InternalToken { get; set; } = string.Empty;
-}
-```
-
-### Supported binding types
-
-| Category | Supported types |
-| :--- | :--- |
-| Primitives | `bool`, `char`, `byte`, `sbyte`, `string` |
-| Numerics | `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal` |
-| Specialized | `DateTime`, `Guid`, `TimeSpan`, `Enum` |
-
-!!! warning
-    Arrays and collections (for example `int[]`, `List<T>`) are not directly supported by the binder.
-
-## Common operations
-
-```csharp
-ConfigurationManager.Instance.SetConfigFilePath(
-    @"E:\config\staging.ini",
-    autoReload: true);
-
-ConfigurationManager.Instance.ReloadAll();
-ConfigurationManager.Instance.Flush();
-```
+!!! warning "Collection Support"
+    Arrays and generic collections (e.g., `List<T>`) are currently **not** supported for automatic binding.
 
 ## Related APIs
 
 - [Instance Manager (DI)](./instance-manager.md)
 - [Task Manager](./task-manager.md)
-- [SingletonBase](./singleton-base.md)
 - [Directories](../environment/directories.md)
 - [Network Options](../../network/options/options.md)

@@ -52,6 +52,6 @@ Nalix provides several production-ready middleware components:
 
 ## Related Information
 
-- [Implementing Middleware](../../../guides/implementing-middleware.md)
+- [Implementing Middleware](../../../guides/middleware.md)
 - [Packet Context](../routing/packet-context.md)
 - [Network Pipeline Options](../options/dispatch-options.md)

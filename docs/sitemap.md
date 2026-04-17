@@ -33,7 +33,8 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Design Tradeoffs**](./concepts/advanced/design-tradeoffs.md) — Performance vs. Convenience.
 
 ### Advanced Concepts
-- [**Buffer & Memory Management**](./api/framework/memory/buffer-and-pooling.md) — Pooled allocation strategies.
+- [**Buffer Management**](./api/framework/memory/buffer-management.md) — Pooled allocation strategies.
+- [**Object Pooling**](./api/framework/memory/object-pooling.md) — Object recycling strategies.
 - [**Shard-Aware Dispatch**](./guides/shard-aware-dispatch.md) — Scaling and worker affinity.
 - [**Zero-Allocation Hot Path**](./guides/zero-allocation-hot-path.md) — Extreme performance engineering.
 - [**Design Trade-offs**](./concepts/advanced/design-tradeoffs.md) — Performance vs latency.
@@ -119,8 +120,9 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Fragmentation**](./api/framework/packets/fragmentation.md)
 - [**IO Extensions**](./api/framework/packets/reader-writer-and-header-extensions.md)
 - [**LZ4**](./api/framework/memory/lz4.md)
-- [**Buffers**](./api/framework/memory/buffer-and-pooling.md)
-- [**Object Pools**](./api/framework/memory/object-map-and-typed-pools.md)
+- [**Buffer Management**](./api/framework/memory/buffer-management.md)
+- [**Object Pooling**](./api/framework/memory/object-pooling.md)
+- [**Object Map and Typed Pools**](./api/framework/memory/object-map-and-typed-pools.md)
 
 ### Security & Crypto
 - [**Cryptography**](./api/security/cryptography.md)

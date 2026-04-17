@@ -130,6 +130,7 @@ Important members:
 
 ## Related APIs
 
-- [Buffer and Pooling](./buffer-and-pooling.md)
+- [Buffer Management](./buffer-management.md)
+- [Object Pooling](./object-pooling.md)
 - [Configuration](../runtime/configuration.md)
 - [Instance Manager (DI)](../runtime/instance-manager.md)

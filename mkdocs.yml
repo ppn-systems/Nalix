@@ -186,28 +186,32 @@ nav:
         - Concurrency Contracts: api/common/concurrency-contracts.md
         - Enums: api/common/enums.md
       - Framework:
-        - Directories: api/framework/environment/directories.md
-        - Configuration: api/framework/runtime/configuration.md
-        - Instance Manager (DI): api/framework/runtime/instance-manager.md
-        - Task Manager: api/framework/runtime/task-manager.md
-        - Snowflake: api/framework/runtime/snowflake.md
-        - Clock: api/framework/runtime/clock.md
-        - Timing Scope: api/framework/runtime/timing-scope.md
-        - Singleton Base: api/framework/runtime/singleton-base.md
-        - Worker Options: api/framework/options/worker-options.md
-        - Recurring Options: api/framework/options/recurring-options.md
-        - Frame Model: api/framework/packets/frame-model.md
-        - Serialization Attributes: api/common/serialization-attributes.md
-        - Framework Serialization: api/framework/serialization/serialization-basics.md
-        - Packet Registry: api/framework/packets/packet-registry.md
-        - Built-in Frames: api/framework/packets/built-in-frames.md
-        - Packet Pooling: api/framework/packets/packet-pooling.md
-        - Fragmentation: api/framework/packets/fragmentation.md
-        - Reader, Writer, and Header Extensions: api/framework/packets/reader-writer-and-header-extensions.md
-        - LZ4: api/framework/memory/lz4.md
-        - Buffer and Pooling: api/framework/memory/buffer-and-pooling.md
-        - Object Map and Typed Pools: api/framework/memory/object-map-and-typed-pools.md
-        - Serialization: api/framework/packets/serialization.md
+        - Runtime & Environment:
+          - Directories: api/framework/environment/directories.md
+          - Configuration: api/framework/runtime/configuration.md
+          - Instance Manager (DI): api/framework/runtime/instance-manager.md
+          - Task Manager: api/framework/runtime/task-manager.md
+          - Snowflake: api/framework/runtime/snowflake.md
+          - Clock: api/framework/runtime/clock.md
+          - Timing Scope: api/framework/runtime/timing-scope.md
+          - Singleton Base: api/framework/runtime/singleton-base.md
+          - Worker Options: api/framework/options/worker-options.md
+          - Recurring Options: api/framework/options/recurring-options.md
+        - Packets & Serialization:
+          - Frame Model: api/framework/packets/frame-model.md
+          - Serialization Attributes: api/common/serialization-attributes.md
+          - Framework Serialization: api/framework/serialization/serialization-basics.md
+          - Packet Registry: api/framework/packets/packet-registry.md
+          - Built-in Frames: api/framework/packets/built-in-frames.md
+          - Packet Pooling: api/framework/packets/packet-pooling.md
+          - Fragmentation: api/framework/packets/fragmentation.md
+          - Reader, Writer, and Header Extensions: api/framework/packets/reader-writer-and-header-extensions.md
+          - Serialization: api/framework/packets/serialization.md
+        - Memory & Pooling:
+          - LZ4: api/framework/memory/lz4.md
+          - Buffer Management: api/framework/memory/buffer-management.md
+          - Object Pooling: api/framework/memory/object-pooling.md
+          - Object Map and Typed Pools: api/framework/memory/object-map-and-typed-pools.md
       - Logging:
         - Overview: api/logging/index.md
         - Options: api/logging/options.md

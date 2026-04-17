@@ -146,6 +146,7 @@ using (restored)
 
 ## Related APIs
 
-- [Buffer and Pooling](./buffer-and-pooling.md)
+- [Buffer Management](./buffer-management.md)
+- [Object Pooling](./object-pooling.md)
 - [Serialization](../packets/serialization.md)
 - [Compression Options](../../network/options/compression-options.md)

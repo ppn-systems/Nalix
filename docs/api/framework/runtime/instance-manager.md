@@ -1,70 +1,82 @@
 # Instance Manager (DI)
 
-`InstanceManager` is Nalix's lightweight DI-style service registry for shared runtime services.
+`InstanceManager` is a high-performance, lightweight dependency injection (DI) service registry. Unlike heavy IoC containers, it is optimized for zero-allocation resolution on networking hot paths using generic slots and type-handle caching.
 
-!!! info
-    This is not a full IoC container like `Microsoft.Extensions.DependencyInjection`.  
-    It is optimized for low-overhead resolution on networking hot paths.
+## Lifecycle and Resolution
 
-## Source mapping
+The following diagram illustrates how services are registered and resolved within the manager.
+
+```mermaid
+flowchart TD
+    Start([Service Request]) --> Slot{Generic Slot exists?}
+    Slot -- Yes --> Return([Return Instance])
+    Slot -- No --> Cache{In Cache?}
+    
+    Cache -- Yes --> FillSlot[Fill Generic Slot]
+    FillSlot --> Return
+    
+    Cache -- No --> Locked{Manager Locked?}
+    Locked -- Yes --> Error[Throw InvalidOperation]
+    Locked -- No --> Create[Create via ActivatorCache]
+    
+    Create --> AddCache[Add to Type Cache]
+    AddCache --> FillSlot
+    
+    Register[Manual Register] --> AtomicReplace{Atomic Replace?}
+    AtomicReplace --> DisposeOld[Dispose Previous]
+    AtomicReplace --> AddCache
+```
+
+## Source Mapping
 
 - `src/Nalix.Framework/Injection/InstanceManager.cs`
 - `src/Nalix.Framework/Injection/DI/SingletonBase.cs`
 
-## What it does
+## Key Capabilities
 
-- register shared instances (`Register<T>(...)`)
-- optionally register those instances under implemented interfaces
-- resolve existing instances without allocation (`GetExistingInstance<T>()`)
-- create and cache singleton-like instances (`GetOrCreateInstance<T>(...)`)
-- remove cached instances and dispose tracked disposables
-- provide diagnostics via `GenerateReport()` / `GetReportData()`
+- **Zero-Allocation Hot Path**: Uses `GenericSlot<T>` and `ThreadStatic` L1 cache to avoid dictionary lookups after the first resolution.
+- **Interface Mapping**: Automatically registers an instance for all its implemented interfaces unless restricted.
+- **Lockdown Security**: Prevents "service hijacking" after startup by freezing the registry.
+- **Atomic Replacements**: Safe to register or replace services at runtime; replaced `IDisposable` instances are automatically disposed.
+- **Activator Caching**: Dynamically creates instances with constructor arguments, caching optimized activators for subsequent calls.
 
-## Key members
+## Key Members
 
-- `Lockdown()`
-- `WithLogging(ILogger logger)`
-- `Register<T>(T instance, bool registerInterfaces = true)`
-- `RegisterForClassOnly<T>(T instance)`
-- `GetExistingInstance<T>()`
-- `GetOrCreateInstance<T>(params object?[] args)`
-- `GetOrCreateInstance(Type type, params object?[] args)`
-- `CreateInstance(Type type, params object?[] args)`
-- `HasInstance<T>()`
-- `RemoveInstance(Type type)`
-- `Clear(bool dispose = true)`
+| Method | Description |
+| :--- | :--- |
+| `Register<T>(instance)` | Adds a global instance to the registry and maps its interfaces. |
+| `GetExistingInstance<T>()` | Fast resolution of an already registered service. Returns `null` if not found. |
+| `GetOrCreateInstance<T>(...)` | Resolves or dynamically creates a service (singleton-like). |
+| `Lockdown()` | Freezes the manager state. No more registrations or dynamic creations allowed. |
+| `RemoveInstance(type)` | Removes and disposes a cached service. |
+| `Clear(bool dispose)` | Purges the entire registry. |
 
-## Basic usage
+## Basic Usage
 
 ```csharp
-using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
-
+// Startup
+var logger = new MyLogger();
 InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 
-TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
+// Shared logic (No allocation)
+var taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
 ILogger? sharedLogger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 ```
 
-## Runtime behavior (source-verified)
+## Runtime Details
 
-- caching is based on `RuntimeTypeHandle` and concurrent dictionaries
-- registering a new instance for an existing key atomically replaces the old one
-- replaced tracked `IDisposable` instances are disposed once
-- constructor activators are cached for dynamic creation paths
-- when `Lockdown()` is enabled, new registrations/dynamic creation are rejected
-- `GetExistingInstance<T>()` never creates new objects
+1.  **Fast Path**: `GetExistingInstance<T>` first checks a static generic field (`GenericSlot<T>`). If empty, it checks a `ThreadStatic` L1 cache, then falls back to a thread-safe `RuntimeTypeHandle` dictionary.
+2.  **Tracking**: Disposables are tracked in a dedicated `ConcurrentDictionary` to ensure they are cleaned up exactly once during `Clear` or `Dispose`.
+3.  **Atomic Updates**: `Register` uses a retry loop with `TryUpdate` to ensure thread-safety during service replacement without long-held locks.
 
-## Startup guidance
+## Startup Blueprint
 
-Typical order in production:
+In typical Nalix applications, service registration follows this order:
 
-1. load and validate options via `ConfigurationManager`
-2. register logger and packet registry in `InstanceManager`
-3. register additional shared services
-4. optionally call `InstanceManager.Instance.Lockdown()`
+1.  **Infrastructure**: Resolve directories and load configuration.
+2.  **Core Services**: Register logging, packet registries, and telemetry.
+3.  **App Logic**: Register handlers, managers, and specific domain services.
+4.  **Security**: Call `InstanceManager.Instance.Lockdown()`.
 
 ## Related APIs
 

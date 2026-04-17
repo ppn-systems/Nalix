@@ -172,4 +172,5 @@ IPacketRegistry catalog = factory.CreateCatalog();
 - [Fragmentation](../api/framework/packets/fragmentation.md)
 - [LZ4](../api/framework/memory/lz4.md)
 - [Serialization](../api/framework/packets/serialization.md)
-- [Buffer and Pooling](../api/framework/memory/buffer-and-pooling.md)
+- [Buffer Management](../api/framework/memory/buffer-management.md)
+- [Object Pooling](../api/framework/memory/object-pooling.md)

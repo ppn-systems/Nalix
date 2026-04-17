@@ -145,4 +145,5 @@ int encryptedLength = destLease.Length;
 - [Built-in Frames](./built-in-frames.md)
 - [Fragmentation](./fragmentation.md)
 - [Serialization](./serialization.md)
-- [Buffer and Pooling](../memory/buffer-and-pooling.md)
+- [Buffer Management](../memory/buffer-management.md)
+- [Object Pooling](../memory/object-pooling.md)
