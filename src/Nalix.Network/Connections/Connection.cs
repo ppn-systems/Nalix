@@ -18,6 +18,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Security.Primitives;
+using Nalix.Common.Primitives;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
@@ -63,7 +64,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         _disposed = false;
         _logger = logger;
 
-        this.Secret = [];
+        this.Secret = Bytes32.Zero;
         // Snapshot the remote endpoint up front so the connection can be logged
         // and tracked even before protocol-level events begin.
         this.ID = Snowflake.NewId(SnowflakeType.Session);
@@ -116,25 +117,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public CipherSuiteType Algorithm { get; set; } = CipherSuiteType.Chacha20Poly1305;
 
     /// <inheritdoc />
-    public byte[] Secret
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set
-        {
-            byte[] next = value ?? [];
-            byte[]? previous = field;
-
-            if (!ReferenceEquals(previous, next) && previous is { Length: > 0 })
-            {
-                MemorySecurity.ZeroMemory(previous);
-            }
-
-            field = next;
-        }
-    }
+    public Bytes32 Secret { get; set; }
 
     /// <summary>Gets the total number of bytes sent through this connection.</summary>
     /// <returns>The total number of bytes sent.</returns>
@@ -266,11 +249,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
         try
         {
-            if (this.Secret.Length > 0)
-            {
-                MemorySecurity.ZeroMemory(this.Secret);
-                this.Secret = [];
-            }
+            this.Secret = Bytes32.Zero;
 
             // Return pooled metadata first so the connection does not keep
             // borrowed state alive after disposal begins.

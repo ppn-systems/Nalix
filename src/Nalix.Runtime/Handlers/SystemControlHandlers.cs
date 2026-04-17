@@ -87,7 +87,7 @@ public sealed class SystemControlHandlers
 
         // SEC-74: Prevent pre-auth crypto policy tampering.
         // Cipher updates are only permitted for established, authenticated sessions.
-        if (connection.Secret is null || connection.Secret.Length == 0)
+        if (connection.Secret.IsZero)
         {
             return;
         }

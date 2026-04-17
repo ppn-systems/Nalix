@@ -146,7 +146,32 @@ Every connection tracks its own error count. If a handler throws, Nalix calls `c
 
 ---
 
-## 5. Operational Setup
+## 5. SIMD-Optimized Primitives
+
+Zero-allocation extends to cryptographic primitive checks. `byte[]` arrays allocate heap memory and require slow sequential comparisons. Nalix implements custom value types like `Bytes32` for strict 256-bit payloads (e.g., Session Secrets, ChaCha20 Keys, Handshake Tokens).
+
+These primitives leverage **Hardware Intrinsics (AVX2 and SSE2)** to perform zero-allocation, extremely fast $O(1)$ memory comparisons directly on the CPU registers:
+
+```csharp
+[MethodImpl(MethodImplOptions.AggressiveOptimization)]
+public readonly bool Equals(Bytes32 other)
+{
+    if (Avx2.IsSupported)
+    {
+        // 256-bit AVX2 hardware acceleration
+        // Compares 32 bytes in a single CPU cycle!
+        Vector256<byte> v = Unsafe.ReadUnaligned<Vector256<byte>>(ref a);
+        Vector256<byte> o = Unsafe.ReadUnaligned<Vector256<byte>>(ref b);
+        // ...
+    }
+}
+```
+
+This enforces exactly 32 bytes on the Call Stack and ensures that core security checkpoints (like comparing HMAC MAC proofs during Session Resumption) execute in fractions of a nanosecond, immune to timing side-channels and garbage collection.
+
+---
+
+## 6. Operational Setup
 
 To enable this optimized path, ensure your hosting configuration is tuned for concurrency.
 

@@ -118,9 +118,20 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 try { _socket.DualMode = true; } catch { }
             }
 
-            const int BufferSize = 1500; // Standard MTU size
-            _socket.SendBufferSize = BufferSize;
-            _socket.ReceiveBufferSize = BufferSize;
+            _socket.SendBufferSize = s_options.BufferSize;
+            _socket.ReceiveBufferSize = s_options.BufferSize;
+
+            try { _socket.DontFragment = true; } catch { }
+
+            if (OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    const int SIO_UDP_CONNRESET = -1744830452;
+                    _ = _socket.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
+                }
+                catch { }
+            }
         }
     }
 

@@ -26,7 +26,7 @@ internal static class PacketFrameTransforms
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
-            IBufferLease next = PacketCipher.DecryptFrame(current, options.Secret, options.Algorithm);
+            IBufferLease next = PacketCipher.DecryptFrame(current, options.Secret.AsSpan(), options.Algorithm);
             current.Dispose();
             current = next;
             flags = current.Span.ReadFlagsLE();
@@ -60,7 +60,7 @@ internal static class PacketFrameTransforms
 
         if (doEncrypt)
         {
-            IBufferLease next = PacketCipher.EncryptFrame(current, options.Secret, options.Algorithm);
+            IBufferLease next = PacketCipher.EncryptFrame(current, options.Secret.AsSpan(), options.Algorithm);
             current.Dispose();
             current = next;
         }

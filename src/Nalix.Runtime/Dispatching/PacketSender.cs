@@ -146,7 +146,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
 
                 IBufferLease encryptedLease = PacketCipher.EncryptFrame(
                     rawLease,
-                    context.Connection.Secret,
+                    context.Connection.Secret.AsSpan(),
                     context.Connection.Algorithm);
                 try
                 {
@@ -172,7 +172,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
                 {
                     IBufferLease encryptedLease = PacketCipher.EncryptFrame(
                         compressedLease,
-                        context.Connection.Secret,
+                        context.Connection.Secret.AsSpan(),
                         context.Connection.Algorithm);
                     try
                     {

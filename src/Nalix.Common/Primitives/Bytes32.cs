@@ -2,8 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 using Nalix.Common.Serialization;
 
 namespace Nalix.Common.Primitives;
@@ -12,25 +15,21 @@ namespace Nalix.Common.Primitives;
 /// Represents a fixed-size 256-bit buffer (32 bytes).
 /// Used for storing cryptographic hashes, proofs, or signatures.
 /// </summary>
+[SkipLocalsInit]
+[DebuggerDisplay("{ToString()}")]
+[StructLayout(LayoutKind.Explicit)]
 [SerializePackable(SerializeLayout.Explicit)]
-public struct Bytes32 : IEquatable<Bytes32>
+public readonly struct Bytes32 : IEquatable<Bytes32>
 {
     /// <summary>
     /// The size of the <see cref="Bytes32"/> buffer in bytes.
     /// </summary>
-    public const int Size = 32;
+    public const int Size = 0x20;
 
-    [SerializeOrder(0)]
-    private readonly ulong _v1;
-
-    [SerializeOrder(1)]
-    private readonly ulong _v2;
-
-    [SerializeOrder(2)]
-    private readonly ulong _v3;
-
-    [SerializeOrder(3)]
-    private readonly ulong _v4;
+    [FieldOffset(0x00)][SerializeOrder(0)] private readonly ulong _v1;
+    [FieldOffset(0x08)][SerializeOrder(1)] private readonly ulong _v2;
+    [FieldOffset(0x10)][SerializeOrder(2)] private readonly ulong _v3;
+    [FieldOffset(0x18)][SerializeOrder(3)] private readonly ulong _v4;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Bytes32"/> struct from a 32-byte span.
@@ -46,9 +45,9 @@ public struct Bytes32 : IEquatable<Bytes32>
 
         ref byte srcRef = ref MemoryMarshal.GetReference(source);
         _v1 = Unsafe.ReadUnaligned<ulong>(ref srcRef);
-        _v2 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref srcRef, 8));
-        _v3 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref srcRef, 16));
-        _v4 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref srcRef, 24));
+        _v2 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref srcRef, 0x08));
+        _v3 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref srcRef, 0x10));
+        _v4 = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref srcRef, 0x18));
     }
 
     /// <summary>
@@ -81,9 +80,9 @@ public struct Bytes32 : IEquatable<Bytes32>
 
         ref byte dstRef = ref MemoryMarshal.GetReference(destination);
         Unsafe.WriteUnaligned(ref dstRef, _v1);
-        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 8), _v2);
-        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 16), _v3);
-        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 24), _v4);
+        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 0x08), _v2);
+        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 0x10), _v3);
+        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 0x18), _v4);
     }
 
     /// <summary>
@@ -99,7 +98,11 @@ public struct Bytes32 : IEquatable<Bytes32>
             return false;
         }
 
-        this.WriteTo(destination);
+        ref byte dstRef = ref MemoryMarshal.GetReference(destination);
+        Unsafe.WriteUnaligned(ref dstRef, _v1);
+        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 0x08), _v2);
+        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 0x10), _v3);
+        Unsafe.WriteUnaligned(ref Unsafe.Add(ref dstRef, 0x18), _v4);
         return true;
     }
 
@@ -118,12 +121,7 @@ public struct Bytes32 : IEquatable<Bytes32>
     /// <summary>
     /// Returns a hexadecimal string representation of the 256-bit buffer.
     /// </summary>
-    public override readonly string ToString()
-    {
-        Span<byte> data = stackalloc byte[Size];
-        this.WriteTo(data);
-        return Convert.ToHexString(data);
-    }
+    public override readonly string ToString() => Convert.ToHexString(this.AsSpan());
 
     /// <summary>
     /// Gets a 256-bit buffer with all bits set to zero.
@@ -149,24 +147,74 @@ public struct Bytes32 : IEquatable<Bytes32>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
     public readonly bool Equals(Bytes32 other)
     {
-        ulong res = (_v1 ^ other._v1) | (_v2 ^ other._v2) | (_v3 ^ other._v3) | (_v4 ^ other._v4);
+        ref byte a = ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in _v1));
+        ref byte b = ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in other._v1));
+
+        if (Avx2.IsSupported)
+        {
+            Vector256<byte> v = Unsafe.ReadUnaligned<Vector256<byte>>(ref a);
+            Vector256<byte> o = Unsafe.ReadUnaligned<Vector256<byte>>(ref b);
+
+            Vector256<byte> x = Avx2.Xor(v, o);
+
+            // reduce 256 → 128 → scalar
+            Vector128<byte> lo = Avx.ExtractVector128(x, 0x00);
+            Vector128<byte> hi = Avx.ExtractVector128(x, 0x01);
+            Vector128<byte> or = Sse2.Or(lo, hi);
+
+            return Sse2.MoveMask(or) == 0;
+        }
+
+        if (Sse2.IsSupported)
+        {
+            Vector128<byte> v1 = Unsafe.ReadUnaligned<Vector128<byte>>(ref a);
+            Vector128<byte> v2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref a, 0x10));
+
+            Vector128<byte> o1 = Unsafe.ReadUnaligned<Vector128<byte>>(ref b);
+            Vector128<byte> o2 = Unsafe.ReadUnaligned<Vector128<byte>>(ref Unsafe.Add(ref b, 0x10));
+
+            Vector128<byte> x1 = Sse2.Xor(v1, o1);
+            Vector128<byte> x2 = Sse2.Xor(v2, o2);
+
+            return (Sse2.MoveMask(x1) | Sse2.MoveMask(x2)) == 0x00;
+        }
+
+        // scalar fallback (best for small size anyway)
+        ulong res = (_v1 ^ other._v1)
+                  | (_v2 ^ other._v2)
+                  | (_v3 ^ other._v3)
+                  | (_v4 ^ other._v4);
+
         return res == 0;
     }
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override readonly bool Equals(object? obj) => obj is Bytes32 other && this.Equals(other);
 
     /// <inheritdoc/>
-    public override readonly int GetHashCode() => HashCode.Combine(_v1, _v2, _v3, _v4);
+    public override readonly int GetHashCode()
+    {
+        return ((int)_v1) ^ ((int)(_v1 >> Size))
+             ^ ((int)_v2) ^ ((int)(_v2 >> Size))
+             ^ ((int)_v3) ^ ((int)(_v3 >> Size))
+             ^ ((int)_v4) ^ ((int)(_v4 >> Size));
+    }
 
     /// <summary>
     /// Returns a read-only span covering the 32-byte buffer.
     /// </summary>
-    public readonly ReadOnlySpan<byte> AsSpan() => MemoryMarshal.CreateReadOnlySpan(ref Unsafe.As<ulong, byte>(ref Unsafe.AsRef(in _v1)), Size);
+    public readonly ReadOnlySpan<byte> AsSpan()
+    {
+        return MemoryMarshal.AsBytes(
+            MemoryMarshal.CreateReadOnlySpan(ref Unsafe.AsRef(in _v1), 0x04));
+    }
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(Bytes32 left, Bytes32 right) => left.Equals(right);
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator !=(Bytes32 left, Bytes32 right) => !left.Equals(right);
 }

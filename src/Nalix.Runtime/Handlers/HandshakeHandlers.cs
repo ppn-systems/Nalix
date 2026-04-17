@@ -161,7 +161,7 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        connection.Secret = state.SessionKey.ToByteArray();
+        connection.Secret = state.SessionKey;
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
