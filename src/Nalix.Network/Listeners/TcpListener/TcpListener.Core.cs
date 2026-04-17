@@ -25,11 +25,9 @@ namespace Nalix.Network.Listeners.Tcp;
 [SkipLocalsInit]
 public abstract partial class TcpListenerBase : IListener
 {
-    #region Constants
 
-    private const int MinWorkerThreads = 4;
+    #region Constants
     private const int MaxAcceptWorkers = 64;
-    private const int MaxThreadPoolWorkers = 512;
 
     #endregion Constants
 
@@ -212,7 +210,7 @@ public abstract partial class TcpListenerBase : IListener
                 self._cts = null;
 
                 _ = Interlocked.Exchange(ref self._stopInitiated, 0);
-                
+
                 try { self._lock.Release(); } catch { }
             }
         }

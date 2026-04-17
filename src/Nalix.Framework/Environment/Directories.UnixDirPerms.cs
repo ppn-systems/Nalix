@@ -152,6 +152,7 @@ public static partial class Directories
                         UnixDirPerms.Shared750 => FileSystemRights.ReadAndExecute,
                         UnixDirPerms.WorldReadable => FileSystemRights.ReadAndExecute | FileSystemRights.ListDirectory,
                         UnixDirPerms.Default755 => FileSystemRights.ReadAndExecute | FileSystemRights.ListDirectory,
+                        UnixDirPerms.Private700 => throw new NotImplementedException(),
                         _ => FileSystemRights.ReadAndExecute
                     };
 

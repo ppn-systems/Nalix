@@ -278,15 +278,15 @@ public class TcpSession : TransportSession
             {
                 if (asyncPayload is { } copiedPayload)
                 {
-                if (!writer.TryWrite(async () =>
+                    if (!writer.TryWrite(async () =>
+                        {
+                            try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
+                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                        }))
                     {
-                        try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
-                        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
-                    }))
-                {
-                    this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
-                }
-                return;
+                        this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
+                    }
+                    return;
                 }
 
                 lease.Retain();

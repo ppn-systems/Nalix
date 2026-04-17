@@ -105,7 +105,7 @@ public sealed class SystemControlHandlers
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control ack = lease.Value;
         ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Reason, packet.Protocol);
-        
+
         Nalix.Common.Networking.IConnection.ITransport transport = packet.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
         await transport.SendAsync(ack).ConfigureAwait(false);
     }
@@ -115,7 +115,7 @@ public sealed class SystemControlHandlers
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control pong = lease.Value;
         pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ProtocolReason.NONE, ping.Protocol);
-        
+
         Nalix.Common.Networking.IConnection.ITransport transport = ping.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
         await transport.SendAsync(pong).ConfigureAwait(false);
     }
@@ -125,7 +125,7 @@ public sealed class SystemControlHandlers
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control res = lease.Value;
         res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, ProtocolReason.NONE, req.Protocol);
-        
+
         Nalix.Common.Networking.IConnection.ITransport transport = req.Protocol == ProtocolType.UDP ? connection.UDP : connection.TCP;
         await transport.SendAsync(res).ConfigureAwait(false);
     }

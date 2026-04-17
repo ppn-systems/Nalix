@@ -140,7 +140,7 @@ public abstract partial class UdpListenerBase
         // SEC-72: Strict length and type guard. 
         // A valid UDP datagram must have at least the full packet header (13 bytes).
         // And the transport byte must be UDP.
-        if (payload.Length < (int)PacketHeaderOffset.Region || payload[(int)PacketHeaderOffset.Transport] != (byte)Nalix.Common.Networking.Protocols.ProtocolType.UDP)
+        if (payload.Length < (int)PacketHeaderOffset.Region || payload[(int)PacketHeaderOffset.Transport] != (byte)Common.Networking.Protocols.ProtocolType.UDP)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();

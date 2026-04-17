@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -15,12 +15,10 @@ Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) prin
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Introduced deterministic build and SourceLink support for better CI/CD traceability.
-- Optimized cryptographic engines with Span-first design and AEAD envelope support.
-- Added Randomization.Core with Xoshiro-based PRNG (XoshiroFallback) and reseed scheduling.
-- Improved TaskManager with async-safe cancellation and lightweight scheduling.
-- Enhanced Identity and Injection subsystems for performance and modularity.
-- General cleanup, updated documentation, and improved unit test coverage.
+- High-Efficiency Serialization: Enhanced collection formatters to support complex types like Dictionary entries with minimal allocation.
+- Zero-Allocation Discovery: New PacketRegistry APIs supporting in-place deserialization (Deserialize ref) for optimized object pooling.
+- Cross-Platform Security: Hardened filesystem sanitization and path traversal protections for consistent behavior on Windows and Linux.
+- Reliable Orchestration: Optimized TaskManager and Identity subsystems for predictable performance in high-concurrency environments.
 		]]></PackageReleaseNotes>
 	</PropertyGroup>
 

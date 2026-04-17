@@ -207,8 +207,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool Pull([NotNullWhen(true)] out IConnection connection, [NotNullWhen(true)] out IBufferLease raw)
     {
-        connection = null!;
-        raw = null!;
 
         // Attempt 1: Weighted selection based on current budgets
         if (this.TryPullWeighted(out connection, out raw))
