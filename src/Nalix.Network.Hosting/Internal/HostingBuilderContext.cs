@@ -133,7 +133,7 @@ internal sealed record PacketMetadataProviderDescriptor(
 /// <summary>
 /// Represents a binding between a TCP transport and a protocol implementation.
 /// </summary>
-/// <param name="number">
+/// <param name="ProtocolType">
 /// The protocol runtime type.
 /// </param>
 /// <param name="Factory">
@@ -151,7 +151,7 @@ internal sealed record TcpProtocolBinding(
 /// <summary>
 /// Represents a binding between a protocol type and its creation factory for UDP.
 /// </summary>
-/// <param name="number">The type of the protocol.</param>
+/// <param name="ProtocolType">The type of the protocol.</param>
 /// <param name="Factory">The factory used to create the protocol instance.</param>
 /// <param name="Port">The optional port to listen on.</param>
 /// <param name="Authentication">The optional authentication predicate used to validate incoming datagrams.</param>

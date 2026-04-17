@@ -24,7 +24,7 @@ public sealed class ConnectionHubSessionTests
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
 
-        connection.Secret = [1, 2, 3];
+        connection.Secret = new Common.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection.Algorithm = Common.Security.CipherSuiteType.Chacha20Poly1305;
         connection.Level = Common.Security.PermissionLevel.OWNER;
         connection.Attributes["test"] = "value";
@@ -32,7 +32,7 @@ public sealed class ConnectionHubSessionTests
         SessionEntry session = hub.SessionStore.CreateSession(connection);
 
         _ = session.Should().NotBeNull();
-        _ = session.Snapshot.Secret.Should().Equal(connection.Secret);
+        _ = session.Snapshot.Secret.Should().Be(connection.Secret);
         _ = session.Snapshot.Algorithm.Should().Be(connection.Algorithm);
         _ = session.Snapshot.Level.Should().Be(connection.Level);
         _ = session.Snapshot.Attributes.Should().ContainKey("test").WhoseValue.Should().Be("value");
@@ -46,7 +46,7 @@ public sealed class ConnectionHubSessionTests
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket);
 
-        connection1.Secret = [1, 2, 3];
+        connection1.Secret = new Common.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection1.Attributes["test"] = "value";
         hub.RegisterConnection(connection1);
 
@@ -76,7 +76,7 @@ public sealed class ConnectionHubSessionTests
         // Manual state restoration
         ApplySession(connection2, ss);
 
-        _ = connection2.Secret.Should().Equal(connection1.Secret);
+        _ = connection2.Secret.Should().Be(connection1.Secret);
         _ = connection2.Attributes["test"].Should().Be("value");
         _ = connection2.Attributes["nalix.handshake.established"].Should().Be(true);
     }

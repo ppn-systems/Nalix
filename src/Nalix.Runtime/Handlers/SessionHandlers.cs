@@ -163,8 +163,8 @@ public sealed class SessionHandlers
 
         try
         {
-            await connection.TCP.SendAsync(ack)
-                                .ConfigureAwait(false);
+            await connection.TCP!.SendAsync(ack)
+                                 .ConfigureAwait(false);
         }
         finally
         {
