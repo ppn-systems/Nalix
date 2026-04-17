@@ -121,7 +121,14 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             _socket.SendBufferSize = s_options.BufferSize;
             _socket.ReceiveBufferSize = s_options.BufferSize;
 
-            try { _socket.DontFragment = true; } catch { }
+            try
+            {
+                _socket.DontFragment = true;
+            }
+            catch (SocketException) { }
+            catch (NotSupportedException) { }
+            catch (ObjectDisposedException) { }
+            catch (InvalidOperationException) { }
 
             if (OperatingSystem.IsWindows())
             {
