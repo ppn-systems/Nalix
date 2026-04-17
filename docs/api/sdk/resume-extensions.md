@@ -24,7 +24,7 @@ These methods are primary extension points for `TcpSession`.
 
 | Method | Returns | Description |
 |---|---|---|
-| `ResumeSessionAsync` | `Task<bool>` | Explicitly attempts to resume the session on a connected transport. |
+| `ResumeSessionAsync` | `Task<ProtocolReason>` | Explicitly attempts to resume the session on a connected transport. `ProtocolReason.NONE` means success. |
 | `ConnectWithResumeAsync` | `Task<bool>` | Connects the transport, attempts resume, and falls back to a handshake when allowed. |
 
 ---
@@ -55,11 +55,14 @@ if (resumed)
 For granular control over the connection lifecycle, you can use `ResumeSessionAsync` directly after a manual `ConnectAsync`.
 
 ```csharp
+using Nalix.Common.Networking.Protocols;
+
 await session.ConnectAsync();
 
-if (session.Options.HasResumeState())
+if (!session.Options.SessionToken.IsEmpty && session.Options.Secret.Length > 0)
 {
-    if (await session.ResumeSessionAsync())
+    ProtocolReason reason = await session.ResumeSessionAsync();
+    if (reason == ProtocolReason.NONE)
     {
         // Resume succeeded
     }

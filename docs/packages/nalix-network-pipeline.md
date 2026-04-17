@@ -26,9 +26,8 @@ Pipeline middleware runs in the packet middleware layer — after deserializatio
 |---|---|
 | `PermissionMiddleware` | Enforces `[PacketPermission]` requirements. Rejects packets from connections below the required permission level. |
 | `TimeoutMiddleware` | Enforces `[PacketTimeout]` limits. Cancels handler execution that exceeds the declared timeout. |
-| `ConcurrencyGate` | Limits the number of concurrently executing handlers. Prevents thread pool exhaustion under burst load. |
-| `PolicyRateLimiter` | Applies per-opcode and per-endpoint rate limiting driven by `[PacketRateLimit]` metadata. |
-| `TokenBucketLimiter` | Global or per-connection token-bucket throttling with configurable burst and refill rates. |
+| `ConcurrencyMiddleware` | Enforces `[PacketConcurrencyLimit]` metadata using the shared `ConcurrencyGate`. |
+| `RateLimitMiddleware` | Applies per-handler and fallback per-endpoint throttling via `PolicyRateLimiter` and `TokenBucketLimiter`. |
 
 ### Throttling Primitives
 
@@ -53,8 +52,12 @@ The `PolicyRateLimiter` reads `[PacketRateLimit]` attributes from handler metada
 **Concurrency Gate**
 
 ```csharp
-// Limit to 32 concurrent handlers
-var gate = new ConcurrencyGate(maxConcurrency: 32);
+// Runtime allocates and manages the shared gate instance
+var gate = new ConcurrencyGate();
+
+// Per-opcode capacity is configured via [PacketConcurrencyLimit]
+[PacketConcurrencyLimit(32, queue: true, queueMax: 128)]
+public ValueTask HandleAsync(IPacketContext<MyPacket> context) => ValueTask.CompletedTask;
 ```
 
 ### Time Synchronization
@@ -69,9 +72,9 @@ Register pipeline middleware when building the dispatch channel:
 PacketDispatchChannel dispatch = new(options =>
 {
     options.WithLogging(logger)
-           .WithMiddleware(new PermissionMiddleware<IPacket>())
-           .WithMiddleware(new TimeoutMiddleware<IPacket>())
-           .WithMiddleware(new ConcurrencyGate(maxConcurrency: 32))
+           .WithMiddleware(new PermissionMiddleware())
+           .WithMiddleware(new TimeoutMiddleware())
+           .WithMiddleware(new ConcurrencyMiddleware())
            .WithHandler(() => new MyHandlers());
 });
 ```
@@ -82,8 +85,8 @@ PacketDispatchChannel dispatch = new(options =>
 var app = NetworkApplication.CreateBuilder()
     .ConfigureDispatch(options =>
     {
-        options.WithMiddleware(new PermissionMiddleware<IPacket>());
-        options.WithMiddleware(new PolicyRateLimiter<IPacket>());
+        options.WithMiddleware(new PermissionMiddleware());
+        options.WithMiddleware(new RateLimitMiddleware());
     })
     .AddHandlers<MyHandlers>()
     .AddTcp<MyProtocol>()

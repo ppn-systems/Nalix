@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
@@ -105,4 +106,9 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
         this.Reason = ProtocolReason.NONE;
         this.Proof = Bytes32.Zero;
     }
+
+    /// <summary>
+    /// Deserializes a <see cref="SessionResume"/> packet from a buffer.
+    /// </summary>
+    public static new SessionResume Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<SessionResume>.Deserialize(buffer);
 }

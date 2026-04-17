@@ -111,7 +111,10 @@ public class TcpSession : TransportSession
             _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
+            if (this.Options.ConnectTimeoutMillis > 0)
+            {
+                connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
+            }
 
             await _socket.ConnectAsync(effectiveHost, effectivePort, connectCts.Token).ConfigureAwait(false);
             this.OnConnected?.Invoke(this, EventArgs.Empty);
@@ -275,7 +278,7 @@ public class TcpSession : TransportSession
             {
                 if (asyncPayload is { } copiedPayload)
                 {
-                if (writer.TryWrite(async () =>
+                if (!writer.TryWrite(async () =>
                     {
                         try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
                         catch (Exception ex) { this.OnError?.Invoke(this, ex); }

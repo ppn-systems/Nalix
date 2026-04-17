@@ -88,7 +88,7 @@ Middlewares often need to inspect packet headers for auditing, routing, or secur
 | `OpCode` | `ushort` | Identifies the handler/message type. |
 | `SequenceId`| `uint` | Used for request/reply correlation. |
 | `Flags` | `PacketFlags` | Metadata like `IsResponse`, `IsEncrypted`, or `IsCompressed`. |
-| `Priority` | `PacketPriority` | Dispatcher hint (Base, Priority, Urgent). |
+| `Priority` | `PacketPriority` | Dispatcher hint (`NONE`, `LOW`, `MEDIUM`, `HIGH`, `URGENT`). |
 | `Protocol` | `ProtocolType` | Transport layer (TCP/UDP/None). |
 | `Length` | `int` | Total wire size of the packet. |
 | `MagicNumber`| `uint` | Unique type identity hash. |
@@ -103,16 +103,15 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Middleware;
 using Nalix.Common.Networking.Packets;
 
-public sealed class AuditMiddleware : IPacketMiddleware
+public sealed class AuditMiddleware : IPacketMiddleware<IPacket>
 {
     private readonly ILogger _logger;
 
     public AuditMiddleware(ILogger logger) => _logger = logger;
 
-    public async ValueTask InvokeAsync<TPacket>(
-        IPacketContext<TPacket> context, 
-        Func<CancellationToken, ValueTask> next) 
-        where TPacket : IPacket
+    public async ValueTask InvokeAsync(
+        IPacketContext<IPacket> context,
+        Func<CancellationToken, ValueTask> next)
     {
         var packet = context.Packet;
         
@@ -151,8 +150,8 @@ socket buffer
 using Nalix.Runtime.Dispatching;
 using Nalix.Network.Hosting;
 
-options.NetworkPipeline.Use(new SampleAuditBufferMiddleware());
-options.PacketPipeline.Use(new SampleAuditMiddleware());
+options.WithBufferMiddleware(new SampleAuditBufferMiddleware());
+options.WithMiddleware(new SampleAuditMiddleware());
 ```
 
 ## Related APIs

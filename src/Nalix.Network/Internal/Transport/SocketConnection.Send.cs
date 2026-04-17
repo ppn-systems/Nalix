@@ -93,7 +93,10 @@ internal sealed partial class SocketConnection
                 ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
                 args.Initialize(_cachedArgs.Connection);
 
-                AsyncCallback.Invoke(_callbackPost, _sender, args);
+                if (!AsyncCallback.Invoke(_callbackPost, _sender, args))
+                {
+                    args.Dispose();
+                }
                 return;
             }
             catch (Exception ex)
@@ -487,7 +490,10 @@ internal sealed partial class SocketConnection
     {
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(_cachedArgs.Connection);
-        _ = AsyncCallback.Invoke(_callbackPost, _sender, args);
+        if (!AsyncCallback.Invoke(_callbackPost, _sender, args))
+        {
+            args.Dispose();
+        }
     }
 
     #endregion

@@ -239,7 +239,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         ConnectionEventArgs args = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
 
-        _ = Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true);
+        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
+        {
+            this.ReleasePendingPacket();
+            args.Dispose();
+        }
     }
 
     #endregion Methods
@@ -303,29 +307,82 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         }
 
         // Close events bypass backpressure because cleanup must never be delayed.
-        _ = Internal.Transport.AsyncCallback.InvokeHighPriority(_onCloseEvent, e.Connection, e);
+        if (!Internal.Transport.AsyncCallback.InvokeHighPriority(OnCloseEventDispatchBridge, this, e))
+        {
+            e.Dispose();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void OnProcessEventBridge(object? sender, IConnectEventArgs e)
     {
-        if (sender is not Connection self)
+        if (e is null)
         {
             return;
         }
 
-        self._onProcessEvent?.Invoke(self, e);
+        if (sender is not Connection self)
+        {
+            e.Dispose();
+            return;
+        }
+
+        try
+        {
+            self._onProcessEvent?.Invoke(self, e);
+        }
+        finally
+        {
+            e.Dispose();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void OnPostProcessEventBridge(object? sender, IConnectEventArgs e)
     {
-        if (sender is not Connection self)
+        if (e is null)
         {
             return;
         }
 
-        self._onPostProcessEvent?.Invoke(self, e);
+        if (sender is not Connection self)
+        {
+            e.Dispose();
+            return;
+        }
+
+        try
+        {
+            self._onPostProcessEvent?.Invoke(self, e);
+        }
+        finally
+        {
+            e.Dispose();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void OnCloseEventDispatchBridge(object? sender, IConnectEventArgs e)
+    {
+        if (e is null)
+        {
+            return;
+        }
+
+        if (sender is not Connection self)
+        {
+            e.Dispose();
+            return;
+        }
+
+        try
+        {
+            self._onCloseEvent?.Invoke(self, e);
+        }
+        finally
+        {
+            e.Dispose();
+        }
     }
 
     #endregion Event Bridges

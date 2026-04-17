@@ -71,7 +71,7 @@ public class MyProtocol : Protocol
 ## Extensibility Points
 
 - `ValidateConnection(IConnection connection)`: Called during the accept phase. Return `false` to reject a connection immediately.
-- `OnAccept(IConnection connection)`: Called when a connection is successfully admitted. Useful for sending initial "Welcome" packets or setting session state.
+- `OnAccept(IConnection connection, CancellationToken cancellationToken = default)`: Called when a connection is successfully admitted. Useful for sending initial "Welcome" packets or setting session state.
 - `OnPostProcess(IConnectEventArgs args)`: Runs after `ProcessMessage`.
 - `OnConnectionError(IConnection connection, Exception exception)`: Capture transport layer failures or protocol violations.
 - `Dispose(bool disposing)`: Standard lifecycle cleanup.

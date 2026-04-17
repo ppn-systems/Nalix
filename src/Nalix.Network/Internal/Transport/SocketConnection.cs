@@ -783,7 +783,10 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(_cachedArgs.Connection);
 
-        _ = AsyncCallback.InvokeHighPriority(_callbackClose, _sender, args);
+        if (!AsyncCallback.InvokeHighPriority(_callbackClose, _sender, args))
+        {
+            args.Dispose();
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

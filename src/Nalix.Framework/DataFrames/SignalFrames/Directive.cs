@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Diagnostics;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -30,46 +31,46 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// <summary>
     /// Gets or sets the directive type.
     /// </summary>
-    [SerializeOrder(0)]
+    [SerializeOrder(13)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the reason for the directive.
     /// </summary>
-    [SerializeOrder(1)]
+    [SerializeOrder(14)]
     public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the suggested action for the client.
     /// </summary>
-    [SerializeOrder(2)]
+    [SerializeOrder(15)]
     public ProtocolAdvice Action { get; set; }
 
     /// <summary>
     /// Gets or sets directive flags.
     /// </summary>
-    [SerializeOrder(3)]
+    [SerializeOrder(16)]
     public ControlFlags Control { get; set; }
 
     /// <summary>
     /// Gets or sets the first directive argument.
     /// Usage: RetryAfterMs (for RATE_LIMITED), AlgorithmId (for CIPHER_UPDATE).
     /// </summary>
-    [SerializeOrder(4)]
+    [SerializeOrder(17)]
     public uint Arg0 { get; set; }
 
     /// <summary>
     /// Gets or sets the second directive argument.
     /// Usage: Credit (for RATE_LIMITED), SequenceId (for ACK/NACK).
     /// </summary>
-    [SerializeOrder(5)]
+    [SerializeOrder(18)]
     public uint Arg1 { get; set; }
 
     /// <summary>
     /// Gets or sets the third directive argument.
     /// Usage: OpCode (for FAIL/ERROR), Port (for REDIRECT).
     /// </summary>
-    [SerializeOrder(6)]
+    [SerializeOrder(19)]
     public ushort Arg2 { get; set; }
 
     /// <summary>
@@ -156,4 +157,9 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public override string ToString()
         => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, " +
            $"Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}, Protocol={this.Protocol}]";
+
+    /// <summary>
+    /// Deserializes a <see cref="Directive"/> packet from a buffer.
+    /// </summary>
+    public static new Directive Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<Directive>.Deserialize(buffer);
 }

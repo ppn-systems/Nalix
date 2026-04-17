@@ -10,9 +10,9 @@
 
 | Property | Meaning | Default |
 |---|---|---:|
-| `MaxPerConnectionQueue` | Max queued items for one connection. `0` means unlimited. | `0` |
-| `DropPolicy` | What to do when the queue is full. | `DROP_NEWEST` |
-| `BlockTimeout` | Wait budget when `DropPolicy` is `BLOCK`. | `1000 ms` |
+| `MaxPerConnectionQueue` | Max queued items for one connection. `0` means unlimited (not recommended). | `4096` |
+| `DropPolicy` | What to do when the queue is full. | `DropNewest` |
+| `BlockTimeout` | Wait budget when `DropPolicy` is `Block`. | `1000 ms` |
 
 ## How to think about it
 
@@ -24,7 +24,7 @@ Use it to stop one noisy client from creating unbounded memory growth or unfair 
 
 - interactive workloads: small bounded queue
 - test/dev: unlimited or relaxed queue
-- high-abuse environments: bounded queue + `DROP_NEWEST`
+- high-abuse environments: bounded queue + `DropNewest`
 
 ## Example
 
@@ -32,7 +32,7 @@ Use it to stop one noisy client from creating unbounded memory growth or unfair 
 var options = new DispatchOptions
 {
     MaxPerConnectionQueue = 128,
-    DropPolicy = DispatchDropPolicy.DROP_NEWEST,
+    DropPolicy = DropPolicy.DropNewest,
     BlockTimeout = TimeSpan.FromMilliseconds(250)
 };
 ```
