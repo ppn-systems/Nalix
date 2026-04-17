@@ -93,7 +93,14 @@ public abstract partial class UdpListenerBase
         {
             socket.DontFragment = true;
         }
-        catch { }
+        catch (SocketException)
+        {
+            // Best effort only: some platforms/socket configurations do not support this option.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Socket lifetime race: ignore to preserve existing non-fatal behavior.
+        }
 
         // 2. WINDOWS: Sửa lỗi WSAECONNRESET kinh điển của UDP trên Windows.
         // Bình thường nếu Server gửi trả 1 gói UDP cho IP Client, nhưng Client đã tắt mạng (nguồn không tới), 
