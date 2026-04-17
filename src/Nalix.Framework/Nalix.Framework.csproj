@@ -17,7 +17,7 @@ Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) prin
 		<PackageReleaseNotes><![CDATA[
 - High-Efficiency Serialization: Enhanced collection formatters to support complex types like Dictionary entries with minimal allocation.
 - Zero-Allocation Discovery: New PacketRegistry APIs supporting in-place deserialization (Deserialize ref) for optimized object pooling.
-- Cross-Platform Security: Hardened filesystem sanitization and path traversal protections for consistent behavior on Windows and Linux.
+- Secure Environment Management: Hardened filesystem sanitization and Unix-compatible directory permission helpers for robust cross-platform reliability.
 - Reliable Orchestration: Optimized TaskManager and Identity subsystems for predictable performance in high-concurrency environments.
 		]]></PackageReleaseNotes>
 	</PropertyGroup>
