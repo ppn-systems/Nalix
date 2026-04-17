@@ -116,7 +116,8 @@ public abstract partial class Protocol
             return;
         }
 
-        if (args.Connection.Secret is not { } secret)
+        byte[]? secret = args.Connection.Secret;
+        if (secret == null || secret.Length == 0)
         {
             args.Connection.Disconnect("Encrypted frame received before session key establishment.");
             throw new InvalidOperationException("Encrypted frame received before session key establishment.");
