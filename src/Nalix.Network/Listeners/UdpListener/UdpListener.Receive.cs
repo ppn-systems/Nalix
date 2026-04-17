@@ -90,7 +90,15 @@ public abstract partial class UdpListenerBase
         {
             this.HandleReceive(args);
         }
-        catch (Exception ex)
+        catch (SocketException ex)
+        {
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+        }
+        catch (OperationCanceledException ex) when (_cancellationToken.IsCancellationRequested)
         {
             s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
         }
