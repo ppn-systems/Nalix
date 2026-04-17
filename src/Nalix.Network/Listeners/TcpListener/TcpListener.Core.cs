@@ -210,7 +210,28 @@ public abstract partial class TcpListenerBase : IListener
 
                 _ = Interlocked.Exchange(ref self._stopInitiated, 0);
 
-                try { _ = self._lock.Release(); } catch { }
+                try
+                {
+                    _ = self._lock.Release();
+                }
+                catch (SemaphoreFullException ex)
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
+                        $"lock-release-ignored port={self._port} reason={nameof(SemaphoreFullException)} ex={ex.Message}");
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
+                        $"lock-release-ignored port={self._port} reason={nameof(ObjectDisposedException)} ex={ex.Message}");
+                }
+                catch (Exception ex)
+                {
+                    s_logger?.Error(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
+                        $"lock-release-error port={self._port} ex={ex.Message}");
+                }
             }
         }
 
