@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Connections;
 using Nalix.Network.Pipeline.Throttling;

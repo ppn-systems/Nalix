@@ -116,7 +116,7 @@ receive datagram
 - unauthenticated drops should be visible in diagnostics
 - `IsAuthenticated(...)` should stay fast and deterministic
 - the datagram layout is `[7-byte SessionToken][Payload]`
-- Payload itself follows the Nalix header format: `[Transport(1), SequenceId(4), ...]`
+- Payload itself follows the standard 10-byte Nalix header format: `[Magic(4), OpCode(2), Flags(1), Priority(1), SequenceId(2), ...]`
 
 ## Related APIs
 

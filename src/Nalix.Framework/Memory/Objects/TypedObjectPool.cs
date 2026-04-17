@@ -47,7 +47,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// <summary>
     /// Clears this type's pool.
     /// </summary>
-    /// <returns>The ProtocolType of objects removed.</returns>
+    /// <returns>The number of objects removed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Clear() => _parentPool.ClearType<T>();
 
@@ -61,15 +61,15 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// <summary>
     /// Preallocates objects in the pool.
     /// </summary>
-    /// <param name="count">The ProtocolType of objects to preallocate.</param>
-    /// <returns>The ProtocolType of objects successfully preallocated.</returns>
+    /// <param name="count">The number of objects to preallocate.</param>
+    /// <returns>The number of objects successfully preallocated.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int Prealloc(int count) => _parentPool.Prealloc<T>(count);
 
     /// <summary>
     /// Gets multiple objects from the pool.
     /// </summary>
-    /// <param name="count">The ProtocolType of objects to get.</param>
+    /// <param name="count">The number of objects to get.</param>
     /// <returns>A list containing the requested objects.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public List<T> GetMultiple(int count) => _parentPool.GetMultiple<T>(count);
@@ -85,7 +85,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     /// Returns multiple objects to the pool.
     /// </summary>
     /// <param name="objects">The objects to return.</param>
-    /// <returns>The ProtocolType of objects successfully returned to the pool.</returns>
+    /// <returns>The number of objects successfully returned to the pool.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int ReturnMultiple(IEnumerable<T> objects) => _parentPool.ReturnMultiple(objects);
 
@@ -98,3 +98,4 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
 
     #endregion Public Methods
 }
+

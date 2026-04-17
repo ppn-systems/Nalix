@@ -43,7 +43,7 @@ sequenceDiagram
 ## 3. Protocol Specification
 
 ### Header & Payload
-The `SESSION_SIGNAL` packet is a fixed-size frame of **55 bytes**.
+The `SESSION_SIGNAL` packet is a fixed-size frame of **52 bytes**.
 
 | Offset | Field | Type | size | Description |
 |---|---|---|---|---|
@@ -51,12 +51,11 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **55 bytes**.
 | 4 | `OpCode` | `ushort` | 2 | `0x0002` (SESSION_SIGNAL). |
 | 6 | `Flags` | `byte` | 1 | Framing flags. |
 | 7 | `Priority` | `byte` | 1 | Fixed at `0x03` (URGENT). |
-| 8 | `Transport` | `byte` | 1 | `0x06` (`ProtocolType.TCP`) or `0x11` (`ProtocolType.UDP`). |
-| 9 | `SequenceId` | `uint` | 4 | Correlation identifier. |
-| 13 | `Stage` | `byte` | 1 | `0x01` (REQUEST), `0x02` (RESPONSE). |
-| 14 | `SessionToken` | `Snowflake` | 7 | The 56-bit unique session identifier. |
-| 21 | `Reason` | `ushort` | 2 | `ProtocolReason` result (`ProtocolReason.NONE` = success). |
-| 23 | `Proof` | `Bytes32` | 32 | HMAC-Keccak256 proof-of-possession for the session secret. |
+| 8 | `SequenceId` | `ushort` | 2 | Correlation identifier. |
+| 10 | `Stage` | `byte` | 1 | `0x01` (REQUEST), `0x02` (RESPONSE). |
+| 11 | `SessionToken` | `Snowflake` | 7 | The 56-bit unique session identifier. |
+| 18 | `Reason` | `ushort` | 2 | `ProtocolReason` result (`ProtocolReason.NONE` = success). |
+| 20 | `Proof` | `Bytes32` | 32 | HMAC-Keccak256 proof-of-possession for the session secret. |
 
 ---
 

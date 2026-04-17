@@ -1,5 +1,5 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+using System;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Common.Primitives;

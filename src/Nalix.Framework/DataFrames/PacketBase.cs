@@ -13,7 +13,6 @@ using System.Text;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Extensions;

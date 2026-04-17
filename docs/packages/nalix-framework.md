@@ -136,11 +136,10 @@ InstanceManager.Instance.Register<IPacketRegistry>(registry);
 
 // Handshake frame
 Handshake hs = new(
-    0,
     HandshakeStage.CLIENT_HELLO,
-    Csprng.GetBytes(32),
-    Csprng.GetBytes(32),
-    transport: ProtocolType.TCP);
+    Csprng.GetBytes32(),
+    Csprng.GetBytes32(),
+    flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 hs.UpdateTranscriptHash("nalix-default-handshake"u8);
 byte[] bytes = hs.Serialize();
 ```

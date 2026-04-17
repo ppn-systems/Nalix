@@ -53,15 +53,6 @@ Represents the positions of fields in the serialization order.
 | `Region` | `10` | - | End offset of the packet header fields. |
 | `MaxValue` | `255` | - | The maximum numeric value reserved for the enum. |
 
-### ProtocolType
-Identifies the transport protocol associated with a packet or endpoint.
-
-| Member | Value | Description |
-| :--- | :--- | :--- |
-| `NONE` | `0x00` | No transport protocol specified. |
-| `TCP` | `0x06` | Transmission Control Protocol. |
-| `UDP` | `0x11` | User Datagram Protocol. |
-
 ### PacketContextState
 Defines the lifecycle states of a `PacketContext` instance.
 

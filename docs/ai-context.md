@@ -32,7 +32,7 @@ Nalix is an enterprise-grade, real-time TCP/UDP networking framework for .NET 10
 
 ## Implementation Secrets (Deep-Dives)
 - **Priority Dispatch:** `DispatchChannel` doesn't just dequeue; it checks `PriorityReadyQueue` based on `PacketPriority`. Workers use `SpinWait` followed by `SemaphoreSlim` to balance latency/CPU.
-- **Header Structure:** `[4B MagicNumber][2B OpCode][1B Flags][1B Priority][1B Transport][4B SequenceId]` (13-byte fixed header).
+- **Header Structure:** `[4B MagicNumber][2B OpCode][1B Flags][1B Priority][2B SequenceId]` (10-byte fixed header).
 - **Registry Freezer:** `PacketRegistry` freezes at startup into an array-backed lookup if opcodes are dense, otherwise `FrozenDictionary` for $O(1)$ access.
 - **Middleware Ordering:** Buffer-middleware (decryption/checksum) runs **before** deserialization. Packet-middleware (auth/logic) runs **after**.
 - **The "Directive" System:** `Directive` packets use `ProtocolOpCode.SYSTEM_CONTROL` (`0x0001`) for system-level signaling (for example `FAIL`, `TIMEOUT`, `NOTICE`).

@@ -1,3 +1,4 @@
+using Nalix.Common.Networking.Protocols;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -31,7 +32,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
         FakeTransportSession session = new();
 
         Control packet = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.NOTICE, reliable: true)
-            .WithSeq(123u)
+            .WithSeq(123)
             .WithReason(ProtocolReason.TIMEOUT)
             .WithReliable(true)
             .StampNow()
@@ -325,3 +326,4 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
         }
     }
 }
+

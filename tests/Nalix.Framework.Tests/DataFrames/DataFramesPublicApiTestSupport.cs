@@ -2,6 +2,7 @@
 using System;
 using System.Text;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
@@ -62,14 +63,14 @@ public sealed partial class DataFramesPublicApiTests
     private static Control CreateControlPacket()
     {
         Control packet = new();
-        packet.Initialize(14, ControlType.HEARTBEAT, 55, ProtocolReason.NONE);
+        packet.Initialize(14, ControlType.HEARTBEAT, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
         return packet;
     }
 
     private static Directive CreateDirectivePacket()
     {
         Directive packet = new();
-        packet.Initialize(91, ControlType.THROTTLE, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, ControlFlags.SLOW_DOWN, 9, 8, 7);
+        packet.Initialize(91, ControlType.THROTTLE, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
         return packet;
     }
 

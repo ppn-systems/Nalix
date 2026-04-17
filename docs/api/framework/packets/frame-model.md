@@ -20,7 +20,7 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 
 | Type | Public members |
 |---|---|
-| `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `Protocol`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
+| `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
 | `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)`, `Deserialize(ReadOnlySpan<byte>, ref TSelf)` |
 | `FrameTransformer` | low-level payload transform helpers and size calculations |
 | `PacketCipher` | shared framed packet encrypt/decrypt helper |
@@ -36,7 +36,6 @@ It exposes the fields that every packet carries:
 - `OpCode`
 - `Flags`
 - `Priority`
-- `Protocol`
 - `SequenceId`
 - `Length`
 

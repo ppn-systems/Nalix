@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.Chunks;
@@ -116,7 +117,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     public void DirectiveInitializeOverloadWithoutOpcodeKeepsSystemControlOpcode()
     {
         Directive packet = new();
-        packet.Initialize(ControlType.THROTTLE, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, sequenceId: 9, flags: ControlFlags.SLOW_DOWN, arg0: 1, arg1: 2, arg2: 3);
+        packet.Initialize(ControlType.THROTTLE, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, sequenceId: 9, controlFlags: ControlFlags.SLOW_DOWN, arg0: 1, arg1: 2, arg2: 3);
 
         Assert.Equal((ushort)ProtocolOpCode.SYSTEM_CONTROL, packet.OpCode);
         Assert.Equal(ControlType.THROTTLE, packet.Type);

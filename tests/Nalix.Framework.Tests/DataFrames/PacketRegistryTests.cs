@@ -4,6 +4,7 @@
 using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -186,7 +187,8 @@ public sealed class PacketRegistryTests : IDisposable
             reason: ProtocolReason.NONE,
             action: ProtocolAdvice.RETRY,
             sequenceId: 123,
-            flags: ControlFlags.NONE,
+            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+            controlFlags: ControlFlags.NONE,
             arg0: 0xDEAD,
             arg1: 0xBEEF,
             arg2: 0xFF);

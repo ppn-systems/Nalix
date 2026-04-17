@@ -3,6 +3,7 @@ using System;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Xunit;
 
@@ -43,7 +44,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(0L, packet.Timestamp);
         Assert.Equal(0L, packet.MonoTicks);
         Assert.Equal(PacketPriority.HIGH, packet.Priority);
-        Assert.Equal(PacketFlags.SYSTEM, packet.Flags);
+        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Flags);
     }
 
     [Theory]
@@ -75,7 +76,7 @@ public sealed partial class DataFramesPublicApiTests
             reason: ProtocolReason.REDIRECT,
             action: ProtocolAdvice.RECONNECT,
             sequenceId: 99,
-            flags: PacketFlags.SYSTEM,
+            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE,
             controlFlags: ControlFlags.HAS_REDIRECT | ControlFlags.IS_TRANSIENT,
             arg0: 1000,
             arg1: 2000,
@@ -106,7 +107,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.True(packet.Proof.IsZero);
         Assert.True(packet.TranscriptHash.IsZero);
         Assert.Equal(HandshakeStage.NONE, packet.Stage);
-        Assert.Equal(PacketFlags.SYSTEM, packet.Flags);
+        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Flags);
         Assert.Equal(PacketPriority.URGENT, packet.Priority);
     }
 
@@ -209,8 +210,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(Nalix.Framework.Identifiers.Snowflake.Empty, packet.SessionToken);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.True(packet.Proof.IsZero);
-        Assert.Equal(PacketFlags.SYSTEM, packet.Flags);
-        Assert.Equal(ProtocolType.TCP, packet.Protocol);
+        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Flags);
         Assert.Equal(PacketPriority.URGENT, packet.Priority);
     }
 

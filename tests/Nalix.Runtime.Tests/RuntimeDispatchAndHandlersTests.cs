@@ -1,3 +1,4 @@
+using Nalix.Common.Networking.Protocols;
 using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
@@ -174,3 +175,4 @@ public sealed class RuntimeDispatchAndHandlersTests
         public int Serialize(Span<byte> buffer) => 0;
     }
 }
+
