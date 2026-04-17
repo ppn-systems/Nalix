@@ -113,7 +113,7 @@ public sealed class PolicyRateLimiterTests
 
         public WireProtocolType Protocol { get; set; } = WireProtocolType.TCP;
 
-        public uint SequenceId { get; } = 1;
+        public ushort SequenceId { get; } = 1;
 
         public byte[] Serialize() => [];
 

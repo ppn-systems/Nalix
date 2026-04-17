@@ -215,14 +215,14 @@ public sealed class ExtensionsCoverageTests
         byte[] buffer = new byte[(int)PacketHeaderOffset.Region];
         const uint magic = 0xA1B2C3D4;
         const ushort opCode = 0x7788;
-        const uint sequence = 0x01020304;
+        const ushort sequence = 0x1234;
 
         BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.MagicNumber), magic);
         BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.OpCode), opCode);
         buffer[(int)PacketHeaderOffset.Flags] = (byte)PacketFlags.ENCRYPTED;
         buffer[(int)PacketHeaderOffset.Priority] = (byte)PacketPriority.HIGH;
         buffer[(int)PacketHeaderOffset.Transport] = (byte)ProtocolType.UDP;
-        BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.SequenceId), sequence);
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.SequenceId), sequence);
 
         Assert.Equal(magic, buffer.AsSpan().ReadMagicNumberLE());
         Assert.Equal(opCode, buffer.AsSpan().ReadOpCodeLE());

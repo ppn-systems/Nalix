@@ -81,12 +81,10 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.NoInlining)] // only called once per field
     private static Delegate CreateGetter(FieldInfo field)
     {
-        bool ownerIsValueType = typeof(T).IsValueType;
-
-        // Owner param type:
-        //   struct  -> pass by ref so we never box the struct
-        //   class   -> plain ref type, no boxing anyway
-        Type ownerParamType = ownerIsValueType ? typeof(T).MakeByRefType() : typeof(T);
+        // Standard BCL delegates (Func/Action) do not support 'ref T' for structs.
+        // Since GetValue/SetValue already pass the struct by value, the IL
+        // must also accept it by value to bind correctly to Func<T, TField>.
+        Type ownerParamType = typeof(T);
 
         // DynamicMethod name is diagnostic only — not part of any public API.
         DynamicMethod dm = new(
@@ -128,8 +126,7 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Delegate CreateSetter(FieldInfo field)
     {
-        bool ownerIsValueType = typeof(T).IsValueType;
-        Type ownerParamType = ownerIsValueType ? typeof(T).MakeByRefType() : typeof(T);
+        Type ownerParamType = typeof(T);
 
         DynamicMethod dm = new(
             name: $"__set_{typeof(T).Name}_{field.Name}",

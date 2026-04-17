@@ -64,7 +64,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <param name="reasonCode">The reason code (optional, default = 0).</param>
     /// <param name="transport">The transport protocol (default = TCP).</param>
     public void Initialize(
-        ControlType type, uint sequenceId = 0,
+        ControlType type, ushort sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
         this.Type = type;
@@ -84,7 +84,7 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <param name="reasonCode">The reason code (optional, default = 0).</param>
     /// <param name="transport">The transport protocol (default = TCP).</param>
     public void Initialize(
-        ushort opCode, ControlType type, uint sequenceId = 0,
+        ushort opCode, ControlType type, ushort sequenceId = 0,
         ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
     {
         this.OpCode = opCode;

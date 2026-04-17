@@ -13,4 +13,5 @@ The `Nalix.Common` package defines the fundamental interfaces, attributes, and d
 ## High-Level Primitives
 
 - [**Control Types**](./protocols/control-type.md) — Enums for system-level signaling.
+- [**Common Enumerations**](./enums.md) — Reference table for all system-wide Enums.
 - [**Serialization Attributes**](./serialization-attributes.md) — Metadata for the zero-alloc serializer.

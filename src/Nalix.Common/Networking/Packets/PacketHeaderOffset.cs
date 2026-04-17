@@ -49,14 +49,14 @@ public enum PacketHeaderOffset
     /// <summary>
     /// SequenceId field: Used for packet sequence correlation.
     /// </summary>
-    [DataType(typeof(uint))]
+    [DataType(typeof(ushort))]
     SequenceId = Transport + sizeof(byte),
 
     /// <summary>
     /// Represents the end offset of the packet header fields in the serialized data.
     /// This value is equal to the offset of the last field and can be used to determine the total header size.
     /// </summary>
-    Region = SequenceId + sizeof(uint),
+    Region = SequenceId + sizeof(ushort),
 
     /// <inheritdoc/>
     MaxValue = byte.MaxValue,

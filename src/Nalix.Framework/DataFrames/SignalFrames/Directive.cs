@@ -94,7 +94,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// <param name="arg2">The third directive argument.</param>
     public void Initialize(
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        uint sequenceId, ControlFlags flags = ControlFlags.NONE,
+        ushort sequenceId, ControlFlags flags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
         this.Arg0 = arg0;
@@ -124,7 +124,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public void Initialize(
         ushort opCode,
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        uint sequenceId, ControlFlags flags = ControlFlags.NONE,
+        ushort sequenceId, ControlFlags flags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
         this.Arg0 = arg0;

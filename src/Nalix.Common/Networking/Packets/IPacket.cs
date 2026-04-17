@@ -60,7 +60,7 @@ public interface IPacket
     /// Gets the sequence identifier used to correlate requests and responses.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.SequenceId)]
-    uint SequenceId { get; }
+    ushort SequenceId { get; }
 
     #endregion Metadata
 

@@ -171,7 +171,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         public PacketFlags Flags { get; set; }
         public PacketPriority Priority { get; set; }
         public ProtocolType Protocol { get; set; } = ProtocolType.TCP;
-        public uint SequenceId { get; } = 1;
+        public ushort SequenceId { get; } = 1;
         public byte[] Serialize() => [];
         public int Serialize(Span<byte> buffer) => 0;
     }

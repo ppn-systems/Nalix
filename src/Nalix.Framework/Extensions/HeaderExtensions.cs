@@ -119,7 +119,7 @@ public static class HeaderExtensions
     }
 
     /// <summary>
-    /// Reads the 32‑bit <c>SequenceId</c> at its fixed offset in little‑endian format.
+    /// Reads the 16‑bit <c>SequenceId</c> at its fixed offset in little‑endian format.
     /// </summary>
     /// <param name="this">The source buffer.</param>
     /// <returns>The sequence identifier.</returns>
@@ -127,11 +127,11 @@ public static class HeaderExtensions
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static uint ReadSequenceIdLE(this ReadOnlySpan<byte> @this)
+    public static ushort ReadSequenceIdLE(this ReadOnlySpan<byte> @this)
     {
         const int offs = (int)PacketHeaderOffset.SequenceId;
-        CheckSize(@this, offs, sizeof(uint));
-        return System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(@this.Slice(offs, sizeof(uint)));
+        CheckSize(@this, offs, sizeof(ushort));
+        return System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(@this.Slice(offs, sizeof(ushort)));
     }
 
     #endregion Little‑endian header readers (fixed offsets)

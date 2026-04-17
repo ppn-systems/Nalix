@@ -74,4 +74,4 @@ public static class ConnectionExtensions
 /// <param name="Arg0">Optional argument 0 for the directive.</param>
 /// <param name="Arg1">Optional argument 1 for the directive.</param>
 /// <param name="Arg2">Optional argument 2 for the directive.</param>
-public readonly record struct ControlDirectiveOptions(ControlFlags Flags = ControlFlags.NONE, uint SequenceId = 0, uint Arg0 = 0, uint Arg1 = 0, ushort Arg2 = 0);
+public readonly record struct ControlDirectiveOptions(ControlFlags Flags = ControlFlags.NONE, ushort SequenceId = 0, uint Arg0 = 0, uint Arg1 = 0, ushort Arg2 = 0);

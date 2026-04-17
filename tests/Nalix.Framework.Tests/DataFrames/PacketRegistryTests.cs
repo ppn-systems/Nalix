@@ -312,7 +312,7 @@ public sealed class PacketRegistryTests : IDisposable
         public PacketFlags Flags { get; set; }
         public PacketPriority Priority { get; set; }
         public ProtocolType Protocol { get; set; }
-        public uint SequenceId => 0;
+        public ushort SequenceId => 0;
 
         public byte[] Serialize() => new byte[PacketConstants.HeaderSize];
 
