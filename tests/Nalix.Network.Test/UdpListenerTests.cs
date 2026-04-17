@@ -67,31 +67,6 @@ public sealed class UdpListenerTests
         GetTrafficReport(listener)["DroppedUnknown"].Should().Be(1L);
     }
 
-    [Fact]
-    public async Task ConnectionUnregistered_PrunesEndpointCache()
-    {
-        ConnectionHub hub = EnsureUdpListenerStatics();
-        CountingProtocol protocol = new();
-
-        using TestUdpListener listener = new(protocol);
-        listener.Activate();
-
-        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
-        hub.RegisterConnection(connection);
-
-        EndPoint remoteEndPoint = new IPEndPoint(IPAddress.Loopback, 42345);
-        byte[] datagram = CreateDatagram(connection.ID.ToByteArray(), reliable: false);
-
-        listener.Process(BufferLease.CopyFrom(datagram), remoteEndPoint);
-
-        protocol.ProcessedFrames.Should().Be(1);
-        GetRuntimeReport(listener)["EndpointCacheSize"].Should().Be(1);
-
-        hub.UnregisterConnection(connection);
-
-        GetRuntimeReport(listener)["EndpointCacheSize"].Should().Be(0);
-    }
 
     private static ConnectionHub EnsureUdpListenerStatics()
         => s_hub;

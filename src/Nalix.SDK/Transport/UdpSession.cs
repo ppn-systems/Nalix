@@ -329,7 +329,7 @@ public class UdpSession : TransportSession
             return;
         }
 
-        int bufferSize = this.Options.BufferSize;
+        int bufferSize = this.Options.MaxUdpDatagramSize;
 
         while (!ct.IsCancellationRequested)
         {
