@@ -100,7 +100,9 @@ The behavior of the wheel is controlled via `TimingWheelOptions`:
 
 ## Related APIs
 
-- [IConnection](./connection/connection.md)
-- [Clock Infrastructure](../framework/runtime/clock.md)
-- [Object Pool Management](../framework/memory/object-map-and-typed-pools.md)
-- [Task Naming Conventions](../framework/runtime/task-manager.md)
+- [IConnection](../connection/connection.md)
+- [Clock Infrastructure](../../framework/runtime/clock.md)
+- [Object Pooling](../../framework/memory/object-pooling.md)
+- [Object Map](../../framework/memory/object-map.md)
+- [Typed Object Pools](../../framework/memory/typed-object-pools.md)
+- [Task Naming Conventions](../../framework/runtime/task-manager.md)

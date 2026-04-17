@@ -7,20 +7,20 @@ The Object Pooling system in `Nalix.Framework` provides a thread-safe, high-perf
 The following diagram illustrates the lifecycle of a poolable object from creation to reuse.
 
 ```mermaid
-flowchart TD
-    Start([Request Object]) --> Cache{Available in Pool?}
+flowchart LR
+    Start[Request Object] --> Cache{Available in Pool?}
     Cache -- Yes --> Get[Retrieve from Storage]
-    Cache -- No --> Build[Create new T()]
+    Cache -- No --> Build[Create new Instance]
     
-    Get --> Use([Use Object])
+    Get --> Use[Use Object]
     Build --> Use
     
     Use --> Return[Return to Pool]
-    Return --> Reset[Reset State (IPoolable.Reset)]
+    Return --> Reset[Reset State IPoolable]
     Reset --> Check{Capacity Full?}
     
     Check -- No --> Save[Store for Reuse]
-    Check -- Yes --> Dispose[Dispose/Let GC collect]
+    Check -- Yes --> Dispose[Dispose and GC]
 ```
 
 ## Source Mapping
@@ -99,5 +99,6 @@ The manager tracks several critical metrics to help tune pool capacities:
 ## Related APIs
 
 - [Buffer Management](./buffer-management.md)
-- [Object Map and Typed Pools](./object-map-and-typed-pools.md)
+- [Object Map](./object-map.md)
+- [Typed Object Pools](./typed-object-pools.md)
 - [Zero-Allocation Hot Path](../../../guides/zero-allocation-hot-path.md)

@@ -45,4 +45,4 @@ if (adjustMs != 0)
 ## Related APIs
 
 - [Timing Scope](./timing-scope.md)
-- [Time Synchronizer](../../network/time-synchronizer.md)
+- [Time Synchronizer](../../network/time/time-synchronizer.md)

@@ -50,7 +50,7 @@ To understand the Nalix networking stack, we recommend reading the documentation
 2.  **[TCP Listener](./tcp-listener.md) / [UDP Listener](./udp-listener.md)**: Entry points for accepting connections and detecting sessions.
 3.  **[Connection](./connection/connection.md)**: The high-level orchestrator that owns the session identity and security context.
 4.  **[Connection Hub](./connection/connection-hub.md)**: The central registry for looking up and managing thousands of active connections.
-5.  **[Timing Wheel](./timing-wheel.md)**: The high-efficiency timer used for cleaning up idle connections.
+5.  **[Timing Wheel](./time/timing-wheel.md)**: The high-efficiency timer used for cleaning up idle connections.
 
 ## Core Areas
 

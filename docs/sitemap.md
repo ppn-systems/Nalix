@@ -122,7 +122,8 @@ This page provides a comprehensive index of all documentation available for the 
 - [**LZ4**](./api/framework/memory/lz4.md)
 - [**Buffer Management**](./api/framework/memory/buffer-management.md)
 - [**Object Pooling**](./api/framework/memory/object-pooling.md)
-- [**Object Map and Typed Pools**](./api/framework/memory/object-map-and-typed-pools.md)
+- [**Object Map**](./api/framework/memory/object-map.md)
+- [**Typed Object Pools**](./api/framework/memory/typed-object-pools.md)
 
 ### Security & Crypto
 - [**Cryptography**](./api/security/cryptography.md)
@@ -152,7 +153,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**UDP Listener**](./api/network/udp-listener.md)
 - [**Connections**](./api/network/connection/connection.md)
 - [**Hubs**](./api/network/connection/connection-hub.md)
-- [**Timing Wheel**](./api/network/timing-wheel.md)
+- [**Timing Wheel**](./api/network/time/timing-wheel.md)
 - [**Options**](./api/network/options/options.md)
 
 ### SDK (Client)

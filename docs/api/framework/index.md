@@ -15,6 +15,8 @@ The framework layer is designed to be transport-agnostic and provides the follow
 
 - [**Buffer Management**](./memory/buffer-management.md): High-performance byte buffer pools and leases.
 - [**Object Pooling**](./memory/object-pooling.md): Reusable object stores to minimize GC pressure.
+- [**Object Map**](./memory/object-map.md): High-performance pooled concurrent dictionaries.
+- [**Typed Object Pools**](./memory/typed-object-pools.md): Performance-optimized typed facades for pooling.
 - [**Snowflake**](./runtime/snowflake.md): 56-bit compact, sortable IDs for tasks and packets.
 
 ## Related Packages

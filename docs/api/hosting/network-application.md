@@ -25,15 +25,25 @@ The public API surface revolves around two main types:
 ## Startup Flow
 
 ```mermaid
-flowchart LR
-    A["NetworkApplication.CreateBuilder()"] --> B["Configure options, logger, connection hub, packets, handlers"]
-    B --> C["Build()"]
-    C --> D["ActivateAsync()"]
-    D --> E["Apply options & Register logger / connection hub"]
-    E --> F["Register Packet Registry"]
-    F --> G["Create & Activate PacketDispatchChannel"]
-    G --> H["Create protocol instances"]
-    H --> I["Start TCP/UDP listeners"]
+graph LR
+    subgraph Configuration ["Phase 1: Configuration"]
+        Create["CreateBuilder()"] --> Config["Configure Loggers, Options, Hubs"]
+        Config --> Discover["AddPacket() & AddHandlers()"]
+        Discover --> Bind["AddTcp() / AddUdp()"]
+    end
+
+    subgraph Composition ["Phase 2: Composition"]
+        Bind --> Build["Build()"]
+        Build --> Prep["Initialize Context"]
+    end
+
+    subgraph Activation ["Phase 3: Activation"]
+        Prep --> Run["ActivateAsync()"]
+        Run --> Infra["Infrastructure"]
+        Infra --> Registry["Build Registry"]
+        Registry --> Dispatch["Initalize Dispatch"]
+        Dispatch --> Listeners["Start Listeners"]
+    end
 ```
 
 ## Public members at a glance

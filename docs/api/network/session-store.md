@@ -86,4 +86,5 @@ Control the session lifecycle via `SessionStoreOptions`:
 - [Handshake Protocol](../security/handshake.md)
 - [Session Resumption](../security/session-resume.md)
 - [Snowflake Identifiers (UInt56)](../framework/runtime/snowflake.md)
-- [Object Pools](../framework/memory/object-map-and-typed-pools.md)
+- [Object Pooling](../framework/memory/object-pooling.md)
+- [Object Map](../framework/memory/object-map.md)

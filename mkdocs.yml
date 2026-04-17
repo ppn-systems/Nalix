@@ -186,32 +186,36 @@ nav:
         - Concurrency Contracts: api/common/concurrency-contracts.md
         - Enums: api/common/enums.md
       - Framework:
-        - Runtime & Environment:
-          - Directories: api/framework/environment/directories.md
-          - Configuration: api/framework/runtime/configuration.md
-          - Instance Manager (DI): api/framework/runtime/instance-manager.md
-          - Task Manager: api/framework/runtime/task-manager.md
-          - Snowflake: api/framework/runtime/snowflake.md
+        - Overview: api/framework/index.md
+        - Environment: api/framework/environment/directories.md
+        - Runtime:
           - Clock: api/framework/runtime/clock.md
+          - Snowflake: api/framework/runtime/snowflake.md
           - Timing Scope: api/framework/runtime/timing-scope.md
+          - Task Manager: api/framework/runtime/task-manager.md
+          - Configuration: api/framework/runtime/configuration.md
           - Singleton Base: api/framework/runtime/singleton-base.md
+          - Instance Manager (DI): api/framework/runtime/instance-manager.md
+        - Options:
           - Worker Options: api/framework/options/worker-options.md
           - Recurring Options: api/framework/options/recurring-options.md
-        - Packets & Serialization:
+        - Packets:
           - Frame Model: api/framework/packets/frame-model.md
-          - Serialization Attributes: api/common/serialization-attributes.md
-          - Framework Serialization: api/framework/serialization/serialization-basics.md
-          - Packet Registry: api/framework/packets/packet-registry.md
+          - Fragmentation: api/framework/packets/fragmentation.md
           - Built-in Frames: api/framework/packets/built-in-frames.md
           - Packet Pooling: api/framework/packets/packet-pooling.md
-          - Fragmentation: api/framework/packets/fragmentation.md
-          - Reader, Writer, and Header Extensions: api/framework/packets/reader-writer-and-header-extensions.md
+          - Packet Registry: api/framework/packets/packet-registry.md
+          - Packet IO & Headers: api/framework/packets/reader-writer-and-header-extensions.md
+        - Serialization:
           - Serialization: api/framework/packets/serialization.md
+          - Framework Serialization: api/framework/serialization/serialization-basics.md
+          - Serialization Attributes: api/common/serialization-attributes.md
         - Memory & Pooling:
           - LZ4: api/framework/memory/lz4.md
           - Buffer Management: api/framework/memory/buffer-management.md
           - Object Pooling: api/framework/memory/object-pooling.md
-          - Object Map and Typed Pools: api/framework/memory/object-map-and-typed-pools.md
+          - Object Map: api/framework/memory/object-map.md
+          - Typed Object Pools: api/framework/memory/typed-object-pools.md
       - Logging:
         - Overview: api/logging/index.md
         - Options: api/logging/options.md
@@ -226,9 +230,9 @@ nav:
         - Permission Levels: api/security/permission-level.md
       - Runtime:
         - Overview: api/runtime/index.md
+        - Handlers: api/runtime/handlers/index.md
         - Routing:
           - Overview: api/runtime/routing/index.md
-          - Handlers: api/runtime/handlers/index.md
           - Attributes: api/runtime/routing/packet-attributes.md
           - Metadata: api/runtime/routing/packet-metadata.md
           - Context: api/runtime/routing/packet-context.md
@@ -261,8 +265,9 @@ nav:
           - Events: api/network/connection/connection-events.md
           - Extensions: api/network/connection/connection-extensions.md
           - Limiter: api/network/connection/connection-limiter.md
-        - Time Synchronizer: api/network/time-synchronizer.md
-        - Timing Wheel: api/network/timing-wheel.md
+        - Time:
+          - Time Synchronizer: api/network/time/time-synchronizer.md
+          - Timing Wheel: api/network/time/timing-wheel.md
         - Options:
           - Overview: api/network/options/options.md
           - Network Socket: api/network/options/network-socket-options.md

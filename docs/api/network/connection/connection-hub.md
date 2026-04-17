@@ -78,5 +78,5 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 
 - [Connection](./connection.md)
 - [Connection Hub Options](../options/connection-hub-options.md)
-- [Timing Wheel](../timing-wheel.md)
+- [Timing Wheel](../time/timing-wheel.md)
 - [Session Store](../session-store.md)
