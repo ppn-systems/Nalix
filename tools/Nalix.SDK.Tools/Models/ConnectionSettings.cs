@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Networking.Packets;
 
 namespace Nalix.SDK.Tools.Models;
 
@@ -23,7 +23,7 @@ public sealed class ConnectionSettings
     /// <summary>
     /// Gets or sets the transport protocol (TCP/UDP).
     /// </summary>
-    public ProtocolType Transport { get; set; } = ProtocolType.TCP;
+    public PacketFlags Transport { get; set; } = PacketFlags.RELIABLE;
 
     /// <summary>
     /// Gets or sets the UDP session token (7-byte Snowflake hex).
