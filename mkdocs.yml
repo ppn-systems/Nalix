@@ -183,6 +183,7 @@ nav:
         - Connection Contracts: api/common/connection-contracts.md
         - Session Contracts: api/common/session-contracts.md
         - Concurrency Contracts: api/common/concurrency-contracts.md
+        - Enums: api/common/enums.md
       - Framework:
         - Directories: api/framework/environment/directories.md
         - Configuration & DI: api/framework/runtime/configuration.md

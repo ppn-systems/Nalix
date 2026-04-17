@@ -62,14 +62,15 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <param name="type">The control message type.</param>
     /// <param name="sequenceId">The sequence identifier (optional, default = 0).</param>
     /// <param name="reasonCode">The reason code (optional, default = 0).</param>
-    /// <param name="transport">The transport protocol (default = TCP).</param>
+    /// <param name="flags">The packet flags (transport reliability).</param>
     public void Initialize(
         ControlType type, ushort sequenceId = 0,
-        ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
+        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+        ProtocolReason reasonCode = ProtocolReason.NONE)
     {
         this.Type = type;
+        this.Flags = flags;
         this.Reason = reasonCode;
-        this.Protocol = transport;
         this.SequenceId = sequenceId;
         this.MonoTicks = Clock.MonoTicksNow();
         this.Timestamp = Clock.UnixMillisecondsNow();
@@ -82,13 +83,14 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// <param name="type">The control message type.</param>
     /// <param name="sequenceId">The sequence identifier (optional, default = 0).</param>
     /// <param name="reasonCode">The reason code (optional, default = 0).</param>
-    /// <param name="transport">The transport protocol (default = TCP).</param>
+    /// <param name="flags">The packet flags (transport reliability).</param>
     public void Initialize(
         ushort opCode, ControlType type, ushort sequenceId = 0,
-        ProtocolReason reasonCode = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP)
+        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+        ProtocolReason reasonCode = ProtocolReason.NONE)
     {
         this.OpCode = opCode;
-        this.Initialize(type, sequenceId, reasonCode, transport);
+        this.Initialize(type, sequenceId, flags, reasonCode);
     }
 
     /// <inheritdoc/>
@@ -101,12 +103,13 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
         this.SequenceId = 0;
         this.Type = ControlType.NONE;
         this.Priority = PacketPriority.HIGH;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
     }
 
     /// <inheritdoc/>
     public override string ToString() =>
         $"Control(Op={this.OpCode}, Len={this.Length}, Flg={this.Flags}, Pri={this.Priority}, " +
-        $"Tr={this.Protocol}, SEQ={this.SequenceId}, Rsn={this.Reason}, Typ={this.Type}, Ts={this.Timestamp}, Mono={this.MonoTicks})";
+        $"SEQ={this.SequenceId}, Rsn={this.Reason}, Typ={this.Type}, Ts={this.Timestamp}, Mono={this.MonoTicks})";
 
     /// <summary>
     /// Deserializes a <see cref="Control"/> packet from a buffer.

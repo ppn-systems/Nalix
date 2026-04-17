@@ -278,8 +278,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         // These are declared in the base class so _metadata may or may not include them
         // depending on whether SerializeOrder is defined — reset them unconditionally.
         this.OpCode = 0;
-        this.Flags = PacketFlags.NONE;
-        this.Protocol = ProtocolType.NONE;
+        this.Flags = PacketFlags.SYSTEM;
         this.Priority = PacketPriority.NONE;
 
         // Restore type identity — never reset to 0.
@@ -333,7 +332,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
     /// <inheritdoc/>
     public override string ToString() =>
-        $"{typeof(TSelf).Name}(Magic=0x{this.MagicNumber:X8}, OpCode={this.OpCode}, Flags={this.Flags}, Priority={this.Priority}, Protocol={this.Protocol})";
+        $"{typeof(TSelf).Name}(Magic=0x{this.MagicNumber:X8}, OpCode={this.OpCode}, Flags={this.Flags}, Priority={this.Priority}, SequenceId={this.SequenceId})";
 
     #endregion Diagnostics
 

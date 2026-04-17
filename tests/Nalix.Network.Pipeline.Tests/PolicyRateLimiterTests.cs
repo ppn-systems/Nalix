@@ -8,9 +8,7 @@ using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using WireProtocolType = Nalix.Common.Networking.Protocols.ProtocolType;
 using Nalix.Network.Connections;
 using Nalix.Network.Pipeline.Throttling;
 using Xunit;
@@ -79,7 +77,7 @@ public sealed class PolicyRateLimiterTests
 
     private sealed class TestPacketContext(Connection connection, ushort opCode, PacketRateLimitAttribute rateLimit) : IPacketContext<IPacket>
     {
-        public WireProtocolType Protocol => WireProtocolType.TCP;
+        public bool IsReliable => true;
 
         public bool SkipOutbound => false;
 
@@ -111,7 +109,7 @@ public sealed class PolicyRateLimiterTests
 
         public PacketPriority Priority { get; set; }
 
-        public WireProtocolType Protocol { get; set; } = WireProtocolType.TCP;
+        public bool IsReliable { get; set; } = true;
 
         public ushort SequenceId { get; } = 1;
 

@@ -128,7 +128,7 @@ public sealed class HandshakeHandlers
         reply.PublicKey = serverKey.PublicKey;
         reply.Nonce = serverNonce;
         reply.Proof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
-        reply.Protocol = packet.Protocol;
+        reply.Flags = (reply.Flags & ~(PacketFlags.RELIABLE | PacketFlags.UNRELIABLE)) | (packet.Flags & (PacketFlags.RELIABLE | PacketFlags.UNRELIABLE));
         reply.TranscriptHash = transcriptHash;
 
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
@@ -179,7 +179,7 @@ public sealed class HandshakeHandlers
         reply.PublicKey = Bytes32.Zero;
         reply.Nonce = Bytes32.Zero;
         reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
-        reply.Protocol = packet.Protocol;
+        reply.Flags = (reply.Flags & ~(PacketFlags.RELIABLE | PacketFlags.UNRELIABLE)) | (packet.Flags & (PacketFlags.RELIABLE | PacketFlags.UNRELIABLE));
         reply.TranscriptHash = state.TranscriptHash;
         reply.SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID;
 
@@ -197,7 +197,7 @@ public sealed class HandshakeHandlers
         {
             using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
             Handshake error = lease.Value;
-            error.InitializeError(reason, connection.TCP is not null ? ProtocolType.TCP : ProtocolType.UDP);
+            error.InitializeError(reason, flags: PacketFlags.SYSTEM | (connection.TCP != null ? PacketFlags.RELIABLE : PacketFlags.UNRELIABLE));
             await (connection.TCP ?? connection.UDP).SendAsync(error).ConfigureAwait(false);
         }
         finally

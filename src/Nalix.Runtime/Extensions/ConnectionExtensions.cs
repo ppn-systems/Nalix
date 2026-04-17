@@ -45,7 +45,7 @@ public static class ConnectionExtensions
             directive.Initialize(
                 controlType, reason, action,
                 sequenceId: options.SequenceId,
-                flags: options.Flags,
+                controlFlags: options.Flags,
                 arg0: options.Arg0,
                 arg1: options.Arg1,
                 arg2: options.Arg2);

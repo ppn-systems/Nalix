@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.Chunks;
@@ -69,11 +68,11 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         nonce[0] = 0x22;
 
         Handshake packet = new();
-        packet.Initialize(HandshakeStage.CLIENT_HELLO, new Bytes32(key), new Bytes32(nonce), proof: null, transport: ProtocolType.UDP);
+        packet.Initialize(HandshakeStage.CLIENT_HELLO, new Bytes32(key), new Bytes32(nonce), proof: null, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
 
         Assert.Equal((ushort)ProtocolOpCode.HANDSHAKE, packet.OpCode);
         Assert.Equal(HandshakeStage.CLIENT_HELLO, packet.Stage);
-        Assert.Equal(ProtocolType.UDP, packet.Protocol);
+        Assert.True(packet.Flags.HasFlag(PacketFlags.UNRELIABLE));
         Assert.Equal(PacketPriority.URGENT, packet.Priority);
         Assert.True(packet.Proof.IsZero);
         Assert.Equal(Snowflake.Empty, packet.SessionToken);
@@ -95,7 +94,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(SessionResumeStage.REQUEST, packet.Stage);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.True(packet.Proof.IsZero);
-        Assert.Equal(ProtocolType.TCP, packet.Protocol);
+        Assert.True(packet.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.URGENT, packet.Priority);
     }
 
@@ -103,12 +102,12 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     public void ControlInitializeOverloadWithoutOpcodeUpdatesCoreProperties()
     {
         Control packet = new();
-        packet.Initialize(ControlType.HEARTBEAT, sequenceId: 44, reasonCode: ProtocolReason.TIMEOUT, transport: ProtocolType.UDP);
+        packet.Initialize(ControlType.HEARTBEAT, sequenceId: 44, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
 
         Assert.Equal(ControlType.HEARTBEAT, packet.Type);
         Assert.Equal(44u, packet.SequenceId);
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
-        Assert.Equal(ProtocolType.UDP, packet.Protocol);
+        Assert.True(packet.Flags.HasFlag(PacketFlags.UNRELIABLE));
         Assert.NotEqual(0, packet.Timestamp);
         Assert.NotEqual(0, packet.MonoTicks);
     }
@@ -124,7 +123,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(ProtocolReason.THROTTLED, packet.Reason);
         Assert.Equal(ProtocolAdvice.SLOW_DOWN, packet.Action);
         Assert.Equal(ControlFlags.SLOW_DOWN, packet.Control);
-        Assert.Equal(ProtocolType.TCP, packet.Protocol);
+        Assert.True(packet.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.HIGH, packet.Priority);
     }
 

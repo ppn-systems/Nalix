@@ -34,7 +34,7 @@ public static class PingExtensions
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        uint seq = unchecked((uint)Interlocked.Increment(ref s_pingSequence));
+        ushort seq = unchecked((ushort)Interlocked.Increment(ref s_pingSequence));
 
         // Use NewControl fluent builder which also handles Timestamp/MonoTicks setup
         Control ping = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING).WithSeq(seq).Build();

@@ -74,7 +74,7 @@ public abstract partial class UdpListenerBase
 
                 // wrap the buffer into a BufferLease
                 BufferLease lease = BufferLease.TakeOwnership(buffer, start: 0, length: result.ReceivedBytes);
-                lease.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+                lease.IsReliable = false;
 
                 this.ProcessDatagram(lease, result.RemoteEndPoint);
             }
@@ -140,7 +140,7 @@ public abstract partial class UdpListenerBase
         // SEC-72: Strict length and type guard. 
         // A valid UDP datagram must have at least the full packet header (13 bytes).
         // And the transport byte must be UDP.
-        if (payload.Length < (int)PacketHeaderOffset.Region || payload[(int)PacketHeaderOffset.Transport] != (byte)Common.Networking.Protocols.ProtocolType.UDP)
+        if (payload.Length < 10 || (payload[6] & (byte)Common.Networking.Packets.PacketFlags.UNRELIABLE) == 0)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
@@ -197,7 +197,7 @@ public abstract partial class UdpListenerBase
                     if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
                     {
                         BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
-                        fastPayload.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+                        fastPayload.IsReliable = false;
                         ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
                         fastArgs.Initialize(fastPayload, connection);
 
@@ -321,7 +321,7 @@ public abstract partial class UdpListenerBase
 
         // Create a new lease for the payload (7 bytes offset)
         BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
-        incomingLease.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+        incomingLease.IsReliable = false;
 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(incomingLease, connection);

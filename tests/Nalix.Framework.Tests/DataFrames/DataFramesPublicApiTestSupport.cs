@@ -1,7 +1,7 @@
 
 using System;
 using System.Text;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Networking.Packets;
 using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.Chunks;
@@ -62,7 +62,7 @@ public sealed partial class DataFramesPublicApiTests
     private static Control CreateControlPacket()
     {
         Control packet = new();
-        packet.Initialize(14, ControlType.HEARTBEAT, 55, ProtocolReason.NONE, ProtocolType.TCP);
+        packet.Initialize(14, ControlType.HEARTBEAT, 55, ProtocolReason.NONE);
         return packet;
     }
 
@@ -80,7 +80,7 @@ public sealed partial class DataFramesPublicApiTests
         Span<byte> proofArr = stackalloc byte[32]; proofArr[0] = 9; proofArr[1] = 10; proofArr[2] = 11; proofArr[3] = 12;
         Span<byte> hashArr = stackalloc byte[32]; hashArr[0] = 13; hashArr[1] = 14; hashArr[2] = 15; hashArr[3] = 16;
         
-        Handshake packet = new(HandshakeStage.SERVER_HELLO, new Bytes32(pubKeyArr), new Bytes32(nonceArr), new Bytes32(proofArr), ProtocolType.UDP);
+        Handshake packet = new(HandshakeStage.SERVER_HELLO, new Bytes32(pubKeyArr), new Bytes32(nonceArr), new Bytes32(proofArr), flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         packet.TranscriptHash = new Bytes32(hashArr);
         return packet;
     }
@@ -98,7 +98,7 @@ public sealed partial class DataFramesPublicApiTests
                     Assert.Equal(expectedControl.OpCode, actualControl.OpCode);
                     Assert.Equal(expectedControl.Type, actualControl.Type);
                     Assert.Equal(expectedControl.Reason, actualControl.Reason);
-                    Assert.Equal(expectedControl.Protocol, actualControl.Protocol);
+                    Assert.Equal(expectedControl.Flags, actualControl.Flags);
                     Assert.Equal(expectedControl.SequenceId, actualControl.SequenceId);
                     break;
                 }
@@ -122,7 +122,7 @@ public sealed partial class DataFramesPublicApiTests
                     Handshake expectedHandshake = Assert.IsType<Handshake>(expected);
                     Handshake actualHandshake = Assert.IsType<Handshake>(actual);
                     Assert.Equal(expectedHandshake.OpCode, actualHandshake.OpCode);
-                    Assert.Equal(expectedHandshake.Protocol, actualHandshake.Protocol);
+                    Assert.Equal(expectedHandshake.Flags, actualHandshake.Flags);
                     Assert.Equal(expectedHandshake.Stage, actualHandshake.Stage);
                     Assert.Equal(expectedHandshake.PublicKey, actualHandshake.PublicKey);
                     Assert.Equal(expectedHandshake.Nonce, actualHandshake.Nonce);

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Xunit;
@@ -34,7 +33,7 @@ public sealed class PacketPoolLeaseTests
             type: ControlType.DISCONNECT,
             sequenceId: 42,
             reasonCode: ProtocolReason.INTERNAL_ERROR,
-            transport: ProtocolType.UDP);
+            flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         packet.Priority = PacketPriority.LOW;
 
         PacketPool<Control>.Return(packet);

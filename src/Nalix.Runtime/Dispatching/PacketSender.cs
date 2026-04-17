@@ -206,7 +206,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
 
     private static IConnection.ITransport GetTransport(PacketContext<TPacket> context) =>
         // BUG-76: Reply via the same transport the packet came from.
-        context.Protocol == ProtocolType.UDP ? context.Connection.UDP : context.Connection.TCP;
+        !context.IsReliable ? context.Connection.UDP : context.Connection.TCP;
 
     private PacketContext<TPacket> GET_CONTEXT_OR_THROW()
         => _context ?? throw new InternalErrorException($"{nameof(PacketSender<>)} must be initialized before sending.");

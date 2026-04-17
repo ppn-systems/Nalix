@@ -2,200 +2,325 @@
 
 This page provides a comprehensive reference for all enumerations defined in `Nalix.Common`. These constants ensure binary and semantic compatibility across the networking, security, and serialization layers.
 
+---
+
 ## Networking & Packets
 
-### PacketPriority
-Specifies the relative priority level of a network packet.
+### ProtocolOpCode
+Defines the reserved OpCodes for Nalix system and protocol-level internal packets. Values in the range `0x0000-0x00FF` are reserved for system use.
 
-| Name | Value | Description |
+| Member | Value | Description |
+| :--- | :--- | :--- |
+| `HANDSHAKE` | `0x0000` | The default handshake protocol packet for key exchange and transcript verification. |
+| `SYSTEM_CONTROL` | `0x0001` | Used for system-level control packets like PING, PONG, ERROR, DISCONNECT. |
+| `SESSION_SIGNAL` | `0x0002` | Unified packet flow for session management (resume, ack, reject). |
+
+### PacketPriority
+Specifies the relative priority level of a network packet. Higher values generally indicate a greater urgency for delivery.
+
+| Member | Value | Description |
 | :--- | :--- | :--- |
 | `NONE` | `0x00` | Standard priority level for most packets. |
-| `LOW` | `0x01` | Lower-than-normal; may be delayed in favor of higher priority. |
-| `MEDIUM` | `0x02` | Moderate priority between LOW and HIGH. |
-| `HIGH` | `0x03` | Higher-than-normal; processed before NONE and MEDIUM. |
-| `URGENT` | `0x04` | Highest priority; processed as soon as possible. |
+| `LOW` | `0x01` | Lower-than-normal priority. |
+| `MEDIUM` | `0x02` | Moderate priority level, between LOW and HIGH. |
+| `HIGH` | `0x03` | Higher-than-normal priority. |
+| `URGENT` | `0x04` | Highest priority level for urgent packets. |
 
 ### PacketFlags
-Bitwise flags describing properties of a network packet.
+Defines bitwise flags that describe the state or properties of a network packet.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `NONE` | `0x00` | No flags set (uncompressed, unencrypted). |
-| `COMPRESSED` | `0x02` | Payload is compressed and requires decompression. |
-| `ENCRYPTED` | `0x04` | Payload is encrypted and requires decryption. |
-| `FRAGMENTED` | `0x08` | Packet is a fragment of a larger message. |
-| `RELIABLE` | `0x10` | Sent over a reliable transport (e.g., TCP). |
-| `UNRELIABLE` | `0x20` | Sent over an unreliable transport (e.g., UDP). |
-| `ACKNOWLEDGED`| `0x40` | The packet has been acknowledged by the receiver. |
-| `SYSTEM` | `0x80` | System-level message (ping, handshake, etc.). |
+| `NONE` | `0x00` | No flags are set (uncompressed, unencrypted, not fragmented). |
+| `COMPRESSED` | `1 << 1` | The packet payload has been compressed to reduce its size. |
+| `ENCRYPTED` | `1 << 2` | The packet payload has been encrypted for secure transmission. |
+| `FRAGMENTED` | `1 << 3` | The packet is a fragment of a larger message. |
+| `RELIABLE` | `1 << 4` | The packet is sent over a reliable transport protocol (typically TCP). |
+| `UNRELIABLE` | `1 << 5` | The packet is sent over an unreliable transport protocol (typically UDP). |
+| `ACKNOWLEDGED` | `1 << 6` | The packet has been acknowledged by the receiver. |
+| `SYSTEM` | `1 << 7` | The packet is a system-level message (ping, handshake, etc.). |
 
-### ProtocolOpCode (Reserved)
-Reserved OpCodes for system and protocol-level internal packets (Range: `0x0000-0x00FF`).
+### PacketHeaderOffset
+Represents the positions of fields in the serialization order.
 
-| Name | Value | Description |
-| :--- | :--- | :--- |
-| `HANDSHAKE` | `0x0000` | Key exchange and transcript verification. |
-| `SYSTEM_CONTROL`| `0x0001` | Control packets (PING, PONG, ERROR, DISCONNECT). |
-| `SESSION_SIGNAL`| `0x0002` | Session management (resume, ack, reject). |
+| Member | Offset | Type | Description |
+| :--- | :--- | :--- | :--- |
+| `MagicNumber` | `0` | `int` | Unique identifier for the packet format or protocol. |
+| `OpCode` | `4` | `ushort` | Operation code specifying the command or type of the packet. |
+| `Flags` | `6` | `byte` | State or processing options for the packet. |
+| `Priority` | `7` | `byte` | Relative processing priority of the packet. |
+| `SequenceId` | `8` | `ushort` | Used for packet sequence correlation. |
+| `Region` | `10` | - | End offset of the packet header fields. |
+| `MaxValue` | `255` | - | The maximum numeric value reserved for the enum. |
 
 ### ProtocolType
-Identifies the transport protocol associated with a packet.
+Identifies the transport protocol associated with a packet or endpoint.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
 | `NONE` | `0x00` | No transport protocol specified. |
 | `TCP` | `0x06` | Transmission Control Protocol. |
 | `UDP` | `0x11` | User Datagram Protocol. |
 
-### PacketHeaderOffset
-Defines the byte offsets of fields within the serialized packet header.
-
-| Name | Offset | Type | Description |
-| :--- | :--- | :--- | :--- |
-| `MagicNumber` | `0` | `uint` | Unique identifier for packet format. |
-| `OpCode` | `4` | `ushort` | Operation / Command code. |
-| `Flags` | `6` | `byte` | Bitwise packet flags. |
-| `Priority` | `7` | `byte` | Processing priority. |
-| `Transport` | `8` | `byte` | ProtocolType. |
-| `SequenceId` | `9` | `ushort` | Sequence number for correlation. |
-| `Region` | `11` | - | End of header; start of payload. |
-
 ### PacketContextState
-Describes the current lifecycle state of a packet within a processing pipeline.
+Defines the lifecycle states of a `PacketContext` instance.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `NONE` | `0` | Freshly created or uninitialized. |
-| `PENDING` | `1` | Waiting for processing. |
-| `PROCESSING` | `2` | Actively handled by a middleware or controller. |
-| `COMPLETED` | `3` | Successfully processed. |
-| `FAILED` | `4` | Terminal failure state. |
+| `Pooled` | `0` | Available in the object pool. |
+| `InUse` | `1` | Actively in use; not available for pooling. |
+| `Returned` | `2` | Completed processing and returned for reuse. |
+
+---
 
 ## Protocol Control & Signals
 
 ### ControlType
 Identifies the kind of control message used by the protocol layer.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `PING` | `0x01` | Liveness check. |
-| `PONG` | `0x02` | Liveness response. |
-| `ACK` | `0x03` | Receipt confirmation. |
-| `DISCONNECT`| `0x04` | Connection termination. |
-| `ERROR` | `0x05` | Failure notification. |
-| `HEARTBEAT` | `0x07` | Keep-alive signal. |
+| `NONE` | `0x00` | No control message specified. |
+| `PING` | `0x01` | Check connection liveness. |
+| `PONG` | `0x02` | Response to a ping. |
+| `ACK` | `0x03` | Confirm receipt. |
+| `DISCONNECT` | `0x04` | Termination request. |
+| `ERROR` | `0x05` | Failure description. |
+| `HEARTBEAT` | `0x07` | Keep connection active. |
 | `NACK` | `0x08` | Negative acknowledgement. |
-| `RESUME` | `0x09` | Session resumption request. |
-| `REDIRECT` | `0x0B` | Endpoint redirection. |
-| `THROTTLE` | `0x0C` | Rate reduction request. |
-| `TIMESYNC` | `0x12/0x13` | Clock synchronization request/response. |
-| `CIPHER_UPD` | `0x14/0x15` | Cipher suite rotation request/ack. |
+| `RESUME` | `0x09` | Resume interrupted session. |
+| `SHUTDOWN` | `0x0A` | Request graceful shutdown. |
+| `REDIRECT` | `0x0B` | Redirect to another endpoint. |
+| `THROTTLE` | `0x0C` | Reduce transmission rate. |
+| `NOTICE` | `0x0D` | Maintenance notice. |
+| `TIMEOUT` | `0x10` | Operation timed out. |
+| `FAIL` | `0x11` | Generic failure. |
+| `TIMESYNCREQUEST` | `0x12` | Request server time. |
+| `TIMESYNCRESPONSE` | `0x13` | Provide server time. |
+| `CIPHER_UPDATE` | `0x14` | Request cipher suite change. |
+| `CIPHER_UPDATE_ACK` | `0x15` | Acknowledge cipher change. |
+| `RESERVED1` | `0xFE` | Reserved for future extension. |
+| `RESERVED2` | `0xFF` | Reserved for future extension. |
 
 ### ControlFlags
 Additional context flags for protocol control messages.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `IS_TRANSIENT` | `0x01` | Condition is temporary and safe to retry. |
-| `IS_AUTHRELATED`| `0x02` | Error is related to authN/authZ. |
-| `HAS_REDIRECT` | `0x04` | Redirect metadata is present. |
-| `SLOW_DOWN` | `0x08` | Suggestion to reduce sending rate. |
-
-### ProtocolReason
-Standard reason codes for protocol control messages across various error domains.
-
-| Range | Domain | Description |
-| :--- | :--- | :--- |
-| `0-49` | General | NONE, UNKNOWN, CANCELLED, INTERNAL_ERROR. |
-| `100-149` | Transport | TIMEOUT, REMOTE_CLOSED, CONGESTION. |
-| `150-199` | Framing | PROTOCOL_ERROR, FRAME_TOO_LARGE, MALFORMED. |
-| `200-259` | Auth | UNAUTHENTICATED, UNAUTHORIZED, BANNED. |
-| `260-299` | Crypto | TLS_FAILED, CHECKSUM_FAILED, REPLAY_DETECTED. |
-| `300-349` | Infra | SERVER_SHUTDOWN, MAINTENANCE, OVERLOADED. |
-| `350-399` | App | VALIDATION_FAILED, NOT_FOUND, STATE_CONFLICT. |
-| `400-449` | QoS | THROTTLED, WINDOW_EXCEEDED. |
+| `NONE` | `0x00` | No flags set. |
+| `IS_TRANSIENT` | `1 << 0` | Condition is transient and safe to retry. |
+| `IS_AUTHRELATED` | `1 << 1` | Error is related to authN/authZ. |
+| `HAS_REDIRECT` | `1 << 2` | Redirect fields are present. |
+| `SLOW_DOWN` | `1 << 3` | Suggestion to reduce sending rate. |
 
 ### ProtocolAdvice
-High-level suggested actions for the client based on a failure.
+High-level actions suggested for a given control reason.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
+| `NONE` | `0` | No specific action. |
 | `RETRY` | `1` | Retry immediately. |
 | `BACKOFF_RETRY` | `2` | Retry with exponential backoff. |
 | `DO_NOT_RETRY` | `3` | Stop automatic retries. |
-| `REAUTHENTICATE`| `4` | Refresh credentials/tokens. |
-| `SLOW_DOWN` | `5` | Reduce transmission rate. |
+| `REAUTHENTICATE` | `4` | Refresh credentials. |
+| `SLOW_DOWN` | `5` | Reduce sending rate. |
+| `RECONNECT` | `6` | Switch transport or route. |
+| `FIX_AND_RETRY` | `7` | Fix the issue and retry. |
+
+### ProtocolReason
+Standard reason codes for protocol control messages.
+
+| Member | Value | Domain | Description |
+| :--- | :--- | :--- | :--- |
+| `NONE` | `0` | General | No reason specified. |
+| `UNKNOWN` | `1` | General | Unspecified error. |
+| `CANCELLED` | `2` | General | Operation cancelled. |
+| `NOT_IMPLEMENTED` | `3` | General | Feature not implemented. |
+| `TEMPORARY_FAILURE` | `4` | General | Temporary condition; retry later. |
+| `DEPRECATED` | `5` | General | Deprecated feature. |
+| `REQUEST_INVALID` | `6` | General | Malformed request. |
+| `INTERNAL_ERROR` | `7` | General | Internal server error. |
+| `TIMEOUT` | `100` | Transport | Timeout waiting for response. |
+| `REMOTE_CLOSED` | `101` | Transport | Peer closed connection. |
+| `LOCAL_CLOSED` | `102` | Transport | Local closed connection. |
+| `NETWORK_ERROR` | `103` | Transport | Generic transport failure. |
+| `CONNECTION_REFUSED` | `104` | Transport | Peer refused connection. |
+| `CONNECTION_RESET` | `105` | Transport | Peer reset connection. |
+| `DNS_FAILURE` | `106` | Transport | DNS resolution failed. |
+| `MTU_VIOLATION` | `107` | Transport | MTU constraints violated. |
+| `CONGESTION` | `108` | Transport | Congestion detected. |
+| `KEEPALIVE_FAILED` | `109` | Transport | Ping failed. |
+| `PROTOCOL_ERROR` | `150` | Framing | Protocol/Framing violation. |
+| `VERSION_UNSUPPORTED` | `151` | Framing | Version not supported. |
+| `FRAME_TOO_LARGE` | `152` | Framing | Frame limit exceeded. |
+| `MESSAGE_TOO_LARGE` | `153` | Framing | Payload limit exceeded. |
+| `UNEXPECTED_MESSAGE` | `154` | Framing | Out-of-order/type message. |
+| `MISSING_REQUIRED_FIELD` | `155` | Framing | Field missing. |
+| `DUPLICATE_MESSAGE` | `156` | Framing | Duplicate message. |
+| `STATE_VIOLATION` | `157` | Framing | State machine violation. |
+| `CRYPTO_UNSUPPORTED` | `158` | Framing | Unsupported crypto params. |
+| `COMPRESSION_UNSUPPORTED` | `159` | Framing | Unsupported compression. |
+| `OPERATION_UNSUPPORTED` | `160` | Framing | Operation not supported. |
+| `MALFORMED_PACKET` | `161` | Framing | Malformed packet. |
+| `UNAUTHENTICATED` | `200` | Security | AuthN required/failed. |
+| `UNAUTHORIZED` | `201` | Security | AuthZ lacking permission. |
+| `FORBIDDEN` | `202` | Security | Explicitly forbidden. |
+| `ACCOUNT_LOCKED` | `203` | Security | Account locked. |
+| `ACCOUNT_SUSPENDED` | `204` | Security | Account suspended. |
+| `BANNED` | `205` | Security | Client/user banned. |
+| `IP_BLOCKED` | `206` | Security | Source IP blocked. |
+| `RATE_LIMITED` | `207` | Security | Too many requests. |
+| `TOKEN_EXPIRED` | `208` | Security | Token expired. |
+| `TOKEN_REVOKED` | `209` | Security | Token revoked. |
+| `DEVICE_UNTRUSTED` | `210` | Security | Device/factor untrusted. |
+| `TLS_HANDSHAKE_FAILED` | `260` | Crypto | TLS handshake failed. |
+| `TLS_REQUIRED` | `261` | Crypto | TLS required. |
+| `TLS_CERT_INVALID` | `262` | Crypto | Cert invalid. |
+| `SIGNATURE_INVALID` | `263` | Crypto | Signature invalid. |
+| `CHECKSUM_FAILED` | `264` | Crypto | Checksum failed. |
+| `DECRYPTION_FAILED` | `265` | Crypto | Decryption failed. |
+| `REPLAY_DETECTED` | `266` | Crypto | Replay attack detected. |
+| `NONCE_INVALID` | `267` | Crypto | Nonce invalid/reused. |
+| `SERVER_SHUTDOWN` | `300` | Infra | Intentional shutdown. |
+| `SERVICE_UNAVAILABLE` | `301` | Infra | Temporarily unavailable. |
+| `MAINTENANCE` | `302` | Infra | Maintenance ongoing. |
+| `OVERLOADED` | `303` | Infra | Server overloaded. |
+| `DEPENDENCY_FAILURE` | `304` | Infra | Dependency failure. |
+| `DATABASE_UNAVAILABLE` | `305` | Infra | DB unreachable. |
+| `CACHE_UNAVAILABLE` | `306` | Infra | Cache unreachable. |
+| `QUEUE_UNAVAILABLE` | `307` | Infra | Queue unreachable. |
+| `VALIDATION_FAILED` | `350` | App | Input validation failed. |
+| `NOT_FOUND` | `351` | App | Resource not found. |
+| `ALREADY_EXISTS` | `352` | App | Resource exists. |
+| `PRECONDITION_FAILED` | `353` | App | Precondition failed. |
+| `STATE_CONFLICT` | `354` | App | State conflict. |
+| `UNSUPPORTED_MEDIA_TYPE` | `355` | App | Unsupported media type. |
+| `SERIALIZATION_FAILED` | `356` | App | Formatting failed. |
+| `UNSUPPORTED_PACKET` | `357` | App | Unsupported packet type. |
+| `TRANSFORM_FAILED` | `358` | App | Transformation failed. |
+| `THROTTLED` | `400` | QoS | Client throttled. |
+| `SLOW_CONSUMER` | `401` | QoS | Client too slow. |
+| `CREDIT_EXHAUSTED` | `402` | QoS | Permit exhausted. |
+| `WINDOW_EXCEEDED` | `403` | QoS | Flow window exceeded. |
+| `RESOURCE_LIMIT` | `450` | Resource | Limit hit. |
+| `MEMORY_EXHAUSTED` | `451` | Resource | Out of memory. |
+| `CONNECTION_LIMIT` | `452` | Resource | Connection cap reached. |
+| `FD_LIMIT` | `453` | Resource | Handle limit reached. |
+| `DISK_FULL` | `454` | Resource | Disk full. |
+| `CPU_LIMIT` | `455` | Resource | CPU budget exceeded. |
+| `CLIENT_QUIT` | `500` | Client | User quit. |
+| `ABORTED` | `501` | Client | Local abort. |
+| `IDLE_TIMEOUT` | `502` | Client | Idle timeout. |
+| `LOCAL_POLICY` | `503` | Client | Local policy violation. |
+| `COMPRESSION_FAILED` | `504` | Client | Compression error. |
+| `SESSION_NOT_FOUND` | `550` | Session | Session not found. |
+| `SESSION_EXPIRED` | `551` | Session | Session expired. |
+| `DUPLICATE_SESSION` | `552` | Session | Duplicate session. |
+| `KEY_ROTATION_REQUIRED` | `553` | Session | Key rotation required. |
+| `TIME_SKEW` | `554` | Session | Time skew detected. |
+| `LEADER_CHANGE` | `600` | Consistency | Leader changed. |
+| `NOT_LEADER` | `601` | Consistency | Not the leader. |
+| `CONSENSUS_UNAVAILABLE` | `602` | Consistency | Quorum not reached. |
+| `STALE_READ` | `603` | Consistency | Stale read. |
+| `REDIRECT` | `650` | Routing | Resource moved. |
+| `MIGRATE` | `651` | Routing | Shard migrated. |
+| `REGION_UNAVAILABLE` | `652` | Routing | Region unavailable. |
+| `LEGAL_BLOCK` | `700` | Compliance | Legal block. |
+| `CONTENT_VIOLATION` | `701` | Compliance | Policy violation. |
+| `AGE_RESTRICTED` | `702` | Compliance | Age restricted. |
+| `INVALID_USERNAME` | `703` | Compliance | Invalid format. |
+| `WEAK_PASSWORD` | `704` | Compliance | Weak password. |
+| `RESERVED_900` | `900` | Vendor | Vendor reserved. |
+| `RESERVED_901` | `901` | Vendor | Vendor reserved. |
+
+---
 
 ## Security & Identity
 
-### PermissionLevel
-Coarse-grained authority levels. Higher values indicate broader authority.
+### CipherSuiteType
+Defines the supported symmetric and AEAD cipher suites.
 
-| Name | Value | Description |
+| Member | Value | Category | Description |
+| :--- | :--- | :--- | :--- |
+| `Salsa20` | `3` | Symmetric | Fast stream cipher by DJB. |
+| `Chacha20` | `4` | Symmetric | Standardized stream cipher (RFC 8439). |
+| `Salsa20Poly1305` | `7` | AEAD | Salsa20 + Poly1305 MAC. |
+| `Chacha20Poly1305` | `8` | AEAD | Chacha20 + Poly1305 MAC (RFC 8439). |
+
+### PermissionLevel
+Coarse-grained authority levels used for access control.
+
+| Member | Value | Description |
 | :--- | :--- | :--- |
 | `NONE` | `0` | No authority. |
-| `GUEST` | `25` | Anonymous/Guest access. |
+| `GUEST` | `25` | Anonymous access. |
 | `READ_ONLY` | `50` | Read-only access. |
 | `USER` | `100` | Standard user. |
-| `SUPERVISOR` | `175` | Scope-limited elevated privileges. |
-| `TENANT_ADMIN` | `200` | Organization-level administrator. |
-| `SYSTEM_ADMIN` | `225` | System-wide administrator. |
-| `OWNER` | `255` | Highest authority (root). |
-
-### CipherSuiteType
-Supported encryption and AEAD suites.
-
-| Name | Value | Description |
-| :--- | :--- | :--- |
-| `Chacha20` | `4` | Secure stream cipher (RFC 8439). |
-| `Chacha20Poly1305` | `8` | Modern AEAD suite (RFC 8439). |
+| `SUPERVISOR` | `175` | Elevated scope privileges. |
+| `TENANT_ADMINISTRATOR` | `200` | Tenant-level admin. |
+| `SYSTEM_ADMINISTRATOR` | `225` | System-wide admin. |
+| `OWNER` | `255` | Highest authority. |
 
 ### SnowflakeType
-Categorizes a snowflake identifier.
+Categorizes a snowflake identifier by entity type.
 
-| Name | Value | Description |
-| :--- | :--- | :--- |
-| `Account` | `10` | User account IDs. |
-| `Session` | `11` | Session IDs. |
-| `Message` | `20` | Messaging/Chat IDs. |
-| `Log` | `2` | Audit trail IDs. |
+| Member | Value | Category | Description |
+| :--- | :--- | :--- | :--- |
+| `Unknown` | `0` | Core | Generic purpose. |
+| `Configuration` | `1` | Core | Configuration versions. |
+| `Log` | `2` | Core | Logging/Audit trails. |
+| `System` | `3` | Core | System infrastructure. |
+| `Account` | `10` | User | User accounts. |
+| `Session` | `11` | User | Active sessions. |
+| `Message` | `20` | Messaging | Messages/Chats. |
+| `Notification` | `21` | Messaging | System notifications. |
+| `Email` | `22` | Messaging | Email entities. |
+| `Sms` | `23` | Messaging | SMS verification. |
+| `Order` | `30` | Business | Orders. |
+| `Inventory` | `31` | Business | Inventory items. |
+| `Transaction` | `32` | Business | Financial transactions. |
+| `Invoice` | `33` | Business | Invoices. |
+| `SupportTicket` | `34` | Business | Support tickets. |
+| `MaxValue` | `255` | - | Enum upper bound. |
+
+---
 
 ## Serialization & Concurrency
 
 ### SerializeLayout
 Describes how fields are ordered when a type is serialized.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `Auto` | `0` | Automatic packing for minimum padding. |
-| `Sequential` | `1` | Order fields by declaration. |
-| `Explicit` | `2` | Order fields by metadata attributes. |
+| `Auto` | `0` | Automatic optimized packing. |
+| `Sequential` | `1` | Order by declaration. |
+| `Explicit` | `2` | Order by metadata attributes. |
 
 ### DropPolicy
-Behavior when a processing queue is full.
+Behavior when a per-connection queue is full.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `DropNewest` | `0` | Reject incoming packet. |
-| `DropOldest` | `1` | Evict oldest packet to make room. |
-| `Block` | `2` | Apply backpressure to producer. |
-| `Coalesce` | `3` | Merge duplicate packets by key. |
+| `DropNewest` | `0` | Drop incoming packet. |
+| `DropOldest` | `1` | Drop oldest in queue. |
+| `Block` | `2` | Block the producer (backpressure). |
+| `Coalesce` | `3` | Keep only latest unique packet. |
 
 ### MiddlewareStage
-Defines execution stages for pipeline middleware.
+Defines the execution stages for middleware.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `Inbound` | `0` | Executes before the handler. |
-| `Outbound` | `1` | Executes after the handler. |
-| `Both` | `2` | Executes in both stages. |
+| `Inbound` | `0` | Pre-handler processing. |
+| `Outbound` | `1` | Post-handler processing. |
+| `Both` | `2` | Inbound and outbound stages. |
 
 ### WorkerPriority
-Thread or task priority within the concurrent execution system.
+Specifies the relative dispatch priority for queued workers.
 
-| Name | Value | Description |
+| Member | Value | Description |
 | :--- | :--- | :--- |
-| `Idle` | `0` | Executed only when system is quiet. |
-| `Background` | `1` | Lower priority tasks. |
-| `Normal` | `2` | Default execution priority. |
-| `RealTime` | `3` | High priority, latency-sensitive tasks. |
+| `LOW` | `0` | Background/cleanup tasks. |
+| `NORMAL` | `1` | Normal traffic. |
+| `HIGH` | `2` | Latency-sensitive work. |
+| `URGENT` | `3` | Run immediately when queued. |

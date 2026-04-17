@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 namespace Nalix.Common.Networking.Packets;
 
@@ -49,12 +48,6 @@ public interface IPacket
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.Priority)]
     PacketPriority Priority { get; set; }
-
-    /// <summary>
-    /// Gets the transport protocol used to transmit the packet.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Transport)]
-    ProtocolType Protocol { get; set; }
 
     /// <summary>
     /// Gets the sequence identifier used to correlate requests and responses.

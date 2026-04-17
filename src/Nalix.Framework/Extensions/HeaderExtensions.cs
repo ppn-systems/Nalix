@@ -102,21 +102,7 @@ public static class HeaderExtensions
         return (PacketPriority)@this[offs];
     }
 
-    /// <summary>
-    /// Reads the <see cref="ProtocolType"/> at offset 8.
-    /// </summary>
-    /// <param name="this">The source buffer.</param>
-    /// <returns>The transport protocol.</returns>
-    /// <exception cref="ArgumentException">Thrown when the buffer is too small.</exception>
-    [Pure]
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ProtocolType ReadTransportLE(this ReadOnlySpan<byte> @this)
-    {
-        const int offs = (int)PacketHeaderOffset.Transport;
-        CheckSize(@this, offs, sizeof(byte));
-        return (ProtocolType)@this[offs];
-    }
+
 
     /// <summary>
     /// Reads the 16‑bit <c>SequenceId</c> at its fixed offset in little‑endian format.

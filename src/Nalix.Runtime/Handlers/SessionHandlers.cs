@@ -115,7 +115,7 @@ public sealed class SessionHandlers
             stage: SessionResumeStage.RESPONSE,
             sessionToken: Snowflake.NewId(newToken),
             reason: ProtocolReason.NONE,
-            transport: packet.Protocol);
+            flags: packet.Flags);
 
         await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
         session.Return();
@@ -159,7 +159,7 @@ public sealed class SessionHandlers
             stage: SessionResumeStage.RESPONSE,
             sessionToken: default,
             reason: reason,
-            transport: ProtocolType.TCP);
+            flags: PacketFlags.SYSTEM | (connection.TCP != null ? PacketFlags.RELIABLE : PacketFlags.UNRELIABLE));
 
         try
         {

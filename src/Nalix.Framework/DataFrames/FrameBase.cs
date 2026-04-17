@@ -43,12 +43,7 @@ public abstract class FrameBase : IPacket
     [SerializeHeader(PacketHeaderOffset.Priority)] public PacketPriority Priority { get; set; }
 
     /// <summary>
-    /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Transport)] public ProtocolType Protocol { get; set; }
-
-    /// <summary>
-    /// Gets the transport protocol (e.g., TCP/UDP) this packet targets.
+    /// Gets or sets the sequence identifier used for packet correlation.
     /// </summary>
     [SerializeHeader(PacketHeaderOffset.SequenceId)] public ushort SequenceId { get; set; }
 

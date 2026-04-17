@@ -214,7 +214,7 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        packet.Protocol = Common.Networking.Protocols.ProtocolType.TCP;
+        packet.Flags = (packet.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
 
         // Rent a buffer, serialize the packet, and delegate sending to FrameSender
         using BufferLease lease = BufferLease.Rent(packet.Length);

@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
-using System;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Common.Primitives;
 using Nalix.Framework.Identifiers;
@@ -25,7 +24,7 @@ public sealed class LiteSerializerObjectTests
             publicKey: new Bytes32([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]),
             nonce: new Bytes32([32, 31, 30, 29, 28, 27, 26, 25, 24, 23, 22, 21, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]),
             proof: proof,
-            transport: ProtocolType.TCP);
+            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
         input.TranscriptHash = hash;
         input.SessionToken = Snowflake.NewId(0x01020304, 0x0506, (Nalix.Common.Identity.SnowflakeType)0x07);
 
@@ -40,7 +39,6 @@ public sealed class LiteSerializerObjectTests
         Assert.Equal(input.Proof, output.Proof);
         Assert.Equal(input.TranscriptHash, output.TranscriptHash);
         Assert.Equal(input.SessionToken, output.SessionToken);
-        Assert.Equal(input.Protocol, output.Protocol);
         Assert.Equal(input.Flags, output.Flags);
         Assert.Equal(input.Priority, output.Priority);
     }

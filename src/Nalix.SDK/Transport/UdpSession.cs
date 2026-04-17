@@ -221,7 +221,7 @@ public class UdpSession : TransportSession
             throw new NetworkException("SessionToken must be set before sending UDP packets.");
         }
 
-        packet.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+        packet.Flags = (packet.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
         int packetLength = packet.Length;
 
         if (packetLength + Snowflake.Size > this.Options.MaxUdpDatagramSize)
