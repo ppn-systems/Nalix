@@ -57,7 +57,42 @@ public sealed class MyServerOptions : ConfigurationLoader
 
 Section names are derived from the type name. A class such as `ConnectionHubOptions` maps to the `[ConnectionHubOptions]` section.
 
-Use `IniCommentAttribute` for readable generated comments and `ConfiguredIgnoreAttribute` (or `[ConfiguredIgnore]`) for runtime-only properties.
+### Configuration Attributes
+
+Use these attributes to control how your options are serialized and documented in the `.ini` file:
+
+- **`[IniComment("...")]`**: Adds a human-readable comment above a section or key.
+    - *On Class*: Adds a comment at the top of the section.
+    - *On Property*: Adds a comment above the specific configuration key.
+    - *Note*: Use `\n` for multi-line comments.
+- **`[ConfiguredIgnore]`**: Excludes a property from the configuration system. Use this for runtime-only state, internal caches, or calculated properties that shouldn't be persisted to disk.
+
+**Example:**
+```csharp
+[IniComment("Server security settings")]
+public sealed class SecurityOptions : ConfigurationLoader
+{
+    [IniComment("Max login attempts before IP ban")]
+    public int MaxAttempts { get; set; } = 5;
+
+    [ConfiguredIgnore("Resolved at runtime")]
+    public string InternalToken { get; set; }
+}
+```
+
+### Supported Binding Types
+
+The configuration binder is optimized for speed and supports the following types directly:
+
+| Category | Supported Types |
+| :--- | :--- |
+| **Primitives** | `bool`, `char`, `byte`, `sbyte`, `string` |
+| **Numerics** | `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal` |
+| **Specialized** | `Guid`, `TimeSpan`, `DateTime`, `Enum` |
+
+> [!WARNING]
+> **Arrays and Collections (e.g., `int[]`, `List<T>`) are NOT supported.**
+> To configure collections, use a comma-separated `string` and parse it manually in your component's constructor or a helper method.
 
 ### Common operations
 

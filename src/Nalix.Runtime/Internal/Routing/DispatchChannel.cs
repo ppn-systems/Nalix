@@ -55,6 +55,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
     private readonly DropPolicy _dropPolicy;
     private readonly DispatchOptions _options;
+    private readonly int[] _prioWeights;
+    private readonly int[] _prioBudgets;
 
     private readonly long _blockTimeoutTicks;
     private readonly int _maxPerConnectionQueue;
@@ -159,9 +161,21 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
         _readyByPrio = new Channel<ConnectionState>[PriorityLevels];
         _readyEntriesByPrio = new int[PriorityLevels];
+        _prioWeights = new int[PriorityLevels];
+        _prioBudgets = new int[PriorityLevels];
+
+        string[] weightParts = (_options.PriorityWeights ?? string.Empty)
+                               .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         for (int i = 0; i < PriorityLevels; i++)
         {
+            int weight = (i < weightParts.Length && int.TryParse(weightParts[i], out int parsed))
+                         ? Math.Max(1, parsed)
+                         : (1 << i);
+
+            _prioWeights[i] = weight;
+            _prioBudgets[i] = weight;
+
             _readyByPrio[i] = Channel.CreateUnbounded<ConnectionState>(
                 new UnboundedChannelOptions
                 {
@@ -184,7 +198,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     #region APIs
 
     /// <summary>
-    /// Attempts to dequeue one packet, preferring higher priorities first.
+    /// Attempts to dequeue one packet using Weighted Round-Robin (DRR) to prevent priority starvation.
+    /// Prefers higher priorities but ensures lower priorities receive a minimum quota of processing time.
     /// </summary>
     /// <param name="connection">The packet owner connection when successful.</param>
     /// <param name="raw">The dequeued packet lease when successful.</param>
@@ -195,10 +210,59 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         connection = null!;
         raw = null!;
 
+        // Attempt 1: Weighted selection based on current budgets
+        if (this.TryPullWeighted(out connection, out raw))
+        {
+            return true;
+        }
+
+        // Attempt 2: If we failed to pull but there are still packets, all active
+        // priorities might have exhausted their budgets. Reset and try one more time.
+        if (this.HasPacket)
+        {
+            this.ResetBudgets();
+            return this.TryPullWeighted(out connection, out raw);
+        }
+
+        return false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private bool TryPullWeighted(out IConnection connection, out IBufferLease raw)
+    {
+        connection = null!;
+        raw = null!;
+
+        // SCAN: Highest to Lowest, but gated by individual priority budgets.
         for (int p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
         {
+            // First check: does this priority even have ready connections?
+            if (Volatile.Read(ref _readyEntriesByPrio[p]) <= 0)
+            {
+                continue;
+            }
+
+            // Second check: do we have budget left for this priority?
+            int b = Volatile.Read(ref _prioBudgets[p]);
+            if (b <= 0)
+            {
+                continue;
+            }
+
+            // Attempt to claim one budget slot atomically.
+            if (Interlocked.CompareExchange(ref _prioBudgets[p], b - 1, b) != b)
+            {
+                // Failed to claim (contention or budget changed), retry this level one more time.
+                p++;
+                continue;
+            }
+
+            // Successfully claimed budget. Now try to read the connection from the queue.
             if (!_readyByPrio[p].Reader.TryRead(out ConnectionState? state) || state is null)
             {
+                // Queue was empty (race between Volatile.Read and TryRead).
+                // Refund the budget and move to the next priority.
+                _ = Interlocked.Increment(ref _prioBudgets[p]);
                 continue;
             }
 
@@ -211,11 +275,15 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
             if (!state.IsActive)
             {
+                // Connection died. Try another one at THIS priority since we still have budget.
+                p++;
                 continue;
             }
 
             if (!TryDequeueHighest(state, out raw, out int dequeuedFrom))
             {
+                // This connection became empty unexpectedly. Try another.
+                p++;
                 continue;
             }
 
@@ -226,6 +294,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             {
                 raw.Dispose();
                 raw = null!;
+                p++; // Keep trying this priority level.
                 continue;
             }
 
@@ -242,6 +311,17 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private void ResetBudgets()
+    {
+        for (int i = 0; i < PriorityLevels; i++)
+        {
+            // Reset each priority budget back to its original weight.
+            // We use Exchange to ensure the write is visible and atomic.
+            _ = Interlocked.Exchange(ref _prioBudgets[i], _prioWeights[i]);
+        }
+    }
+
     /// <summary>
     /// Enqueues a packet for a specific connection.
     /// </summary>
@@ -253,7 +333,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     /// <inheritdoc/>
     public void Dispose()
     {
-        InstanceManager.Instance.GetExistingInstance<IConnectionHub>()? 
+        InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?
                        .ConnectionUnregistered -= this.OnUnregistered;
 
         for (int i = 0; i < _stateBuckets.Length; i++)
@@ -261,8 +341,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             Node? node = Interlocked.Exchange(ref _stateBuckets[i], null);
             while (node is not null)
             {
-                node.State.TryDeactivate();
-                node.State.DrainAndDisposeAll();
+                _ = node.State.TryDeactivate();
+                _ = node.State.DrainAndDisposeAll();
                 node = node.Next;
             }
         }
