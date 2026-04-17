@@ -11,14 +11,14 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
+using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Security.Primitives;
-using Nalix.Common.Primitives;
+using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 

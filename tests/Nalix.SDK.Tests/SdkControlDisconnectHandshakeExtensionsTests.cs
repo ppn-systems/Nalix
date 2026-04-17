@@ -230,7 +230,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
 
         Assert.True(session.Options.EncryptionEnabled);
         Assert.Equal(CipherSuiteType.Chacha20Poly1305, session.Options.Algorithm);
-        Assert.Equal(32, session.Options.Secret.Length);
+        Assert.False(session.Options.Secret.IsZero);
         Assert.Equal(token, session.Options.SessionToken);
     }
 

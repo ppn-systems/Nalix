@@ -162,7 +162,7 @@ public sealed class ConnectionHubSessionTests
             SessionToken = old.SessionToken,
             CreatedAtUnixMilliseconds = old.CreatedAtUnixMilliseconds,
             ExpiresAtUnixMilliseconds = old.ExpiresAtUnixMilliseconds,
-            Secret = [.. connection.Secret],
+            Secret = connection.Secret,
             Algorithm = connection.Algorithm,
             Level = connection.Level,
             Attributes = attrs
@@ -174,7 +174,7 @@ public sealed class ConnectionHubSessionTests
     private static void ApplySession(IConnection connection, SessionEntry session)
     {
         SessionSnapshot snapshot = session.Snapshot;
-        connection.Secret = [.. snapshot.Secret];
+        connection.Secret = snapshot.Secret;
         connection.Algorithm = snapshot.Algorithm;
         connection.Level = snapshot.Level;
 
