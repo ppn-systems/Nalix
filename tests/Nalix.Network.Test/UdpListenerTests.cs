@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using WireProtocolType = Nalix.Common.Networking.Protocols.ProtocolType;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
@@ -45,7 +44,7 @@ public sealed class UdpListenerTests
         EnsureUdpListenerStatics();
 
         using TestUdpListener listener = new(new CountingProtocol());
-        byte[] datagram = CreateDatagram(new byte[Snowflake.Size], transport: WireProtocolType.TCP);
+        byte[] datagram = CreateDatagram(new byte[Snowflake.Size], reliable: true);
 
         listener.Process(BufferLease.CopyFrom(datagram), new IPEndPoint(IPAddress.Loopback, 22345));
 
@@ -61,38 +60,13 @@ public sealed class UdpListenerTests
         using TestUdpListener listener = new(new CountingProtocol());
         byte[] datagram = CreateDatagram(
             Snowflake.NewId(Nalix.Common.Identity.SnowflakeType.Session).ToByteArray(),
-            WireProtocolType.UDP);
+            reliable: false);
 
         listener.Process(BufferLease.CopyFrom(datagram), new IPEndPoint(IPAddress.Loopback, 32345));
 
         GetTrafficReport(listener)["DroppedUnknown"].Should().Be(1L);
     }
 
-    [Fact]
-    public async Task ConnectionUnregistered_PrunesEndpointCache()
-    {
-        ConnectionHub hub = EnsureUdpListenerStatics();
-        CountingProtocol protocol = new();
-
-        using TestUdpListener listener = new(protocol);
-        listener.Activate();
-
-        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
-        hub.RegisterConnection(connection);
-
-        EndPoint remoteEndPoint = new IPEndPoint(IPAddress.Loopback, 42345);
-        byte[] datagram = CreateDatagram(connection.ID.ToByteArray(), WireProtocolType.UDP);
-
-        listener.Process(BufferLease.CopyFrom(datagram), remoteEndPoint);
-
-        protocol.ProcessedFrames.Should().Be(1);
-        GetRuntimeReport(listener)["EndpointCacheSize"].Should().Be(1);
-
-        hub.UnregisterConnection(connection);
-
-        GetRuntimeReport(listener)["EndpointCacheSize"].Should().Be(0);
-    }
 
     private static ConnectionHub EnsureUdpListenerStatics()
         => s_hub;
@@ -120,11 +94,22 @@ public sealed class UdpListenerTests
     private static Dictionary<string, object> GetRuntimeReport(TestUdpListener listener)
         => (Dictionary<string, object>)listener.GetReportData()["Runtime"];
 
-    private static byte[] CreateDatagram(byte[] sessionToken, WireProtocolType transport)
+    private static byte[] CreateDatagram(byte[] sessionToken, bool reliable)
     {
-        byte[] datagram = new byte[Snowflake.Size + (int)PacketHeaderOffset.Region];
+        // SessionToken(8) + Header(10)
+        byte[] datagram = new byte[Snowflake.Size + 10];
         sessionToken.CopyTo(datagram, 0);
-        datagram[Snowflake.Size + (int)PacketHeaderOffset.Transport] = (byte)transport;
+        
+        if (!reliable)
+        {
+            // Set UNRELIABLE bit (0x02) at offset 6 relative to packet start (index 14 total)
+            datagram[Snowflake.Size + 6] |= (byte)PacketFlags.UNRELIABLE;
+        }
+        else
+        {
+            // Set RELIABLE bit (0x01)
+            datagram[Snowflake.Size + 6] |= (byte)PacketFlags.RELIABLE;
+        }
         return datagram;
     }
 

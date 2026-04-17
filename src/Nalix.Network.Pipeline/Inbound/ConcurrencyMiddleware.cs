@@ -74,7 +74,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                             ControlType.FAIL,
                             ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
                             sequenceId: context.Packet.SequenceId,
-                            flags: ControlFlags.IS_TRANSIENT,
+                            controlFlags: ControlFlags.IS_TRANSIENT,
                             arg0: context.Packet.OpCode);
 
                         using BufferLease lease_1 = BufferLease.Rent(directive.Length + 32);
@@ -104,7 +104,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                     ControlType.FAIL,
                     ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
                     sequenceId: context.Packet.SequenceId,
-                    flags: ControlFlags.IS_TRANSIENT,
+                    controlFlags: ControlFlags.IS_TRANSIENT,
                     arg0: context.Packet.OpCode);
 
                 using BufferLease lease_1 = BufferLease.Rent(directive.Length + 32);

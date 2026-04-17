@@ -1,75 +1,78 @@
 # Packet Dispatch
 
-`PacketDispatchChannel` is the primary `IPacketDispatch` implementation in `Nalix.Runtime`.
+`PacketDispatchChannel` is the high-performance execution engine that bridges the gap between raw transport buffers and your application handlers. It is designed to handle extreme message rates while maintaining connection affinity and low CPU overhead.
 
-## Audit Summary
+## Multi-Worker Wake Model
 
-- Existing page explained the flow well but mixed guaranteed behavior with high-level claims.
-- Needed tighter wording around defaults and dispatch entry paths based on actual code.
+The following diagram illustrates the lock-free signaling and worker-loop model used to process thousands of concurrent packets.
 
-## Missing Content Identified
+```mermaid
+flowchart TD
+    subgraph Ingress[Ingress Phase]
+        Raw[Raw Buffer / Typed Packet]
+    end
 
-- Explicit distinction between raw-buffer path and typed-packet fast path.
-- Lifecycle and diagnostics behavior mapped to concrete public members.
+    subgraph Storage[Dispatch Layer]
+        DC[DispatchChannel - Sharded Queues]
+        WC[WakeChannel - Signal Pipe]
+    end
 
-## Improvement Rationale
+    subgraph Workers[Worker Thread Pool]
+        W1[RunLoop Worker 0]
+        W2[RunLoop Worker 1]
+        WN[RunLoop Worker N]
+    end
 
-Clear execution-path documentation reduces integration mistakes in transport-to-runtime wiring.
+    Raw -->|1. PushCore| DC
+    Raw -.->|2. RequestWake| WC
 
-## Source Mapping
-
-- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
-- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
-- `src/Nalix.Runtime/Dispatching/PacketDispatchOptions.cs`
+    WC -->|3. WaitToReadAsync Signal| W1 & W2 & WN
+    
+    W1 -->|4. Drain| DC
+    W2 -->|4. Drain| DC
+    WN -->|4. Drain| DC
+```
 
 ## Why This Type Exists
 
-`PacketDispatchChannel` decouples network receive loops from handler execution. It can queue raw inbound buffers and dispatch them on worker loops, or execute already-typed packets directly.
+`PacketDispatchChannel` decouples the "Receive" concerns of the network layer from the "Execute" concerns of the business logic. This separation allows Nalix to:
+- **Scale Workers Independently**: You can have more worker threads than network listeners to handle CPU-heavy tasks.
+- **Maintain Ordering**: Packets from the same `IConnection` are always processed sequentially within the same channel to prevent state corruption.
+- **Coalesce Wakeups**: Multiple packet arrivals can trigger a single worker wake-up signal, significantly reducing context switches under load.
 
-## Mental Model
+## Architectural Pipeline (Source-Verified)
 
 ```mermaid
 flowchart LR
-    A["IBufferLease"] --> B["HandlePacket(IBufferLease, IConnection)"]
-    B --> C["Dispatch queue + wake signal"]
-    C --> D["NetworkBufferMiddlewarePipeline"]
-    D --> E["IPacketRegistry.TryDeserialize"]
-    E --> F["ExecutePacketHandlerAsync"]
-
-    X["IPacket"] --> Y["HandlePacket(IPacket, IConnection)"]
-    Y --> F
+    A["IBufferLease"] --> B["HandlePacket"]
+    B --> C["Dispatch Queue"]
+    C --> D["Signaled Worker"]
+    D --> E["Buffer Middleware"]
+    E --> F["IPacketRegistry"]
+    F --> G["Middleware + Handler"]
 ```
-
-## Core APIs
-
-- `Activate(CancellationToken)`
-- `Deactivate(CancellationToken)`
-- `HandlePacket(IBufferLease, IConnection)`
-- `HandlePacket(IPacket, IConnection)`
-- `GenerateReport()`
-- `GetReportData()`
 
 ## Sharding and Scaling
 
 `PacketDispatchChannel` is **shard-aware**. It maintains internal connection queues and distributes them across a pool of worker loops.
 
-- **Connection Affinity**: Packets from the same connection are always processed sequentially to preserve order.
-- **Configurable Parallelism**: The number of shards is determined by `Options.DispatchLoopCount`.
-- **Low-Latency Signaling**: Shards use lock-free wake channels to minimize worker contention.
-
-For deep-dive configuration and sharding strategies, see the [Shard-Aware Dispatch](../../../guides/shard-aware-dispatch.md) guide.
+- **Connection Affinity**: Nalix ensures that all packets from a single endpoint are processed by the same worker loop across the lifecycle, preserving reliable message order (FIFO).
+- **Worker Configuration**: The number of shards (worker loops) is defined by `Options.DispatchLoopCount`. If unset, it defaults to `ProcessorCount` (clamped between 1 and 64).
+- **Efficient Signaling**: Uses `System.Threading.Channels` for wake signaling, which provides a thread-safe, non-blocking way to wake up sleeping workers.
 
 ## Operational Notes
 
-- Worker loops count is `Options.DispatchLoopCount` when set, otherwise `Math.Clamp(Environment.ProcessorCount, Options.MinDispatchLoops, Options.MaxDispatchLoops)`.
-- Raw buffer path executes network buffer middleware before deserialization.
-- Lease disposal is handled by runtime paths; callers should not dispose after successful handoff.
+### 1. High-Performance Drain
+A worker loop doesn't just process one packet and sleep. It attempts to "drain" up to `MaxDrainPerWake` (default 2048) packets in a tight loop before returning to the wait state, maximizing L1 cache hits and instruction pipelining.
 
-## Best Practices
+### 2. Diagnostics & Reporting
+`PacketDispatchChannel` provides deep visibility into its internal state:
+- **`TotalPackets`**: Global count of packets currently in flight across all shards.
+- **`ReadyConnections`**: Number of connections that have at least one packet waiting for a worker.
+- **`WakeSignals`**: Counter representing how many times the wake channel has been signaled.
 
-- Use raw-buffer overload for normal transport ingress.
-- Keep metadata and handler registration complete before activation.
-- Use `GetReportData()` for machine-readable telemetry and `GenerateReport()` for operator diagnostics.
+!!! tip "Performance Tuning"
+    Monitor `WakeSignals` vs `TotalPackets`. A high ratio of signals to packets might indicate that `MaxDrainPerWake` is set too low for your traffic pattern, causing excessive wake/sleep cycles.
 
 ## Related APIs
 
@@ -77,4 +80,3 @@ For deep-dive configuration and sharding strategies, see the [Shard-Aware Dispat
 - [Packet Dispatch Options](./packet-dispatch-options.md)
 - [Packet Context](./packet-context.md)
 - [Middleware Pipeline](../middleware/pipeline.md)
-- [Dispatch Options](../options/dispatch-options.md)

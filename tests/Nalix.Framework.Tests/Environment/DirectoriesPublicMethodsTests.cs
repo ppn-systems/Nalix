@@ -28,7 +28,8 @@ public sealed class DirectoriesPublicMethodsTests : IDisposable
     [Fact]
     public void CreateSubdirectoryWhenNameEscapesBaseThrowsUnauthorizedAccessException()
     {
-        Assert.Throws<UnauthorizedAccessException>(() => Directories.CreateSubdirectory(_root, "..\\escape"));
+        string escapePath = Path.Combine("..", "escape");
+        Assert.Throws<UnauthorizedAccessException>(() => Directories.CreateSubdirectory(_root, escapePath));
     }
 
     [Fact]

@@ -1,5 +1,13 @@
 # Shard-Aware Dispatch
 
+!!! warning "Advanced Topic"
+    This page describes multi-threaded synchronization and complex parallel scaling architectures. If you are just getting started, please see the [Quickstart](../quickstart.md).
+
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Advanced
+    - :fontawesome-solid-clock: **Time**: 15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../concepts/architecture.md)
+
 Nalix uses a shard-aware dispatch architecture to scale packet processing across multiple CPU cores while maintaining strict delivery order for individual connections.
 
 ## 1. The Affinity Model
@@ -170,8 +178,8 @@ Per-connection queue backpressure is controlled by `DispatchOptions` (`MaxPerCon
 - **DropOldest**: Removes the head of the queue to make room. Ensures data freshness.
 - **Block**: Stalls the calling thread (usually the protocol reader). Highest reliability, but can lead to socket timeouts if handlers are slow.
 
-> [!WARNING]
-> Use `DropPolicy.Block` with caution. If a background worker stalls, it can trigger a backpressure ripple that eventually blocks the TCP accept loop.
+!!! warning
+    Use `DropPolicy.Block` with caution. If a background worker stalls, it can trigger a backpressure ripple that eventually blocks the TCP accept loop.
 
 ---
 

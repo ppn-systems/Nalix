@@ -79,7 +79,6 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public Directive()
     {
         this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
-        this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
     }
 
@@ -92,9 +91,11 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// <param name="arg0">The first directive argument.</param>
     /// <param name="arg1">The second directive argument.</param>
     /// <param name="arg2">The third directive argument.</param>
+    /// <param name="controlFlags">The system-level control flags.</param>
     public void Initialize(
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        uint sequenceId, ControlFlags flags = ControlFlags.NONE,
+        ushort sequenceId, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+        ControlFlags controlFlags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
         this.Arg0 = arg0;
@@ -103,11 +104,11 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.Type = type;
         this.Reason = reason;
         this.Action = action;
-        this.Control = flags;
+        this.Control = controlFlags;
         this.SequenceId = sequenceId;
         this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+        this.Flags = flags;
 
-        this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
     }
 
@@ -121,10 +122,12 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// <param name="arg0">The first directive argument.</param>
     /// <param name="arg1">The second directive argument.</param>
     /// <param name="arg2">The third directive argument.</param>
+    /// <param name="controlFlags">The system-level control flags.</param>
     public void Initialize(
         ushort opCode,
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        uint sequenceId, ControlFlags flags = ControlFlags.NONE,
+        ushort sequenceId, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+        ControlFlags controlFlags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
         this.Arg0 = arg0;
@@ -133,11 +136,11 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.Type = type;
         this.Reason = reason;
         this.Action = action;
-        this.Control = flags;
+        this.Control = controlFlags;
         this.OpCode = opCode;
         this.SequenceId = sequenceId;
+        this.Flags = flags;
 
-        this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
     }
 
@@ -146,8 +149,8 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     {
         base.ResetForPool();
         this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
-        this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.HIGH;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
     }
 
     /// <summary>
@@ -156,7 +159,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// <returns>String describing the Directive packet.</returns>
     public override string ToString()
         => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, " +
-           $"Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}, Protocol={this.Protocol}]";
+           $"Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}]";
 
     /// <summary>
     /// Deserializes a <see cref="Directive"/> packet from a buffer.

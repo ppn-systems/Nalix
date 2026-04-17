@@ -3,8 +3,8 @@
 
 using System;
 using System.Buffers.Binary;
-using Nalix.Framework.Security.Hashing;
 using Nalix.Common.Primitives;
+using Nalix.Framework.Security.Hashing;
 
 namespace Nalix.Framework.Security;
 
@@ -99,17 +99,17 @@ public static class HandshakeX25519
             + segment1.Length
             + segment2.Length
             + segment3.Length;
- 
+
         byte[] buffer = GC.AllocateUninitializedArray<byte>(total);
         Span<byte> destination = buffer;
         int offset = 0;
- 
+
         offset = WriteSegment(destination, offset, label);
         offset = WriteSegment(destination, offset, segment0);
         offset = WriteSegment(destination, offset, segment1);
         offset = WriteSegment(destination, offset, segment2);
         _ = WriteSegment(destination, offset, segment3);
- 
+
         return Keccak256.HashDataToFixed(buffer);
     }
 

@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -14,7 +12,6 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -54,17 +51,9 @@ public abstract partial class UdpListenerBase
     private CancellationTokenSource? _cts;
     private CancellationToken _cancellationToken;
 
-    /// <summary>
-    /// Fast-path endpoint binding cache. After the first successful token-based
-    /// lookup, the <c>EndPoint → Connection</c> mapping is cached so subsequent
-    /// packets from the same endpoint skip the <see cref="IConnectionHub"/> entirely.
-    /// </summary>
-    private readonly ConcurrentDictionary<EndPoint, Connection> _endpointCache = new();
-
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
-    private int _hubEventsSubscribed;
 
     // Diagnostic counters — grouped for clarity, accessed via Interlocked.
     private long _rxPackets;
@@ -156,7 +145,6 @@ public abstract partial class UdpListenerBase
         if (disposing)
         {
             this.Deactivate();
-            this.UnsubscribeFromHubEvents();
 
             try
             {
@@ -176,7 +164,6 @@ public abstract partial class UdpListenerBase
             catch { }
 
             _socket = null;
-            _endpointCache.Clear();
             _lock.Dispose();
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
@@ -187,77 +174,5 @@ public abstract partial class UdpListenerBase
 
     #endregion IDisposable
 
-    #region Hub Event Cleanup
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void SubscribeToHubEvents()
-    {
-        if (Interlocked.CompareExchange(ref _hubEventsSubscribed, 1, 0) != 0)
-        {
-            return;
-        }
-
-        IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
-
-        if (hub is null)
-        {
-            return;
-        }
-
-        hub.ConnectionUnregistered += this.OnConnectionUnregistered;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UnsubscribeFromHubEvents()
-    {
-        if (Interlocked.CompareExchange(ref _hubEventsSubscribed, 0, 1) != 1)
-        {
-            return;
-        }
-
-        IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
-
-        if (hub is null)
-        {
-            return;
-        }
-
-        hub.ConnectionUnregistered -= this.OnConnectionUnregistered;
-    }
-
-    private void OnConnectionUnregistered(IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-
-        if (_endpointCache.IsEmpty)
-        {
-            return;
-        }
-
-        int removed = 0;
-
-        foreach (KeyValuePair<EndPoint, Connection> entry in _endpointCache)
-        {
-            Connection cachedConnection = entry.Value;
-            if (!ReferenceEquals(cachedConnection, connection) &&
-                !Equals(cachedConnection.ID, connection.ID))
-            {
-                continue;
-            }
-
-            if (_endpointCache.TryRemove(entry.Key, out _))
-            {
-                removed++;
-            }
-        }
-
-        if (removed > 0)
-        {
-            s_logger?.Debug(
-                $"[NW.{nameof(UdpListenerBase)}] endpoint-cache-pruned " +
-                $"id={connection.ID} removed={removed}");
-        }
-    }
-
-    #endregion Hub Event Cleanup
 }

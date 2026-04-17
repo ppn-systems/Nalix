@@ -61,5 +61,6 @@ A critical aspect of the SDK pipeline is its zero-copy (or minimized copy) archi
 
 - [TCP Session](./tcp-session.md)
 - [Fragmentation](../framework/packets/fragmentation.md)
-- [Buffer and Pooling](../framework/memory/buffer-and-pooling.md)
+- [Buffer Management](../framework/memory/buffer-management.md)
+- [Object Pooling](../framework/memory/object-pooling.md)
 - [Handshake Extensions](./handshake-extensions.md)

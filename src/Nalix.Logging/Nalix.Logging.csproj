@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -14,14 +14,10 @@ It features a modular engine with pluggable sinks (console, file, channel), batc
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Introduced LogEngine with asynchronous channel-based batching pipeline.
-- Added multiple sinks: ConsoleLogTarget, FileLogTarget, and ChannelFileLogTarget.
-- Implemented BatchFileLogTarget for high-throughput file I/O with low contention.
-- Added flexible options (FileLogOptions, BatchFileLogOptions, EmailLogOptions) for configuration tuning.
-- Integrated LogFormatter and LogDistributor for extensible message routing.
-- Added NLogix facade for simplified static logging entry points and extensions.
-- Improved async handling, internal exception safety, and batching performance.
-- General cleanup, documentation updates, and unit test enhancements.
+- Asynchronous Performance: High-throughput, channel-based logging engine designed for non-blocking execution under extreme horizontal load.
+- Structured Target System: Pluggable sinks including high-speed batched file I/O, optimized console output, and multi-channel message routing.
+- Batching & Efficiency: Minimized disk contention through advanced batch file writing and configurable buffering strategies.
+- Unified Facade: Simplified NLogix access points for seamless, context-aware logging across all Nalix-based applications.
 		]]></PackageReleaseNotes>
 
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

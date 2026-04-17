@@ -5,19 +5,24 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Common.Security;
+#if DEBUG
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
+namespace Nalix.Network.Internal.Security;
 
 /// <summary>
 /// Implements a sliding window for sequence number validation to prevent replay attacks.
 /// Thread-safe using atomic operations.
 /// </summary>
-public sealed class SlidingWindow
+internal sealed class SlidingWindow
 {
     private readonly int _windowSize;
     private readonly int _arraySize;
     private long _maxSeen;
     private readonly long[] _bitmap;
-    private readonly Lock _lock = new();
+    private SpinLock _spinLock;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SlidingWindow"/> class.
@@ -33,13 +38,15 @@ public sealed class SlidingWindow
     /// <summary>
     /// Attempts to check and mark a sequence number.
     /// </summary>
-    /// <param name="seq">The 32-bit sequence number to check.</param>
+    /// <param name="seq">The 32-bit (or 16-bit) sequence number to check.</param>
     /// <returns>True if the sequence number is new and within the window; false if replayed or too old.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryCheck(uint seq)
+    public bool TryCheck(ushort seq)
     {
-        lock (_lock)
+        bool lockTaken = false;
+        try
         {
+            _spinLock.Enter(ref lockTaken);
             long s = seq;
             long currentMax = _maxSeen;
 
@@ -73,6 +80,13 @@ public sealed class SlidingWindow
 
             this.MARK_BIT(diff);
             return true;
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                _spinLock.Exit(useMemoryBarrier: false);
+            }
         }
     }
 

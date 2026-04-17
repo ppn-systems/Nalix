@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -26,13 +26,11 @@ It acts as the bridge between application logic and the Nalix.Network layer, sim
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Introduced Controller and DirectiveController for structured client-side orchestration.
-- Added Remote module with configurable reliable and unreliable communication clients.
-- Implemented TimeSyncExtensions for clock alignment between client and server.
-- Added L10N subsystem with Localization, Localizer, and MultiLocalizer support.
-- Improved configuration and extension APIs for SDK customization.
-- Enhanced dependency structure for modular SDK integration.
-- General cleanup, documentation updates, and performance tuning.
+- Managed Sessions: Professional lifecycle management for TcpSession and UdpSession with automatic reconnection and state handling.
+- Request-Response Pattern: High-level RequestAsync<TResponse> API featuring correlated packet matching and granular timeout management.
+- Session Orchestration: Advanced extensions for handshakes, session resumption, and dynamic cipher rotation on active transport streams.
+- Typed Messaging: Type-safe packet subscription model (On<T>) for clean and efficient application-level message handling.
+- Resource Optimization: Full integration with the zero-allocation PacketRegistry for high-performance, pool-aware data processing.
 		]]></PackageReleaseNotes>
 
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

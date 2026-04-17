@@ -12,7 +12,10 @@ If you're looking for the core interfaces and classes that drive Nalix:
 - :fontawesome-solid-network-wired: **TCP/UDP transport & protocols** → [Network API](./network/index.md)
 - :fontawesome-solid-mobile-screen: **Client sessions & requests** → [SDK API](./sdk/index.md)
 
-👉 **Important:** Most users should NOT start by reading the API reference. If you are new, follow the [Recommended Path](../index.md#recommended-path) or explore the [Guides](../guides/index.md) first.
+!!! warning "Important"
+    Most users should NOT start by reading the API reference.  
+    If you are new, follow the [Recommended Path](../index.md#recommended-path)  
+    or explore the [Guides](../guides/index.md) first.
 
 ## Source Mapping
 

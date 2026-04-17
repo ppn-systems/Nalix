@@ -84,5 +84,41 @@ public abstract partial class UdpListenerBase
         {
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         }
+
+        // 1. CHUNG: Tắt phân mảnh gói tin (IP Fragmentation). 
+        // Các UDP Protocol thời gian thực (Enterprise) luôn giữ size < MTU (1400 bytes).
+        // Nếu gói tin vô tình trượt qua ngưỡng này, thà bị Drop nguyên cục còn hơn để HĐH 
+        // cắt nhỏ ra, làm tăng độ trễ (latency spikes) do chờ gom nối ghép (Reassembly).
+        try
+        {
+            socket.DontFragment = true;
+        }
+        catch (SocketException)
+        {
+            // Best effort only: some platforms/socket configurations do not support this option.
+        }
+        catch (ObjectDisposedException)
+        {
+            // Socket lifetime race: ignore to preserve existing non-fatal behavior.
+        }
+
+        // 2. WINDOWS: Sửa lỗi WSAECONNRESET kinh điển của UDP trên Windows.
+        // Bình thường nếu Server gửi trả 1 gói UDP cho IP Client, nhưng Client đã tắt mạng (nguồn không tới), 
+        // Windows sẽ nhận được ICMP Port Unreachable. Ngay lập tức nó ném 1 lỗi SocketException(ConnectionReset)
+        // vào thẳng hàm ReceiveFromAsync GẦN NHẤT. Làm sập hoặc gián đoạn luồng nhận của bao người khác!
+        // SIO_UDP_CONNRESET = -1744830452 vô hiệu hóa cơ chế báo lỗi vớ vẩn này.
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                // DWORD 0 = false -> disable UDP connection reset
+                const int SIO_UDP_CONNRESET = -1744830452;
+                socket.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
+            }
+            catch (SocketException ex)
+            {
+                logger.LogDebug(ex, "Unable to disable UDP connection reset (SIO_UDP_CONNRESET). Continuing with default socket behavior.");
+            }
+        }
     }
 }

@@ -1,62 +1,68 @@
 # Nalix.Runtime API Reference
 
-`Nalix.Runtime` is the server-side execution layer that converts incoming packets into handler invocations through dispatch channels, packet contexts, metadata resolution, and middleware pipelines.
+`Nalix.Runtime` is the server-side execution layer that converts incoming raw buffers into structured packet handlers. It manages the dispatching lifecycle, middleware pipelines, and metadata resolution.
 
-## Source Mapping
+## Runtime Execution Landscape
 
-- `src/Nalix.Runtime/Dispatching`
-- `src/Nalix.Runtime/Middleware`
-- `src/Nalix.Runtime/Handlers`
-- `src/Nalix.Runtime/Options`
+The following diagram illustrates how a packet flows from the network layer into the application logic.
+
+```mermaid
+flowchart TD
+    subgraph Network[Nalix.Network]
+        L[Listener] -->|Accept| C[Connection]
+        C -->|Raw Buffer| D[IPacketDispatch]
+    end
+
+    subgraph Channel[Dispatch Layer]
+        D -->|Push| Q[DispatchChannel Queue]
+        Q -->|Priority Aware| WL[Worker Loops / RunLoop]
+        WL -->|Signal| Wake[WakeChannel]
+    end
+
+    subgraph Pipeline[Processing Pipeline]
+        WL -->|Step 1| MP[Network Buffer Middleware]
+        MP -->|Step 2| Des[IPacketRegistry.Deserialize]
+        Des -->|Step 3| PM[Packet Middleware Pipeline]
+        PM -->|Step 4| H[Packet Handler]
+    end
+
+    subgraph State[Context & Metadata]
+        PM -.->|Initialize|Ctx[PacketContext]
+        Ctx -.->|Resolve| Meta[Metadata Provider]
+    end
+```
 
 ## Why This Package Exists
 
-`Nalix.Network` accepts traffic and manages connections, but packet execution policy lives in `Nalix.Runtime`. This split allows transport and handler execution to evolve independently.
-
-## Mental Model
-
-1. A packet arrives (raw buffer or already deserialized packet).
-2. `IPacketDispatch` handles it via `PacketDispatchChannel`.
-3. Packet metadata is resolved for handler execution.
-4. A pooled `PacketContext<TPacket>` is created.
-5. Handler pipeline executes with middleware and optional outbound transforms.
+`Nalix.Network` focuses on "Moving Bytes" and managing connections, while `Nalix.Runtime` focuses on "Executing Logic". This separation allows for:
+- **Independent Scaling**: You can scale the number of dispatch workers independently of the number of socket listeners.
+- **Pluggable Protocols**: The runtime doesn't care if the packet came from TCP or UDP; it only cares about the dispatch contract.
+- **Middleware Reuse**: Security, logging, and validation middleware can be shared across all transport types.
 
 ## Core Public Types
 
 ### Dispatching
 
-- [IPacketDispatch](./routing/dispatch-contracts.md): entry point for handling incoming packets.
-- [PacketDispatchChannel](./routing/packet-dispatch.md): high-throughput dispatcher with worker loops and wake signaling.
-- [PacketDispatcherBase<TPacket>](./routing/dispatch-channel-and-router.md): base type for dispatch execution and handler invocation.
-- [PacketContext<TPacket>](./routing/packet-context.md): pooled per-dispatch context implementing `IPacketContext<TPacket>`.
-- [PacketSender<TPacket>](./routing/packet-sender.md): metadata-aware sender used by packet contexts.
-- [IPacketMetadataProvider](./routing/packet-metadata.md), [PacketMetadataBuilder](./routing/packet-metadata.md), [PacketMetadataProviders](./routing/packet-metadata.md): metadata resolution surface.
+- [IPacketDispatch](./routing/dispatch-contracts.md): The primary entry point for handing off buffers from transport to runtime.
+- [PacketDispatchChannel](./routing/packet-dispatch.md): High-throughput dispatcher that uses worker loops and coalesce signaling to minimize context switching.
+- [PacketDispatcherBase<TPacket>](./routing/dispatch-channel-and-router.md): The base execution engine that handles handler discovery and invocation.
+- [PacketContext<TPacket>](./routing/packet-context.md): A pooled state object that carries the packet, connection, and metadata through the pipeline.
+- [PacketSender<TPacket>](./routing/packet-sender.md): A metadata-aware response helper injected into handlers.
 
-### Middleware
+### Middleware & Routing
 
-- [NetworkBufferMiddlewarePipeline](./middleware/network-buffer-pipeline.md): inbound raw-buffer middleware pipeline.
-- Middleware contracts are shared in `Nalix.Common` (`IPacketMiddleware<TPacket>`, `INetworkBufferMiddleware`).
-
-### Built-in Handlers
-
-- [HandshakeHandlers](./handlers/index.md)
-- [SessionHandlers](./handlers/index.md)
-- [SystemControlHandlers](./handlers/index.md)
-
-### Runtime Options
-
-- [DispatchOptions](./options/dispatch-options.md)
-- Runtime pooling options are exposed by `Nalix.Runtime.Options.PoolingOptions`.
+- [Middleware Overview](./middleware/index.md): Explains the dual-layer pipeline (Buffer vs. Packet).
+- [Routing Overview](./routing/index.md): Details how Nalix finds the right handler for each packet opcode.
+- [Metadata Provider](./routing/packet-metadata.md): Service for enriching the dispatch context with session or business data.
 
 ## Architecture Notes
 
-- `PacketContext<TPacket>` and `PacketSender<TPacket>` are pool-oriented types.
-- `PacketDispatchChannel` supports both raw buffer (`IBufferLease`) and typed packet dispatch paths.
-- Middleware is split by stage (inbound/outbound) and can be configured to continue or stop on errors.
+- **Zero-Allocation Contexts**: `PacketContext` is heavily pooled to prevent GC spikes during high-frequency dispatching.
+- **Priority Weights**: The `PacketDispatchChannel` respects `PacketPriority`, ensuring critical system packets (like Heartbeats) are processed before bulk data.
+- **Worker Fairness**: The dispatch loops use a "Drain" strategy to ensure one high-volume connection doesn't starve others in the same channel.
 
 ## Related APIs
 
-- [Runtime Routing Overview](./routing/index.md)
-- [Runtime Middleware Overview](./middleware/index.md)
-- [Network Protocol](../network/protocol.md)
-- [Packet Contracts](../common/packet-contracts.md)
+- [Framework Core](../framework/index.md)
+- [Network Transport](../network/index.md)
+- [Common Contracts](../common/index.md)

@@ -1,98 +1,59 @@
 # Network Buffer Pipeline
 
-This page covers the raw-byte middleware surface that runs before packet deserialization.
+The `NetworkBufferMiddlewarePipeline` is a high-performance interceptor that operates directly on raw `IBufferLease` objects before they are deserialized into typed packets.
 
-## Source mapping
+## Layer 1 Buffer Transformation
+
+The following diagram illustrates the linear execution model and the memory ownership rules of the buffer pipeline.
+
+```mermaid
+flowchart LR
+    Start([1. Raw Source]) --> M1[Middleware: Auth]
+    
+    M1 -->|Valid| M2[Middleware: Decrypt]
+    M1 -->|Invalid/Null| Drop([Dropped & Disposed])
+    
+    M2 -->|New Lease| M3[Middleware: Decompress]
+    M2 -.->|Old Lease| Disp[Disposed]
+    
+    M3 -->|Final Lease| End([2. Packet Registry])
+```
+
+## Why This Pipeline Exists
+
+By intercepting traffic before deserialization, the Network Buffer Pipeline provides several critical advantages:
+- **Low-Cost Filtering**: Drop malicious or unauthorized payloads before spending CPU cycles on expensive object instantiation.
+- **Global Security**: Perform server-wide decryption or integrity checks.
+- **Transparent Compression**: Handle LZ4 or Zstd compression at the byte level, keeping the application handlers focused on domain logic.
+
+## Execution Rules (Source-Verified)
+
+The pipeline follows strict memory ownership rules to prevent leaks in high-concurrency environments:
+
+1.  **Ownership Handoff**: The pipeline owns the currently active `IBufferLease`. 
+2.  **Replacement Disposal**: If a middleware returns a *different* lease instance (e.g., after decompression), the pipeline automatically disposes of the previous lease to return its buffer to the pool.
+3.  **Short-Circuiting**: If any middleware returns `null`, the pipeline immediately disposes of the active lease and terminates execution, effectively dropping the packet.
+
+## Source Mapping
 
 - `src/Nalix.Runtime/Middleware/NetworkBufferMiddlewarePipeline.cs`
-- `src/Nalix.Common/Middleware/INetworkBufferMiddleware.cs`
+- `src/Nalix.Network.Pipeline/Inbound`
+- `src/Nalix.Common/Middleware`
 
-## Main types
+## Configuration
 
-- `INetworkBufferMiddleware`
-- `NetworkBufferMiddlewarePipeline`
-
-## INetworkBufferMiddleware
-
-`INetworkBufferMiddleware` is the contract for middleware that works directly on `IBufferLease` and `IConnection`.
-
-It can:
-
-- inspect incoming frame bytes
-- mutate or replace the buffer
-- stop the pipeline early
-- reject malformed or unwanted traffic before deserialization
-
-### Contract
+You register buffer middleware through `PacketDispatchOptions`:
 
 ```csharp
-ValueTask<IBufferLease?> InvokeAsync(
-    IBufferLease buffer,
-    IConnection connection,
-    CancellationToken ct);
+options.WithBufferMiddleware(new DecryptionMiddleware())
+       .WithBufferMiddleware(new DecompressionMiddleware());
 ```
 
-### Ownership rule
-
-If middleware replaces the incoming lease with a new one, it should also define what happens to the original lease, usually by disposing it after the replacement is safe.
-
-Returning `null` means the frame was fully handled, dropped, or intentionally short-circuited.
-
-## NetworkBufferMiddlewarePipeline
-
-`NetworkBufferMiddlewarePipeline` is the concrete ordered chain that executes registered raw-buffer middleware.
-
-It provides:
-
-- `Use(...)`
-- `Clear()`
-- `ExecuteAsync(...)`
-
-### Source behavior
-
-- duplicate middleware instances are rejected
-- execution order comes from `[MiddlewareOrder]`
-- the pipeline takes a snapshot before execution instead of holding locks during invocation
-- when middleware returns a replacement lease, the old lease is disposed
-- when middleware returns `null`, current lease is disposed and processing stops
-
-## Basic usage
-
-```csharp
-NetworkBufferMiddlewarePipeline pipeline = new();
-pipeline.Use(new FrameGuard());
-pipeline.Use(new MyDecryptMiddleware());
-
-IBufferLease? next = await pipeline.ExecuteAsync(buffer, connection, ct);
-```
-
-## When to use this layer
-
-Use raw-buffer middleware when the packet does not exist yet and your logic needs to act on bytes.
-
-Typical use cases:
-
-- decryption
-- decompression
-- frame signature checks
-- protocol-level rejection before deserialization
-
-If you already need `PacketContext<TPacket>` and handler metadata, use packet middleware instead.
-That same rule applies when the packet type is custom, not just when it is one of the built-in packets.
-
-## Relationship to packet middleware
-
-```text
-socket frame
-  -> network buffer middleware
-  -> deserialize packet
-  -> packet middleware
-  -> handler
-```
+!!! warning "Order Matters"
+    Middlewares are executed in the order they are registered (or by their `MiddlewareOrderAttribute`). Ensure that decryption occurs *before* decompression if your protocol requires it.
 
 ## Related APIs
 
-- [Middleware Pipeline](./pipeline.md)
-- [Packet Dispatch](../routing/packet-dispatch.md)
-- [Socket Connection](../../network/socket-connection.md)
-- [Buffer and Pooling](../../framework/memory/buffer-and-pooling.md)
+- [IPacketDispatch](../routing/dispatch-contracts.md)
+- [Packet Dispatch Options](../routing/packet-dispatch-options.md)
+- [Compression Options](../options/dispatch-options.md)

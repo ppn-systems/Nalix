@@ -40,7 +40,7 @@ public static class TimeSyncExtensions
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        uint seq = unchecked((uint)Interlocked.Increment(ref s_syncSequence));
+        ushort seq = unchecked((ushort)Interlocked.Increment(ref s_syncSequence));
 
         Control req = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCREQUEST).WithSeq(seq).Build();
         long startTicks = req.MonoTicks;

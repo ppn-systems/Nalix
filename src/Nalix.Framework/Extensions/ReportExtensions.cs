@@ -60,7 +60,9 @@ public static class ReportExtensions
             return "null";
         }
 
-        char[] invalidChars = Path.GetInvalidFileNameChars();
+        // Use a broader set of invalid characters for cross-platform consistency.
+        // Windows is more restrictive than Linux, so we adopt a "least common denominator" approach.
+        char[] invalidChars = ['*', '?', ':', '"', '<', '>', '|', '/', '\\', '\0'];
         char[] result = value.ToCharArray();
         for (int i = 0; i < result.Length; i++)
         {

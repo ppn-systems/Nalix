@@ -19,7 +19,7 @@ This page covers the built-in packet types that Nalix ships out of the box.
 
 ```csharp
 var control = new Control();
-control.Initialize(ControlType.PING, sequenceId: 42, transport: ProtocolType.TCP);
+control.Initialize(ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 ```
 
 Important public members:
@@ -37,19 +37,18 @@ Important public members:
 
 ```csharp
 var handshake = new Handshake(
-    1,
     HandshakeStage.CLIENT_HELLO,
     clientPublicKey,
     clientNonce,
-    transport: ProtocolType.TCP);
+    flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 
 handshake.UpdateTranscriptHash(transcriptBytes);
 ```
 
 Important public members:
 
-- constructor `(opCode, stage, publicKey, nonce, proof, transport)`
-- `Initialize(opCode, stage, publicKey, nonce, proof, transport)`
+- constructor `(stage, publicKey, nonce, proof, flags)`
+- `Initialize(stage, publicKey, nonce, proof, flags)`
 - `ComputeTranscriptHash(...)`
 - `UpdateTranscriptHash(...)`
 - `ResetForPool()`

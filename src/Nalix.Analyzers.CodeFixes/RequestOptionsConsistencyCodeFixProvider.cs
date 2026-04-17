@@ -90,7 +90,7 @@ public sealed class RequestOptionsConsistencyCodeFixProvider : CodeFixProvider
             else
             {
                 InitializerExpressionSyntax initializer = objectCreation.Initializer;
-                var expressions = new List<ExpressionSyntax>(initializer.Expressions)
+                List<ExpressionSyntax> expressions = new(initializer.Expressions)
                 {
                     SyntaxFactory.AssignmentExpression(
                         SyntaxKind.SimpleAssignmentExpression,

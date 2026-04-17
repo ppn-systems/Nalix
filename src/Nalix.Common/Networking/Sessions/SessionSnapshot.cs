@@ -30,7 +30,7 @@ public sealed class SessionSnapshot
     /// <summary>
     /// Gets or sets the symmetric secret to restore on resume.
     /// </summary>
-    public byte[] Secret { get; init; } = [];
+    public Bytes32 Secret { get; set; }
 
     /// <summary>
     /// Gets or sets the negotiated cipher suite.
@@ -53,10 +53,7 @@ public sealed class SessionSnapshot
     public void Return()
     {
         // Zeroize the secret to prevent key material from lingering in memory
-        if (this.Secret is { Length: > 0 })
-        {
-            System.Security.Cryptography.CryptographicOperations.ZeroMemory(this.Secret);
-        }
+        this.Secret = Bytes32.Zero;
 
         this.Attributes?.Return();
         this.Attributes = null;

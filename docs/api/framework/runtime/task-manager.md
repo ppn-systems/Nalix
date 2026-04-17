@@ -1,151 +1,72 @@
-# TaskManager
+# Task Manager
 
-`TaskManager` schedules workers and recurring jobs with group gating, cancellation, and diagnostics.
+`TaskManager` is the core background worker engine for Nalix. It provides prioritized task scheduling, concurrency gating, and comprehensive diagnostics for both transient workers and recurring jobs.
 
-## Source mapping
+## Task Scheduling & Concurrency Model
 
-- `src/Nalix.Framework/Tasks/TaskManager.cs`
-- `src/Nalix.Framework/Tasks/TaskManager.Names.cs`
-- `src/Nalix.Framework/Tasks/TaskManager.PrivateMethods.cs`
-- `src/Nalix.Framework/Tasks/TaskManager.State.cs`
-- `src/Nalix.Framework/Options/TaskManagerOptions.cs`
-- `src/Nalix.Framework/Options/WorkerOptions.cs`
-- `src/Nalix.Framework/Options/RecurringOptions.cs`
-
-## Architecture
+Nalix uses a sophisticated multi-gate concurrency model to ensure that background tasks do not saturate the system while maintaining relative priorities.
 
 ```mermaid
-graph TD
-    A[TaskManager] --> B[Worker Tasks]
-    A --> C[Recurring Jobs]
-    A --> D[Concurrency Gates]
-    D --> E[Global Limit]
-    D --> F[Group Limits]
-    B --> G[Worker Context]
-    G --> H[Heartbeats/Progress]
-    C --> I[Recurring Handle]
+flowchart TD
+    Start([ScheduleWorker]) --> Gates{Gates Open?}
+    
+    Gates -->|Yes| Fast[Fast Start: Task.Run]
+    Gates -->|No| Queue[Priority Queue]
+    
+    subgraph DispatchLoop[Internal Dispatcher]
+        Queue --> Wait[Wait for Concurrency Slot]
+        Wait --> Acquire[Acquire Global + Group Gates]
+        Acquire --> Run[Execute Worker]
+    end
+    
+    Fast --> Execute
+    Run --> Execute[Worker Execution]
+    
+    Execute --> Release[Release Gates]
+    Release --> Cleanup[Dispose Context / Cleanup]
 ```
 
-## Main types
+## Concurrency Layer (Source-Verified)
 
-- `TaskManager`
-- `TaskNaming`
+The `TaskManager` manages three layers of execution control:
 
-## What it does
+### 1. Global Concurrency Gate
+Controlled by `TaskManagerOptions.MaxWorkers`. This is a global semaphore that limits the total number of parallel workers running across the entire application.
 
-- schedules one-off workers
-- schedules recurring jobs
-- supports group-level concurrency gates
-- supports cancellation by worker ID, group, or recurring name
-- produces text and structured diagnostic reports
+### 2. Group-Level Gates
+Each worker can belong to a named `Group`. You can configure per-group capacity limits to ensure a specific workload (e.g., "database-sync") doesn't starve other critical tasks (e.g., "network-heartbeats").
 
-## Construction
+### 3. Priority Dispatching
+Workers with higher `WorkerPriority` values are automatically moved to the front of the queue by the internal `PriorityQueue`. This ensures that high-priority system maintenance tasks execute before low-priority analytical tasks.
 
-```csharp
-TaskManager manager = new();
-TaskManager custom = new(new TaskManagerOptions { MaxWorkers = 20 });
-```
+## Workers vs. Recurring Tasks
 
-The parameterless constructor loads `TaskManagerOptions` from `ConfigurationManager`.
+| Feature | Worker Task | Recurring Task |
+|---|---|---|
+| **Lifecycle** | Runs once and completes. | Runs indefinitely at a set interval. |
+| **Scheduling** | Pushed into priority queue. | Dedicated timer-based loop. |
+| **Reentrancy** | Manual. | Configurable via `NonReentrant` option. |
+| **Common Use** | File I/O, Database Updates. | Health Checks, Cache Cleanup. |
 
-## Core APIs
+## Operational APIs
 
-| Method | Purpose |
-| --- | --- |
-| `ScheduleWorker(...)` | Start a one-off worker task and receive an `IWorkerHandle`. |
-| `ScheduleRecurring(...)` | Start a recurring job and receive an `IRecurringHandle`. |
-| `RunOnceAsync(...)` | Run a one-off async operation without registering a worker. |
-| `CancelAllWorkers()` | Cancel every active worker. |
-| `CancelWorker(ISnowflake)` | Cancel one worker by ID. |
-| `CancelGroup(string)` | Cancel all workers in one group. |
-| `CancelRecurring(string?)` | Cancel one recurring job by name. |
-| `GetWorkers(...)` | Read back worker handles, optionally filtered. |
-| `GetRecurring()` | Read back recurring handles. |
-| `TryGetRecurring(...)` | Try to read one recurring job by name. |
-| `GenerateReport()` | Return a text snapshot of runtime state. |
-| `GetReportData()` | Return a machine-readable diagnostics snapshot. |
+### `ScheduleWorker`
+Adds a one-time task to the system. Returns an `IWorkerHandle` for tracking progress or cancellation.
 
-## Worker scheduling
+### `ScheduleRecurring`
+Starts a background loop. You can monitor the `LastRunUtc` and `ConsecutiveFailures` through the returned `IRecurringHandle`.
 
-`ScheduleWorker(...)` accepts:
+### `GenerateReport()`
+Produces a comprehensive diagnostic report (text-based) detailing CPU usage, memory footprint, and the top-50 most active/aged workers.
 
-- `name`
-- `group`
-- `Func<IWorkerContext, CancellationToken, ValueTask>` work delegate
-- optional `IWorkerOptions`
+## Best Practices
 
-The options type is `WorkerOptions`, and the most relevant properties are:
-
-- `Tag`
-- `MachineId`
-- `IdType`
-- `ExecutionTimeout`
-- `RetainFor`
-- `GroupConcurrencyLimit`
-- `TryAcquireSlotImmediately`
-- `OnCompleted`
-- `OnFailed`
-
-## Recurring scheduling
-
-`ScheduleRecurring(...)` accepts:
-
-- `name`
-- `interval`
-- `Func<CancellationToken, ValueTask>` work delegate
-- optional `IRecurringOptions`
-
-The options type is `RecurringOptions`, and the most relevant properties are:
-
-- `NonReentrant`
-- `Jitter`
-- `ExecutionTimeout`
-- `FailuresBeforeBackoff`
-- `BackoffCap`
-- `Tag`
-
-## Task naming
-
-`TaskNaming` provides canonical naming helpers.
-
-Useful members include:
-
-- `TaskNaming.Tags`
-- `TaskNaming.Recurring.CleanupJobId(...)`
-- `TaskNaming.SanitizeToken(...)`
-
-## Diagnostics
-
-`GenerateReport()` returns a detailed text report covering:
-
-- process health
-- worker and recurring statistics
-- group concurrency usage
-- top running workers
-
-`GetReportData()` returns the same state as a dictionary for programmatic consumption.
-
-## Basic usage
-
-```csharp
-TaskManager manager = new();
-
-IWorkerHandle worker = manager.ScheduleWorker(
-    "session.cleanup",
-    "session",
-    async (ctx, ct) =>
-    {
-        await Task.Yield();
-    });
-
-IRecurringHandle recurring = manager.ScheduleRecurring(
-    "heartbeat",
-    TimeSpan.FromSeconds(10),
-    async ct => await Task.Yield());
-```
+- **Always use Groups**: Grouping workers allows for fine-grained monitoring and group-level cancellation.
+- **Set Timeouts**: Use `WorkerOptions.Timeout` to prevent "zombie" workers from holding onto concurrency slots indefinitely.
+- **Monitor Reports**: Regularly check `AverageWorkerExecutionTime` to detect performance regressions in your background logic.
 
 ## Related APIs
 
-- [Configuration and DI](./configuration.md)
 - [Worker Options](../options/worker-options.md)
 - [Recurring Options](../options/recurring-options.md)
+- [Concurrency Contracts](../../common/concurrency-contracts.md)

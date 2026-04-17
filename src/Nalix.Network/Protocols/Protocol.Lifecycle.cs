@@ -14,6 +14,7 @@ using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
+using Nalix.Common.Primitives;
 
 namespace Nalix.Network.Protocols;
 
@@ -116,7 +117,8 @@ public abstract partial class Protocol
             return;
         }
 
-        if (args.Connection.Secret is not { } secret)
+        Bytes32 secret = args.Connection.Secret;
+        if (secret.IsZero)
         {
             args.Connection.Disconnect("Encrypted frame received before session key establishment.");
             throw new InvalidOperationException("Encrypted frame received before session key establishment.");
@@ -126,7 +128,7 @@ public abstract partial class Protocol
 
         try
         {
-            dest = PacketCipher.DecryptFrame(lease, secret, args.Connection.Algorithm);
+            dest = PacketCipher.DecryptFrame(lease, secret.AsSpan(), args.Connection.Algorithm);
 
             IBufferLease? old = replaceable.ExchangeLease(dest);
             old?.Dispose();
