@@ -56,5 +56,6 @@ MyService service = MyService.Instance;
 
 ## Related APIs
 
-- [Configuration and DI](./configuration.md)
+- [Configuration](./configuration.md)
+- [Instance Manager (DI)](./instance-manager.md)
 - [Task Manager](./task-manager.md)

@@ -136,10 +136,22 @@ internal static partial class TypeMetadata
         }
         if (type.IsGenericType)
         {
+            Type def = type.GetGenericTypeDefinition();
             foreach (Type ga in type.GetGenericArguments())
             {
                 // Generic arguments may themselves need formatter warmup.
                 RecursiveWarmupFields(ga, visited, warmCurrentType: true);
+            }
+
+            // Standard collections (Dictionary, List, etc.) have specialized formatters
+            // and should NOT have their internal fields (like Dictionary.Entry) scanned.
+            if (def == typeof(List<>) ||
+                def == typeof(Dictionary<,>) ||
+                def == typeof(HashSet<>) ||
+                def == typeof(Queue<>) ||
+                def == typeof(Stack<>))
+            {
+                return;
             }
         }
 

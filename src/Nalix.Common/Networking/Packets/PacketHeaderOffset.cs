@@ -40,23 +40,16 @@ public enum PacketHeaderOffset
     Priority = Flags + sizeof(byte),
 
     /// <summary>
-    /// Represents the transport protocol field, indicating the transport protocol (e.g., TCP or UDP) used.
-    /// This field comes fifth in the serialized data.
-    /// </summary>
-    [DataType(typeof(byte))]
-    Transport = Priority + sizeof(byte),
-
-    /// <summary>
     /// SequenceId field: Used for packet sequence correlation.
     /// </summary>
-    [DataType(typeof(uint))]
-    SequenceId = Transport + sizeof(byte),
+    [DataType(typeof(ushort))]
+    SequenceId = Priority + sizeof(byte),
 
     /// <summary>
     /// Represents the end offset of the packet header fields in the serialized data.
     /// This value is equal to the offset of the last field and can be used to determine the total header size.
     /// </summary>
-    Region = SequenceId + sizeof(uint),
+    Region = SequenceId + sizeof(ushort),
 
     /// <inheritdoc/>
     MaxValue = byte.MaxValue,

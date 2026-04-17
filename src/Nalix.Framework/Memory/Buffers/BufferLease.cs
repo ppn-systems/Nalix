@@ -8,7 +8,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.Memory.Buffers;
@@ -161,7 +160,7 @@ public sealed class BufferLease : IBufferLease
     public int Length { get; private set; }
 
     /// <inheritdoc/>
-    public ProtocolType Protocol { get; set; }
+    public bool IsReliable { get; set; }
 
     /// <summary>
     /// Gets the capacity of the owned slice (from <c>_start</c> to end of the array).

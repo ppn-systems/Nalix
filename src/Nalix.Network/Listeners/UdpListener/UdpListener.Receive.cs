@@ -12,10 +12,12 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Listeners.Udp;
@@ -39,63 +41,103 @@ public abstract partial class UdpListenerBase
     #endregion Datagram Layout
 
     /// <summary>
-    /// Continuously receives UDP datagrams from the bound socket until cancellation,
-    /// dispatching each datagram for session resolution and processing.
+    /// Repeatedly receives datagrams using a <see cref="PooledUdpReceiveEventArgs"/> 
+    /// synchronously if possible, or sets up the async callback.
     /// </summary>
-    /// <param name="cancellationToken">The token that stops the receive loop.</param>
-    /// <remarks>
-    /// The receive loop rents a <see cref="BufferLease"/> per iteration so the datagram
-    /// is received directly into pooled memory — no per-call <c>byte[]</c> allocation.
-    /// </remarks>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    protected virtual async ValueTask ReceiveDatagramsAsync(CancellationToken cancellationToken)
+    private void StartReceive(PooledUdpReceiveEventArgs args)
     {
-        ArgumentNullException.ThrowIfNull(_socket);
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
-
-        int bufferSize = s_config.BufferSize;
-
-        while (!cancellationToken.IsCancellationRequested)
+        if (Volatile.Read(ref _isDisposed) != 0 || _socket is null)
         {
-            // Rent a fresh buffer from the BufferLease pool for each datagram.
-            // On success the buffer is handed off as a BufferLease (zero-copy).
-            // On error the buffer is returned to the pool immediately.
-            byte[] buffer = BufferLease.ByteArrayPool.Rent(bufferSize);
+            return;
+        }
 
-            try
+        try
+        {
+            while (!_cancellationToken.IsCancellationRequested)
             {
-                SocketReceiveFromResult result = await _socket.ReceiveFromAsync(
-                    new Memory<byte>(buffer, 0, bufferSize),
-                    SocketFlags.None,
-                    _anyEndPoint,
-                    cancellationToken).ConfigureAwait(false);
+                args.ResetForPool();
+                args.RemoteEndPoint = _anyEndPoint;
 
-                // wrap the buffer into a BufferLease
-                BufferLease lease = BufferLease.TakeOwnership(buffer, start: 0, length: result.ReceivedBytes);
-                lease.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+                bool pending = _socket.ReceiveFromAsync(args);
+                if (pending)
+                {
+                    // Will continue in OnReceiveCompleted
+                    break;
+                }
 
-                this.ProcessDatagram(lease, result.RemoteEndPoint);
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                BufferLease.ByteArrayPool.Return(buffer);
-                break;
-            }
-            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
-            {
-                BufferLease.ByteArrayPool.Return(buffer);
-                _ = Interlocked.Increment(ref _recvErrors);
-
-                s_logger?.Error(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ReceiveDatagramsAsync)}] " +
-                    $"recv-error port={_port}", ex);
-
-                // Brief delay to prevent tight error loops.
-                await Task.Delay(50, cancellationToken).ConfigureAwait(false);
+                // Completed synchronously
+                this.HandleReceive(args);
             }
         }
+        catch (ObjectDisposedException) { }
+        catch (Exception ex) when (!_cancellationToken.IsCancellationRequested)
+        {
+            _ = Interlocked.Increment(ref _recvErrors);
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}", ex);
+
+            // Brief delay to prevent tight error loops on synchronous failure.
+            _ = Task.Delay(50, _cancellationToken).ContinueWith(_ => this.StartReceive(args), TaskScheduler.Default);
+        }
+    }
+
+    [DebuggerStepThrough]
+    private void OnReceiveCompleted(object? sender, SocketAsyncEventArgs e)
+    {
+        PooledUdpReceiveEventArgs args = (PooledUdpReceiveEventArgs)e;
+        try
+        {
+            this.HandleReceive(args);
+        }
+        catch (SocketException ex)
+        {
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+        }
+        catch (ObjectDisposedException ex)
+        {
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+        }
+        catch (OperationCanceledException ex) when (_cancellationToken.IsCancellationRequested)
+        {
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+        }
+        finally
+        {
+            if (Volatile.Read(ref _isDisposed) == 0 && !_cancellationToken.IsCancellationRequested)
+            {
+                this.StartReceive(args);
+            }
+        }
+    }
+
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void HandleReceive(PooledUdpReceiveEventArgs args)
+    {
+        if (args.SocketError != SocketError.Success || args.BytesTransferred == 0 || args.RemoteEndPoint is null)
+        {
+            return;
+        }
+
+        IUdpRateLimiter? limiter = InstanceManager.Instance.GetExistingInstance<IUdpRateLimiter>();
+        if (limiter is not null && args.RemoteEndPoint is IPEndPoint ip)
+        {
+            if (!limiter.TryAccept(ip))
+            {
+                _ = Interlocked.Increment(ref _dropUnauth);
+                return;
+            }
+        }
+
+        // Copy from the persistent SAEA buffer to a lease so we don't hold the SAEA while processing.
+        byte[] buffer = BufferLease.ByteArrayPool.Rent(args.BytesTransferred);
+        Buffer.BlockCopy(args.Buffer!, args.Offset, buffer, 0, args.BytesTransferred);
+
+        BufferLease lease = BufferLease.TakeOwnership(buffer, 0, args.BytesTransferred);
+        lease.IsReliable = false;
+
+        this.ProcessDatagram(lease, args.RemoteEndPoint);
     }
 
     /// <summary>
@@ -140,7 +182,7 @@ public abstract partial class UdpListenerBase
         // SEC-72: Strict length and type guard. 
         // A valid UDP datagram must have at least the full packet header (13 bytes).
         // And the transport byte must be UDP.
-        if (payload.Length < (int)PacketHeaderOffset.Region || payload[(int)PacketHeaderOffset.Transport] != (byte)Nalix.Common.Networking.Protocols.ProtocolType.UDP)
+        if (payload.Length < 10 || (payload[6] & (byte)PacketFlags.UNRELIABLE) == 0)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
@@ -148,84 +190,7 @@ public abstract partial class UdpListenerBase
         }
 
         // ================================================================
-        // FAST PATH — endpoint already bound from a previous datagram.
-        // Single ConcurrentDictionary lookup, zero token parsing.
-        // ================================================================
-        if (_endpointCache.TryGetValue(remoteEndPoint, out Connection? connection))
-        {
-            // Quick liveness check — the connection may have been disposed
-            // since it was cached. If so, evict and fall through to the slow path.
-            if (!connection.IsDisposed)
-            {
-                // SEC-04: Re-validate the session token on every datagram, not
-                // just on the first one. This prevents packet injection via
-                // endpoint spoofing or NAT rebinding because the token must
-                // match the cached connection's ID on every single packet.
-                ReadOnlySpan<byte> fastToken = buffer[..SessionTokenSize];
-                Common.Primitives.UInt56 tokenId = Common.Primitives.UInt56.ReadBytesLittleEndian(fastToken);
-                if (tokenId != connection.ID.ToUInt56())
-                {
-                    // Token mismatch — evict stale cache and fall through to slow path
-                    _ = _endpointCache.TryRemove(remoteEndPoint, out _);
-                    _ = Interlocked.Increment(ref _dropUnauth);
-                    // Do not return; fall through to slow path for fresh resolution.
-                }
-                else
-                {
-                    // SEC-71 & SEC-70: Validate replay window and handle transformation in fast-path.
-                    // We must read the sequence ID to check for replays before proceeding.
-                    uint fastSequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
-                    if (!connection.UdpReplayWindow.TryCheck(fastSequenceId))
-                    {
-                        _ = Interlocked.Increment(ref _dropUnauth);
-                        lease.Dispose();
-                        return;
-                    }
-
-                    if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
-                    {
-                        _ = Interlocked.Increment(ref _dropUnauth);
-                        lease.Dispose();
-                        return;
-                    }
-
-                    _ = Interlocked.Increment(ref _rxPackets);
-                    _ = Interlocked.Add(ref _rxBytes, lease.Length);
-
-                    // Use the Protocol for processing even in the fast path
-                    if (lease.ReleaseOwnership(out byte[]? fastBuffer, out int fastStart, out int fastLength))
-                    {
-                        BufferLease fastPayload = BufferLease.TakeOwnership(fastBuffer!, fastStart + Snowflake.Size, fastLength - Snowflake.Size);
-                        fastPayload.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
-                        ConnectionEventArgs fastArgs = s_pool.Get<ConnectionEventArgs>();
-                        fastArgs.Initialize(fastPayload, connection);
-
-                        try
-                        {
-                            _protocol.ProcessFrame(this, fastArgs);
-                        }
-                        catch (Exception ex)
-                        {
-                            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] fastpath-protocol-error id={connection.ID}", ex);
-                        }
-                    }
-                    else
-                    {
-                        lease.Dispose();
-                    }
-                    return;
-                }
-            }
-            else
-            {
-                // Connection no longer alive — remove stale cache entry.
-                _ = _endpointCache.TryRemove(remoteEndPoint, out _);
-            }
-        }
-
-        // ================================================================
-        // SLOW PATH — first packet from this endpoint, or cache evicted.
-        // Parse session token (7-byte ISnowflake) → hub lookup → cache.
+        // FAST PATH — Lookup Connection via SessionToken (Snowflake).
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
         IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
@@ -234,53 +199,32 @@ public abstract partial class UdpListenerBase
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
-
-            s_logger?.Error(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"[{nameof(IConnectionHub)}] null");
             return;
         }
 
-        if (!this.TryResolveConnection(hub, sessionToken, out connection) || connection == null)
+        if (!this.TryResolveConnection(hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();
-
-#if DEBUG
-            s_logger?.Debug(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"unknown-token from={remoteEndPoint}");
-#endif
             return;
         }
 
         // --- 3. IP pinning gate (SEC-30) ---
-        // Ensure the UDP source IP matches the authorized TCP endpoint IP.
-        // This prevents session hijacking via IP spoofing even if the Snowflake ID is known.
         if (connection.NetworkEndpoint is null ||
             !string.Equals(connection.NetworkEndpoint.Address, ((IPEndPoint)remoteEndPoint).Address.ToString(), StringComparison.Ordinal))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             lease.Dispose();
-
-            s_logger?.Warn(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"hijack-attempt id={connection.ID} ep={remoteEndPoint} expected={connection.NetworkEndpoint?.Address}");
             return;
         }
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
-        // Extract sequence ID and validate against a per-connection sliding window.
-        // In the UDP payload header [Transport(1), SequenceId(4)], SequenceId starts at index 1.
-        uint sequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
+        // Extract sequence ID cleanly from the packet header (offset 8 for the new 16-bit sequence)
+        ushort sequenceId = HeaderExtensions.ReadSequenceIdLE(payload);
         if (!connection.UdpReplayWindow.TryCheck(sequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             lease.Dispose();
-
-            s_logger?.Warn(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"replay-detected id={connection.ID} seq={sequenceId} ep={remoteEndPoint}");
             return;
         }
 
@@ -289,23 +233,11 @@ public abstract partial class UdpListenerBase
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             lease.Dispose();
-
-            s_logger?.Warn(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                $"unauth id={connection.ID} from={remoteEndPoint}");
             return;
         }
 
-        // SEC-28: Bound the endpoint cache to prevent memory exhaustion from spoofed endpoints.
-        // If the cache is at capacity, new endpoints are simply not cached (they'll use slow path).
-        const int MaxEndpointCacheSize = 50_000;
-        if (_endpointCache.Count < MaxEndpointCacheSize)
-        {
-            _ = _endpointCache.TryAdd(remoteEndPoint, connection);
-        }
-
         // Ensure the connection has a UDP transport bound to our socket.
-        SocketUdpTransport.CreateUDP(connection, (IPEndPoint)remoteEndPoint, _socket);
+        SocketUdpTransport.CreateUDP(connection, (IPEndPoint)remoteEndPoint, _socket!);
 
         _ = Interlocked.Increment(ref _rxPackets);
         _ = Interlocked.Add(ref _rxBytes, lease.Length);
@@ -320,7 +252,7 @@ public abstract partial class UdpListenerBase
 
         // Create a new lease for the payload (7 bytes offset)
         BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
-        incomingLease.Protocol = Common.Networking.Protocols.ProtocolType.UDP;
+        incomingLease.IsReliable = false;
 
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(incomingLease, connection);

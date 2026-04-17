@@ -1,80 +1,90 @@
 # Nalix.Runtime.Handlers
 
-`Nalix.Runtime.Handlers` contains built-in packet controller classes for core protocol flows.
+`Nalix.Runtime.Handlers` provides the core controller pattern and built-in protocol handlers that manage the basic handshaking, session management, and system control logic of the Nalix framework.
 
-## Audit Summary
+## Packet Controller Execution Model
 
-- Existing page focused on generic handler discovery/signature patterns but did not document concrete built-in handler responsibilities.
-- Needed alignment with actual public handler classes in `Nalix.Runtime`.
+The following diagram illustrates how your controller classes are transformed into high-performance execution units during startup.
 
-## Missing Content Identified
+```mermaid
+flowchart LR
+    subgraph Compile[1. Registration Phase]
+        Class[Controller Class]
+        Scan[Attribute Scanner]
+        Comp[Handler Compiler]
+        
+        Class --> Scan
+        Scan --> Comp
+    end
 
-- Built-in controller coverage (`HandshakeHandlers`, `SessionHandlers`, `SystemControlHandlers`).
-- Responsibility boundaries and when not to depend on built-ins directly.
+    subgraph Memory[2. Dispatch Registry]
+        Table[OpCode Handler Table]
+        Desc[Compiled Descriptor]
+        
+        Comp --> Desc
+        Desc --> Table
+    end
 
-## Improvement Rationale
+    subgraph Live[3. Execution Phase]
+        Ctx[PacketContext]
+        Inv[Compiled Lambda]
+        Ret[IReturnHandler]
+        
+        Ctx --> Inv
+        Inv --> Ret
+        Ret --> Send[Outbound Transport]
+    end
 
-This clarifies default runtime behavior and extension points for production deployments.
+    Table -->|Resolve| Ctx
+```
 
-## Source Mapping
+## Built-in Handlers
 
-- `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
-- `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
-- `src/Nalix.Runtime/Handlers/SystemControlHandlers.cs`
-
-## Built-in Controllers
+Nalix includes industrial-strength handlers for standard protocol features. You can explore their implementations in the `src/Nalix.Runtime/Handlers` directory.
 
 ### `HandshakeHandlers`
-
-Handles X25519 handshake flow using `Handshake` packets.
-
-- Accepts `CLIENT_HELLO` and `CLIENT_FINISH` stages.
-- Validates transcript/proofs.
-- Establishes connection secret/algorithm on success.
-- Stores session entry when session store is available.
+Manages the server-side **X25519 Handshake** flow.
+-   **Stage Resolution**: Orchestrates `CLIENT_HELLO` and `CLIENT_FINISH` stages.
+-   **Security**: Generates ephemeral keys, computes transcript hashes, and derives the session key.
+-   **Session Integration**: Automatically creates a resumable session entry upon a successful handshake.
 
 ### `SessionHandlers`
-
-Handles session resume with `SessionResume` packets.
-
-- Validates resume request/stage/token.
-- Loads session from `IConnectionHub.SessionStore`.
-- Restores secret/algorithm/permission/attributes to connection.
-- Responds with resume acknowledgement.
+Manages the **Session Resumption** protocol.
+-   **Token Verification**: Validates session tokens against the `ISessionStore`.
+-   **State Restoration**: Reloads secret keys, permission levels, and connection attributes to restore a dropped connection instantly.
 
 ### `SystemControlHandlers`
+Handles global **Control Signaling** (`ProtocolOpCode.CONTROL`).
+-   **Heartbeats**: Responds to Ping with Pong.
+-   **Utility**: Processes TimeSync requests and CipherUpdate acknowledgements.
+-   **Teardown**: Manages orderly disconnect sequences.
 
-Handles control packet operations (`Control`).
+## Controller Implementation (Source-Verified)
 
-- Handles disconnect requests.
-- Responds to ping with pong.
-- Handles cipher update control and acknowledgement.
-- Handles time sync request/response path.
+To implement a custom handler, use the following pattern:
 
-## Handler Attributes in Built-ins
+```csharp
+[PacketController("MyModule")]
+public class MyController 
+{
+    [PacketOpcode(0x1000)]
+    public async ValueTask HandleRequestAsync(IPacketContext<MyPacket> context)
+    {
+        // Business logic here
+        await context.Sender.SendAsync(new MyResponse());
+    }
+}
+```
 
-Built-in handlers currently use packet attributes such as:
+### Key Attributes
+-   `[PacketController(string tag)]`: Identifies a class as a candidate for scanning.
+-   `[PacketOpcode(ushort opcode)]`: Maps a specific opcode to a method.
+-   `[PacketEncryption(bool)]`: Overrides the default security requirement for this handler.
+-   `[PacketPermission(PermissionLevel)]`: Enforces specific access levels before execution starts.
 
-- `PacketController`
-- `PacketOpcode`
-- `PacketEncryption`
-- `PacketPermission`
-- `ReservedOpcodePermitted`
+## Related Information
 
-## Custom Handlers
-
-While built-in controllers handle protocol signals, your application logic should live in custom controllers.
-
-- [**Implementing Packet Handlers**](../../../guides/implementing-packet-handlers.md) — Step-by-step guide to building and registering your own handlers.
-
-## Best Practices
-
-- Keep built-in controllers enabled for standard handshake/session/control protocol behaviors.
-- Add custom controllers for domain packet logic; do not overload system opcode responsibilities.
-- Use metadata and middleware for policy changes before replacing built-in core handlers.
-
-## Related APIs
-
+- [Implementing Packet Handlers](../../../guides/implementing-packet-handlers.md)
 - [Packet Attributes](../routing/packet-attributes.md)
 - [Packet Metadata](../routing/packet-metadata.md)
 - [Handler Result Types](../routing/handler-results.md)

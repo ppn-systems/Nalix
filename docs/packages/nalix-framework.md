@@ -136,11 +136,10 @@ InstanceManager.Instance.Register<IPacketRegistry>(registry);
 
 // Handshake frame
 Handshake hs = new(
-    0,
     HandshakeStage.CLIENT_HELLO,
-    Csprng.GetBytes(32),
-    Csprng.GetBytes(32),
-    transport: ProtocolType.TCP);
+    Csprng.GetBytes32(),
+    Csprng.GetBytes32(),
+    flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 hs.UpdateTranscriptHash("nalix-default-handshake"u8);
 byte[] bytes = hs.Serialize();
 ```
@@ -160,7 +159,8 @@ IPacketRegistry catalog = factory.CreateCatalog();
 
 ## Key API pages
 
-- [Configuration and DI](../api/framework/runtime/configuration.md)
+- [Configuration](../api/framework/runtime/configuration.md)
+- [Instance Manager (DI)](../api/framework/runtime/instance-manager.md)
 - [Task Manager](../api/framework/runtime/task-manager.md)
 - [Clock](../api/framework/runtime/clock.md)
 - [Timing Scope](../api/framework/runtime/timing-scope.md)
@@ -172,4 +172,5 @@ IPacketRegistry catalog = factory.CreateCatalog();
 - [Fragmentation](../api/framework/packets/fragmentation.md)
 - [LZ4](../api/framework/memory/lz4.md)
 - [Serialization](../api/framework/packets/serialization.md)
-- [Buffer and Pooling](../api/framework/memory/buffer-and-pooling.md)
+- [Buffer Management](../api/framework/memory/buffer-management.md)
+- [Object Pooling](../api/framework/memory/object-pooling.md)

@@ -39,6 +39,14 @@ public sealed class DispatchOptions : ConfigurationLoader
     public System.TimeSpan BlockTimeout { get; init; } = System.TimeSpan.FromMilliseconds(1000);
 
     /// <summary>
+    /// Relative weights for each priority level (NONE..URGENT).
+    /// Used by Weighted Round-Robin to prevent starvation.
+    /// Default: "1,2,4,8,16" (URGENT is 16x more likely to be served than NONE).
+    /// </summary>
+    [IniComment("Relative weights for priority levels [NONE, LOW, MEDIUM, HIGH, URGENT] (Comma-separated)")]
+    public string PriorityWeights { get; init; } = "1,2,4,8,16";
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

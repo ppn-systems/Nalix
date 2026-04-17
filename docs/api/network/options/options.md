@@ -1,59 +1,79 @@
 # Network Options
 
-Network options define listener behavior, connection admission policy, queueing pressure, timeout cleanup, callbacks, and related runtime controls.
+Network options represent the "tunable knobs" of the Nalix networking stack. They control everything from raw socket behavior and buffer pooling to administrative limits and security policies.
 
-## Audit Summary
+## Configuration Topology
 
-- Existing page had useful coverage but mixed types from multiple packages without clear boundary notes.
-- Needed clearer package ownership mapping.
+The following diagram illustrates how various Options classes map to the core runtime components they configure.
 
-## Missing Content Identified
+```mermaid
+flowchart LR
+    subgraph Config[Options Layer]
+        NSO[NetworkSocketOptions]
+        PO[PoolingOptions]
+        CLO[ConnectionLimitOptions]
+        NCO[NetworkCallbackOptions]
+        CHO[ConnectionHubOptions]
+        TWO[TimingWheelOptions]
+        SSO[SessionStoreOptions]
+    end
 
-- Package ownership for each options type (`Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Network.Pipeline`).
-- Explicit startup validation recommendation.
+    subgraph Runtime[Runtime Components]
+        SC[SocketConnection]
+        CG[ConnectionGuard]
+        AC[AsyncCallback]
+        Hub[ConnectionHub]
+        TW[TimingWheel]
+        SS[SessionStore]
+    end
 
-## Improvement Rationale
-
-Clear ownership reduces configuration mistakes in modular deployments.
-
-## Source Mapping
-
-- `src/Nalix.Network/Options/NetworkSocketOptions.cs`
-- `src/Nalix.Network/Options/PoolingOptions.cs`
-- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
-- `src/Nalix.Network/Options/ConnectionHubOptions.cs`
-- `src/Nalix.Network/Options/TimingWheelOptions.cs`
-- `src/Nalix.Network/Options/NetworkCallbackOptions.cs`
-- `src/Nalix.Network/Options/SessionStoreOptions.cs`
-- `src/Nalix.Runtime/Options/DispatchOptions.cs`
-- `src/Nalix.Framework/Options/CompressionOptions.cs`
-- `src/Nalix.Network.Pipeline/Options/TokenBucketOptions.cs`
+    NSO --> SC
+    PO --> SC
+    PO --> AC
+    
+    CLO --> CG
+    NCO --> AC
+    
+    CHO --> Hub
+    TWO --> TW
+    SSO --> SS
+```
 
 ## Option Ownership Matrix
 
-| Option type | Package | Primary scope |
-|---|---|---|
-| `NetworkSocketOptions` | `Nalix.Network` | socket/listener behavior |
-| `PoolingOptions` (network) | `Nalix.Network` | network object pooling |
-| `ConnectionLimitOptions` | `Nalix.Network` | admission/rate controls |
-| `ConnectionHubOptions` | `Nalix.Network` | hub capacity/sharding |
-| `TimingWheelOptions` | `Nalix.Network` | idle timeout wheel |
-| `NetworkCallbackOptions` | `Nalix.Network` | callback pressure limits |
-| `SessionStoreOptions` | `Nalix.Network` | resumable session TTL |
-| `DispatchOptions` | `Nalix.Runtime` | dispatch queue behavior |
-| `CompressionOptions` | `Nalix.Framework` | compression thresholds |
-| `TokenBucketOptions` | `Nalix.Network.Pipeline` | reusable token-bucket limiter |
+Nalix uses a modular configuration system. Depending on the packages you have installed, different options become available.
 
-## Best Practices
+| Option type | Package | Primary Role | Tuning Impact |
+|---|---|---|---|
+| `NetworkSocketOptions` | `Nalix.Network` | Low-level OS socket settings. | Throughput / Latency |
+| `PoolingOptions` | `Nalix.Network` | Memory and object pool limits. | GC Pressure |
+| `ConnectionLimitOptions` | `Nalix.Network` | Anti-DDoS and per-IP caps. | Security |
+| `ConnectionHubOptions` | `Nalix.Network` | Hub sharding and total capacity. | Concurrency |
+| `TimingWheelOptions` | `Nalix.Network` | Idle cleanup granularity. | CPU Overhead |
+| `NetworkCallbackOptions` | `Nalix.Network` | ThreadPool dispatch pressure. | Stability |
+| `SessionStoreOptions` | `Nalix.Network` | Token TTL and persistence. | Reliability |
+| `DispatchOptions` | `Nalix.Runtime` | Internal message routing. | Parallelism |
+| `CompressionOptions` | `Nalix.Framework` | LZ4 threshold settings. | Bandwidth |
+| `TokenBucketOptions` | `Nalix.Network.Pipeline` | Traffic shaping and rate limiting. | QoS |
 
-- Validate all option objects during startup before `Activate()`.
-- Keep network/runtime/pipeline options grouped by owning package in configuration files.
-- Tune queue limits, drop policy, and connection limits together.
+## Internal Guidelines (Source-Verified)
 
-## Related APIs
+### 1. High-Performance Sharding
+Configuring `ShardCount` in `ConnectionHubOptions` is critical for servers with more than 16 CPU cores. Setting this to `ProcessorCount` (default) ensures that hub lock contention remains near-zero even during massive registration bursts.
 
+### 2. Callback Backpressure
+`NetworkCallbackOptions.MaxPendingNormalCallbacks` acts as the server's circuit breaker. If Nalix cannot keep up with the incoming packet rate, it will drop callbacks rather than allowing the `ThreadPool` queue to grow indefinitely, preventing an "Out of Memory" event.
+
+### 3. Startup Validation
+All Nalix options implement `Validate()`. The framework strongly recommends calling `options.Validate()` during your application's bootstrap phase to catch configuration errors (like negative timeouts or zero-capacity pools) before the network starts.
+
+!!! tip "Operational Recommendation"
+    In production deployments, prioritize tuning `NetworkCallbackOptions` and `ConnectionLimitOptions` first. These provide the highest protection against noisy or malicious traffic.
+
+## Related Information Paths
+
+- [Configuration System](../../framework/runtime/configuration.md)
+- [Instance Manager (DI)](../../framework/runtime/instance-manager.md)
 - [TCP Listener](../tcp-listener.md)
 - [UDP Listener](../udp-listener.md)
 - [Connection Hub](../connection/connection-hub.md)
-- [Session Store Options](./session-store-options.md)
-- [Dispatch Options](../../runtime/options/dispatch-options.md)

@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using Nalix.Common.Abstractions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
@@ -14,7 +15,7 @@ namespace Nalix.Common.Networking;
 /// Manages client sessions in a networked application, such as an MMORPG server.
 /// Provides methods to register, unregister, retrieve, and close client connections.
 /// </summary>
-public interface IConnectionHub
+public interface IConnectionHub : IReportable, IDisposable
 {
     /// <summary>
     /// Gets the current number of active connections.

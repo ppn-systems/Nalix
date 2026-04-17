@@ -23,7 +23,7 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 
 `IPacket` is the wire contract. It includes:
 
-- header metadata (`MagicNumber`, `OpCode`, `Flags`, `Priority`, `Protocol`, `SequenceId`)
+- header metadata (`MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`)
 - `Length`
 - serialization methods (`Serialize()`, `Serialize(Span<byte>)`)
 

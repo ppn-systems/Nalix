@@ -1,5 +1,10 @@
 # Architecture
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Beginner
+    - :fontawesome-solid-clock: **Time**: 10 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+
 The Nalix architecture is designed for high-throughput, low-latency networking with a focus on zero-allocation data paths and shard-aware execution. This page explains how the framework's packages relate to each other, how data flows through the system, and where each component sits in the overall design.
 
 ## System Context

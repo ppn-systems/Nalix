@@ -47,7 +47,7 @@ public abstract class SessionStoreBase : ISessionStore
             SessionToken = sessionToken,
             CreatedAtUnixMilliseconds = now,
             ExpiresAtUnixMilliseconds = now + (long)_options.SessionTtl.TotalMilliseconds,
-            Secret = [.. connection.Secret],
+            Secret = connection.Secret,
             Algorithm = connection.Algorithm,
             Level = connection.Level,
             Attributes = attributes

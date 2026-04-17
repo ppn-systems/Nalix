@@ -10,7 +10,7 @@ namespace Nalix.Framework.Serialization.Formatters.Collections;
 /// <summary>
 /// Provides serialization and deserialization for arrays of reference types.
 /// </summary>
-/// <typeparam name="T">The reference type of the array elements.</typeparam>
+/// <typeparam name="T">The type of the array elements.</typeparam>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
@@ -19,7 +19,7 @@ internal sealed class ReferenceArrayFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]> where T : class
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T[]>
 {
     private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
     private static string DebuggerDisplay => $"ReferenceArrayFormatter<{typeof(T).FullName}>";

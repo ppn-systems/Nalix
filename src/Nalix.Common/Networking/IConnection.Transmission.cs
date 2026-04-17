@@ -11,12 +11,12 @@ namespace Nalix.Common.Networking;
 public partial interface IConnection
 {
     /// <summary>
-    /// Gets the Transmission CONTROL ProtocolType (TCP) transmission interface
+    /// Gets the Transmission CONTROL number (TCP) transmission interface
     /// </summary>
     ITransport TCP { get; }
 
     /// <summary>
-    /// Gets the USER Datagram ProtocolType (UDP) transmission interface
+    /// Gets the USER Datagram number (UDP) transmission interface
     /// </summary>
     ITransport UDP { get; }
 
@@ -71,3 +71,4 @@ public partial interface IConnection
         void BeginReceive(CancellationToken cancellationToken = default);
     }
 }
+

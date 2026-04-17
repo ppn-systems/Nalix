@@ -83,11 +83,11 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// <summary>
     /// Initializes the packet with the specified stage and metadata.
     /// </summary>
-    public void Initialize(SessionResumeStage stage, Snowflake sessionToken, ProtocolReason reason = ProtocolReason.NONE, ProtocolType transport = ProtocolType.TCP, Bytes32 proof = default)
+    public void Initialize(SessionResumeStage stage, Snowflake sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
-        this.Protocol = transport;
         this.Priority = PacketPriority.URGENT;
+        this.Flags = flags;
         this.Stage = stage;
         this.SessionToken = sessionToken;
         this.Reason = reason;
@@ -99,8 +99,8 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     {
         base.ResetForPool();
         this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
-        this.Protocol = ProtocolType.TCP;
         this.Priority = PacketPriority.URGENT;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = SessionResumeStage.NONE;
         this.SessionToken = Snowflake.Empty;
         this.Reason = ProtocolReason.NONE;

@@ -38,7 +38,7 @@ Control frames are typically created and consumed automatically by the transport
 
 ```csharp
 var control = new Control();
-control.Initialize(ControlType.PING, sequenceId: 42, transport: ProtocolType.TCP);
+control.Initialize(ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 ```
 
 ## Related APIs

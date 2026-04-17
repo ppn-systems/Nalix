@@ -7,6 +7,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Identifiers;
+using Nalix.Common.Primitives;
 
 namespace Nalix.SDK.Options;
 
@@ -89,23 +90,14 @@ public sealed class TransportOptions : ConfigurationLoader
     /// Size (in bytes) of the socket send and receive buffer.
     /// </summary>
     [IniComment("Socket send and receive buffer size in bytes")]
-    [Range(1024, 1048576, ErrorMessage = "BufferSize must be between 1024 and 1048576 bytes.")]
-    public int BufferSize { get; set; } = 8192;
-
-    // Limits
-
-    /// <summary>
-    /// Maximum allowed packet size (header + payload) in bytes.
-    /// </summary>
-    [IniComment("Maximum packet size in bytes including header and payload")]
-    [Range(512, 65536, ErrorMessage = "MaxPacketSize must be between 512 and 65536 bytes.")]
-    public int MaxPacketSize { get; set; } = 64 * 1024;
+    [Range(2048, 1048576, ErrorMessage = "BufferSize must be between 2048 and 1048576 bytes.")]
+    public int BufferSize { get; set; } = 65536;
 
     /// <summary>
     /// Gets the encryption key used for secure communication.
     /// </summary>
     [ConfiguredIgnore]
-    public byte[] Secret { get; set; } = [];
+    public Bytes32 Secret { get; set; }
 
     /// <summary>
     /// Gets the encryption mode for the connection.
@@ -143,7 +135,7 @@ public sealed class TransportOptions : ConfigurationLoader
     /// The maximum size (in bytes) allowed for a single UDP datagram (including the 7-byte Token).
     /// </summary>
     [IniComment("Maximum allowed UDP datagram size in bytes (including header). Default 1400.")]
-    [Range(64, 65535, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65535.")]
+    [Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
     public int MaxUdpDatagramSize { get; set; } = 1400;
 
     /// <summary>
@@ -190,14 +182,12 @@ public sealed class TransportOptions : ConfigurationLoader
         {
             throw new ValidationException("ReconnectBaseDelayMillis cannot be greater than ReconnectMaxDelayMillis.");
         }
+
         if (this.BufferSize is < 1024 or > 1048576)
         {
             throw new ValidationException("BufferSize must be between 1024 and 1048576 bytes.");
         }
-        if (this.MaxPacketSize is < 512 or > 65536)
-        {
-            throw new ValidationException("MaxPacketSize must be between 512 and 65536 bytes.");
-        }
+
         if (this.ResumeTimeoutMillis < 100)
         {
             throw new ValidationException("ResumeTimeoutMillis must be at least 100.");

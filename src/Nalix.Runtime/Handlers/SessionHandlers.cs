@@ -78,7 +78,7 @@ public sealed class SessionHandlers
         // SEC-16: Validate proof-of-possession (MAC) using the stored session secret.
         // We compute HMAC-SHA256(Secret, SessionToken) and compare it with the client's proof.
         // This ensures the client knows the secret without sending it over the wire.
-        if (session.Snapshot.Secret is not { Length: > 0 })
+        if (session.Snapshot.Secret.IsZero)
         {
             session.Return();
             await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
@@ -90,7 +90,7 @@ public sealed class SessionHandlers
         _ = packet.SessionToken.TryWriteBytes(tokenBytes);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption to prevent DoS.
-        HmacKeccak256.Compute(session.Snapshot.Secret, tokenBytes[..7], expectedProofBytes);
+        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), tokenBytes[..7], expectedProofBytes);
 
         Bytes32 expectedProof = new(expectedProofBytes);
         if (packet.Proof != expectedProof)
@@ -115,7 +115,7 @@ public sealed class SessionHandlers
             stage: SessionResumeStage.RESPONSE,
             sessionToken: Snowflake.NewId(newToken),
             reason: ProtocolReason.NONE,
-            transport: packet.Protocol);
+            flags: packet.Flags);
 
         await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
         session.Return();
@@ -130,7 +130,7 @@ public sealed class SessionHandlers
     {
         SessionSnapshot snapshot = session.Snapshot;
 
-        connection.Secret = [.. snapshot.Secret];
+        connection.Secret = snapshot.Secret;
         connection.Algorithm = snapshot.Algorithm;
         connection.Level = snapshot.Level;
 
@@ -159,12 +159,12 @@ public sealed class SessionHandlers
             stage: SessionResumeStage.RESPONSE,
             sessionToken: default,
             reason: reason,
-            transport: ProtocolType.TCP);
+            flags: PacketFlags.SYSTEM | (connection.TCP != null ? PacketFlags.RELIABLE : PacketFlags.UNRELIABLE));
 
         try
         {
-            await connection.TCP.SendAsync(ack)
-                                .ConfigureAwait(false);
+            await connection.TCP!.SendAsync(ack)
+                                 .ConfigureAwait(false);
         }
         finally
         {
