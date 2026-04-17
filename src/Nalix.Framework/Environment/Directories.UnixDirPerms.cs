@@ -145,6 +145,8 @@ public static partial class Directories
                 ds.AddAccessRule(new FileSystemAccessRule(system, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
                 ds.AddAccessRule(new FileSystemAccessRule(owner, FileSystemRights.FullControl, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
 
+                // Only grant rights to the 'Users' group if the permission level is higher than Private700.
+                // For Private700, the inheritance is already disabled and only Admin/System/Owner have access.
                 if (perms != UnixDirPerms.Private700)
                 {
                     FileSystemRights userRights = perms switch
@@ -152,8 +154,7 @@ public static partial class Directories
                         UnixDirPerms.Shared750 => FileSystemRights.ReadAndExecute,
                         UnixDirPerms.WorldReadable => FileSystemRights.ReadAndExecute | FileSystemRights.ListDirectory,
                         UnixDirPerms.Default755 => FileSystemRights.ReadAndExecute | FileSystemRights.ListDirectory,
-                        UnixDirPerms.Private700 => throw new NotImplementedException(),
-                        _ => FileSystemRights.ReadAndExecute
+                        UnixDirPerms.Private700 or _ => FileSystemRights.ReadAndExecute
                     };
 
                     ds.AddAccessRule(new FileSystemAccessRule(users, userRights, InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit, PropagationFlags.None, AccessControlType.Allow));
