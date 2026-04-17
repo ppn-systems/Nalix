@@ -136,6 +136,7 @@ services:
 
 ## Related APIs
 
-- [Configuration and DI](../runtime/configuration.md)
+- [Configuration](../runtime/configuration.md)
+- [Instance Manager (DI)](../runtime/instance-manager.md)
 - [Logging Targets](../../logging/targets.md)
 - [Installation](../../../installation.md)

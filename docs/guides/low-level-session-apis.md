@@ -89,8 +89,8 @@ byte[] precomputedLoginPacket = ComputeStaticLogin();
 await session.SendAsync(precomputedLoginPacket.AsMemory());
 ```
 
-> [!TIP]
-> This is massively beneficial for high throughput servers blasting the exact same static packet (e.g. ping signals, map state updates) to thousands of clients. Calculate the bytes once, and pass the memory slice to `SendAsync()`.
+!!! tip
+    This is massively beneficial for high throughput servers blasting the exact same static packet (e.g. ping signals, map state updates) to thousands of clients. Calculate the bytes once, and pass the memory slice to `SendAsync()`.
 
 ## 4. Manual Encryption Overrides (Per-Packet)
 
@@ -106,8 +106,8 @@ TcpSession session = (TcpSession)mySession;
 await session.SendAsync(new HandshakePacket(), encrypt: false);
 ```
 
-> [!CAUTION]
-> Manually overriding encryption flags on custom endpoints can severely crash the connection if the server receiving the frame is statically enforcing ciphertext validation via its middleware. Proceed with extreme caution and ensure your server-side configurations expect plaintext bursts.
+!!! danger
+    Manually overriding encryption flags on custom endpoints can severely crash the connection if the server receiving the frame is statically enforcing ciphertext validation via its middleware. Proceed with extreme caution and ensure your server-side configurations expect plaintext bursts.
 
 ## Related Information Paths
 - [High-Level Client Initialization](client-session-connect.md)

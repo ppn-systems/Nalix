@@ -41,13 +41,13 @@ Use it to:
 - reject spoofed or malformed datagrams
 - gate traffic until a handshake token or session secret is known
 
-> [!TIP]
-> If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. You can provide a predicate directly in the builder:
-> ```csharp
-> app.AddUdp<MyProtocol>((connection, endpoint, payload) => {
->     return connection.Level >= PermissionLevel.USER;
-> });
-> ```
+!!! tip
+    If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. You can provide a predicate directly in the builder:
+    ```csharp
+    app.AddUdp<MyProtocol>((connection, endpoint, payload) => {
+        return connection.Level >= PermissionLevel.USER;
+    });
+    ```
 
 ### 2. Protocol behavior
 

@@ -57,11 +57,11 @@ public sealed class SampleUdpListener : UdpListenerBase
 }
 ```
 
-> [!TIP]
-> **Preferred Modern Pattern:** instead of subclassing `UdpListenerBase`, use the hosting predicate:
-> ```csharp
-> app.AddUdp<MyProtocol>((conn, ep, data) => conn.Level >= PermissionLevel.USER);
-> ```
+!!! tip "Preferred Modern Pattern"
+    Instead of subclassing `UdpListenerBase`, use the hosting predicate:
+    ```csharp
+    app.AddUdp<MyProtocol>((conn, ep, data) => conn.Level >= PermissionLevel.USER);
+    ```
 
 ### 2. Keep TCP and UDP tied to the same session
 

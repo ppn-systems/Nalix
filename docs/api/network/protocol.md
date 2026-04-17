@@ -27,6 +27,36 @@ A strict boundary helps protocol implementations stay thin and keeps business lo
 
 `Protocol` centralizes shared transport concerns (acceptance, decrypt/decompress pre-processing, error accounting, post-processing) so derived protocols only provide message logic.
 
+```mermaid
+flowchart TD
+    subgraph AcceptPhase[Connection Acceptance]
+        NewConn[New IConnection] --> Validate[ValidateConnection]
+        Validate -->|Success| OnAccept[OnAccept Hook]
+        Validate -->|Fail| Drop[Disconnect]
+    end
+
+    subgraph ProcessingLoop[Per-Frame Processing Pipeline]
+        Raw[Inbound Raw Frame] --> ProcFrame[ProcessFrame]
+        ProcFrame --> Decrypt[Pipeline: Decrypt & Decompress]
+        Decrypt --> ProcMsg[ProcessMessage - Abstract]
+        
+        subgraph Impl[Developer Implementation]
+            ProcMsg --> Route[Route to Packet Dispatch]
+        end
+        
+        Route --> PostProc[PostProcessMessage]
+        PostProc --> Metrics[Update Traffic Metrics]
+    end
+
+    OnAccept -->|Begin Receive| Raw
+    Metrics -->|Listen for next| Raw
+    
+    subgraph Termination[Cleanup]
+        Err[OnConnectionError] --> Cleanup[Dispose]
+        MetricTrigger[Inactivity/Close] --> Cleanup
+    end
+```
+
 ## Core Contract
 
 ```csharp

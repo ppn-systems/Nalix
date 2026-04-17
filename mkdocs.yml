@@ -74,7 +74,7 @@ theme:
 plugins:
   - search:
       separator: '[\s\-\.]+'
-  - social
+  # - social
   - git-revision-date-localized:
       type: datetime
       enable_creation_date: true
@@ -187,7 +187,8 @@ nav:
         - Enums: api/common/enums.md
       - Framework:
         - Directories: api/framework/environment/directories.md
-        - Configuration & DI: api/framework/runtime/configuration.md
+        - Configuration: api/framework/runtime/configuration.md
+        - Instance Manager (DI): api/framework/runtime/instance-manager.md
         - Task Manager: api/framework/runtime/task-manager.md
         - Snowflake: api/framework/runtime/snowflake.md
         - Clock: api/framework/runtime/clock.md
@@ -262,7 +263,7 @@ nav:
           - Overview: api/network/options/options.md
           - Network Socket: api/network/options/network-socket-options.md
           - Connection Limit: api/network/options/connection-limit-options.md
-          - Connection Hub Options: api/network/connection/connection-hub-options.md
+          - Connection Hub Options: api/network/options/connection-hub-options.md
           - Timing Wheel Options: api/network/options/timing-wheel-options.md
           - Pooling Options: api/network/options/pooling-options.md
           - Network Callback Options: api/network/options/network-callback-options.md

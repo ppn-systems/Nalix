@@ -159,7 +159,8 @@ IPacketRegistry catalog = factory.CreateCatalog();
 
 ## Key API pages
 
-- [Configuration and DI](../api/framework/runtime/configuration.md)
+- [Configuration](../api/framework/runtime/configuration.md)
+- [Instance Manager (DI)](../api/framework/runtime/instance-manager.md)
 - [Task Manager](../api/framework/runtime/task-manager.md)
 - [Clock](../api/framework/runtime/clock.md)
 - [Timing Scope](../api/framework/runtime/timing-scope.md)

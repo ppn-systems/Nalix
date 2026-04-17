@@ -315,3 +315,52 @@ Specifies the relative dispatch priority for queued workers.
 | `NORMAL` | `1` | Normal traffic. |
 | `HIGH` | `2` | Latency-sensitive work. |
 | `URGENT` | `3` | Run immediately when queued. |
+
+---
+
+## Wire-Level Coverage (Source-Anchored)
+
+This page is an enum reference first. Enums alone are not a full wire protocol specification for cross-language clients.
+
+### Confirmed From Source
+
+| Topic | Current Status | Source Anchors |
+| :--- | :--- | :--- |
+| Packet header binary layout | **Defined**: fixed 10 bytes, contiguous offsets, no padding (`MagicNumber[0..3]`, `OpCode[4..5]`, `Flags[6]`, `Priority[7]`, `SequenceId[8..9]`). | `src/Nalix.Common/Networking/Packets/PacketHeaderOffset.cs`, `src/Nalix.Common/Networking/Packets/PacketConstants.cs`, `src/Nalix.Framework/Extensions/HeaderExtensions.cs`, `src/Nalix.Framework/DataFrames/FrameBase.cs` |
+| Header endianness | **Defined**: header read helpers are little-endian (`ReadUInt32LittleEndian`, `ReadUInt16LittleEndian`). | `src/Nalix.Framework/Extensions/HeaderExtensions.cs` |
+| TCP framing | **Defined**: stream is length-prefixed with `UInt16 LE` where prefix value is total frame size (including the 2-byte prefix). | `src/Nalix.SDK/Transport/Internal/FrameSender.cs`, `src/Nalix.SDK/Transport/Internal/FrameReader.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.Send.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.cs` |
+| UDP framing | **Defined**: outbound datagram is `[SessionToken(7 bytes) | Payload]`; token is `Snowflake` in little-endian layout. | `src/Nalix.SDK/Transport/UdpSession.cs`, `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`, `src/Nalix.Framework/Identifiers/Snowflake.Serialization.cs` |
+| Fragment chunk format | **Defined**: per-chunk payload starts with 8-byte `FragmentHeader` (`Magic=0xF0`, `StreamId u16 LE`, `ChunkIndex u16 LE`, `TotalChunks u16 LE`, `Flags`). | `src/Nalix.Framework/DataFrames/Chunks/FragmentHeader.cs`, `src/Nalix.Framework/DataFrames/Chunks/FragmentAssembler.cs`, `src/Nalix.SDK/Transport/Internal/FrameSender.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.Send.cs` |
+| Handshake packet structure | **Defined**: fixed-size `Handshake` frame with stage/reason/token/pubkey/nonce/proof/transcript fields. | `src/Nalix.Framework/DataFrames/SignalFrames/Handshake.cs`, `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`, `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`, `src/Nalix.Framework/Security/HandshakeX25519.cs` |
+| Crypto envelope | **Defined**: envelope header is 12 bytes (`NALX`, version, suite, flags, nonceLen, seq LE); AEAD payload is `header||nonce||ciphertext||tag(16)`. | `src/Nalix.Framework/Security/Internal/EnvelopeHeader.cs`, `src/Nalix.Framework/Security/Internal/EnvelopeFormat.cs`, `src/Nalix.Framework/Security/Engine/AeadEngine.cs`, `src/Nalix.Framework/Security/EnvelopeCipher.cs` |
+| Session resume packet and proof | **Defined**: `SessionResume` is fixed size (`52` bytes total frame) and proof is HMAC-Keccak256 over 7-byte token. | `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`, `src/Nalix.Runtime/Handlers/SessionHandlers.cs` |
+
+### Known Gaps For Cross-Language Clients
+
+The following items are still missing as a single canonical, RFC-style wire contract:
+
+- A normative `Protocol Wire Specification` document that defines all packet diagrams and serialization rules in one place.
+- Canonical hex/byte examples for control paths such as `PING`, `HANDSHAKE`, and `CIPHER_UPDATE`.
+- Explicit statement about big-endian runtime support policy. (Current code paths are LE-centric; some generic writer helpers use native-endian writes.)
+- A single formal statement of handshake negotiation policy. (Current runtime sets `Chacha20Poly1305` after handshake and does not currently allow practical live suite switching.)
+- A normative statement for fragmented-packet signaling semantics (`FragmentHeader` magic is authoritative in code paths; `PacketFlags.FRAGMENTED` is not the current detection gate).
+- Zero-RTT/resumption-ticket format beyond current `SessionToken + proof` flow.
+
+### Suggested Next Documentation Page
+
+Create `Protocol Wire Specification` and keep it source-anchored to the files above. Recommended sections:
+
+- Packet header layout (byte diagram + field table).
+- Transport framing (TCP stream framing vs UDP datagram framing).
+- Fragmentation framing and reassembly.
+- Handshake sequence diagram with packet-by-packet payload fields.
+- Crypto parameters (nonce, AAD, key derivation, envelope formats).
+- Example packets (hex dump + decoded fields).
+
+Related existing references:
+
+- [Frame Model](../framework/packets/frame-model.md)
+- [Fragmentation](../framework/packets/fragmentation.md)
+- [Handshake Protocol (X25519)](../security/handshake.md)
+- [AEAD and Envelope](../security/aead-and-envelope.md)
+- [Session Resumption Protocol](../security/session-resume.md)

@@ -95,7 +95,8 @@ It is responsible for:
 ## Related APIs
 
 - [Diagnostics Contracts](../common/diagnostics-contracts.md)
-- [Configuration and DI](../framework/runtime/configuration.md)
+- [Configuration](../framework/runtime/configuration.md)
+- [Instance Manager (DI)](../framework/runtime/instance-manager.md)
 - [Logging Extensions](./extensions.md)
 - [Logging Targets](./targets.md)
 - [Nalix.Logging](../../packages/nalix-logging.md)

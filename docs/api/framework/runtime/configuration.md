@@ -1,9 +1,9 @@
-# Configuration and DI
+# Configuration
 
-This page covers the two framework services most Nalix applications touch first:
+This page documents the configuration runtime in `Nalix.Framework`, centered on:
 
 - `ConfigurationManager`
-- `InstanceManager`
+- `ConfigurationLoader`
 
 ## Source mapping
 
@@ -11,18 +11,35 @@ This page covers the two framework services most Nalix applications touch first:
 - `src/Nalix.Framework/Configuration/Binding/ConfigurationLoader.cs`
 - `src/Nalix.Framework/Configuration/Binding/ConfigurationLoader.Metadata.cs`
 - `src/Nalix.Framework/Configuration/Binding/ConfigurationLoader.SectionName.cs`
-- `src/Nalix.Framework/Injection/InstanceManager.cs`
+- `src/Nalix.Framework/Configuration/Binding/ConfigurationLoader.ValueParser.cs`
+- `src/Nalix.Framework/Configuration/Internal/IniConfig.cs`
 
 ## ConfigurationManager
 
-`ConfigurationManager` loads typed option objects that derive from `ConfigurationLoader`.
+`ConfigurationManager` is the singleton entry point for loading and reloading typed options from an INI file.
 
-It is responsible for:
+### What it does
 
-- locating and watching the active INI file
-- initializing option objects from sections
-- caching loaded option instances
-- reloading already-created option objects when the file changes
+- resolves and validates the active config file path
+- lazily initializes typed option containers via `Get<TClass>()`
+- caches initialized option instances
+- reloads existing containers when file changes are detected
+- debounces file watcher events before reload
+- flushes pending writes through `Flush()`
+
+### Key members
+
+- `Get<TClass>()`
+- `Get<TClass>(string configFilePath, bool autoReload = true)`
+- `SetConfigFilePath(string newConfigFilePath, bool autoReload = true)`
+- `ReloadAll()`
+- `Flush()`
+- `IsLoaded<TClass>()`
+- `Remove<TClass>()`
+- `ClearAll()`
+- `ConfigFilePath`
+- `ConfigFileExists`
+- `LastReloadTime`
 
 ### Basic usage
 
@@ -34,22 +51,19 @@ TransportOptions transport = ConfigurationManager.Instance.Get<TransportOptions>
 transport.Validate();
 ```
 
-### Current runtime behavior
+### Runtime notes (source-verified)
 
-The current implementation in `src/Nalix.Framework` is:
+- `SetConfigFilePath(...)` and `ReloadAll()` are `void` APIs and throw on failure/timeout.
+- path changes are restricted to the allowed configuration directory.
+- reload/path-change operations are serialized by a gate (`SemaphoreSlim`) and protected by read/write locks.
+- watcher reload is debounce-based (300 ms) to absorb bursty file-system events.
 
-- thread-safe
-- watcher-based with debounce
-- able to switch config file path through `SetConfigFilePath(...)`
-- ReloadAll already-initialized containers through `ReloadAll()`
+!!! important "Changes are not automatically persisted to disk"
+    Call `ConfigurationManager.Instance.Flush()` when you need to commit in-memory changes to the physical `.ini` file.
 
-> [!IMPORTANT]
-> **Changes are not automatically written to disk!**
-> Nalix caches configuration changes in memory to maximize performance. You **MUST** call `ConfigurationManager.Instance.Flush()` manually to commit pending changes to the physical `.ini` file. Failure to do so will result in loss of configuration changes if the process terminates unexpectedly.
+## ConfigurationLoader
 
-### ConfigurationLoader
-
-Your typed options should inherit from `ConfigurationLoader`:
+Typed option classes should inherit from `ConfigurationLoader`.
 
 ```csharp
 public sealed class MyServerOptions : ConfigurationLoader
@@ -59,19 +73,19 @@ public sealed class MyServerOptions : ConfigurationLoader
 }
 ```
 
-Section names are derived from the type name. A class such as `ConnectionHubOptions` maps to the `[ConnectionHubOptions]` section.
+### Section naming
 
-### Configuration Attributes
+Section names are derived from type names with suffix trimming (`Config`, `Option`, `Options`, `Setting`, `Settings`, `Configuration`, `Configurations`), then capitalized.
 
-Use these attributes to control how your options are serialized and documented in the `.ini` file:
+Example:
 
-- **`[IniComment("...")]`**: Adds a human-readable comment above a section or key.
-    - *On Class*: Adds a comment at the top of the section.
-    - *On Property*: Adds a comment above the specific configuration key.
-    - *Note*: Use `\n` for multi-line comments.
-- **`[ConfiguredIgnore]`**: Excludes a property from the configuration system. Use this for runtime-only state, internal caches, or calculated properties that shouldn't be persisted to disk.
+- `ConnectionHubOptions` -> `[ConnectionHub]`
 
-**Example:**
+### Attributes
+
+- `[IniComment("...")]` adds section/key comments in generated INI.
+- `[ConfiguredIgnore("...")]` excludes a property from binding.
+
 ```csharp
 [IniComment("Server security settings")]
 public sealed class SecurityOptions : ConfigurationLoader
@@ -80,85 +94,36 @@ public sealed class SecurityOptions : ConfigurationLoader
     public int MaxAttempts { get; set; } = 5;
 
     [ConfiguredIgnore("Resolved at runtime")]
-    public string InternalToken { get; set; }
+    public string InternalToken { get; set; } = string.Empty;
 }
 ```
 
-### Supported Binding Types
+### Supported binding types
 
-The configuration binder is optimized for speed and supports the following types directly:
-
-| Category | Supported Types |
+| Category | Supported types |
 | :--- | :--- |
-| **Primitives** | `bool`, `char`, `byte`, `sbyte`, `string` |
-| **Numerics** | `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal` |
-| **Specialized** | `Guid`, `TimeSpan`, `DateTime`, `Enum` |
+| Primitives | `bool`, `char`, `byte`, `sbyte`, `string` |
+| Numerics | `short`, `ushort`, `int`, `uint`, `long`, `ulong`, `float`, `double`, `decimal` |
+| Specialized | `DateTime`, `Guid`, `TimeSpan`, `Enum` |
 
-> [!WARNING]
-> **Arrays and Collections (e.g., `int[]`, `List<T>`) are NOT supported.**
-> To configure collections, use a comma-separated `string` and parse it manually in your component's constructor or a helper method.
+!!! warning
+    Arrays and collections (for example `int[]`, `List<T>`) are not directly supported by the binder.
 
-### Common operations
+## Common operations
 
 ```csharp
-bool reloaded = ConfigurationManager.Instance.ReloadAll();
-
-bool changed = ConfigurationManager.Instance.SetConfigFilePath(
+ConfigurationManager.Instance.SetConfigFilePath(
     @"E:\config\staging.ini",
     autoReload: true);
-```
 
-## InstanceManager
-
-`InstanceManager` is the shared service registry used throughout the Nalix stack.
-
-Use it to:
-
-- register a shared `ILogger`
-- register an `IPacketRegistry`
-- create or retrieve shared singleton-like services such as `TaskManager`
-
-### Basic usage
-
-```csharp
-InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
-
-TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
-```
-
-### What it actually does
-
-The current runtime implementation provides:
-
-- fast type-based caching
-- optional interface registration when registering a concrete instance
-- activator-based lazy creation
-- disposable tracking for owned instances
-
-## Typical startup pattern
-
-```csharp
-using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Injection;
-using Nalix.Logging;
-
-ILogger logger = NLogix.Host.Instance;
-IPacketRegistry registry = BuildPacketRegistry();
-
-InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IPacketRegistry>(registry);
-
-NetworkSocketOptions socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-socket.Validate();
+ConfigurationManager.Instance.ReloadAll();
+ConfigurationManager.Instance.Flush();
 ```
 
 ## Related APIs
 
+- [Instance Manager (DI)](./instance-manager.md)
 - [Task Manager](./task-manager.md)
-- [Snowflake](./snowflake.md)
 - [SingletonBase](./singleton-base.md)
 - [Directories](../environment/directories.md)
 - [Network Options](../../network/options/options.md)
-- [Server Blueprint](../../../guides/server-blueprint.md)

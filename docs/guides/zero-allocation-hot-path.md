@@ -1,7 +1,7 @@
 # Zero-Allocation Hot Path
 
 !!! warning "Advanced Topic"
-    This page describes extreme performance optimizations and bare-metal memory lifecycles. If you are just getting started, please see the [Quickstart](../../quickstart.md).
+    This page describes extreme performance optimizations and bare-metal memory lifecycles. If you are just getting started, please see the [Quickstart](../quickstart.md).
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Expert
@@ -62,8 +62,8 @@ public struct HighFreqUpdate : IPacket<HighFreqUpdate>
 }
 ```
 
-> [!TIP]
-> Using `struct` for small, high-frequency packets ensures they live on the stack or within the pooled `PacketContext`, avoiding heap allocation entirely.
+!!! tip
+    Using `struct` for small, high-frequency packets ensures they live on the stack or within the pooled `PacketContext`, avoiding heap allocation entirely.
 
 ---
 

@@ -51,6 +51,8 @@ The hosted pipeline remains generic-friendly, so the same builder flow works for
 ### Lifecycle methods
 
 - `ActivateAsync(...)`: Starts the application. It initializes the packet registry, activates the dispatcher, and starts all registered TCP and UDP listeners.
+!!! note
+    Middleware in context is registered globally but executed in the sharded dispatch loop. Ensure your custom middleware is thread-safe or uses localized state.
 - `RunAsync(...)`: Activates the application and waits indefinitely until cancellation is requested, then deactivates it.
 - `DeactivateAsync(...)`: Gracefully stops all listeners and disposes of protocols and the dispatcher.
 - `Dispose()`: Synchronous cleanup that calls `DeactivateAsync`.
@@ -66,11 +68,10 @@ The builder uses a fluent API to configure the host before it is built.
 - `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type. This is applied during the activation phase.
 
-> [!NOTE]
-> If you do not configure a connection hub or buffer pool manager, the builder can create default instances during build/activation.
-> The built-in handler set is registered automatically before user-defined handler discovery runs.
->
-> The builder also re-binds `BufferLease.ByteArrayPool` during startup, so the server receive path stays on pooled buffers even if `BufferLease` was touched before host wiring.
+!!! note
+    If you do not configure a connection hub or buffer pool manager, the builder can create default instances during build/activation. The built-in handler set is registered automatically before user-defined handler discovery runs.
+    
+    The builder also re-binds `BufferLease.ByteArrayPool` during startup, so the server receive path stays on pooled buffers even if `BufferLease` was touched before host wiring.
 
 ### Packet and Handler Discovery
 
@@ -131,4 +132,5 @@ To keep message reading allocation-free on the server hot path:
 - [UDP Listener](../network/udp-listener.md)
 - [Packet Dispatch](../runtime/routing/packet-dispatch.md)
 - [Packet Registry](../framework/packets/packet-registry.md)
-- [Configuration & DI](../framework/runtime/configuration.md)
+- [Configuration](../framework/runtime/configuration.md)
+- [Instance Manager (DI)](../framework/runtime/instance-manager.md)

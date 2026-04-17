@@ -131,4 +131,5 @@ Important members:
 ## Related APIs
 
 - [Buffer and Pooling](./buffer-and-pooling.md)
-- [Configuration and DI](../runtime/configuration.md)
+- [Configuration](../runtime/configuration.md)
+- [Instance Manager (DI)](../runtime/instance-manager.md)

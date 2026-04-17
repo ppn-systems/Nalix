@@ -7,9 +7,11 @@
 
 This guide provides a comprehensive, end-to-end flowchart for creating, configuring, and connecting a client session using the `Nalix.SDK`. It covers exactly how to initialize your `TransportOptions`, setup your shared packet registry, and manage the lifecycle of both `TcpSession` and `UdpSession`.
 
-> [!CAUTION]
-> **Common Configuration Pitfall (Handshake Errors)**
-> If you plan to use `session.HandshakeAsync()`, **DO NOT** manually configure `TransportOptions.EncryptionEnabled = true` or set a hardcoded `Secret` beforehand! The initial handshake phase runs in plaintext to securely negotiate a dynamic key using X25519. If you manually enable encryption out of the gate, the SDK will encrypt the `CLIENT_HELLO` packet, the server will fail to decrypt it, and the connection will immediately drop. `HandshakeAsync()` safely and automatically enables encryption and assigns the `Secret` for you upon success.
+!!! danger "Security Warning"
+    Never expose the `Secret` key or the `SessionToken` snowflakes in clear-text logs or debug UIs. These are sensitive cryptographic materials.
+
+!!! caution "Common Configuration Pitfall (Handshake Errors)"
+    If you plan to use `session.HandshakeAsync()`, **DO NOT** manually configure `TransportOptions.EncryptionEnabled = true` or set a hardcoded `Secret` beforehand! The initial handshake phase runs in plaintext to securely negotiate a dynamic key using X25519. If you manually enable encryption out of the gate, the SDK will encrypt the `CLIENT_HELLO` packet, the server will fail to decrypt it, and the connection will immediately drop. `HandshakeAsync()` safely and automatically enables encryption and assigns the `Secret` for you upon success.
 
 ## 1. Create a Shared Packet Catalog
 
@@ -127,15 +129,16 @@ async Task ConnectTcpStandardAsync()
 }
 ```
 
-> [!TIP]
-> **Performance Edge-case Options**
-> The `On<T>` extension is designed for highest developer velocity. However, if you are looking to squeeze the literal maximum throughput bypassing C# class boxing, see our [Low-Level APIs Guide](low-level-session-apis.md) for dealing with raw byte buffer event loops (`OnMessageReceived`).
+!!! tip "Performance Edge-case Options"
+    The `On<T>` extension is designed for highest developer velocity. However, if you are looking to squeeze the literal maximum throughput bypassing C# class boxing, see our [Low-Level APIs Guide](low-level-session-apis.md) for dealing with raw byte buffer event loops (`OnMessageReceived`).
+
+!!! note "Performance Recommendation"
+    While the SDK is mostly platform-agnostic, specialized socket options like `TCP_NODELAY` are enabled by default for gaming workloads.
 
 ## 4. Create and Connect a UDP Session (Auxiliary Channel)
 
-> [!NOTE]
-> **TCP is Primary, UDP is Auxiliary**
-> In the Nalix architecture, **TCP is always the primary, stateful connection**. The `UdpSession` acts purely as an **auxiliary (secondary) channel** used strictly for high-frequency, unreliable data (like player movement coordinates or voice frames). A UDP session inherently depends on the TCP channel to authenticate and provide the mandated `SessionToken` before it can transmit anything!
+!!! note "TCP is Primary, UDP is Auxiliary"
+    In the Nalix architecture, **TCP is always the primary, stateful connection**. The `UdpSession` acts purely as an **auxiliary (secondary) channel** used strictly for high-frequency, unreliable data (like player movement coordinates or voice frames). A UDP session inherently depends on the TCP channel to authenticate and provide the mandated `SessionToken` before it can transmit anything!
 
 `UdpSession` relies on exactly the same API contract as TCP but handles untrusted datagrams. Because we already performed the `await session.HandshakeAsync()` over the primary TCP link, our shared `options` object automatically holds the required `SessionToken` returning from the server!
 
@@ -165,9 +168,11 @@ async Task ConnectUdpStandardAsync()
 }
 ```
 
-> [!IMPORTANT]
-> **UDP Fragmented Size Constraint**
-> UDP payloads plus the 7-byte `SessionToken` prefix cannot exceed `TransportOptions.MaxUdpDatagramSize` (Default `1400` bytes). Large chunks of data must be routed through TCP protocols. Violating the MTU triggers local `NetworkException` halts.
+!!! danger "UDP Fragmented Size Constraint"
+    UDP payloads plus the 7-byte `SessionToken` prefix cannot exceed `TransportOptions.MaxUdpDatagramSize` (Default `1400` bytes). Large chunks of data must be routed through TCP protocols. Violating the MTU triggers local `NetworkException` halts.
+
+!!! info
+    The `Bytes32` primitive is used for the cryptographic secret to ensure zero-allocation memory pinned security during the entire lifecycle.
 
 ## 5. Common SDK Extensions
 

@@ -1,7 +1,7 @@
 # Shard-Aware Dispatch
 
 !!! warning "Advanced Topic"
-    This page describes multi-threaded synchronization and complex parallel scaling architectures. If you are just getting started, please see the [Quickstart](../../quickstart.md).
+    This page describes multi-threaded synchronization and complex parallel scaling architectures. If you are just getting started, please see the [Quickstart](../quickstart.md).
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
@@ -178,8 +178,8 @@ Per-connection queue backpressure is controlled by `DispatchOptions` (`MaxPerCon
 - **DropOldest**: Removes the head of the queue to make room. Ensures data freshness.
 - **Block**: Stalls the calling thread (usually the protocol reader). Highest reliability, but can lead to socket timeouts if handlers are slow.
 
-> [!WARNING]
-> Use `DropPolicy.Block` with caution. If a background worker stalls, it can trigger a backpressure ripple that eventually blocks the TCP accept loop.
+!!! warning
+    Use `DropPolicy.Block` with caution. If a background worker stalls, it can trigger a backpressure ripple that eventually blocks the TCP accept loop.
 
 ---
 

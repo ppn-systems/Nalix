@@ -103,6 +103,7 @@ This page provides a comprehensive index of all documentation available for the 
 ### Framework Internals
 - [**Directories**](./api/framework/environment/directories.md)
 - [**Configuration**](./api/framework/runtime/configuration.md)
+- [**Instance Manager (DI)**](./api/framework/runtime/instance-manager.md)
 - [**Task Manager**](./api/framework/runtime/task-manager.md)
 - [**Snowflake**](./api/framework/runtime/snowflake.md)
 - [**Clock**](./api/framework/runtime/clock.md)
