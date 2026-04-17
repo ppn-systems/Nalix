@@ -281,7 +281,7 @@ public class TcpSession : TransportSession
                     if (!writer.TryWrite(async () =>
                         {
                             try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
-                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException) { this.OnError?.Invoke(this, ex); }
                         }))
                     {
                         this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
