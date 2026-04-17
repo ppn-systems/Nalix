@@ -137,7 +137,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                     const int SIO_UDP_CONNRESET = -1744830452;
                     _ = _socket.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
                 }
-                catch { }
+                catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException)
+                {
+                }
             }
         }
     }
