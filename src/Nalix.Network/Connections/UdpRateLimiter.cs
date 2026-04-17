@@ -141,7 +141,7 @@ public sealed class UdpRateLimiter : IUdpRateLimiter, IDisposable
             {
                 break;
             }
-            catch (Exception ex)
+            catch (InvalidOperationException ex)
             {
                 _logger?.Warn($"[NW.{nameof(UdpRateLimiter)}] Cleanup loop error.", ex);
             }

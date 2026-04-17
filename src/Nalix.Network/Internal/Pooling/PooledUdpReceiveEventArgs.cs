@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
@@ -35,8 +36,12 @@ internal sealed class PooledUdpReceiveEventArgs : SocketAsyncEventArgs, IPoolabl
         {
             bufferSize = ConfigurationManager.Instance.Get<NetworkSocketOptions>().MaxUdpDatagramSize;
         }
-        catch 
-        { 
+        catch (Exception ex) when (
+            ex is InvalidOperationException ||
+            ex is NullReferenceException ||
+            ex is TypeInitializationException ||
+            ex is ConfigurationErrorsException)
+        {
             // Fallback cleanly if ConfigurationManager is uninitialized in tests.
         }
 
