@@ -41,7 +41,11 @@ The current implementation in `src/Nalix.Framework` is:
 - thread-safe
 - watcher-based with debounce
 - able to switch config file path through `SetConfigFilePath(...)`
-- able to reload already-initialized containers through `ReloadAll()`
+- ReloadAll already-initialized containers through `ReloadAll()`
+
+> [!IMPORTANT]
+> **Changes are not automatically written to disk!**
+> Nalix caches configuration changes in memory to maximize performance. You **MUST** call `ConfigurationManager.Instance.Flush()` manually to commit pending changes to the physical `.ini` file. Failure to do so will result in loss of configuration changes if the process terminates unexpectedly.
 
 ### ConfigurationLoader
 
