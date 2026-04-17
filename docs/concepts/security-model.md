@@ -1,5 +1,10 @@
 # Security Model
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-clock: **Time**: 15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](architecture.md)
+
 This page explains where security decisions happen in Nalix and how the different layers work together to protect your application.
 
 Nalix does not treat security as a single isolated feature. Instead, security is distributed across the transport, connection, metadata, and middleware layers. This design lets you place checks at the cheapest and most appropriate point in the request path.

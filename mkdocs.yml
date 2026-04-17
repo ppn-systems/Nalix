@@ -153,6 +153,7 @@ nav:
           - Custom Serialization Provider: guides/custom-serialization-provider.md
       - Networking Patterns:
           - Client Session Connect: guides/client-session-connect.md
+          - Low Level Session APIs: guides/low-level-session-apis.md
           - TCP Request/Response: guides/tcp-request-response.md
           - UDP Server: guides/udp-server.md
           - UDP Auth Flow: guides/udp-auth-flow.md

@@ -1,5 +1,10 @@
 # Packet System
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-clock: **Time**: 15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](architecture.md)
+
 The Packet System is the foundation of Nalix's networking model. It provides a declarative way to define network messages that are high-performance, version-safe, and zero-allocation.
 
 ## 1. Defining Packets

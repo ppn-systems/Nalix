@@ -1,5 +1,13 @@
 # Performance Optimizations
 
+!!! warning "Advanced Topic"
+    This page describes internal framework mechanics like Span limits, structure alignments, and GC overheads.
+
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Advanced
+    - :fontawesome-solid-clock: **Time**: 15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](architecture.md)
+
 Nalix is engineered to minimize latency and maximize throughput on the networking hot path. This page explains the specific techniques used and why they matter for production workloads.
 
 ## 1. Zero-Allocation Data Path

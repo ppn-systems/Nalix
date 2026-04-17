@@ -1,5 +1,13 @@
 # Zero-Allocation Hot Path
 
+!!! warning "Advanced Topic"
+    This page describes extreme performance optimizations and bare-metal memory lifecycles. If you are just getting started, please see the [Quickstart](../../quickstart.md).
+
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Expert
+    - :fontawesome-solid-clock: **Time**: 20 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../concepts/architecture.md)
+
 To support thousands of concurrent connections with sub-millisecond latency, Nalix implements a "Zero-Allocation Hot Path." This means that during peak traffic, the core networking loop executes without triggering any managed heap allocations.
 
 ## The Integrated Journey

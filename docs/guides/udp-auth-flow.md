@@ -1,5 +1,13 @@
 # UDP Auth Flow Example
 
+!!! warning "Advanced Topic"
+    This page deals with low-level protocol multiplexing and custom listener implementations.
+
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Advanced
+    - :fontawesome-solid-clock: **Time**: 10 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](client-session-connect.md)
+
 This guide explains the actual UDP session shape used by `UdpListenerBase` today, in a client-friendly way.
 
 Use it when you already know you need UDP and want to understand the trust and replay rules before implementing a client.
