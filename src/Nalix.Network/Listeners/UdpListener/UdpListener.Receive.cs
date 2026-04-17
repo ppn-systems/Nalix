@@ -174,6 +174,7 @@ public abstract partial class UdpListenerBase
                 {
                     // SEC-71 & SEC-70: Validate replay window and handle transformation in fast-path.
                     // We must read the sequence ID to check for replays before proceeding.
+                    // NOTE: UDP uses a non-standard layout where SequenceId is at index 1 relative to payload.
                     uint fastSequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
                     if (!connection.UdpReplayWindow.TryCheck(fastSequenceId))
                     {
@@ -271,7 +272,7 @@ public abstract partial class UdpListenerBase
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
         // Extract sequence ID and validate against a per-connection sliding window.
-        // In the UDP payload header [Transport(1), SequenceId(4)], SequenceId starts at index 1.
+        // NOTE: In the UDP payload header [Transport(1), SequenceId(4)], SequenceId starts at index 1.
         uint sequenceId = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(payload[1..5]);
         if (!connection.UdpReplayWindow.TryCheck(sequenceId))
         {
