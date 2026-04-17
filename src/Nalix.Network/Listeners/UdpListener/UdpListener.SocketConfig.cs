@@ -115,7 +115,10 @@ public abstract partial class UdpListenerBase
                 const int SIO_UDP_CONNRESET = -1744830452;
                 socket.IOControl(SIO_UDP_CONNRESET, [0, 0, 0, 0], null);
             }
-            catch { }
+            catch (SocketException ex)
+            {
+                logger.LogDebug(ex, "Unable to disable UDP connection reset (SIO_UDP_CONNRESET). Continuing with default socket behavior.");
+            }
         }
     }
 }
