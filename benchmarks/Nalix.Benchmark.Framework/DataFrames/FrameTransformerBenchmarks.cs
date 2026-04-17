@@ -1,7 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -40,7 +39,7 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            ProtocolType.TCP);
+            PacketFlags.RELIABLE);
         frame.Flags = PacketFlags.NONE;
         _rawPacket = frame.Serialize();
 

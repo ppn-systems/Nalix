@@ -9,7 +9,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;
 using Nalix.SDK.Tools.Extensions;
@@ -37,7 +36,7 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     private string _repeatCountText = "10";
     private string _repeatDelayText = "250";
     private string _sessionToken = string.Empty;
-    private ProtocolType _selectedTransport = ProtocolType.TCP;
+    private PacketFlags _selectedTransport = PacketFlags.RELIABLE;
     private bool _isConnected;
     private bool _currentPacketIsReadOnly;
     private bool _suppressAutoLoad;
@@ -170,12 +169,12 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     /// <summary>
     /// Gets the available transport protocols.
     /// </summary>
-    public ProtocolType[] Transports { get; } = [ProtocolType.TCP, ProtocolType.UDP];
+    public PacketFlags[] Transports { get; } = [PacketFlags.RELIABLE, PacketFlags.UNRELIABLE];
 
     /// <summary>
     /// Gets or sets the selected transport protocol.
     /// </summary>
-    public ProtocolType SelectedTransport
+    public PacketFlags SelectedTransport
     {
         get => _selectedTransport;
         set
@@ -619,9 +618,9 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     private void LoadDescriptor(PacketTypeDescriptor descriptor, bool isReadOnly)
     {
         IPacket packet = _catalogService.CreatePacket(descriptor);
-        if (packet.Protocol == ProtocolType.NONE)
+        if (!packet.Flags.HasFlag(PacketFlags.RELIABLE) && !packet.Flags.HasFlag(PacketFlags.UNRELIABLE))
         {
-            packet.Protocol = ProtocolType.TCP;
+            packet.Flags |= PacketFlags.RELIABLE;
         }
 
         this.ShowPacket(packet, descriptor, isReadOnly);
