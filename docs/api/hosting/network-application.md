@@ -41,7 +41,7 @@ graph LR
         Prep --> Run["ActivateAsync()"]
         Run --> Infra["Infrastructure"]
         Infra --> Registry["Build Registry"]
-        Registry --> Dispatch["Initalize Dispatch"]
+        Registry --> Dispatch["Initialize Dispatch"]
         Dispatch --> Listeners["Start Listeners"]
     end
 ```
