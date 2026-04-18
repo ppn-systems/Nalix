@@ -129,6 +129,20 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
     public static Bytes32 Zero => default;
 
     /// <summary>
+    /// Parses a hexadecimal string representation into a 256-bit buffer.
+    /// </summary>
+    public static Bytes32 Parse(string hex)
+    {
+        if (string.IsNullOrEmpty(hex))
+        {
+            return Zero;
+        }
+
+        byte[] bytes = Convert.FromHexString(hex);
+        return new Bytes32(bytes);
+    }
+
+    /// <summary>
     /// Returns <see langword="true"/> if all bits in the buffer are zero.
     /// This comparison is performed in constant-time.
     /// </summary>

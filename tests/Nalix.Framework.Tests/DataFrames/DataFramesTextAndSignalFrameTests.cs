@@ -267,9 +267,9 @@ public sealed partial class DataFramesPublicApiTests
         Handshake invalidNonce = new(HandshakeStage.CLIENT_HELLO, new Bytes32(nonZeroKey), Bytes32.Zero);
         Handshake valid = new(HandshakeStage.CLIENT_HELLO, new Bytes32(nonZeroKey), new Bytes32(nonZeroNonce));
 
-        Assert.False(Handshake.IsValid(invalidKey));
-        Assert.False(Handshake.IsValid(invalidNonce));
-        Assert.True(Handshake.IsValid(valid));
+        Assert.False(invalidKey.Validate(invalidKey, out _));
+        Assert.False(invalidNonce.Validate(invalidNonce, out _));
+        Assert.True(valid.Validate(valid, out _));
     }
 
     [Fact]
