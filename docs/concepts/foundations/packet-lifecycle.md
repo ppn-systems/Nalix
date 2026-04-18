@@ -126,7 +126,7 @@ This is why the handler does not need to manually build every reply path.
 The request path is easiest to reason about in three phases:
 
 | Phase | Components | Your extension point |
-|---|---|---|
+| :--- | :--- | :--- |
 | **Transport** | Listener → Protocol → Raw frame | Custom `Protocol`, buffer middleware |
 | **Dispatch** | Queue → Worker → Deserialize → Metadata → Middleware | Packet middleware, metadata providers |
 | **Application** | Handler → Return handler → Reply | Handler classes, return type selection |

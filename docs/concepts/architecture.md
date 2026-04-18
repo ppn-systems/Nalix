@@ -38,7 +38,7 @@ graph TD
 ```
 
 | Layer | Package | Responsibility |
-|---|---|---|
+| :--- | :--- | :--- |
 | Hosting | `Nalix.Network.Hosting` | Fluent builder, application lifecycle, automatic discovery |
 | Transport | `Nalix.Network` | TCP/UDP listeners, connections, protocol bridge, session store |
 | Dispatch | `Nalix.Runtime` | Packet dispatch, middleware, handler compilation, session resume |
@@ -118,7 +118,7 @@ Nalix uses `InstanceManager` (a service-locator pattern optimized for allocation
 The network runtime is designed to run with pressure controls enabled by default:
 
 | Component | Purpose |
-|---|---|
+| :--- | :--- |
 | `ConnectionGuard` | Socket-level admission control; rejects endpoints before application resources are allocated |
 | `TokenBucketLimiter` | Protects against request spikes with configurable burst and refill rates |
 | `PolicyRateLimiter` | Per-opcode and per-endpoint rate limiting driven by handler metadata |
@@ -128,7 +128,7 @@ The network runtime is designed to run with pressure controls enabled by default
 ## Where Does My Code Go?
 
 | Your code | Which package / layer |
-|---|---|
+| :--- | :--- |
 | Packet definitions (POCOs) | Shared contracts assembly → `Nalix.Common` + `Nalix.Framework` |
 | Handler classes | Server project → registered with `PacketDispatchChannel` |
 | Middleware | Server project → implements `IPacketMiddleware<TPacket>` from `Nalix.Common` |

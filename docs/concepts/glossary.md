@@ -100,7 +100,7 @@ A customized 56-bit distributed identifier used for internal task tracking and p
 ## TCP vs UDP
 
 | Transport | Use when |
-|---|---|
+| :--- | :--- |
 | **TCP** | Reliable, ordered request/response. The default and recommended starting point. |
 | **UDP** | Low-latency datagrams where packet loss is acceptable. Requires pre-established session identity and authentication. |
 

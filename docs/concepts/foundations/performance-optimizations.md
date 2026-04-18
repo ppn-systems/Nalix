@@ -53,7 +53,7 @@ graph LR
 Nalix uses a customized 56-bit Snowflake identifier for internal task tracking and packet correlation.
 
 | Design choice | Rationale |
-|---|---|
+| :--- | :--- |
 | 56-bit (vs. standard 64-bit) | Fits efficiently into packed headers, avoids 53-bit precision limits in JavaScript-based clients |
 | 1 ms timestamp resolution | Sufficient for networking use cases; enables 4,096 IDs per millisecond per shard (12-bit sequence) |
 | Deterministic ordering | Snowflake IDs are sortable by creation time, enabling natural ordering in logs and diagnostics |

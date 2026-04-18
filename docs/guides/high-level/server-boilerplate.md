@@ -51,6 +51,7 @@ await app.RunAsync();
 In a real project, you should split these into separate files. This boilerplate shows them together for easy reference.
 
 ### The Protocol (Network Bridge)
+
 The protocol translates raw frames into clean objects. Keep this thin; its only job is to forward data to the dispatcher.
 
 ```csharp
@@ -71,6 +72,7 @@ public sealed class MyProtocol : Protocol
 ```
 
 ### The Handler (Business Logic)
+
 Handlers are where your application logic lives. Use `IPacketContext<T>` to access the packet and the connection safely.
 
 ```csharp

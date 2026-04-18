@@ -11,7 +11,7 @@ The `Directive` packet is the primary mechanism for reporting errors during pack
 When a packet fails to execute at the dispatch level (e.g., due to an exception or type mismatch), the server sends a `Directive` with `ControlType.FAIL`.
 
 | Trigger Source | Protocol Reason | Advice | Flags |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | Packet runtime type mismatch | `REQUEST_INVALID` | `FIX_AND_RETRY` | `NONE` |
 | `descriptor.CanExecute == false` | `RATE_LIMITED` | `RETRY` | `IS_TRANSIENT` |
 | `OperationCanceledException` | `TIMEOUT` | `RETRY` | `IS_TRANSIENT` |
@@ -52,9 +52,9 @@ If a client exceeds their allocated throughput for a specific opcode or the glob
 - **Advice:** `RETRY`
 - **Flags:** `IS_TRANSIENT`
 - **Metadata:**
-    - `arg0`: Target opcode
-    - `arg1`: `RetryAfterMs` (milliseconds to wait)
-    - `arg2`: Remaining credit (if applicable)
+ -`arg0`: Target opcode
+ -`arg1`: `RetryAfterMs` (milliseconds to wait)
+ -`arg2`: Remaining credit (if applicable)
 
 ### ConcurrencyMiddleware
 
@@ -83,10 +83,10 @@ Some errors occur during the initial connection setup (Handshake) or session rec
 
 ### Handshake Rejection
 
-Failures during the handshake process use the `Handshake` packet with `Stage = ERROR`. 
+Failures during the handshake process use the `Handshake` packet with `Stage = ERROR`.
 
 | Reason | Meaning |
-|---|---|
+| :--- | :--- |
 | `STATE_VIOLATION` | Client attempted a handshake on an already authenticated connection. |
 | `UNEXPECTED_MESSAGE` | Received a handshake packet out of order for the current stage. |
 | `MALFORMED_PACKET` | The handshake packet could not be parsed (binary corruption). |
@@ -99,7 +99,7 @@ Failures during the handshake process use the `Handshake` packet with `Stage = E
 Failures during session resumption use the `SessionResume` packet with `Stage = RESPONSE`.
 
 | Reason | Meaning |
-|---|---|
+| :--- | :--- |
 | `SERVICE_UNAVAILABLE` | Session resumption is disabled or the state store is unavailable. |
 | `STATE_VIOLATION` | Invalid state transition for resumption (e.g., resuming a non-existent session). |
 | `TOKEN_REVOKED` | The provided resumption token has been explicitly revoked. |
@@ -111,10 +111,10 @@ Failures during session resumption use the `SessionResume` packet with `Stage = 
 
 - **OpCode Normalization:** `Directive` packets always use `OpCode = ProtocolOpCode.SYSTEM_CONTROL` (0x0001).
 - **Mapping Logic:** Exception-to-Reason mapping is centralized in `PacketDispatchOptions.Execution.cs`.
-- **Advice Flags:** 
-    - `RETRY`: Suggests the client should attempt the request again.
-    - `FIX_AND_RETRY`: Suggests the request was malformed and needs correction.
-    - `REAUTHENTICATE`: Suggests the security context is lost (e.g., session key rotation failed).
+- **Advice Flags:**
+ -`RETRY`: Suggests the client should attempt the request again.
+ -`FIX_AND_RETRY`: Suggests the request was malformed and needs correction.
+ -`REAUTHENTICATE`: Suggests the security context is lost (e.g., session key rotation failed).
 
 ## Recommended Next Steps
 

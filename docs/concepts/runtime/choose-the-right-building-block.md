@@ -21,7 +21,7 @@ flowchart TD
 ## Decision Matrix
 
 | You want to... | Use |
-|:---|:---|
+| :--- | :--- |
 | Intercept, audit, or secure all/some packets | **Middleware** |
 | Implement custom binary framing or binary security | **Protocol** |
 | Customize how packets are queued, prioritized, or sharded | **Dispatch** |
@@ -77,7 +77,7 @@ Start with:
 ## Common examples
 
 | Need | Best fit |
-|---|---|
+| :--- | :--- |
 | Public game login or command endpoint | TCP |
 | Position/state update stream | UDP |
 | Block unauthorized packets | Packet middleware |

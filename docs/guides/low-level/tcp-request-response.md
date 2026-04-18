@@ -2,7 +2,6 @@
 
 !!! danger "Low-Level Implementation"
     This guide demonstrates the manual instantiation of `TcpListenerBase` and `Protocol`. While powerful, this path bypasses the automatic feature discovery and dependency injection provided by the [Hosting Builder](../quickstart.md).
-    
     Use this only when embedding Nalix into existing engines or when building specialized transport layers.
 
 !!! info "Learning Signals"
@@ -33,12 +32,16 @@ Server replies with a `Control` packet.
 Before starting, you must decide how to initialize your server. Nalix provides two distinct paths:
 
 ### 1. High-Level Hosting Builder (Recommended)
+
 Use `NetworkApplication.CreateBuilder()` to bootstrap your server.
+
 - **When to use**: 99% of production applications.
 - **Benefits**: Automatic handler discovery, Dependency Injection, built-in logging, easier middleware configuration, and support for multi-protocol listeners in a single application.
 
 ### 2. Direct Transport Listener
+
 Manually instantiate `TcpListenerBase` and `Protocol` (as shown in the example below).
+
 - **When to use**: Building specialized transport libraries, low-level testing, or embedding Nalix into a non-standard server architecture.
 - **Benefits**: Absolute control over the listener lifecycle; zero overhead from the hosting layer.
 
@@ -127,8 +130,9 @@ public sealed class SampleProtocol : Protocol
 When using the transport layer directly (outside of the Hosting builder), you must ensure that all required services are registered in the `InstanceManager`.
 
 #### Required Dependencies (InstanceManager)
+
 | Service | Type | Role |
-|---|---|---|
+| :--- | :--- |
 | `ILogger` | `ILogger` | Structured logging |
 | `IConnectionHub` | `IConnectionHub` | Connection tracking and batch operations |
 | `TaskManager` | `TaskManager` | Background worker management |

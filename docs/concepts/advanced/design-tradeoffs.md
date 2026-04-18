@@ -46,12 +46,13 @@ We use a custom binary format rather than JSON or Protobuf for the default `IPac
 ## Summary Decision Matrix
 
 | You should choose Nalix if... | You might prefer another tool if... |
-|:---|:---|
+| :--- | :--- |
 | You need sub-millisecond latency. | You are building a standard REST API. |
 | You want zero-allocation data paths. | Development speed is more important than CPU efficiency. |
 | You need fine-grained control over sharding. | You want a "plug and play" solution with minimal config. |
 | Your client and server must share contracts. | You only control one side of the connection. |
 
 ## Related Architecture
+
 - [Architecture Overview](../architecture.md) — The layered system design.
 - [Performance Optimizations](../performance-optimizations.md) — Details on zero-alloc paths.

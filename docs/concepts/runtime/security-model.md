@@ -44,6 +44,9 @@ The `Protocol` implementation controls which connections are accepted (`Validate
 Security requirements are declared directly on handler methods using attributes:
 
 ```csharp
+using System.Threading.Tasks;
+using Nalix.Common.Networking.Packets;
+
 [PacketController("AccountHandlers")]
 public sealed class AccountHandlers
 {
@@ -66,7 +69,7 @@ These attributes are resolved once during handler registration and cached as `Pa
 Packet middleware is where request-level enforcement lives. Built-in middleware includes:
 
 | Middleware | Enforces |
-|---|---|
+| :---: | :---: |
 | `PermissionMiddleware` | Rejects packets from connections below the required `PermissionLevel` |
 | `TimeoutMiddleware` | Cancels handler execution exceeding the declared timeout |
 | `ConcurrencyGate` | Limits concurrent in-flight handlers |

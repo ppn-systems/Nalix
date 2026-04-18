@@ -38,7 +38,7 @@ stateDiagram-v2
 Connection state includes:
 
 | State | Description |
-|---|---|
+| :--- | :--- |
 | Connection ID | Unique identifier for the session |
 | Remote endpoint | Source IP and port |
 | Permission level | Authorization level (`NONE`, `USER`, `ADMINISTRATOR`, etc.) |
@@ -70,7 +70,7 @@ For client applications, the simplest mental model is:
 Nalix supports a UDP runtime through `UdpListenerBase` for use cases where reliability is not required:
 
 | Use case | Why UDP |
-|---|---|
+| :--- | :--- |
 | Game state updates | Position/velocity updates where latest value matters, not every value |
 | Telemetry | High-frequency sensor or metric data where occasional loss is acceptable |
 | Discovery | Service discovery broadcasts |
@@ -88,7 +88,7 @@ The UDP path still requires session identity and authentication. Think of it as 
 Real-time systems fail fastest when they do not control pressure. Nalix integrates protection at multiple levels:
 
 | Component | Layer | Purpose |
-|---|---|---|
+| :--- | :--- | :--- |
 | `ConnectionGuard` | Socket | Reject endpoints before resource allocation |
 | `TokenBucketLimiter` | Dispatch | Protect against request spikes with burst budgets |
 | `PolicyRateLimiter` | Dispatch | Per-opcode and per-endpoint rate limiting |

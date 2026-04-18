@@ -6,20 +6,20 @@ Use it after the basic server shape exists and the runtime still is not behaving
 
 ## 1. Server starts but no packets reach handlers
 
-**Symptoms**
+I.**Symptoms**
 
 - client connects
 - no handler log appears
 - no response is sent
 
-**Check first**
+II.**Check first**
 
 - `IPacketRegistry` is registered once in `InstanceManager`
 - your handler class is actually registered with `WithHandler(...)`
 - handler methods have the correct `[PacketOpcode(...)]`
 - the **Listener** is the entrypoint that handles raw frame transformation (Pipeline), while `ProcessMessage(...)` handles the clean message payload
 
-**Quick fix**
+III.**Quick fix**
 
 Use this exact pattern first:
 
@@ -30,19 +30,19 @@ public override void ProcessMessage(object? sender, IConnectEventArgs args)
 
 ## 2. Client connects then disconnects immediately
 
-**Symptoms**
+I.**Symptoms**
 
 - TCP connect succeeds
 - connection closes right after first traffic
 
-**Check first**
+II.**Check first**
 
 - `Protocol.ValidateConnection(...)`
 - `Protocol.IsAccepting`
 - listener logs for `ConnectionGuard` rejections
 - middleware that short-circuits before the handler
 
-**Quick fix**
+III.**Quick fix**
 
 - temporarily make `ValidateConnection(...) => true`
 - disable custom middleware one piece at a time
@@ -50,37 +50,37 @@ public override void ProcessMessage(object? sender, IConnectEventArgs args)
 
 ## 3. Idle connections close too early
 
-**Symptoms**
+I.**Symptoms**
 
 - connections die after a quiet period
 
-**Check first**
+II.**Check first**
 
 - `NetworkSocketOptions.EnableTimeout`
 - `TimingWheelOptions.IdleTimeoutMs`
 - whether your app expects long quiet windows
 
-**Quick fix**
+III.**Quick fix**
 
 - increase `IdleTimeoutMs`
 - or disable timeout enforcement during local development
 
 ## 4. One noisy client slows everything down
 
-**Symptoms**
+I.**Symptoms**
 
 - latency spikes
 - pending queues grow
 - many rejected packets from one endpoint
 
-**Check first**
+II.**Check first**
 
 - `DispatchOptions`
 - `ConnectionLimitOptions`
 - `ConnectionGuard.GenerateReport()`
 - `PacketDispatchChannel.GenerateReport()`
 
-**Quick fix**
+III.**Quick fix**
 
 - bound per-connection queue size
 - lower abusive connection pressure with `ConnectionGuard`
@@ -88,17 +88,17 @@ public override void ProcessMessage(object? sender, IConnectEventArgs args)
 
 ## 5. Middleware runs, but custom metadata is missing
 
-**Symptoms**
+I.**Symptoms**
 
 - `context.Attributes.GetCustomAttribute<T>()` returns null
 
-**Check first**
+II.**Check first**
 
 - your provider implements `IPacketMetadataProvider`
 - the provider is registered before handler compilation / dispatcher setup
 - the handler method actually has the custom attribute
 
-**Quick fix**
+III.**Quick fix**
 
 ```csharp
 PacketMetadataProviders.Register(new MyMetadataProvider());
@@ -108,18 +108,18 @@ Register it during startup, before building dispatch handlers.
 
 ## 6. UDP packets are dropped
 
-**Symptoms**
+I.**Symptoms**
 
 - UDP traffic arrives at the socket but is ignored
 
-**Check first**
+II.**Check first**
 
 - datagram contains the 7-byte session token prefix and payload
 - session exists in `ConnectionHub`
 - `IsAuthenticated(...)` returns true
 - connection secret is initialized
 
-**Quick fix**
+III.**Quick fix**
 
 Start with:
 
@@ -129,18 +129,18 @@ Start with:
 
 ## 7. Handler returns but no reply is sent
 
-**Symptoms**
+I.**Symptoms**
 
 - handler is called
 - client receives nothing
 
-**Check**
+II.**Check**
 
 - return type is supported by Nalix return handlers
 - `context.Connection.TCP` is valid
 - you are not mixing manual send and expected return-path behavior incorrectly
 
-**Fast fix**
+III.**Fast fix**
 
 For the simplest path, return `TPacket` or `Task<TPacket>`.
 

@@ -13,6 +13,7 @@ Nalix guarantees that packets arriving from the **same connection** are processe
 - **Mutual Exclusion:** No two handlers for the same connection will ever execute concurrently. This means you do not need to use `lock` or other synchronization primitives when accessing connection-specific state within a handler.
 
 ### Scope and Boundaries
+
 - **Scope:** This guarantee is per-connection and applies within a single server instance.
 - **Non-Guarantee:** Nalix does **not** guarantee ordering across different connections. Connection A and Connection B are handled in parallel by different background workers.
 
@@ -60,6 +61,7 @@ To avoid common pitfalls, be aware of what Nalix does **NOT** guarantee:
 - **Automatic Retry:** If a handler throws an exception, Nalix will log it and discard the packet. It will **not** automatically retry the execution.
 
 ## Related Source Code
+
 - [PacketDispatchChannel.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs) — Worker loop and wake-up signaling.
 - [DispatchChannel.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs) — Connection-affinity and priority queuing.
 - [PacketDispatcherBase.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs) — Internal handler execution and error wrap.

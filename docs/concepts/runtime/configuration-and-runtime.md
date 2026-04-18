@@ -30,17 +30,19 @@ flowchart LR
 ## 🏗️ Configuration Pillars
 
 ### ConfigurationManager
+
 `ConfigurationManager` is the central entry point for configuration values and option binding. It handles loading from sources, binding to strongly-typed classes, and caching resolved instances.
 
 ### Options Classes
+
 Nalix uses focused, granular option types instead of a monolithic "Settings" object. This keeps runtime concerns (like timing wheels vs. socket limits) isolated.
 
 | Option | Purpose |
-|---|---|
+| :--- | :--- |
 | `NetworkSocketOptions` | Buffer sizes, ports, and IP properties |
 | `DispatchOptions` | Worker count, middleware, and handler logic |
 | `ConnectionLimitOptions` | Security thresholds for the `ConnectionGuard` |
-| `TimingWheelOptions`| O(1) timeout scheduling for idle connections |
+| `TimingWheelOptions` | O(1) timeout scheduling for idle connections |
 
 !!! tip "Validation Habit"
     Always call `Validate()` on your options immediately after binding. Use the configuration layer to prevent the server from starting with "garbage" values.
@@ -50,6 +52,7 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 ## 🔧 Runtime Registry
 
 ### InstanceManager (DI)
+
 `InstanceManager` is the runtime registry for shared services. It is not complex dependency injection; it is a fast, thread-safe service locator designed for networking hot paths.
 
 - **Logger**: Centralized diagnostic output.
@@ -70,6 +73,7 @@ After configuration and shared services are ready, the dispatch and transport la
 - **Protocol**: The bridge that receives "clean" messages from the listener and routes them to dispatch.
 
 ### A Safe Startup Pattern
+
 For most teams, this is the safest default wiring:
 
 1. **Bind and Validate** options.
@@ -85,4 +89,3 @@ For most teams, this is the safest default wiring:
 - [Server Blueprint](../guides/server-blueprint.md) { .md-button }
 - [Production Checklist](../guides/production-checklist.md) { .md-button }
 - [Configuration API](../api/framework/runtime/configuration.md) { .md-button }
-

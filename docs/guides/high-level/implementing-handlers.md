@@ -102,7 +102,7 @@ public async ValueTask HandleSecureAction(IPacketContext<SecureAction> context)
 Attributes declare **policy** at registration time. The runtime uses this metadata to apply middleware before your handler even runs.
 
 | Attribute | Purpose | When to use |
-|---|---|---|
+| :--- | :--- |
 | `[PacketOpcode]` | Maps the method to a specific packet ID. | **Required** for all handlers. |
 | `[PacketPermission]` | Restricts access by `PermissionLevel`. | Public-facing or sensitive logic. |
 | `[PacketRateLimit]` | Applies per-connection throttling. | Protecting high-cost operations. |
@@ -115,6 +115,7 @@ Attributes declare **policy** at registration time. The runtime uses this metada
 Handlers and Middlewares must be registered with the `NetworkApplicationBuilder` during startup to be active in the runtime.
 
 ### Fluent Registration (Hosted Server)
+
 This is the recommended path for most applications. It provides automatic instance management and dependency injection.
 
 ```csharp
@@ -141,6 +142,7 @@ var app = NetworkApplication.CreateBuilder()
 ```
 
 ### Manual Registration (Library/SDK)
+
 If you are building a custom runtime or using the `PacketDispatchChannel` directly, use the specialized options:
 
 ```csharp

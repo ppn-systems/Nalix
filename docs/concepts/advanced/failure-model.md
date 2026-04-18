@@ -12,7 +12,8 @@ Nalix enforces strict isolation for all user-provided code (handlers, middleware
 - **Handler Exceptions:** If a handler throws an unhandled exception, it is caught by the `PacketDispatcherBase`. The request is aborted, but the worker thread remains healthy and continues processing the next packet in the queue.
 - **Pipeline Faults:** Exceptions within the middleware pipeline are handled similarly. If a middleware fails, the rest of the pipeline is skipped for that specific packet.
 
-### Observable Behavior:
+### Observable Behavior 1
+
 - **Logging:** An `Error` level log is emitted via the configured `ILogger`.
 - **Metrics:** The `IConnection.ErrorCount` is atomically incremented. You can monitor this to identify abusive or malfunctioning clients.
 - **Client Signaling:** The server attempts to send a `Directive` packet with `ControlType.FAIL` and `Reason = INTERNAL_ERROR` to the client.
@@ -26,7 +27,8 @@ Malformed incoming data is intercepted at the earliest possible stage to protect
 - **OpCode Mismatch:** If the server receives an opcode that is not registered in the `IPacketRegistry`, the frame is discarded.
 - **Binary Corruption:** If deserialization fails (e.g., bit flipped or missing field), a `SerializationFailureException` is caught internally.
 
-### Observable Behavior:
+### Observable Behavior 2
+
 - **Diagnostics:** A `Warning` is logged indicating the unknown or malformed opcode.
 - **Client Signaling:** The client receives a `Directive` with `Reason = REQUEST_INVALID`.
 
@@ -56,13 +58,14 @@ Regardless of whether a request succeeds or fails, Nalix guarantees consistent r
 ## 5. Summary of Effects
 
 | Event | Effect on Server | Effect on Client | Visibility |
-|:---|:---|:---|:---|
+| :--- | :--- | :--- | :--- |
 | **Handler Exception** | Worker continues; error count ++ | Receives FAIL directive | `ILogger` (Error) |
 | **Malformed Packet** | Packet discarded; error count ++ | Receives INVALID directive | `ILogger` (Warning) |
 | **Disconnect** | Queue drained; handlers cancelled | Connection closed | `IConnectionHub` event |
-| **Serialization Fail**| Frame discarded; error count ++ | Receives INVALID directive | `ILogger` (Error) |
+| **Serialization Fail** | Frame discarded; error count ++ | Receives INVALID directive | `ILogger` (Error) |
 
 ## Related Source Code
+
 - [IConnectionErrorTracked.cs](file:///e:/Cs/Nalix/src/Nalix.Common/Networking/IConnectionErrorTracked.cs) — The `ErrorCount` contract.
 - [PacketDispatchChannel.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs) — Try-catch blocks in `ProcessOneAsync`.
 - [PacketDispatcherBase.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs) — Try-catch around handler execution.

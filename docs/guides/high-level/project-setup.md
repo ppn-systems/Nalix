@@ -52,7 +52,8 @@ dotnet add MyProject.Contracts package Nalix.Common --version 12.0.7
 dotnet add MyProject.Contracts package Nalix.Framework --version 12.0.7
 ```
 
-### Key Rules:
+### Key Rules
+
 - Annotate all packets with `[SerializePackable]`.
 - Use `[SerializeOrder]` for explicit field layout.
 - Define constants for OpCodes in the packet classes.
@@ -82,6 +83,7 @@ dotnet add MyProject.Server package Nalix.Network.Hosting --version 12.0.7
 ```
 
 ### Best Practice: `NetworkApplication`
+
 Use the fluent builder to assemble your server layers:
 
 ```csharp
@@ -141,6 +143,7 @@ dotnet add MyProject.Client package Nalix.SDK --version 12.0.7
 ## 5. Version Management
 
 Nalix releases updates synchronized across all core packages. When upgrading:
+
 1. Update `NalixVersion` in `Directory.Build.props`.
 2. Clear the `obj` and `bin` folders if source-generated contracts have changed.
 3. Run `dotnet build` to ensure all projects are aligned.

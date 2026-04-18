@@ -91,7 +91,7 @@ The typical flow is:
 ## Decision Guide
 
 | Need | Best fit |
-|---|---|
+| :--- | :--- |
 | Reject a malformed frame before packet creation | Buffer middleware |
 | Decrypt a wrapped payload | Buffer middleware |
 | Decompress a frame | Buffer middleware |
