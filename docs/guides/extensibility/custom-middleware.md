@@ -2,55 +2,18 @@
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
-    - :fontawesome-solid-clock: **Time**: 15 minutes
+    - :fontawesome-solid-clock: **Time**: 10 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Middleware](../../concepts/runtime/middleware-pipeline.md)
 
 This guide shows how to implement custom authorization rules that validate session tokens across the Nalix inbound pipeline.
 
-The example combines:
+## Implementation overview
 
-- a **buffer middleware** pre-check (cheap fail-fast guard before deserialization)
-- a **packet middleware** authorization check (permission + session token validation against `ISessionStore`)
+Implementing custom middleware involves creating a class that implements `IPacketMiddleware<TPacket>`. For general-purpose security middleware, you should typically target `IPacket`, the base interface for all packets.
 
-## Pick the right layer
+## Step 1. Implement packet middleware for session validation
 
-- **`INetworkBufferMiddleware`** runs on raw `IBufferLease` before packet parsing.
-- **`IPacketMiddleware<TPacket>`** runs after deserialization with metadata (`PacketPermission`, timeout, rate-limit, opcode).
-
-For complex authorization, use both:
-
-- buffer middleware to reject obviously invalid traffic early
-- packet middleware to apply metadata-aware authorization logic
-
-## Step 1. Add a raw buffer pre-check
-
-```csharp
-using System.Threading;
-using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking;
-
-[MiddlewareOrder(-200)]
-public sealed class SessionEnvelopeGuard : INetworkBufferMiddleware
-{
-    public ValueTask<IBufferLease?> InvokeAsync(
-        IBufferLease buffer,
-        IConnection connection,
-        CancellationToken ct)
-    {
-        // Cheap guard: drop malformed/empty frames before deserialization work.
-        if (buffer.Length <= 0)
-        {
-            return ValueTask.FromResult<IBufferLease?>(null);
-        }
-
-        return ValueTask.FromResult<IBufferLease?>(buffer);
-    }
-}
-```
-
-## Step 2. Add packet middleware for permission + session token validation
+The following middleware checks for a valid session token in the connection attributes and verifies permissions against the packet's metadata.
 
 ```csharp
 using System;
@@ -108,17 +71,6 @@ public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        // Optional strict check for SessionResume packet payload.
-        if (context.Packet is SessionResume resume &&
-            resume.Stage == SessionResumeStage.REQUEST &&
-            !resume.SessionToken.IsEmpty &&
-            resume.SessionToken.ToUInt56() != sessionToken)
-        {
-            entry.Return();
-            context.Connection.Disconnect("Session token mismatch.");
-            return;
-        }
-
         entry.Return();
         await next(context.CancellationToken).ConfigureAwait(false);
     }
@@ -138,7 +90,9 @@ public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
 }
 ```
 
-## Step 3. Register middleware in the host dispatch
+## Step 2. Register middleware in the host dispatch
+
+Middleware is registered fluently during server setup using the `ConfigureDispatch` method.
 
 ```csharp
 using Nalix.Network.Hosting;
@@ -146,14 +100,15 @@ using Nalix.Network.Hosting;
 using NetworkApplication app = NetworkApplication.CreateBuilder()
     .ConfigureDispatch(options =>
     {
-        _ = options.WithBufferMiddleware(new SessionEnvelopeGuard());
         _ = options.WithMiddleware(new SessionAuthorizationMiddleware());
     })
     .AddTcp<MyProtocol>()
     .Build();
 ```
 
-## Step 4. Add packet metadata on handlers
+## Step 3. Add packet metadata on handlers
+
+The middleware will now automatically enforce permissions based on the attributes applied to your handler methods.
 
 ```csharp
 [PacketController("SecureHandlers")]
@@ -163,7 +118,7 @@ public sealed class SecureHandlers
     [PacketPermission(PermissionLevel.USER)]
     public ValueTask HandleAsync(IPacketContext<MyPacket> context)
     {
-        // Business logic
+        // Business logic execution
         return ValueTask.CompletedTask;
     }
 }
@@ -173,20 +128,12 @@ public sealed class SecureHandlers
 
 ```mermaid
 flowchart LR
-    A["Socket frame"] --> B["NetworkBufferMiddlewarePipeline"]
-    B --> C["Deserialize packet"]
-    C --> D["SessionAuthorizationMiddleware"]
-    D --> E["Handler"]
+    A["Socket buffer"] --> B["Deserialization"]
+    B --> C["SessionAuthorizationMiddleware"]
+    C --> D["Handler"]
 ```
-
-## Notes
-
-- `SessionResume` proof validation (`HMAC-Keccak256`) is implemented in `SessionHandlers`; keep this middleware focused on policy and token-state checks.
-- `INetworkBufferMiddleware` has no `next` delegate in its contract; the pipeline owns lease progression.
-- Return `null` from buffer middleware to drop a frame early.
 
 ## Related pages
 
 - [Middleware Pipeline](../../api/runtime/middleware/pipeline.md)
-- [Network Buffer Pipeline](../../api/runtime/middleware/network-buffer-pipeline.md)
 - [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md)

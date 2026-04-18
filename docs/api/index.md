@@ -63,7 +63,7 @@ This keeps server runtime internals, transport lifecycle, and client APIs indepe
 
 ## Suggested Architecture Diagrams
 
-- Dispatch sequence: `IBufferLease -> NetworkBufferMiddlewarePipeline -> IPacketRegistry -> PacketContext<TPacket> -> handler`.
+- Dispatch sequence: `IBufferLease -> IPacketRegistry -> PacketContext<TPacket> -> handler`.
 - Server layering: Listener (`Nalix.Network`) above runtime dispatch (`Nalix.Runtime`) and shared contracts (`Nalix.Common`).
 - Client-server handshake lifecycle using `Nalix.SDK.Transport.Extensions` + runtime handlers.
 

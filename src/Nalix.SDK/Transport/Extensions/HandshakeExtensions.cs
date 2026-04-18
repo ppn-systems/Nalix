@@ -64,7 +64,7 @@ public static class HandshakeExtensions
             throw new NetworkException($"Handshake failed: {serverHello.Reason}");
         }
 
-        if (!serverHello.Validate(serverHello, out string? reason))
+        if (!serverHello.Validate(out string? reason))
         {
             throw new NetworkException($"Malformed Handshake SERVER_HELLO packet: {reason}");
         }
@@ -76,12 +76,12 @@ public static class HandshakeExtensions
             throw new NetworkException("Handshake key agreement failed: Ephemeral shared secret is all zero.");
         }
 
-        Bytes32 pinnedServerKey = string.IsNullOrEmpty(session.Options.ServerPublicKey) 
-            ? Bytes32.Zero 
+        Bytes32 pinnedServerKey = string.IsNullOrEmpty(session.Options.ServerPublicKey)
+            ? Bytes32.Zero
             : Bytes32.Parse(session.Options.ServerPublicKey);
 
         Bytes32 sharedSecretSE = pinnedServerKey.IsZero
-            ? Bytes32.Zero 
+            ? Bytes32.Zero
             : X25519.Agreement(clientKey.PrivateKey, pinnedServerKey);
 
         if (!pinnedServerKey.IsZero && sharedSecretSE.IsZero)
@@ -118,7 +118,7 @@ public static class HandshakeExtensions
             throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
         }
 
-        if (!serverFinish.Validate(serverFinish, out string? finishReason))
+        if (!serverFinish.Validate(out string? finishReason))
         {
             throw new NetworkException($"Malformed Handshake SERVER_FINISH packet: {finishReason}");
         }

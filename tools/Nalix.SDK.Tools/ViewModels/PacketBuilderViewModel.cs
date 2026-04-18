@@ -5,7 +5,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
@@ -268,7 +267,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     public bool IsEncryptionDefault
     {
         get => _selectedEncryptionMode == 0;
-        set { if (value) this.SelectedEncryptionMode = 0; }
+        set
+        {
+            if (value)
+            {
+                this.SelectedEncryptionMode = 0;
+            }
+        }
     }
 
     /// <summary>
@@ -277,7 +282,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     public bool IsEncryptionPlain
     {
         get => _selectedEncryptionMode == 1;
-        set { if (value) this.SelectedEncryptionMode = 1; }
+        set
+        {
+            if (value)
+            {
+                this.SelectedEncryptionMode = 1;
+            }
+        }
     }
 
     /// <summary>
@@ -286,7 +297,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     public bool IsEncryptionForce
     {
         get => _selectedEncryptionMode == 2;
-        set { if (value) this.SelectedEncryptionMode = 2; }
+        set
+        {
+            if (value)
+            {
+                this.SelectedEncryptionMode = 2;
+            }
+        }
     }
 
     /// <summary>
@@ -763,22 +780,10 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     private bool CheckPacketValidity(IPacket packet, out string? failureReason)
     {
         failureReason = null;
-        Type packetType = packet.GetType();
 
-        // Check for IPacketValidatable<T> implementation
-        Type? validatableInterface = packetType.GetInterfaces()
-            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketValidatable<>));
-
-        if (validatableInterface != null)
+        if (packet is IPacketValidatable validatable)
         {
-            MethodInfo? validateMethod = validatableInterface.GetMethod("Validate", [packetType, typeof(string).MakeByRefType()]);
-            if (validateMethod != null)
-            {
-                object?[] parameters = [packet, null];
-                bool isValid = (bool)validateMethod.Invoke(packet, parameters)!;
-                failureReason = (string?)parameters[1];
-                return isValid;
-            }
+            return validatable.Validate(out failureReason);
         }
 
         return true;

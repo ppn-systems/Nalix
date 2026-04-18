@@ -27,7 +27,7 @@ flowchart LR
 - **Shard-aware worker loops** — Multiple workers (scaled to CPU core count) pull from the dispatch queue in parallel, preventing head-of-line blocking.
 - **Priority queueing** — Packets are prioritized by `PacketPriority` (`URGENT`, `HIGH`, `MEDIUM`, `LOW`, `NONE`).
 - **Deserialization** — Uses the `PacketRegistry` to convert raw bytes into typed packet instances.
-- **Middleware execution** — Runs the configured middleware chain before handler invocation.
+- **Packet middleware execution** — Runs the configured middleware chain before handler invocation.
 - **Handler invocation** — Calls the matched handler method with the appropriate context.
 - **Return handling** — Translates handler return values into outbound network responses.
 
@@ -49,11 +49,10 @@ dispatch.Activate();
 
 ### Middleware Pipeline
 
-The runtime supports two middleware layers:
+The runtime supports specialized middleware that executes before high-level handler invocation:
 
 | Layer | Interface | Access | Use case |
 | :--- | :--- | :--- | :--- |
-| Buffer middleware | `INetworkBufferMiddleware` | Raw `IBufferLease` | Decryption, decompression, frame validation |
 | Packet middleware | `IPacketMiddleware<TPacket>` | `PacketContext<TPacket>` | Permissions, rate limiting, timeouts, auditing |
 
 Middleware is registered during dispatch construction and executes in registration order.

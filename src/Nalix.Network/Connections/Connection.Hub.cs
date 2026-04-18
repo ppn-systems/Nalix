@@ -144,9 +144,8 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (string.IsNullOrEmpty(_options.IdentityPrivateKey))
         {
-            X25519.X25519KeyPair pair = X25519.GenerateKeyPair();
-            this.IdentityPrivateKey = pair.PrivateKey;
-            _logger?.Info($"[NW.ConnectionHub] Generated Ephemeral Identity KeyPair. ServerPublicKey={pair.PublicKey}");
+            this.IdentityPrivateKey = Bytes32.Zero;
+            _logger?.Info("[NW.ConnectionHub] No identity key provided. Running in Anonymous Handshake mode.");
         }
         else
         {

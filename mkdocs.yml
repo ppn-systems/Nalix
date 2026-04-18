@@ -258,7 +258,6 @@ nav:
         - Middleware:
           - Overview: api/runtime/middleware/index.md
           - Pipeline: api/runtime/middleware/pipeline.md
-          - Network Buffer Pipeline: api/runtime/middleware/network-buffer-pipeline.md
           - Concurrency Gate: api/runtime/middleware/concurrency-gate.md
           - Policy Rate Limiter: api/runtime/middleware/policy-rate-limiter.md
           - Token Bucket Limiter: api/runtime/middleware/token-bucket-limiter.md
