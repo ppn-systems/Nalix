@@ -3,7 +3,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
     - :fontawesome-solid-clock: **Time**: 15–20 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
 
 This page provides the recommended architectural blueprint for a production-grade Nalix server. It moves beyond the single-file quickstart to a shape that scales as features, security policies, and diagnostic needs grow.
 
@@ -147,7 +147,7 @@ A production-ready blueprint always includes a way to query the internal health.
 
 ## Recommended Next Pages
 
-- [Production Checklist](./production-checklist.md) { .md-button }
-- [Custom Middleware](./custom-middleware-end-to-end.md) { .md-button }
-- [TCP Request/Response](./tcp-request-response.md) { .md-button }
+- [Production Checklist](../deployment/production-checklist.md) { .md-button }
+- [Custom Middleware](../extensibility/custom-middleware.md) { .md-button }
+- [TCP Request/Response](../networking/tcp-patterns.md) { .md-button }
 

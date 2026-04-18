@@ -1,9 +1,9 @@
-# Configuration and Runtime
+# Configuration System
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
     - :fontawesome-solid-clock: **Time**: 10–15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../introduction.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../../introduction.md)
 
 This page explains how configuration becomes a running Nalix server. It covers the startup wiring sequence, option validation, service registration, and the relationship between configuration, dispatch, and transport.
 
@@ -86,6 +86,6 @@ For most teams, this is the safest default wiring:
 
 ## Recommended Next Pages
 
-- [Server Blueprint](../guides/server-blueprint.md) { .md-button }
-- [Production Checklist](../guides/production-checklist.md) { .md-button }
-- [Configuration API](../api/framework/runtime/configuration.md) { .md-button }
+- [Server Blueprint](../../guides/getting-started/server-blueprint.md) { .md-button }
+- [Production Checklist](../../guides/deployment/production-checklist.md) { .md-button }
+- [Configuration API](../../api/framework/runtime/configuration.md) { .md-button }

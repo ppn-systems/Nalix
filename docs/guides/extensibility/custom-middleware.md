@@ -1,9 +1,9 @@
-# Custom Middleware End-to-End
+# Custom Middleware Guide
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
     - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Middleware](../concepts/middleware.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Middleware](../../concepts/runtime/middleware-pipeline.md)
 
 This guide shows how to implement custom authorization rules that validate session tokens across the Nalix inbound pipeline.
 
@@ -187,6 +187,6 @@ flowchart LR
 
 ## Related pages
 
-- [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
-- [Network Buffer Pipeline](../api/runtime/middleware/network-buffer-pipeline.md)
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
+- [Middleware Pipeline](../../api/runtime/middleware/pipeline.md)
+- [Network Buffer Pipeline](../../api/runtime/middleware/network-buffer-pipeline.md)
+- [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md)

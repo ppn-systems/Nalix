@@ -150,6 +150,6 @@ Nalix releases updates synchronized across all core packages. When upgrading:
 
 ## Recommended Next Steps
 
-- [Quickstart](../quickstart.md)
-- [Architecture Details](../concepts/architecture.md)
-- [Packet System Overview](../concepts/packet-system.md)
+- [Quickstart](../../quickstart.md)
+- [Architecture Details](../../concepts/fundamentals/architecture.md)
+- [Packet System Overview](../../concepts/fundamentals/packet-system.md)

@@ -1,40 +1,35 @@
 # Guides Overview
 
-Nalix guides help you move from a fresh project to a production-hardened binary. We recommend starting with the **Foundation** guides which use the high-level Hosting builder.
+Nalix guides help you move from a fresh project to a production-hardened binary. The documentation is organized by the developer journey — from initial setup to advanced extensibility and deployment.
 
-## 🚀 Foundation (Hosting-Based)
+## 🚀 Getting Started
 
-These guides use the `NetworkApplication` hosting builder, which is the recommended path for 99% of applications.
+- :fontawesome-solid-folder-plus: [**Project Setup**](./getting-started/project-setup.md) — Create your first Nalix solution with proper project separation.
+- :fontawesome-solid-file-code: [**Server Boilerplate**](./getting-started/server-boilerplate.md) — A production-ready boilerplate for new server applications.
+- :fontawesome-solid-drafting-compass: [**Server Blueprint**](./getting-started/server-blueprint.md) — Standard architecture for enterprise applications.
 
-- :fontawesome-solid-folder-plus: [**Project Setup**](./project-setup.md) — Create your first Nalix solution with proper project separation.
-- :fontawesome-solid-file-code: [**Server Boilerplate**](./server-boilerplate.md) — A production-ready boilerplate for new server applications.
-- :fontawesome-solid-drafting-compass: [**Server Blueprint**](./server-blueprint.md) — Standard architecture for enterprise applications.
-- :fontawesome-solid-rocket: [**Production End-to-End**](./production-end-to-end.md) — Implementing real-world features like auth and persistence in a hosted environment.
-- :fontawesome-solid-check-double: [**Production Checklist**](./production-checklist.md) — Security, performance, and stability audit.
+## 🌐 Networking
 
-## 🔌 Extending Behavior
+- :fontawesome-solid-plug-circle-check: [**Client Session Guide**](./networking/connecting-clients.md) — Connecting TCP/UDP sessions with Nalix.SDK.
+- :fontawesome-solid-broadcast-tower: [**UDP Server Guide**](./networking/udp-server.md) — Building low-latency datagram services.
+- :fontawesome-solid-route: [**TCP Patterns Guide**](./networking/tcp-patterns.md) — Request/Response and manual listener wiring.
+- :fontawesome-solid-user-lock: [**UDP Security Guide**](./networking/udp-security.md) — Deep dive into secure session handover for UDP.
+- :fontawesome-solid-bolt-lightning: [**Minimal Server Guide**](./networking/minimal-server.md) — Minimal server flow without the hosting builder.
+- :fontawesome-solid-microchip: [**Session APIs Guide**](./networking/session-apis.md) — High-performance low-level session interaction.
 
-- :fontawesome-solid-filter: [**Middleware Guide**](./middleware.md) — Adding cross-cutting concerns (Auth, Rate Limit).
-- :fontawesome-solid-code-branch: [**Custom Middleware**](./custom-middleware-end-to-end.md) — Building your own pipeline components.
-- :fontawesome-solid-tags: [**Custom Metadata Provider**](./custom-metadata-provider.md) — Using attributes to drive custom logic.
-- :fontawesome-solid-floppy-disk: [**Custom Serialization Provider**](./custom-serialization-provider.md) — Registering custom formatters.
+## 📦 Application Logic
 
-## 🌐 Networking Patterns
+- :fontawesome-solid-envelope: [**Implementing Packet Handlers**](./application/packet-handlers.md) — Writing business logic and managing opcodes.
+- :fontawesome-solid-filter: [**Middleware Usage Guide**](./application/middleware-usage.md) — Enforcing policy at the transport and packet levels.
 
-- :fontawesome-solid-plug-circle-check: [**Client Session Connect**](./client-session-connect.md) — Creating and connecting TCP/UDP sessions with Nalix.SDK.
-- :fontawesome-solid-broadcast-tower: [**UDP Server**](./udp-server.md) — Building low-latency datagram services with UdpListener.
+## 🔌 Extensibility
 
-## 🛠️ Advanced & Low-Level (Manual Setup)
+- :fontawesome-solid-code-branch: [**Custom Middleware Guide**](./extensibility/custom-middleware.md) — Building your own pipeline components.
+- :fontawesome-solid-tags: [**Custom Metadata Providers**](./extensibility/metadata-providers.md) — Using attributes to drive custom behavior.
+- :fontawesome-solid-floppy-disk: [**Custom Serialization Provider**](./extensibility/serialization-providers.md) — Registering custom formatters.
 
-Use these guides when you need absolute control over the runtime lifecycle or are building custom transport layers without the Hosting builder.
+## 🏗️ Deployment & Operations
 
-- :fontawesome-solid-bolt-lightning: [**Minimal End-to-End**](./end-to-end.md) — Minimal server flow without the hosting builder.
-- :fontawesome-solid-bridge: [**Direct TCP Flow**](./tcp-request-response.md) — Manual TcpListener and Protocol wiring.
-- :fontawesome-solid-user-lock: [**UDP Auth Handover**](./udp-auth-flow.md) — Deep dive into secure session bootstrap for UDP.
-- :fontawesome-solid-microchip: [**Low-Level Session APIs**](./low-level-session-apis.md) — Bypassing high-level event handlers for maximum performance.
-- :fontawesome-solid-shuttle-space: [**Shard-Aware Dispatch**](./shard-aware-dispatch.md) — Customizing core worker affinity and sharding.
-
-## 📁 Operations & Debugging
-
-- :fontawesome-solid-wrench: [**Troubleshooting**](./troubleshooting.md) — Common issues and diagnostic strategies.
-- :fontawesome-solid-gauge-high: [**Zero-Allocation Paths**](./zero-allocation-hot-path.md) — Understanding how Nalix achieves peak performance.
+- :fontawesome-solid-rocket: [**Production Server Example**](./deployment/production-example.md) — Real-world example with auth and persistence.
+- :fontawesome-solid-check-double: [**Production Checklist**](./deployment/production-checklist.md) — Security, performance, and stability audit.
+- :fontawesome-solid-wrench: [**Troubleshooting Guide**](./deployment/troubleshooting.md) — Common issues and diagnostic strategies.

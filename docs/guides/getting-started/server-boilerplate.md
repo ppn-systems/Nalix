@@ -3,7 +3,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Beginner to Intermediate
     - :fontawesome-solid-clock: **Time**: 5 minutes (Copy-Paste)
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
 
 This page provides a robust, production-ready starting point for any Nalix server. It is structured to be easy to copy into a new project while allowing for deep customization as your needs grow.
 
@@ -148,6 +148,6 @@ dispatch.Dispose();
 ## Read this next
 
 - [Server Blueprint](./server-blueprint.md)
-- [Production End-to-End](./production-end-to-end.md)
-- [TCP Request/Response](./tcp-request-response.md)
-- [Quickstart](../quickstart.md)
+- [Production End-to-End](../deployment/production-example.md)
+- [TCP Request/Response](../networking/tcp-patterns.md)
+- [Quickstart](../../quickstart.md)

@@ -1,4 +1,4 @@
-# Choose the Right Building Block
+# Selecting Building Blocks
 
 If you are new to Nalix, this page helps you choose the right entry point quickly.
 
@@ -109,12 +109,12 @@ That gives you the cleanest learning path and the fewest moving parts.
 
 ## Related pages
 
-- [Glossary](./glossary.md)
-- [Middleware](./middleware.md)
-- [TCP Request/Response](../guides/tcp-request-response.md)
-- [UDP Auth Flow](../guides/udp-auth-flow.md)
-- [Custom Middleware](../guides/custom-middleware-end-to-end.md)
-- [Custom Metadata Provider](../guides/custom-metadata-provider.md)
+- [Glossary](../glossary.md)
+- [Middleware](middleware-pipeline.md)
+- [TCP Request/Response](../../guides/networking/tcp-patterns.md)
+- [UDP Auth Flow](../../guides/networking/udp-security.md)
+- [Custom Middleware](../../guides/extensibility/custom-middleware.md)
+- [Custom Metadata Provider](../../guides/extensibility/metadata-providers.md)
 
 ## Reading paths by persona
 
@@ -124,7 +124,7 @@ flowchart TD
     Server1 --> Server2["Quickstart"]
     Server2 --> Server3["Nalix.Network"]
     Server3 --> Server4["Architecture"]
-    Server4 --> Server5["Server Blueprint"]
+    Server4 --> Server5["../../guides/getting-started/server-blueprint.md"]
 
     Client["Client dev"] --> Client1["Introduction"]
     Client1 --> Client2["Quickstart"]

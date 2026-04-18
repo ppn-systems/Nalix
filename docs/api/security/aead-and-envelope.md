@@ -74,4 +74,4 @@ EnvelopeCipher.Encrypt(
 - [Cryptography](./cryptography.md)
 - [Hashing and MAC](./hashing-and-mac.md)
 - [Transport Options](../sdk/options/transport-options.md)
-- [UDP Auth Flow](../../guides/udp-auth-flow.md)
+- [UDP Security Guide](../../guides/networking/udp-security.md)

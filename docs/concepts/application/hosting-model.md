@@ -56,6 +56,6 @@ While you can use the low-level `Nalix.Network` APIs directly, the Hosting model
 
 ## Related Topics
 
-- [Dependency Injection](./dependency-injection.md)
+- [Instance Manager](../../api/framework/runtime/instance-manager.md)
 - [Middleware Pipeline](../runtime/middleware-pipeline.md)
-- [Server Setup Guide](../../guides/high-level/server-setup.md)
+- [Server Setup Guide](../../guides/getting-started/server-blueprint.md)

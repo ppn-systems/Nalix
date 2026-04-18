@@ -39,10 +39,10 @@ A typical Nalix application involves five clean steps:
 If you're new to Nalix, follow this path to go from zero to production-ready:
 
 1. :fontawesome-solid-book-open: [Introduction](./introduction.md) — Understand the design philosophy and mental model.
-2. :fontawesome-solid-sitemap: [Architecture](./concepts/architecture.md) — Explore the layered component system.
+2. :fontawesome-solid-sitemap: [Architecture](./concepts/fundamentals/architecture.md) — Explore the layered component system.
 3. :fontawesome-solid-bolt: [Quickstart](./quickstart.md) — Build your first Ping/Pong server in minutes.
-4. :fontawesome-solid-vial: [End-to-End Guide](./guides/end-to-end.md) — Move beyond basics with a full feature implementation.
-5. :fontawesome-solid-shield-halved: [Middleware](./guides/middleware.md) — Learn how to secure and scale your traffic.
+4. :fontawesome-solid-vial: [End-to-End Guide](./guides/deployment/production-example.md) — Move beyond basics with a full feature implementation.
+5. :fontawesome-solid-shield-halved: [Middleware](./guides/application/middleware-usage.md) — Learn how to secure and scale your traffic.
 
 !!! tip "Next"
     Explore the [API Reference](./api/index.md) as needed.
@@ -124,8 +124,8 @@ Choose the path that matches your role.
     1. [Introduction](./introduction.md) — Design philosophy and mental model
     2. [Installation](./installation.md) — Package selection and prerequisites
     3. [Quickstart](./quickstart.md) — Build a Ping/Pong server end-to-end
-    4. [Architecture](./concepts/architecture.md) — Layered component overview
-    5. [Server Blueprint](./guides/server-blueprint.md) — Production-oriented project structure
+    4. [Architecture](./concepts/fundamentals/architecture.md) — Layered component overview
+    5. [Server Blueprint](./guides/getting-started/server-blueprint.md) — Production-oriented project structure
 
 === "Client Developer"
 
@@ -137,17 +137,17 @@ Choose the path that matches your role.
 
 === "Middleware / Extension Author"
 
-    1. [Choose the Right Building Block](./concepts/choose-the-right-building-block.md) — Decision guide
-    2. [Middleware](./concepts/middleware.md) — Buffer vs. packet middleware
-    3. [Custom Middleware Guide](./guides/custom-middleware-end-to-end.md) — End-to-end walkthrough
-    4. [Custom Metadata Provider](./guides/custom-metadata-provider.md) — Convention-based metadata
+    1. [Selecting Building Blocks](./concepts/runtime/building-blocks.md) — Decision guide
+    2. [Middleware](./concepts/runtime/middleware-pipeline.md) — Buffer vs. packet middleware
+    3. [Custom Middleware Guide](./guides/extensibility/custom-middleware.md) — End-to-end walkthrough
+    4. [Custom Metadata Provider](./guides/extensibility/metadata-providers.md) — Convention-based metadata
 
 === "Contributor"
 
-    1. [Architecture](./concepts/architecture.md) — System design and component boundaries
-    2. [Packet System](./concepts/packet-system.md) — Serialization and wire format
-    3. [Packet Lifecycle](./concepts/packet-lifecycle.md) — Request path from socket to handler
-    4. [Error Reporting](./concepts/error-reporting.md) — Runtime and protocol signaling
+    1. [Architecture](./concepts/fundamentals/architecture.md) — System design and component boundaries
+    2. [Packet System](./concepts/fundamentals/packet-system.md) — Serialization and wire format
+    3. [Packet Lifecycle](./concepts/fundamentals/packet-lifecycle.md) — Request path from socket to handler
+    4. [Error Reporting](./concepts/fundamentals/errors-and-diagnostics.md) — Runtime and protocol signaling
     5. [Glossary](./concepts/glossary.md) — Term definitions
 
 ## Core Packages

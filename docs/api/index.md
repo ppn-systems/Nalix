@@ -70,5 +70,5 @@ This keeps server runtime internals, transport lifecycle, and client APIs indepe
 ## Related Pages
 
 - [Package Overview](../packages/index.md)
-- [Architecture Concepts](../concepts/architecture.md)
-- [Packet Lifecycle](../concepts/packet-lifecycle.md)
+- [Architecture Concepts](../concepts/fundamentals/architecture.md)
+- [Packet Lifecycle](../concepts/fundamentals/packet-lifecycle.md)

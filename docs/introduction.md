@@ -84,9 +84,9 @@ Nalix is a specialized binary protocol engine. It is **not** suitable for:
 
 <div class="grid" markdown>
 
--   [**Failure Model**](./concepts/advanced/failure-model.md) — How we handle the unexpected.
--   [**Design Tradeoffs**](./concepts/advanced/design-tradeoffs.md) — Why performance leads.
--   [**Reliability Model**](./concepts/advanced/reliability-model.md) — High-level production confidence.
+-   [**Failure Handling**](./concepts/internals/failure-handling.md) — How we handle the unexpected.
+-   [**Design Tradeoffs**](./concepts/internals/design-tradeoffs.md) — Why performance leads.
+-   [**Reliability Model**](./concepts/internals/reliability.md) — High-level production confidence.
 
 </div>
 
@@ -94,7 +94,7 @@ Nalix is a specialized binary protocol engine. It is **not** suitable for:
 
 ## 🚀 Recommended Path
 
-1.  :material-sitemap: [**Architecture**](./concepts/architecture.md) — The big picture.
+1.  :material-sitemap: [**Architecture**](./concepts/fundamentals/architecture.md) — The big picture.
 2.  :material-bolt: [**Quickstart**](./quickstart.md) — Build in 15 minutes.
-3.  :material-shield-check: [**End-to-End**](./guides/end-to-end.md) — Secure implementation.
+3.  :material-shield-check: [**Production Example**](./guides/deployment/production-example.md) — Secure implementation.
 

@@ -120,8 +120,8 @@ receive datagram
 
 ## Related APIs
 
-- [UDP Listener](../api/network/udp-listener.md)
-- [UDP Session](../api/sdk/udp-session.md)
-- [Protocol](../api/network/protocol.md)
-- [UDP Auth Flow](./udp-auth-flow.md)
-- [Security Model](../concepts/security-model.md)
+- [UDP Listener](../../api/network/udp-listener.md)
+- [UDP Session](../../api/sdk/udp-session.md)
+- [Protocol](../../api/network/protocol.md)
+- [UDP Auth Flow](./udp-security.md)
+- [Security Architecture](../../concepts/security/security-architecture.md)

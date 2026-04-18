@@ -205,13 +205,13 @@ sequenceDiagram
 
 <div class="grid items" markdown>
 
--   :material-sitemap: [**Architecture**](./concepts/architecture.md)
+-   :material-sitemap: [**Architecture**](./concepts/fundamentals/architecture.md)
     Deep dive into the sharded dispatch model.
 
--   :material-shield-key: [**Middleware**](./guides/middleware.md)
+-   :material-shield-key: [**Middleware**](./guides/application/middleware-usage.md)
     Secure your packets with rate-limits and permissions.
 
--   :material-check-decagram: [**Production Prep**](./guides/production-checklist.md)
+-   :material-check-decagram: [**Production Prep**](./guides/deployment/production-checklist.md)
     Checklist for high-traffic deployments.
 
 </div>

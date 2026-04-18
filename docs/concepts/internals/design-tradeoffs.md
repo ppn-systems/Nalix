@@ -54,5 +54,5 @@ We use a custom binary format rather than JSON or Protobuf for the default `IPac
 
 ## Related Architecture
 
-- [Architecture Overview](../architecture.md) — The layered system design.
-- [Performance Optimizations](../performance-optimizations.md) — Details on zero-alloc paths.
+- [Architecture Overview](../fundamentals/architecture.md) — The layered system design.
+- [Performance Optimizations](./performance-optimizations.md) — Details on zero-alloc paths.

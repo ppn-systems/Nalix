@@ -48,13 +48,13 @@ The server responds with its own ephemeral public key and a `Proof`. The proof i
 The SDK validates the server's proof. If valid, it computes its own `ClientProof` and sends it back. This confirms to the server that the client has successfully derived the same shared secret.
 
 ### 4. SERVER_FINISH
-Final confirmation. The server sends a `SessionToken` which the client can use later for [Session Resumption](./session-resume.md). The connection is now fully encrypted using the derived session key.
+Final confirmation. The server sends a `SessionToken` which the client can use later for [Session Resumption](./session-resumption.md). The connection is now fully encrypted using the derived session key.
 
 ## Implementation Details
 - **Encryption**: Once established, all subsequent packets use **ChaCha20-Poly1305** AEAD.
 - **Key Rotation**: Session keys are only valid for the duration of the physical connection or until a session resume occurs.
 
 ## Related Topics
-- [Session Resumption](./session-resume.md)
+- [Session Resumption](./session-resumption.md)
 - [Encryption Model](./encryption-model.md)
-- [Zero-Allocation Hot Path](../foundations/zero-allocation.md)
+- [Zero-Allocation Design](../internals/zero-allocation.md)

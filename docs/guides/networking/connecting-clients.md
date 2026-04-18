@@ -1,9 +1,9 @@
-# Create and Connect a Client Session (Nalix.SDK)
+# Client Session Guide
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
     - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../concepts/architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../../concepts/fundamentals/architecture.md)
 
 This guide provides a comprehensive, end-to-end flowchart for creating, configuring, and connecting a client session using the `Nalix.SDK`. It covers exactly how to initialize your `TransportOptions`, setup your shared packet registry, and manage the lifecycle of both `TcpSession` and `UdpSession`.
 
@@ -132,7 +132,7 @@ async Task ConnectTcpStandardAsync()
 ```
 
 !!! tip "Performance Edge-case Options"
-    The `On<T>` extension is designed for highest developer velocity. However, if you are looking to squeeze the literal maximum throughput bypassing C# class boxing, see our [Low-Level APIs Guide](low-level-session-apis.md) for dealing with raw byte buffer event loops (`OnMessageReceived`).
+    The `On<T>` extension is designed for highest developer velocity. However, if you are looking to squeeze the literal maximum throughput bypassing C# class boxing, see our [Session APIs Guide](./session-apis.md) for dealing with raw byte buffer event loops (`OnMessageReceived`).
 
 !!! note "Performance Recommendation"
     While the SDK is mostly platform-agnostic, specialized socket options like `TCP_NODELAY` are enabled by default for gaming workloads.
@@ -247,9 +247,9 @@ session.Dispose();
 
 ## Related Information Paths
 
-- [Low-Level Advanced APIs](low-level-session-apis.md)
-- [SDK Overview](../api/sdk/index.md)
-- [Transport Session Guidelines](../api/sdk/transport-session.md)
-- [TCP Session Guidelines](../api/sdk/tcp-session.md)
-- [UDP Session Guidelines](../api/sdk/udp-session.md)
-- [Extensive Transport Options Documentation](../api/sdk/options/transport-options.md)
+- [Low-Level Advanced APIs](./session-apis.md)
+- [SDK Overview](../../api/sdk/index.md)
+- [Transport Session Guidelines](../../api/sdk/transport-session.md)
+- [TCP Session Guidelines](../../api/sdk/tcp-session.md)
+- [UDP Session Guidelines](../../api/sdk/udp-session.md)
+- [Extensive Transport Options Documentation](../../api/sdk/options/transport-options.md)

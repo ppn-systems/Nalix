@@ -1,9 +1,9 @@
-# Middleware Guide
+# Middleware Usage Guide
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
     - :fontawesome-solid-clock: **Time**: 10–15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
 
 Use this guide when you know you need request policy or frame processing, but you are not yet sure which Nalix middleware layer should own it.
 
@@ -118,7 +118,7 @@ For internal traffic, you can stay lighter:
 
 ## Read this next
 
-- [Custom Middleware End-to-End](./custom-middleware-end-to-end.md)
-- [Custom Metadata Provider](./custom-metadata-provider.md)
-- [Middleware](../concepts/middleware.md)
-- [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
+- [Custom Middleware Guide](../extensibility/custom-middleware.md)
+- [Custom Metadata Providers](../extensibility/metadata-providers.md)
+- [Middleware Concept](../../concepts/runtime/middleware-pipeline.md)
+- [Middleware Pipeline API](../../api/runtime/middleware/pipeline.md)

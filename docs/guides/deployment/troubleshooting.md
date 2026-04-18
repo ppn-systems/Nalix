@@ -1,4 +1,4 @@
-# Troubleshooting
+# Troubleshooting Guide
 
 This page collects the most common Nalix setup failures and the fastest places to check first.
 
@@ -160,6 +160,6 @@ When you are debugging, these usually give the fastest signal:
 
 ## Recommended Next Pages
 
-- [TCP Request/Response](./tcp-request-response.md) — TCP pattern guide
-- [UDP Auth Flow](./udp-auth-flow.md) — UDP authentication guide
-- [Handler Return Types](../api/runtime/routing/handler-results.md) — Supported return shapes
+- [TCP Patterns Guide](../networking/tcp-patterns.md)
+- [UDP Security Guide](../networking/udp-security.md)
+- [Handler Return Types](../../api/runtime/routing/handler-results.md)

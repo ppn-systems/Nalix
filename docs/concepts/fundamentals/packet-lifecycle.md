@@ -135,6 +135,6 @@ If you know which phase your problem belongs to, you usually know which Nalix co
 
 ## See it in action
 
-- [Quickstart](../quickstart.md) — Follow a Ping/Pong packet through the entire lifecycle.
-- [TCP Request/Response](../guides/tcp-request-response.md) — See the lifecycle applied to a standard request/reply pattern.
-- [Production End-to-End](../guides/production-end-to-end.md) — Observe the lifecycle in a high-performance environment.
+- [Quickstart](../../quickstart.md) — Follow a Ping/Pong packet through the entire lifecycle.
+- [TCP Request/Response](../../guides/networking/tcp-patterns.md) — See the lifecycle applied to a standard request/reply pattern.
+- [Production End-to-End](../../guides/deployment/production-example.md) — Observe the lifecycle in a high-performance environment.

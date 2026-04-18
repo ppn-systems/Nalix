@@ -196,6 +196,6 @@ await listener.Deactivate(ct);
 
 ## Recommended Next Pages
 
-- [Server Blueprint](./server-blueprint.md) — Production-oriented project structure
-- [Troubleshooting](./troubleshooting.md) — Common issues and diagnostics
-- [Network Options](../api/network/options/options.md) — Options class reference
+- [Server Blueprint](../getting-started/server-blueprint.md)
+- [Troubleshooting Guide](./troubleshooting.md)
+- [Network Options API](../../api/network/options/options.md)

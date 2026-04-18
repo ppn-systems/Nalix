@@ -1,9 +1,9 @@
-# Security Model
+# Security Architecture
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
     - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
 
 This page explains where security decisions happen in Nalix and how the different layers work together to protect your application.
 
@@ -124,9 +124,9 @@ For most production deployments:
 
 ## Recommended Next Pages
 
-- [Handshake Protocol](../api/security/handshake.md) — X25519 handshake details
-- [Session Resume](../api/security/session-resume.md) — Resume protocol reference
-- [Permission Levels](../api/security/permission-level.md) — Permission enum reference
-- [AEAD and Envelope](../api/security/aead-and-envelope.md) — Encryption API
-- [UDP Auth Flow](../guides/udp-auth-flow.md) — UDP authentication guide
-- [Custom Middleware](../guides/custom-middleware-end-to-end.md) — Building security middleware
+- [Handshake Protocol](./handshake-protocol.md) — X25519 handshake details
+- [Session Resumption](./session-resumption.md) — Resume protocol reference
+- [Permission Levels](../../api/security/permission-level.md) — Permission enum reference
+- [AEAD and Envelope](../../api/security/aead-and-envelope.md) — Encryption API
+- [UDP Auth Flow](../../guides/networking/udp-security.md) — UDP authentication guide
+- [Custom Middleware](../../guides/extensibility/custom-middleware.md) — Building security middleware

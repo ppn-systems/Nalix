@@ -1,4 +1,4 @@
-# Error Reporting
+# Errors and Diagnostics
 
 Nalix uses a structured signaling system to communicate runtime failures and protocol violations back to the client. Errors are reported using specialized signal packets (`Directive`, `Handshake`, or `SessionResume`) depending on where the failure occurs in the processing pipeline.
 
@@ -120,5 +120,5 @@ Failures during session resumption use the `SessionResume` packet with `Stage = 
 
 - [Packet System](./packet-system.md) — Serialization and wire format
 - [Packet Lifecycle](./packet-lifecycle.md) — Request path from socket to handler
-- [Middleware](./middleware.md) — Buffer vs. packet middleware
-- [Security Model](./security-model.md) — Authentication and encryption
+- [Middleware](../runtime/middleware-pipeline.md) — Buffer vs. packet middleware
+- [Security Model](../security/security-architecture.md) — Authentication and encryption

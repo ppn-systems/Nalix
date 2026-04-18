@@ -1,9 +1,9 @@
-# Production End-to-End Guide
+# Production Server Example
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 20–30 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md), [Architecture](../concepts/architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md), [Architecture](../../concepts/fundamentals/architecture.md)
 
 This guide describes how to build a production-ready Nalix application using best practices for logging, middleware, error handling, and structured contracts.
 
@@ -172,6 +172,6 @@ Console.WriteLine($"Server said: {response.Message}");
 
 ## Next Steps
 
-- Explore [Custom Middleware](../concepts/middleware.md) for authentication.
-- Learn about [UDP Auth Flow](./udp-auth-flow.md) for real-time games.
-- Review [Performance Optimizations](../concepts/performance-optimizations.md).
+- [Middleware Concept](../../concepts/runtime/middleware-pipeline.md)
+- [UDP Security Guide](../networking/udp-security.md)
+- [Performance Optimizations](../../concepts/internals/performance-optimizations.md)

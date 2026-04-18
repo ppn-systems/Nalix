@@ -1,13 +1,13 @@
-# Direct TCP Flow (Manual Setup)
+# TCP Patterns Guide
 
 !!! danger "Low-Level Implementation"
-    This guide demonstrates the manual instantiation of `TcpListenerBase` and `Protocol`. While powerful, this path bypasses the automatic feature discovery and dependency injection provided by the [Hosting Builder](../quickstart.md).
+    This guide demonstrates the manual instantiation of `TcpListenerBase` and `Protocol`. While powerful, this path bypasses the automatic feature discovery and dependency injection provided by the [Hosting Builder](../../quickstart.md).
     Use this only when embedding Nalix into existing engines or when building specialized transport layers.
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 5–10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
 
 This manual flow demonstrates:
 
@@ -214,6 +214,6 @@ Use this style when:
 
 ## Recommended Next Pages
 
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
-- [Handler Return Types](../api/runtime/routing/handler-results.md) — Supported return shapes
-- [TCP Listener](../api/network/tcp-listener.md) — Listener API reference
+- [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [Handler Return Types](../../api/runtime/routing/handler-results.md) — Supported return shapes
+- [TCP Listener](../../api/network/tcp-listener.md) — Listener API reference

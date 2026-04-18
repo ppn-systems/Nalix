@@ -69,6 +69,6 @@ UserProfile restored = LiteSerializer.Deserialize<UserProfile>(payload, out int 
 
 ## Related pages
 
-- [Serialization Basics](../api/framework/serialization/serialization-basics.md)
-- [Serialization](../api/framework/packets/serialization.md)
-- [Frame Model](../api/framework/packets/frame-model.md)
+- [Serialization Basics](../../api/framework/serialization/serialization-basics.md)
+- [Serialization Concept](../../concepts/fundamentals/packet-system.md)
+- [Packet Lifecycle](../../concepts/fundamentals/packet-lifecycle.md)

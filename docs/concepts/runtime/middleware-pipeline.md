@@ -1,4 +1,4 @@
-# Middleware
+# Middleware Pipeline
 
 This page explains how middleware fits into the Nalix request path and how to choose the right middleware layer for your use case.
 
@@ -116,6 +116,6 @@ If you are unsure, start with packet middleware. It is easier to test, easier to
 
 ## See it in action
 
-- :fontawesome-solid-screwdriver-wrench: [Custom Middleware End-to-End](../guides/custom-middleware-end-to-end.md) — Create a custom middleware and metadata provider.
-- :fontawesome-solid-user-shield: [UDP Auth Flow](../guides/udp-auth-flow.md) — See how authentication middleware is used in a real scenario.
-- :fontawesome-solid-arrow-right-arrow-left: [TCP Request/Response](../guides/tcp-request-response.md) — Observe middleware in a standard TCP flow.
+- :fontawesome-solid-screwdriver-wrench: [Custom Middleware End-to-End](../../guides/extensibility/custom-middleware.md) — Create a custom middleware and metadata provider.
+- :fontawesome-solid-user-shield: [UDP Auth Flow](../../guides/networking/udp-security.md) — See how authentication middleware is used in a real scenario.
+- :fontawesome-solid-arrow-right-arrow-left: [TCP Request/Response](../../guides/networking/tcp-patterns.md) — Observe middleware in a standard TCP flow.

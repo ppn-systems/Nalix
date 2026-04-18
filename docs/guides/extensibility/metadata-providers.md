@@ -1,4 +1,4 @@
-# Custom Metadata Provider
+# Custom Metadata Providers
 
 This guide shows how to attach your own metadata to handler methods and read it later from middleware or handlers.
 
@@ -142,5 +142,5 @@ Best practice:
 
 ## Related pages
 
-- [Packet Metadata](../api/runtime/routing/packet-metadata.md)
-- [Custom Middleware End-to-End](./custom-middleware-end-to-end.md)
+- [Packet Metadata API](../../api/runtime/routing/packet-metadata.md)
+- [Custom Middleware Guide](./custom-middleware.md)

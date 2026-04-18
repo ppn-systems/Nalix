@@ -1,12 +1,12 @@
 # Shard-Aware Dispatch
 
 !!! warning "Advanced Topic"
-    This page describes multi-threaded synchronization and complex parallel scaling architectures. If you are just getting started, please see the [Quickstart](../quickstart.md).
+    This page describes multi-threaded synchronization and complex parallel scaling architectures. If you are just getting started, please see the [Quickstart](../../quickstart.md).
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../concepts/architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
 
 Nalix uses a shard-aware dispatch architecture to scale packet processing across multiple CPU cores while maintaining strict delivery order for individual connections. 
     

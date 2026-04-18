@@ -15,7 +15,7 @@ Correct nonce management is critical to the security of any stream cipher. Nalix
 - **Predictable Increment**: Nonces are synchronized between the client and server and incremented with every packet.
 - **Sequence Protection**: The `SequenceId` of the packet is often integrated into the nonce derivation to ensure that even if packets arrive out of order (in UDP), the correct decryption context can be restored.
 
-1.  **Transport Level**: The frame header (10 bytes) is typically sent in the clear (or with light obfuscation) to allow the [Packet System](../../foundations/packet-system.md) to route the message.
+1.  **Transport Level**: The frame header (10 bytes) is typically sent in the clear (or with light obfuscation) to allow the [Packet System](../fundamentals/packet-system.md) to route the message.
 2.  **Payload Encryption**: The entire payload of the packet is encrypted using the session key derived during the [Handshake](./handshake-protocol.md).
 3.  **Integrity Tag**: A **16-byte** authentication tag is appended to the encrypted payload as part of the AEAD process.
 
@@ -39,5 +39,5 @@ public class PrivateMessage : PacketBase<PrivateMessage> { ... }
 
 ## Related Topics
 - [Handshake Protocol](./handshake-protocol.md)
-- [Session Resumption](./session-resume.md)
-- [Zero-Allocation Hot Path](../../foundations/zero-allocation.md)
+- [Session Resumption](./session-resumption.md)
+- [Zero-Allocation Design](../internals/zero-allocation.md)

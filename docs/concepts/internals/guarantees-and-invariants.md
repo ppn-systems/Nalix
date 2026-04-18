@@ -1,7 +1,7 @@
-# Guarantees and Invariants
+# System Guarantees
 
 !!! warning "Advanced Topic"
-    This page describes the low-level contracts and reliability guarantees of the Nalix runtime. If you are just getting started, we recommend reading the [Architecture](../architecture.md) and [Quickstart](../../quickstart.md) first.
+    This page describes the low-level contracts and reliability guarantees of the Nalix runtime. If you are just getting started, we recommend reading the [Architecture](../fundamentals/architecture.md) and [Quickstart](../../quickstart.md) first.
 
 When building high-concurrency networked systems, developers need to know exactly what the platform guarantees and what is left to the application logic. This page defines the operational contracts of the Nalix framework.
 

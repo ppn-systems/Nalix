@@ -118,8 +118,8 @@ Metadata is resolved once during handler registration, then reused through dispa
 
 ## Recommended Next Pages
 
-- [Architecture](./architecture.md) — Layered component overview
-- [Middleware](./middleware.md) — Buffer vs. packet middleware
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
-- [TCP Request/Response](../guides/tcp-request-response.md) — TCP pattern guide
-- [UDP Auth Flow](../guides/udp-auth-flow.md) — UDP authentication guide
+- [Architecture](../fundamentals/architecture.md) — Layered component overview
+- [Middleware](./middleware-pipeline.md) — Buffer vs. packet middleware
+- [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [TCP Request/Response](../../guides/networking/tcp-patterns.md) — TCP pattern guide
+- [UDP Auth Flow](../../guides/networking/udp-security.md) — UDP authentication guide

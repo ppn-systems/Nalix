@@ -1,4 +1,4 @@
-# Packet System
+# Unified Packet System
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
@@ -325,6 +325,6 @@ public class GeoLocationFormatter : IFormatter<GeoLocation>
 
 ## See it in action
 
-- [Quickstart](../quickstart.md) — Define and use your first packets.
-- [TCP Request/Response](../guides/tcp-request-response.md) — See how packet contracts are shared between projects.
-- [UDP Auth Flow](../guides/udp-auth-flow.md) — Observe packets used for authenticated session resumption.
+- [Quickstart](../../quickstart.md) — Define and use your first packets.
+- [TCP Request/Response](../../guides/networking/tcp-patterns.md) — See how packet contracts are shared between projects.
+- [UDP Auth Flow](../../guides/networking/udp-security.md) — Observe packets used for authenticated session resumption.

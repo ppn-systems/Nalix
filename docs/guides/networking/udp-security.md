@@ -1,4 +1,4 @@
-# UDP Auth Flow Example
+# UDP Security Guide
 
 !!! warning "Advanced Topic"
     This page deals with low-level protocol multiplexing and custom listener implementations.
@@ -6,7 +6,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](client-session-connect.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](./connecting-clients.md)
 
 This guide explains the actual UDP session shape used by `UdpListenerBase` today, in a client-friendly way.
 
@@ -128,7 +128,7 @@ For a simple deployment:
 
 ## Related pages
 
-- [UDP Listener](../api/network/udp-listener.md)
-- [UDP Session](../api/sdk/udp-session.md)
-- [Connection Hub](../api/network/connection/connection-hub.md)
-- [Network Options](../api/network/options/options.md)
+- [UDP Listener](../../api/network/udp-listener.md)
+- [UDP Session](../../api/sdk/udp-session.md)
+- [Connection Hub](../../api/network/connection/connection-hub.md)
+- [Network Options](../../api/network/options/options.md)

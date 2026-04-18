@@ -6,7 +6,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
 
 Nalix is engineered to minimize latency and maximize throughput on the networking hot path. This page explains the specific techniques used and why they matter for production workloads.
 
@@ -17,7 +17,7 @@ Traditional networking stacks suffer from GC pressure due to frequent buffer all
 !!! tip
     Monitor GC pause time and allocated bytes as your primary performance indicators during load testing.
 
-For a complete end-to-end walkthrough of how these optimizations work together in a production scenario, see the [Zero-Allocation Hot Path](../guides/zero-allocation-hot-path.md) guide.
+For a complete end-to-end walkthrough of how these optimizations work together in a production scenario, see the [Zero-Allocation Design](./zero-allocation.md) guide.
 
 ### Buffer Pooling (BufferLease)
 
@@ -92,12 +92,12 @@ To preserve these performance characteristics in your own handlers and middlewar
 
 ## Benchmarks
 
-For measured performance data across serialization, cryptography, compression, and infrastructure, see the [Benchmarks](../benchmarks/index.md) section.
+For measured performance data across serialization, cryptography, compression, and infrastructure, see the [Benchmarks](../../benchmarks/index.md) section.
 
 ## Recommended Next Pages
 
-- [Architecture](./architecture.md) — Layered component overview
-- [Packet System](./packet-system.md) — Serialization layouts and wire format
-- [Buffer Management](../api/framework/memory/buffer-management.md) — Buffer pool API details
-- [Object Pooling](../api/framework/memory/object-pooling.md) — Object recycling API details
-- [LZ4](../api/framework/memory/lz4.md) — Compression API details
+- [Architecture](../fundamentals/architecture.md) — Layered component overview
+- [Packet System](../fundamentals/packet-system.md) — Serialization layouts and wire format
+- [Buffer Management](../../api/framework/memory/buffer-management.md) — Buffer pool API details
+- [Object Pooling](../../api/framework/memory/object-pooling.md) — Object recycling API details
+- [LZ4](../../api/framework/memory/lz4.md) — Compression API details
