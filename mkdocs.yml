@@ -36,29 +36,32 @@ theme:
   language: en
   logo: assets/nalix.png
   favicon: assets/nalix.ico
-  font:
-    text: Inter
-    code: "JetBrains Mono"
+  # font:
+  #   text: Inter
+  #   code: "JetBrains Mono"
+  font: false
   palette:
-      - scheme: default
-        primary: white
-        accent: cyan
-        toggle:
-          icon: material/weather-night
-          name: Switch to dark mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
 
-      - scheme: slate
-        primary: black
-        accent: cyan
-        toggle:
-          icon: material/weather-sunny
-          name: Switch to light mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
   features:
     - navigation.path
     - navigation.tabs
     - navigation.top
     - navigation.instant
-    - navigation.instant.prefetch
+    # - navigation.instant.prefetch
     - navigation.tabs.sticky
     # - navigation.sections
     - header.sticky
@@ -87,6 +90,7 @@ markdown_extensions:
   - pymdownx.details
   - attr_list
   - pymdownx.highlight:
+      guess_lang: false
       use_pygments: true
       anchor_linenums: true
       pygments_lang_class: true

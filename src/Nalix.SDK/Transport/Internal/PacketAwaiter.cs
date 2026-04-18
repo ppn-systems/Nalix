@@ -2,10 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Transport.Extensions;
+
+[assembly: InternalsVisibleTo("Nalix.SDK.Tests")]
 
 namespace Nalix.SDK.Transport.Internal;
 
