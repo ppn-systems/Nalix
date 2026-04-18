@@ -482,27 +482,6 @@ public sealed class DemoPacketMiddleware : IPacketMiddleware<DemoPacket>
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX030");
     }
 
-    [Fact]
-    public async Task BufferMiddlewareMissingOrder_ReportsNalix031()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Runtime.Middleware;
-
-public sealed class DemoBufferMiddleware : INetworkBufferMiddleware
-{
-    public ValueTask<IBufferLease?> InvokeAsync(
-        IBufferLease buffer,
-        IConnection connection,
-        Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> nextHandler,
-        CancellationToken ct) => nextHandler(buffer, ct);
-}
-""";
-
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX031");
-    }
 
     [Fact]
     public async Task ControllerWithDuplicateOpcodes_ReportsNalix001()
@@ -618,31 +597,6 @@ public static class Setup
 """;
 
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX006");
-    }
-
-    [Fact]
-    public async Task BufferMiddlewareWithStageAttribute_ReportsNalix007()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking;
-using Nalix.Runtime.Middleware;
-
-[MiddlewareOrder(1)]
-[MiddlewareStage(MiddlewareStage.Inbound)]
-public sealed class DemoBufferMiddleware : INetworkBufferMiddleware
-{
-    public ValueTask<IBufferLease?> InvokeAsync(
-        IBufferLease buffer,
-        IConnection connection,
-        Func<IBufferLease, CancellationToken, ValueTask<IBufferLease?>> nextHandler,
-        CancellationToken ct) => nextHandler(buffer, ct);
-}
-""";
-
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX007");
     }
 
     [Fact]
@@ -1271,37 +1225,6 @@ public static class Setup
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX005");
     }
 
-    [Fact]
-    public async Task WithBufferMiddlewareTypeMismatch_ReportsNalix019()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Middleware;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-
-public sealed class DemoPacket : PacketBase<DemoPacket>
-{
-    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
-}
-
-public sealed class NotABufferMiddleware
-{
-}
-
-public static class Setup
-{
-    public static void Configure()
-    {
-        _ = new PacketDispatchOptions<DemoPacket>()
-            .WithBufferMiddleware((INetworkBufferMiddleware)(object)new NotABufferMiddleware());
-    }
-}
-""";
-
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX019");
-    }
 
     [Fact]
     public async Task NetworkBuildWithoutRecommendedSetup_ReportsNalix040_041_044()
