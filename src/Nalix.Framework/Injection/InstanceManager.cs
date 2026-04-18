@@ -286,6 +286,15 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             for (int i = 0; i < itfs.Length; i++)
             {
                 Type itf = itfs[i];
+
+                // Skip common infrastructure interfaces that many objects implement.
+                // Registrations for these would clobber each other and cause accidental disposal
+                // of previously registered objects (e.g. ConnectionHub clobbered by BufferPoolManager).
+                if (itf.Name is "IDisposable" or "IAsyncDisposable" or "IReportable")
+                {
+                    continue;
+                }
+
                 RuntimeTypeHandle itfKey = itf.TypeHandle;
 
                 TRY_ADD_OR_REPLACE_ATOMIC_COLLECT(itfKey, instance, itf.Name, prevsToDispose);
@@ -706,7 +715,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     /// </summary>
     public string GenerateReport()
     {
-        StringBuilder sb = new(1024);
+        StringBuilder sb = new(2048);
         HashSet<RuntimeTypeHandle> activatorTargets = this.BUILD_ACTIVATOR_TARGETS();
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InstanceManager Status:");
@@ -735,7 +744,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
 
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("---------------------------------------------------------------------------");
         return sb.ToString();
     }
 

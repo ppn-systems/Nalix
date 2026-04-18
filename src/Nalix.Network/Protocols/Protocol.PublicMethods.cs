@@ -79,8 +79,10 @@ public abstract partial class Protocol
                 connection.TCP.BeginReceive(cancellationToken);
 
                 // Register the connection with the hub for management
-                InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?
-                                        .RegisterConnection(connection);
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    s_hub?.RegisterConnection(connection);
+                }
 
                 return;
             }
@@ -93,10 +95,16 @@ public abstract partial class Protocol
         catch (OperationCanceledException)
         {
             s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-canceled id={connection.ID}");
+            connection.Disconnect();
         }
-        catch (ObjectDisposedException)
+        catch (ObjectDisposedException ex)
         {
-            s_logger?.Warn($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID}");
+            // Only log warning if not already shutting down to reduce noise.
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                s_logger?.Warn($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID} target={ex.ObjectName}");
+            }
+
             connection.Disconnect();
         }
         catch (Exception ex)
