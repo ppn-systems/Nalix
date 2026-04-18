@@ -1,6 +1,4 @@
-# Handshake Protocol (X25519)
-
-Nalix implements a high-performance anonymous handshake protocol based on **X25519** (Curve25519) and **Keccak-256**. This protocol establishes a secure, encrypted session key while ensuring transcript integrity through mutual proof verification.
+Nalix implements a high-performance **Static-Ephemeral DH (Noise Protocol inspired)** handshake protocol based on **X25519** and **Keccak-256**. This protocol provides robust **Server Identity Authentication** and protections against Man-in-the-Middle (MitM) attacks while maintaining 100% zero-allocation performance and fixed-size packet overhead.
 
 ## Source Mapping
 
@@ -16,8 +14,8 @@ The handshake consists of 4 stages managed by the `Handshake` packet and `Handsh
 | Stage | Description | Key Payload |
 |---|---|---|
 | **CLIENT_HELLO** | Client initiates and sends its ephemeral public key. | `PublicKey`, `Nonce` |
-| **SERVER_HELLO** | Server responds with its key, a challenge, and a proof. | `PublicKey`, `Nonce`, `Proof`, `TranscriptHash` |
-| **CLIENT_FINISH** | Client verifies server proof and sends its final proof. | `Proof`, `TranscriptHash` |
+| **SERVER_HELLO** | Server responds with its key, a challenge, identity proof, and transcript hash. | `PublicKey`, `Nonce`, `Proof`, `TranscriptHash` |
+| **CLIENT_FINISH** | Client verifies server identity and sends its final proof. | `Proof`, `TranscriptHash` |
 | **SERVER_FINISH** | Server confirms and assigns a session token (Snowflake). | `Proof`, `TranscriptHash`, `SessionToken` |
 
 ---
@@ -27,15 +25,15 @@ The handshake consists of 4 stages managed by the `Handshake` packet and `Handsh
 Nalix uses a labeled digest construction to derive proofs and session keys. This prevents cross-protocol attacks and ensures that the handshake state is tied to the specific "nalix-handshake" domain.
 
 ### Hashing Strategy (`HandshakeX25519`)
-All digests are computed using **Keccak-256** over length-prefixed segments:
-`Hash(LabelLength + Label + Segment0Length + Segment0 + ...)`
+All digests are computed using **Keccak-256** over length-prefixed segments. The protocol uses a **Master Secret** derived from both ephemeral-ephemeral (EE) and static-ephemeral (SE) shared secrets for identity verification.
 
 | Purpose | Label | Components |
 |---|---|---|
-| **Server Proof** | `nalix-handshake/server-proof` | `SharedSecret`, `TranscriptHash` |
-| **Client Proof** | `nalix-handshake/client-proof` | `SharedSecret`, `TranscriptHash` |
-| **Server Finish** | `nalix-handshake/server-finish` | `SharedSecret`, `TranscriptHash` |
-| **Session Key** | `nalix-handshake/session` | `SharedSecret`, `ClientNonce`, `ServerNonce`, `TranscriptHash` |
+| **Master Secret** | `nalix-handshake/master` | `SharedSecret_EE`, `SharedSecret_SE` |
+| **Server Proof** | `nalix-handshake/server-proof` | `MasterSecret`, `TranscriptHash` |
+| **Client Proof** | `nalix-handshake/client-proof` | `MasterSecret`, `TranscriptHash` |
+| **Server Finish** | `nalix-handshake/server-finish` | `MasterSecret`, `TranscriptHash` |
+| **Session Key** | `nalix-handshake/session` | `MasterSecret`, `ClientNonce`, `ServerNonce`, `TranscriptHash` |
 
 ---
 
@@ -81,6 +79,8 @@ await session.SendAsync(new SecurePacket());
 
 ## 5. Security Notes
 
+- **Identity Authentication**: By configuring `ServerPublicKey` on the client and `IdentityPrivateKey` on the server, the handshake performs a dual-layer key agreement that identifies the server pinned by the client.
+- **Structural Validation**: All stages are strictly validated via `IPacketValidatable` to prevent malformed packets or stage confusion attacks before any cryptography is performed.
 - **Zero-Allocation**: Handshake packets are pooled via `PacketBase`.
 - **Memory Safety**: Private keys and shared secrets are passed as `ReadOnlySpan<byte>` and zeroed out explicitly using `MemorySecurity.ZeroMemory` after use.
 - **Transcript Integrity**: Any modification to keys or nonces during transit will cause a `TranscriptHash` mismatch, resulting in an immediate `ProtocolReason.CHECKSUM_FAILED` rejection.

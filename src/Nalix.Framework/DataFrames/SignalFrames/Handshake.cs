@@ -267,9 +267,4 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.SessionToken = Snowflake.Empty;
         this.Priority = PacketPriority.URGENT;
     }
-
-    /// <summary>
-    /// Deserializes a <see cref="Handshake"/> packet from a buffer.
-    /// </summary>
-    public static new Handshake Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<Handshake>.Deserialize(buffer);
 }

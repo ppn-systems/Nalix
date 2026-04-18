@@ -1,7 +1,6 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
@@ -123,8 +122,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
 
             SessionResumeStage.RESPONSE =>
                 packet.Reason != ProtocolReason.NONE || (!packet.SessionToken.IsEmpty && !packet.Proof.IsZero),
-            SessionResumeStage.NONE => throw new NotImplementedException(),
-            _ => false
+            SessionResumeStage.NONE or _ => false
         };
 
         if (!isValid)

@@ -74,8 +74,9 @@ if (!session.Options.SessionToken.IsEmpty && session.Options.Secret.Length > 0)
 ## 4. Operational Notes
 
 - **Encryption Switch**: Upon a successful resume, the SDK automatically sets `Options.EncryptionEnabled = true`.
+- **Structural Validation**: Receiving a malformed or out-of-sequence resume response now throws a `NetworkException` thanks to strict structural validation via `IPacketValidatable`.
 - **Handshake Fallback**: `ConnectWithResumeAsync()` reconnects before falling back to a fresh handshake when resume fails.
-- **MTU Considerations**: `SESSION_SIGNAL` packets are fixed at 23 bytes and are designed to fit within the smallest MTU windows (e.g., restricted cellular networks).
+- **MTU Considerations**: `SESSION_SIGNAL` packets are fixed at 52 bytes and are designed to fit within standard MTU windows.
 - **UDP Specifics**: While these extensions focus on TCP, the `SessionToken` logic is shared with `UdpSession` for datagram authentication.
 
 ---

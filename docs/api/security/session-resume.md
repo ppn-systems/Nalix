@@ -63,12 +63,13 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **52 bytes**.
 
 ### Server Handling Logic
 When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
-1. The server extracts the `SessionToken` from the payload.
-2. It atomically consumes a valid `SessionEntry` via the active `ISessionStore` (`ConsumeAsync`) to prevent token replay.
-3. It validates `Proof` using HMAC-Keccak256 over the 7-byte session token and the stored session secret.
-4. If validation succeeds, the runtime restores the connection's `Secret`, `Level`, and `Attributes`.
-5. A rotated session token is generated and stored, then a `RESPONSE` is sent with `ProtocolReason.NONE`.
-6. If token lookup or proof validation fails, the server sends an error reason (for example `SESSION_EXPIRED` or `TOKEN_REVOKED`) and disconnects.
+1. The incoming packet is strictly validated using `IPacketValidatable` to ensure the `Stage`, `SessionToken`, and `Proof` fields are structurally sound for a `REQUEST`.
+2. The server extracts the `SessionToken` from the payload.
+3. It atomically consumes a valid `SessionEntry` via the active `ISessionStore` (`ConsumeAsync`) to prevent token replay.
+4. It validates `Proof` using HMAC-Keccak256 over the 7-byte session token and the stored session secret.
+5. If validation succeeds, the runtime restores the connection's `Secret`, `Level`, and `Attributes`.
+6. A rotated session token is generated and stored, then a `RESPONSE` is sent with `ProtocolReason.NONE`.
+7. If validation, token lookup, or proof verification fails, the server sends an error reason (for example `MALFORMED_PACKET`, `SESSION_EXPIRED` or `TOKEN_REVOKED`) and disconnects.
 
 ---
 
