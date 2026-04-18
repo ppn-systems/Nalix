@@ -9,14 +9,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Network.Pipeline\Nalix.Network.Pipeline.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Network.Hosting\Nalix.Network.Hosting.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Network.Pipeline\Nalix.Network.Pipeline.csproj" />
+		
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
 	</ItemGroup>
 

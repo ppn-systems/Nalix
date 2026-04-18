@@ -84,7 +84,7 @@ public class MyController
 
 ## Related Information
 
-- [Implementing Packet Handlers](../../../guides/implementing-packet-handlers.md)
+- [Implementing Packet Handlers](../../../guides/application/packet-handlers.md)
 - [Packet Attributes](../routing/packet-attributes.md)
 - [Packet Metadata](../routing/packet-metadata.md)
 - [Handler Result Types](../routing/handler-results.md)

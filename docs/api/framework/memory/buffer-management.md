@@ -112,4 +112,4 @@ The `BufferPoolManager` provides deep insights into memory health:
 
 - [Object Pooling](./object-pooling.md)
 - [Network Options](../../network/options/options.md)
-- [Zero-Allocation Hot Path](../../../guides/zero-allocation-hot-path.md)
+- [Zero-Allocation Path](../../../concepts/internals/zero-allocation.md)

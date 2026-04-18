@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Logging;
 using Nalix.Logging.Options;
@@ -55,6 +56,8 @@ internal class Program
             eventArgs.Cancel = true;
             shutdown.Cancel();
         };
+
+        Console.WriteLine(InstanceManager.Instance.GenerateReport());
 
         Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
         Console.WriteLine("Press Ctrl+C to stop.");

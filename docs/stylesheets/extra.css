@@ -14,6 +14,7 @@
 /* bo góc toàn site */
 .md-typeset {
   border-radius: 12px;
+  line-height: 1.65;
 }
 
 /* code block đẹp hơn */
@@ -43,7 +44,14 @@
 
 /* tăng font */
 :root {
-  --md-text-font-size: 17px;
+  --md-text-font-size: 16px;
+}
+
+/* mobile đọc dễ hơn */
+@media (max-width: 768px) {
+  :root {
+    --md-text-font-size: 17px;
+  }
 }
 
 /* Search input */
@@ -241,4 +249,54 @@
 
 [data-md-color-scheme="slate"] .md-typeset pre > code {
   background-color: #0b0b0b;
+}
+
+/* Inter */
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url("/assets/fonts/inter-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* JetBrains Mono */
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrainsmono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/jetbrainsmono-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+
+/* Light mode */
+[data-md-color-scheme="default"] .highlight .c,
+[data-md-color-scheme="default"] .highlight .c1,
+[data-md-color-scheme="default"] .highlight .cm {
+  color: #16a34a !important; /* xanh lá nhạt */
+  opacity: 0.9;
+}
+
+/* Dark mode */
+[data-md-color-scheme="slate"] .highlight .c,
+[data-md-color-scheme="slate"] .highlight .c1,
+[data-md-color-scheme="slate"] .highlight .cm {
+  color: #4ade80 !important; /* xanh sáng hơn cho nền tối */
+  opacity: 0.9;
 }

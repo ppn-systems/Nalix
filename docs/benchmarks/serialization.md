@@ -3,6 +3,7 @@
 Nalix features a custom binary serialization engine designed for maximum throughput and minimal allocation.
 
 ## Object Serialization
+
 Performance for complex class-based POCOs (Plain Old CLR Objects).
 
 | Operation | Item Count | Latency (Mean) | StdDev | Allocation |
@@ -13,12 +14,14 @@ Performance for complex class-based POCOs (Plain Old CLR Objects).
 | **Deserialize Object** | 128 | **47.97 ns** | 1.00 ns | 624 B |
 
 ### Why it's efficient
+
 - **Reflection-Free**: The `LiteSerializer` skips reflection and uses source-generated or manual binary mapping, avoiding the heavy overhead typical of JSON or XML serializers.
 - **Zero-Copy Pipelines**: Objects are serialized directly into pooled memory buffers, eliminating the need for temporary string or array intermediates.
 
 ---
 
 ## Struct & Array Serialization
+
 High-speed binary layout processing for primitive types and collection data.
 
 | Operation | Scenario | Latency (Mean) | StdDev |
@@ -29,6 +32,7 @@ High-speed binary layout processing for primitive types and collection data.
 | **Serialize Array** | 1024 Items | **156.12 ns** | 3.76 ns |
 
 ### Why Nalix Serialization?
+
 The `LiteSerializer` is the backbone of Nalix's data transport, providing a reflection-free path for mapping CLR objects to binary formats.
 
 - **Unmanaged Hot-Paths**: For primitive types and unmanaged structs, the serializer uses `GC.AllocateUninitializedArray` combined with `Unsafe.WriteUnaligned` and `Unsafe.CopyBlockUnaligned`. This bypasses expensive clearing logic and achieves raw memory copy speeds.

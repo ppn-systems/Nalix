@@ -9,9 +9,12 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
@@ -19,6 +22,7 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Transport;
+using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -260,7 +264,7 @@ public abstract partial class UdpListenerBase
         try
         {
             // Route through the full frame pipeline so args/lease ownership matches the TCP path.
-            _protocol.ProcessFrame(this, args);
+            this.ProcessFrame(this, args);
         }
         catch (Exception ex)
         {
@@ -287,5 +291,69 @@ public abstract partial class UdpListenerBase
     {
         connection = hub?.GetConnection(sessionToken[..Snowflake.Size]) as Connection;
         return connection is not null;
+    }
+
+    /// <summary>
+    /// Processes an incoming network frame from a connected client.
+    /// Applies inbound pipeline transformations (e.g., decrypt, decompress),
+    /// optionally replaces the underlying buffer lease, then forwards the
+    /// processed message to the protocol layer for handling.
+    /// </summary>
+    /// <param name="sender">The source of the event triggering this frame processing.</param>
+    /// <param name="args">Connection event arguments containing the frame data and connection context.</param>
+    /// <remarks>
+    /// This method is performance-critical and is intentionally marked with <see cref="DebuggerStepThroughAttribute"/>
+    /// to avoid stepping into during debugging sessions.
+    ///
+    /// Pipeline behavior:
+    /// <list type="number">
+    /// <item>Validates and extracts the buffer lease from event args.</item>
+    /// <item>Applies inbound transformations via <c>FramePipeline.ProcessInbound</c>.</item>
+    /// <item>Replaces the lease if pipeline produces a new buffer.</item>
+    /// <item>Forwards the event to protocol handler.</item>
+    /// </list>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="args"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when lease is missing from event args.</exception>
+    /// <exception cref="CipherException">May occur during cryptographic processing.</exception>
+    /// <exception cref="InvalidCastException">May occur during frame decoding.</exception>
+    /// <exception cref="SerializationFailureException">Thrown when deserialization fails.</exception>
+    /// <exception cref="Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
+    [DebuggerStepThrough]
+    protected void ProcessFrame(object? sender, IConnectEventArgs args)
+    {
+        ArgumentNullException.ThrowIfNull(args);
+
+        if (args is not ConnectionEventArgs replaceable)
+        {
+            return;
+        }
+
+        IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
+        IBufferLease current = lease;
+
+        try
+        {
+            FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
+
+            if (current != lease)
+            {
+                IBufferLease? old = replaceable.ExchangeLease(current);
+                old?.Dispose();
+            }
+
+            _protocol.ProcessMessage(sender, args);
+        }
+        catch (Exception ex)
+        {
+            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException)
+            {
+                s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+            }
+            else
+            {
+                args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
+            }
+        }
     }
 }

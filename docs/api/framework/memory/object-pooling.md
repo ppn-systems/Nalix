@@ -101,4 +101,4 @@ The manager tracks several critical metrics to help tune pool capacities:
 - [Buffer Management](./buffer-management.md)
 - [Object Map](./object-map.md)
 - [Typed Object Pools](./typed-object-pools.md)
-- [Zero-Allocation Hot Path](../../../guides/zero-allocation-hot-path.md)
+- [Zero-Allocation Path](../../../concepts/internals/zero-allocation.md)
