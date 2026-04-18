@@ -175,7 +175,8 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
             Bytes32 serverNonce = RandomBytes32();
             Handshake badServerHello = new(HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE)
             {
-                Proof = Bytes32.Zero
+                Proof = RandomBytes32(),
+                TranscriptHash = RandomBytes32()
             };
             return badServerHello;
         };
@@ -201,6 +202,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
             if (packet is Handshake clientHello && clientHello.Stage == HandshakeStage.CLIENT_HELLO)
             {
                 sharedSecret = X25519.Agreement(serverKey.PrivateKey, clientHello.PublicKey);
+                Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecret, Bytes32.Zero);
                 transcriptHash = Handshake.ComputeTranscriptHash(
                     HandshakeX25519.ComposeTranscriptBuffer(
                         clientHello.PublicKey,
@@ -210,15 +212,18 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
 
                 return new Handshake(HandshakeStage.SERVER_HELLO, serverKey.PublicKey, serverNonce, flags: clientHello.Flags)
                 {
-                    Proof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash)
+                    Proof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash),
+                    TranscriptHash = transcriptHash
                 };
             }
 
             if (packet is Handshake clientFinish && clientFinish.Stage == HandshakeStage.CLIENT_FINISH)
             {
+                Bytes32 masterSecretFinish = HandshakeX25519.ComputeMasterSecret(sharedSecret, Bytes32.Zero);
                 return new Handshake(HandshakeStage.SERVER_FINISH, Bytes32.Zero, Bytes32.Zero, flags: clientFinish.Flags)
                 {
-                    Proof = HandshakeX25519.ComputeServerFinishProof(sharedSecret, transcriptHash),
+                    Proof = HandshakeX25519.ComputeServerFinishProof(masterSecretFinish, transcriptHash),
+                    TranscriptHash = transcriptHash,
                     SessionToken = token
                 };
             }

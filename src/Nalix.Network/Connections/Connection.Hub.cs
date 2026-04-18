@@ -85,6 +85,9 @@ public sealed class ConnectionHub : IConnectionHub
     /// <inheritdoc />
     public ISessionStore SessionStore => _sessionStore;
 
+    /// <inheritdoc />
+    public Bytes32 IdentityPrivateKey { get; }
+
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
@@ -136,6 +139,19 @@ public sealed class ConnectionHub : IConnectionHub
             _shards[i] = new ConcurrentDictionary<UInt56, IConnection>(
                 concurrencyLevel: Environment.ProcessorCount,
                 capacity: perShardCapacity);
+        }
+
+        if (string.IsNullOrEmpty(_options.IdentityPrivateKey))
+        {
+            var pair = Nalix.Framework.Security.Asymmetric.X25519.GenerateKeyPair();
+            this.IdentityPrivateKey = pair.PrivateKey;
+            _logger?.Info($"[NW.ConnectionHub] Generated Ephemeral Identity KeyPair. ServerPublicKey={pair.PublicKey}");
+        }
+        else
+        {
+            this.IdentityPrivateKey = Bytes32.Parse(_options.IdentityPrivateKey);
+            var pair = Nalix.Framework.Security.Asymmetric.X25519.GenerateKeyFromPrivateKey(this.IdentityPrivateKey);
+            _logger?.Info($"[NW.ConnectionHub] Loaded Static Identity KeyPair. ServerPublicKey={pair.PublicKey}");
         }
     }
 

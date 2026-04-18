@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
@@ -85,20 +86,33 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (!Handshake.IsValid(packet))
+        if (!packet.Validate(packet, out string? reason))
         {
+            Debug.WriteLine($"[NW.Handshake] Rejecting CLIENT_HELLO. Reason: {reason}");
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
 
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
-        Bytes32 sharedSecret = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
+        Bytes32 sharedSecretEE = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
 
-        if (sharedSecret.IsZero)
+        if (sharedSecretEE.IsZero)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
             return;
         }
+
+        Bytes32 sharedSecretSE = Hub?.IdentityPrivateKey.IsZero == false
+            ? X25519.Agreement(Hub.IdentityPrivateKey, packet.PublicKey)
+            : Bytes32.Zero;
+
+        if (Hub?.IdentityPrivateKey.IsZero == false && sharedSecretSE.IsZero)
+        {
+            await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
+        }
+
+        Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretSE);
 
         Bytes32 serverNonce = new(Csprng.GetBytes(Bytes32.Size));
 
@@ -113,11 +127,11 @@ public sealed class HandshakeHandlers
         {
             ClientPublicKey = packet.PublicKey,
             ClientNonce = packet.Nonce,
-            SharedSecret = sharedSecret,
+            SharedSecret = masterSecret,
             ServerNonce = serverNonce,
             ServerPublicKey = serverKey.PublicKey,
             TranscriptHash = transcriptHash,
-            SessionKey = HandshakeX25519.DeriveSessionKey(sharedSecret, packet.Nonce, serverNonce, transcriptHash)
+            SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash)
         };
 
         connection.Attributes[ConnectionAttributes.HandshakeState] = state;
@@ -127,7 +141,7 @@ public sealed class HandshakeHandlers
         reply.Stage = HandshakeStage.SERVER_HELLO;
         reply.PublicKey = serverKey.PublicKey;
         reply.Nonce = serverNonce;
-        reply.Proof = HandshakeX25519.ComputeServerProof(sharedSecret, transcriptHash);
+        reply.Proof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash);
         reply.Flags = (reply.Flags & ~(PacketFlags.RELIABLE | PacketFlags.UNRELIABLE)) | (packet.Flags & (PacketFlags.RELIABLE | PacketFlags.UNRELIABLE));
         reply.TranscriptHash = transcriptHash;
 
@@ -142,8 +156,9 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (packet.Proof.IsZero || packet.TranscriptHash.IsZero)
+        if (!packet.Validate(packet, out string? reason))
         {
+            Debug.WriteLine($"[NW.Handshake] Rejecting CLIENT_FINISH. Reason: {reason}");
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
