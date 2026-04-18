@@ -199,21 +199,20 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
 
         bool isValid = packet.Stage switch
         {
-            HandshakeStage.CLIENT_HELLO => 
+            HandshakeStage.CLIENT_HELLO =>
                 !packet.PublicKey.IsZero && !packet.Nonce.IsZero && packet.Proof.IsZero && packet.TranscriptHash.IsZero,
-                
-            HandshakeStage.SERVER_HELLO => 
+
+            HandshakeStage.SERVER_HELLO =>
                 !packet.PublicKey.IsZero && !packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
-                
-            HandshakeStage.CLIENT_FINISH => 
+
+            HandshakeStage.CLIENT_FINISH =>
                 packet.PublicKey.IsZero && packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
-                
-            HandshakeStage.SERVER_FINISH => 
+
+            HandshakeStage.SERVER_FINISH =>
                 packet.PublicKey.IsZero && packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
-                
-            HandshakeStage.ERROR => 
+
+            HandshakeStage.ERROR or HandshakeStage.NONE =>
                 packet.Reason != ProtocolReason.NONE,
-                
             _ => false
         };
 

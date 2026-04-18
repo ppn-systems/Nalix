@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
@@ -85,8 +86,9 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (!Handshake.IsValid(packet))
+        if (!packet.Validate(packet, out string? reason))
         {
+            Debug.WriteLine($"[NW.Handshake] Rejecting CLIENT_HELLO. Reason: {reason}");
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
@@ -100,8 +102,8 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        Bytes32 sharedSecretSE = Hub?.IdentityPrivateKey.IsZero == false 
-            ? X25519.Agreement(Hub.IdentityPrivateKey, packet.PublicKey) 
+        Bytes32 sharedSecretSE = Hub?.IdentityPrivateKey.IsZero == false
+            ? X25519.Agreement(Hub.IdentityPrivateKey, packet.PublicKey)
             : Bytes32.Zero;
 
         if (Hub?.IdentityPrivateKey.IsZero == false && sharedSecretSE.IsZero)
@@ -154,8 +156,9 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        if (packet.Proof.IsZero || packet.TranscriptHash.IsZero)
+        if (!packet.Validate(packet, out string? reason))
         {
+            Debug.WriteLine($"[NW.Handshake] Rejecting CLIENT_FINISH. Reason: {reason}");
             await RejectHandshakeAsync(connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }

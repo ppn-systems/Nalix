@@ -64,9 +64,9 @@ public static class HandshakeExtensions
             throw new NetworkException($"Handshake failed: {serverHello.Reason}");
         }
 
-        if (!Handshake.IsValid(serverHello))
+        if (!serverHello.Validate(serverHello, out string? reason))
         {
-            throw new NetworkException("Malformed Handshake SERVER_HELLO packet.");
+            throw new NetworkException($"Malformed Handshake SERVER_HELLO packet: {reason}");
         }
 
         Bytes32 sharedSecretEE = X25519.Agreement(clientKey.PrivateKey, serverHello.PublicKey);
@@ -116,6 +116,11 @@ public static class HandshakeExtensions
         if (serverFinish.Stage == HandshakeStage.ERROR)
         {
             throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
+        }
+
+        if (!serverFinish.Validate(serverFinish, out string? finishReason))
+        {
+            throw new NetworkException($"Malformed Handshake SERVER_FINISH packet: {finishReason}");
         }
 
         Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(masterSecret, transcriptHash);
