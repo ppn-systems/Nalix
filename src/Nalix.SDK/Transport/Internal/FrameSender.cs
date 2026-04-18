@@ -73,7 +73,13 @@ internal sealed class FrameSender : IDisposable
         IBufferLease current = BufferLease.CopyFrom(payload.Span);
         try
         {
-            PacketFrameTransforms.TransformOutbound(ref current, _options, encrypt ?? _options.EncryptionEnabled);
+            Framework.DataFrames.Transforms.FramePipeline.ProcessOutbound(
+                ref current,
+                _options.CompressionEnabled,
+                _options.CompressionThreshold,
+                encrypt ?? _options.EncryptionEnabled,
+                _options.Secret.AsSpan(),
+                _options.Algorithm);
 
             // ── After transformation, check for fragmentation ────────────────────
             if (current.Length >= _fragmentOptions.MaxChunkSize)

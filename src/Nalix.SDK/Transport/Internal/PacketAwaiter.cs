@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.SDK.Transport.Extensions;
 
-namespace Nalix.SDK.Transport;
+namespace Nalix.SDK.Transport.Internal;
 
 /// <summary>
 /// Internal helper that encapsulates the recurring boilerplate shared by all
 /// "subscribe -> await matching packet -> timeout -> unsubscribe" operations.
 /// </summary>
-public static class PacketAwaiter
+internal static class PacketAwaiter
 {
     /// <summary>
     /// Subscribes for a matching packet, invokes <paramref name="sendAsync"/>,
@@ -76,7 +76,7 @@ public static class PacketAwaiter
             },
             onDisconnected: ex =>
             {
-                Exception error = new Nalix.Common.Exceptions.NetworkException(
+                Exception error = new Common.Exceptions.NetworkException(
                     $"Disconnected while waiting for {typeof(TPkt).Name}.",
                     ex ?? new InvalidOperationException("The TCP session was disconnected."));
 
@@ -91,7 +91,7 @@ public static class PacketAwaiter
         {
             if (sendEx is InvalidOperationException)
             {
-                Exception wrapped = new Nalix.Common.Exceptions.NetworkException(
+                Exception wrapped = new Common.Exceptions.NetworkException(
                     $"Disconnected while sending {typeof(TPkt).Name}.", sendEx);
 
                 try { _ = tcs.TrySetException(wrapped); } catch { }

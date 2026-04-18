@@ -10,6 +10,7 @@ using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Security.Hashing;
 using Nalix.SDK.Options;
+using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
 
