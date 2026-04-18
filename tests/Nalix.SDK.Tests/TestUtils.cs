@@ -58,6 +58,46 @@ internal static class TestUtils
         l.Stop();
         return port;
     }
+    public static string GetServerPublicKey()
+    {
+        string? current = AppDomain.CurrentDomain.BaseDirectory;
+        string? pubPath = null;
+
+        while (current != null)
+        {
+            string candidate = System.IO.Path.Combine(current, "shared", "certificate.public");
+            if (System.IO.File.Exists(candidate))
+            {
+                pubPath = candidate;
+                break;
+            }
+            current = System.IO.Path.GetDirectoryName(current);
+        }
+
+        if (pubPath == null)
+        {
+            if (System.IO.File.Exists(@"e:\Cs\Nalix\shared\certificate.public"))
+            {
+                pubPath = @"e:\Cs\Nalix\shared\certificate.public";
+            }
+        }
+
+        if (pubPath != null)
+        {
+            string[] lines = System.IO.File.ReadAllLines(pubPath);
+            foreach (string line in lines)
+            {
+                string trimmed = line.Trim();
+                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#'))
+                {
+                    continue;
+                }
+                return trimmed;
+            }
+        }
+
+        throw new System.IO.FileNotFoundException("Public key file not found.");
+    }
 }
 
 /// <summary>
@@ -71,6 +111,7 @@ public sealed class IntegrationTestProtocol : Protocol
     public IntegrationTestProtocol(IPacketDispatch dispatch)
     {
         _dispatch = dispatch;
+        this.KeepConnectionOpen = true;
         this.SetConnectionAcceptance(true);
     }
 
@@ -78,6 +119,7 @@ public sealed class IntegrationTestProtocol : Protocol
     {
         if (args.Lease is IBufferLease lease)
         {
+            Console.WriteLine($"[TEST] IntegrationTestProtocol.ProcessMessage: Received {lease.Length} bytes.");
             _dispatch.HandlePacket(lease, args.Connection);
         }
     }

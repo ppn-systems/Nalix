@@ -8,6 +8,11 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Runtime.Options;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Runtime.Internal.RateLimiting;
 
 /// <summary>

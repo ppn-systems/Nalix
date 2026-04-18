@@ -75,19 +75,19 @@ public abstract partial class UdpListenerBase
         }
         catch (ObjectDisposedException ex) when (Volatile.Read(ref _isDisposed) != 0 || _cancellationToken.IsCancellationRequested)
         {
-            s_logger?.Debug(
+            _logger?.Debug(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] " +
                 $"disposed-or-cancelled port={_port} reason={ex.GetType().Name}");
         }
         catch (ObjectDisposedException ex)
         {
             _ = Interlocked.Increment(ref _recvErrors);
-            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}", ex);
+            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}", ex);
         }
         catch (Exception ex) when (!_cancellationToken.IsCancellationRequested)
         {
             _ = Interlocked.Increment(ref _recvErrors);
-            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}", ex);
+            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}", ex);
 
             // Brief delay to prevent tight error loops on synchronous failure.
             this.ScheduleRetryStartReceive(args, _cancellationToken);
@@ -103,7 +103,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        _ = retryTask.ContinueWith(static (task, state) =>
+        _ = retryTask.ContinueWith((task, state) =>
         {
             if (state is not UdpListenerBase self)
             {
@@ -114,7 +114,7 @@ public abstract partial class UdpListenerBase
             if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !self._cancellationToken.IsCancellationRequested)
             {
                 _ = Interlocked.Increment(ref self._recvErrors);
-                s_logger?.Error(
+                _logger?.Error(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(RetryStartReceiveAsync)}] retry-failed port={self._port}",
                     error);
             }
@@ -151,15 +151,15 @@ public abstract partial class UdpListenerBase
         }
         catch (SocketException ex)
         {
-            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
         }
         catch (ObjectDisposedException ex)
         {
-            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
         }
         catch (OperationCanceledException ex) when (_cancellationToken.IsCancellationRequested)
         {
-            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
+            _logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}", ex);
         }
         finally
         {
@@ -226,7 +226,7 @@ public abstract partial class UdpListenerBase
             lease?.Dispose();
 
 #if DEBUG
-            s_logger?.Debug(
+            _logger?.Debug(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
                 $"short-packet len={lease?.Length} from={remoteEndPoint}");
 #endif
@@ -326,7 +326,7 @@ public abstract partial class UdpListenerBase
             }
 
 #if DEBUG
-            s_logger?.Trace(
+            _logger?.Trace(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
                 $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
 #endif
@@ -440,14 +440,17 @@ public abstract partial class UdpListenerBase
 
         IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
         IBufferLease current = lease;
+        bool exchanged = false;
 
         try
         {
             FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
 
-            if (current != lease)
+            if (!ReferenceEquals(current, lease))
             {
                 replaceable.ExchangeLease(current)?.Dispose();
+                lease = current;
+                exchanged = true;
             }
 
             _protocol.ProcessMessage(sender, args);
@@ -457,12 +460,19 @@ public abstract partial class UdpListenerBase
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
 #if DEBUG
-                s_logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                _logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
 #endif
             }
             else
             {
-                args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
+                args.Connection.ThrottledError(_logger, "protocol.process_error", $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
+            }
+        }
+        finally
+        {
+            if (!exchanged && !ReferenceEquals(current, lease))
+            {
+                current.Dispose();
             }
         }
     }

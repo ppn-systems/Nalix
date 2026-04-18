@@ -543,6 +543,55 @@ public sealed partial class TaskManager : ITaskManager
         return false;
     }
 
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public async Task WaitGroupAsync(string group, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(group, nameof(group));
+
+        bool isPrefix = group.EndsWith('*');
+        string matchGroup = isPrefix ? group[..^1] : group;
+
+        List<Task> tasks = new();
+        foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
+        {
+            WorkerState st = kv.Value;
+            bool match = isPrefix
+                ? st.Group.StartsWith(matchGroup, StringComparison.Ordinal)
+                : string.Equals(st.Group, matchGroup, StringComparison.Ordinal);
+
+            if (match)
+            {
+                Task? t = st.Task;
+                if (t is not null)
+                {
+                    tasks.Add(t);
+                }
+            }
+        }
+
+        if (tasks.Count == 0)
+        {
+            return;
+        }
+
+        try
+        {
+            await Task.WhenAll(tasks).WaitAsync(ct).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            // We only care about waiting, not the result of the tasks.
+            // If they faulted, it's already logged by the worker loop.
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[FW.{nameof(TaskManager)}:{nameof(WaitGroupAsync)}] group={group} some-tasks-failed msg={ex.Message}");
+        }
+    }
+
     #endregion APIs
 
     #region IReportable

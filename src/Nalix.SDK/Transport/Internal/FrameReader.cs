@@ -157,6 +157,7 @@ internal sealed class FrameReader : IDisposable
 
     private void PROCESS_NORMAL_FRAME(IBufferLease lease)
     {
+        IBufferLease original = lease;
         try
         {
             FramePipeline.ProcessInbound(ref lease, _options.Secret.AsSpan(), _options.Algorithm);
@@ -165,7 +166,12 @@ internal sealed class FrameReader : IDisposable
         }
         finally
         {
-            lease.Dispose();
+            if (!ReferenceEquals(lease, original))
+            {
+                lease.Dispose();
+            }
+
+            original.Dispose();
         }
     }
 

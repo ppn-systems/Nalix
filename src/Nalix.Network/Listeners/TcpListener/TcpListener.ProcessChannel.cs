@@ -38,7 +38,7 @@ public abstract partial class TcpListenerBase
     private void START_PROCESS_CHANNEL(CancellationToken cancellationToken)
     {
         _processChannel = System.Threading.Channels.Channel.CreateBounded<IConnection>(
-            new System.Threading.Channels.BoundedChannelOptions(s_config.ProcessChannelCapacity)
+            new System.Threading.Channels.BoundedChannelOptions(_config.ProcessChannelCapacity)
             {
                 SingleReader = true,   // only the consumer worker reads
                 SingleWriter = false,  // many accept-loop workers write
@@ -106,7 +106,7 @@ public abstract partial class TcpListenerBase
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
                 $"process-channel-unavailable remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
 
@@ -117,9 +117,9 @@ public abstract partial class TcpListenerBase
 
         if (processChannel.Writer.TryWrite(connection))
         {
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                s_logger.Trace(
+                _logger.Trace(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
                     $"queued remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
             }
@@ -135,7 +135,7 @@ public abstract partial class TcpListenerBase
         //   optimize ProcessConnection for faster execution.
         this.Metrics.RECORD_REJECTED();
 
-        s_logger?.Warn(
+        _logger?.Warn(
             $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
             $"channel-full remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port} - dropped");
 
@@ -149,9 +149,9 @@ public abstract partial class TcpListenerBase
 
     private async ValueTask PROCESS_CHANNEL_LOOP_ASYNC(IWorkerContext ctx, CancellationToken cancellationToken)
     {
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            s_logger.Trace(
+            _logger.Trace(
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] " +
                 $"worker-started port={_port}");
         }
@@ -207,9 +207,9 @@ public abstract partial class TcpListenerBase
                 this.INVOKE_PROCESS(connection);
             }
 
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] worker-exited port={_port}");
+                _logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] worker-exited port={_port}");
             }
         }
     }
@@ -235,7 +235,7 @@ public abstract partial class TcpListenerBase
         {
             this.Metrics.RECORD_ERROR();
 
-            s_logger?.Error(
+            _logger?.Error(
                 ex,
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] " +
                 $"error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
