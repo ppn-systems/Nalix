@@ -60,6 +60,11 @@ public static class ResumeExtensions
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);
 
+            if (!response.Validate(response, out string? validationReason))
+            {
+                throw new NetworkException($"Malformed SessionResume response packet: {validationReason}");
+            }
+
             if (response.Reason != ProtocolReason.NONE)
             {
                 session.Options.SessionToken = response.SessionToken;
