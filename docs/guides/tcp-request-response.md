@@ -1,11 +1,16 @@
-# TCP Request/Response Example
+# Direct TCP Flow (Manual Setup)
+
+!!! danger "Low-Level Implementation"
+    This guide demonstrates the manual instantiation of `TcpListenerBase` and `Protocol`. While powerful, this path bypasses the automatic feature discovery and dependency injection provided by the [Hosting Builder](../quickstart.md).
+    
+    Use this only when embedding Nalix into existing engines or when building specialized transport layers.
 
 !!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Beginner
+    - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 5–10 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
 
-This example shows a complete TCP request/response flow using:
+This manual flow demonstrates:
 
 - `TcpListenerBase`
 - `Protocol`
@@ -143,16 +148,19 @@ listener.Activate();
 
 ## Client flow
 
-The exact client implementation depends on your SDK/session abstraction, but the request/response shape is usually the same:
+The client uses the `Nalix.SDK` to send a typed request and cleanly await the response without manual loop management:
 
 ```csharp
-Control request = new() { Type = ControlType.PING };
+using Contracts;
+using Nalix.SDK.Transport.Extensions;
 
-await client.SendAsync(request.Serialize());
+// Orchestrated request/response in one line
+Control response = await session.RequestAsync<Control>(
+    new Control { Type = ControlType.PING },
+    options: RequestOptions.Default.WithTimeout(3_000)
+);
 
-// Your client-side read loop / awaiter resolves Control here
-Control response = await WaitForControlAsync();
-Console.WriteLine(response.Type);
+Console.WriteLine(response.Type); // PONG
 ```
 
 ## End-to-end flow
@@ -166,7 +174,7 @@ sequenceDiagram
     participant Handler as SamplePingHandlers
 
     Client->>Listener: TCP frame
-    Listener->>Protocol: ProcessFrame event
+    Listener->>Protocol: ProcessMessage event
     Protocol->>Dispatch: HandlePacket(lease, connection)
     Dispatch->>Dispatch: Deserialize Control
     Dispatch->>Handler: Handle(request, connection)
@@ -180,7 +188,7 @@ Instead of returning a response, you can send manually:
 
 ```csharp
 [PacketOpcode(0x1001)]
-public async ValueTask Handle(PacketContext<Control> context, CancellationToken ct)
+public async ValueTask Handle(IPacketContext<Control> context, CancellationToken ct)
 {
     await context.Sender.SendAsync(new Control { Type = ControlType.PONG }, ct);
 }
@@ -195,8 +203,8 @@ Use this style when:
 ## What clients should remember
 
 - returning `Control` is the simplest normal request/response model
-- `Protocol` just forwards frames into dispatch
-- `ProcessFrame(...)` is the bridge before `ProcessMessage(...)` hands the frame to dispatch
+- `Protocol` just forwards messages (not raw frames) into dispatch
+- the **Listener** is the bridge that handles raw transformation before calling the protocol handler
 - `PacketDispatchChannel` owns middleware, deserialization, handler invocation, and result handling
 - the same pattern works for custom packet types if you swap `Control` for your own packet contract
 

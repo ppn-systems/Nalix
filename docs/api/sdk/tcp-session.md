@@ -28,7 +28,7 @@ sequenceDiagram
 - `src/Nalix.SDK/Transport/TcpSession.cs`
 - `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
 - `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
-- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/FramePipeline.cs`
 
 ## Role and Design
 

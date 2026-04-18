@@ -32,7 +32,8 @@ flowchart TD
 
     subgraph Handoff[Processing Handoff]
         Slice[Zero-Allocation Memory Slice]
-        AppHandoff[Decryption & Application Stack]
+        Pipeline[FramePipeline: Decrypt & Decompress]
+        AppHandoff[Protocol: ProcessMessage]
     end
 
     Raw -->|Incoming Datagram| Loop
@@ -54,7 +55,8 @@ flowchart TD
     SlidingWindow -->|Sequence Unique & Recent| Slice
     SlidingWindow -.->|Packet Replayed / Stale| Drop
     
-    Slice --> AppHandoff
+    Slice --> Pipeline
+    Pipeline --> AppHandoff
 
 ```
 
@@ -82,7 +84,8 @@ Due to UDP's nature, an attacker could capture a valid packet and replay it iter
 Once authenticated, the UDP payload must be processed:
 1. Nalix extracts a `BufferLease` (rented from the `ByteArrayPool`) containing the raw datagram.
 2. The 7-byte `SessionToken` prefix is mathematically sliced off using `Memory<byte>` operations without array copies.
-3. The remaining payload is routed to the application's `ProcessFrame` pipeline using the resolved `Connection` object as the context.
+3. The remaining payload is routed to the `FramePipeline` for decryption and decompression.
+4. The resolved `IProtocol` then receives the clean payload via `ProcessMessage(...)`.
 
 ## 4. Public API Surface
 

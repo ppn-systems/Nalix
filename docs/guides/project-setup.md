@@ -58,12 +58,11 @@ dotnet add MyProject.Contracts package Nalix.Framework --version 12.0.7
 - Define constants for OpCodes in the packet classes.
 
 ```csharp
-[SerializePackable(SerializeLayout.Explicit)]
+[SerializePackable]
 public sealed class JoinRequest : PacketBase<JoinRequest>
 {
     public const ushort OpCodeValue = 0x3001;
 
-    [SerializeOrder(0)]
     public string Username { get; set; } = string.Empty;
 
     public JoinRequest() => OpCode = OpCodeValue;

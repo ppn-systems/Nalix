@@ -145,9 +145,12 @@ using Nalix.SDK.Transport;
 using MyNet.Contracts;
 
 // The client needs the same registry as the server
-var registry = new PacketRegistry(cfg => cfg.RegisterPacket<DataRequest>().RegisterPacket<DataResponse>());
+IPacketRegistry catalog = new PacketRegistryFactory()
+    .RegisterPacket<DataRequest>()
+    .RegisterPacket<DataResponse>()
+    .CreateCatalog();
 
-await using var session = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 }, registry);
+await using var session = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 }, catalog);
 await session.ConnectAsync();
 
 var response = await session.RequestAsync<DataResponse>(new DataRequest 

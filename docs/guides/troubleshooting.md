@@ -17,14 +17,14 @@ Use it after the basic server shape exists and the runtime still is not behaving
 - `IPacketRegistry` is registered once in `InstanceManager`
 - your handler class is actually registered with `WithHandler(...)`
 - handler methods have the correct `[PacketOpcode(...)]`
-- `Protocol.ProcessFrame(...)` is the listener-facing entrypoint and `ProcessMessage(...)` still handles the message payload
+- the **Listener** is the entrypoint that handles raw frame transformation (Pipeline), while `ProcessMessage(...)` handles the clean message payload
 
 **Quick fix**
 
 Use this exact pattern first:
 
 ```csharp
-public override void ProcessMessage(object sender, IConnectEventArgs args)
+public override void ProcessMessage(object? sender, IConnectEventArgs args)
     => _dispatch.HandlePacket(args.Lease, args.Connection);
 ```
 

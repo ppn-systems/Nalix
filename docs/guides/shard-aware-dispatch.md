@@ -8,7 +8,11 @@
     - :fontawesome-solid-clock: **Time**: 15 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Architecture](../concepts/architecture.md)
 
-Nalix uses a shard-aware dispatch architecture to scale packet processing across multiple CPU cores while maintaining strict delivery order for individual connections.
+Nalix uses a shard-aware dispatch architecture to scale packet processing across multiple CPU cores while maintaining strict delivery order for individual connections. 
+    
+!!! note "Server-Side Backbone"
+    The sharding and dispatch system is part of the `Nalix.Runtime` layer, which serves as the high-performance backbone for Nalix-based servers. While the SDK handles transport and framing, the Runtime orchestration ensures that server-side handlers can scale across many cores without data races or sequential consistency issues.
+
 
 ## 1. The Affinity Model
 
@@ -50,8 +54,8 @@ graph TD
     S1 --> W1
     S2 --> W2
     
-    style S1 fill:#f9f,stroke:#333,stroke-width:2px
-    style S2 fill:#bbf,stroke:#333,stroke-width:2px
+    style S1 stroke:#333,stroke-width:2px
+    style S2 stroke:#333,stroke-width:2px
 ```
 
 ---
@@ -110,41 +114,65 @@ public override void ProcessMessage(object sender, IConnectEventArgs args)
     // Example: Elevate priority for Handshake or Control packets
     if (IsHighPriority(lease))
     {
-        // 13 is the default Priority offset in the Nalix header
-        lease.Span[13] = (byte)PacketPriority.HIGH;
+        // 7 is the Priority offset in the Nalix header (Magic:4, Op:2, Flags:1)
+        lease.Span[7] = (byte)PacketPriority.HIGH;
     }
     
     _dispatch.HandlePacket(lease, args.Connection);
 }
 ```
 
-### Custom Sharding Keys (Virtual Connections)
+### Custom Sharding Logic & Shard Keys
 
-In a typical scenario, packets are sharded by their underlying socket connection. However, you can force multiple physical sessions into the same sequential shard by wrapping them in a **Shard Proxy**.
+The dispatch system determines the "Shard Key" by the **Object Identity** of the `IConnection` instance passed to the dispatcher. By default, each physical socket connection has its own identity and thus its own shard.
+
+To implement custom sharding logic (e.g., User-based affinity or Room-based affinity), you must use a **Shard Proxy** (also known as a Virtual Connection).
+
+#### How to implement a Shard Proxy:
+
+1.  **Define a Shared Instance**: Create a single instance of an object that represents your shard (e.g., a `UserContext` or `RoomContext`).
+2.  **Pass the Proxy to Dispatch**: Instead of passing the raw physical connection to `_dispatch.HandlePacket`, pass the shared proxy instance.
+3.  **Sequential Guarantee**: Because both physical connections share the same proxy instance, they share the same internal `ConnectionState` in the dispatcher, guaranteeing they are never processed in parallel.
 
 #### Production Scenario: User-Based Affinity
-If a player logs in from multiple devices (e.g., Phone and Tablet), and you need to ensure their state is updated sequentially across all devices, shard them by `UserID` instead of `ConnectionID`.
+If a player logs in from multiple devices (e.g., Phone and Tablet), and you need to ensure their state is updated sequentially across all devices to avoid race conditions in your database or game logic.
 
 ```csharp
 using Nalix.Common.Networking;
 using Nalix.Framework.Memory.Buffers;
 
+// A minimal proxy that the dispatcher uses as a Shard Key
 public sealed class UserShardProxy : IConnection
 {
+    // The physical connection we are currently wrapping (if needed for sending)
+    public IConnection PhysicalConnection { get; }
     public long UserID { get; }
-    
-    // The dispatcher uses GetHashCode() for shard selection
-    public override int GetHashCode() => UserID.GetHashCode();
-    public override bool Equals(object obj) => obj is UserShardProxy other && other.UserID == UserID;
 
-    // Delegate other members (Disconnect, Secret, etc.) to the primary active connection
+    public UserShardProxy(long userId, IConnection physical)
+    {
+        UserID = userId;
+        PhysicalConnection = physical;
+    }
+
+    // DISPATCHER NOTE: The dispatcher uses RuntimeHelpers.GetHashCode(connection)
+    // for bucket selection. For the proxy to work as a shard key, you MUST
+    // reuse the SAME object instance for all connections belonging to the same Shard.
+    
+    // Delegate required members...
+    public ISnowflake ID => PhysicalConnection.ID;
+    public INetworkEndpoint NetworkEndpoint => PhysicalConnection.NetworkEndpoint;
+    // ... other IConnection members
 }
 
 // In your Protocol or Middleware:
 public void RouteToUserShard(IConnection rawConnection, IBufferLease packet)
 {
-    // Retrieve the shared proxy instance for this user
-    var proxy = SessionManager.GetProxy(rawConnection);
+    // Retrieve the shared proxy instance from your session manager.
+    // Ensure this returns the EXACT SAME instance for the same UserID.
+    var proxy = SessionManager.GetOrCreateUserShard(rawConnection.UserID);
+    
+    // The dispatcher now treats all packets for this 'proxy' instance 
+    // as a single sequential stream (Shard).
     _dispatch.HandlePacket(packet, proxy);
 }
 ```

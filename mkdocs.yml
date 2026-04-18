@@ -140,12 +140,12 @@ nav:
   - Guides:
       - Overview: guides/index.md
       - Build a Server:
-          - Starter Template: guides/starter-template.md
+          - Server Boilerplate: guides/server-boilerplate.md
+          - Server Blueprint: guides/server-blueprint.md
+          - Production End-to-End: guides/production-end-to-end.md
           - Implementing Packet Handlers: guides/implementing-packet-handlers.md
           - End-to-End Sample: guides/end-to-end.md
-          - Production End-to-End: guides/production-end-to-end.md
           - Project Setup: guides/project-setup.md
-          - Server Blueprint: guides/server-blueprint.md
       - Extend Behavior:
           - Middleware Guide: guides/middleware.md
           - Custom Middleware: guides/custom-middleware-end-to-end.md

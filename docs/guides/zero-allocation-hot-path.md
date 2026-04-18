@@ -48,17 +48,17 @@ High performance starts with how you define your data. Use `SerializeLayout.Expl
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Serialization;
 
-[Packet(OpCodeValue)]
+[Packet]
 [SerializePackable(SerializeLayout.Explicit)]
-public struct HighFreqUpdate : IPacket<HighFreqUpdate>
+public sealed class HighFreqUpdate : PacketBase<HighFreqUpdate>
 {
     public const ushort OpCodeValue = 0x5001;
 
-    [SerializeMember(0)] public int EntityId;
-    [SerializeMember(4)] public float PositionX;
-    [SerializeMember(8)] public float PositionY;
+    [SerializeOrder(0)] public int EntityId { get; set; }
+    [SerializeOrder(1)] public float PositionX { get; set; }
+    [SerializeOrder(2)] public float PositionY { get; set; }
 
-    public ushort OpCode => OpCodeValue;
+    public HighFreqUpdate() => OpCode = OpCodeValue;
 }
 ```
 

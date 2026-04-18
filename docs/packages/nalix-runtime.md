@@ -1,6 +1,9 @@
 # Nalix.Runtime
 
-`Nalix.Runtime` is the orchestration layer of the Nalix framework. It provides the packet dispatch pipeline, middleware execution engine, handler compilation, and session resume infrastructure. This package bridges the gap between raw network transport (`Nalix.Network`) and your application logic.
+`Nalix.Runtime` is the high-performance orchestration layer of the Nalix framework, specifically designed to power **Server-Side** packet processing. It provides the multi-threaded dispatch pipeline, middleware execution engine, handler compilation, and session state infrastructure.
+
+!!! info "The Engine of the Server"
+    While `Nalix.SDK` is designed for client-side consumption, `Nalix.Runtime` is the engine that handles the heavy lifting on the server, managing worker affinity, request routing, and industrial-grade session persistence.
 
 !!! note "Typically consumed via Nalix.Network.Hosting"
     Most projects consume `Nalix.Runtime` indirectly through `Nalix.Network.Hosting`, which wires up the dispatcher and middleware automatically. Use `Nalix.Runtime` directly only when you need full control over the dispatch pipeline.

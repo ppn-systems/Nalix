@@ -5,75 +5,73 @@
     - :fontawesome-solid-clock: **Time**: 15–20 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
 
-This page is the recommended blueprint for a real Nalix server project.
+This page provides the recommended architectural blueprint for a production-grade Nalix server. It moves beyond the single-file quickstart to a shape that scales as features, security policies, and diagnostic needs grow.
 
-It is not the smallest sample. It is the shape that holds up better once you start adding real handlers, middleware, options, and operational checks.
+---
 
-Use it when the starter template feels too small and you want a cleaner production-oriented startup shape.
+## 🏗️ Startup Architecture
 
-## Recommended project flow
-
-Build your server startup in this order:
-
-1. load and validate configuration
-2. register shared services
-3. register metadata providers
-4. build the packet dispatch channel
-5. create protocol
-6. create listener
-7. activate dispatch, then listener
-8. expose diagnostics/report endpoints if needed
-
-## Blueprint diagram
+A robust server follows a deterministic sequence:
 
 ```mermaid
 flowchart TD
-    A["Load configuration"] --> B["Register logger + registry + shared services"]
-    B --> C["Register metadata providers"]
-    C --> D["Build PacketDispatchChannel"]
-    D --> E["Create Protocol"]
-    E --> F["Create TcpListenerBase or UdpListenerBase"]
-    F --> G["Activate dispatcher"]
-    G --> H["Activate listener"]
-    H --> I["Run diagnostics / health checks"]
+    A["Load Configuration"] --> B["Register Services"]
+    B --> C["Compile Dispatch"]
+    C --> D["Layer Transport"]
+    D --> E["Diagnostics Boot"]
+    
+    subgraph Registry ["InstanceManager"]
+        B
+    end
+    
+    subgraph Pipeline ["Runtime Pipeline"]
+        C
+        D
+    end
 ```
 
-## 1. Configuration layer
+!!! success "Why this blueprint?"
+    Treating the server startup as a sequence of discrete layers ensures that when the socket starts accepting traffic, every security policy and reporting hook is already "warm" and ready.
 
-Load and validate the network options that matter before starting any runtime.
+---
+
+## 📁 Recommended Directory Structure
+
+Consistency is key for maintainability. We recommend the following layout for a Nalix server project:
+
+```text
+📂 Server/
+├── 📂 Bootstrap/           # Service & Dispatch wiring
+├── 📂 Protocols/           # Transport protocol definitions
+├── 📂 Handlers/            # Application logic (Controllers)
+├── 📂 Middleware/          # Security & Policy filters
+├── 📂 Metadata/            # Custom convention providers
+└── 📂 Hosting/             # Entry point & Lifecycle management
+```
+
+---
+
+## 🚀 The Blueprint Steps
+
+### 1. Configuration & Validation
+Load and validate focused network options before starting the runtime. Fail-fast is better than a runtime error in a worker loop.
 
 ```csharp
-NetworkSocketOptions socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+var socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 socket.Validate();
 
-PoolingOptions pooling = ConfigurationManager.Instance.Get<PoolingOptions>();
-pooling.Validate();
-
-DispatchOptions dispatchOptions = ConfigurationManager.Instance.Get<DispatchOptions>();
+var dispatchOptions = ConfigurationManager.Instance.Get<DispatchOptions>();
 dispatchOptions.Validate();
 
-ConnectionLimitOptions connectionLimits =
-    ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+var connectionLimits = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 connectionLimits.Validate();
 ```
 
-If you use the connection hub heavily, validate that too:
-
-```csharp
-ConnectionHubOptions hubOptions = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
-hubOptions.Validate();
-```
-
-## 2. Shared services
-
-At minimum, register:
-
-- `ILogger`
-- `IPacketRegistry`
+### 2. Registry Initialization
+The `InstanceManager` serves as the runtime core for shared infrastructure.
 
 ```csharp
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Injection;
 using Nalix.Logging;
 
 ILogger logger = NLogix.Host.Instance;
@@ -82,50 +80,26 @@ InstanceManager.Instance.Register<ILogger>(logger);
 InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 ```
 
-If your handlers use app services, register them here as well.
-
-## 3. Metadata providers
-
-If you use custom metadata conventions, register providers before compiling handlers:
-
-```csharp
-PacketMetadataProviders.Register(new SampleTenantMetadataProvider());
-PacketMetadataProviders.Register(new SampleAuditMetadataProvider());
-```
-
-## 4. Dispatch layer
-
-This is the center of application-level behavior.
+### 3. Dispatch & Middleware Setup
+Define your application pipeline in a centralized location.
 
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
     options.WithLogging(logger)
-           .WithErrorHandling((ex, opcode) =>
-           {
-               logger.Error($"dispatch-error opcode=0x{opcode:X4}", ex);
-           })
-           .WithErrorHandlingMiddleware(
-               continueOnError: false,
-               errorHandler: (ex, type) => logger.Error($"middleware-error type={type.Name}", ex))
-           .WithMiddleware(new SampleAuditMiddleware<IPacket>())
-           .WithHandler(() => new SampleAccountHandlers())
-           .WithHandler(() => new SampleMatchHandlers())
-           .WithHandler(() => new SampleAdminHandlers());
+           .WithErrorHandling((ex, opcode) => logger.Error($"dispatch 0x{opcode:X4}", ex))
+           .WithMiddleware(new AuthMiddleware())
+           .WithMiddleware(new AuditMiddleware())
+           .WithHandler(() => new AccountHandlers())
+           .WithHandler(() => new MatchHandlers());
 });
 ```
 
-### Good blueprint rule
+!!! tip "Centralized Wiring"
+    Keep all `WithMiddleware` and `WithHandler` calls in a single bootstrap class. Spreading these across the codebase makes startup order nearly impossible to debug.
 
-Keep dispatch setup in one place.
-
-Do not spread `WithMiddleware(...)` and `WithHandler(...)` across random files. It makes startup order harder to reason about.
-
-## 5. Protocol layer
-
-Your protocol should stay thin in most projects.
-
-Its job is to bridge incoming frames into dispatch, not to become the business layer.
+### 4. Protocol Implementation
+Keep your protocol thin. It should strictly act as the bridge between raw frames and clean messages.
 
 ```csharp
 public sealed class ServerProtocol : Protocol
@@ -138,101 +112,42 @@ public sealed class ServerProtocol : Protocol
         this.SetConnectionAcceptance(true);
     }
 
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
-
-    protected override bool ValidateConnection(IConnection connection)
-    {
-        // Optional connection admission checks
-        return true;
-    }
 }
 ```
 
-## 6. Listener layer
+---
 
-Create the listener after dispatch and protocol exist.
+## ⚡ Lifecycle Management
 
-```csharp
-public sealed class ServerListener : TcpListenerBase
-{
-    public ServerListener(ushort port, IProtocol protocol) : base(port, protocol) { }
-}
+Managing the **Activation** and **Shutdown** order is critical for preventing connection "dangling."
 
-ServerProtocol protocol = new(dispatch);
-ServerListener listener = new(socket.Port, protocol);
-```
+| phase | Action | Detail |
+|---|---|---|
+| **Startup** | `dispatch.Activate()` | Warm up worker pools and middleware. |
+| **Startup** | `listener.Activate()` | Open the socket and begin accepting. |
+| **Shutdown**| `listener.Deactivate()`| Stop accepting; finish current frames. |
+| **Shutdown**| `dispatch.Dispose()` | Cleanly terminate workers and middleware. |
 
-## 7. Activation order
+---
 
-Recommended order:
+## 📊 Diagnostics Surface
 
-```csharp
-dispatch.Activate();
-listener.Activate();
-```
+A production-ready blueprint always includes a way to query the internal health.
 
-Recommended shutdown order:
+- `listener.GenerateReport()` — Socket backpressure and accept counts.
+- `protocol.GenerateReport()` — Decryption/Decompression success rates.
+- `dispatch.GenerateReport()` — Queue lengths and worker latency.
 
-```csharp
-listener.Deactivate();
-dispatch.Dispose();
-listener.Dispose();
-```
+!!! info "Pro-Tip"
+    Even if you don't have an Admin API, ensure your logs occasionally output these reports during periods of high traffic.
 
-## 8. Diagnostics surface
-
-A strong server blueprint also includes an easy place to pull reports from:
-
-- `listener.GenerateReport()`
-- `protocol.GenerateReport()`
-- `connectionHub.GenerateReport()`
-- `dispatch.GenerateReport()`
-- limiter / gate reports when you use them
-
-Even if you do not expose an admin API on day one, keep a way to print these quickly.
-
-## Suggested folder layout
-
-One good starting layout:
-
-```text
-Server/
-  Bootstrap/
-    ServiceRegistration.cs
-    DispatchRegistration.cs
-    ListenerRegistration.cs
-  Protocols/
-    ServerProtocol.cs
-  Handlers/
-    SampleAccountHandlers.cs
-    SampleMatchHandlers.cs
-    SampleAdminHandlers.cs
-  Middleware/
-    SampleAuditMiddleware.cs
-    SampleTenantGuardMiddleware.cs
-  Metadata/
-    SampleTenantMetadataProvider.cs
-    SampleAuditMetadataProvider.cs
-  Hosting/
-    ServerHost.cs
-```
-
-## Strong defaults
-
-If you do not know what to optimize yet:
-
-- keep `Protocol` thin
-- keep middleware small and explicit
-- use return values for simple replies
-- use `PacketContext<TPacket>` only when you need manual send control
-- use custom packet types directly when your contract is not a built-in frame
-- keep `ProcessFrame(...)` as the listener bridge and `ProcessMessage(...)` as the protocol handler hook
-- keep all startup wiring centralized
+---
 
 ## Recommended Next Pages
 
-- [Production Checklist](./production-checklist.md) — Pre-deployment verification
-- [Custom Middleware](./custom-middleware-end-to-end.md) — Build middleware from scratch
-- [Custom Metadata Provider](./custom-metadata-provider.md) — Convention-based metadata
-- [TCP Request/Response](./tcp-request-response.md) — TCP pattern guide
+- [Production Checklist](./production-checklist.md) { .md-button }
+- [Custom Middleware](./custom-middleware-end-to-end.md) { .md-button }
+- [TCP Request/Response](./tcp-request-response.md) { .md-button }
+

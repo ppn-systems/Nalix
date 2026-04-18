@@ -1,107 +1,100 @@
 # Introduction
 
-Nalix is a modular networking framework for .NET 10 that provides the transport, dispatch, and middleware infrastructure needed to build real-time TCP and UDP systems. It separates the network stack into focused packages so that server code, client code, and shared contracts each depend only on the layers they need.
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Beginner / Intermediate
+    - :fontawesome-solid-clock: **Time**: 5–10 minutes
+    - :fontawesome-solid-book: **Prerequisites**: Basic C# Async Knowledge
 
-This page explains the design philosophy behind Nalix, the mental model for how the pieces connect, and where to go next based on what you are building.
-
-## Design Philosophy
-
-Nalix is built around five core principles:
-
-1. **Unified packet model.** Packet types are plain C# classes annotated with serialization attributes. Both the server (`Nalix.Network`) and the client (`Nalix.SDK`) consume the same packet definitions from a shared assembly. This eliminates the version drift and duplication that occurs when client and server maintain separate message definitions.
-
-2. **Allocation-free hot paths.** The request path — from socket receive through deserialization, middleware, and handler invocation — is designed to avoid heap allocations. Buffers are pooled (`BufferLease`), packet contexts are pooled, and the packet registry uses `FrozenDictionary` with function-pointer–based deserialization to eliminate delegate overhead.
-
-3. **Separation of transport and application logic.** The `IProtocol` interface bridges raw network I/O to the application dispatch layer. Transport concerns (socket management, connection lifecycle, admission control) are handled by `Nalix.Network`. Application concerns (deserialization, routing, middleware, handler execution) are handled by `Nalix.Runtime`. This separation means you can replace or customize one layer without affecting the other.
-
-4. **Declarative handler metadata.** Permissions, timeouts, rate limits, and concurrency limits are expressed as attributes on handler methods. The runtime resolves these attributes once during startup and caches them as `PacketMetadata`. Middleware reads the cached metadata at request time — no reflection on the hot path.
-
-5. **Performance-aware service resolution.** Nalix uses `InstanceManager` (a service-locator pattern optimized for allocation-free resolution) instead of standard dependency injection. This ensures that shared infrastructure such as loggers, packet registries, and application services can be resolved during hot-path execution without container overhead.
-
-## What Stays Shared
-
-Across the stack, Nalix keeps these pieces aligned between client and server:
-
-- **Packet types and opcodes** — defined once in a shared contracts assembly
-- **Serialization attributes** — `[SerializePackable]`, `[SerializeOrder]`, `[SerializeDynamicSize]`
-- **Middleware contracts** — `IPacketMiddleware<TPacket>`, `IPacketContext<TPacket>`
-- **Configuration patterns** — `ConfigurationManager` for typed options from INI files
-- **Logging** — `ILogger` registration through `InstanceManager`
-
-## Mental Model
-
-At its simplest, the Nalix request flow follows this path:
-
-> **Client** → **Transport** → **Protocol**bridge → **Dispatch**channel → **Middleware**pipeline → **Handler**logic → **Response** → **Transport** → **Client**
-
-### Server side
-
-A Nalix server follows this startup sequence:
-
-1. Load and validate configuration (`NetworkSocketOptions`, `DispatchOptions`, etc.)
-2. Register shared services (`ILogger`, `IPacketRegistry`) into `InstanceManager`
-3. Build `PacketDispatchChannel` with handlers, middleware, and error handling
-4. Create a `Protocol` implementation that bridges transport to dispatch
-5. Create and activate a `TcpListenerBase` or `UdpListenerBase`
-
-With `Nalix.Network.Hosting`, those same steps are wrapped behind `NetworkApplication.CreateBuilder()` and `RunAsync()`.
-
-### Client side
-
-A Nalix client follows this flow:
-
-1. Create or load `TransportOptions`
-2. Create a `TcpSession` (or `UdpSession`) with a packet registry
-3. Connect to the server
-4. Optionally perform a cryptographic handshake or session resume
-5. Use `RequestAsync<TResponse>` or direct send helpers
-
-### Shared contract assembly
-
-For any project beyond a prototype, packet definitions should live in a shared assembly:
-
-```text
-MyApp.Contracts/        ← Shared packet definitions
-MyApp.Server/           ← References Contracts + Nalix.Network.Hosting
-MyApp.Client/           ← References Contracts + Nalix.SDK
-```
-
-## Quick Reference
-
-| Goal | Start with |
-|---|---|
-| Build a TCP or UDP server | [Quickstart](./quickstart.md) |
-| Build a server with a fluent host builder | [Nalix.Network.Hosting](./packages/nalix-network-hosting.md) |
-| Build a TCP client | [Nalix.SDK](./packages/nalix-sdk.md) |
-| Understand the package layout | [Packages Overview](./packages/index.md) |
-| Understand packet metadata and dispatch | [Packet Lifecycle](./concepts/packet-lifecycle.md) |
-| Add custom middleware | [Custom Middleware Guide](./guides/custom-middleware-end-to-end.md) |
-
-## What Nalix Is Not
-
-- **Not an HTTP framework.** Nalix operates at the TCP/UDP level with its own binary packet protocol. It does not provide HTTP routing, REST endpoints, or WebSocket support.
-- **Not a game engine.** Nalix provides the networking layer. Game logic, rendering, physics, and ECS are outside its scope.
-- **Not a message queue.** Nalix is designed for real-time bidirectional communication, not store-and-forward messaging.
-- **Not for beginners.** While we aim for clarity, Nalix requires an understanding of asynchronous programming and binary layouts for production depth.
+Nalix is a modular networking framework for .NET 10 providing the high-performance transport, dispatch, and middleware infrastructure needed for real-time TCP and UDP services. It decouples the network stack into focused packages, ensuring that server code, client SDKs, and shared contracts depend only on the layers they need.
 
 ---
 
-## 🏗️ Advanced Topics
+## 💎 Design Philosophy
+
+Nalix is engineered around five core engineering principles.
+
+<div class="grid cards" markdown>
+
+-   :material-sync:{ .lg .middle } **Unified Model**
+    ---
+    Define packets once. Share binary contracts perfectly between server and client assemblies. Zero version drift.
+
+-   :material-lightning-bolt:{ .lg .middle } **Zero-Alloc Hot Path**
+    ---
+    Pooled buffers and `FrozenDictionary` registry lookups eliminate GC pressure during heavy traffic spikes.
+
+-   :material-layers-triple:{ .lg .middle } **Layered Decoupling**
+    ---
+    Strict separation between Transport (Socket Acceptance) and Runtime (Middleware & Logic).
+
+-   :material-application-edit:{ .lg .middle } **Declarative Logic**
+    ---
+    Express policies (timeouts, permissions, limits) as C# Attributes. Cached at startup; zero reflection at runtime.
+
+-   :material-power:{ .lg .middle } **Service Efficiency**
+    ---
+    Uses the optimized `InstanceManager` for allocation-free service resolution without standard DI container overhead.
+
+</div>
+
+---
+
+## 🧠 The Mental Model
+
+The journey of a Nalix packet is deterministic and clean.
+
+> **Client** :material-arrow-right: **Transport** :material-arrow-right: **Protocol Bridge** :material-arrow-right: **Dispatch Channel** :material-arrow-right: **Middleware** :material-arrow-right: **Logic** :material-arrow-right: **Response**
+
+### Structure Check
+For any project beyond a prototype, ensure your assembly structure follows the **Contracts Pattern**:
+
+```mermaid
+graph LR
+    C[MyApp.Contracts] --- S[MyApp.Server]
+    C --- Cl[MyApp.Client]
+```
+
+---
+
+## 🚫 What Nalix Is Not
+
+::: danger "Wrong Tool for the Job"
+Nalix is a specialized binary protocol engine. It is **not** suitable for:
+:::
+
+<div class="grid items" markdown>
+
+-   :octicons-x-16: **Web Applications**
+    Nalix does not support HTTP/REST, WebSockets, or browser-based networking.
+
+-   :octicons-x-16: **Game Logic Engine**
+    We provide the data pipeline. Physics, ECS, and rendering stay in your engine of choice (Unity, Godot, Unreal).
+
+-   :octicons-x-16: **Message Broker**
+    Nalix is for real-time bidirectional communication, not store-and-forward persistence like Kafka or RabbitMQ.
+
+</div>
+
+---
+
+## 🏗️ Reliability & Scale
 
 !!! warning "Senior Developers Only"
-    If you are building for production and need to understand the underlying framework contracts, explore our reliability model. Skip these if you are just getting started.
+    If you are building for mission-critical production environments, explore our advanced reliability models.
 
-- [**Guarantees & Invariants**](./concepts/advanced/guarantees-and-invariants.md) — What the framework promises (ordering, concurrency).
-- [**Failure Model**](./concepts/advanced/failure-model.md) — How Nalix behaves when things go wrong.
-- [**Design Tradeoffs**](./concepts/advanced/design-tradeoffs.md) — Why we chose performance over convenience.
-- [**Reliability Model**](./concepts/advanced/reliability-model.md) — The high-level production confidence layer.
+<div class="grid" markdown>
 
-## Recommended Path
+-   [**Failure Model**](./concepts/advanced/failure-model.md) — How we handle the unexpected.
+-   [**Design Tradeoffs**](./concepts/advanced/design-tradeoffs.md) — Why performance leads.
+-   [**Reliability Model**](./concepts/advanced/reliability-model.md) — High-level production confidence.
 
-If you are new to Nalix, we recommend following the learning path in order:
+</div>
 
-1. [Architecture](./concepts/architecture.md) — Explore the layered component system.
-2. [Quickstart](./quickstart.md) — Build your first Ping/Pong server in minutes.
-3. [End-to-End Guide](./guides/end-to-end.md) — Move beyond basics with a full feature implementation.
-4. [Middleware](./guides/middleware.md) — Learn how to secure and scale your traffic.
-5. [Packages Overview](./packages/index.md) — Understand the Nalix stack module by module.
+---
+
+## 🚀 Recommended Path
+
+1.  :material-sitemap: [**Architecture**](./concepts/architecture.md) — The big picture.
+2.  :material-bolt: [**Quickstart**](./quickstart.md) — Build in 15 minutes.
+3.  :material-shield-check: [**End-to-End**](./guides/end-to-end.md) — Secure implementation.
+

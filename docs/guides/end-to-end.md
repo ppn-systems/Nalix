@@ -1,19 +1,20 @@
 # Minimal Server (No Hosting)
 
+!!! danger "Low-Level Implementation"
+    This guide demonstrates how to manually wire the Nalix runtime **without** the `NetworkApplication` hosting builder. This is considered an advanced topic and is only recommended for specialized transport libraries or low-level performance tuning. 
+    
+    For 99% of applications, use the [Hosting Builder](../quickstart.md) or [Server Boilerplate](./server-boilerplate.md).
+
 !!! info "Learning Signals"
-    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 10–15 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
-
-This guide shows the smallest useful Nalix TCP server flow **without** the hosting builder. It wires up shared services, dispatch, protocol, and a listener manually.
-
-Use this approach when you need complete control over startup order or when you want to understand what `NetworkApplication.CreateBuilder()` does behind the scenes.
 
 The steps are:
 
 1. Register shared services
 2. Build a packet dispatcher
-3. Forward frames from `Protocol` into dispatch
+3. Forward messages from `Protocol` into dispatch
 4. Start a `TcpListenerBase`
 5. Send one request and receive one response
 
@@ -35,7 +36,7 @@ InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 public sealed class SamplePingHandlers
 {
     [PacketOpcode(0x1001)]
-    public ValueTask<Control> Ping(PacketContext<Control> request)
+    public ValueTask<Control> Ping(IPacketContext<Control> request)
     {
         request.Packet.Type = ControlType.PONG;
         return ValueTask.FromResult(request.Packet);
@@ -64,7 +65,7 @@ public sealed class SampleProtocol : Protocol
 
     public SampleProtocol(PacketDispatchChannel dispatch) => _dispatch = dispatch;
 
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 }
 ```
@@ -81,15 +82,20 @@ SampleTcpListener listener = new(57206, new SampleProtocol(dispatch));
 listener.Activate();
 ```
 
-## Client
-
-The transport/session abstraction can vary on your side, but the request/response pattern is usually the same:
+The client uses the `Nalix.SDK` to connect and perform type-safe request/response operations:
 
 ```csharp
-Control request = new() { Type = ControlType.PING };
+using Contracts;
+using Nalix.SDK.Transport.Extensions;
 
-await client.SendAsync(request.Serialize());
-Control response = await WaitForControlAsync();
+// 1. Establish connection
+await session.ConnectAsync();
+
+// 2. Request/Response in one line
+Control response = await session.RequestAsync<Control>(
+    new Control { Type = ControlType.PING },
+    options: RequestOptions.Default.WithTimeout(3_000)
+);
 
 Console.WriteLine(response.Type); // PONG
 ```
@@ -119,7 +125,7 @@ The same end-to-end structure works with a custom packet type if you replace `Co
 - add middleware
 - add packet attributes such as timeout, permission, or rate limit
 - switch some handlers to `PacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
-- remember that the listener flow is `ProcessFrame(...)` first, then `ProcessMessage(...)` for the protocol bridge
+- remember that the **Listener** handles raw frame transformation (Pipeline) while the **Protocol** handles pure messages via `ProcessMessage(...)`
 
 ## Recommended Next Pages
 

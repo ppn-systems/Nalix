@@ -15,16 +15,18 @@ This guide provides a comprehensive, end-to-end flowchart for creating, configur
 
 ## 1. Create a Shared Packet Catalog
 
-The client and server **must** use the exact same packet contracts and registry. The packet registry maps packet structs to structural IDs, allowing both ends to inherently understand how to serialize and deserialize payloads.
+The client and server **must** use the exact same packet contracts. The `IPacketRegistry` (catalog) maps packet types to their structural metadata and deserialize logic.
 
 ```csharp
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 
 // 1. Initialize the shared registry.
-// This factory automatically scans mapped assemblies for packets 
-// implementing IPacket and registers them into a tightly-packed structure.
-IPacketRegistry catalog = new PacketRegistryFactory().CreateCatalog();
+// This factory scans for packets and binds high-performance deserialize pointers.
+IPacketRegistry catalog = new PacketRegistryFactory()
+    .RegisterPacket<MyRequestPacket>()
+    .RegisterPacket<MyResponsePacket>()
+    .CreateCatalog();
 ```
 
 ## 2. Configure Transport Options

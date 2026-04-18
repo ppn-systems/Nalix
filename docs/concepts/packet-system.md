@@ -20,13 +20,13 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Serialization;
 
 [Packet] // Discovery & Registration
-[SerializePackable(SerializeLayout.Explicit)] // Wire Formatting
+[SerializePackable] // Defaults to SerializeLayout.Auto
 public sealed class TradePacket : PacketBase<TradePacket>
 {
     public const ushort OpCodeValue = 0x5001;
 
-    [SerializeOrder(0)] public long TradeId { get; set; }
-    [SerializeOrder(1)] public double Price { get; set; }
+    public long TradeId { get; set; }
+    public double Price { get; set; }
 
     public TradePacket() => OpCode = OpCodeValue;
 }
@@ -164,13 +164,11 @@ Packets are usually defined in a shared **Contracts** project referenced by both
 ```csharp
 // Example: Defined in a shared 'Contracts' project
 [Packet]
-[SerializePackable(SerializeLayout.Explicit)]
+[SerializePackable]
 public sealed class PingRequest : PacketBase<PingRequest>
 {
     public const ushort OpCodeValue = 0x1001;
 
-    [SerializeOrder(0)]
-    [SerializeDynamicSize(64)]
     public string Message { get; set; } = string.Empty;
 
     public PingRequest() => OpCode = OpCodeValue;

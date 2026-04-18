@@ -1,132 +1,88 @@
 # Configuration and Runtime
 
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Intermediate
+    - :fontawesome-solid-clock: **Time**: 10–15 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../introduction.md)
+
 This page explains how configuration becomes a running Nalix server. It covers the startup wiring sequence, option validation, service registration, and the relationship between configuration, dispatch, and transport.
 
-## The short version
+## The Short Version
 
-Nalix startup usually follows this shape:
-
-1. load configuration
-2. materialize options
-3. validate options
-4. register shared services
-5. build dispatch
-6. build protocol and listener
-7. activate the runtime
-
-That order matters because most network components assume validated options and shared services already exist.
+Nalix startup follows a strict deterministic sequence to ensure that shared infrastructure is ready before traffic starts.
 
 ```mermaid
 flowchart LR
-    A["Configuration files / environment"] --> B["ConfigurationManager"]
-    B --> C["Options objects"]
-    C --> D["Validate()"]
+    A["Configuration Files"] --> B["ConfigurationManager"]
+    B --> C["Options Objects"]
+    C --> D["Validation Gate"]
     D --> E["InstanceManager"]
-    E --> F["PacketDispatchChannel"]
-    F --> G["Protocol"]
-    G --> H["TcpListenerBase / UdpListenerBase"]
+    E --> F["Dispatch Channel"]
+    F --> G["Protocol & Layer"]
+    G --> H["Network Listeners"]
 ```
 
-## ConfigurationManager
+!!! success "Why the order matters"
+    Most network components assume validated options and shared services (like `ILogger` or `IPacketRegistry`) already exist in the `InstanceManager`. Resolve early to fail fast.
 
-`ConfigurationManager` is the central entry point for configuration values and option binding.
+---
 
-In practice it is used to:
+## 🏗️ Configuration Pillars
 
-- load config sources
-- bind option classes
-- retrieve typed runtime settings
+### ConfigurationManager
+`ConfigurationManager` is the central entry point for configuration values and option binding. It handles loading from sources, binding to strongly-typed classes, and caching resolved instances.
 
-The important habit is to resolve and validate your major options early, not lazily after traffic starts.
+### Options Classes
+Nalix uses focused, granular option types instead of a monolithic "Settings" object. This keeps runtime concerns (like timing wheels vs. socket limits) isolated.
 
-## Options classes
+| Option | Purpose |
+|---|---|
+| `NetworkSocketOptions` | Buffer sizes, ports, and IP properties |
+| `DispatchOptions` | Worker count, middleware, and handler logic |
+| `ConnectionLimitOptions` | Security thresholds for the `ConnectionGuard` |
+| `TimingWheelOptions`| O(1) timeout scheduling for idle connections |
 
-Nalix uses focused option types instead of one large server settings object.
+!!! tip "Validation Habit"
+    Always call `Validate()` on your options immediately after binding. Use the configuration layer to prevent the server from starting with "garbage" values.
 
-Common examples in the network layer:
+---
 
-- `NetworkSocketOptions`
-- `DispatchOptions`
-- `ConnectionLimitOptions`
-- `ConnectionHubOptions`
-- `TimingWheelOptions`
-- `PoolingOptions`
+## 🔧 Runtime Registry
 
-This keeps each runtime concern configurable without mixing unrelated settings together.
+### InstanceManager (DI)
+`InstanceManager` is the runtime registry for shared services. It is not complex dependency injection; it is a fast, thread-safe service locator designed for networking hot paths.
 
-## Validate at startup
+- **Logger**: Centralized diagnostic output.
+- **Packet Registry**: The "Catalog" that maps opcodes to types.
+- **Custom Helpers**: Shared database bridges or game-state managers.
 
-Most production issues are cheaper to catch before listeners open.
+!!! important "Service Availability"
+    Once `NetworkApplication.Activate()` is called, the `InstanceManager` should be treated as **frozen**. Changing primary services while traffic is flowing can lead to inconsistent handler state.
 
-A good startup path resolves and validates:
+---
 
-- socket options
-- dispatch options
-- connection limits
-- connection hub behavior
-- timing and pooling settings
+## 🚀 The Transport Shell
 
-That gives you one failure point during startup instead of hidden runtime misconfiguration.
+After configuration and shared services are ready, the dispatch and transport layers are initialized.
 
-## InstanceManager
+- **Dispatch**: Where the application becomes "real". It holds middleware and handlers.
+- **Listener**: The binary shell. It owns socket acceptance, receive loops, and the `FramePipeline` (AEAD).
+- **Protocol**: The bridge that receives "clean" messages from the listener and routes them to dispatch.
 
-`InstanceManager` is the runtime registry for shared services and common singleton-style wiring.
+### A Safe Startup Pattern
+For most teams, this is the safest default wiring:
 
-Use it for things like:
+1. **Bind and Validate** options.
+2. **Register** Logger and Packet Registry.
+3. Build **Dispatch** (Middleware + Handlers).
+4. Build **Protocol** and **Listener**.
+5. **Activate** Dispatch, then start the **Listener**.
 
-- logger instances
-- packet registry
-- shared helpers used across handlers and runtime components
-
-The point is not abstract DI theory. The point is giving the runtime and your handlers one consistent place to resolve shared infrastructure.
-
-## Dispatch is where the app becomes real
-
-After configuration and shared services are ready, `PacketDispatchChannel` becomes the main application entry point.
-
-This is where you usually attach:
-
-- packet middleware
-- buffer middleware
-- logging hooks
-- error handling hooks
-- handler factories
-
-Once dispatch is activated, the server has a working application pipeline.
-
-## Protocol and listener are the transport shell
-
-After dispatch exists:
-
-- `Protocol` bridges transport to dispatch through `ProcessFrame(...)` and `ProcessMessage(...)`
-- the listener owns socket acceptance and receive loops
-
-You can think of it like this:
-
-- configuration defines the runtime
-- dispatch defines the application path
-- protocol and listeners expose that path to the network
-
-## A safe startup pattern
-
-For most teams, this is the safest default:
-
-1. bind and validate options
-2. register logger and packet registry
-3. register metadata providers if needed
-4. build dispatch
-5. build protocol
-6. build listener
-7. activate dispatch, then start listening
-
-Custom packet handlers fit the same startup path as built-in packet handlers because the dispatch and metadata layers remain generic.
-
-That keeps startup deterministic and easier to debug.
+---
 
 ## Recommended Next Pages
 
-- [Server Blueprint](../guides/server-blueprint.md) — Production-oriented project structure
-- [Production Checklist](../guides/production-checklist.md) — Pre-deployment verification
-- [Configuration](../api/framework/runtime/configuration.md) — ConfigurationManager and ConfigurationLoader API reference
-- [Instance Manager (DI)](../api/framework/runtime/instance-manager.md) — Runtime service registry API reference
-- [Network Options](../api/network/options/options.md) — Options class reference
+- [Server Blueprint](../guides/server-blueprint.md) { .md-button }
+- [Production Checklist](../guides/production-checklist.md) { .md-button }
+- [Configuration API](../api/framework/runtime/configuration.md) { .md-button }
+

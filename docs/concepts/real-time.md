@@ -51,12 +51,13 @@ This is why `Connection` and `ConnectionHub` sit at the center of the real-time 
 
 A typical TCP request follows this path:
 
-1. Socket accepted by `TcpListenerBase`
-2. `Protocol.OnAccept(...)` starts the receive loop
-3. Protocol receives frames via `ProcessFrame(...)` and `ProcessMessage(...)`
-4. Frames are forwarded into `PacketDispatchChannel`
-5. Dispatch deserializes the packet, runs middleware, and invokes the handler
-6. Handler returns or sends a response
+1. Socket accepted by `TcpListenerBase`.
+2. `TcpListenerBase` initiates the asynchronous receive loop.
+3. The **Listener** receives a frame and executes the `FramePipeline` (decrypt/decompress).
+4. The resolved **Protocol** receives the processed message via `ProcessMessage(...)`.
+5. Messages are forwarded into `PacketDispatchChannel`.
+6. Dispatch deserializes the packet, runs middleware, and invokes the handler.
+7. Handler returns or sends a response.
 
 For client applications, the simplest mental model is:
 

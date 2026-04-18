@@ -46,7 +46,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Guides Overview**](./guides/index.md) — Navigating the available guides.
 
 ### Build a Server
-- [**Starter Template**](./guides/starter-template.md) — Basic boilerplate.
+- [**Server Boilerplate**](./guides/server-boilerplate.md) — Production-ready starting point.
 - [**Implement Packet Handlers**](./guides/implementing-packet-handlers.md) — Defining and routing message logic.
 - [**End-to-End Sample**](./guides/end-to-end.md) — Feature walkthrough.
 - [**Production End-to-End**](./guides/production-end-to-end.md) — Real-world implementation.
