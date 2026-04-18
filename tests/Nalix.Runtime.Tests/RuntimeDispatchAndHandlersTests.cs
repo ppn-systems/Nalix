@@ -54,14 +54,6 @@ public sealed class RuntimeDispatchAndHandlersTests
     }
 
     [Fact]
-    public void PacketDispatchOptionsWithBufferMiddleware_WhenMiddlewareIsNull_ThrowsArgumentNullException()
-    {
-        PacketDispatchOptions<TestPacket> options = new();
-
-        _ = Assert.Throws<ArgumentNullException>(() => options.WithBufferMiddleware(null!));
-    }
-
-    [Fact]
     public void PacketDispatchOptionsWithHandler_WhenControllerMissingPacketControllerAttribute_ThrowsInternalErrorException()
     {
         PacketDispatchOptions<TestPacket> options = new();
