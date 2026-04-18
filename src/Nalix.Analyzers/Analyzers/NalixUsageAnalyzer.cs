@@ -903,12 +903,11 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     {
         for (INamedTypeSymbol? current = typeSymbol; current is not null; current = current.BaseType)
         {
-            foreach (IMethodSymbol method in current.GetMembers("Deserialize").OfType<IMethodSymbol>())
+            foreach (IMethodSymbol method in current.GetMembers("Deserialize")
+                .OfType<IMethodSymbol>()
+                .Where(static method => method.MethodKind == MethodKind.Ordinary))
             {
-                if (method.MethodKind == MethodKind.Ordinary)
-                {
-                    yield return method;
-                }
+                yield return method;
             }
         }
     }
