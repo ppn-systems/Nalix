@@ -1,6 +1,6 @@
 # Nalix.Runtime.Middleware
 
-Middleware in Nalix allows you to intercept and transform packets or raw buffers at specific stages of the execution lifecycle. It is designed for cross-cutting concerns like security, rate limiting, logging, and data compression.
+Middleware in Nalix allows you to intercept and transform packets at specific stages of the execution lifecycle. It is designed for cross-cutting concerns like security, rate limiting, logging, and data compression.
 
 ## Middleware Execution Lifecycle
 
@@ -38,9 +38,6 @@ The `MiddlewarePipeline<TPacket>` executes in three distinct architectural stage
 ### [Packet Pipeline](./pipeline.md)
 The primary execution engine for typed packet logic. It uses `MiddlewareOrderAttribute` to determine the sequence within each stage and supports `ContinueOnError` policies for specialized auditing requirements.
 
-### [Network Buffer Pipeline](./network-buffer-pipeline.md)
-Operates at Layer 1 (raw `IBufferLease`) before the packet is deserialized. This is the optimal place for global decryption, decompression, or IP-level blacklisting.
-
 ## Built-in Middlewares
 
 Nalix provides several production-ready middleware components:
@@ -52,6 +49,6 @@ Nalix provides several production-ready middleware components:
 
 ## Related Information
 
-- [Implementing Middleware](../../../guides/middleware.md)
+- [Middleware Usage Guide](../../../guides/application/middleware-usage.md)
 - [Packet Context](../routing/packet-context.md)
-- [Network Pipeline Options](../options/dispatch-options.md)
+- [Dispatch Options](../options/dispatch-options.md)

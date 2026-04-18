@@ -10,6 +10,7 @@ using Nalix.Common.Primitives;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Security.Hashing;
 using Nalix.SDK.Options;
+using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
 
@@ -60,7 +61,7 @@ public static class ResumeExtensions
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);
 
-            if (!response.Validate(response, out string? validationReason))
+            if (!response.Validate(out string? validationReason))
             {
                 throw new NetworkException($"Malformed SessionResume response packet: {validationReason}");
             }

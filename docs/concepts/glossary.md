@@ -100,7 +100,7 @@ A customized 56-bit distributed identifier used for internal task tracking and p
 ## TCP vs UDP
 
 | Transport | Use when |
-|---|---|
+| :--- | :--- |
 | **TCP** | Reliable, ordered request/response. The default and recommended starting point. |
 | **UDP** | Low-latency datagrams where packet loss is acceptable. Requires pre-established session identity and authentication. |
 
@@ -112,6 +112,6 @@ The idle-timeout scheduler used by the network layer. Manages connection timeout
 
 ## Recommended Next Pages
 
-- [Choose the Right Building Block](./choose-the-right-building-block.md) — Decision guide for component selection
-- [Architecture](./architecture.md) — Layered component overview
-- [Middleware](./middleware.md) — Buffer vs. packet middleware
+- [Selecting Building Blocks](./runtime/building-blocks.md) — Decision guide for component selection
+- [Architecture](./fundamentals/architecture.md) — Layered component overview
+- [Middleware](./runtime/middleware-pipeline.md) — Buffer vs. packet middleware

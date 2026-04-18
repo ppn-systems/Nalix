@@ -112,7 +112,5 @@ It is the machinery that `PacketBase<TSelf>` and related frame helpers build on.
 
 ## Related APIs
 
-- [Serialization](../../framework/packets/serialization.md)
-- [Frame Model](../../framework/packets/frame-model.md)
-- [Serialization Attributes](../../common/serialization-attributes.md)
-- [Custom Serialization Provider Guide](../../../guides/custom-serialization-provider.md)
+- [Serialization Concept](../../../concepts/fundamentals/packet-system.md)
+- [Custom Serialization Provider Guide](../../../guides/extensibility/serialization-providers.md)

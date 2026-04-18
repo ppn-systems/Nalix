@@ -28,7 +28,7 @@ graph TD
 
 - `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
 - `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
-- `src/Nalix.SDK/Transport/Internal/PacketFrameTransforms.cs`
+- `src/Nalix.Framework/DataFrames/Transforms/FramePipeline.cs`
 
 ## Frame Sender (`FrameSender`)
 
@@ -37,6 +37,7 @@ The `FrameSender` provides a thread-safe, ordered outbound pipeline. It uses a `
 - **Strict Ordering**: Guaranteed by a single-reader drain loop.
 - **Backpressure**: Prevents memory exhaustion if the network is slower than the application (via `BoundedChannelFullMode.Wait`).
 - **Automatic Fragmentation**: Large payloads are automatically split into chunks using the `FragmentHeader` and `FragmentStreamId` protocol.
+- **Transformation**: Integrates with the centralized `FramePipeline` to encrypt and compress payloads before framing and queuing.
 - **Pooled Memory**: Rents byte arrays for framing to minimize GC pressure during high-throughput bursts.
 
 ## Frame Reader (`FrameReader`)
@@ -45,7 +46,7 @@ The `FrameReader` manages the long-running socket receive loop. It is responsibl
 
 - **Header Parsing**: Reads the 2-byte little-endian length prefix to determine the coming payload size.
 - **Fragment Management**: Synchronized with the server's chunking logic to reassemble fragmented payloads before delivering them upward.
-- **Transform Application**: Integrates with `PacketFrameTransforms` to decrypt and decompress payloads in-place.
+- **Transform Application**: Integrates with the centralized `FramePipeline` to decrypt and decompress payloads in-place.
 - **Ownership Handoff**: Rents a `BufferLease` for every frame. Once transformed, ownership of this lease is handed off to the session's receive event.
 
 ## Ownership and Performance

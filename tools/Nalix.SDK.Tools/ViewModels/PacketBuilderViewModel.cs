@@ -96,6 +96,28 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     /// </summary>
     public ObservableCollection<PropertyNodeViewModel> CurrentProperties { get; } = [];
 
+    private string _validationError = string.Empty;
+
+    /// <summary>
+    /// Gets the validation error message for the current packet.
+    /// </summary>
+    public string ValidationError
+    {
+        get => _validationError;
+        set
+        {
+            if (this.SetProperty(ref _validationError, value))
+            {
+                this.OnPropertyChanged(nameof(this.HasValidationError));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the current packet has validation errors.
+    /// </summary>
+    public bool HasValidationError => !string.IsNullOrEmpty(this.ValidationError);
+
     /// <summary>
     /// Gets the connect command.
     /// </summary>
@@ -245,7 +267,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     public bool IsEncryptionDefault
     {
         get => _selectedEncryptionMode == 0;
-        set { if (value) this.SelectedEncryptionMode = 0; }
+        set
+        {
+            if (value)
+            {
+                this.SelectedEncryptionMode = 0;
+            }
+        }
     }
 
     /// <summary>
@@ -254,7 +282,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     public bool IsEncryptionPlain
     {
         get => _selectedEncryptionMode == 1;
-        set { if (value) this.SelectedEncryptionMode = 1; }
+        set
+        {
+            if (value)
+            {
+                this.SelectedEncryptionMode = 1;
+            }
+        }
     }
 
     /// <summary>
@@ -263,7 +297,13 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     public bool IsEncryptionForce
     {
         get => _selectedEncryptionMode == 2;
-        set { if (value) this.SelectedEncryptionMode = 2; }
+        set
+        {
+            if (value)
+            {
+                this.SelectedEncryptionMode = 2;
+            }
+        }
     }
 
     /// <summary>
@@ -714,6 +754,16 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         {
             hex = _currentPacket.Serialize().ToHexString();
             this.CurrentPacketSummary = this.BuildPacketSummary(_currentPacket);
+
+            if (this.CheckPacketValidity(_currentPacket, out string? failureReason))
+            {
+                this.ValidationError = string.Empty;
+            }
+            else
+            {
+                this.ValidationError = failureReason ?? "Validation failed.";
+            }
+
             return true;
         }
         catch
@@ -726,6 +776,18 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private string BuildPacketSummary(IPacket packet)
         => string.Format(CultureInfo.CurrentCulture, _texts.BuilderSummaryFormat, packet.GetType().FullName, packet.MagicNumber, packet.OpCode, packet.Length);
+
+    private bool CheckPacketValidity(IPacket packet, out string? failureReason)
+    {
+        failureReason = null;
+
+        if (packet is IPacketValidatable validatable)
+        {
+            return validatable.Validate(out failureReason);
+        }
+
+        return true;
+    }
 
     private bool TryParsePort(out ushort port)
         => ushort.TryParse(this.PortText, NumberStyles.Integer, CultureInfo.InvariantCulture, out port);

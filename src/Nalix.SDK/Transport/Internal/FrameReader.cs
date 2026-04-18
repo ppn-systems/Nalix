@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
+using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
@@ -137,7 +138,8 @@ internal sealed class FrameReader : IDisposable
     {
         try
         {
-            PacketFrameTransforms.TransformInbound(ref lease, _options);
+            FramePipeline.ProcessInbound(ref lease, _options.Secret.AsSpan(), _options.Algorithm);
+
             _onMessage(lease);
         }
         finally
