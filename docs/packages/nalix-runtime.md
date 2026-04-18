@@ -52,7 +52,7 @@ dispatch.Activate();
 The runtime supports two middleware layers:
 
 | Layer | Interface | Access | Use case |
-|---|---|---|---|
+| :--- | :--- | :--- | :--- |
 | Buffer middleware | `INetworkBufferMiddleware` | Raw `IBufferLease` | Decryption, decompression, frame validation |
 | Packet middleware | `IPacketMiddleware<TPacket>` | `PacketContext<TPacket>` | Permissions, rate limiting, timeouts, auditing |
 
@@ -98,7 +98,7 @@ public sealed class AccountHandlers
 The dispatch pipeline supports multiple return shapes. The internal return handler converts each into the appropriate outbound behavior:
 
 | Return type | Behavior |
-|---|---|
+| :--- | :--- |
 | `TPacket` | Serializes and sends the packet to the caller |
 | `Task<TPacket>` / `ValueTask<TPacket>` | Awaits, then serializes and sends |
 | `string` | Sends as a text response |

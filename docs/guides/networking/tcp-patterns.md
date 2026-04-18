@@ -132,12 +132,12 @@ When using the transport layer directly (outside of the Hosting builder), you mu
 #### Required Dependencies (InstanceManager)
 
 | Service | Type | Role |
-| :--- | :--- |
+| :--- | :--- | :--- |
 | `ILogger` | `ILogger` | Structured logging |
 | `IConnectionHub` | `IConnectionHub` | Connection tracking and batch operations |
 | `TaskManager` | `TaskManager` | Background worker management |
 | `TimingWheel` | `TimingWheel` | Lightweight timeout scheduling |
-| `ObjectPoolManager`| `ObjectPoolManager`| Recyclable buffer/context management |
+| `ObjectPoolManager` | `ObjectPoolManager` | Recyclable buffer/context management |
 
 ```csharp
 // Setup dependencies

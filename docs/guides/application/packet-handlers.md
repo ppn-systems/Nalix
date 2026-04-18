@@ -102,7 +102,7 @@ public async ValueTask HandleSecureAction(IPacketContext<SecureAction> context)
 Attributes declare **policy** at registration time. The runtime uses this metadata to apply middleware before your handler even runs.
 
 | Attribute | Purpose | When to use |
-| :--- | :--- |
+| :--- | :--- | :--- |
 | `[PacketOpcode]` | Maps the method to a specific packet ID. | **Required** for all handlers. |
 | `[PacketPermission]` | Restricts access by `PermissionLevel`. | Public-facing or sensitive logic. |
 | `[PacketRateLimit]` | Applies per-connection throttling. | Protecting high-cost operations. |

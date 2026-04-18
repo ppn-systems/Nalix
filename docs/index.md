@@ -120,7 +120,6 @@ graph TD
 Choose the path that matches your role.
 
 === "Server Developer"
-
     1. [Introduction](./introduction.md) — Design philosophy and mental model
     2. [Installation](./installation.md) — Package selection and prerequisites
     3. [Quickstart](./quickstart.md) — Build a Ping/Pong server end-to-end
@@ -128,7 +127,6 @@ Choose the path that matches your role.
     5. [Server Blueprint](./guides/getting-started/server-blueprint.md) — Production-oriented project structure
 
 === "Client Developer"
-
     1. [Introduction](./introduction.md) — Design philosophy and mental model
     2. [Installation](./installation.md) — Package selection and prerequisites
     3. [Quickstart](./quickstart.md) — Connect a client to your first server
@@ -136,14 +134,12 @@ Choose the path that matches your role.
     5. [TCP Session](./api/sdk/tcp-session.md) — Detailed session API
 
 === "Middleware / Extension Author"
-
     1. [Selecting Building Blocks](./concepts/runtime/building-blocks.md) — Decision guide
     2. [Middleware](./concepts/runtime/middleware-pipeline.md) — Buffer vs. packet middleware
     3. [Custom Middleware Guide](./guides/extensibility/custom-middleware.md) — End-to-end walkthrough
     4. [Custom Metadata Provider](./guides/extensibility/metadata-providers.md) — Convention-based metadata
 
 === "Contributor"
-
     1. [Architecture](./concepts/fundamentals/architecture.md) — System design and component boundaries
     2. [Packet System](./concepts/fundamentals/packet-system.md) — Serialization and wire format
     3. [Packet Lifecycle](./concepts/fundamentals/packet-lifecycle.md) — Request path from socket to handler
@@ -153,7 +149,7 @@ Choose the path that matches your role.
 ## Core Packages
 
 | Package | Purpose |
-|---|---|
+| :--- | :--- |
 | [**Nalix.Network**](./packages/nalix-network.md) | TCP/UDP listeners, connections, protocol logic, and transport infrastructure |
 | [**Nalix.Runtime**](./packages/nalix-runtime.md) | Packet dispatch, middleware execution, handler compilation, and session resume |
 | [**Nalix.SDK**](./packages/nalix-sdk.md) | Client-side transport sessions, request/response helpers, and handshake flows |
