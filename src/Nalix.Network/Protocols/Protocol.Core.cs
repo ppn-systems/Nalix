@@ -21,33 +21,6 @@ namespace Nalix.Network.Protocols;
 public abstract partial class Protocol : IProtocol
 {
     /// <summary>
-    /// Processes a raw inbound frame.
-    /// The base implementation applies the shared buffer pipeline first
-    /// (decrypt -> decompress), retains the lease for the downstream handler,
-    /// and then forwards the result to <see cref="ProcessMessage(object?, IConnectEventArgs)"/>.
-    /// </summary>
-    /// <param name="sender">The sender of the message.</param>
-    /// <param name="args">Event arguments containing the connection and message data.</param>
-    public virtual void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        ArgumentNullException.ThrowIfNull(args);
-
-        try
-        {
-            this.ProcessDecrypt(args);
-            this.ProcessDecompress(args);
-            this.ProcessMessage(sender, args);
-        }
-        catch (Exception ex)
-        {
-            if (this.TryHandleProcessError(args, ex))
-            {
-                // Handled / Logged as trace
-            }
-        }
-    }
-
-    /// <summary>
     /// Processes a message received on the connection.
     /// Derived protocols decide how to interpret the event payload and route the message.
     /// </summary>
