@@ -61,12 +61,7 @@ public sealed partial class NalixUsageAnalyzer
         else if (methodName == "WithMiddleware")
         {
             AnalyzeWithMiddlewareInvocation(context, invocation, symbols);
-            AnalyzeMiddlewareRegistrationDuplicateOrder(context, invocation, symbols, bufferMiddleware: false);
-        }
-        else if (methodName == "WithBufferMiddleware")
-        {
-            AnalyzeWithBufferMiddlewareInvocation(context, invocation, symbols);
-            AnalyzeMiddlewareRegistrationDuplicateOrder(context, invocation, symbols, bufferMiddleware: true);
+            AnalyzeMiddlewareRegistrationDuplicateOrder(context, invocation, symbols);
         }
         else if (methodName == "RegisterPacket")
         {
@@ -81,8 +76,7 @@ public sealed partial class NalixUsageAnalyzer
     private static void AnalyzeMiddlewareRegistrationDuplicateOrder(
         OperationAnalysisContext context,
         IInvocationOperation invocation,
-        SymbolSet symbols,
-        bool bufferMiddleware)
+        SymbolSet symbols)
     {
         if (invocation.Arguments.Length != 1)
         {
@@ -95,7 +89,7 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        string expectedMethodName = bufferMiddleware ? "WithBufferMiddleware" : "WithMiddleware";
+        string expectedMethodName = "WithMiddleware";
         if (previousInvocation.TargetMethod.Name != expectedMethodName
             || previousInvocation.Arguments.Length != 1)
         {
@@ -586,31 +580,4 @@ public sealed partial class NalixUsageAnalyzer
         }
     }
 
-    private static void AnalyzeWithBufferMiddlewareInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
-    {
-        IArgumentOperation? middlewareArgument = invocation.Arguments.FirstOrDefault();
-        if (middlewareArgument is not null && IsNullLiteral(middlewareArgument.Value))
-        {
-            Report(context, DiagnosticDescriptors.MiddlewareRegistrationNullLiteral, invocation.Syntax.GetLocation(), invocation.TargetMethod.Name);
-            return;
-        }
-
-        IOperation? valueOperation = middlewareArgument?.Value;
-        ITypeSymbol? middlewareType = valueOperation is IConversionOperation conversion
-            ? conversion.Operand.Type
-            : valueOperation?.Type;
-        if (middlewareType is null)
-        {
-            return;
-        }
-
-        if (Implements(middlewareType, symbols.NetworkBufferMiddlewareType) && HasAttribute(middlewareType, symbols.MiddlewareStageAttribute))
-        {
-            Report(context, DiagnosticDescriptors.BufferMiddlewareShouldNotUseStageAttribute, invocation.Syntax.GetLocation(), middlewareType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-        else if (!Implements(middlewareType, symbols.NetworkBufferMiddlewareType))
-        {
-            Report(context, DiagnosticDescriptors.BufferMiddlewareRegistrationTypeMismatch, invocation.Syntax.GetLocation(), middlewareType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-    }
 }
