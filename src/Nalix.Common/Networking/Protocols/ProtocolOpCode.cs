@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Common.Networking.Packets;
+namespace Nalix.Common.Networking.Protocols;
 
 /// <summary>
 /// Defines the reserved OpCodes for Nalix system and protocol-level internal packets.
