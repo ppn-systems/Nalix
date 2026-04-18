@@ -145,6 +145,12 @@ public sealed class TransportOptions : ConfigurationLoader
     public Snowflake SessionToken { get; set; }
 
     /// <summary>
+    /// Gets or sets the pinned Server Identity Public Key (required for protecting against MitM attacks).
+    /// </summary>
+    [IniComment("Pinned X25519 Public Key representation in HEX for Identity Authentication (MitM protection).")]
+    public string? ServerPublicKey { get; set; }
+
+    /// <summary>
     /// Gets or sets whether the SDK should attempt a session resume before performing a new handshake.
     /// </summary>
     [IniComment("Attempt session resume before doing a fresh handshake")]

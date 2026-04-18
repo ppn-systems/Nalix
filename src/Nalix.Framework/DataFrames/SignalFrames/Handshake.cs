@@ -56,7 +56,7 @@ public enum HandshakeStage : byte
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Sequential)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
+public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, IPacketValidatable<Handshake>
 {
     /// <summary>
     /// Default dynamic size hint used for fixed-width handshake fields.
@@ -188,11 +188,44 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable
         this.SessionToken = Snowflake.Empty;
     }
 
-    /// <summary>
-    /// Validates if a hello packet has the correct cryptographic lengths.
-    /// </summary>
-    public static bool IsValid(Handshake packet)
-        => packet != null && !packet.PublicKey.IsZero && !packet.Nonce.IsZero;
+    /// <inheritdoc/>
+    public bool Validate(Handshake packet, [NotNullWhen(false)] out string? failureReason)
+    {
+        if (packet == null)
+        {
+            failureReason = "Handshake packet is null.";
+            return false;
+        }
+
+        bool isValid = packet.Stage switch
+        {
+            HandshakeStage.CLIENT_HELLO => 
+                !packet.PublicKey.IsZero && !packet.Nonce.IsZero && packet.Proof.IsZero && packet.TranscriptHash.IsZero,
+                
+            HandshakeStage.SERVER_HELLO => 
+                !packet.PublicKey.IsZero && !packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
+                
+            HandshakeStage.CLIENT_FINISH => 
+                packet.PublicKey.IsZero && packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
+                
+            HandshakeStage.SERVER_FINISH => 
+                packet.PublicKey.IsZero && packet.Nonce.IsZero && !packet.Proof.IsZero && !packet.TranscriptHash.IsZero,
+                
+            HandshakeStage.ERROR => 
+                packet.Reason != ProtocolReason.NONE,
+                
+            _ => false
+        };
+
+        if (!isValid)
+        {
+            failureReason = $"Invalid cryptographic fields or structural anomaly detected for stage {packet.Stage}.";
+            return false;
+        }
+
+        failureReason = null;
+        return true;
+    }
 
     /// <summary>
     /// Computes the Keccak-256 transcript hash for the provided bytes.
