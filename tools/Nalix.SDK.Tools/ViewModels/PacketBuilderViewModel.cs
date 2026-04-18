@@ -5,6 +5,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
@@ -95,6 +96,28 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
     /// Gets the reflected property nodes for the current packet.
     /// </summary>
     public ObservableCollection<PropertyNodeViewModel> CurrentProperties { get; } = [];
+
+    private string _validationError = string.Empty;
+
+    /// <summary>
+    /// Gets the validation error message for the current packet.
+    /// </summary>
+    public string ValidationError
+    {
+        get => _validationError;
+        set
+        {
+            if (this.SetProperty(ref _validationError, value))
+            {
+                this.OnPropertyChanged(nameof(this.HasValidationError));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a value indicating whether the current packet has validation errors.
+    /// </summary>
+    public bool HasValidationError => !string.IsNullOrEmpty(this.ValidationError);
 
     /// <summary>
     /// Gets the connect command.
@@ -714,6 +737,16 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
         {
             hex = _currentPacket.Serialize().ToHexString();
             this.CurrentPacketSummary = this.BuildPacketSummary(_currentPacket);
+
+            if (this.CheckPacketValidity(_currentPacket, out string? failureReason))
+            {
+                this.ValidationError = string.Empty;
+            }
+            else
+            {
+                this.ValidationError = failureReason ?? "Validation failed.";
+            }
+
             return true;
         }
         catch
@@ -726,6 +759,30 @@ public sealed class PacketBuilderViewModel : ViewModelBase, IDisposable
 
     private string BuildPacketSummary(IPacket packet)
         => string.Format(CultureInfo.CurrentCulture, _texts.BuilderSummaryFormat, packet.GetType().FullName, packet.MagicNumber, packet.OpCode, packet.Length);
+
+    private bool CheckPacketValidity(IPacket packet, out string? failureReason)
+    {
+        failureReason = null;
+        Type packetType = packet.GetType();
+
+        // Check for IPacketValidatable<T> implementation
+        Type? validatableInterface = packetType.GetInterfaces()
+            .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IPacketValidatable<>));
+
+        if (validatableInterface != null)
+        {
+            MethodInfo? validateMethod = validatableInterface.GetMethod("Validate", [packetType, typeof(string).MakeByRefType()]);
+            if (validateMethod != null)
+            {
+                object?[] parameters = [packet, null];
+                bool isValid = (bool)validateMethod.Invoke(packet, parameters)!;
+                failureReason = (string?)parameters[1];
+                return isValid;
+            }
+        }
+
+        return true;
+    }
 
     private bool TryParsePort(out ushort port)
         => ushort.TryParse(this.PortText, NumberStyles.Integer, CultureInfo.InvariantCulture, out port);

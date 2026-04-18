@@ -200,20 +200,31 @@ public sealed class PacketDispatchChannel
     {
         if (packet is null || connection is null)
         {
-            packet?.Dispose();
             return;
         }
 
         if (packet.Length <= 0)
         {
+            return;
+        }
+
+        // Industrial-grade reference management: we must retain the lease before
+        // handoff to the asynchronous dispatch channel. If we don't, the caller
+        // (the transport layer) will dispose its reference immediately after this
+        // call returns, potentially returning the buffer to the pool while we
+        // are still processing it.
+        packet.Retain();
+
+        if (!_dispatch.PushCore(connection, packet, noBlock: true))
+        {
+            // If the channel is full or the connection is inactive, we must
+            // release the reference we just took to avoid a memory leak.
             packet.Dispose();
             return;
         }
 
-        if (_dispatch.PushCore(connection, packet, noBlock: true))
-        {
-            this.RequestWake();
-        }
+        // Signal a worker to wake up and process the newly queued packet.
+        this.RequestWake();
     }
 
     /// <inheritdoc />
