@@ -97,6 +97,7 @@ public abstract partial class Protocol
         catch (ObjectDisposedException)
         {
             s_logger?.Warn($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID}");
+            connection.Disconnect();
         }
         catch (Exception ex)
         {

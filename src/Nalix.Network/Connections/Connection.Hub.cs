@@ -19,6 +19,7 @@ using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
 using Nalix.Network.Sessions;
@@ -143,14 +144,14 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (string.IsNullOrEmpty(_options.IdentityPrivateKey))
         {
-            var pair = Nalix.Framework.Security.Asymmetric.X25519.GenerateKeyPair();
+            X25519.X25519KeyPair pair = X25519.GenerateKeyPair();
             this.IdentityPrivateKey = pair.PrivateKey;
             _logger?.Info($"[NW.ConnectionHub] Generated Ephemeral Identity KeyPair. ServerPublicKey={pair.PublicKey}");
         }
         else
         {
             this.IdentityPrivateKey = Bytes32.Parse(_options.IdentityPrivateKey);
-            var pair = Nalix.Framework.Security.Asymmetric.X25519.GenerateKeyFromPrivateKey(this.IdentityPrivateKey);
+            X25519.X25519KeyPair pair = X25519.GenerateKeyFromPrivateKey(this.IdentityPrivateKey);
             _logger?.Info($"[NW.ConnectionHub] Loaded Static Identity KeyPair. ServerPublicKey={pair.PublicKey}");
         }
     }
