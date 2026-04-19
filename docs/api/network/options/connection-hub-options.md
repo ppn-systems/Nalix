@@ -20,7 +20,6 @@ The `ConnectionHub` is the central repository for all active connections. As a s
 | `BroadcastBatchSize` | Connections processed per broadcast batch. `0` disables batching. | 0 or 1000 |
 | `ParallelDisconnectDegree` | Parallelism for bulk disconnect operations. `-1` uses ThreadPool default. | -1 |
 | `IsEnableLatency` | Enables real-time latency diagnostics for every connection. | `true` |
-| `IdentityPrivateKey` | Persistent X25519 Private Key (Hex) for server identification to prevent MitM. | `null` (Auto-generated) |
 
 ## Internal Responsibilities (Source-Verified)
 

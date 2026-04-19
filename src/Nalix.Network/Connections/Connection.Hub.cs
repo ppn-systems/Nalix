@@ -19,7 +19,6 @@ using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
 using Nalix.Network.Sessions;
@@ -86,9 +85,6 @@ public sealed class ConnectionHub : IConnectionHub
     /// <inheritdoc />
     public ISessionStore SessionStore => _sessionStore;
 
-    /// <inheritdoc />
-    public Bytes32 IdentityPrivateKey { get; }
-
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
@@ -140,18 +136,6 @@ public sealed class ConnectionHub : IConnectionHub
             _shards[i] = new ConcurrentDictionary<UInt56, IConnection>(
                 concurrencyLevel: Environment.ProcessorCount,
                 capacity: perShardCapacity);
-        }
-
-        if (string.IsNullOrEmpty(_options.IdentityPrivateKey))
-        {
-            this.IdentityPrivateKey = Bytes32.Zero;
-            _logger?.Info("[NW.ConnectionHub] No identity key provided. Running in Anonymous Handshake mode.");
-        }
-        else
-        {
-            this.IdentityPrivateKey = Bytes32.Parse(_options.IdentityPrivateKey);
-            X25519.X25519KeyPair pair = X25519.GenerateKeyFromPrivateKey(this.IdentityPrivateKey);
-            _logger?.Info($"[NW.ConnectionHub] Loaded Static Identity KeyPair. ServerPublicKey={pair.PublicKey}");
         }
     }
 
@@ -1230,9 +1214,4 @@ public sealed class ConnectionHub : IConnectionHub
 /// <param name="maxConnections">Configured maximum connection count.</param>
 /// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
 /// <param name="reason">Reason token that describes the applied action.</param>
-public delegate void CapacityLimitReachedHandler(
-    DropPolicy dropPolicy,
-    int currentConnections,
-    int maxConnections,
-    ISnowflake? triggeredConnectionId,
-    string reason);
+public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);

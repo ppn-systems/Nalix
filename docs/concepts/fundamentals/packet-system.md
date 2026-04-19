@@ -67,6 +67,8 @@ public sealed class SimplePacket : PacketBase<SimplePacket>
 !!! warning "Auto layout and version stability"
     In `SerializeLayout.Auto`, adding a new field may change the byte offsets of all existing fields because the serializer re-sorts them. **Always use `Explicit` for public-facing network packets.**
 
+For a detailed technical breakdown of how each type is encoded and sorted on the wire, see the [Binary Specification](../serialization/binary-spec.md).
+
 ---
 
 ## 3. Common Use Cases

@@ -78,12 +78,6 @@ public abstract partial class Protocol
                 // Start receiving data from the connection
                 connection.TCP.BeginReceive(cancellationToken);
 
-                // Register the connection with the hub for management
-                if (!cancellationToken.IsCancellationRequested)
-                {
-                    s_hub?.RegisterConnection(connection);
-                }
-
                 return;
             }
 

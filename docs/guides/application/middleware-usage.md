@@ -5,116 +5,68 @@
     - :fontawesome-solid-clock: **Time**: 10–15 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
 
-Use this guide when you know you need request policy or frame processing, but you are not yet sure which Nalix middleware layer should own it.
+Use this guide when you need to implement request policy, security enforcement, or observability in your Nalix application.
 
-## Start with the right question
+## Core Concepts
 
-Before you write middleware, ask:
-
-- do I need raw bytes, or a deserialized packet?
-- am I enforcing transport safety, or application policy?
-- should this behavior live in one middleware, or become handler metadata?
-
-Those questions usually point you to the right shape before code does.
-
-## The two middleware layers
-
-Nalix has two middleware paths:
-
-- buffer middleware before deserialization
-- packet middleware after deserialization
+In Nalix, middleware is organized into the **`MiddlewarePipeline`**. This pipeline operates on deserialized packets (`IPacketContext<TPacket>`), allowing you to make decisions based on both the packet data and the resolved handler metadata.
 
 ```mermaid
 flowchart LR
-    A["Inbound frame"] --> B["Buffer middleware"]
-    B --> C["Deserialize packet"]
-    C --> D["Packet middleware"]
-    D --> E["Handler"]
+    A["Inbound frame"] --> B["Deserialization"]
+    B --> C["MiddlewarePipeline"]
+    C --> D["Handler"]
 ```
 
-## Choose buffer middleware when
+## When to use Middleware
 
-Use buffer middleware when the request is not safe to deserialize yet.
-
-Typical cases:
-
-- decrypting wrapped frames
-- decompressing payloads
-- validating frame shape
-- dropping malformed or obviously abusive traffic early
-
-This layer is early and cheap, but it does not know handler metadata yet.
-
-## Choose packet middleware when
-
-Use packet middleware when the request is already a packet and the decision depends on application state.
+Use middleware when you need to enforce logic that applies to many different packet types or handlers.
 
 Typical cases:
 
-- permission checks
-- timeout rules
-- rate limiting
-- concurrency limits
-- tenant or region policy
-- auditing and tracing
-
-For most teams, this is the easiest place to start.
+- **Permission checks**: Block requests based on connection status or auth level.
+- **Timeout rules**: Cancel handler execution if it takes too long.
+- **Rate limiting**: Throttling requests to prevent spam.
+- **Concurrency limits**: Preventing too many simultaneous executions of heavy handlers.
+- **Auditing and tracing**: Logging request details for debugging or compliance.
 
 ## A safe build order
 
 For most projects, middleware usually grows cleanly in this order:
 
-1. start with one packet middleware
-2. add metadata-driven policy only when repeated rules appear
-3. add buffer middleware only when raw-frame handling is truly needed
+1. Start with one simple middleware (e.g., logging).
+2. Add metadata-driven policy (using Attributes) only when repeated rules appear across different handlers.
+3. Keep middleware focused—prefer multiple specific middlewares over one massive "god" middleware.
 
-That path keeps debugging simple and avoids adding transport complexity too early.
-
-## Example: one packet middleware
+## Example: Registering Middleware
 
 ```csharp
 PacketDispatchChannel dispatch = new(options =>
 {
     options.WithLogging(logger)
+           .WithMiddleware(new PermissionMiddleware())
            .WithMiddleware(new SampleAuditMiddleware<IPacket>())
            .WithHandler(() => new SamplePingHandlers());
 });
 ```
 
-Even one middleware can already:
+## Low-Level Processing (Non-Middleware)
 
-- log opcode and endpoint
-- enforce permission rules
-- short-circuit bad requests
-
-## Example: one buffer middleware
-
-```csharp
-options.WithBufferMiddleware(new SampleAuditBufferMiddleware());
-```
-
-Keep buffer middleware narrow. If the logic starts depending on handler attributes or application roles, it probably belongs in packet middleware instead.
+If you need to perform actions on raw bytes (like custom decryption or transformation) before they become packets, this logic is handled by the **`Protocol`** and the **`FramePipeline`** in the transport layer, rather than the `MiddlewarePipeline`.
 
 ## Common mistakes
 
-- using buffer middleware for app-level permission checks
-- putting too many unrelated policies in one middleware
-- adding custom metadata before proving you need it
-- forgetting that middleware order changes behavior
+- Putting too many unrelated policies in one middleware.
+- Adding custom metadata before proving you need it.
+- Forgetting that middleware order changes behavior (Inbound: registration order; Outbound: reverse order).
 
 ## Good default patterns
 
 For public traffic, a good starting setup is:
 
-- `ConnectionGuard` at accept time
-- one packet middleware for permission or audit policy
-- built-in rate or concurrency controls where needed
-
-For internal traffic, you can stay lighter:
-
-- keep middleware minimal
-- add metadata only for repeated conventions
-- prefer simple handler returns over manual send flow
+- `ConnectionGuard` at the transport layer for early admission control.
+- `PermissionMiddleware` to ensure only authorized clients reach handlers.
+- `RateLimitMiddleware` to protect your resources.
 
 ## Read this next
 
