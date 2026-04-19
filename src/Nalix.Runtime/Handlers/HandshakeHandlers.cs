@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
@@ -37,44 +38,49 @@ public sealed class HandshakeHandlers
     static HandshakeHandlers()
     {
         string certPath = Path.Combine(Directories.ConfigurationDirectory, "certificate.private");
-        if (File.Exists(certPath))
+
+        if (!File.Exists(certPath))
         {
-            try
+            throw new InternalErrorException(
+                $"Handshake failed: certificate file 'certificate.private' was not found in '{Directories.ConfigurationDirectory}'. "
+                + "Please provide a valid server identity file.");
+        }
+
+        try
+        {
+            string? hex = null;
+            string[] lines = File.ReadAllLines(certPath);
+
+            for (int i = lines.Length - 1; i >= 0; i--)
             {
-                string[] lines = File.ReadAllLines(certPath);
-                string? hex = null;
-
-                for (int i = lines.Length - 1; i >= 0; i--)
+                string line = lines[i];
+                if (string.IsNullOrWhiteSpace(line))
                 {
-                    string line = lines[i];
-                    if (string.IsNullOrWhiteSpace(line))
-                    {
-                        continue;
-                    }
-
-                    string trimmed = line.Trim();
-                    if (trimmed.StartsWith('#'))
-                    {
-                        continue;
-                    }
-
-                    hex = trimmed;
-                    break;
+                    continue;
                 }
 
-                if (!string.IsNullOrEmpty(hex))
+                string trimmed = line.Trim();
+                if (trimmed.StartsWith('#'))
                 {
-                    s_certificate = Bytes32.Parse(hex);
+                    continue;
                 }
+
+                hex = trimmed;
+                break;
             }
-            catch
+
+            if (string.IsNullOrWhiteSpace(hex))
             {
-                // No identity found - Security Policy: Throw exception
-                throw new Nalix.Common.Exceptions.NetworkException(
-                    "Handshake failed: Server identity is not configured. " +
-                    "Provide 'Identity' in ConnectionHub configuration or " +
-                    $"place 'certificate.private' in '{Directories.ConfigurationDirectory}'.");
+                throw new InternalErrorException(
+                    $"Handshake failed: No valid certificate data found in '{certPath}'. Please check file format and content.");
             }
+
+            s_certificate = Bytes32.Parse(hex);
+        }
+        catch (Exception ex)
+        {
+            throw new InternalErrorException(
+                $"Handshake failed: Unable to read or parse the server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
         }
     }
 
