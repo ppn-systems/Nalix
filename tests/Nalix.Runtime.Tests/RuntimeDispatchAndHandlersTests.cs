@@ -25,7 +25,13 @@ public sealed class RuntimeDispatchAndHandlersTests
 
     static RuntimeDispatchAndHandlersTests()
     {
-        string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "NalixTests_" + Guid.NewGuid().ToString("N"));
+        string tempFolderName = "NalixTests_" + Guid.NewGuid().ToString("N");
+        if (System.IO.Path.IsPathRooted(tempFolderName))
+        {
+            throw new InvalidOperationException("Temporary test folder name must be relative.");
+        }
+
+        string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), tempFolderName);
         Nalix.Framework.Environment.Directories.SetBasePathOverride(tempPath);
 
         string configDir = Nalix.Framework.Environment.Directories.ConfigurationDirectory;
