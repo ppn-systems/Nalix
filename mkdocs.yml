@@ -172,6 +172,11 @@ nav:
           - Production Server Example: guides/deployment/production-example.md
           - Production Checklist: guides/deployment/production-checklist.md
           - Troubleshooting Guide: guides/deployment/troubleshooting.md
+      - Tools:
+        - Overview: guides/tools/index.md
+        - SDK Tools: guides/tools/sdk-tools.md
+        - Packet Visualizer: guides/tools/packet-visualizer.md
+        - Identity Certificate Tool: guides/tools/certificate-tool.md
   - Packages:
       - Overview: packages/index.md
       - Nalix.Common: packages/nalix-common.md
@@ -309,10 +314,6 @@ nav:
         - Options:
           - Transport Options: api/sdk/options/transport-options.md
           - Request Options: api/sdk/options/request-options.md
-  - Tools:
-      - Overview: tools/index.md
-      - Identity Certificate Tool: tools/certificate-tool.md
-      - Packet Visualizer: tools/packet-visualizer.md
   - Benchmarks:
       - Overview: benchmarks/index.md
       - Core Infrastructure: benchmarks/infrastructure.md
