@@ -66,16 +66,15 @@ Understanding how a packet moves through the system is the key to effective debu
 sequenceDiagram
     participant Net as Socket / Buffer
     participant Prot as Protocol (Framing)
-    participant BufMw as Buffer Middleware
     participant Disp as PacketDispatchChannel
     participant Reg as PacketRegistry
-    participant PktMw as Packet Middleware
+    participant PktMw as MiddlewarePipeline
     participant Hand as Handler
 
     Net->>Prot: Raw bytes received
     Prot->>Prot: Validate frame (length / checksum)
-    Prot->>BufMw: Raw IBufferLease
-    BufMw->>Disp: HandlePacket(lease, connection)
+    Note over Prot: FramePipeline: Decrypt / Decompress
+    Prot->>Disp: HandlePacket(lease, connection)
     Note over Disp: Shard-aware queueing
     Disp->>Reg: Deserialize (magic → TPacket)
     Reg-->>Disp: Packet instance
