@@ -3,7 +3,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Beginner / Intermediate
     - :fontawesome-solid-clock: **Time**: 5 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../introduction.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../../introduction.md)
 
 Nalix provides a suite of specialized tools to accelerate development, debugging, and identity management. These tools ensure that your protocol logic is sound and your infrastructure is secure.
 

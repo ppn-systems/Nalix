@@ -3,7 +3,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
     - :fontawesome-solid-clock: **Time**: 5 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Packet System](../concepts/fundamentals/packet-system.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Packet System](../../concepts/fundamentals/packet-system.md)
 
 The **Packet Serialization Inspector** (internally known as `Nalix.PacketVisualizer`) is a developer utility designed to verify and visualize how C# packet properties map to raw binary buffers. It is a critical tool for debugging custom serialization logic and ensuring binary compatibility.
 

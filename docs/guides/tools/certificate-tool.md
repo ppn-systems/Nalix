@@ -3,7 +3,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Beginner
     - :fontawesome-solid-clock: **Time**: 5 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Security Architecture](../concepts/security/security-architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Security Architecture](../../concepts/security/security-architecture.md)
 
 The `Nalix.Certificate` tool is a high-performance CLI utility designed to generate and manage asymmetric identity keys for the Nalix Framework. It exclusively uses the **X25519** (Curve25519) algorithm for all operations.
 
@@ -28,6 +28,7 @@ dotnet run --project Nalix.Certificate.csproj
 ```
 
 ### Output Files
+
 By default, the tool saves two files to your system's standardized configuration directory:
 
 1.  **`certificate.private`**: Contains the private key. **KEEP THIS SECRET.**
@@ -37,6 +38,7 @@ By default, the tool saves two files to your system's standardized configuration
     On Windows, the default path is usually `%APPDATA%\Nalix\Config\`.
 
 ### Force Overwrite
+
 If certificates already exist, the tool will ask for confirmation and create automatic timestamped backups before proceeding. To skip confirmation:
 
 ```powershell

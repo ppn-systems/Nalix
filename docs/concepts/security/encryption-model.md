@@ -46,7 +46,7 @@ public class PrivateMessage : PacketBase<PrivateMessage> { ... }
 
 The Nalix Framework's cryptographic implementations are engineered for both maximum performance and absolute correctness. To ensure safety, our primitives undergo rigorous **Interoperability Testing** against the industry-standard [BouncyCastle](https://www.bouncycastle.org/) library.
 
-Our [Verified Cryptography Suite](../../tools/index.md) confirms parity for:
+Our [Verified Cryptography Suite](../../guides/tools/index.md) confirms parity for:
 - **Poly1305**: RFC 8439 compliant 130-bit modular arithmetic.
 - **X25519**: RFC 7748 compliant Montgomery ladder and bit clamping.
 - **AEAD Handlers**: Correct transcript construction for associated data (AAD) and padding.

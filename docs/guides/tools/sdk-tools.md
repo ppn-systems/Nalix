@@ -3,7 +3,7 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 10 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../introduction.md), [Architecture](../concepts/fundamentals/architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Introduction](../../introduction.md), [Architecture](../../concepts/fundamentals/architecture.md)
 
 The **Nalix SDK Tools** is a comprehensive WPF-based desktop suite designed for professional developers to monitor, debug, and interact with live Nalix infrastructure. It provides a "command center" view of your networking environment.
 
