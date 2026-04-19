@@ -77,10 +77,20 @@ public sealed class HandshakeHandlers
 
             s_certificate = Bytes32.Parse(hex);
         }
-        catch (Exception ex)
+        catch (UnauthorizedAccessException ex)
         {
             throw new InternalErrorException(
-                $"Handshake failed: Unable to read or parse the server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
+                $"Handshake failed: Access denied while reading server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
+        }
+        catch (IOException ex)
+        {
+            throw new InternalErrorException(
+                $"Handshake failed: Unable to read server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
+        }
+        catch (FormatException ex)
+        {
+            throw new InternalErrorException(
+                $"Handshake failed: Invalid server identity format in '{certPath}'. Exception detail: " + ex.Message, ex);
         }
     }
 
