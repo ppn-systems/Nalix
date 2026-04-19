@@ -128,6 +128,8 @@ nav:
           - Packet System: concepts/fundamentals/packet-system.md
           - Packet Lifecycle: concepts/fundamentals/packet-lifecycle.md
           - Errors and Diagnostics: concepts/fundamentals/errors-and-diagnostics.md
+      - Serialization:
+          - Binary Specification: concepts/serialization/binary-spec.md
       - Runtime Engine:
           - Real-time Engine: concepts/runtime/real-time-engine.md
           - Middleware Pipeline: concepts/runtime/middleware-pipeline.md

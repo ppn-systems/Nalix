@@ -141,10 +141,11 @@ Choose the path that matches your role.
 
 === "Contributor"
     1. [Architecture](./concepts/fundamentals/architecture.md) — System design and component boundaries
-    2. [Packet System](./concepts/fundamentals/packet-system.md) — Serialization and wire format
-    3. [Packet Lifecycle](./concepts/fundamentals/packet-lifecycle.md) — Request path from socket to handler
-    4. [Error Reporting](./concepts/fundamentals/errors-and-diagnostics.md) — Runtime and protocol signaling
-    5. [Glossary](./concepts/glossary.md) — Term definitions
+    2. [Packet System](./concepts/fundamentals/packet-system.md) — Serialization and unified packet model
+    3. [Binary Specification](./concepts/serialization/binary-spec.md) — Detailed wire format and layout rules
+    4. [Packet Lifecycle](./concepts/fundamentals/packet-lifecycle.md) — Request path from socket to handler
+    5. [Error Reporting](./concepts/fundamentals/errors-and-diagnostics.md) — Runtime and protocol signaling
+    6. [Glossary](./concepts/glossary.md) — Term definitions
 
 ## Core Packages
 
