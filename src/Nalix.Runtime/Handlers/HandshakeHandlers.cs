@@ -267,7 +267,7 @@ public sealed class HandshakeHandlers
         return false;
     }
 
-    private sealed class HandshakeContext
+    private sealed record HandshakeContext
     {
         public Bytes32 ClientPublicKey { get; init; }
         public Bytes32 ClientNonce { get; init; }
