@@ -79,7 +79,7 @@ Handler exceptions are trapped and logged without affecting other connections or
 | **Unified packet model** | Define packet types once in a shared assembly. Both `Nalix.Network` (server) and `Nalix.SDK` (client) consume the same contracts, attributes, and serialization metadata. |
 | **Zero-allocation data paths** | Pooled buffers (`BufferLease`), pooled packet contexts, frozen registry lookups (`FrozenDictionary`), and function-pointer–based deserialization eliminate GC pressure on hot paths. |
 | **Shard-aware dispatch** | `PacketDispatchChannel` distributes work across multiple worker loops to prevent head-of-line blocking. Workers scale to logical CPU core count. |
-| **Middleware pipeline** | Two-layer middleware system: buffer middleware for raw frame processing (decryption, decompression, validation) and packet middleware for application policy (permissions, rate limiting, timeouts). |
+| **Middleware pipeline** | Production-grade packet middleware system (`MiddlewarePipeline`) for application policy (permissions, rate limiting, timeouts) and observability. |
 | **Production transport** | Built-in connection guarding, token-bucket rate limiting, policy-based throttling, concurrency gates, and timing-wheel–based idle timeout management. |
 
 ## Architecture Overview
@@ -135,16 +135,17 @@ Choose the path that matches your role.
 
 === "Middleware / Extension Author"
     1. [Selecting Building Blocks](./concepts/runtime/building-blocks.md) — Decision guide
-    2. [Middleware](./concepts/runtime/middleware-pipeline.md) — Buffer vs. packet middleware
+    2. [Middleware](./concepts/runtime/middleware-pipeline.md) — Middleware Pipeline and lifecycle
     3. [Custom Middleware Guide](./guides/extensibility/custom-middleware.md) — End-to-end walkthrough
     4. [Custom Metadata Provider](./guides/extensibility/metadata-providers.md) — Convention-based metadata
 
 === "Contributor"
     1. [Architecture](./concepts/fundamentals/architecture.md) — System design and component boundaries
-    2. [Packet System](./concepts/fundamentals/packet-system.md) — Serialization and wire format
-    3. [Packet Lifecycle](./concepts/fundamentals/packet-lifecycle.md) — Request path from socket to handler
-    4. [Error Reporting](./concepts/fundamentals/errors-and-diagnostics.md) — Runtime and protocol signaling
-    5. [Glossary](./concepts/glossary.md) — Term definitions
+    2. [Packet System](./concepts/fundamentals/packet-system.md) — Serialization and unified packet model
+    3. [Binary Specification](./concepts/serialization/binary-spec.md) — Detailed wire format and layout rules
+    4. [Packet Lifecycle](./concepts/fundamentals/packet-lifecycle.md) — Request path from socket to handler
+    5. [Error Reporting](./concepts/fundamentals/errors-and-diagnostics.md) — Runtime and protocol signaling
+    6. [Glossary](./concepts/glossary.md) — Term definitions
 
 ## Core Packages
 

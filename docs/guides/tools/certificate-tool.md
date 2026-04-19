@@ -1,15 +1,25 @@
-# Nalix Identity Certificate Tool
+# Identity Certificate Tool
+
+!!! info "Learning Signals"
+    - :fontawesome-solid-layer-group: **Level**: Beginner
+    - :fontawesome-solid-clock: **Time**: 5 minutes
+    - :fontawesome-solid-book: **Prerequisites**: [Security Architecture](../../concepts/security/security-architecture.md)
 
 The `Nalix.Certificate` tool is a high-performance CLI utility designed to generate and manage asymmetric identity keys for the Nalix Framework. It exclusively uses the **X25519** (Curve25519) algorithm for all operations.
 
-## Overview
+---
 
-In the Nalix security model, each server and client identity is represented by a 256-bit X25519 key pair. These keys are used for:
+## 🔑 Overview
+
+In the Nalix security model, each server and client identity is represented by a 256-bit X25519 key pair. These keys are fundamental for:
+
 - **Server Identity**: Proving the authenticity of the server to clients.
 - **Perfect Forward Secrecy**: Deriving session keys during the protocol handshake.
 - **Client Pinning**: Preventing Man-in-the-Middle (MitM) attacks by hardcoding public keys in clients.
 
-## Key Generation
+---
+
+## 🏗️ Key Generation
 
 To generate a new identity, run the tool from the `tools/Nalix.Certificate` directory:
 
@@ -18,42 +28,51 @@ dotnet run --project Nalix.Certificate.csproj
 ```
 
 ### Output Files
-By default, the tool saves two files to your system's standardized configuration directory (e.g., `%APPDATA%\Nalix\Config\` on Windows):
 
-1. **`certificate.private`**: Contains the private key. **KEEP THIS SECRET.**
-2. **`certificate.public`**: Contains the public key. This can be safely shared or embedded in client applications.
+By default, the tool saves two files to your system's standardized configuration directory:
+
+1.  **`certificate.private`**: Contains the private key. **KEEP THIS SECRET.**
+2.  **`certificate.public`**: Contains the public key. This can be safely shared or embedded in client applications.
+
+!!! tip "Standard Paths"
+    On Windows, the default path is usually `%APPDATA%\Nalix\Config\`.
 
 ### Force Overwrite
+
 If certificates already exist, the tool will ask for confirmation and create automatic timestamped backups before proceeding. To skip confirmation:
 
 ```powershell
 dotnet run --project Nalix.Certificate.csproj -- --force
 ```
 
-## Security Specifications
+---
+
+## 🛡️ Security Specifications
 
 | Feature | Specification |
-|---------|---------------|
+|:---|:---|
 | **Algorithm** | X25519 (Curve25519) |
 | **Key Length** | 32 bytes (256 bits) |
-| **Field** | Montgomery curve y² = x³ + 486662x² + x over GF(2²⁵⁵-19) |
 | **Entropy** | High (System-provided Cryptographic RNG) |
 | **Clamping** | Fully RFC 7748 compliant |
 
-## Usage in Server Configuration
+---
+
+## ⚙️ Server Configuration
 
 Once generated, you can load these keys into your Nalix server configuration:
 
 ```csharp
 var options = new ServerOptions();
 options.Security.IdentityFile = "Path/To/certificate.private";
-// The public key is derived automatically or loaded from certificate.public
 ```
 
-## Best Practices
+---
 
-> [!WARNING]
-> Never commit `certificate.private` to version control (Git). Use environment variables or secure secret managers in production environments.
+## 💡 Best Practices
+
+!!! warning "Security Risk"
+    Never commit `certificate.private` to version control (Git). Use environment variables or secure secret managers in production environments.
 
 - **Rotation**: Rotate your keys regularly if you suspect a compromise.
 - **Backups**: The tool automatically creates backups with `.bak` extensions. Keep these secure or delete them if no longer needed.

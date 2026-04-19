@@ -59,6 +59,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private int _disposed;
 
+    private Action<INetworkEndpoint>? _onForceCloseDetected;
+
     /// <summary>
     /// Metrics for monitoring
     /// </summary>
@@ -122,6 +124,18 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     public ConnectionGuard WithLogging(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a callback to be invoked when an endpoint should be forcibly closed.
+    /// </summary>
+    /// <param name="action">The action to invoke with the network endpoint.</param>
+    /// <returns>The current <see cref="ConnectionGuard"/> instance.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ConnectionGuard WithForceClose(Action<INetworkEndpoint> action)
+    {
+        _onForceCloseDetected += action ?? throw new ArgumentNullException(nameof(action));
         return this;
     }
 
@@ -386,8 +400,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 {
                     try
                     {
-                        _ = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?
-                                                    .ForceClose(key);
+                        this.TRIGGER_FORCE_CLOSE_UPSTREAM(key);
                     }
                     catch (Exception ex)
                     {
@@ -588,6 +601,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                            $"until={bannedUntil:HH:mm:ss}{suffix}");
         }
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void TRIGGER_FORCE_CLOSE_UPSTREAM(INetworkEndpoint key) => _onForceCloseDetected?.Invoke(key);
 
     #endregion Connection Slot Management
 
