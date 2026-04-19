@@ -23,6 +23,18 @@ public sealed class RuntimeDispatchAndHandlersTests
         typeof(PacketMetadataProviders).GetField("s_providers", BindingFlags.Static | BindingFlags.NonPublic)
         ?? throw new InvalidOperationException("PacketMetadataProviders.s_providers field not found.");
 
+    static RuntimeDispatchAndHandlersTests()
+    {
+        string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "NalixTests_" + Guid.NewGuid().ToString("N"));
+        Nalix.Framework.Environment.Directories.SetBasePathOverride(tempPath);
+
+        string configDir = Nalix.Framework.Environment.Directories.ConfigurationDirectory;
+        System.IO.Directory.CreateDirectory(configDir);
+
+        string certPath = System.IO.Path.Combine(configDir, "certificate.private");
+        System.IO.File.WriteAllText(certPath, "0000000000000000000000000000000000000000000000000000000000000000");
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(65)]
