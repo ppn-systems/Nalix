@@ -5,7 +5,7 @@ Nalix implements a high-security, zero-trust handshake protocol based on **X2551
 ## Security Guarantees
 - **Mutual Agreement**: Both client and server contribute to the final session key.
 - **Perfect Forward Secrecy (PFS)**: Ephemeral keys are used for every session.
-- **Identity Verification**: Supports pinned server public keys to prevent Man-in-the-Middle (MitM) attacks.
+- **Identity Verification**: Requires pinned server public keys to prevent Man-in-the-Middle (MitM) attacks. Anonymous handshakes are forbidden for security.
 - **Transcript Integrity**: All handshake messages are hashed into a transcript to prevent tampering or replay attacks.
 
 ## The Handshake Workflow

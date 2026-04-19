@@ -24,6 +24,10 @@ This helper performs the full client-side handshake sequence after a transport i
 ## Basic usage
 
 ```csharp
+// 1. Configure the expected server public key (Identity Pinning)
+client.Options.ServerPublicKey = "your-server-public-key-hex";
+
+// 2. Connect and perform authenticated handshake
 await client.ConnectAsync();
 await client.HandshakeAsync();
 ```
@@ -31,7 +35,7 @@ await client.HandshakeAsync();
 ## Important notes
 
 - Call this only after the session is connected.
-- The handshake supports **Identity Pinning** via `TransportOptions.ServerPublicKey`. If configured, the client will verify the server's static identity to prevent MitM.
+- **Identity Pinning is Mandatory**: The client MUST provide the expected server public key via `TransportOptions.ServerPublicKey`. Anonymous handshakes are strictly forbidden to prevent MitM attacks.
 - On success, the session switches to `CipherSuiteType.Chacha20Poly1305`.
 
 ## Related APIs

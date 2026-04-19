@@ -86,9 +86,6 @@ public sealed class ConnectionHub : IConnectionHub
     /// <inheritdoc />
     public ISessionStore SessionStore => _sessionStore;
 
-    /// <inheritdoc />
-    public Bytes32 IdentityPrivateKey { get; }
-
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
@@ -140,18 +137,6 @@ public sealed class ConnectionHub : IConnectionHub
             _shards[i] = new ConcurrentDictionary<UInt56, IConnection>(
                 concurrencyLevel: Environment.ProcessorCount,
                 capacity: perShardCapacity);
-        }
-
-        if (string.IsNullOrEmpty(_options.IdentityPrivateKey))
-        {
-            this.IdentityPrivateKey = Bytes32.Zero;
-            _logger?.Info("[NW.ConnectionHub] No identity key provided. Running in Anonymous Handshake mode.");
-        }
-        else
-        {
-            this.IdentityPrivateKey = Bytes32.Parse(_options.IdentityPrivateKey);
-            X25519.X25519KeyPair pair = X25519.GenerateKeyFromPrivateKey(this.IdentityPrivateKey);
-            _logger?.Info($"[NW.ConnectionHub] Loaded Static Identity KeyPair. ServerPublicKey={pair.PublicKey}");
         }
     }
 
