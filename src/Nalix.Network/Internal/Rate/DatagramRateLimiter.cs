@@ -181,7 +181,7 @@ public sealed class DatagramRateLimiter : IDisposable, IWithLogging<DatagramRate
                 this.EvictStaleWindows();
             }
             catch (OperationCanceledException) { break; }
-            catch (Exception ex)
+            catch (ObjectDisposedException ex)
             {
                 _logger?.Warn($"[NW.{nameof(DatagramRateLimiter)}] Cleanup error.", ex);
             }
