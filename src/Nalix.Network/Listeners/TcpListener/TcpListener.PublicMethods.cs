@@ -14,7 +14,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
-using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -289,7 +288,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Connections:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {s_hub?.Count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
 
@@ -341,7 +340,7 @@ public abstract partial class TcpListenerBase
             },
             ["Connections"] = new Dictionary<string, object>
             {
-                ["ActiveConnections"] = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()?.Count ?? 0,
+                ["ActiveConnections"] = s_hub?.Count ?? 0,
                 ["LimiterEnabled"] = true
             },
             ["Threading"] = new Dictionary<string, object>

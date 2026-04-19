@@ -48,6 +48,7 @@ public abstract partial class TcpListenerBase : IListener
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly TimingWheel s_timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+    private static readonly IConnectionHub? s_hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
     private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -96,6 +97,12 @@ public abstract partial class TcpListenerBase : IListener
         _protocol = protocol;
         _state = (int)ListenerState.STOPPED;
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+
+        // Register force-close action to ConnectionGuard for DDoS protection
+        if (s_hub != null)
+        {
+            _ = _limiter.WithForceClose(key => s_hub.ForceClose(key));
+        }
 
         s_config.Validate();
 

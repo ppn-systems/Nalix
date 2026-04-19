@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Network.Protocols;
 
@@ -21,12 +20,6 @@ namespace Nalix.Network.Protocols;
 [DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
-    /// <summary>
-    /// The connection hub used to register and manage active connections.
-    /// This is pinned at creation time to ensure consistent lifecycle management.
-    /// </summary>
-    private protected static readonly IConnectionHub? s_hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
-
     /// <summary>
     /// Processes a message received on the connection.
     /// Derived protocols decide how to interpret the event payload and route the message.

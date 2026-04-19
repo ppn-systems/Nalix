@@ -19,7 +19,6 @@ using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
 using Nalix.Network.Sessions;
@@ -1215,9 +1214,4 @@ public sealed class ConnectionHub : IConnectionHub
 /// <param name="maxConnections">Configured maximum connection count.</param>
 /// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
 /// <param name="reason">Reason token that describes the applied action.</param>
-public delegate void CapacityLimitReachedHandler(
-    DropPolicy dropPolicy,
-    int currentConnections,
-    int maxConnections,
-    ISnowflake? triggeredConnectionId,
-    string reason);
+public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);

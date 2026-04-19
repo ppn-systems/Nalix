@@ -197,16 +197,15 @@ public abstract partial class UdpListenerBase
         // FAST PATH — Lookup Connection via SessionToken (Snowflake).
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
-        IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
-        if (hub is null)
+        if (s_hub is null)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
             return;
         }
 
-        if (!this.TryResolveConnection(hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
+        if (!this.TryResolveConnection(s_hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();

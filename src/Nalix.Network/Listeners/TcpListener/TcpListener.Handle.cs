@@ -820,8 +820,19 @@ public abstract partial class TcpListenerBase
     protected void DoAccept(IConnection connection)
     {
         _protocol.OnAccept(connection, _cancellationToken);
-        this.Metrics.RECORD_ACCEPTED();
+
+        if (connection != null && !connection.IsDisposed)
+        {
+            s_hub?.RegisterConnection(connection);
+            this.Metrics.RECORD_ACCEPTED();
+        }
+        else
+        {
+            this.Metrics.RECORD_REJECTED();
+        }
     }
+
+    #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RebindAcceptContext(PooledSocketAsyncEventArgs pooled)
@@ -860,4 +871,6 @@ public abstract partial class TcpListenerBase
 
         return connection;
     }
+
+    #endregion Private Methods
 }
