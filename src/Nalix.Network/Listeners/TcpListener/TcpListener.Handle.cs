@@ -823,7 +823,7 @@ public abstract partial class TcpListenerBase
 
         if (connection != null && !connection.IsDisposed)
         {
-            s_hub?.RegisterConnection(connection);
+            _hub.RegisterConnection(connection);
             this.Metrics.RECORD_ACCEPTED();
         }
         else

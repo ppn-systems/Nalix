@@ -288,7 +288,7 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Connections:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {s_hub?.Count}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ActiveConnections   : {_hub.Count}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"LimiterEnabled      : {true}");
         _ = sb.AppendLine();
 
@@ -340,7 +340,7 @@ public abstract partial class TcpListenerBase
             },
             ["Connections"] = new Dictionary<string, object>
             {
-                ["ActiveConnections"] = s_hub?.Count ?? 0,
+                ["ActiveConnections"] = _hub.Count,
                 ["LimiterEnabled"] = true
             },
             ["Threading"] = new Dictionary<string, object>
