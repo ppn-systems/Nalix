@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
 using Nalix.Framework.DataFrames;
 using Nalix.Network.Hosting;

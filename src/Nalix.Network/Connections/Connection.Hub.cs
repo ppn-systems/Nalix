@@ -46,14 +46,14 @@ public sealed class ConnectionHub : IConnectionHub
     /// <summary>
     /// Queue tracking order of anonymous connections for O(1)-amortized eviction
     /// </summary>
-    private readonly ConcurrentQueue<UInt56> _anonymousQueue;
+    private readonly ConcurrentQueue<ulong> _anonymousQueue;
 
     private readonly int _shardMask;
     private readonly int _shardCount;
     private readonly int _maxConnections;
     private readonly bool _trackEvictionQueue;
     private readonly bool _isPowerOfTwoShardCount;
-    private readonly ConcurrentDictionary<UInt56, IConnection>[] _shards;
+    private readonly ConcurrentDictionary<ulong, IConnection>[] _shards;
 
     private readonly ISessionStore _sessionStore;
     private readonly SessionStoreOptions _sessionOptions;
@@ -134,8 +134,8 @@ public sealed class ConnectionHub : IConnectionHub
         _isPowerOfTwoShardCount = (_shardCount & (_shardCount - 1)) == 0;
         _shardMask = _shardCount - 1;
         _trackEvictionQueue = _maxConnections > 0 && _options.DropPolicy == DropPolicy.DropOldest;
-        _anonymousQueue = new ConcurrentQueue<UInt56>();
-        _shards = new ConcurrentDictionary<UInt56, IConnection>[_shardCount];
+        _anonymousQueue = new ConcurrentQueue<ulong>();
+        _shards = new ConcurrentDictionary<ulong, IConnection>[_shardCount];
 
         int perShardCapacity = _maxConnections > 0
             ? Math.Max(4, (_maxConnections + _shardCount - 1) / _shardCount)
@@ -143,7 +143,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         for (int i = 0; i < _shardCount; i++)
         {
-            _shards[i] = new ConcurrentDictionary<UInt56, IConnection>(
+            _shards[i] = new ConcurrentDictionary<ulong, IConnection>(
                 concurrencyLevel: Environment.ProcessorCount,
                 capacity: perShardCapacity);
         }
@@ -205,8 +205,8 @@ public sealed class ConnectionHub : IConnectionHub
     {
         ArgumentNullException.ThrowIfNull(id);
 
-        UInt56 key = id.ToUInt56();
-        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(key);
+        ulong key = id.ToUInt64();
+        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(key);
         return shard.TryGetValue(key, out IConnection? connection) ? connection : null;
     }
 
@@ -218,9 +218,9 @@ public sealed class ConnectionHub : IConnectionHub
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
-    public IConnection? GetConnection(UInt56 id)
+    public IConnection? GetConnection(ulong id)
     {
-        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(id);
+        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(id);
         return shard.TryGetValue(id, out IConnection? connection) ? connection : null;
     }
 
@@ -233,8 +233,8 @@ public sealed class ConnectionHub : IConnectionHub
     [return: MaybeNull]
     public IConnection? GetConnection(ReadOnlySpan<byte> id)
     {
-        UInt56 key = UInt56.ReadBytesLittleEndian(id);
-        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(key);
+        ulong key = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(id);
+        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(key);
         return shard.TryGetValue(key, out IConnection? connection) ? connection : null;
     }
 
@@ -363,7 +363,7 @@ public sealed class ConnectionHub : IConnectionHub
         int closedCount = 0;
         string targetAddress = networkEndpoint.Address;
 
-        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -431,7 +431,7 @@ public sealed class ConnectionHub : IConnectionHub
             }
         });
 
-        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
         {
             shard.Clear();
         }
@@ -473,7 +473,7 @@ public sealed class ConnectionHub : IConnectionHub
             $"Max Connections      : {(_maxConnections < 0 ? "Unlimited" : _maxConnections.ToString(CultureInfo.InvariantCulture))}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {_options.DropPolicy}");
 
-        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -533,11 +533,11 @@ public sealed class ConnectionHub : IConnectionHub
         _ = sb.AppendLine("ID             | Username");
         _ = sb.AppendLine("------------------------------------------------------------");
 
-        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
         {
-            foreach (KeyValuePair<UInt56, IConnection> kvp in shard)
+            foreach (KeyValuePair<ulong, IConnection> kvp in shard)
             {
-                UInt56 id = kvp.Key;
+                ulong id = kvp.Key;
                 string username = kvp.Value.Attributes.TryGetValue("username", out object? name) && name is string s
                     ? s
                     : "N/A";
@@ -584,7 +584,7 @@ public sealed class ConnectionHub : IConnectionHub
         int limit = 15, current = 0;
         List<Dictionary<string, object>> sampleConnections = [];
 
-        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -671,14 +671,14 @@ public sealed class ConnectionHub : IConnectionHub
      * Otherwise, we fallback to modulo operator.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int GetShardIndex(UInt56 id)
+    private int GetShardIndex(ulong id)
     {
         int hash = id.GetHashCode() & int.MaxValue;
         return _isPowerOfTwoShardCount ? (hash & _shardMask) : (hash % _shardCount);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ConcurrentDictionary<UInt56, IConnection> GetShard(UInt56 id)
+    private ConcurrentDictionary<ulong, IConnection> GetShard(ulong id)
     {
         int index = this.GetShardIndex(id);
         return _shards[index];
@@ -695,7 +695,7 @@ public sealed class ConnectionHub : IConnectionHub
         bool measureLatency = _options.IsEnableLatency && _logger?.IsEnabled(LogLevel.Information) == true;
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
-        UInt56 connectionKey = connection.ID.ToUInt56();
+        ulong connectionKey = connection.ID.ToUInt64();
         if (!this.TryReserveCapacitySlot(connection, out RegisterResult failure))
         {
             return failure;
@@ -706,7 +706,7 @@ public sealed class ConnectionHub : IConnectionHub
         bool added = false;
         try
         {
-            ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(connectionKey);
+            ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(connectionKey);
             if (!shard.TryAdd(connectionKey, connection))
             {
                 if (_logger?.IsEnabled(LogLevel.Debug) == true)
@@ -751,8 +751,8 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool TryUnregisterCore(IConnection connection)
     {
-        UInt56 connectionKey = connection.ID.ToUInt56();
-        ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(connectionKey);
+        ulong connectionKey = connection.ID.ToUInt64();
+        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(connectionKey);
 
 #pragma warning disable CA2000
         if (!shard.TryRemove(connectionKey, out IConnection? existing))
@@ -897,9 +897,9 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private bool TryEvictOldestConnection(IConnection incomingConnection)
     {
-        while (_anonymousQueue.TryDequeue(out UInt56 oldestId))
+        while (_anonymousQueue.TryDequeue(out ulong oldestId))
         {
-            ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(oldestId);
+            ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(oldestId);
             if (!shard.TryGetValue(oldestId, out IConnection? candidate) || candidate is null)
             {
                 continue;
@@ -955,7 +955,7 @@ public sealed class ConnectionHub : IConnectionHub
     {
         int anonymous = 0;
 
-        foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
         {
             foreach (IConnection connection in shard.Values)
             {
@@ -996,9 +996,9 @@ public sealed class ConnectionHub : IConnectionHub
         try
         {
             int index = 0;
-            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+            foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
             {
-                foreach (KeyValuePair<UInt56, IConnection> kvp in shard)
+                foreach (KeyValuePair<ulong, IConnection> kvp in shard)
                 {
                     if (index >= buffer.Length)
                     {
@@ -1356,3 +1356,4 @@ public sealed class ConnectionHub : IConnectionHub
 /// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
 /// <param name="reason">Reason token that describes the applied action.</param>
 public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);
+

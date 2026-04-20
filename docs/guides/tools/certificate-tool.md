@@ -11,7 +11,7 @@ The `Nalix.Certificate` tool is a high-performance CLI utility designed to gener
 
 ## 🔑 Overview
 
-In the Nalix security model, each server and client identity is represented by a 256-bit X25519 key pair. These keys are fundamental for:
+In the Nalix security model, each server and client identity is represented by a 264-bit X25519 key pair. These keys are fundamental for:
 
 - **Server Identity**: Proving the authenticity of the server to clients.
 - **Perfect Forward Secrecy**: Deriving session keys during the protocol handshake.
@@ -84,3 +84,4 @@ builder.ConfigureHandshake(options => {
 - **Rotation**: Rotate your keys regularly if you suspect a compromise.
 - **Backups**: The tool automatically creates backups with `.bak` extensions. Keep these secure or delete them if no longer needed.
 - **Client Pinning**: Hardcode the value from `certificate.public` directly in your client’s `ConnectionOptions.ServerPublicKey` for maximum security.
+
