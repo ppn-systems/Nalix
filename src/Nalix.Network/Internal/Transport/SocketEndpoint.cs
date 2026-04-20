@@ -193,8 +193,6 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
             return addr;
         }
 
-        return !this.IsIPv6
-            ? $"{addr}:{_port}"
-            : $"[{addr}]:{_port}";
+        return !this.IsIPv6 ? $"{addr}:{_port}" : $"[{addr}]:{_port}";
     }
 }

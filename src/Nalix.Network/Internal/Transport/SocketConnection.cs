@@ -105,10 +105,11 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     /// <summary>
-    /// Receive buffer — owned by this connection during its lifetime.
-    /// Swapped atomically when a larger packet arrives (rare).
+    /// Persistent receive buffer for opportunistic reads. 
+    /// Rented once for the lifetime of the connection.
     /// </summary>
-    private byte[] _buffer = BufferLease.ByteArrayPool.Rent();
+    private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MaxChunkSize <= 0 ? 4096 : s_fragmentOptions.MaxChunkSize * 2);
+    private int _bufferDataLength;
 
     #endregion Fields
 
@@ -281,56 +282,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     #region Private: SAEA Receive Loop
 
     /// <summary>
-    /// Reads exactly <paramref name="count"/> bytes at <paramref name="offset"/>
-    /// via <see cref="PooledSocketReceiveContext.ReceiveAsync"/>.
-    /// Loops internally to handle partial receives (common under load).
-    /// </summary>
-    /// <param name="offset"></param>
-    /// <param name="count"></param>
-    /// <param name="token"></param>
-    /// <exception cref="IOException"></exception>
-    private async ValueTask SAEA_RECEIVE_EXACTLY_ASYNC(
-        int offset,
-        int count,
-        CancellationToken token)
-    {
-        int read = 0;
-        while (read < count)
-        {
-            token.ThrowIfCancellationRequested();
-
-            int n;
-            ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, offset + read, count - read);
-
-            if (vt.IsCompletedSuccessfully)  // synchronous path (hot path)
-            {
-                n = vt.Result;
-            }
-            else
-            {
-                n = await vt.ConfigureAwait(false);
-            }
-
-            if (n == 0)
-            {
-                throw new NetworkException(
-                    $"Connection closed (FIN): read={read}, required={count}, endpoint={_socket.RemoteEndPoint}.",
-                    new SocketException((int)SocketError.ConnectionReset));
-            }
-
-#if DEBUG
-            if (read == 0 && n < count)
-            {
-                _logger?.Debug(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_EXACTLY_ASYNC)}] " +
-                    $"partial recv: got={n}, need={count}, offset={offset}, ep={_socket.RemoteEndPoint}");
-            }
-#endif
-            read += n;
-        }
-    }
-
-    /// <summary>
     /// Main receive loop — uses <see cref="PooledSocketReceiveContext"/> (SAEA) for zero-alloc receives.
     ///
     /// <para><b>Layer 1 throttle:</b> before handing a packet off to the cache, this loop
@@ -349,259 +300,277 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     {
         try
         {
+            // The opportunistic loop: read as much as possible, then parse as many frames as possible.
             while (!token.IsCancellationRequested)
             {
-                // ── Step 1: read 2-byte little-endian length header ───────
-                await this.SAEA_RECEIVE_EXACTLY_ASYNC(0, HeaderSize, token).ConfigureAwait(false);
+                // Step 1: Parse all complete frames currently in the buffer.
+                int consumed = 0;
+                bool parsedAtLeastOne = false;
 
-                ushort size = BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
-                                              .AsSpan(_buffer, 0, HeaderSize));
-
-#if DEBUG
-                _logger?.Trace(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"recv-header size(le)={size} ep={_sender?.NetworkEndpoint.Address}");
-#endif
-
-                if (!IS_VALID_PACKET_SIZE(size))
+                while (_bufferDataLength - consumed >= HeaderSize)
                 {
-#if DEBUG
-                    _logger?.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"invalid-size={size} ep={_sender?.NetworkEndpoint.Address}");
-#endif
-                    throw new SocketException(
-                        (int)SocketError.ProtocolNotSupported);
-                }
+                    // Peek at the length header (2 bytes LE).
+                    ushort size = BinaryPrimitives.ReadUInt16LittleEndian(MemoryExtensions
+                                                  .AsSpan(_buffer!, consumed, HeaderSize));
 
-                // ── Step 2: grow buffer only when packet exceeds capacity ──
-                if (size > _buffer.Length)
-                {
-#if DEBUG
-                    _logger?.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                        $"grow-buffer old={_buffer.Length} new={size} ep={_sender?.NetworkEndpoint.Address}");
-#endif
-                    byte[] oldBuf = _buffer;
-                    byte[] newBuf = BufferLease.ByteArrayPool.Rent(size);
-
-                    // Preserve the already-read length header in the new buffer so the
-                    // receive loop can continue reading the payload seamlessly after it
-                    // swaps to a larger rented array.
-                    MemoryExtensions.AsSpan(oldBuf, 0, HeaderSize)
-                                    .CopyTo(MemoryExtensions
-                                    .AsSpan(newBuf));
-
-                    byte[] swapped = Interlocked.Exchange(ref _buffer, newBuf);
-
-                    if (swapped is not null && swapped != newBuf)
+                    if (!IS_VALID_PACKET_SIZE(size))
                     {
-                        BufferLease.ByteArrayPool.Return(swapped);
-                    }
-                }
-
-                // ── Step 3: read payload bytes ────────────────────────────
-                int payload = size - HeaderSize;
-                await this.SAEA_RECEIVE_EXACTLY_ASYNC(HeaderSize, payload, token).ConfigureAwait(false);
-
 #if DEBUG
-                _logger?.Debug(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"recv-frame size={size} payload={payload} ep={_sender?.NetworkEndpoint.Address}");
+                        _logger?.Debug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_socket.RemoteEndPoint}");
 #endif
-                // Periodically evict stale fragment streams so abandoned partial
-                // messages do not keep per-connection fragment state alive forever.
-                if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
-                {
-                    FragmentAssembler? fragmentAssembler = _fragmentAssembler;
-                    int evicted = fragmentAssembler?.EvictExpired() ?? 0;
-                    if (evicted > 0)
-                    {
-                        Interlocked.Add(ref _openFragmentStreams, -evicted);
-                        _sender?.ThrottledWarn(
-                            _logger,
-                            "socket.receive.evicted_fragments",
-                            $"evicted {evicted} stale fragment stream(s) " +
-                            $"ep={_sender?.NetworkEndpoint.Address}");
-                    }
-                }
-
-                // ── Step 4: Layer 1 per-connection throttle ───────────────
-                // Try to reserve a pending slot. If the connection already has
-                // MaxPerConnectionPendingPackets in-flight, drop this packet and
-                // return the buffer immediately — flood traffic never reaches
-                // AsyncCallback or the ThreadPool.
-                int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
-
-                if (pending > s_opts.MaxPerConnectionPendingPackets)
-                {
-                    Interlocked.Decrement(ref _pendingProcessCallbacks);
-
-                    _sender?.ThrottledWarn(
-                        _logger,
-                        "socket.receive.throttle",
-                        $"per-conn-throttle pending={pending} max={s_opts.MaxPerConnectionPendingPackets} " +
-                        $"ep={_sender?.NetworkEndpoint.Address} — packet dropped");
-
-                    // Return buffer to pool — rent a fresh one for next receive.
-                    byte[]? dropped = Interlocked.Exchange(ref _buffer, null!);
-                    if (dropped is not null)
-                    {
-                        BufferLease.ByteArrayPool.Return(dropped);
+                        throw new SocketException((int)SocketError.ProtocolNotSupported);
                     }
 
-                    _buffer = BufferLease.ByteArrayPool.Rent();
-                    continue;
-                }
-
-                // Hand the rented buffer ownership to the packet pipeline without
-                // copying. Interlocked.Exchange(null) prevents Dispose from
-                // returning the same array twice and makes the ownership transfer
-                // race-safe with the teardown path.
-                byte[]? currentBuf = Interlocked.Exchange(ref _buffer, null!);
-
-                if (currentBuf is not null)
-                {
-                    this.LastPingTime = Clock.UnixMillisecondsNow();
-                    BufferLease lease = BufferLease.TakeOwnership(currentBuf, HeaderSize, payload);
-                    lease.IsReliable = true;
-                    ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-                    ReadOnlySpan<byte> payloadSpan = lease.Span;
-
-                    if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
+                    // Check if the full frame (header + payload) is present in the buffer.
+                    if (_bufferDataLength - consumed < size)
                     {
-                        FragmentAssembler fragmentAssembler = this.GET_OR_CREATE_FRAGMENT_ASSEMBLER();
-                        ReadOnlySpan<byte> chunkBody = payloadSpan[FragmentHeader.WireSize..];
+                        // Current frame is incomplete. Break and wait for more data.
+                        break;
+                    }
 
-                        if (header.ChunkIndex == 0)
+                    // Dispatch complete frame.
+                    int payloadLen = size - HeaderSize;
+                    this.PROCESS_FRAME_FROM_BUFFER(consumed + HeaderSize, payloadLen);
+
+                    // Re-integrate the FragmentAssembler eviction logic.
+                    if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
+                    {
+                        FragmentAssembler? fragmentAssembler = _fragmentAssembler;
+                        int evicted = fragmentAssembler?.EvictExpired() ?? 0;
+                        if (evicted > 0)
                         {
-                            int openStreams = Interlocked.Increment(ref _openFragmentStreams);
+                            Interlocked.Add(ref _openFragmentStreams, -evicted);
 
-                            if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
-                            {
-                                Interlocked.Decrement(ref _openFragmentStreams);
-                                _sender?.ThrottledTrace(
-                                    _logger,
-                                    "socket.receive.fragment_limit",
-                                    $"fragment-stream-limit open={openStreams} — stream dropped");
-
-                                Interlocked.Decrement(ref _pendingProcessCallbacks);
-                                lease.Dispose();
-                                args.Dispose();
-                                _buffer = BufferLease.ByteArrayPool.Rent();
-
-                                continue;
-                            }
+                            _sender?.ThrottledWarn(
+                                _logger, "socket.receive.evicted_fragments",
+                                $"evicted {evicted} stale fragment stream(s) ep={_sender?.NetworkEndpoint.Address}");
                         }
-
-#if DEBUG
-                        _logger?.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                            $"recv-fragment stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
-                            $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_sender?.NetworkEndpoint.Address}");
-#endif
-
-                        FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
-
-                        if (assembled is not null)
-                        {
-                            BufferLease assembledLease = assembled.Value.Lease;
-                            assembledLease.IsReliable = true;
-                            assembledLease.Retain();
-                            args.Initialize(assembledLease, _cachedArgs.Connection);
-                            if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
-                            {
-                                // Handoff failed (rejected by backpressure or queue limit).
-                                // Rollback the pending increments we did before handoff.
-                                Interlocked.Decrement(ref _pendingProcessCallbacks);
-                                Interlocked.Decrement(ref _openFragmentStreams);
-                                args.Dispose();
-                            }
-#if DEBUG
-                            _logger?.Debug(
-                                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                                $"fragment-assembled stream={header.StreamId} totalLen={assembled.Value.Length} " +
-                                $"ep={_sender?.NetworkEndpoint.Address}");
-#endif
-                            // The stream is complete, so release one open-stream slot
-                            // for this connection.
-                            Interlocked.Decrement(ref _openFragmentStreams);
-                            assembledLease.Dispose();
-                        }
-                        else
-                        {
-                            args.Dispose();
-                            // Fragment was swallowed by the assembler, so release the pending slot
-                            // reserved at the start of the receive iteration.
-                            Interlocked.Decrement(ref _pendingProcessCallbacks);
-
-                            if (streamEvicted)
-                            {
-                                Interlocked.Decrement(ref _openFragmentStreams);
-                            }
-                        }
-#if DEBUG
-                        _logger?.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
-#endif
-                    }
-                    else
-                    {
-                        lease.Retain();
-                        args.Initialize(lease, _cachedArgs.Connection);
-                        if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
-                        {
-                            // Handoff failed (rejected by backpressure or queue limit).
-                            // Rollback the pending increment we did before the handoff loop.
-                            Interlocked.Decrement(ref _pendingProcessCallbacks);
-                            args.Dispose();
-                        }
-
-#if DEBUG
-                        _logger?.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                            $"handoff-to-cache payload={payload} pending={pending} ep={_sender?.NetworkEndpoint.Address}");
-#endif
                     }
 
-                    lease.Dispose();
+                    consumed += size;
+                    parsedAtLeastOne = true;
                 }
-                else
+
+                // Step 2: Compact the buffer.
+                if (consumed > 0)
                 {
-                    // Buffer was swapped out by Dispose racing with the loop.
-                    Interlocked.Decrement(ref _pendingProcessCallbacks);
+                    int remaining = _bufferDataLength - consumed;
+                    if (remaining > 0)
+                    {
+                        Buffer.BlockCopy(_buffer!, consumed, _buffer!, 0, remaining);
+                    }
+                    _bufferDataLength = remaining;
                 }
 
-                // Rent a fresh buffer for the next receive.
-                _buffer = BufferLease.ByteArrayPool.Rent();
+                // Step 3: If we didn't parse any frames in this iteration, OR we still have a partial frame,
+                // we MUST await more data from the socket to avoid a tight-loop spin.
+                if (!parsedAtLeastOne || _bufferDataLength < HeaderSize)
+                {
+                    await this.RECEIVE_OPPORTUNISTIC_ASYNC(token).ConfigureAwait(false);
+                }
             }
         }
         catch (Exception ex) when (IS_BENIGN_DISCONNECT(ex))
         {
-            _logger?.Trace(
-                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"ended (peer closed/shutdown) ep={_sender?.NetworkEndpoint.Address}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger?.Trace(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                    $"ended (peer closed/shutdown) ep={_sender?.NetworkEndpoint.Address}");
+            }
         }
         catch (OperationCanceledException)
         {
-            _logger?.Trace(
-                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                $"cancelled ep={_sender?.NetworkEndpoint.Address}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                _logger?.Trace(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
+                    $"cancelled ep={_sender?.NetworkEndpoint.Address}");
+            }
         }
         catch (Exception ex)
         {
-            Exception e = (ex as AggregateException)?.Flatten() ?? ex;
-            _sender?.ThrottledError(
-                _logger,
-                "socket.receive.faulted",
-                $"faulted ep={_sender?.NetworkEndpoint.Address}", e);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            {
+                Exception e = (ex as AggregateException)?.Flatten() ?? ex;
+
+                _sender?.ThrottledError(
+                    _logger, "socket.receive.faulted",
+                    $"faulted ep={_sender?.NetworkEndpoint.Address}", e);
+            }
+
         }
         finally
         {
             this.CANCEL_RECEIVE_ONCE();
             this.INVOKE_CLOSE_ONCE();
         }
+    }
+
+    /// <summary>
+    /// Performs an opportunistic read to fill the persistent buffer as much as possible.
+    /// </summary>
+    private async ValueTask RECEIVE_OPPORTUNISTIC_ASYNC(CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+
+        int freeSpace = _buffer!.Length - _bufferDataLength;
+        if (freeSpace == 0)
+        {
+            // If the buffer is full but we haven't parsed a complete frame, it means a single 
+            // frame has exceeded our buffer capacity (MaxChunkSize * 2). 
+            // Since the system is configured to never send frames > 1400 bytes, this is a protocol violation.
+            throw new SocketException((int)SocketError.MessageSize);
+        }
+
+        ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, _bufferDataLength, freeSpace);
+        int n = vt.IsCompletedSuccessfully ? vt.Result : await vt.ConfigureAwait(false);
+
+        if (n == 0)
+        {
+            throw new NetworkException("Connection closed by peer.", new SocketException((int)SocketError.ConnectionReset));
+        }
+
+        _bufferDataLength += n;
+    }
+
+    /// <summary>
+    /// Processes a single frame by copying it into a new BufferLease.
+    /// This allows the receive loop to continue without waiting for the pipeline.
+    /// </summary>
+    private void PROCESS_FRAME_FROM_BUFFER(int offset, int payloadLen)
+    {
+        // Layer 1 per-connection throttle check.
+        int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
+        if (pending > s_opts.MaxPerConnectionPendingPackets)
+        {
+            Interlocked.Decrement(ref _pendingProcessCallbacks);
+            _sender?.ThrottledWarn(
+                _logger, "socket.receive.throttle",
+                $"throttle triggered — packet dropped ep={_socket.RemoteEndPoint}");
+
+            return;
+        }
+
+        // Copy frame data into a new lease.
+        BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(_buffer, offset, payloadLen));
+        lease.IsReliable = true;
+
+        this.LastPingTime = Clock.UnixMillisecondsNow();
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        ReadOnlySpan<byte> payloadSpan = lease.Span;
+
+        // 2. Fragment Assembly Check.
+        // A FragmentHeader is 7 bytes. If it's a fragment, we handle it separately.
+        if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
+        {
+            this.HANDLE_FRAGMENTED_FRAME(lease, args, header);
+        }
+        else
+        {
+            // 3. Regular Frame Path.
+            // Safety: The application protocol (FramePipeline) requires a 10-byte header.
+            // If the payload is too small, it's a malformed packet that would cause OOB reads.
+            if (payloadLen < PacketConstants.HeaderSize)
+            {
+#if DEBUG
+                _logger?.Warn(
+                    $"[NW.{nameof(SocketConnection)}] malformed-payload " +
+                    $"length={payloadLen} (too small for protocol header) ep={_socket.RemoteEndPoint}");
+#endif
+                Interlocked.Decrement(ref _pendingProcessCallbacks);
+                args.Dispose();
+                lease.Dispose();
+                return;
+            }
+
+            args.Initialize(lease, _cachedArgs.Connection);
+
+            if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
+            {
+                Interlocked.Decrement(ref _pendingProcessCallbacks);
+                args.Dispose();
+            }
+        }
+
+#if DEBUG
+        _logger?.Debug(
+            $"[NW.{nameof(SocketConnection)}] handoff-to-cache " +
+            $"payload={payloadLen} pending={pending} ep={_socket.RemoteEndPoint}");
+#endif
+    }
+
+    /// <summary>
+    /// Helper to handle fragmented frames, extracted for clarity.
+    /// </summary>
+    private void HANDLE_FRAGMENTED_FRAME(BufferLease lease, ConnectionEventArgs args, FragmentHeader header)
+    {
+        FragmentAssembler fragmentAssembler = this.GET_OR_CREATE_FRAGMENT_ASSEMBLER();
+        ReadOnlySpan<byte> chunkBody = lease.Span[FragmentHeader.WireSize..];
+
+        if (header.ChunkIndex == 0)
+        {
+            int openStreams = Interlocked.Increment(ref _openFragmentStreams);
+            if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
+            {
+                Interlocked.Decrement(ref _openFragmentStreams);
+                Interlocked.Decrement(ref _pendingProcessCallbacks);
+                args.Dispose();
+
+                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                {
+                    _sender?.ThrottledTrace(
+                        _logger, "socket.receive.fragment_limit",
+                        $"fragment-stream-limit open={openStreams} — stream dropped");
+                }
+
+                return;
+            }
+        }
+
+#if DEBUG
+        _logger?.Debug(
+            $"[NW.{nameof(SocketConnection)}] recv-fragment stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
+            $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_socket.RemoteEndPoint}");
+#endif
+
+        FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
+        if (assembled is not null)
+        {
+            BufferLease assembledLease = assembled.Value.Lease;
+            assembledLease.IsReliable = true;
+            assembledLease.Retain();
+            args.Initialize(assembledLease, _cachedArgs.Connection);
+
+            if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
+            {
+                Interlocked.Decrement(ref _pendingProcessCallbacks);
+                Interlocked.Decrement(ref _openFragmentStreams);
+                args.Dispose();
+            }
+#if DEBUG
+            _logger?.Debug(
+                $"[NW.{nameof(SocketConnection)}] fragment-assembled stream={header.StreamId} " +
+                $"totalLen={assembled.Value.Length} ep={_socket.RemoteEndPoint}");
+#endif
+            Interlocked.Decrement(ref _openFragmentStreams);
+            assembledLease.Dispose();
+        }
+        else
+        {
+            args.Dispose();
+            Interlocked.Decrement(ref _pendingProcessCallbacks);
+            if (streamEvicted)
+            {
+                Interlocked.Decrement(ref _openFragmentStreams);
+            }
+        }
+
+#if DEBUG
+        _logger?.Debug(
+            $"[NW.{nameof(SocketConnection)}] handoff-to-cache (fragment) " +
+            $"pending={Interlocked.CompareExchange(ref _pendingProcessCallbacks, 0, 0)} ep={_socket.RemoteEndPoint}");
+#endif
     }
 
     #endregion Private: SAEA Receive Loop

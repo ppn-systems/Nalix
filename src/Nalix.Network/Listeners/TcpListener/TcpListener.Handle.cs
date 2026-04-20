@@ -104,24 +104,26 @@ public abstract partial class TcpListenerBase
         try
         {
             FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
-
-            if (current != lease)
-            {
-                IBufferLease? old = replaceable.ExchangeLease(current);
-                old?.Dispose();
-            }
-
             _protocol.ProcessMessage(sender, args);
         }
         catch (Exception ex)
         {
-            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException)
+            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
                 s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
             }
             else
             {
                 args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
+            }
+        }
+        finally
+        {
+            // Sync the lease back to args even on failure. If the pipeline disposed the original 
+            // lease but failed before ExchangeLease, args would still point to the dead lease.
+            if (current != lease)
+            {
+                _ = replaceable.ExchangeLease(current);
             }
         }
     }
