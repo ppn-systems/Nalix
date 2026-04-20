@@ -146,7 +146,7 @@ internal sealed class BufferPoolShared : IDisposable
         }
 
         // We only retain buffers that match our exact pool size in the high-speed ring.
-        // This keeps the batches uniform as intended by the PoolManager design.
+        // This ensures strict batch uniformity as intended by the manager's design.
         if (buffer.Length == _bufferSize && _freeBuffers.TryEnqueue(buffer))
         {
             return;
@@ -315,28 +315,14 @@ internal sealed class BufferPoolShared : IDisposable
         int actualEnqueued = 0;
         for (int i = 0; i < count; ++i)
         {
-            byte[] buf = _arrayPool.Rent(_bufferSize);
+            // Use direct allocation for the managed capacity to ensure
+            // exact batch sizes (BufferConfig.TotalBuffers).
+            // This avoids capacity shortages caused by ArrayPool size mismatches.
+            byte[] buf = new byte[_bufferSize];
 
-            // Only use the buffer if it matches our pool size exactly.
-            // If it's larger, we can't efficiently manage it in our BufferRing
-            // and it would cause validation errors on return.
-            if (buf.Length == _bufferSize)
+            if (_freeBuffers.TryEnqueue(buf))
             {
-                if (_freeBuffers.TryEnqueue(buf))
-                {
-                    actualEnqueued++;
-                }
-                else
-                {
-                    _arrayPool.Return(buf);
-                }
-            }
-            else
-            {
-                // Return mismatched buffer immediately and try again or just skip.
-                // We'll skip for now to avoid potential infinite loops if ArrayPool
-                // is constantly returning larger buffers.
-                _arrayPool.Return(buf);
+                actualEnqueued++;
             }
         }
 
