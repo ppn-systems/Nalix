@@ -393,8 +393,14 @@ public abstract partial class TcpListenerBase
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
                     $"disposed-during-accept remote={socket.RemoteEndPoint?.ToString() ?? "<null>"}");
 
-                if (connection != null) connection.Dispose();
-                else SafeCloseSocket(socket);
+                if (connection != null)
+                {
+                    connection.Dispose();
+                }
+                else
+                {
+                    SafeCloseSocket(socket);
+                }
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
@@ -404,8 +410,14 @@ public abstract partial class TcpListenerBase
                 s_logger?.Error(
                     ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}");
 
-                if (connection != null) connection.Dispose();
-                else SafeCloseSocket(socket);
+                if (connection != null)
+                {
+                    connection.Dispose();
+                }
+                else
+                {
+                    SafeCloseSocket(socket);
+                }
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }

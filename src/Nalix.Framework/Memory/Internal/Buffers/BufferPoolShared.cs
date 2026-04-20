@@ -323,15 +323,17 @@ internal sealed class BufferPoolShared : IDisposable
 
         int actualEnqueued = 0;
 
-        // Batch Slab Allocation: allocate one large pinned array per pool ring.
-        // The GC sees only 1 object instead of `count` objects, eliminating fragmentation.
-        // Each ArraySegment(slab, offset, _bufferSize) carries its own Offset+Count so
-        // BufferLease.Dispose can return the exact segment without any metadata lookup.
-        byte[] slab = GC.AllocateArray<byte>(_bufferSize * count, pinned: true);
-
         for (int i = 0; i < count; ++i)
         {
-            ArraySegment<byte> segment = new(slab, i * _bufferSize, _bufferSize);
+            // Per-buffer Pinned Object Heap allocation.
+            // Each buffer is an independent pinned array: array.Length == _bufferSize.
+            // This guarantees that the public byte[] API always delivers arrays where
+            // data starts at offset 0 — required by FrameReader, FrameSender, and all
+            // network components that write directly to array[0..].
+            // Batch-slab (one large array sliced into segments) cannot satisfy this
+            // contract without non-zero segment offsets, which break the entire stack.
+            byte[] buf = GC.AllocateArray<byte>(_bufferSize, pinned: true);
+            ArraySegment<byte> segment = new(buf, 0, _bufferSize);
 
             if (_freeBuffers.TryEnqueue(segment))
             {
