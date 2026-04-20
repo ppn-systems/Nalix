@@ -33,6 +33,7 @@ internal class Program
         ConnectionHub hub = new();
         BufferPoolManager buffer = new();
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
+        _ = buffer.Rent(256);
 
         using NetworkApplication host = NetworkApplication.CreateBuilder()
             .ConfigureLogging(logger)

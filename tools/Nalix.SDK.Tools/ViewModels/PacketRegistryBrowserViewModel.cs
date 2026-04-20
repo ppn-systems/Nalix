@@ -189,17 +189,20 @@ public sealed class PacketRegistryBrowserViewModel : ViewModelBase
         ArgumentNullException.ThrowIfNull(packetTypes);
 
         PacketTypeDescriptor? selected = this.SelectedPacketType;
-        this.PacketTypes.Clear();
-        foreach (PacketTypeDescriptor descriptor in packetTypes)
+        this.Dispatch(() =>
         {
-            this.PacketTypes.Add(descriptor);
-        }
+            this.PacketTypes.Clear();
+            foreach (PacketTypeDescriptor descriptor in packetTypes)
+            {
+                this.PacketTypes.Add(descriptor);
+            }
 
-        this.RebuildEntries();
-        if (selected is not null)
-        {
-            this.SelectedPacketType = selected;
-        }
+            this.RebuildEntries();
+            if (selected is not null)
+            {
+                this.SelectedPacketType = selected;
+            }
+        });
     }
 
     private void LoadPacketAssembly()
@@ -256,40 +259,54 @@ public sealed class PacketRegistryBrowserViewModel : ViewModelBase
 
     private void RebuildEntries()
     {
-        PacketTypeDescriptor? selectedDescriptor = this.SelectedPacketType;
-        string search = this.SearchText.Trim();
-        IEnumerable<PacketTypeDescriptor> filtered = this.PacketTypes;
-
-        if (!string.IsNullOrWhiteSpace(search))
+        this.Dispatch(() =>
         {
-            filtered = filtered.Where(descriptor =>
-                descriptor.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                descriptor.FullName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
-                descriptor.MagicNumber.ToString("X8", CultureInfo.InvariantCulture).Contains(search, StringComparison.OrdinalIgnoreCase));
+            PacketTypeDescriptor? selectedDescriptor = this.SelectedPacketType;
+            string search = this.SearchText.Trim();
+            IEnumerable<PacketTypeDescriptor> filtered = this.PacketTypes;
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                filtered = filtered.Where(descriptor =>
+                    descriptor.Name.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    descriptor.FullName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    descriptor.MagicNumber.ToString("X8", CultureInfo.InvariantCulture).Contains(search, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (this.FavoritesOnly)
+            {
+                filtered = filtered.Where(descriptor => _favoritePacketNames.Contains(descriptor.FullName));
+            }
+
+            List<PacketRegistryEntryViewModel> entries =
+            [
+                .. filtered
+                    .OrderByDescending(descriptor => _favoritePacketNames.Contains(descriptor.FullName))
+                    .ThenBy(descriptor => descriptor.Name, StringComparer.OrdinalIgnoreCase)
+                    .Select(descriptor => new PacketRegistryEntryViewModel(descriptor, _favoritePacketNames.Contains(descriptor.FullName)))
+            ];
+
+            this.Entries.Clear();
+            foreach (PacketRegistryEntryViewModel entry in entries)
+            {
+                this.Entries.Add(entry);
+            }
+
+            this.SelectedEntry = selectedDescriptor is null
+                ? this.Entries.FirstOrDefault()
+                : this.Entries.FirstOrDefault(entry => entry.Descriptor == selectedDescriptor)
+                    ?? this.Entries.FirstOrDefault();
+        });
+    }
+
+    private void Dispatch(Action action)
+    {
+        if (System.Windows.Application.Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(action);
+            return;
         }
 
-        if (this.FavoritesOnly)
-        {
-            filtered = filtered.Where(descriptor => _favoritePacketNames.Contains(descriptor.FullName));
-        }
-
-        List<PacketRegistryEntryViewModel> entries =
-        [
-            .. filtered
-                .OrderByDescending(descriptor => _favoritePacketNames.Contains(descriptor.FullName))
-                .ThenBy(descriptor => descriptor.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(descriptor => new PacketRegistryEntryViewModel(descriptor, _favoritePacketNames.Contains(descriptor.FullName)))
-        ];
-
-        this.Entries.Clear();
-        foreach (PacketRegistryEntryViewModel entry in entries)
-        {
-            this.Entries.Add(entry);
-        }
-
-        this.SelectedEntry = selectedDescriptor is null
-            ? this.Entries.FirstOrDefault()
-            : this.Entries.FirstOrDefault(entry => entry.Descriptor == selectedDescriptor)
-                ?? this.Entries.FirstOrDefault();
+        action();
     }
 }

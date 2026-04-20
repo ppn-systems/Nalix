@@ -60,7 +60,7 @@ public sealed class HexViewerViewModel : ViewModelBase
         {
             if (this.SetProperty(ref _hex, value))
             {
-                this.CopyCommand.NotifyCanExecuteChanged();
+                this.Dispatch(() => this.CopyCommand.NotifyCanExecuteChanged());
             }
         }
     }
@@ -75,7 +75,7 @@ public sealed class HexViewerViewModel : ViewModelBase
         {
             if (this.SetProperty(ref _copyText, value))
             {
-                this.CopyCommand.NotifyCanExecuteChanged();
+                this.Dispatch(() => this.CopyCommand.NotifyCanExecuteChanged());
             }
         }
     }
@@ -90,8 +90,11 @@ public sealed class HexViewerViewModel : ViewModelBase
         {
             if (this.SetProperty(ref _isVisible, value))
             {
-                this.CopyCommand.NotifyCanExecuteChanged();
-                this.CloseCommand.NotifyCanExecuteChanged();
+                this.Dispatch(() =>
+                {
+                    this.CopyCommand.NotifyCanExecuteChanged();
+                    this.CloseCommand.NotifyCanExecuteChanged();
+                });
             }
         }
     }
@@ -101,14 +104,14 @@ public sealed class HexViewerViewModel : ViewModelBase
     /// </summary>
     /// <param name="title">The viewer title.</param>
     /// <param name="hex">The hex content.</param>
-    public void Show(string title, string hex)
+    public void Show(string title, string hex) => this.Dispatch(() =>
     {
         this.Title = string.IsNullOrWhiteSpace(title) ? _texts.HexViewerTitle : title;
         byte[] rawBytes = HexExtensions.ParseHex(hex);
         this.CopyText = rawBytes.Length == 0 ? string.Empty : rawBytes.ToHexString();
         this.Hex = rawBytes.Length == 0 ? string.Empty : rawBytes.ToHexDump();
         this.IsVisible = !string.IsNullOrWhiteSpace(this.Hex);
-    }
+    });
 
     private bool CanCopy() => this.IsVisible && !string.IsNullOrWhiteSpace(this.CopyText);
 
@@ -117,4 +120,15 @@ public sealed class HexViewerViewModel : ViewModelBase
     private void Copy() => Clipboard.SetText(this.CopyText);
 
     private void Close() => this.IsVisible = false;
+
+    private void Dispatch(Action action)
+    {
+        if (System.Windows.Application.Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
+        {
+            dispatcher.BeginInvoke(action);
+            return;
+        }
+
+        action();
+    }
 }

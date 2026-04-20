@@ -3,7 +3,6 @@
 
 using System;
 using System.Globalization;
-using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -36,6 +35,7 @@ public sealed class NetworkClientService : INetworkClientService
     private Snowflake _savedSessionToken = Snowflake.Empty;
     private string? _savedHost;
     private ushort _savedPort;
+    private double _lastRtt;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="NetworkClientService"/> class.
@@ -61,6 +61,9 @@ public sealed class NetworkClientService : INetworkClientService
 
     /// <inheritdoc/>
     public Snowflake SessionToken => _session?.Options.SessionToken ?? Snowflake.Empty;
+
+    /// <inheritdoc/>
+    public double LastRtt => _lastRtt;
 
     /// <inheritdoc/>
     public event EventHandler<string>? StatusChanged;
@@ -201,14 +204,7 @@ public sealed class NetworkClientService : INetworkClientService
             throw new InvalidOperationException(_configurationService.Texts.StatusTcpSessionNotConnected);
         }
 
-        if (_session is TcpSession tcpSession)
-        {
-            await tcpSession.SendAsync(packet, encrypt, cancellationToken).ConfigureAwait(false);
-        }
-        else
-        {
-            await _session.SendAsync(packet, cancellationToken).ConfigureAwait(false);
-        }
+        await _session.SendAsync(packet, encrypt, cancellationToken).ConfigureAwait(false);
 
         this.HandlePacketSent(packet);
 
@@ -313,7 +309,9 @@ public sealed class NetworkClientService : INetworkClientService
 
         if (_session is TcpSession tcpSession)
         {
-            return await tcpSession.PingAsync(5000, cancellationToken).ConfigureAwait(false);
+            double rtt = await tcpSession.PingAsync(5000, cancellationToken).ConfigureAwait(false);
+            _lastRtt = rtt;
+            return rtt;
         }
         else
         {
@@ -350,6 +348,7 @@ public sealed class NetworkClientService : INetworkClientService
                 if (_session is TcpSession tcpSession && tcpSession.IsConnected)
                 {
                     double rtt = await tcpSession.PingAsync(5000, ct).ConfigureAwait(false);
+                    _lastRtt = rtt;
                     this.RaiseStatus(string.Format(CultureInfo.CurrentCulture, _configurationService.Texts.StatusPingSuccessFormat, rtt));
                 }
             }
@@ -443,17 +442,14 @@ public sealed class NetworkClientService : INetworkClientService
     {
         if (Application.Current?.Dispatcher is { } dispatcher && !dispatcher.CheckAccess())
         {
-            dispatcher.Invoke(action);
+            dispatcher.BeginInvoke(action);
             return;
         }
 
         action();
     }
 
-    private void ReplaceSavedSecret(Bytes32 source)
-    {
-        _savedSecret = source;
-    }
+    private void ReplaceSavedSecret(Bytes32 source) => _savedSecret = source;
 
     private void ClearSavedSessionState()
     {
@@ -463,8 +459,5 @@ public sealed class NetworkClientService : INetworkClientService
         _savedPort = 0;
     }
 
-    private void ClearSavedSecretBytes()
-    {
-        _savedSecret = Bytes32.Zero;
-    }
+    private void ClearSavedSecretBytes() => _savedSecret = Bytes32.Zero;
 }
