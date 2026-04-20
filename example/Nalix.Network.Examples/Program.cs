@@ -6,6 +6,8 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Tasks;
 using Nalix.Logging;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
@@ -16,6 +18,7 @@ using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
+using Nalix.Runtime.Dispatching;
 
 internal class Program
 {
@@ -24,7 +27,7 @@ internal class Program
     {
         // Turn on debug logs so the sample shows the full packet and connection flow.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Trace;
+                            .MinLevel = LogLevel.Debug;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();
@@ -61,6 +64,57 @@ internal class Program
 
         Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
         Console.WriteLine("Press Ctrl+C to stop.");
+        Console.WriteLine("Press Ctrl+, or 'R' to print instance report.");
+
+        // Register a background task to listen for report requests (shortcuts)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                while (!shutdown.IsCancellationRequested)
+                {
+                    if (Console.KeyAvailable)
+                    {
+                        ConsoleKeyInfo key = Console.ReadKey(true);
+                        // Trigger report on Ctrl + , or simply 'R'
+                        if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R)
+                        {
+                            Console.WriteLine("\n" + new string('-', 20) + " LIVE REPORT " + new string('-', 20));
+                            Console.WriteLine(InstanceManager.Instance.GenerateReport());
+                            if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is ConnectionHub connectionHub)
+                            {
+                                Console.WriteLine(connectionHub.GenerateReport());
+                            }
+
+                            if (InstanceManager.Instance.GetExistingInstance<IPacketDispatch>() is IPacketDispatch dispatcher)
+                            {
+                                Console.WriteLine(dispatcher.GenerateReport());
+                            }
+
+                            if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
+                            {
+                                Console.WriteLine(objectPoolManager.GenerateReport());
+                            }
+
+
+                            if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
+                            {
+                                Console.WriteLine(bufferPoolManager.GenerateReport());
+                            }
+
+                            if (InstanceManager.Instance.GetExistingInstance<TaskManager>() is TaskManager taskManager)
+                            {
+                                Console.WriteLine(taskManager.GenerateReport());
+                            }
+
+                            Console.WriteLine(new string('-', 53) + "\n");
+                        }
+                    }
+                    await Task.Delay(100, shutdown.Token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException) { }
+        }, shutdown.Token);
 
         await host.RunAsync(shutdown.Token).ConfigureAwait(false);
     }
