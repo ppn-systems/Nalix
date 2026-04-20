@@ -4,10 +4,10 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Primitives;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration.Binding;
 using Nalix.Framework.Identifiers;
-using Nalix.Common.Primitives;
 
 namespace Nalix.SDK.Options;
 

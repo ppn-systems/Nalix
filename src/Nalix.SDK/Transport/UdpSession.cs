@@ -211,7 +211,7 @@ public class UdpSession : TransportSession
     }
 
     /// <inheritdoc/>
-    public override async Task SendAsync(IPacket packet, CancellationToken ct = default)
+    public override async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
@@ -241,7 +241,7 @@ public class UdpSession : TransportSession
                 ref src,
                 this.Options.CompressionEnabled,
                 this.Options.CompressionThreshold,
-                this.Options.EncryptionEnabled,
+                encrypt ?? this.Options.EncryptionEnabled,
                 this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
             // Step 3: Check MTU (Token + Packet)
@@ -265,7 +265,7 @@ public class UdpSession : TransportSession
     }
 
     /// <inheritdoc/>
-    public override async Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
+    public override async Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
@@ -286,7 +286,7 @@ public class UdpSession : TransportSession
                 ref src,
                 this.Options.CompressionEnabled,
                 this.Options.CompressionThreshold,
-                this.Options.EncryptionEnabled,
+                encrypt ?? this.Options.EncryptionEnabled,
                 this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
             if (src.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
