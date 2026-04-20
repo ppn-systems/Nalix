@@ -322,9 +322,11 @@ internal sealed class BufferPoolShared : IDisposable
         }
 
         int actualEnqueued = 0;
-        
-        // Slab Allocation: Allocate one large contiguous pinned block.
-        // This is the core of the Memory Virtualization strategy, eliminating per-buffer GC overhead.
+
+        // Batch Slab Allocation: allocate one large pinned array per pool ring.
+        // The GC sees only 1 object instead of `count` objects, eliminating fragmentation.
+        // Each ArraySegment(slab, offset, _bufferSize) carries its own Offset+Count so
+        // BufferLease.Dispose can return the exact segment without any metadata lookup.
         byte[] slab = GC.AllocateArray<byte>(_bufferSize * count, pinned: true);
 
         for (int i = 0; i < count; ++i)

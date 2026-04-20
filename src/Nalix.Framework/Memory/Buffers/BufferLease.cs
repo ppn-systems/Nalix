@@ -35,6 +35,12 @@ public sealed class BufferLease : IBufferLease
         private static Func<int, byte[]> s_rentFunc = System.Buffers.ArrayPool<byte>.Shared.Rent;
         private static Action<byte[], bool> s_returnFunc = System.Buffers.ArrayPool<byte>.Shared.Return;
 
+        // Segment-aware return: used by BufferLease.Dispose when the buffer was rented
+        // from the managed slab pool. Routes the exact ArraySegment back so the pool
+        // can match Offset+Count to the correct ring without any metadata lookup.
+        // Falls back to the byte[] path when no managed pool is configured.
+        private static Action<ArraySegment<byte>>? s_returnSegmentFunc;
+
         static ByteArrayPool()
         {
             BufferPoolManager? pool = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
@@ -57,37 +63,43 @@ public sealed class BufferLease : IBufferLease
 
             Volatile.Write(ref s_rentFunc, manager.Rent);
             Volatile.Write(ref s_returnFunc, manager.Return);
+            Volatile.Write(ref s_returnSegmentFunc, seg => manager.Return(seg));
         }
 
         /// <summary>
         /// Rents a buffer with at least the specified capacity from the underlying pool.
         /// </summary>
-        /// <param name="capacity">
-        /// The minimum required length of the returned buffer.
-        /// </param>
-        /// <returns>
-        /// A byte array that is at least <paramref name="capacity"/> in length.
-        /// </returns>
-        /// <remarks>
-        /// The returned buffer may be larger than requested. The content of the buffer is undefined.
-        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static byte[] Rent(int capacity = 256)
-            => Volatile.Read(ref s_rentFunc)(capacity);
+        public static byte[] Rent(int capacity = 256) => Volatile.Read(ref s_rentFunc)(capacity);
 
         /// <summary>
-        /// Returns a previously rented buffer to the pool.
+        /// Returns a previously rented raw buffer to the pool.
+        /// Prefer <see cref="ReturnSegment"/> when the slab offset is known.
         /// </summary>
-        /// <param name="array">
-        /// The buffer to return. Must not be <see langword="null"/>.
-        /// </param>
-        /// <remarks>
-        /// The buffer must have been obtained via <see cref="Rent(int)"/>.
-        /// After calling this method, the buffer should not be used again.
-        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Return(byte[] array)
-            => Volatile.Read(ref s_returnFunc)(array, true);
+        public static void Return(byte[] array) => Volatile.Read(ref s_returnFunc)(array, true);
+
+        /// <summary>
+        /// Returns a slab-backed segment to the pool using the exact offset+count
+        /// from when the buffer was rented. This is the zero-tracking fast path
+        /// that allows batch-slab allocation to work correctly.
+        /// Falls back to <see cref="Return(byte[])" /> when no managed pool is active.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static void ReturnSegment(ArraySegment<byte> segment)
+        {
+            Action<ArraySegment<byte>>? segReturn = Volatile.Read(ref s_returnSegmentFunc);
+
+            if (segReturn is not null)
+            {
+                segReturn(segment);
+            }
+            else if (segment.Array is not null)
+            {
+                // Fallback: no managed pool configured — return raw array to shared ArrayPool.
+                System.Buffers.ArrayPool<byte>.Shared.Return(segment.Array);
+            }
+        }
     }
 
     /// <summary>
@@ -125,11 +137,20 @@ public sealed class BufferLease : IBufferLease
 
     private byte[]? _buffer;
 
+    // Slab segment metadata — populated when the buffer was rented from the managed
+    // slab pool via ByteArrayPool.Rent(). Enables Dispose() to return the exact
+    // ArraySegment(array, _poolSegmentOffset, _poolSegmentCount) back to the correct
+    // ring without any external metadata lookup.
+    // Both are 0 when the buffer comes from System.Buffers.ArrayPool (fallback path).
+    private int _poolSegmentOffset;
+    private int _poolSegmentCount;
+
     #endregion Fields
 
     #region Constructors
 
-    private BufferLease(byte[] buffer, int start, int length, bool zeroOnDispose)
+    private BufferLease(byte[] buffer, int start, int length, bool zeroOnDispose,
+        int poolSegmentOffset = 0, int poolSegmentCount = 0)
     {
         ArgumentNullException.ThrowIfNull(buffer);
 
@@ -147,6 +168,8 @@ public sealed class BufferLease : IBufferLease
         _detached = 0;
         _start = start;
         _buffer = buffer;
+        _poolSegmentOffset = poolSegmentOffset;
+        _poolSegmentCount = poolSegmentCount;
 
         this.Length = length;
         this.ZeroOnDispose = zeroOnDispose;
@@ -308,9 +331,13 @@ public sealed class BufferLease : IBufferLease
         byte[]? buf = Interlocked.Exchange(ref _buffer, null);
         int start = _start;
         int len = this.Length;
+        int segOffset = _poolSegmentOffset;
+        int segCount = _poolSegmentCount;
 
         _start = 0;
         this.Length = 0;
+        _poolSegmentOffset = 0;
+        _poolSegmentCount = 0;
 
         if (buf is not null)
         {
@@ -320,19 +347,28 @@ public sealed class BufferLease : IBufferLease
 
                 if (this.ZeroOnDispose)
                 {
-                    // Security first
                     slice.Clear();
                 }
 #if DEBUG
                 if (EnablePoisonOnDispose)
                 {
-                    // Debugging aid – detect use-after-free
                     slice.Fill(PoisonByte);
                 }
 #endif
             }
 
-            ByteArrayPool.Return(buf);
+            // Use the slab-aware segment path when available (segCount > 0).
+            // This returns the exact ArraySegment(array, slabOffset, slabCount)
+            // so the pool matches on Count instead of array.Length, enabling
+            // correct batch-slab return without any external metadata tracking.
+            if (segCount > 0)
+            {
+                ByteArrayPool.ReturnSegment(new ArraySegment<byte>(buf, segOffset, segCount));
+            }
+            else
+            {
+                ByteArrayPool.Return(buf);
+            }
         }
     }
 
@@ -386,7 +422,10 @@ public sealed class BufferLease : IBufferLease
         bool zeroOnDispose = false)
     {
         byte[] arr = ByteArrayPool.Rent(capacity);
-        return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose);
+        // Record the pool segment metadata: for a managed slab buffer, array.Length == capacity
+        // (per-pool-size POH) so offset=0, count=array.Length gives the correct return segment.
+        return new BufferLease(arr, start: 0, length: 0, zeroOnDispose: zeroOnDispose,
+            poolSegmentOffset: 0, poolSegmentCount: arr.Length);
     }
 
     /// <summary>
@@ -399,7 +438,8 @@ public sealed class BufferLease : IBufferLease
     {
         byte[] arr = ByteArrayPool.Rent(src.Length);
         src.CopyTo(MemoryExtensions.AsSpan(arr, 0, src.Length));
-        return new BufferLease(arr, start: 0, length: src.Length, zeroOnDispose: zeroOnDispose);
+        return new BufferLease(arr, start: 0, length: src.Length, zeroOnDispose: zeroOnDispose,
+            poolSegmentOffset: 0, poolSegmentCount: arr.Length);
     }
 
     /// <summary>
@@ -416,7 +456,8 @@ public sealed class BufferLease : IBufferLease
         byte[] buffer,
         int length,
         bool zeroOnDispose = false)
-        => new(buffer, start: 0, length: length, zeroOnDispose: zeroOnDispose);
+        => new(buffer, start: 0, length: length, zeroOnDispose: zeroOnDispose,
+            poolSegmentOffset: 0, poolSegmentCount: buffer.Length);
 
     /// <summary>
     /// Wraps a slice [<paramref name="start"/>..&lt;start+length&gt;) of a previously rented array from <see cref="BufferPoolManager"/>.
