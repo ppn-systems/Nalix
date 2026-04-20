@@ -257,7 +257,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             link.Dispose();
         }, (_logger, linked), TaskScheduler.Default);
     }
-
     #endregion Public Methods
 
     #region Dispose Pattern
@@ -267,6 +266,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     {
         this.DISPOSE(true);
         GC.SuppressFinalize(this);
+    }
+
+    /// <summary>Finalizes an instance of the <see cref="SocketConnection"/> class.</summary>
+    ~SocketConnection()
+    {
+        this.DISPOSE(false);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -505,72 +510,69 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// </summary>
     private void HANDLE_FRAGMENTED_FRAME(BufferLease lease, ConnectionEventArgs args, FragmentHeader header)
     {
-        FragmentAssembler fragmentAssembler = this.GET_OR_CREATE_FRAGMENT_ASSEMBLER();
-        ReadOnlySpan<byte> chunkBody = lease.Span[FragmentHeader.WireSize..];
-
-        if (header.ChunkIndex == 0)
+        try
         {
-            int openStreams = Interlocked.Increment(ref _openFragmentStreams);
-            if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
+            FragmentAssembler fragmentAssembler = this.GET_OR_CREATE_FRAGMENT_ASSEMBLER();
+            ReadOnlySpan<byte> chunkBody = lease.Span[FragmentHeader.WireSize..];
+
+            if (header.ChunkIndex == 0)
             {
-                Interlocked.Decrement(ref _openFragmentStreams);
-                Interlocked.Decrement(ref _pendingProcessCallbacks);
-                args.Dispose();
-
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                int openStreams = Interlocked.Increment(ref _openFragmentStreams);
+                if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
                 {
-                    _sender?.ThrottledTrace(
-                        _logger, "socket.receive.fragment_limit",
-                        $"fragment-stream-limit open={openStreams} — stream dropped");
-                }
-
-                return;
-            }
-        }
+                    Interlocked.Decrement(ref _openFragmentStreams);
+                    Interlocked.Decrement(ref _pendingProcessCallbacks);
+                    args.Dispose();
 
 #if DEBUG
-        _logger?.Debug(
-            $"[NW.{nameof(SocketConnection)}] recv-fragment stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
-            $"isLast={header.IsLast} bodyLen={chunkBody.Length} ep={_socket.RemoteEndPoint}");
+                    _logger?.Debug($"[NW.{nameof(SocketConnection)}] fragment-limit open={openStreams} ep={_socket.RemoteEndPoint}");
 #endif
-
-        FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
-        if (assembled is not null)
-        {
-            BufferLease assembledLease = assembled.Value.Lease;
-            assembledLease.IsReliable = true;
-            assembledLease.Retain();
-            args.Initialize(assembledLease, _cachedArgs.Connection);
-
-            if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
-            {
-                Interlocked.Decrement(ref _pendingProcessCallbacks);
-                Interlocked.Decrement(ref _openFragmentStreams);
-                args.Dispose();
+                    return;
+                }
             }
+
 #if DEBUG
             _logger?.Debug(
-                $"[NW.{nameof(SocketConnection)}] fragment-assembled stream={header.StreamId} " +
-                $"totalLen={assembled.Value.Length} ep={_socket.RemoteEndPoint}");
+                $"[NW.{nameof(SocketConnection)}] recv-frag stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
+                $"last={header.IsLast} ep={_socket.RemoteEndPoint}");
 #endif
-            Interlocked.Decrement(ref _openFragmentStreams);
-            assembledLease.Dispose();
-        }
-        else
-        {
-            args.Dispose();
-            Interlocked.Decrement(ref _pendingProcessCallbacks);
-            if (streamEvicted)
+
+            FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
+            if (assembled is not null)
             {
-                Interlocked.Decrement(ref _openFragmentStreams);
-            }
-        }
+                BufferLease assembledLease = assembled.Value.Lease;
+                assembledLease.IsReliable = true;
+                assembledLease.Retain();
+                args.Initialize(assembledLease, _cachedArgs.Connection);
+
+                if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
+                {
+                    Interlocked.Decrement(ref _pendingProcessCallbacks);
+                    Interlocked.Decrement(ref _openFragmentStreams);
+                    args.Dispose();
+                }
 
 #if DEBUG
-        _logger?.Debug(
-            $"[NW.{nameof(SocketConnection)}] handoff-to-cache (fragment) " +
-            $"pending={Interlocked.CompareExchange(ref _pendingProcessCallbacks, 0, 0)} ep={_socket.RemoteEndPoint}");
+                _logger?.Debug($"[NW.{nameof(SocketConnection)}] assembled stream={header.StreamId} ep={_socket.RemoteEndPoint}");
 #endif
+                Interlocked.Decrement(ref _openFragmentStreams);
+                assembledLease.Dispose();
+            }
+            else
+            {
+                args.Dispose();
+                Interlocked.Decrement(ref _pendingProcessCallbacks);
+                if (streamEvicted)
+                {
+                    Interlocked.Decrement(ref _openFragmentStreams);
+                }
+            }
+        }
+        finally
+        {
+            // ALWAYS dispose the input lease because fragmentAssembler.Add COPIES the data.
+            lease.Dispose();
+        }
     }
 
     #endregion Private: SAEA Receive Loop
@@ -644,15 +646,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 _recvCtx = null!;
             }
 
-            // 4. Return the receive buffer. Interlocked.Exchange prevents double-
-            //    return if Dispose races with the receive loop cleanup.
-            byte[]? bufToReturn =
-                Interlocked.Exchange(ref _buffer, null!);
-            if (bufToReturn is not null)
-            {
-                BufferLease.ByteArrayPool.Return(bufToReturn);
-            }
-
             // 6. Fire the close callback after the socket and buffers are already
             //    out of circulation.
             this.INVOKE_CLOSE_ONCE();
@@ -661,6 +654,17 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             _cts.Dispose();
             _socket.Dispose();
             Interlocked.Exchange(ref _fragmentAssembler, null)?.Dispose();
+        }
+
+        // 4. Return the receive buffer. Interlocked.Exchange prevents double-
+        //    return if Dispose races with the receive loop cleanup.
+        //    IMPORTANT: We move this OUTSIDE the 'if (disposing)' block to ensure 
+        //    the pooled buffer is returned even if the connection object is leaked 
+        //    and GC'd without an explicit Dispose() call.
+        byte[]? bufToReturn = Interlocked.Exchange(ref _buffer, null!);
+        if (bufToReturn is not null)
+        {
+            BufferLease.ByteArrayPool.Return(bufToReturn);
         }
 
 #if DEBUG

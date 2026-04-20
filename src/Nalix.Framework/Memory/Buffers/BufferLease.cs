@@ -104,15 +104,17 @@ public sealed class BufferLease : IBufferLease
     private const bool EnablePoisonOnDispose = true;
 #endif
 
-    // ====== Fields ======
+#if DEBUG
+    private readonly string? _allocationStack;
+#endif
 
     /// <summary>
-    /// slice start (&gt;= 0, &lt;= RawCapacity)
+    /// slice start (greater than or equal to 0, less than or equal to RawCapacity)
     /// </summary>
     private int _start;
 
     /// <summary>
-    /// reference count (&gt;= 0)
+    /// reference count (>= 0)
     /// </summary>
     private int _refCount;
 
@@ -148,7 +150,26 @@ public sealed class BufferLease : IBufferLease
 
         this.Length = length;
         this.ZeroOnDispose = zeroOnDispose;
+
+#if DEBUG
+        _allocationStack = System.Environment.StackTrace;
+#endif
     }
+
+#if DEBUG
+    /// <summary>
+    /// Finalizer for debugging aid — detects if a lease is discarded without being released.
+    /// Actual pool-wide leak detection is handled by BufferPoolManager.
+    /// </summary>
+    ~BufferLease()
+    {
+        if (_buffer != null && Volatile.Read(ref _detached) == 0)
+        {
+             // Optional: Log lease-level discard, but core leak detection is now in the pool.
+             // _logger?.Warn($"BufferLease of size {_buffer.Length} discarded without Dispose.");
+        }
+    }
+#endif
 
     #endregion Constructors
 
@@ -273,6 +294,8 @@ public sealed class BufferLease : IBufferLease
 #endif
             return;
         }
+
+        GC.SuppressFinalize(this);
 
         if (Volatile.Read(ref _detached) == 1)
         {

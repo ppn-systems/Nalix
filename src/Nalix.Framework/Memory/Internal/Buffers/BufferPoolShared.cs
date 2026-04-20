@@ -107,7 +107,14 @@ internal sealed class BufferPoolShared : IDisposable
         _ = Interlocked.Increment(ref _misses);
 
         byte[] newBuffer = _arrayPool.Rent(_bufferSize);
-        _ = Interlocked.Increment(ref _totalBuffers);
+
+        // Only track this buffer as part of this pool if the length matches exactly.
+        // ArrayPool.Shared often returns larger buffers which we cannot store in our
+        // fixed-size BufferRing, and thus we should not count them as 'Total' in this pool.
+        if (newBuffer.Length == _bufferSize)
+        {
+            _ = Interlocked.Increment(ref _totalBuffers);
+        }
 
         return newBuffer;
     }
@@ -116,7 +123,7 @@ internal sealed class BufferPoolShared : IDisposable
     /// Releases a buffer back into the pool.
     /// </summary>
     /// <param name="buffer">The buffer to return.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is null or does not match this pool's buffer size.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is null.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReleaseBuffer(byte[] buffer)
@@ -125,8 +132,11 @@ internal sealed class BufferPoolShared : IDisposable
 
         if (buffer.Length != _bufferSize)
         {
-            throw new ArgumentException(
-                $"Buffer size mismatch: length={buffer.Length}, expected={_bufferSize}.");
+            // If the size doesn't match, this was either a fallback allocation from AcquireBuffer
+            // or an external buffer. We return it to the shared ArrayPool and do NOT decrement
+            // _totalBuffers because we didn't increment it during Acquire (or it's not ours).
+            _arrayPool.Return(buffer);
+            return;
         }
 
         if (_secureClear)
@@ -305,18 +315,38 @@ internal sealed class BufferPoolShared : IDisposable
             return;
         }
 
-        List<byte[]> rented = new(count);
+        int actualEnqueued = 0;
         for (int i = 0; i < count; ++i)
         {
-            rented.Add(_arrayPool.Rent(_bufferSize));
+            byte[] buf = _arrayPool.Rent(_bufferSize);
+
+            // Only use the buffer if it matches our pool size exactly.
+            // If it's larger, we can't efficiently manage it in our BufferRing
+            // and it would cause validation errors on return.
+            if (buf.Length == _bufferSize)
+            {
+                if (_freeBuffers.TryEnqueue(buf))
+                {
+                    actualEnqueued++;
+                }
+                else
+                {
+                    _arrayPool.Return(buf);
+                }
+            }
+            else
+            {
+                // Return mismatched buffer immediately and try again or just skip.
+                // We'll skip for now to avoid potential infinite loops if ArrayPool
+                // is constantly returning larger buffers.
+                _arrayPool.Return(buf);
+            }
         }
 
-        foreach (byte[] buf in rented)
+        if (actualEnqueued > 0)
         {
-            _ = _freeBuffers.TryEnqueue(buf);
+            _ = Interlocked.Add(ref _totalBuffers, actualEnqueued);
         }
-
-        _ = Interlocked.Add(ref _totalBuffers, count);
     }
 
     /// <summary>

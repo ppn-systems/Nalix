@@ -230,31 +230,38 @@ public abstract partial class TcpListenerBase
         s_pool.Return(context);
 
         Connection connection = new(socket, s_logger);
-
-        // Subscribe lifecycle events.
-        // WHY subscribe to _limiter.OnConnectionClosed:
-        //      When connection close -> limit, the counter must be reduced -> allow a new connection.
-        connection.OnCloseEvent += this.HandleConnectionClose;
-        connection.OnCloseEvent += _limiter.OnConnectionClosed;
-
-        // Wire the internal listener method to handle the shared pipeline before routing.
-        connection.OnProcessEvent += this.ProcessFrame;
-
-        // Keep post-process as you already have (optional).
-        // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK
-        // as long as it depends on the same args lifecycle rules.
-        connection.OnPostProcessEvent += _protocol.PostProcessMessage;
-
-        if (s_config.EnableTimeout)
+        try
         {
-            // Register connection with TimingWheel to track idle timeout.
-            // WHY TimingWheel instead of Timer per-connection:
-            // - Timer per-connection: O(n) memory + GC pressure when there are thousands of connections.
-            // - TimingWheel: O(1) tick, shared wheel for all connections -> much more efficient.
-            s_timing.Register(connection);
-        }
+            // Subscribe lifecycle events.
+            // WHY subscribe to _limiter.OnConnectionClosed:
+            //      When connection close -> limit, the counter must be reduced -> allow a new connection.
+            connection.OnCloseEvent += this.HandleConnectionClose;
+            connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-        return connection;
+            // Wire the internal listener method to handle the shared pipeline before routing.
+            connection.OnProcessEvent += this.ProcessFrame;
+
+            // Keep post-process as you already have (optional).
+            // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK
+            // as long as it depends on the same args lifecycle rules.
+            connection.OnPostProcessEvent += _protocol.PostProcessMessage;
+
+            if (s_config.EnableTimeout)
+            {
+                // Register connection with TimingWheel to track idle timeout.
+                // WHY TimingWheel instead of Timer per-connection:
+                // - Timer per-connection: O(n) memory + GC pressure when there are thousands of connections.
+                // - TimingWheel: O(1) tick, shared wheel for all connections -> much more efficient.
+                s_timing.Register(connection);
+            }
+
+            return connection;
+        }
+        catch
+        {
+            connection.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -359,13 +366,14 @@ public abstract partial class TcpListenerBase
                 return;
             }
 
+            IConnection? connection = null;
             try
             {
                 // Create and process connection similar to async version
                 PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context
                     ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
 
-                IConnection connection = this.ProcessAcceptedSocket(socket, context);
+                connection = this.ProcessAcceptedSocket(socket, context);
 
                 // Process the connection
                 this.DISPATCH_CONNECTION(connection);
@@ -385,7 +393,9 @@ public abstract partial class TcpListenerBase
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
                     $"disposed-during-accept remote={socket.RemoteEndPoint?.ToString() ?? "<null>"}");
 
-                SafeCloseSocket(socket);
+                if (connection != null) connection.Dispose();
+                else SafeCloseSocket(socket);
+
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
             catch (Exception ex)
@@ -394,7 +404,9 @@ public abstract partial class TcpListenerBase
                 s_logger?.Error(
                     ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}");
 
-                SafeCloseSocket(socket);
+                if (connection != null) connection.Dispose();
+                else SafeCloseSocket(socket);
+
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
         }

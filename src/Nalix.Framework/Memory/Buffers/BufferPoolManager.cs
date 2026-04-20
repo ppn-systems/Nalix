@@ -48,6 +48,47 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private long _cachedMemoryBudget;
     private long _lastBudgetComputeTime;
 
+#if DEBUG
+    private static readonly ConditionalWeakTable<byte[], BufferSentinel> s_activeSentinels = new();
+    private static long s_totalRented;
+    private static long s_totalReturned;
+    private static long s_totalLeaked;
+
+    private sealed class BufferSentinel
+    {
+        private readonly string _stackTrace;
+        private readonly int _size;
+        private bool _returned;
+
+        public BufferSentinel(int size)
+        {
+            _size = size;
+            _stackTrace = System.Environment.StackTrace;
+            Interlocked.Increment(ref s_totalRented);
+        }
+
+        public void MarkReturned()
+        {
+            if (!_returned)
+            {
+                _returned = true;
+                Interlocked.Increment(ref s_totalReturned);
+            }
+        }
+
+        ~BufferSentinel()
+        {
+            if (!_returned)
+            {
+                Interlocked.Increment(ref s_totalLeaked);
+                // Log the leak
+                Console.WriteLine($"\n[FW.Memory] LEAK DETECTED: Buffer of size {_size} was GC'd without being returned to the pool.");
+                Console.WriteLine($"Allocation StackTrace:\n{_stackTrace}\n");
+            }
+        }
+    }
+#endif
+
     #endregion Fields & Constants
 
     #region Nested Types
@@ -235,30 +276,41 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Rent(int minimumLength = 256)
     {
+        byte[] buffer;
+
         // Fast path: common sizes are served directly from the pool collection
         // without touching any of the dynamic cache or fallback logic.
         if (IS_FAST_COMMON_SIZE(minimumLength))
         {
-            return _poolManager.RentBuffer(minimumLength);
+            buffer = _poolManager.RentBuffer(minimumLength);
+        }
+        else if (_suitablePoolSizeCache.TryGetValue(minimumLength, out int cachedPoolSize))
+        {
+            buffer = _poolManager.RentBuffer(cachedPoolSize);
+        }
+        else
+        {
+            try
+            {
+                // The dynamic path probes the pool layout once and caches the best
+                // match so repeated requests of the same size stay cheap.
+                buffer = this.RENT_FROM_POOLS_WITH_CACHING(minimumLength);
+            }
+            catch (ArgumentException ex)
+            {
+                // If the configured pools cannot satisfy the request, fall back to the
+                // shared ArrayPool or rethrow depending on the configuration.
+                buffer = this.HANDLE_RENT_FAILURE(minimumLength, ex);
+            }
         }
 
-        if (_suitablePoolSizeCache.TryGetValue(minimumLength, out int cachedPoolSize))
+#if DEBUG
+        if (buffer is not null)
         {
-            return _poolManager.RentBuffer(cachedPoolSize);
+            s_activeSentinels.Add(buffer, new BufferSentinel(buffer.Length));
         }
-
-        try
-        {
-            // The dynamic path probes the pool layout once and caches the best
-            // match so repeated requests of the same size stay cheap.
-            return this.RENT_FROM_POOLS_WITH_CACHING(minimumLength);
-        }
-        catch (ArgumentException ex)
-        {
-            // If the configured pools cannot satisfy the request, fall back to the
-            // shared ArrayPool or rethrow depending on the configuration.
-            return this.HANDLE_RENT_FAILURE(minimumLength, ex);
-        }
+#endif
+        return buffer;
     }
 
     /// <summary>Returns a buffer to the appropriate pool.</summary>
@@ -273,6 +325,14 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             return;
         }
+
+#if DEBUG
+        if (s_activeSentinels.TryGetValue(array, out var sentinel))
+        {
+            sentinel.MarkReturned();
+            s_activeSentinels.Remove(array);
+        }
+#endif
 
         try
         {
@@ -416,6 +476,18 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         StringBuilder sb = new();
 
         this.APPEND_REPORT_HEADER(sb);
+
+#if DEBUG
+        sb.AppendLine("Lease Tracking (DEBUG):");
+        sb.AppendLine("-----------------------------------------------------------------------------");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Rented         : {Volatile.Read(ref s_totalRented)}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Returned       : {Volatile.Read(ref s_totalReturned)}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Active         : {Volatile.Read(ref s_totalRented) - Volatile.Read(ref s_totalReturned)}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Leaked         : {Volatile.Read(ref s_totalLeaked)}");
+        sb.AppendLine("-----------------------------------------------------------------------------");
+        sb.AppendLine();
+#endif
+
         this.APPEND_REPORT_POOL_DETAILS(sb);
         this.APPEND_REPORT_METRICS(sb);
 
@@ -453,6 +525,16 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                 ["AbsoluteMinimum"] = _shrinkPolicy.AbsoluteMinimum
             }
         };
+
+#if DEBUG
+        data["LeaseTracking"] = new Dictionary<string, object>(4, StringComparer.Ordinal)
+        {
+            ["TotalRented"] = Volatile.Read(ref s_totalRented),
+            ["TotalReturned"] = Volatile.Read(ref s_totalReturned),
+            ["TotalActive"] = Volatile.Read(ref s_totalRented) - Volatile.Read(ref s_totalReturned),
+            ["TotalLeaked"] = Volatile.Read(ref s_totalLeaked)
+        };
+#endif
 
         List<Dictionary<string, object>> poolDetails = new(_bufferAllocations.Length);
         foreach ((int bufferSize, _) in _bufferAllocations)
