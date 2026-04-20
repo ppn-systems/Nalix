@@ -318,7 +318,7 @@ public abstract partial class UdpListenerBase
     /// <exception cref="SerializationFailureException">Thrown when deserialization fails.</exception>
     /// <exception cref="Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
     [DebuggerStepThrough]
-    protected void ProcessFrame(object? sender, IConnectEventArgs args)
+    protected void ProcessFrame(object? sender, ConnectionEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 

@@ -64,7 +64,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             _size = size;
             _stackTrace = System.Environment.StackTrace;
-            Interlocked.Increment(ref s_totalRented);
+            _ = Interlocked.Increment(ref s_totalRented);
         }
 
         public void MarkReturned()
@@ -72,7 +72,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             if (!_returned)
             {
                 _returned = true;
-                Interlocked.Increment(ref s_totalReturned);
+                _ = Interlocked.Increment(ref s_totalReturned);
             }
         }
 
@@ -80,7 +80,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             if (!_returned)
             {
-                Interlocked.Increment(ref s_totalLeaked);
+                _ = Interlocked.Increment(ref s_totalLeaked);
                 // Log the leak
                 Console.WriteLine($"\n[FW.Memory] LEAK DETECTED: Buffer of size {_size} was GC'd without being returned to the pool.");
                 Console.WriteLine($"Allocation StackTrace:\n{_stackTrace}\n");
@@ -331,7 +331,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
 #if DEBUG
-        if (s_activeSentinels.TryGetValue(array, out var sentinel))
+        if (s_activeSentinels.TryGetValue(array, out BufferSentinel? sentinel))
         {
             sentinel.MarkReturned();
             s_activeSentinels.Remove(array);

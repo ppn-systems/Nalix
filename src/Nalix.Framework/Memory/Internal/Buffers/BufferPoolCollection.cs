@@ -150,37 +150,29 @@ internal sealed class BufferPoolCollection : IDisposable
 
         // We try to satisfy the request from our managed pools starting from 
         // the most suitable size and moving upwards (Escalation Renting).
-        // This avoids immediate fallback to ArrayPool.Shared if a specific batch is exhausted.
-        _keysLock.EnterReadLock();
-        try
+        // Using a local reference to _sortedKeys enables lock-free lookup on the hot path.
+        int[] keys = _sortedKeys;
+        int startIndex = Array.BinarySearch(keys, initialPoolSize);
+        if (startIndex < 0)
         {
-            int[] keys = _sortedKeys;
-            int startIndex = Array.BinarySearch(keys, initialPoolSize);
-            if (startIndex < 0)
-            {
-                startIndex = ~startIndex;
-            }
+            startIndex = ~startIndex;
+        }
 
-            for (int i = startIndex; i < keys.Length; i++)
+        for (int i = startIndex; i < keys.Length; i++)
+        {
+            int currentPoolSize = keys[i];
+            if (_pools.TryGetValue(currentPoolSize, out BufferPoolShared? pool))
             {
-                int currentPoolSize = keys[i];
-                if (_pools.TryGetValue(currentPoolSize, out BufferPoolShared? pool))
+                // Attempt to take from this pool without a fallback.
+                if (pool.TryAcquireBuffer(out byte[]? buffer))
                 {
-                    // Attempt to take from this pool without a fallback.
-                    if (pool.TryAcquireBuffer(out byte[]? buffer))
+                    if (this.AdjustCounter(currentPoolSize, isRent: true))
                     {
-                        if (this.AdjustCounter(currentPoolSize, isRent: true))
-                        {
-                            this.EvaluateResize(pool);
-                        }
-                        return buffer;
+                        this.EvaluateResize(pool);
                     }
+                    return buffer;
                 }
             }
-        }
-        finally
-        {
-            _keysLock.ExitReadLock();
         }
 
         // If we reach here, ALL suitable managed pools are exhausted.
@@ -447,45 +439,21 @@ internal sealed class BufferPoolCollection : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindSuitablePoolSize(int size)
     {
-        _keysLock.EnterReadLock();
-        try
+        // Using a local reference to the volatile array enables lock-free lookup.
+        int[] keys = _sortedKeys;
+        if (keys.Length == 0)
         {
-            Span<int> keys = MemoryExtensions.AsSpan(_sortedKeys);
-
-            if (keys.Length == 0)
-            {
-                return 0;
-            }
-
-            if (size <= keys[0])
-            {
-                return keys[0];
-            }
-
-            if (size > keys[^1])
-            {
-                return 0;
-            }
-
-            int index = MemoryExtensions.BinarySearch(keys, size);
-
-            if (index >= 0)
-            {
-                return keys[index];
-            }
-            else if (~index < keys.Length)
-            {
-                return keys[~index];
-            }
-            else
-            {
-                return 0;
-            }
+            return 0;
         }
-        finally
+
+        int index = Array.BinarySearch(keys, size);
+        if (index >= 0)
         {
-            _keysLock.ExitReadLock();
+            return keys[index];
         }
+
+        index = ~index;
+        return index < keys.Length ? keys[index] : 0;
     }
 
     #endregion Lookup
