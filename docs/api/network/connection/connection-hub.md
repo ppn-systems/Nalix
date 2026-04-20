@@ -79,7 +79,7 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 - `RegisterConnection(conn)`: Enrolls a new connection (Thread-safe).
 - `GetConnection(id)`: O(1) retrieval by Snowflake ID.
 - `BroadcastAsync<T>(msg, sendFunc)`: High-performance fan-out.
-- `ForceClose(IPEndPoint)`: Terminates all active connections from a specific IP (used by `ConnectionGuard` during DDoS detection).
+- `ForceClose(INetworkEndpoint)`: Terminates all active connections from a specific IP (used by `ConnectionGuard` during DDoS detection).
 
 ## Best Practices
 

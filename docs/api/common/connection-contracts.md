@@ -19,7 +19,7 @@
 
 | Type | Public members |
 |---|---|
-| `IConnection` | `ID`, `UpTime`, `BytesSent`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Close(...)`, `Disconnect(...)` |
+| `IConnection` | `ID`, `UpTime`, `BytesSent`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
 | `IConnectionHub` | `Count`, `SessionStore`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ForceClose(...)`, `CloseAllConnections(...)`, `ListConnections(...)` |
 | `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
 
@@ -40,7 +40,7 @@ It exposes:
 
 - treating `Secret` like a nullable optional when the current transport flow depends on it
 - updating `Attributes` from multiple paths without coordinating ownership
-- assuming `Close(...)` and `Disconnect(...)` are interchangeable in every lifecycle path
+- assuming `Disconnect(...)` is interchangeable in every lifecycle path
 
 ## IConnectionHub
 

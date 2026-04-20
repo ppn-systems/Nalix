@@ -56,7 +56,6 @@ public sealed class UserShardProxy : IConnection
 
     // --- LIFECYCLE ---
     public bool IsDisposed => _physical.IsDisposed;
-    public void Close(bool force = false) => _physical.Close(force);
     public void Disconnect(string? reason = null) => _physical.Disconnect(reason);
     public void Dispose() => _physical.Dispose();
 

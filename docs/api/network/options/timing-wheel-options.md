@@ -46,7 +46,7 @@ flowchart LR
     F --> G["PeriodicTimer tick"]
     G --> H["Drain current bucket"]
     H --> I{"Connection idle >= IdleTimeoutMs?"}
-    I -->|Yes| J["Close connection forcefully"]
+    I -->|Yes| J["Disconnect connection forcefully"]
     I -->|No| K["Reschedule TimeoutTask"]
 ```
 
@@ -104,7 +104,7 @@ On each due task, the loop computes:
 long idleMs = Clock.UnixMillisecondsNow() - task.Conn.LastPingTime;
 ```
 
-If `idleMs >= IdleTimeoutMs`, the connection is closed with `Close(force: true)`,
+If `idleMs >= IdleTimeoutMs`, the connection is closed with `Disconnect("Idle timeout reached")`,
 `IsRegisteredInWheel` is cleared, `TimeoutVersion` is incremented, and the task is
 returned to the pool. Otherwise, the task is rescheduled based on the remaining idle
 time.

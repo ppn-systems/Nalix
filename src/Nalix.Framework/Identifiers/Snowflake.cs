@@ -9,7 +9,6 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Common.Identity;
-using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Options;
@@ -51,10 +50,7 @@ public readonly partial struct Snowflake : ISnowflake
     public uint Value
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            return (uint)(_combined & 0xFFFFFFFFUL);
-        }
+        get => (uint)(_combined & 0xFFFFFFFFUL);
     }
 
     /// <inheritdoc/>
@@ -62,10 +58,7 @@ public readonly partial struct Snowflake : ISnowflake
     public ushort MachineId
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            return (ushort)((_combined >> 32) & 0xFFFFUL);
-        }
+        get => (ushort)((_combined >> 32) & 0xFFFFUL);
     }
 
     /// <inheritdoc/>
@@ -73,10 +66,7 @@ public readonly partial struct Snowflake : ISnowflake
     public SnowflakeType Type
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get
-        {
-            return (SnowflakeType)((_combined >> 48) & 0xFFUL);
-        }
+        get => (SnowflakeType)((_combined >> 48) & 0xFFUL);
     }
 
     #endregion Decomposition
