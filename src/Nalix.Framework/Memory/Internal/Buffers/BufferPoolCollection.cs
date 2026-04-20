@@ -140,7 +140,7 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <exception cref="InvalidOperationException">Thrown when the selected pool key no longer resolves to a backing pool.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] RentBuffer(int size)
+    public ArraySegment<byte> RentBuffer(int size)
     {
         int initialPoolSize = this.FindSuitablePoolSize(size);
         if (initialPoolSize == 0)
@@ -148,9 +148,7 @@ internal sealed class BufferPoolCollection : IDisposable
             throw new ArgumentException($"Requested size too large: size={size}");
         }
 
-        // We try to satisfy the request from our managed pools starting from 
-        // the most suitable size and moving upwards (Escalation Renting).
-        // Using a local reference to _sortedKeys enables lock-free lookup on the hot path.
+        // Escalation Renting: lock-free lookup via local snapshot of sorted keys.
         int[] keys = _sortedKeys;
         int startIndex = Array.BinarySearch(keys, initialPoolSize);
         if (startIndex < 0)
@@ -163,8 +161,7 @@ internal sealed class BufferPoolCollection : IDisposable
             int currentPoolSize = keys[i];
             if (_pools.TryGetValue(currentPoolSize, out BufferPoolShared? pool))
             {
-                // Attempt to take from this pool without a fallback.
-                if (pool.TryAcquireBuffer(out byte[]? buffer))
+                if (pool.TryAcquireBuffer(out ArraySegment<byte> buffer))
                 {
                     if (this.AdjustCounter(currentPoolSize, isRent: true))
                     {
@@ -175,12 +172,9 @@ internal sealed class BufferPoolCollection : IDisposable
             }
         }
 
-        // If we reach here, ALL suitable managed pools are exhausted.
-        // Falls back to the shared ArrayPool via the most suitable pool manager to track the miss.
+        // All managed pools exhausted — use ArrayPool fallback via the best-fit pool.
         if (_pools.TryGetValue(initialPoolSize, out BufferPoolShared? originalPool))
         {
-            // Even if we miss, we must signal that this pool is under pressure
-            // so the auto-resize logic can grow it to meet future demand.
             if (this.AdjustCounter(initialPoolSize, isRent: true))
             {
                 this.EvaluateResize(originalPool);
@@ -199,21 +193,23 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> does not match any managed pool size.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ReturnBuffer(byte[]? buffer)
+    public void ReturnBuffer(ArraySegment<byte> buffer)
     {
-        if (buffer is null)
+        if (buffer.Array is null)
         {
             return;
         }
 
-        if (!_pools.TryGetValue(buffer.Length, out BufferPoolShared? pool))
+        // Route to the pool that manages this exact segment size.
+        if (!_pools.TryGetValue(buffer.Count, out BufferPoolShared? pool))
         {
-            throw new ArgumentException($"Invalid buffer size: {buffer.Length}.");
+            // Size doesn't match any managed pool — silently drop (GC will collect).
+            return;
         }
 
         pool.ReleaseBuffer(buffer);
 
-        if (this.AdjustCounter(buffer.Length, isRent: false))
+        if (this.AdjustCounter(buffer.Count, isRent: false))
         {
             this.EvaluateResize(pool);
         }

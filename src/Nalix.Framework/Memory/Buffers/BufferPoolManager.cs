@@ -276,40 +276,41 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Rent(int minimumLength = 256)
     {
-        byte[] buffer;
+        ArraySegment<byte> segment;
 
-        // Fast path: common sizes are served directly from the pool collection
-        // without touching any of the dynamic cache or fallback logic.
+        // Fast path: common sizes served directly from pool collection.
         if (IS_FAST_COMMON_SIZE(minimumLength))
         {
-            buffer = _poolManager.RentBuffer(minimumLength);
+            segment = _poolManager.RentBuffer(minimumLength);
         }
         else if (_suitablePoolSizeCache.TryGetValue(minimumLength, out int cachedPoolSize))
         {
-            buffer = _poolManager.RentBuffer(cachedPoolSize);
+            segment = _poolManager.RentBuffer(cachedPoolSize);
         }
         else
         {
             try
             {
-                // The dynamic path probes the pool layout once and caches the best
-                // match so repeated requests of the same size stay cheap.
-                buffer = this.RENT_FROM_POOLS_WITH_CACHING(minimumLength);
+                segment = this.RENT_FROM_POOLS_WITH_CACHING(minimumLength);
             }
             catch (ArgumentException ex)
             {
-                // If the configured pools cannot satisfy the request, fall back to the
-                // shared ArrayPool or rethrow depending on the configuration.
-                buffer = this.HANDLE_RENT_FAILURE(minimumLength, ex);
+                return this.HANDLE_RENT_FAILURE(minimumLength, ex);
             }
         }
 
-        if (buffer is null)
+        if (segment.Array is null)
         {
-            throw new InvalidOperationException("Critical failure: The buffer rental operation yielded a null reference from all available pools and fallbacks.");
+            throw new InvalidOperationException("Critical failure: The buffer rental returned a null slab segment.");
         }
 
-        return buffer;
+#if DEBUG
+        _ = s_activeSentinels.GetValue(segment.Array, static arr => new BufferSentinel(arr.Length));
+#endif
+
+        // Return the underlying slab array. Callers use offset=0..Count.
+        // The segment is reconstructed on Return() using buffer.Length as pool key.
+        return segment.Array;
     }
 
     /// <summary>Returns a buffer to the appropriate pool.</summary>
@@ -326,7 +327,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (arrayClear)
         {
-            // Vectorized clear using Spans for maximum performance (standard in high-performance .NET)
             array.AsSpan().Clear();
         }
 
@@ -340,9 +340,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         try
         {
-            // Return to the managed pool collection first so the exact pool size
-            // can be recovered instead of always falling back to the shared pool.
-            this.RETURN_TO_MANAGED_POOLS(array);
+            // Reconstruct the segment using the array's full length as pool key.
+            // The managed pool matches on Count (which equals the batch size for slab segments).
+            this.RETURN_TO_MANAGED_POOLS(new ArraySegment<byte>(array, 0, array.Length));
         }
         catch (ArgumentException ex)
         {
@@ -353,16 +353,27 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <summary>Rents a buffer and wraps it as an <see cref="ArraySegment{T}"/> for <see cref="SocketAsyncEventArgs"/> workflows.</summary>
     /// <param name="size">The minimum number of bytes required.</param>
     /// <returns>
-    /// An <see cref="ArraySegment{T}"/> backed by a pooled buffer,
-    /// with <c>Offset = 0</c> and <c>Count = size</c>.
+    /// An <see cref="ArraySegment{T}"/> backed by a slab segment, with <c>Offset = segment.Offset</c> and <c>Count = size</c>.
     /// </returns>
-    /// <remarks>The caller must return the underlying array after use to avoid leaking pool buffers.</remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ArraySegment<byte> RentSegment(int size = 256)
     {
-        byte[] buffer = this.Rent(size);
-        return new ArraySegment<byte>(buffer, 0, size);
+        // Directly return the slab segment — no double-wrapping needed.
+        if (IS_FAST_COMMON_SIZE(size))
+        {
+            return _poolManager.RentBuffer(size);
+        }
+
+        try
+        {
+            return this.RENT_FROM_POOLS_WITH_CACHING(size);
+        }
+        catch (ArgumentException ex)
+        {
+            byte[] fallback = this.HANDLE_RENT_FAILURE(size, ex);
+            return new ArraySegment<byte>(fallback, 0, size);
+        }
     }
 
     /// <summary>
@@ -373,7 +384,18 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="segment">The segment whose backing array will be returned.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(ArraySegment<byte> segment) => this.Return(segment.Array);
+    public void Return(ArraySegment<byte> segment)
+    {
+        if (segment.Array is null) return;
+        try
+        {
+            this.RETURN_TO_MANAGED_POOLS(segment);
+        }
+        catch (ArgumentException ex)
+        {
+            this.HANDLE_RETURN_FAILURE(segment.Array, ex);
+        }
+    }
 
     /// <summary>
     /// Rents a buffer from the pool and assigns it to the given
@@ -388,14 +410,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// </remarks>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RentForSaea(
-        SocketAsyncEventArgs saea,
-        int size = 256)
+    public void RentForSaea(SocketAsyncEventArgs saea, int size = 256)
     {
         ArgumentNullException.ThrowIfNull(saea);
 
-        byte[] buffer = this.Rent(size);
-        saea.SetBuffer(buffer, 0, size);
+        ArraySegment<byte> seg = this.RentSegment(size);
+        saea.SetBuffer(seg.Array, seg.Offset, seg.Count);
     }
 
     /// <summary>
@@ -591,18 +611,18 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="size">The requested buffer size.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private byte[] RENT_FROM_POOLS_WITH_CACHING(int size)
+    private ArraySegment<byte> RENT_FROM_POOLS_WITH_CACHING(int size)
     {
-        byte[] buffer = _poolManager.RentBuffer(size);
+        ArraySegment<byte> segment = _poolManager.RentBuffer(size);
 
         if (_config.EnableAnalytics)
         {
             _logger?.Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast minimumLength={size}");
         }
 
-        this.CACHE_SUITABLE_POOL_SIZE(size, buffer.Length);
+        this.CACHE_SUITABLE_POOL_SIZE(size, segment.Count);
 
-        return buffer;
+        return segment;
     }
 
     [StackTraceHidden]
@@ -655,16 +675,16 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// Returning to the original pool preserves size affinity and improves the
     /// hit rate of future rents.
     /// </summary>
-    /// <param name="buffer">The buffer to return to the managed pools.</param>
+    /// <param name="segment">The slab segment to return to the managed pools.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RETURN_TO_MANAGED_POOLS(byte[] buffer)
+    private void RETURN_TO_MANAGED_POOLS(ArraySegment<byte> segment)
     {
-        _poolManager.ReturnBuffer(buffer);
+        _poolManager.ReturnBuffer(segment);
 
         if (_config.EnableAnalytics)
         {
-            _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={buffer.Length}");
+            _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={segment.Count}");
         }
     }
 

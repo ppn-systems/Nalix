@@ -63,7 +63,7 @@ public static class CipherExtensions
                 timeoutMs: timeoutMs,
                 sendAsync: async token =>
                 {
-                    await session.SendAsync(req, false, token).ConfigureAwait(false);
+                    await session.SendAsync(req, token).ConfigureAwait(false);
                     session.Options.Algorithm = cipherSuite;
                 },
                 ct: ct).ConfigureAwait(false);

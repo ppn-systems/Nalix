@@ -84,6 +84,14 @@ public abstract class TransportSession : IDisposable
     /// </summary>
     /// <param name="packet">The packet to send.</param>
     /// <param name="ct">The token to observe while sending.</param>
+    public abstract Task SendAsync(IPacket packet, CancellationToken ct = default);
+
+    /// <summary>
+    /// Asynchronously sends raw binary data to the remote endpoint.
+    /// </summary>
+    /// <param name="packet">The packet to send.</param>
+    /// <param name="encrypt">A value that overrides the default encryption behavior.</param>
+    /// <param name="ct">The token to observe while sending.</param>
     public abstract Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default);
 
     /// <summary>

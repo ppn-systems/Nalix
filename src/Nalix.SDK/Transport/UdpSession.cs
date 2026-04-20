@@ -211,6 +211,9 @@ public class UdpSession : TransportSession
     }
 
     /// <inheritdoc/>
+    public override async Task SendAsync(IPacket packet, CancellationToken ct = default) => await this.SendAsync(packet, null, ct).ConfigureAwait(false);
+
+    /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
