@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using Nalix.Common.Exceptions;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;
@@ -27,6 +28,7 @@ public sealed partial class MemoryTests
         BufferPoolState state = new()
         {
             BufferSize = 256,
+            Hits = 0,
             TotalBuffers = totalBuffers,
             FreeBuffers = freeBuffers,
             Misses = misses
