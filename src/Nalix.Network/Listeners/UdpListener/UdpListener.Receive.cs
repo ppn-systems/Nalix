@@ -335,9 +335,12 @@ public abstract partial class UdpListenerBase
         }
         catch (Exception ex)
         {
-            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException)
+            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
-                s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                {
+                    s_logger?.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                }
             }
             else
             {
