@@ -472,12 +472,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                 ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                 : $"{metrics.TotalBytesReturned / 1024}KB";
 
-            poolDetails.Add(new Dictionary<string, object>(10, StringComparer.Ordinal)
+            poolDetails.Add(new Dictionary<string, object>(11, StringComparer.Ordinal)
             {
                 ["BufferSize"] = info.BufferSize,
                 ["Total"] = info.TotalBuffers,
                 ["Free"] = info.FreeBuffers,
                 ["InUse"] = inUse,
+                ["Hits"] = info.Hits,
                 ["UsageRatio"] = usage,
                 ["MissRate"] = miss,
                 ["ShrinkAttempted"] = metrics.ShrinkAttempted,
@@ -990,9 +991,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
     {
         _ = sb.AppendLine("s_pool Details:");
-        _ = sb.AppendLine("----------------------------------------------------------------------");
-        _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Usage %  | MissRate");
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Hits     | Usage %  | MissRate");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------");
 
         List<BufferPoolShared> pools = [.. _poolManager.GetAllPools()];
         pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
@@ -1005,10 +1006,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             double usage = info.GetUsageRatio() * 100.0;
             double miss = info.GetMissRate() * 100.0;
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {usage,8:F2}% | {miss,7:F2}%");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {info.Hits,8} | {usage,8:F2}% | {miss,7:F2}%");
         }
 
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------");
     }
 
     [StackTraceHidden]
@@ -1017,9 +1018,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         _ = sb.AppendLine();
         _ = sb.AppendLine("s_pool Metrics (Shrink/Expand Operations):");
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------");
         _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------");
 
         List<BufferPoolShared> pools = [.. _poolManager.GetAllPools()];
         pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
@@ -1042,7 +1043,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             }
         }
 
-        _ = sb.AppendLine("----------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------");
     }
 
     #endregion Private: Reporting

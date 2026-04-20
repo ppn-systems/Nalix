@@ -328,7 +328,7 @@ public abstract partial class UdpListenerBase
 
             if (current != lease)
             {
-                _ = replaceable.ExchangeLease(current);
+                replaceable.ExchangeLease(current)?.Dispose();
             }
 
             _protocol.ProcessMessage(sender, args);

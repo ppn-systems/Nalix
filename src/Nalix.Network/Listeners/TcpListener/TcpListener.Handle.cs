@@ -130,7 +130,7 @@ public abstract partial class TcpListenerBase
             // lease but failed before ExchangeLease, args would still point to the dead lease.
             if (current != lease)
             {
-                _ = replaceable.ExchangeLease(current);
+                replaceable.ExchangeLease(current)?.Dispose();
             }
         }
     }

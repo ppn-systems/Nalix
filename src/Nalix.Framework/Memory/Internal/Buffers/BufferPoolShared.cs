@@ -31,6 +31,7 @@ internal sealed class BufferPoolShared : IDisposable
     private readonly System.Buffers.ArrayPool<byte> _arrayPool;
 
     private int _misses;
+    private int _hits;
     private bool _disposed;
     private BufferPoolState _poolInfo;
     private int _totalBuffers;
@@ -99,6 +100,7 @@ internal sealed class BufferPoolShared : IDisposable
     {
         if (_freeBuffers.TryDequeue(out byte[]? buffer) && buffer is not null)
         {
+            _ = Interlocked.Increment(ref _hits);
             return buffer;
         }
 
@@ -405,7 +407,8 @@ internal sealed class BufferPoolShared : IDisposable
             FreeBuffers = _freeBuffers.Count,
             TotalBuffers = Volatile.Read(ref _totalBuffers),
             BufferSize = _bufferSize,
-            Misses = Volatile.Read(ref _misses)
+            Misses = Volatile.Read(ref _misses),
+            Hits = Volatile.Read(ref _hits)
         };
     }
 
