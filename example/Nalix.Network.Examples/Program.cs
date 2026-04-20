@@ -19,36 +19,71 @@ using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Hosting;
 using Nalix.Network.Options;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Options;
 
 internal class Program
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
     private static async Task Main(string[] args)
     {
-        // Turn on debug logs so the sample shows the full packet and connection flow.
+        // Turn off noisy logs for peak performance testing.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Debug;
+                            .MinLevel = LogLevel.Warning;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();
         BufferPoolManager buffer = new();
         ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
-        _ = buffer.Rent(256);
 
         using NetworkApplication host = NetworkApplication.CreateBuilder()
             .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(buffer)
-            .Configure<NetworkSocketOptions>(options => options.Port = 57206)
+            .Configure<NetworkSocketOptions>(options =>
+            {
+                options.Port = 57206;
+                options.MaxPacketPerSecond = int.MaxValue;
+                options.BufferSize = 1024 * 64; // 64KB buffers
+                options.Backlog = 1024;         // Increase OS backlog for high burst connection attempts
+                options.MaxParallel = 16;       // Increase parallel accept threads
+                options.MaxGroupConcurrency = 32; // Increase concurrent socket group processing
+            })
+            .Configure<ConnectionHubOptions>(options =>
+            {
+                options.MaxConnections = -1;
+            })
+            .Configure<ConnectionLimitOptions>(options =>
+            {
+                options.MaxConnectionsPerIpAddress = 10_000;
+                options.MaxConnectionsPerWindow = 10_000_000;
+            })
+            .Configure<NetworkCallbackOptions>(options =>
+            {
+                options.MaxPerConnectionPendingPackets = 512;
+                options.MaxPendingPerIp = 10000;
+                options.MaxPendingNormalCallbacks = 100000;
+            })
+            .Configure<TimingWheelOptions>(options =>
+            {
+                options.BucketCount = 65536;
+                options.TickDuration = 1;
+            })
+            .Configure<DispatchOptions>(options =>
+            {
+                options.MaxPerConnectionQueue = 0;
+            })
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
             .AddPacket<Handshake>()
             .AddHandler<PacketCommandHandler>()
             .AddMetadataProvider<PacketTagMetadataProvider>()
-            .ConfigureDispatch(dispatchOptions =>
+            .ConfigureDispatch(options =>
             {
-                _ = dispatchOptions.WithMiddleware(new PacketTagMiddleware());
-                _ = dispatchOptions.WithErrorHandling((exception, command) =>
-                    logger.Error($"Error handling command: {command}", exception));
+                // Increase dispatch loops and batch processing capacity
+                options.MaxDrainPerWakeMultiplier = 16;
+                options.MaxDrainPerWake = 4096;
+
+                _ = options.WithDispatchLoopCount(8);
+                _ = options.WithMiddleware(new PacketTagMiddleware());
+                _ = options.WithErrorHandling((exception, command) => logger.Error($"Error handling command: {command}", exception));
             })
             .AddTcp<ExamplePacketProtocol>()
             .Build();
@@ -78,14 +113,10 @@ internal class Program
                     {
                         ConsoleKeyInfo key = Console.ReadKey(true);
                         // Trigger report on Ctrl + , or simply 'R'
-                        if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R)
+                        if ((key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R) || key.Key == ConsoleKey.R)
                         {
                             Console.WriteLine("\n" + new string('-', 20) + " LIVE REPORT " + new string('-', 20));
-                            Console.WriteLine(InstanceManager.Instance.GenerateReport());
-                            if (InstanceManager.Instance.GetExistingInstance<ConnectionHub>() is ConnectionHub connectionHub)
-                            {
-                                Console.WriteLine(connectionHub.GenerateReport());
-                            }
+
 
                             if (InstanceManager.Instance.GetExistingInstance<IPacketDispatch>() is IPacketDispatch dispatcher)
                             {
@@ -96,7 +127,6 @@ internal class Program
                             {
                                 Console.WriteLine(objectPoolManager.GenerateReport());
                             }
-
 
                             if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
                             {
