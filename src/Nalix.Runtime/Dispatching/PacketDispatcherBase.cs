@@ -114,6 +114,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             {
                 this.Logging.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.OpCode}");
             }
+
             ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, token);
             if (pending.IsCompletedSuccessfully)
             {
