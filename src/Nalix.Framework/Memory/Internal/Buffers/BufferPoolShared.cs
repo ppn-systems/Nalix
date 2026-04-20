@@ -26,7 +26,6 @@ internal sealed class BufferPoolShared : IDisposable
 
     private readonly BufferRing _freeBuffers;
     private readonly int _bufferSize;
-    private readonly bool _secureClear;
     private readonly Lock _disposeLock;
     private readonly System.Buffers.ArrayPool<byte> _arrayPool;
 
@@ -60,12 +59,10 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="bufferSize">The size of buffers managed by the pool.</param>
     /// <param name="initialCapacity">The number of buffers to preallocate.</param>
-    /// <param name="secureClear">Whether to clear buffers before returning them to the array pool.</param>
-    private BufferPoolShared(int bufferSize, int initialCapacity, bool secureClear)
+    private BufferPoolShared(int bufferSize, int initialCapacity)
     {
         _disposeLock = new();
         _bufferSize = bufferSize;
-        _secureClear = secureClear;
         _arrayPool = System.Buffers.ArrayPool<byte>.Shared;
 
         int ringCapacity = initialCapacity <= 0
@@ -86,35 +83,47 @@ internal sealed class BufferPoolShared : IDisposable
     /// </summary>
     /// <param name="bufferSize">The size of buffers managed by the pool.</param>
     /// <param name="initialCapacity">The number of buffers to preallocate.</param>
-    /// <param name="secureClear">Whether to clear buffers before returning them to the array pool.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity, bool secureClear)
-        => s_pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity, secureClear));
+    public static BufferPoolShared GetOrCreatePool(int bufferSize, int initialCapacity)
+        => s_pools.GetOrAdd(bufferSize, size => new BufferPoolShared(size, initialCapacity));
+
+    /// <summary>
+    /// Attempts to acquire a buffer from the managed ring without falling back 
+    /// to the shared ArrayPool. Returns true if a buffer was successfully dequeued.
+    /// </summary>
+    /// <param name="buffer">The acquired buffer, or null if empty.</param>
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryAcquireBuffer([NotNullWhen(true)] out byte[]? buffer)
+    {
+        if (_freeBuffers.TryDequeue(out buffer) && buffer is not null)
+        {
+            _ = Interlocked.Increment(ref _hits);
+            return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Acquires a buffer from the pool with fast path optimization.
+    /// Falls back to the shared ArrayPool if the managed ring is empty.
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] AcquireBuffer()
     {
-        if (_freeBuffers.TryDequeue(out byte[]? buffer) && buffer is not null)
+        if (this.TryAcquireBuffer(out byte[]? buffer))
         {
-            _ = Interlocked.Increment(ref _hits);
             return buffer;
         }
 
         _ = Interlocked.Increment(ref _misses);
 
+        // Fallback to shared ArrayPool. We count these in _totalBuffers to maintain
+        // accurate 'In Use' metrics during the lease period.
         byte[] newBuffer = _arrayPool.Rent(_bufferSize);
-
-        // Only track this buffer as part of this pool if the length matches exactly.
-        // ArrayPool.Shared often returns larger buffers which we cannot store in our
-        // fixed-size BufferRing, and thus we should not count them as 'Total' in this pool.
-        if (newBuffer.Length == _bufferSize)
-        {
-            _ = Interlocked.Increment(ref _totalBuffers);
-        }
+        _ = Interlocked.Increment(ref _totalBuffers);
 
         return newBuffer;
     }
@@ -122,33 +131,30 @@ internal sealed class BufferPoolShared : IDisposable
     /// <summary>
     /// Releases a buffer back into the pool.
     /// </summary>
-    /// <param name="buffer">The buffer to return.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is null.</exception>
+    /// <param name="buffer">The buffer to return to the pool.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for this pool.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReleaseBuffer(byte[] buffer)
     {
         ArgumentNullException.ThrowIfNull(buffer);
 
-        if (buffer.Length != _bufferSize)
+        if (buffer.Length < _bufferSize)
         {
-            // If the size doesn't match, this was either a fallback allocation from AcquireBuffer
-            // or an external buffer. We return it to the shared ArrayPool and do NOT decrement
-            // _totalBuffers because we didn't increment it during Acquire (or it's not ours).
-            _arrayPool.Return(buffer);
+            throw new ArgumentException(
+                $"Buffer too small: length={buffer.Length}, expected at least {_bufferSize}.");
+        }
+
+        // We only retain buffers that match our exact pool size in the high-speed ring.
+        // This keeps the batches uniform as intended by the PoolManager design.
+        if (buffer.Length == _bufferSize && _freeBuffers.TryEnqueue(buffer))
+        {
             return;
         }
 
-        if (_secureClear)
-        {
-            this.ClearBuffer(buffer);
-        }
-
-        if (!_freeBuffers.TryEnqueue(buffer))
-        {
-            _arrayPool.Return(buffer);
-            _ = Interlocked.Decrement(ref _totalBuffers);
-        }
+        // Mismatched size or full ring: return to shared pool and decrease tracking count.
+        _arrayPool.Return(buffer);
+        _ = Interlocked.Decrement(ref _totalBuffers);
     }
 
     /// <summary>
@@ -276,15 +282,6 @@ internal sealed class BufferPoolShared : IDisposable
 
     #region Private Helpers
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private unsafe void ClearBuffer(byte[] buffer)
-    {
-        fixed (byte* ptr = buffer)
-        {
-            Unsafe.InitBlock(ptr, 0, (uint)buffer.Length);
-        }
-    }
-
     /// <summary>
     /// Pre-allocates buffers to the specified capacity.
     /// </summary>
@@ -360,11 +357,6 @@ internal sealed class BufferPoolShared : IDisposable
         for (int i = 0; i < buffers.Count; i++)
         {
             byte[] buf = buffers[i];
-            if (_secureClear)
-            {
-                this.ClearBuffer(buf);
-            }
-
             _arrayPool.Return(buf);
         }
     }
@@ -380,11 +372,6 @@ internal sealed class BufferPoolShared : IDisposable
         for (int i = 0; i < buffers.Length; i++)
         {
             byte[] buf = buffers[i];
-            if (_secureClear)
-            {
-                this.ClearBuffer(buf);
-            }
-
             _arrayPool.Return(buf);
         }
     }

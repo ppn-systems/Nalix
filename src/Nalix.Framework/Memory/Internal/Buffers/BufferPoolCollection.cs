@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
 
@@ -111,7 +112,7 @@ internal sealed class BufferPoolCollection : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void CreatePool(int bufferSize, int initialCapacity)
     {
-        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _config.SecureClear)))
+        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
         {
             this.UpdateSortedKeys();
         }
@@ -141,26 +142,62 @@ internal sealed class BufferPoolCollection : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] RentBuffer(int size)
     {
-        int poolSize = this.FindSuitablePoolSize(size);
-        if (poolSize == 0)
+        int initialPoolSize = this.FindSuitablePoolSize(size);
+        if (initialPoolSize == 0)
         {
             throw new ArgumentException($"Requested size too large: size={size}");
         }
 
-        if (!_pools.TryGetValue(poolSize, out BufferPoolShared? pool))
+        // We try to satisfy the request from our managed pools starting from 
+        // the most suitable size and moving upwards (Escalation Renting).
+        // This avoids immediate fallback to ArrayPool.Shared if a specific batch is exhausted.
+        _keysLock.EnterReadLock();
+        try
         {
-            throw new InvalidOperationException(
-    $"Buffer pool not found: size={poolSize}.");
+            int[] keys = _sortedKeys;
+            int startIndex = Array.BinarySearch(keys, initialPoolSize);
+            if (startIndex < 0)
+            {
+                startIndex = ~startIndex;
+            }
+
+            for (int i = startIndex; i < keys.Length; i++)
+            {
+                int currentPoolSize = keys[i];
+                if (_pools.TryGetValue(currentPoolSize, out BufferPoolShared? pool))
+                {
+                    // Attempt to take from this pool without a fallback.
+                    if (pool.TryAcquireBuffer(out byte[]? buffer))
+                    {
+                        if (this.AdjustCounter(currentPoolSize, isRent: true))
+                        {
+                            this.EvaluateResize(pool);
+                        }
+                        return buffer;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            _keysLock.ExitReadLock();
         }
 
-        byte[] buffer = pool.AcquireBuffer();
-
-        if (this.AdjustCounter(poolSize, isRent: true))
+        // If we reach here, ALL suitable managed pools are exhausted.
+        // Falls back to the shared ArrayPool via the most suitable pool manager to track the miss.
+        if (_pools.TryGetValue(initialPoolSize, out BufferPoolShared? originalPool))
         {
-            this.EvaluateResize(pool);
+            // Even if we miss, we must signal that this pool is under pressure
+            // so the auto-resize logic can grow it to meet future demand.
+            if (this.AdjustCounter(initialPoolSize, isRent: true))
+            {
+                this.EvaluateResize(originalPool);
+            }
+
+            return originalPool.AcquireBuffer();
         }
 
-        return buffer;
+        throw new InvalidOperationException($"Buffer pool not found for size {initialPoolSize}.");
     }
 
     /// <summary>

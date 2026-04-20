@@ -304,12 +304,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             }
         }
 
-#if DEBUG
-        if (buffer is not null)
+        if (buffer is null)
         {
-            s_activeSentinels.Add(buffer, new BufferSentinel(buffer.Length));
+            throw new InvalidOperationException("Critical failure: The buffer rental operation yielded a null reference from all available pools and fallbacks.");
         }
-#endif
+
         return buffer;
     }
 
@@ -318,12 +317,17 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="arrayClear">Whether the buffer should be cleared before returning it.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     public void Return(byte[]? array, bool arrayClear = false)
     {
         if (array is null)
         {
             return;
+        }
+
+        if (arrayClear)
+        {
+            // Vectorized clear using Spans for maximum performance (standard in high-performance .NET)
+            array.AsSpan().Clear();
         }
 
 #if DEBUG
@@ -512,7 +516,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             ["MaxBufferSize"] = this.MaxBufferSize,
             ["EnableTrimming"] = _config.EnableMemoryTrimming,
             ["EnableAnalytics"] = _config.EnableAnalytics,
-            ["EnableSecureClear"] = _config.SecureClear,
             ["FallbackToArrayPool"] = _config.FallbackToArrayPool,
             ["TrimIntervalMinutes"] = _config.TrimIntervalMinutes,
             ["DeepTrimIntervalMinutes"] = _config.DeepTrimIntervalMinutes,
@@ -678,12 +681,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         if (_config.FallbackToArrayPool)
         {
-            if (_config.SecureClear)
-            {
-                // Clear sensitive data before the buffer re-enters the shared pool.
-                Array.Clear(buffer, 0, buffer.Length);
-            }
-
             _fallbackArrayPool.Return(buffer, clearArray: false);
             _logger?.Debug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
 
@@ -1055,7 +1052,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Buffer SIZE: {this.MaxBufferSize}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Trimming: {_config.EnableMemoryTrimming}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable Analytics: {_config.EnableAnalytics}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Enable SecureClear: {_config.SecureClear}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Management Capacity: {_config.TotalBuffers}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fallback to ArrayPool: {_config.FallbackToArrayPool}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Trim Interval (min): {_config.TrimIntervalMinutes}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deep Trim Interval (min): {_config.DeepTrimIntervalMinutes}");
