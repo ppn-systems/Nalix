@@ -407,9 +407,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             {
                 Exception e = (ex as AggregateException)?.Flatten() ?? ex;
 
-                _sender?.ThrottledError(
+                _sender.ThrottledError(
                     _logger, "socket.receive.faulted",
-                    $"faulted ep={_sender?.NetworkEndpoint.Address}", e);
+                    $"faulted ep={_sender.NetworkEndpoint.Address}", e);
             }
 
         }
