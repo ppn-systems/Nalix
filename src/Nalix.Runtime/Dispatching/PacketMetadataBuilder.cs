@@ -52,6 +52,11 @@ public sealed class PacketMetadataBuilder
     public PacketConcurrencyLimitAttribute? ConcurrencyLimit { get; set; }
 
     /// <summary>
+    /// Gets or sets the transport attribute that specifies the preferred network protocol.
+    /// </summary>
+    public PacketTransportAttribute? Transport { get; set; }
+
+    /// <summary>
     /// Adds or replaces a custom attribute in the metadata builder.
     /// The last attribute of a given type wins, which keeps repeated scans
     /// deterministic when multiple providers contribute metadata.
@@ -98,6 +103,7 @@ public sealed class PacketMetadataBuilder
                 this.Encryption,
                 this.RateLimit,
                 this.ConcurrencyLimit,
+                this.Transport,
                 new Dictionary<Type, Attribute>(_custom));
     }
 }
