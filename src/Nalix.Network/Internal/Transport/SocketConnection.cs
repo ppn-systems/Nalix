@@ -326,7 +326,10 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     if (!IS_VALID_PACKET_SIZE(size))
                     {
 #if DEBUG
-                        _logger?.Debug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_endpointString}");
+                        if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                        {
+                            _logger.Debug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_endpointString}");
+                        }
 #endif
                         throw new SocketException((int)SocketError.ProtocolNotSupported);
                     }
@@ -455,6 +458,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         if (pending > s_opts.MaxPerConnectionPendingPackets)
         {
             Interlocked.Decrement(ref _pendingProcessCallbacks);
+
             _sender?.ThrottledWarn(
                 _logger, "socket.receive.throttle",
                 $"throttle triggered — packet dropped ep={_endpointString}");
@@ -505,9 +509,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         }
 
 #if DEBUG
-        _logger?.Debug(
-            $"[NW.{nameof(SocketConnection)}] handoff-to-cache " +
-            $"payload={payloadLen} pending={pending} ep={_endpointString}");
+        if (_logger?.IsEnabled(LogLevel.Debug) == true)
+        {
+            _logger.Debug(
+                $"[NW.{nameof(SocketConnection)}] handoff-to-cache " +
+                $"payload={payloadLen} pending={pending} ep={_endpointString}");
+        }
 #endif
     }
 
@@ -531,16 +538,22 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     args.Dispose();
 
 #if DEBUG
-                    _logger?.Debug($"[NW.{nameof(SocketConnection)}] fragment-limit open={openStreams} ep={_endpointString}");
+                    if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                    {
+                        _logger.Debug($"[NW.{nameof(SocketConnection)}] fragment-limit open={openStreams} ep={_endpointString}");
+                    }
 #endif
                     return;
                 }
             }
 
 #if DEBUG
-            _logger?.Debug(
-                $"[NW.{nameof(SocketConnection)}] recv-frag stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
-                $"last={header.IsLast} ep={_endpointString}");
+            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                _logger.Debug(
+                    $"[NW.{nameof(SocketConnection)}] recv-frag stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
+                    $"last={header.IsLast} ep={_endpointString}");
+            }
 #endif
 
             FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);

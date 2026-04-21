@@ -30,6 +30,12 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
     public PooledAcceptContext? Context { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether the persistent completion handler 
+    /// has already been bound to this instance.
+    /// </summary>
+    public bool IsHandlerBound { get; set; }
+
+    /// <summary>
     /// Resets the internal state before returning to the pool.
     /// This clears the associated context, user token, accepted socket, remote
     /// endpoint, and buffer window so the next accept starts from a clean slate.
@@ -42,5 +48,9 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
         this.AcceptSocket = null;
         this.RemoteEndPoint = null;
         this.SetBuffer(null, 0, 0);
+
+        // Note: we DO NOT clear the Completed event here because we want to 
+        // reuse the same delegate for the entire life of this pooled instance
+        // to avoid delegate churn.
     }
 }
