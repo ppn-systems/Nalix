@@ -356,7 +356,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
                             _sender?.ThrottledWarn(
                                 _logger, "socket.receive.evicted_fragments",
-                                $"evicted {evicted} stale fragment stream(s) ep={_sender?.NetworkEndpoint.Address}");
+                                $"evicted {evicted} stale fragment stream(s) ep={_sender.NetworkEndpoint.Address}");
                         }
                     }
 
