@@ -55,7 +55,8 @@ public interface IPoolable
 
 - **Dynamic Creation**: Pools are created lazily for each type as needed.
 - **Typed Adapters**: Provides `TypedObjectPoolAdapter<T>` for high-performance, type-safe access.
-- **Health Monitoring**: Tracks cache hits, misses, and "outstanding" counts (objects that were retrieved but not yet returned).
+- **Health Monitoring**: Tracks cache hits, misses, outstanding counts, and **Peak Concurrent Usage**.
+- **Advanced Diagnostics**: Optional deep tracking for object lifetimes (avg/p95/max), suspicious long-lived objects, and GC leak detection.
 - **Trimming**: Supports scheduled or manual trimming to release objects back to the GC during low-load periods.
 
 ### Key API Members
@@ -90,8 +91,27 @@ public void Process()
 The manager tracks several critical metrics to help tune pool capacities:
 
 - **Hit Rate**: The percentage of requests satisfied by the pool without creating a new object.
-- **Outstanding**: Number of objects currently held by application code. If this grows indefinitely, it indicates a pool leak.
+- **Outstanding**: Number of objects currently held by application code.
+- **Peak Outstanding**: The high-water mark of concurrent objects active at any time. Useful for tuning `MaxCapacity`.
 - **Consecutive Failures**: High number of cache misses in sequence, suggesting the pool capacity is too low for the current load.
+
+## Advanced Diagnostics
+
+Advanced diagnostics can be enabled via `ObjectPoolConfig` (usually in `default.ini` under `[ObjectPool]`). These features provide deep insight at a slight performance cost.
+
+### Statistics Collected
+- **Lifetime (Avg/p95/Max)**: How long objects stay rented. High values might indicate slow processing segments.
+- **Suspicious Objects**: Objects held longer than a configurable threshold (e.g., 30s) are listed in reports with their allocation stack trace.
+- **GC Leak Detection**: Uses sentinel finalizers to detect and report objects that were garbage collected without being returned to the pool.
+
+### Configuration Example
+```ini
+[ObjectPool]
+EnableDiagnostics = true
+CaptureStackTraces = true
+EnableLeakDetection = true
+SuspiciousThresholdSeconds = 30
+```
 
 !!! tip "Diagnostic Insight"
     Use `ScheduleRegularTrimming` to keep memory usage balanced. Trimming runs `PerformHealthCheck` automatically to log warnings about unhealthy pools.
