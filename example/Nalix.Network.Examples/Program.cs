@@ -27,7 +27,7 @@ internal class Program
     {
         // Turn off noisy logs for peak performance testing.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Warning;
+                            .MinLevel = LogLevel.Debug;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();
