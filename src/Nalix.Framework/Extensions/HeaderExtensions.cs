@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 
 namespace Nalix.Framework.Extensions;
 

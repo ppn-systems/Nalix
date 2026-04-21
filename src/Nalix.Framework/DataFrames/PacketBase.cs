@@ -236,6 +236,31 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         return value;
     }
 
+    /// <summary>
+    /// Initializes the current packet instance with data from the provided buffer.
+    /// This method is optimized for pooling and guarantees that the instance identity is preserved.
+    /// </summary>
+    /// <param name="buffer">The buffer containing serialized packet data.</param>
+    /// <returns>The number of bytes read from the buffer.</returns>
+    /// <exception cref="SerializationFailureException">Thrown if deserialization fails.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal int Initialize(ReadOnlySpan<byte> buffer)
+    {
+        VALIDATE_BUFFER_HEADER(buffer);
+
+        TSelf @this = (TSelf)this;
+        int bytesRead = LiteSerializer.Deserialize(buffer, ref @this);
+
+        if (bytesRead <= 0)
+        {
+            throw new SerializationFailureException(
+                $"Initialize failed for {typeof(TSelf).Name}: bytesRead={bytesRead}. " +
+                "The deserializer returned zero bytes during an in-place population attempt.");
+        }
+
+        return bytesRead;
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void VALIDATE_BUFFER_HEADER(ReadOnlySpan<byte> buffer)
     {

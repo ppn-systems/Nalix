@@ -81,10 +81,10 @@ public static class SymmetricEngine
                 written = Salsa20.Encrypt(key, nonce, counter, src, dst);
                 return;
 
+            case CipherSuiteType.None:
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
                 throw new System.NotSupportedException("Authenticated symmetric algorithms are not supported by the raw keystream API.");
-
             default:
                 ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
                 return;

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -83,15 +82,17 @@ internal static class AsyncCallback
 
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledConnectEventContext>(s_pooling.ConnectEventContextPreallocate);
+
+        s_perIpFairnessMap = new int[s_opts.FairnessMapSize];
     }
 
     /// <summary>
     /// ── Per-IP pending counter ─────────────────────────────────────────────────
-    /// Key   = remote IP string (e.g. "192.168.1.1")
-    /// Value = number of normal callbacks currently queued for that IP
-    /// Entries are removed when the counter reaches zero to avoid unbounded growth.
+    /// Uses a fixed-size hash map (open addressing / collisions managed by the same slot)
+    /// to avoid Node allocations in ConcurrentDictionary.
+    /// Capacity is configurable via <see cref="NetworkCallbackOptions.FairnessMapSize"/>.
     /// </summary>
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, int> s_perIpPending = new();
+    private static readonly int[] s_perIpFairnessMap;
 
     /// <summary>
     /// ── Static delegates — no closures, no per-invocation allocations ──────────
@@ -112,14 +113,7 @@ internal static class AsyncCallback
         INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(w.Args);
         if (endpoint is not null)
         {
-            _ = s_perIpPending.AddOrUpdate(endpoint, addValueFactory: static (_, _) => 0,
-                updateValueFactory: static (_, current, _) => current > 1 ? current - 1 : 0, factoryArgument: 0);
-
-            // Clean up zero-valued entries to prevent dictionary growth.
-            if (s_perIpPending.TryGetValue(endpoint, out int v) && v == 0)
-            {
-                _ = s_perIpPending.TryRemove(new KeyValuePair<INetworkEndpoint, int>(endpoint, 0));
-            }
+            RELEASE_ENDPOINT_SLOT(endpoint);
         }
 
         EXECUTE_AND_RETURN(w);
@@ -316,19 +310,14 @@ internal static class AsyncCallback
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint endpoint, out int pendingAfter)
     {
+        // Use the endpoint's native GetHashCode which is already optimized for IP-only 
+        // hashing in SocketEndpoint. This avoids calling .Address which allocates 
+        // a string and multiple temporary objects per packet.
+        int index = (endpoint.GetHashCode() & 0x7FFFFFFF) % s_perIpFairnessMap.Length;
+
         while (true)
         {
-            if (!s_perIpPending.TryGetValue(endpoint, out int current))
-            {
-                if (s_perIpPending.TryAdd(endpoint, 1))
-                {
-                    pendingAfter = 1;
-                    return true;
-                }
-
-                continue;
-            }
-
+            int current = Volatile.Read(ref s_perIpFairnessMap[index]);
             if (current >= s_opts.MaxPendingPerIp)
             {
                 pendingAfter = current;
@@ -336,7 +325,7 @@ internal static class AsyncCallback
             }
 
             pendingAfter = current + 1;
-            if (s_perIpPending.TryUpdate(endpoint, pendingAfter, current))
+            if (Interlocked.CompareExchange(ref s_perIpFairnessMap[index], pendingAfter, current) == current)
             {
                 return true;
             }
@@ -346,28 +335,8 @@ internal static class AsyncCallback
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint endpoint)
     {
-        while (true)
-        {
-            if (!s_perIpPending.TryGetValue(endpoint, out int current))
-            {
-                return;
-            }
-
-            if (current <= 1)
-            {
-                if (s_perIpPending.TryRemove(new KeyValuePair<INetworkEndpoint, int>(endpoint, current)))
-                {
-                    return;
-                }
-
-                continue;
-            }
-
-            if (s_perIpPending.TryUpdate(endpoint, current - 1, current))
-            {
-                return;
-            }
-        }
+        int index = (endpoint.GetHashCode() & 0x7FFFFFFF) % s_perIpFairnessMap.Length;
+        _ = Interlocked.Decrement(ref s_perIpFairnessMap[index]);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
