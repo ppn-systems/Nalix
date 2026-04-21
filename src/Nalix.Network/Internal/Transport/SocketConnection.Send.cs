@@ -99,7 +99,7 @@ internal sealed partial class SocketConnection
                     sent += n;
                 }
 
-                ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+                ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
                 args.Initialize(_cachedArgs.Connection);
 
                 if (!AsyncCallback.Invoke(_callbackPost, _sender, args))
@@ -524,7 +524,7 @@ internal sealed partial class SocketConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void InvokePostCallback()
     {
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
         args.Initialize(_cachedArgs.Connection);
         if (!AsyncCallback.Invoke(_callbackPost, _sender, args))
         {

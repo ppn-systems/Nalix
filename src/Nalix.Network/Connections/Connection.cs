@@ -43,12 +43,17 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     private int _errorCount;
     private int _closeSignaled;
     private long _bytesSent;
+    private long _argsPoolMask; // Bitmask for free/busy status.
 
     private volatile bool _disposed;
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
     private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
+
+    // Per-connection local pool for packet arguments to avoid global pool contention.
+    // Size 8 matches the default MaxPerConnectionPendingPackets.
+    private readonly ConnectionEventArgs[] _argsPool;
 
     /// <summary>
     /// Tracks the current timeout task in the TimingWheel.
@@ -77,6 +82,13 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
         _args = new ConnectionEventArgs(this);
+        _argsPool = new ConnectionEventArgs[8];
+        for (int i = 0; i < _argsPool.Length; i++)
+        {
+            _argsPool[i] = new ConnectionEventArgs(this);
+            _argsPool[i].OnDisposedCallback = this.ReturnEventArgsSync;
+        }
+
         this.Socket = new SocketConnection(socket, logger);
 
         // Wire the socket-level events into the connection-level callback pipeline.
@@ -291,6 +303,44 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     }
 
     #endregion Dispose Pattern
+
+    #region Internal Pooling
+
+    /// <summary>
+    /// Acquires an EventArgs from the connection's local pool for packet processing.
+    /// Returns null if the local pool is exhausted (throttle reached).
+    /// </summary>
+    internal ConnectionEventArgs? AcquireEventArgs()
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            long bit = 1L << i;
+            if ((Interlocked.Read(ref _argsPoolMask) & bit) == 0)
+            {
+                if ((Interlocked.Or(ref _argsPoolMask, bit) & bit) == 0)
+                {
+                    return _argsPool[i];
+                }
+            }
+        }
+        return null;
+    }
+
+    private void ReturnEventArgsSync(ConnectionEventArgs args)
+    {
+        for (int i = 0; i < 8; i++)
+        {
+            if (ReferenceEquals(_argsPool[i], args))
+            {
+                long bit = 1L << i;
+                _argsPool[i].ResetForPool();
+                Interlocked.And(ref _argsPoolMask, ~bit);
+                return;
+            }
+        }
+    }
+
+    #endregion Internal Pooling
 
     #region Event Bridges
 

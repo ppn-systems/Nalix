@@ -471,7 +471,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         lease.IsReliable = true;
 
         this.LastPingTime = Clock.UnixMillisecondsNow();
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
         ReadOnlySpan<byte> payloadSpan = lease.Span;
 
         // 2. Fragment Assembly Check.
