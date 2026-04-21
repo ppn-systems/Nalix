@@ -330,12 +330,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         for (int i = 0; i < 8; i++)
         {
             long bit = 1L << i;
-            if ((Interlocked.Read(ref _argsPoolMask) & bit) == 0)
+            if ((Interlocked.Read(ref _argsPoolMask) & bit) == 0 &&
+                (Interlocked.Or(ref _argsPoolMask, bit) & bit) == 0)
             {
-                if ((Interlocked.Or(ref _argsPoolMask, bit) & bit) == 0)
-                {
-                    return _argsPool[i];
-                }
+                return _argsPool[i];
             }
         }
         return null;
