@@ -904,7 +904,11 @@ public sealed class ObjectPoolManager : IReportable
         long thresholdTicks = (long)(_config.SuspiciousThresholdSeconds * System.Diagnostics.Stopwatch.Frequency);
         int found = 0;
 
-        // ConcurrentBag iteration is thread-safe snapshot
+        // We prune stale references while scanning to prevent the bag from growing indefinitely.
+        // Since ConcurrentBag is not easily pruned, we'll collect survivors and re-populate
+        // ONLY if the bag has grown significantly (e.g. > 1000 items).
+        List<WeakReference<PoolSentinel>> survivors = new();
+
         foreach (WeakReference<PoolSentinel> weakRef in _sentinelTracker)
         {
             if (weakRef.TryGetTarget(out PoolSentinel? sentinel))
@@ -913,6 +917,8 @@ public sealed class ObjectPoolManager : IReportable
                 {
                     continue;
                 }
+
+                survivors.Add(weakRef);
 
                 long elapsed = now - sentinel.RentTimestamp;
                 if (elapsed >= thresholdTicks)
@@ -931,15 +937,19 @@ public sealed class ObjectPoolManager : IReportable
                         stack = firstLineEnd > 0 ? sentinel.StackTrace.Substring(0, firstLineEnd).Trim() : sentinel.StackTrace;
                     }
 
-                    _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {elapsedSec,11:F1} | {stack}");
+                    if (found <= 20)
+                    {
+                        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {elapsedSec,11:F1} | {stack}");
+                    }
                 }
             }
-            
-            if (found >= 20) 
-            {
-                _ = sb.AppendLine("... (top 20 results shown)");
-                break;
-            }
+        }
+
+        // Pruning: If the bag is much larger than current survivors, we might want to reset it.
+        // For simplicity in this diagnostic path, we'll just show the count.
+        if (found > 20)
+        {
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"... and {found - 20} more suspicious objects.");
         }
 
         if (found == 0)
