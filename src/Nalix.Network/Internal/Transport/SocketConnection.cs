@@ -396,7 +396,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger?.Trace(
+                _logger.Trace(
                     $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
                     $"cancelled ep={_sender?.NetworkEndpoint.Address}");
             }
