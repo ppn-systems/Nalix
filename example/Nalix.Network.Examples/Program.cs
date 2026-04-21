@@ -44,8 +44,6 @@ internal class Program
                 options.MaxPacketPerSecond = int.MaxValue;
                 options.BufferSize = 1024 * 64; // 64KB buffers
                 options.Backlog = 1024;         // Increase OS backlog for high burst connection attempts
-                options.MaxParallel = 16;       // Increase parallel accept threads
-                options.MaxGroupConcurrency = 32; // Increase concurrent socket group processing
             })
             .Configure<ConnectionHubOptions>(options =>
             {
@@ -134,13 +132,6 @@ internal class Program
                             }
 
                             Console.WriteLine(new string('-', 53) + "\n");
-                        }
-                        else if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.O)
-                        {
-                            if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
-                            {
-                                objectPoolManager.ResetMetrics();
-                            }
                         }
                     }
                     await Task.Delay(100, shutdown.Token).ConfigureAwait(false);

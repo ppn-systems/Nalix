@@ -127,10 +127,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
     {
         _state = (int)PacketContextState.Pooled;
 
-        PacketSender<TPacket> sender = new();
-        sender.Initialize(this);
-
-        this.Sender = sender;
+        this.Sender = new PacketSender<TPacket>();
         this.Packet = default!;
         this.IsReliable = false;
         this.Connection = default!;
@@ -165,6 +162,8 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
         this.IsReliable = reliable;
         this.CancellationToken = token;
 
+        this.Sender.Initialize(this);
+
         _isInitialized = true;
     }
 
@@ -188,6 +187,9 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable 
             this.IsReliable = false;
             this.Attributes = default!;
             this.Connection = default!;
+
+
+            this.Sender.ResetForPool();
 
             _isInitialized = false;
         }

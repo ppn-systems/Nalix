@@ -3,6 +3,7 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Common.Abstractions;
 
 namespace Nalix.Common.Networking.Packets;
 
@@ -10,8 +11,11 @@ namespace Nalix.Common.Networking.Packets;
 /// Abstracts packet sending with automatic transform (encrypt/compress)
 /// </summary>
 /// <typeparam name="TPacket"></typeparam>
-public interface IPacketSender<TPacket> where TPacket : IPacket
+public interface IPacketSender<TPacket> : IPoolable where TPacket : IPacket
 {
+    /// <inheritdoc/>
+    void Initialize(IPacketContext<TPacket> context);
+
     /// <summary>
     /// Sends a packet, applying encryption/compression automatically
     /// based on the metadata of the current handler.
