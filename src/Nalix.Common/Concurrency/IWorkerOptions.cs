@@ -75,4 +75,10 @@ public interface IWorkerOptions
     /// Gets the cancellation token that is linked to the worker's execution.
     /// </summary>
     CancellationToken CancellationToken { get; init; }
+
+    /// <summary>
+    /// Gets the optional OS-level thread priority for the worker.
+    /// If set, the worker will run on a dedicated thread with this priority.
+    /// </summary>
+    ThreadPriority? OSPriority { get; init; }
 }
