@@ -64,12 +64,12 @@ internal class Program
             {
                 options.MaxPerConnectionQueue = 0;
             })
-            .Configure<ObjectPoolConfig>(options =>
-            {
-                options.EnableDiagnostics = true;
-                options.CaptureStackTraces = true;
-                options.EnableLeakDetection = true;
-            })
+            //.Configure<ObjectPoolConfig>(options =>
+            //{
+            //    options.EnableDiagnostics = true;
+            //    options.CaptureStackTraces = true;
+            //    options.EnableLeakDetection = true;
+            //})
             // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
             .AddPacket<Handshake>()
             .AddHandler<PacketCommandHandler>()
