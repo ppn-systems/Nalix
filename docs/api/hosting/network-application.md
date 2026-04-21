@@ -51,7 +51,7 @@ graph LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `Configure<TOptions>(...)`, `AddPacket(...)`, `AddHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `AddTcp(...)`, `AddUdp(...)`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `AddPacket(...)`, `AddHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `AddTcp(...)`, `AddUdp(...)`, `Build()` |
 
 ## `NetworkApplication`
 
@@ -76,6 +76,7 @@ The builder uses a fluent API to configure the host before it is built.
 - `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager`.
 - `ConfigureConnectionHub(IConnectionHub)`: Registers the shared connection hub into the `InstanceManager`.
 - `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths.
+- `ConfigureCertificate(string path)`: Configures the absolute path to the server identity certificate (`certificate.private`).
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type. This is applied during the activation phase.
 
 !!! note
