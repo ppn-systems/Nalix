@@ -9,17 +9,12 @@ namespace Nalix.Common.Networking;
 public static class ConnectionAttributes
 {
     /// <summary>
-    /// Key for the boolean attribute indicating whether a handshake has been successfully established.
-    /// </summary>
-    public const string HandshakeEstablished = "nalix.handshake.established";
-
-    /// <summary>
     /// Key for the handshake context state stored during the negotiation process.
     /// </summary>
     public const string HandshakeState = "nalix.handshake.state";
 
     /// <summary>
-    /// Key for the session token associated with the connection, if any.
+    /// Key for the boolean attribute indicating whether a handshake has been successfully established.
     /// </summary>
-    public const string SessionToken = "nalix.session.token";
+    public const string HandshakeEstablished = "nalix.handshake.established";
 }

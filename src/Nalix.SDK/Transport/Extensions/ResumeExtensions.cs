@@ -58,7 +58,7 @@ public static class ResumeExtensions
                 session,
                 predicate: packet => packet.Stage == SessionResumeStage.RESPONSE,
                 timeoutMs: session.Options.ResumeTimeoutMillis,
-                sendAsync: token => session.SendAsync(request, encrypt: false, token),
+                sendAsync: token => session.SendAsync(request, token),
                 ct).ConfigureAwait(false);
 
             if (!response.Validate(out string? validationReason))

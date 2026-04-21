@@ -209,6 +209,6 @@ public static class ControlExtensions
         // Materialize the Control from the builder first; ref structs cannot be lambda-captured.
         Control ctrl = client.NewControl(opCode, type).Build();
         configure?.Invoke(ctrl);
-        return client.SendAsync(ctrl, ct);
+        return client.SendAsync(ctrl, encrypt: false, ct);
     }
 }

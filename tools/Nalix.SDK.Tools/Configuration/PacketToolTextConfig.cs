@@ -48,7 +48,9 @@ public sealed class PacketToolTextConfig : ConfigurationLoader
 
     public string ButtonHandshake { get; set; } = "Handshake";
     public string ButtonResume { get; set; } = "Resume";
+    public string ButtonPing { get; set; } = "Ping";
     public string LabelAutoPing { get; set; } = "Auto-Ping (30s)";
+    public string PingRttFormat { get; set; } = "Ping: {0:N2} ms";
 
     public string GroupPacketSelection { get; set; } = "Packet Selection";
 

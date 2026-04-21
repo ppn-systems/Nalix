@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
 
@@ -111,7 +112,7 @@ internal sealed class BufferPoolCollection : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void CreatePool(int bufferSize, int initialCapacity)
     {
-        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity, _config.SecureClear)))
+        if (_pools.TryAdd(bufferSize, BufferPoolShared.GetOrCreatePool(bufferSize, initialCapacity)))
         {
             this.UpdateSortedKeys();
         }
@@ -139,28 +140,48 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <exception cref="InvalidOperationException">Thrown when the selected pool key no longer resolves to a backing pool.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] RentBuffer(int size)
+    public ArraySegment<byte> RentBuffer(int size)
     {
-        int poolSize = this.FindSuitablePoolSize(size);
-        if (poolSize == 0)
+        int initialPoolSize = this.FindSuitablePoolSize(size);
+        if (initialPoolSize == 0)
         {
             throw new ArgumentException($"Requested size too large: size={size}");
         }
 
-        if (!_pools.TryGetValue(poolSize, out BufferPoolShared? pool))
+        // Escalation Renting: lock-free lookup via local snapshot of sorted keys.
+        int[] keys = _sortedKeys;
+        int startIndex = Array.BinarySearch(keys, initialPoolSize);
+        if (startIndex < 0)
         {
-            throw new InvalidOperationException(
-    $"Buffer pool not found: size={poolSize}.");
+            startIndex = ~startIndex;
         }
 
-        byte[] buffer = pool.AcquireBuffer();
-
-        if (this.AdjustCounter(poolSize, isRent: true))
+        for (int i = startIndex; i < keys.Length; i++)
         {
-            this.EvaluateResize(pool);
+            int currentPoolSize = keys[i];
+            if (_pools.TryGetValue(currentPoolSize, out BufferPoolShared? pool) &&
+                pool.TryAcquireBuffer(out ArraySegment<byte> buffer))
+            {
+                if (this.AdjustCounter(currentPoolSize, isRent: true))
+                {
+                    this.EvaluateResize(pool);
+                }
+                return buffer;
+            }
         }
 
-        return buffer;
+        // All managed pools exhausted — use ArrayPool fallback via the best-fit pool.
+        if (_pools.TryGetValue(initialPoolSize, out BufferPoolShared? originalPool))
+        {
+            if (this.AdjustCounter(initialPoolSize, isRent: true))
+            {
+                this.EvaluateResize(originalPool);
+            }
+
+            return originalPool.AcquireBuffer();
+        }
+
+        throw new InvalidOperationException($"Buffer pool not found for size {initialPoolSize}.");
     }
 
     /// <summary>
@@ -170,21 +191,23 @@ internal sealed class BufferPoolCollection : IDisposable
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> does not match any managed pool size.</exception>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ReturnBuffer(byte[]? buffer)
+    public void ReturnBuffer(ArraySegment<byte> buffer)
     {
-        if (buffer is null)
+        if (buffer.Array is null)
         {
             return;
         }
 
-        if (!_pools.TryGetValue(buffer.Length, out BufferPoolShared? pool))
+        // Route to the pool that manages this exact segment size.
+        if (!_pools.TryGetValue(buffer.Count, out BufferPoolShared? pool))
         {
-            throw new ArgumentException($"Invalid buffer size: {buffer.Length}.");
+            // Size doesn't match any managed pool — silently drop (GC will collect).
+            return;
         }
 
         pool.ReleaseBuffer(buffer);
 
-        if (this.AdjustCounter(buffer.Length, isRent: false))
+        if (this.AdjustCounter(buffer.Count, isRent: false))
         {
             this.EvaluateResize(pool);
         }
@@ -410,45 +433,21 @@ internal sealed class BufferPoolCollection : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindSuitablePoolSize(int size)
     {
-        _keysLock.EnterReadLock();
-        try
+        // Using a local reference to the volatile array enables lock-free lookup.
+        int[] keys = _sortedKeys;
+        if (keys.Length == 0)
         {
-            Span<int> keys = MemoryExtensions.AsSpan(_sortedKeys);
-
-            if (keys.Length == 0)
-            {
-                return 0;
-            }
-
-            if (size <= keys[0])
-            {
-                return keys[0];
-            }
-
-            if (size > keys[^1])
-            {
-                return 0;
-            }
-
-            int index = MemoryExtensions.BinarySearch(keys, size);
-
-            if (index >= 0)
-            {
-                return keys[index];
-            }
-            else if (~index < keys.Length)
-            {
-                return keys[~index];
-            }
-            else
-            {
-                return 0;
-            }
+            return 0;
         }
-        finally
+
+        int index = Array.BinarySearch(keys, size);
+        if (index >= 0)
         {
-            _keysLock.ExitReadLock();
+            return keys[index];
         }
+
+        index = ~index;
+        return index < keys.Length ? keys[index] : 0;
     }
 
     #endregion Lookup

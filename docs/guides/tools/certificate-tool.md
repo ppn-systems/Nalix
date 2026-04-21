@@ -29,13 +29,15 @@ dotnet run --project Nalix.Certificate.csproj
 
 ### Output Files
 
-By default, the tool saves two files to your system's standardized configuration directory:
+By default, the tool saves two files to your application's identity directory:
 
 1.  **`certificate.private`**: Contains the private key. **KEEP THIS SECRET.**
-2.  **`certificate.public`**: Contains the public key. This can be safely shared or embedded in client applications.
+2.  **`certificate.public`**: Contains the public key hash. This is used for server identity validation.
 
-!!! tip "Standard Paths"
-    On Windows, the default path is usually `%APPDATA%\Nalix\Config\`.
+!!! tip "Standard Paths (Framework Directories API)"
+    Nalix uses a standardized path resolution strategy based on the `Directories` API:
+    - **Windows**: `%LOCALAPPDATA%\Nalix\Config\`
+    - **Linux/macOS**: `~/.local/share/Nalix/Config/`
 
 ### Force Overwrite
 
@@ -60,12 +62,17 @@ dotnet run --project Nalix.Certificate.csproj -- --force
 
 ## ⚙️ Server Configuration
 
-Once generated, you can load these keys into your Nalix server configuration:
+Once generated, the Nalix server's `HandshakeHandlers` will automatically attempt to load the identity from the standard path. You do not typically need to configure this manually unless using a custom path:
 
 ```csharp
-var options = new ServerOptions();
-options.Security.IdentityFile = "Path/To/certificate.private";
+builder.ConfigureHandshake(options => {
+    // Optional: Overwrite default identity path
+    options.IdentityPath = "/custom/path/certificate.private";
+});
 ```
+
+!!! info "Security Enforcement"
+    If no identity is found, the server will throw a `NetworkException` at startup. Anonymous handshakes are not permitted.
 
 ---
 

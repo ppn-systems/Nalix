@@ -29,7 +29,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
 {
     #region Fields
 
-    private PacketContext<TPacket>? _context;
+    private IPacketContext<TPacket>? _context;
 
 #if DEBUG
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
@@ -55,24 +55,19 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     public void ResetForPool() => _context = null;
 
     /// <inheritdoc/>
-    public void Initialize(PacketContext<TPacket> context) => _context = context ?? throw new ArgumentNullException(nameof(context));
+    public void Initialize(IPacketContext<TPacket> context) => _context = context ?? throw new ArgumentNullException(nameof(context));
 
     /// <inheritdoc/>
-    public ValueTask SendAsync(
-        TPacket packet,
-        CancellationToken ct = default)
+    public ValueTask SendAsync(TPacket packet, CancellationToken ct = default)
     {
-        PacketContext<TPacket> context = this.GET_CONTEXT_OR_THROW();
+        PacketContext<TPacket> context = (PacketContext<TPacket>)this.GET_CONTEXT_OR_THROW();
         bool needEncrypt = context.Attributes.Encryption?.IsEncrypted ?? false;
 
         return PacketSender<TPacket>.SEND_CORE_ASYNC(context, packet, needEncrypt, ct);
     }
 
     /// <inheritdoc/>
-    public ValueTask SendAsync(
-        TPacket packet,
-        bool forceEncrypt,
-        CancellationToken ct = default)
+    public ValueTask SendAsync(TPacket packet, bool forceEncrypt, CancellationToken ct = default)
         => PacketSender<TPacket>.SEND_CORE_ASYNC(this.GET_CONTEXT_OR_THROW(), packet, forceEncrypt, ct);
 
     #endregion APIs
@@ -80,7 +75,7 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
     #region Private Methods
 
     private static async ValueTask SEND_CORE_ASYNC(
-        PacketContext<TPacket> context,
+        IPacketContext<TPacket> context,
         TPacket packet,
         bool needEncrypt,
         CancellationToken ct)
@@ -131,11 +126,11 @@ public sealed class PacketSender<TPacket> : IPacketSender<TPacket>, IPoolable wh
         }
     }
 
-    private static IConnection.ITransport GetTransport(PacketContext<TPacket> context) =>
+    private static IConnection.ITransport GetTransport(IPacketContext<TPacket> context) =>
         // BUG-76: Reply via the same transport the packet came from.
         !context.IsReliable ? context.Connection.UDP : context.Connection.TCP;
 
-    private PacketContext<TPacket> GET_CONTEXT_OR_THROW()
+    private IPacketContext<TPacket> GET_CONTEXT_OR_THROW()
         => _context ?? throw new InternalErrorException($"{nameof(PacketSender<>)} must be initialized before sending.");
 
     #endregion Private Methods

@@ -117,8 +117,9 @@ public sealed class ConnectionHub : IConnectionHub
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
-        _sessionStore = sessionStore ?? new InMemorySessionStore();
         _logger = logger;
+        _sessionStore = sessionStore ?? new InMemorySessionStore();
+
         _maxConnections = _options.MaxConnections;
         _shardCount = Math.Max(1, _options.ShardCount);
         _isPowerOfTwoShardCount = (_shardCount & (_shardCount - 1)) == 0;
@@ -636,6 +637,11 @@ public sealed class ConnectionHub : IConnectionHub
 
         _disposed = true;
         this.CloseAllConnections("disposed");
+
+        if (_sessionStore is IDisposable disposableStore)
+        {
+            disposableStore.Dispose();
+        }
 
         _logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
     }
