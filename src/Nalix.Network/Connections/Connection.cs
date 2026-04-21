@@ -45,6 +45,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     private long _argsPoolMask; // Bitmask for free/busy status.
     private long _contextPoolMask;
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
+    private int _isDispatchingClose; // 0=no, 1=yes
 
     private IObjectMap<string, object>? _attributes;
     private IConnection.ITransport? _tcp;
@@ -239,21 +240,25 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         if (previousState == 0)
         {
             // We are the primary disposer.
+            bool signaledHere = false;
             try
             {
                 // Signal that we are closing but NOT yet fully disposed.
                 // This allows event handlers (like session persistence) to still read attributes.
-                if (_onCloseEvent != null && Interlocked.Exchange(ref _closeSignaled, 1) == 0)
+                if (Interlocked.Exchange(ref _closeSignaled, 1) == 0)
                 {
-                    ConnectionEventArgs closeArgs = new(this);
-
-                    try
+                    signaledHere = true;
+                    if (_onCloseEvent != null)
                     {
-                        _onCloseEvent?.Invoke(this, closeArgs);
-                    }
-                    finally
-                    {
-                        closeArgs.Dispose();
+                        ConnectionEventArgs closeArgs = new(this);
+                        try
+                        {
+                            _onCloseEvent.Invoke(this, closeArgs);
+                        }
+                        finally
+                        {
+                            closeArgs.Dispose();
+                        }
                     }
                 }
             }
@@ -264,14 +269,17 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             finally
             {
                 // Now that all handlers have finished, we can proceed to the destructive phase.
-                this.PerformDestructiveCleanup();
+                // But only if we are the ones who signaled the close AND there is no bridge dispatch running.
+                // If a bridge dispatch is running, it will handle cleanup in its own finally block.
+                if (signaledHere && Volatile.Read(ref _isDispatchingClose) == 0)
+                {
+                    this.PerformDestructiveCleanup();
+                }
             }
             return;
         }
 
         // If we are already in state 1 (Closing) or 2 (Disposed), we just return.
-        // This handles the recursive call from TcpListenerBase.HandleConnectionClose
-        // without prematurely setting _disposed = true.
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -280,12 +288,14 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     {
         lock (_lock)
         {
-            if (_disposed)
+            if (Volatile.Read(ref _disposeState) == 2)
             {
                 return;
             }
 
-            _disposed = true;
+            // Important: we don't set _disposed = true until the end,
+            // but we must mark state as 2 immediately to prevent concurrent cleanup.
+            Volatile.Write(ref _disposeState, 2);
         }
 
         try
@@ -345,7 +355,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
         finally
         {
-            Volatile.Write(ref _disposeState, 2);
+            _disposed = true;
         }
 
         GC.SuppressFinalize(this);
@@ -537,24 +547,29 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static void OnCloseEventDispatchBridge(object? sender, IConnectEventArgs e)
     {
-        if (e is null)
+        if (e is null || sender is not Connection self)
         {
-            return;
-        }
-
-        if (sender is not Connection self)
-        {
-            e.Dispose();
+            e?.Dispose();
             return;
         }
 
         try
         {
+            _ = Interlocked.Exchange(ref self._isDispatchingClose, 1);
             self._onCloseEvent?.Invoke(self, e);
         }
         finally
         {
+            _ = Interlocked.Exchange(ref self._isDispatchingClose, 0);
             e.Dispose();
+
+            // If the socket signaled the close (via bridge) and Dispose() was never called
+            // by the user, OR if it was called but skipped cleanup because it saw
+            // the bridge was already signaled, we ensure cleanup happens here.
+            if (Volatile.Read(ref self._disposeState) != 2)
+            {
+                self.PerformDestructiveCleanup();
+            }
         }
     }
 

@@ -49,7 +49,7 @@ public static class ResumeExtensions
         _ = session.Options.SessionToken.TryWriteBytes(tokenBytes);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
-        HmacKeccak256.Compute(session.Options.Secret.AsSpan(), tokenBytes[..7], proofBytes);
+        HmacKeccak256.Compute(session.Options.Secret.AsSpan(), tokenBytes, proofBytes);
         request.Proof = new Bytes32(proofBytes);
 
         try

@@ -35,7 +35,7 @@ public readonly partial struct Snowflake
     /// <param name="bytes">The byte span containing the identifier data in little-endian format.</param>
     /// <returns>A reconstructed <see cref="Snowflake"/> instance.</returns>
     /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (7) bytes.
+    /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (8) bytes.
     /// </exception>
     /// <remarks>
     /// This method deserializes a <see cref="Snowflake"/> from a byte representation.
