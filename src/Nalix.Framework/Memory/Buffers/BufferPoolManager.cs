@@ -60,10 +60,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         private readonly int _size;
         private bool _returned;
 
-        public BufferSentinel(int size)
+        public BufferSentinel(int size, bool captureStackTrace)
         {
             _size = size;
-            _stackTrace = System.Environment.StackTrace;
+            _stackTrace = captureStackTrace ? System.Environment.StackTrace : "<stacktrace-disabled>";
             _ = Interlocked.Increment(ref s_totalRented);
         }
 
@@ -305,7 +305,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
 #if DEBUG
-        _ = s_activeSentinels.GetValue(segment.Array, static arr => new BufferSentinel(arr.Length));
+        _ = s_activeSentinels.GetValue(segment.Array, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
 #endif
 
         // Return the underlying slab array. Callers use offset=0..Count.

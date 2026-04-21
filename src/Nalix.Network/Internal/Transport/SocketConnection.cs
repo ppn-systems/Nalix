@@ -646,15 +646,11 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             //    longer use it.
             if (_recvCtx is not null)
             {
-                if (receiveLoopStopped)
-                {
-                    s_pool.Return(_recvCtx);
-                }
-                else
-                {
-                    _logger?.Warn(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] recvctx-not-returned ep={FORMAT_ENDPOINT(_socket)}");
-                }
+                // Always dispose/return context. PooledSocketReceiveContext.Dispose() 
+                // contains defensive wait logic to ensure kernel marks SAEA as idle.
+                // Not returning it here caused the approx 524 object leak identified in stress tests.
+                _recvCtx.Dispose();
+                s_pool.Return(_recvCtx);
 
                 _recvCtx = null!;
             }

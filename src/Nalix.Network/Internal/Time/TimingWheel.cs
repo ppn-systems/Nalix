@@ -85,9 +85,10 @@ internal sealed class TimingWheel : IActivatable
     private readonly bool _useMask;
 
     /// <summary>
-    /// One queue per bucket (MPSC; producers = Register/reschedules, consumer = RunLoop).
+    /// One bucket per slot in the timing wheel. 
+    /// Uses a custom MPSC structure to avoid the overhead of ConcurrentQueue.
     /// </summary>
-    private readonly ConcurrentQueue<TimeoutTask>[] _wheel;
+    private readonly MpscBucket[] _wheel;
 
     /// <summary>
     /// Maps each active connection to the <em>expected</em> version of its live <see cref="TimeoutTask"/>.
@@ -121,27 +122,49 @@ internal sealed class TimingWheel : IActivatable
     /// </summary>
     private sealed class TimeoutTask : IPoolable
     {
-        /// <summary>The connection being monitored.</summary>
         public IConnection? Conn;
-
-        /// <summary>
-        /// Number of full wheel revolutions remaining before the task fires.
-        /// </summary>
         public int Rounds;
-
-        /// <summary>
-        /// Monotonically increasing counter. Incremented on every re-schedule.
-        /// <see cref="RUN_LOOP"/> discards this task when its <c>Version</c> no longer matches
-        /// the value stored in <c>_active</c> for the same connection.
-        /// </summary>
         public int Version;
 
-        /// <summary>Resets all fields before returning to the pool.</summary>
+        /// <summary>
+        /// Pointer used by the MPSC bucket structure to maintain a linked list 
+        /// without per-enqueue allocations.
+        /// </summary>
+        internal TimeoutTask? Next;
+
         public void ResetForPool()
         {
             Conn = null;
             Rounds = 0;
             Version = 0;
+            Next = null;
+        }
+    }
+
+    /// <summary>
+    /// A lightweight, lock-free Multi-Producer Single-Consumer bucket.
+    /// Producers enqueue new tasks atomically via Interlocked.Exchange.
+    /// The timing wheel (consumer) drains the entire bucket in O(1).
+    /// </summary>
+    private struct MpscBucket
+    {
+        private TimeoutTask? _head;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Enqueue(TimeoutTask task)
+        {
+            TimeoutTask? oldHead;
+            do
+            {
+                oldHead = Volatile.Read(ref _head);
+                task.Next = oldHead;
+            } while (Interlocked.CompareExchange(ref _head, task, oldHead) != oldHead);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeoutTask? DequeueAll()
+        {
+            return Interlocked.Exchange(ref _head, null);
         }
     }
 
@@ -175,11 +198,7 @@ internal sealed class TimingWheel : IActivatable
         _useMask = (_wheelSize & (_wheelSize - 1)) == 0 && _wheelSize > 0;
         _mask = _useMask ? (_wheelSize - 1) : 0;
 
-        _wheel = new ConcurrentQueue<TimeoutTask>[_wheelSize];
-        for (int i = 0; i < _wheelSize; i++)
-        {
-            _wheel[i] = new ConcurrentQueue<TimeoutTask>();
-        }
+        _wheel = new MpscBucket[_wheelSize];
 
         // Value = expected Version of the live task for this connection.
         _active = new ConcurrentDictionary<IConnection, int>(
@@ -433,14 +452,17 @@ internal sealed class TimingWheel : IActivatable
                     // their destination bucket based on the current logical time.
                     _ = Interlocked.Exchange(ref _tick, tickToProcess);
 
-                    ConcurrentQueue<TimeoutTask> queue = _wheel[bucketIndex];
+                    TimeoutTask? task = _wheel[bucketIndex].DequeueAll();
 
-                    while (queue.TryDequeue(out TimeoutTask? task))
+                    while (task is not null)
                     {
+                        TimeoutTask? next = task.Next;
+
                         // ── Defensive null-guard ──────────────────────────────────────────
                         if (task.Conn is null)
                         {
                             s_poolManager.Return(task);
+                            task = next;
                             continue;
                         }
 
@@ -449,6 +471,7 @@ internal sealed class TimingWheel : IActivatable
                             || liveVersion != task.Version)
                         {
                             s_poolManager.Return(task);
+                            task = next;
                             continue;
                         }
 
@@ -456,7 +479,8 @@ internal sealed class TimingWheel : IActivatable
                         if (task.Rounds > 0)
                         {
                             task.Rounds--;
-                            queue.Enqueue(task);
+                            _wheel[bucketIndex].Enqueue(task);
+                            task = next;
                             continue;
                         }
 
@@ -482,6 +506,7 @@ internal sealed class TimingWheel : IActivatable
 
                             _ = _active.TryRemove(task.Conn, out _);
                             s_poolManager.Return(task);
+                            task = next;
                             continue;
                         }
 
@@ -499,6 +524,8 @@ internal sealed class TimingWheel : IActivatable
 
                         _active[task.Conn] = newVersion;
                         _wheel[nextBucket].Enqueue(task);
+                        
+                        task = next;
                     }
 
                     ctx.Advance(1);
@@ -537,9 +564,11 @@ internal sealed class TimingWheel : IActivatable
     {
         for (int i = 0; i < _wheel.Length; i++)
         {
-            ConcurrentQueue<TimeoutTask> queue = _wheel[i];
-            while (queue.TryDequeue(out TimeoutTask? task))
+            TimeoutTask? task = _wheel[i].DequeueAll();
+            while (task is not null)
             {
+                TimeoutTask? next = task.Next;
+
                 // Only return tasks that still own a live connection reference.
                 // Tasks already returned by the loop or a concurrent path have Conn
                 // cleared, so they should be ignored here.
@@ -547,6 +576,8 @@ internal sealed class TimingWheel : IActivatable
                 {
                     s_poolManager.Return(task);
                 }
+
+                task = next;
             }
         }
     }

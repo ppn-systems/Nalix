@@ -131,6 +131,14 @@ public sealed class BufferConfig : ConfigurationLoader
     [Range(0, long.MaxValue, ErrorMessage = "MaxMemoryBytes cannot be negative.")]
     public long MaxMemoryBytes { get; set; } = 0;
 
+    /// <summary>
+    /// Enables capturing stack traces for buffer leaks (DEBUG only).
+    /// capturing stack trace is extremely expensive and should be disabled 
+    /// during high-concurrency benchmarks.
+    /// </summary>
+    [IniComment("Enable expensive stack trace capture for buffer leak detection (DEBUG only)")]
+    public bool EnableBufferLeakStackTrace { get; set; } = false;
+
     #endregion Properties
 
     /// <summary>
