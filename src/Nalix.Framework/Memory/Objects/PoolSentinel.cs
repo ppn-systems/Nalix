@@ -15,6 +15,7 @@ internal sealed class PoolSentinel
 {
     private static long s_totalLeaked;
 
+    private readonly WeakReference<object> _weakTarget;
     private readonly Type _objectType;
     private readonly long _rentTimestamp;
     private readonly string? _stackTrace;
@@ -36,11 +37,22 @@ internal sealed class PoolSentinel
     public string? StackTrace => _stackTrace;
 
     /// <summary>
+    /// Gets the type of the pooled object.
+    /// </summary>
+    public Type ObjectType => _objectType;
+
+    /// <summary>
+    /// Gets if the target is still alive.
+    /// </summary>
+    public bool IsAlive => _weakTarget.TryGetTarget(out _);
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PoolSentinel"/> class.
     /// </summary>
-    public PoolSentinel(Type objectType, bool captureStackTrace)
+    public PoolSentinel(object target, bool captureStackTrace)
     {
-        _objectType = objectType;
+        _weakTarget = new WeakReference<object>(target);
+        _objectType = target.GetType();
         _rentTimestamp = Stopwatch.GetTimestamp();
         
         if (captureStackTrace)
@@ -48,6 +60,11 @@ internal sealed class PoolSentinel
             _stackTrace = Environment.StackTrace;
         }
     }
+
+    /// <summary>
+    /// Gets if the associated object has been returned to the pool.
+    /// </summary>
+    public bool IsReturned => _returned;
 
     /// <summary>
     /// Marks the associated object as returned to the pool.

@@ -10,8 +10,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Pools;
+using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Memory.Objects;
 
@@ -50,6 +52,17 @@ public sealed class ObjectPoolManager : IReportable
         /// Number of objects currently checked out (Get without Return)
         /// </summary>
         public long Outstanding;
+
+        /// <summary>
+        /// Maximum concurrent outstanding objects recorded.
+        /// </summary>
+        public long PeakOutstanding;
+
+        // Diagnostic Metrics (Only populated when diagnostics enabled)
+        public long TotalLifetimeTicks;
+        public long MaxLifetimeTicks;
+        public long[]? LifetimeReservoir;
+        public int ReservoirIndex;
     }
 
     #endregion Nested Types
@@ -65,6 +78,21 @@ public sealed class ObjectPoolManager : IReportable
     /// Per-pool metrics tracking
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, PoolMetrics> _metricsDict = new();
+
+    /// <summary>
+    /// Configuration for object pool diagnostics.
+    /// </summary>
+    private readonly ObjectPoolConfig _config;
+
+    /// <summary>
+    /// Tracks active sentinels for lifetime and leak detection.
+    /// </summary>
+    private readonly ConditionalWeakTable<object, PoolSentinel> _activeSentinels = new();
+
+    /// <summary>
+    /// Tracks weak references to sentinels for scanning.
+    /// </summary>
+    private readonly System.Collections.Concurrent.ConcurrentBag<WeakReference<PoolSentinel>> _sentinelTracker = new();
 
     // Configuration
 
@@ -155,7 +183,11 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Initializes a new instance of the <see cref="ObjectPoolManager"/> class.
     /// </summary>
-    public ObjectPoolManager() => _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
+    public ObjectPoolManager()
+    {
+        _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
+        _config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+    }
 
     #endregion Constructor
 
@@ -195,7 +227,29 @@ public sealed class ObjectPoolManager : IReportable
         _ = Interlocked.Increment(ref metrics.TotalGets);
 
         // Track outstanding objects so we can detect leaks (Gets - Returns)
-        _ = Interlocked.Increment(ref metrics.Outstanding);
+        long outstanding = Interlocked.Increment(ref metrics.Outstanding);
+
+        // Update peak outstanding (Always-On)
+        long currentPeak;
+        while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
+        {
+            if (Interlocked.CompareExchange(ref metrics.PeakOutstanding, outstanding, currentPeak) == currentPeak)
+            {
+                break;
+            }
+        }
+
+        // Diagnostics Path
+        if (_config.EnableDiagnostics)
+        {
+            PoolSentinel sentinel = new(result, _config.CaptureStackTraces);
+            
+            // CWT keeps sentinel alive as long as 'result' is alive
+            _activeSentinels.AddOrUpdate(result, sentinel);
+            
+            // Bag allows us to iterate (using weak ref to not anchor the sentinel/object)
+            _sentinelTracker.Add(new WeakReference<PoolSentinel>(sentinel));
+        }
 
         return result;
     }
@@ -217,6 +271,37 @@ public sealed class ObjectPoolManager : IReportable
 
         Type type = typeof(T);
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
+
+        // Diagnostics Path
+        if (_config.EnableDiagnostics && _activeSentinels.TryGetValue(obj, out PoolSentinel? sentinel))
+        {
+            sentinel.MarkReturned();
+            _activeSentinels.Remove(obj);
+
+            long elapsedTicks = System.Diagnostics.Stopwatch.GetTimestamp() - sentinel.RentTimestamp;
+            _ = Interlocked.Add(ref metrics.TotalLifetimeTicks, elapsedTicks);
+
+            long currentMax;
+            while (elapsedTicks > (currentMax = Interlocked.Read(ref metrics.MaxLifetimeTicks)))
+            {
+                if (Interlocked.CompareExchange(ref metrics.MaxLifetimeTicks, elapsedTicks, currentMax) == currentMax)
+                {
+                    break;
+                }
+            }
+
+            // Update reservoir for p95
+            if (metrics.LifetimeReservoir == null)
+            {
+                Interlocked.CompareExchange(ref metrics.LifetimeReservoir, new long[_config.LifetimeReservoirSize], null);
+            }
+
+            if (metrics.LifetimeReservoir != null)
+            {
+                int index = Interlocked.Increment(ref metrics.ReservoirIndex) % metrics.LifetimeReservoir.Length;
+                metrics.LifetimeReservoir[index] = elapsedTicks;
+            }
+        }
 
         pool.Return(obj);
 
@@ -353,9 +438,40 @@ public sealed class ObjectPoolManager : IReportable
             info["LastAccessUtc"] = metrics.LastAccessUtc;
             info["LastAccessType"] = metrics.LastAccessType ?? "None";
             info["Outstanding"] = metrics.Outstanding;
+            info["PeakOutstanding"] = metrics.PeakOutstanding;
+
+            if (_config.EnableDiagnostics)
+            {
+                double avgMs = metrics.TotalGets > 0 
+                    ? (metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0)
+                    : 0;
+                double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
+                
+                info["AvgLifetimeMs"] = avgMs;
+                info["MaxLifetimeMs"] = maxMs;
+                info["p95LifetimeMs"] = this.CalculateP95(metrics);
+            }
         }
 
         return info;
+    }
+
+    private double CalculateP95(PoolMetrics metrics)
+    {
+        long[]? reservoir = metrics.LifetimeReservoir;
+        if (reservoir == null || metrics.TotalReturns == 0)
+        {
+            return 0;
+        }
+
+        // Copy and sort for percentile calculation (diagnostic only, so allocation is OK)
+        long[] samples = new long[reservoir.Length];
+        Array.Copy(reservoir, samples, reservoir.Length);
+        Array.Sort(samples);
+
+        // Find the 95th percentile
+        int index = (int)(samples.Length * 0.95);
+        return samples[index] / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
     }
 
     /// <summary>Clears all objects from a specific type's pool.</summary>
@@ -536,6 +652,11 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Get Operations   : {this.TotalGetOperations:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Return Operations: {this.TotalReturnOperations:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Net Objects            : {this.TotalGetOperations - this.TotalReturnOperations:N0}");
+
+        if (_config.EnableDiagnostics && _config.EnableLeakDetection)
+        {
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GC Leak Detected       : {PoolSentinel.TotalLeaked:N0} objects");
+        }
         _ = sb.AppendLine();
 
         // Cache Performance
@@ -580,7 +701,7 @@ public sealed class ObjectPoolManager : IReportable
             int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"], CultureInfo.InvariantCulture);
             int available = Convert.ToInt32(typeInfo["AvailableCount"], CultureInfo.InvariantCulture);
 
-            long gets = 0, hits = 0, misses = 0;
+            long gets = 0, hits = 0, misses = 0, peak = 0;
             double hitPercent = 0.0;
             string status = "OK";
 
@@ -589,6 +710,7 @@ public sealed class ObjectPoolManager : IReportable
                 gets = metrics.TotalGets;
                 hits = metrics.CacheHits;
                 misses = metrics.CacheMisses;
+                peak = metrics.PeakOutstanding;
                 hitPercent = gets > 0 ? (hits / (double)gets * 100.0) : 0.0;
 
                 if (metrics.ConsecutiveFailures > 0)
@@ -598,10 +720,24 @@ public sealed class ObjectPoolManager : IReportable
             }
 
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {available,9} | {maxCap,7} | {gets,7} | {hits,7} | {misses,7} | {hitPercent,6:F1}% | {status}");
+            
+            if (_config.EnableDiagnostics && metrics != null && metrics.TotalReturns > 0)
+            {
+                double avgMs = (metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0);
+                double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
+                double p95Ms = this.CalculateP95(metrics);
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                         | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2} | Peak Active: {peak}");
+            }
         }
 
         _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
+
+        // Suspicious Objects Section
+        if (_config.EnableDiagnostics)
+        {
+            this.AppendSuspiciousObjects(sb);
+        }
 
         // Pool Health Details
         if (this.UnhealthyPoolCount > 0)
@@ -755,6 +891,64 @@ public sealed class ObjectPoolManager : IReportable
         _ = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
         return pool;
+    }
+
+    private void AppendSuspiciousObjects(StringBuilder sb)
+    {
+        _ = sb.AppendLine("Suspicious Objects (Outstanding > " + _config.SuspiciousThresholdSeconds + "s):");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("TYPE                     | Elapsed (s) | Stack Trace (first line)");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        long thresholdTicks = (long)(_config.SuspiciousThresholdSeconds * System.Diagnostics.Stopwatch.Frequency);
+        int found = 0;
+
+        // ConcurrentBag iteration is thread-safe snapshot
+        foreach (WeakReference<PoolSentinel> weakRef in _sentinelTracker)
+        {
+            if (weakRef.TryGetTarget(out PoolSentinel? sentinel))
+            {
+                if (sentinel.IsReturned)
+                {
+                    continue;
+                }
+
+                long elapsed = now - sentinel.RentTimestamp;
+                if (elapsed >= thresholdTicks)
+                {
+                    found++;
+                    double elapsedSec = elapsed / (double)System.Diagnostics.Stopwatch.Frequency;
+
+                    string typeName = sentinel.ObjectType.Name.Length > 24
+                        ? $"{sentinel.ObjectType.Name.AsSpan(0, 21)}..."
+                        : sentinel.ObjectType.Name.PadRight(24);
+
+                    string stack = "N/A (CaptureStackTraces=false)";
+                    if (!string.IsNullOrEmpty(sentinel.StackTrace))
+                    {
+                        int firstLineEnd = sentinel.StackTrace.IndexOf('\n');
+                        stack = firstLineEnd > 0 ? sentinel.StackTrace.Substring(0, firstLineEnd).Trim() : sentinel.StackTrace;
+                    }
+
+                    _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {elapsedSec,11:F1} | {stack}");
+                }
+            }
+            
+            if (found >= 20) 
+            {
+                _ = sb.AppendLine("... (top 20 results shown)");
+                break;
+            }
+        }
+
+        if (found == 0)
+        {
+            _ = sb.AppendLine("(None detected)");
+        }
+        
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine();
     }
 
     #endregion APIs
