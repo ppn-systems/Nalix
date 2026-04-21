@@ -664,7 +664,7 @@ public abstract partial class TcpListenerBase
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
                 {
                     // Token cancelled -> shutdown graceful -> exit loop.
-                    s_logger?.Trace(
+                    s_logger.Trace(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
                         $"shutdown-requested port={_port}");
                 }
