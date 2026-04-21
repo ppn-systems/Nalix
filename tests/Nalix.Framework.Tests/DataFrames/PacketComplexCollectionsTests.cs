@@ -21,7 +21,7 @@ public sealed class PacketComplexCollectionsTests
         {
             IntList = [1, 2, 3],
             StringLongDict = new Dictionary<string, long> { ["a"] = 100L, ["b"] = 200L },
-            StringQueue = new Queue<string>(new[] { "q1", "q2" }),
+            StringQueue = new Queue<string>(["q1", "q2"]),
             FloatSet = [1.1f, 2.2f],
             Tuple3 = (42, "hello", true),
             SequenceId = 1234
@@ -43,12 +43,12 @@ public sealed class PacketComplexCollectionsTests
         Assert.Equal(input.StringLongDict, output.StringLongDict);
         Assert.Equal(input.FloatSet, output.FloatSet);
         Assert.Equal(input.Tuple3, output.Tuple3);
-        
+
         // Queue validation (order is preserved by List-based serialization of collections usually)
-        Assert.Equal(input.StringQueue.Count, output.StringQueue.Count);
+        Assert.Equal(input.StringQueue.Count, output.StringQueue?.Count);
         while (input.StringQueue.Count > 0)
         {
-            Assert.Equal(input.StringQueue.Dequeue(), output.StringQueue.Dequeue());
+            Assert.Equal(input.StringQueue.Dequeue(), output.StringQueue?.Dequeue());
         }
     }
 
@@ -59,7 +59,7 @@ public sealed class PacketComplexCollectionsTests
         {
             IntList = [1, 2, 3],
             StringLongDict = new Dictionary<string, long> { ["a"] = 1 },
-            StringQueue = new Queue<string>(new[] { "q1" }),
+            StringQueue = new Queue<string>(["q1"]),
             FloatSet = [1.1f],
             Tuple3 = (1, "s", true)
         };
@@ -84,7 +84,7 @@ public sealed class PacketComplexCollectionsTests
             IntList = null,
             StringLongDict = null
         };
-        var outputNull = ComplexCollectionPacket.Deserialize(nullPacket.Serialize());
+        ComplexCollectionPacket outputNull = ComplexCollectionPacket.Deserialize(nullPacket.Serialize());
         Assert.Null(outputNull.IntList);
         Assert.Null(outputNull.StringLongDict);
 
@@ -94,7 +94,7 @@ public sealed class PacketComplexCollectionsTests
             IntList = [],
             StringLongDict = []
         };
-        var outputEmpty = ComplexCollectionPacket.Deserialize(emptyPacket.Serialize());
+        ComplexCollectionPacket outputEmpty = ComplexCollectionPacket.Deserialize(emptyPacket.Serialize());
         Assert.NotNull(outputEmpty.IntList);
         Assert.Empty(outputEmpty.IntList);
         Assert.NotNull(outputEmpty.StringLongDict);
@@ -116,7 +116,7 @@ public sealed class PacketComplexCollectionsTests
             packet.StringLongDict[$"{unicodeKey}_{i}"] = i;
         }
 
-        var output = ComplexCollectionPacket.Deserialize(packet.Serialize());
+        ComplexCollectionPacket output = ComplexCollectionPacket.Deserialize(packet.Serialize());
         Assert.Equal(1000, output.StringLongDict!.Count);
         Assert.Equal(999, output.StringLongDict[$"{unicodeKey}_999"]);
     }
@@ -127,7 +127,7 @@ public sealed class PacketComplexCollectionsTests
         GraphPacket root = new()
         {
             Name = "Root",
-            Nodes = 
+            Nodes =
             [
                 new GraphPacket { Name = "Child1", Meta = new NodeMeta { Id = 101 } },
                 new GraphPacket { Name = "Child2", Nodes = [ new GraphPacket { Name = "GrandChild" } ] }
@@ -137,7 +137,7 @@ public sealed class PacketComplexCollectionsTests
         byte[] serialized = root.Serialize();
         Assert.Equal(serialized.Length, root.Length); // Strict equality check
 
-        var output = GraphPacket.Deserialize(serialized);
+        GraphPacket output = GraphPacket.Deserialize(serialized);
 
         Assert.Equal("Root", output.Name);
         Assert.Equal(2, output.Nodes!.Count);
@@ -162,7 +162,7 @@ public sealed class PacketComplexCollectionsTests
             }
         };
 
-        var output = NestedCollectionPacket.Deserialize(packet.Serialize());
+        NestedCollectionPacket output = NestedCollectionPacket.Deserialize(packet.Serialize());
 
         Assert.NotNull(output.User);
         Assert.Equal("nalix_dev", output.User.Username);
@@ -186,7 +186,7 @@ public sealed class PacketComplexCollectionsTests
         byte[] serialized = packet.Serialize();
         Assert.Equal(serialized.Length, packet.Length); // Strict equality check
 
-        var output = ExtremeNestedPacket.Deserialize(serialized);
+        ExtremeNestedPacket output = ExtremeNestedPacket.Deserialize(serialized);
 
         Assert.Equal(3, output.Data!.Count);
         Assert.Equal([1, 2], output.Data[0]["a"]);
@@ -200,14 +200,14 @@ public sealed class PacketComplexCollectionsTests
         // Create a large packet (>100KB) to force DataWriter expansion
         LargeDataPacket packet = new()
         {
-            Payload = Enumerable.Range(0, 30000).Select(i => $"String_Data_Index_{i}").ToList()
+            Payload = [.. Enumerable.Range(0, 30000).Select(i => $"String_Data_Index_{i}")]
         };
 
-        var bytes = packet.Serialize();
+        byte[] bytes = packet.Serialize();
         Assert.True(bytes.Length > 100 * 1024, "Packet should be larger than 100KB.");
         Assert.Equal(bytes.Length, packet.Length); // Strict equality check
 
-        var output = LargeDataPacket.Deserialize(bytes);
+        LargeDataPacket output = LargeDataPacket.Deserialize(bytes);
         Assert.Equal(30000, output.Payload!.Count);
         Assert.Equal("String_Data_Index_29999", output.Payload[29999]);
     }
@@ -223,7 +223,7 @@ public sealed class PacketComplexCollectionsTests
         byte[] serialized = packet.Serialize();
         Assert.Equal(serialized.Length, packet.Length); // Strict equality check
 
-        var output = NullStressPacket.Deserialize(serialized);
+        NullStressPacket output = NullStressPacket.Deserialize(serialized);
 
         Assert.Equal("", output.Items![0]);
         Assert.Equal(" ", output.Items[1]);
@@ -241,11 +241,11 @@ public sealed class PacketComplexCollectionsTests
             Values = [float.NaN, float.PositiveInfinity, float.NegativeInfinity, float.Epsilon, float.MaxValue, float.MinValue]
         };
 
-        var bytes = packet.Serialize();
+        byte[] bytes = packet.Serialize();
         Console.WriteLine($"DEBUG: Packet Length Property={packet.Length}, Serialized Bytes={bytes.Length}");
         Assert.Equal(bytes.Length, packet.Length);
 
-        var output = FloatStressPacket.Deserialize(bytes);
+        FloatStressPacket output = FloatStressPacket.Deserialize(bytes);
         Assert.True(float.IsNaN(output.Values![0]));
         Assert.True(float.IsPositiveInfinity(output.Values[1]));
         Assert.True(float.IsNegativeInfinity(output.Values[2]));
@@ -259,7 +259,7 @@ public sealed class PacketComplexCollectionsTests
     {
         ObjectListPacket packet = new()
         {
-            Users = 
+            Users =
             [
                 new UserDetails { Username = "u1" },
                 null!,
@@ -268,10 +268,10 @@ public sealed class PacketComplexCollectionsTests
             ]
         };
 
-        var bytes = packet.Serialize();
+        byte[] bytes = packet.Serialize();
         Assert.Equal(bytes.Length, packet.Length);
 
-        var output = ObjectListPacket.Deserialize(bytes);
+        ObjectListPacket output = ObjectListPacket.Deserialize(bytes);
         Assert.Equal(4, output.Users!.Count);
         Assert.Equal("u1", output.Users[0]!.Username);
         Assert.Null(output.Users[1]);
@@ -284,7 +284,7 @@ public sealed class PacketComplexCollectionsTests
     {
         DeepListPacket packet = new()
         {
-            Matrix = 
+            Matrix =
             [
                 [ ["a", "b"], ["c"] ],
                 [],
@@ -292,10 +292,10 @@ public sealed class PacketComplexCollectionsTests
             ]
         };
 
-        var bytes = packet.Serialize();
+        byte[] bytes = packet.Serialize();
         Assert.Equal(bytes.Length, packet.Length);
 
-        var output = DeepListPacket.Deserialize(bytes);
+        DeepListPacket output = DeepListPacket.Deserialize(bytes);
         Assert.Equal(3, output.Matrix!.Count);
         Assert.Equal("b", output.Matrix[0][0][1]);
         Assert.Empty(output.Matrix[1]);
@@ -310,10 +310,10 @@ public sealed class PacketComplexCollectionsTests
             Priorities = [PacketPriority.URGENT, PacketPriority.LOW, PacketPriority.HIGH]
         };
 
-        var bytes = packet.Serialize();
+        byte[] bytes = packet.Serialize();
         Assert.Equal(bytes.Length, packet.Length);
 
-        var output = EnumListPacket.Deserialize(bytes);
+        EnumListPacket output = EnumListPacket.Deserialize(bytes);
         Assert.Equal(new[] { PacketPriority.URGENT, PacketPriority.LOW, PacketPriority.HIGH }, output.Priorities);
     }
 
@@ -325,9 +325,9 @@ public sealed class PacketComplexCollectionsTests
 
         // Corrupt the length of a string in the middle of the payload
         // This should cause a SerializationFailureException or ArgumentException
-        byte[] corrupted = validBytes.Take(validBytes.Length - 5).ToArray();
+        byte[] corrupted = [.. validBytes.Take(validBytes.Length - 5)];
 
-        Assert.ThrowsAny<Exception>(() => LargeDataPacket.Deserialize(corrupted));
+        _ = Assert.ThrowsAny<Exception>(() => LargeDataPacket.Deserialize(corrupted));
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
@@ -404,10 +404,10 @@ public sealed class PacketComplexCollectionsTests
         [SerializeOrder(4)]
         public (int Id, string Name, bool Active) Tuple3 { get; set; }
 
-        public static new ComplexCollectionPacket Deserialize(ReadOnlySpan<byte> buffer) 
+        public static new ComplexCollectionPacket Deserialize(ReadOnlySpan<byte> buffer)
             => PacketBase<ComplexCollectionPacket>.Deserialize(buffer);
     }
-    
+
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed class FloatStressPacket : PacketBase<FloatStressPacket>
     {

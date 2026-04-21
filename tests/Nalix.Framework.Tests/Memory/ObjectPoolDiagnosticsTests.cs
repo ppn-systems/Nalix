@@ -1,9 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Memory.Objects;
@@ -18,16 +15,16 @@ public sealed class ObjectPoolDiagnosticsTests
     public void Get_PeakOutstanding_AlwaysTracked()
     {
         ObjectPoolManager manager = new();
-        
+
         // Rent 3 items
-        var item1 = manager.Get<TestPoolable>();
-        var item2 = manager.Get<TestPoolable>();
-        var item3 = manager.Get<TestPoolable>();
-        
+        TestPoolable item1 = manager.Get<TestPoolable>();
+        TestPoolable item2 = manager.Get<TestPoolable>();
+        _ = manager.Get<TestPoolable>();
+
         Assert.Equal(3L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
-        
+
         // Rent 1 more to hit peak of 4
-        var item4 = manager.Get<TestPoolable>();
+        _ = manager.Get<TestPoolable>();
         Assert.Equal(4L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
 
         // Return 2, peak should still be 4
@@ -41,19 +38,19 @@ public sealed class ObjectPoolDiagnosticsTests
     public void GenerateReport_WithDiagnostics_IncludesLifetimeMetrics()
     {
         // Enable diagnostics
-        var config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
         config.EnableDiagnostics = true;
-        
-        try 
+
+        try
         {
             ObjectPoolManager manager = new();
-            
-            var item = manager.Get<TestPoolable>();
+
+            TestPoolable item = manager.Get<TestPoolable>();
             Thread.Sleep(10); // Simulate some work
             manager.Return(item);
-            
+
             string report = manager.GenerateReport();
-            
+
             Assert.Contains("Lifetime (ms)", report);
             Assert.Contains("Avg=", report);
             Assert.Contains("p95=", report);
@@ -68,18 +65,18 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void GenerateReport_SuspiciousObjects_Detected()
     {
-        var config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
         config.EnableDiagnostics = true;
         config.SuspiciousThresholdSeconds = 0; // Trigger immediately for test
-        
-        try 
+
+        try
         {
             ObjectPoolManager manager = new();
-            
-            var item = manager.Get<TestPoolable>();
-            
+
+            TestPoolable item = manager.Get<TestPoolable>();
+
             string report = manager.GenerateReport();
-            
+
             Assert.Contains("Suspicious Objects", report);
             Assert.Contains(nameof(TestPoolable), report);
         }
@@ -90,30 +87,32 @@ public sealed class ObjectPoolDiagnosticsTests
         }
     }
 
+
+#if DEBUG
     [Fact]
     public void Finalizer_LeakDetection_IncrementsCount()
     {
-        var config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
         config.EnableDiagnostics = true;
         config.EnableLeakDetection = true;
-        
-        try 
+
+        try
         {
             ObjectPoolManager manager = new();
-            
+
             // Rent and drop reference (leak)
-            CreateLeak(manager);
-            
+            this.CreateLeak(manager);
+
             // Force GC
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
-            
+
             string report = manager.GenerateReport();
             Assert.Contains("GC Leak Detected", report);
             // Note: TotalLeaked is static and might be > 0 from other tests, 
             // but in a fresh run it should be at least 1.
-            Assert.True(PoolSentinel.TotalLeaked > 0);
+            Assert.True(Framework.Memory.Internal.PoolTypes.PoolSentinel.TotalLeaked > 0);
         }
         finally
         {
@@ -123,8 +122,6 @@ public sealed class ObjectPoolDiagnosticsTests
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void CreateLeak(ObjectPoolManager manager)
-    {
-        _ = manager.Get<TestPoolable>();
-    }
+    private void CreateLeak(ObjectPoolManager manager) => _ = manager.Get<TestPoolable>();
+#endif
 }

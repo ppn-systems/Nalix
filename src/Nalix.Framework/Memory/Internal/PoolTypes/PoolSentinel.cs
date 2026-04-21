@@ -5,7 +5,12 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-namespace Nalix.Framework.Memory.Objects;
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+#endif
+
+namespace Nalix.Framework.Memory.Internal.PoolTypes;
 
 /// <summary>
 /// A diagnostic sentinel attached to rented objects to track their lifetime
@@ -54,7 +59,7 @@ internal sealed class PoolSentinel
         _weakTarget = new WeakReference<object>(target);
         _objectType = target.GetType();
         _rentTimestamp = Stopwatch.GetTimestamp();
-        
+
         if (captureStackTrace)
         {
             _stackTrace = System.Environment.StackTrace;
@@ -69,10 +74,7 @@ internal sealed class PoolSentinel
     /// <summary>
     /// Marks the associated object as returned to the pool.
     /// </summary>
-    public void MarkReturned()
-    {
-        _returned = true;
-    }
+    public void MarkReturned() => _returned = true;
 
     /// <summary>
     /// Finalizer to detect leaks.
@@ -82,7 +84,7 @@ internal sealed class PoolSentinel
         if (!_returned)
         {
             _ = Interlocked.Increment(ref s_totalLeaked);
-            
+
             // Note: We cannot safely log to ILogger here as the logger itself 
             // might be finalized or out of scope. We print to console as a last resort
             // or rely on the analytics report to show s_totalLeaked.
