@@ -42,6 +42,11 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     private static readonly ConcurrentDictionary<Type, MiddlewareMetadata> s_metadataCache = new();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
+    // Instance-level local pool for pipeline contexts to bypass global pool management.
+    // 32 slots is sufficient for high concurrency within a single packet pipeline.
+    private readonly PooledPipelineContext[] _localPool = new PooledPipelineContext[32];
+    private long _localPoolMask;
+
     #endregion Fields
 
     #region APIs
@@ -284,7 +289,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         return null;
     }
 
-    private static ValueTask ExecuteStageAsync(
+    private ValueTask ExecuteStageAsync(
         MiddlewareEntry[] middlewares,
         PacketContext<TPacket> context,
         Func<CancellationToken, ValueTask> final,
@@ -297,7 +302,17 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             return final(startToken);
         }
 
-        PooledPipelineContext runner = s_pool.Get<PooledPipelineContext>();
+        PooledPipelineContext? runner = this.AcquireRunner();
+        if (runner is null)
+        {
+#if DEBUG
+            // Fallback to global pool if local is exhausted (should be rare).
+            runner = s_pool.Get<PooledPipelineContext>();
+#else
+            runner = s_pool.Get<PooledPipelineContext>();
+#endif
+        }
+
         runner.Initialize(middlewares, context, final, startToken, continueOnError, errorHandler);
 
         ValueTask pending = runner.RunAsync();
@@ -309,15 +324,15 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
             finally
             {
-                s_pool.Return<PooledPipelineContext>(runner);
+                this.ReturnRunnerSync(runner);
             }
 
             return ValueTask.CompletedTask;
         }
 
-        return AwaitAsync(pending, runner);
+        return AwaitAsync(this, pending, runner);
 
-        static async ValueTask AwaitAsync(ValueTask operation, PooledPipelineContext pooledRunner)
+        static async ValueTask AwaitAsync(MiddlewarePipeline<TPacket> @this, ValueTask operation, PooledPipelineContext pooledRunner)
         {
             try
             {
@@ -325,9 +340,47 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
             finally
             {
-                s_pool.Return<PooledPipelineContext>(pooledRunner);
+                @this.ReturnRunnerSync(pooledRunner);
             }
         }
+    }
+
+    private PooledPipelineContext? AcquireRunner()
+    {
+        for (int i = 0; i < 32; i++)
+        {
+            long bit = 1L << i;
+            if ((Interlocked.Read(ref _localPoolMask) & bit) == 0)
+            {
+                if ((Interlocked.Or(ref _localPoolMask, bit) & bit) == 0)
+                {
+                    ref PooledPipelineContext r = ref _localPool[i];
+                    if (r is null)
+                    {
+                        r = new PooledPipelineContext();
+                    }
+                    return r;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void ReturnRunnerSync(PooledPipelineContext runner)
+    {
+        for (int i = 0; i < 32; i++)
+        {
+            if (ReferenceEquals(_localPool[i], runner))
+            {
+                long bit = 1L << i;
+                _localPool[i].ResetForPool();
+                Interlocked.And(ref _localPoolMask, ~bit);
+                return;
+            }
+        }
+
+        // If it wasn't from our local pool, return to global.
+        s_pool.Return<PooledPipelineContext>(runner);
     }
 
     private void ENSURE_SORTED_UNSAFE()
