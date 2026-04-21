@@ -274,7 +274,7 @@ internal class Program
         if (count == 0) { Console.WriteLine("\n[ERROR] No valid samples collected."); return; }
 
         double avg = validSamples.Average();
-        double min = validSamples[0], max = validSamples[^1], median = validSamples[count / 2];
+        double max = validSamples[^1], median = validSamples[count / 2];
         double p99 = validSamples[(int)(count * 0.99)], p999 = validSamples[(int)(count * 0.999)];
         double stdDev = Math.Sqrt(validSamples.Sum(d => Math.Pow(d - avg, 2)) / count);
         double tps = count / duration.TotalSeconds;
