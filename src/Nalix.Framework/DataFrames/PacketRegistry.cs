@@ -8,6 +8,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Extensions;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Framework.DataFrames;
 
@@ -35,6 +37,16 @@ public sealed class PacketRegistry : IPacketRegistry
     private readonly FrozenDictionary<uint, PacketDeserializer> _deserializers;
     private readonly FrozenDictionary<uint, PacketDeserializerInto<IPacket>> _deserializersInto;
 
+    // Per-magic rent/return delegates built once at catalog creation time.
+    // Func<IPacket>: rents a pooled instance (calls s_objectPool.Get<TPacket>()).
+    // Action<IPacket>: returns it (calls s_objectPool.Return<TPacket>()).
+    // Both are static/captured-once — zero allocation per call on the hot path.
+    private readonly FrozenDictionary<uint, (Func<IPacket> Rent, Action<IPacket> Return)> _poolOps;
+
+    // Shared pool singleton.
+    private static readonly ObjectPoolManager s_objectPool =
+        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     #endregion Fields
 
     #region Constructors
@@ -55,6 +67,7 @@ public sealed class PacketRegistry : IPacketRegistry
 
         _deserializers = deserializers;
         _deserializersInto = BUILD_INTO_DESERIALIZERS(deserializers);
+        _poolOps = FrozenDictionary<uint, (Func<IPacket>, Action<IPacket>)>.Empty;
     }
 
     /// <summary>
@@ -64,16 +77,19 @@ public sealed class PacketRegistry : IPacketRegistry
     /// </summary>
     /// <param name="deserializers">A frozen dictionary mapping magic numbers to regular deserializers.</param>
     /// <param name="deserializersInto">A frozen dictionary mapping magic numbers to reference-aware deserializers.</param>
+    /// <param name="poolOps"></param>
     /// <exception cref="ArgumentNullException">Thrown when either argument is <see langword="null"/>.</exception>
     internal PacketRegistry(
         FrozenDictionary<uint, PacketDeserializer> deserializers,
-        FrozenDictionary<uint, PacketDeserializerInto<IPacket>> deserializersInto)
+        FrozenDictionary<uint, PacketDeserializerInto<IPacket>> deserializersInto,
+        FrozenDictionary<uint, (Func<IPacket> Rent, Action<IPacket> Return)>? poolOps = null)
     {
         ArgumentNullException.ThrowIfNull(deserializers);
         ArgumentNullException.ThrowIfNull(deserializersInto);
 
         _deserializers = deserializers;
         _deserializersInto = deserializersInto;
+        _poolOps = poolOps ?? FrozenDictionary<uint, (Func<IPacket>, Action<IPacket>)>.Empty;
     }
 
     /// <summary>
@@ -98,6 +114,7 @@ public sealed class PacketRegistry : IPacketRegistry
 
         _deserializers = built._deserializers;
         _deserializersInto = built._deserializersInto;
+        _poolOps = built._poolOps;
     }
 
     #endregion Constructors
@@ -258,4 +275,60 @@ public sealed class PacketRegistry : IPacketRegistry
     }
 
     #endregion Private Helpers
+
+    #region Pooled Deserialize API
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Rents a pooled instance via <c>_poolOps[magic].Rent()</c>, then fills it in-place
+    /// via <see cref="_deserializersInto"/> — no <c>new()</c> on the hot path.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public bool TryDeserializePooled(
+        ReadOnlySpan<byte> raw,
+        [NotNullWhen(true)] out IPacket? packet)
+    {
+        if (raw.Length < PacketConstants.HeaderSize)
+        {
+            packet = null;
+            return false;
+        }
+
+        uint magic = raw.ReadMagicNumberLE();
+
+        if (!_deserializersInto.TryGetValue(magic, out PacketDeserializerInto<IPacket>? deserializerInto)
+            || deserializerInto is null)
+        {
+            packet = null;
+            return false;
+        }
+
+        // Fast path: pool ops available for this type — rent + fill in-place.
+        if (_poolOps.TryGetValue(magic, out (Func<IPacket> Rent, Action<IPacket> Return) ops))
+        {
+            IPacket pooled = ops.Rent();   // pool.Get<TPacket>() — no new()
+            _ = deserializerInto(raw, ref pooled);
+            packet = pooled;
+            return true;
+        }
+
+        // Fallback: no pool ops (e.g. created from raw FrozenDict ctor) — plain deserialize.
+        IPacket fallback = _deserializersInto[magic](raw, ref Unsafe.NullRef<IPacket>());
+        packet = fallback;
+        return packet is not null;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ReturnPacket(IPacket packet)
+    {
+        uint magic = packet.MagicNumber;
+        if (_poolOps.TryGetValue(magic, out (Func<IPacket> Rent, Action<IPacket> Return) ops))
+        {
+            ops.Return(packet);
+        }
+        // If no pool ops: let GC collect (non-pooled registry path).
+    }
+
+    #endregion Pooled Deserialize API
 }

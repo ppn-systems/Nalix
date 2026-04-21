@@ -414,7 +414,8 @@ public sealed class PacketDispatchChannel
     {
         try
         {
-            if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
+            // Use pooled deserialize: Get from pool, fill in-place — no new() per packet.
+            if (!_catalog.TryDeserializePooled(lease.Span, out IPacket? packet) || packet is null)
             {
                 connection.IncrementErrorCount();
                 lease.Dispose();
@@ -438,13 +439,14 @@ public sealed class PacketDispatchChannel
                 }
                 finally
                 {
+                    _catalog.ReturnPacket(packet);   // Return pooled packet after sync handler.
                     lease.Dispose();
                 }
 
                 return ValueTask.CompletedTask;
             }
 
-            return AwaitDispatchAsync(this, connection, lease, dispatchPending, ct);
+            return AwaitDispatchAsync(this, connection, lease, packet, dispatchPending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -463,6 +465,7 @@ public sealed class PacketDispatchChannel
             PacketDispatchChannel owner,
             IConnection connection,
             IBufferLease lease,
+            IPacket packet,
             ValueTask pending,
             CancellationToken ct)
         {
@@ -480,6 +483,7 @@ public sealed class PacketDispatchChannel
             }
             finally
             {
+                owner._catalog.ReturnPacket(packet);  // Return pooled packet after async handler.
                 lease.Dispose();
             }
         }
