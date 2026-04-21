@@ -47,6 +47,7 @@ internal sealed class PooledSocketAsyncEventArgs : SocketAsyncEventArgs, IPoolab
         this.UserToken = null;
         this.AcceptSocket = null;
         this.RemoteEndPoint = null;
+        this.IsHandlerBound = false;
         this.SetBuffer(null, 0, 0);
 
         // Note: we DO NOT clear the Completed event here because we want to 

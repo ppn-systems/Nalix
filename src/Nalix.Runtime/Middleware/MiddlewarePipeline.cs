@@ -148,100 +148,48 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             return handler(ct);
         }
 
-        ValueTask pending = ExecuteStageAsync(
-            snapshot.Inbound,
-            context,
-            inboundCt => this.InvokeHandlerAsync(snapshot, context, handler, inboundCt, ct),
-            ct,
-            snapshot.ContinueOnError,
-            snapshot.ErrorHandler);
+        PooledPipelineContext? runner = this.AcquireRunner();
+        if (runner is null)
+        {
+            runner = s_pool.Get<PooledPipelineContext>();
+        }
 
+        // Initialize for full pipeline execution to avoid intermediate closures.
+        runner.InitializeFull(this, snapshot, context, handler, ct);
+
+        ValueTask pending = runner.RunAsync();
         if (pending.IsCompletedSuccessfully)
         {
-            pending.GetAwaiter().GetResult();
+            try
+            {
+                pending.GetAwaiter().GetResult();
+            }
+            finally
+            {
+                this.ReturnRunnerSync(runner);
+            }
+
             return ValueTask.CompletedTask;
         }
 
-        return AwaitPendingAsync(pending);
+        return AwaitPendingAsync(this, pending, runner);
 
-        static async ValueTask AwaitPendingAsync(ValueTask operation)
-            => await operation.ConfigureAwait(false);
+        static async ValueTask AwaitPendingAsync(MiddlewarePipeline<TPacket> owner, ValueTask operation, PooledPipelineContext pooledRunner)
+        {
+            try
+            {
+                await operation.ConfigureAwait(false);
+            }
+            finally
+            {
+                owner.ReturnRunnerSync(pooledRunner);
+            }
+        }
     }
 
     #endregion APIs
 
     #region Private Methods
-
-    private async ValueTask InvokeHandlerAsync(
-        PipelineSnapshot snapshot,
-        PacketContext<TPacket> context,
-        Func<CancellationToken, ValueTask> handler,
-        CancellationToken inboundCt,
-        CancellationToken rootCt)
-    {
-        CancellationTokenSource? linkedCts = null;
-        try
-        {
-            linkedCts = CreateExecutionToken(inboundCt, rootCt, out CancellationToken handlerCt);
-
-            try
-            {
-                ValueTask handlerPending = handler(handlerCt);
-                if (!handlerPending.IsCompletedSuccessfully)
-                {
-                    await handlerPending.ConfigureAwait(false);
-                }
-                else
-                {
-                    handlerPending.GetAwaiter().GetResult();
-                }
-            }
-            catch (OperationCanceledException) when (handlerCt.IsCancellationRequested)
-            {
-            }
-
-            ValueTask alwaysPending = ExecuteStageAsync(
-                snapshot.OutboundAlways,
-                context,
-                s_noopFinal,
-                rootCt,
-                snapshot.ContinueOnError,
-                snapshot.ErrorHandler);
-
-            if (!alwaysPending.IsCompletedSuccessfully)
-            {
-                await alwaysPending.ConfigureAwait(false);
-            }
-            else
-            {
-                alwaysPending.GetAwaiter().GetResult();
-            }
-
-            if (!context.SkipOutbound && !handlerCt.IsCancellationRequested)
-            {
-                ValueTask outboundPending = ExecuteStageAsync(
-                    snapshot.Outbound,
-                    context,
-                    s_noopFinal,
-                    inboundCt,
-                    snapshot.ContinueOnError,
-                    snapshot.ErrorHandler);
-
-                if (!outboundPending.IsCompletedSuccessfully)
-                {
-                    await outboundPending.ConfigureAwait(false);
-                }
-                else
-                {
-                    outboundPending.GetAwaiter().GetResult();
-                }
-            }
-        }
-        finally
-        {
-            linkedCts?.Dispose();
-        }
-    }
 
     private static MiddlewareMetadata GetMiddlewareMetadata(Type middlewareType)
     {
@@ -289,61 +237,6 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         return null;
     }
 
-    private ValueTask ExecuteStageAsync(
-        MiddlewareEntry[] middlewares,
-        PacketContext<TPacket> context,
-        Func<CancellationToken, ValueTask> final,
-        CancellationToken startToken,
-        bool continueOnError,
-        Action<Exception, Type>? errorHandler)
-    {
-        if (middlewares.Length == 0)
-        {
-            return final(startToken);
-        }
-
-        PooledPipelineContext? runner = this.AcquireRunner();
-        if (runner is null)
-        {
-#if DEBUG
-            // Fallback to global pool if local is exhausted (should be rare).
-            runner = s_pool.Get<PooledPipelineContext>();
-#else
-            runner = s_pool.Get<PooledPipelineContext>();
-#endif
-        }
-
-        runner.Initialize(middlewares, context, final, startToken, continueOnError, errorHandler);
-
-        ValueTask pending = runner.RunAsync();
-        if (pending.IsCompletedSuccessfully)
-        {
-            try
-            {
-                pending.GetAwaiter().GetResult();
-            }
-            finally
-            {
-                this.ReturnRunnerSync(runner);
-            }
-
-            return ValueTask.CompletedTask;
-        }
-
-        return AwaitAsync(this, pending, runner);
-
-        static async ValueTask AwaitAsync(MiddlewarePipeline<TPacket> @this, ValueTask operation, PooledPipelineContext pooledRunner)
-        {
-            try
-            {
-                await operation.ConfigureAwait(false);
-            }
-            finally
-            {
-                @this.ReturnRunnerSync(pooledRunner);
-            }
-        }
-    }
 
     private PooledPipelineContext? AcquireRunner()
     {
@@ -474,14 +367,20 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         #region Fields
 
         private bool _continueOnError;
-
         private CancellationToken _startToken;
+        private CancellationToken _rootCt;
         private PacketContext<TPacket>? _context;
         private MiddlewareEntry[] _middlewares = [];
         private Action<Exception, Type>? _errorHandler;
 
         private Func<CancellationToken, ValueTask>? _final;
         private Func<CancellationToken, ValueTask>[] _steps = [];
+
+        // Full pipeline state
+        private MiddlewarePipeline<TPacket>? _owner;
+        private PipelineSnapshot? _snapshot;
+        private PipelineStage _currentStage;
+        private Func<CancellationToken, ValueTask>? _rootHandler;
 
         #endregion Fields
 
@@ -501,7 +400,27 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             _startToken = startToken;
             _continueOnError = continueOnError;
             _errorHandler = errorHandler;
+            _currentStage = PipelineStage.Mid;
             this.ENSURE_STEPS(middlewares.Length + 1);
+        }
+
+        public void InitializeFull(
+            MiddlewarePipeline<TPacket> owner,
+            PipelineSnapshot snapshot,
+            PacketContext<TPacket> context,
+            Func<CancellationToken, ValueTask> handler,
+            CancellationToken ct)
+        {
+            _owner = owner;
+            _snapshot = snapshot;
+            _context = context;
+            _rootHandler = handler;
+            _rootCt = ct;
+            _startToken = ct;
+            _continueOnError = snapshot.ContinueOnError;
+            _errorHandler = snapshot.ErrorHandler;
+
+            this.SET_STAGE(PipelineStage.Inbound);
         }
 
         public void ResetForPool()
@@ -510,8 +429,13 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             _context = null;
             _final = null;
             _startToken = default;
+            _rootCt = default;
             _continueOnError = false;
             _errorHandler = null;
+            _owner = null;
+            _snapshot = null;
+            _rootHandler = null;
+            _currentStage = PipelineStage.None;
         }
 
         public ValueTask RunAsync() => _steps[0](_startToken);
@@ -519,6 +443,20 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         #endregion APIs
 
         #region Private Methods
+
+        private void SET_STAGE(PipelineStage stage)
+        {
+            _currentStage = stage;
+            _middlewares = stage switch
+            {
+                PipelineStage.Inbound => _snapshot!.Inbound,
+                PipelineStage.OutboundAlways => _snapshot!.OutboundAlways,
+                PipelineStage.Outbound => _snapshot!.Outbound,
+                _ => []
+            };
+
+            this.ENSURE_STEPS(_middlewares.Length + 1);
+        }
 
         private void ENSURE_STEPS(int requiredLength)
         {
@@ -541,8 +479,14 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         {
             if ((uint)index >= (uint)_middlewares.Length)
             {
-                Func<CancellationToken, ValueTask>? final = _final;
-                return final is null ? ValueTask.CompletedTask : final(token);
+                // Last step in current stage
+                if (_currentStage == PipelineStage.Mid)
+                {
+                    Func<CancellationToken, ValueTask>? final = _final;
+                    return final is null ? ValueTask.CompletedTask : final(token);
+                }
+
+                return this.TRANSITION_ASYNC(token);
             }
 
             PacketContext<TPacket>? context = _context;
@@ -577,6 +521,64 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
         }
 
+        private async ValueTask TRANSITION_ASYNC(CancellationToken token)
+        {
+            switch (_currentStage)
+            {
+                case PipelineStage.Inbound:
+                    await this.EXECUTE_HANDLER_FULL_ASYNC(token).ConfigureAwait(false);
+                    break;
+
+                case PipelineStage.OutboundAlways:
+                    if (!_context!.SkipOutbound && !token.IsCancellationRequested)
+                    {
+                        this.SET_STAGE(PipelineStage.Outbound);
+                        await this.RunAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        _currentStage = PipelineStage.Finished;
+                    }
+                    break;
+
+                case PipelineStage.Outbound:
+                    _currentStage = PipelineStage.Finished;
+                    break;
+            }
+        }
+
+        private async ValueTask EXECUTE_HANDLER_FULL_ASYNC(CancellationToken inboundCt)
+        {
+            CancellationTokenSource? linkedCts = null;
+            try
+            {
+                linkedCts = CreateExecutionToken(inboundCt, _rootCt, out CancellationToken handlerCt);
+
+                try
+                {
+                    ValueTask handlerPending = _rootHandler!(handlerCt);
+                    if (!handlerPending.IsCompletedSuccessfully)
+                    {
+                        await handlerPending.ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        handlerPending.GetAwaiter().GetResult();
+                    }
+                }
+                catch (OperationCanceledException) when (handlerCt.IsCancellationRequested)
+                {
+                }
+
+                this.SET_STAGE(PipelineStage.OutboundAlways);
+                await this.RunAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                linkedCts?.Dispose();
+            }
+        }
+
         private static async ValueTask AwaitWithContinueAsync(
             PooledPipelineContext runner,
             ValueTask pending,
@@ -596,6 +598,16 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         }
 
         #endregion Private Methods
+
+        private enum PipelineStage
+        {
+            None,
+            Inbound,
+            Mid,
+            OutboundAlways,
+            Outbound,
+            Finished
+        }
     }
 
     #endregion Nested Types

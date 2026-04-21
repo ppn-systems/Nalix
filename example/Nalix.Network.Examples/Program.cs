@@ -105,33 +105,10 @@ internal class Program
                     if (Console.KeyAvailable)
                     {
                         ConsoleKeyInfo key = Console.ReadKey(true);
-                        // Trigger report on Ctrl + , or simply 'R'
+                        // Trigger report on Ctrl + R or simply 'R'
                         if ((key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R) || key.Key == ConsoleKey.R)
                         {
-                            Console.WriteLine("\n" + new string('-', 20) + " LIVE REPORT " + new string('-', 20));
-
-
-                            if (InstanceManager.Instance.GetExistingInstance<IPacketDispatch>() is IPacketDispatch dispatcher)
-                            {
-                                Console.WriteLine(dispatcher.GenerateReport());
-                            }
-
-                            if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
-                            {
-                                Console.WriteLine(objectPoolManager.GenerateReport());
-                            }
-
-                            if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
-                            {
-                                Console.WriteLine(bufferPoolManager.GenerateReport());
-                            }
-
-                            if (InstanceManager.Instance.GetExistingInstance<TaskManager>() is TaskManager taskManager)
-                            {
-                                Console.WriteLine(taskManager.GenerateReport());
-                            }
-
-                            Console.WriteLine(new string('-', 53) + "\n");
+                            PRINT_REPORT();
                         }
                     }
                     await Task.Delay(100, shutdown.Token).ConfigureAwait(false);
@@ -139,6 +116,33 @@ internal class Program
             }
             catch (OperationCanceledException) { }
         }, shutdown.Token);
+
+        static void PRINT_REPORT()
+        {
+            Console.WriteLine("\n" + new string('-', 20) + " LIVE REPORT " + new string('-', 20));
+
+            //if (InstanceManager.Instance.GetExistingInstance<IPacketDispatch>() is IPacketDispatch dispatcher)
+            //{
+            //    Console.WriteLine(dispatcher.GenerateReport());
+            //}
+
+            if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
+            {
+                Console.WriteLine(objectPoolManager.GenerateReport());
+            }
+
+            if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
+            {
+                Console.WriteLine(bufferPoolManager.GenerateReport());
+            }
+
+            if (InstanceManager.Instance.GetExistingInstance<TaskManager>() is TaskManager taskManager)
+            {
+                Console.WriteLine(taskManager.GenerateReport());
+            }
+
+            Console.WriteLine(new string('-', 53) + "\n");
+        }
 
         await host.RunAsync(shutdown.Token).ConfigureAwait(false);
     }

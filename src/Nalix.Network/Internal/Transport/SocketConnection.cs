@@ -630,26 +630,10 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             try { _socket.Close(); } catch { /* ignore */ }
 
             Task? receiveLoopTask = _receiveLoopTask;
-            bool receiveLoopStopped = true;
             if (receiveLoopTask is not null)
             {
-                try
-                {
-                    receiveLoopStopped = receiveLoopTask.Wait(TimeSpan.FromSeconds(5));
-                }
-                catch (AggregateException ex) when (IS_BENIGN_DISCONNECT(ex))
-                {
-                    receiveLoopStopped = true;
-                }
-
-                if (!receiveLoopStopped)
-                {
-                    _logger?.Warn(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] receive-loop-timeout ep={FORMAT_ENDPOINT(_socket)}");
-                }
+                _receiveLoopTask = null;
             }
-
-            _receiveLoopTask = null;
 
             // 3. Return the pooled receive context only after the socket can no
             //    longer use it.
@@ -688,7 +672,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 #if DEBUG
         _logger?.Trace(
             $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] " +
-            $"disposed ep={FORMAT_ENDPOINT(_socket)}");
+            $"disposed ep={_endpointString}");
 #endif
     }
 

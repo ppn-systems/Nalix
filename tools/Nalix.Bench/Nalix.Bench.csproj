@@ -7,9 +7,7 @@
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
-    <!-- Silence localization and entry point warnings for benchmark -->
     <NoWarn>$(NoWarn);CA1303;CS7022</NoWarn>
-    <GenerateProgramFile>false</GenerateProgramFile>
   </PropertyGroup>
 
   <ItemGroup>
