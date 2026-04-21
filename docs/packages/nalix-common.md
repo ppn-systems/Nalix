@@ -24,6 +24,7 @@ They cover both built-in packet types and custom packet types through the generi
 - `IConnection`
 - `PacketControllerAttribute`
 - `PacketOpcodeAttribute`
+- `PacketTransportAttribute`
 
 ### Quick example
 
@@ -90,6 +91,7 @@ Enums keep policies consistent across the stack.
 
 - `CipherSuiteType`
 - `DropPolicy`
+- `NetworkTransport`
 
 ## Key API pages
 
