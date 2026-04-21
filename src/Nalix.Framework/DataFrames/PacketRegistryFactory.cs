@@ -15,7 +15,9 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Serialization;
 
 namespace Nalix.Framework.DataFrames;
 
@@ -550,8 +552,24 @@ public sealed class PacketRegistryFactory
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static IPacket InvokeDeserializeInto(ReadOnlySpan<byte> raw, ref IPacket value)
         {
-            TPacket packet = value is TPacket existing ? existing : default!;
+            // High-Performance Path: Try true zero-allocation rehydration if supported.
+            if (value is TPacket existing)
+            {
+                var formatter = FormatterProvider.GetComplex<TPacket>();
+                if (formatter is IFillableFormatter<TPacket> fillable)
+                {
+                    DataReader reader = new(raw);
+                    fillable.Fill(ref reader, existing);
+                    return existing;
+                }
+            }
+
+            // Fallback Path: Standard deserialization (may allocate if the formatter replaces the reference).
+            TPacket packet = value is TPacket existingFallback ? existingFallback : default!;
             TPacket resolved = DeserializeIntoPtr(raw, ref packet);
+
+            // We update the provided ref and return the resolved instance.
+            // PacketRegistry handles returning the original to the pool if substitution occurred.
             value = resolved;
             return resolved;
         }

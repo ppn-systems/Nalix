@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
@@ -22,7 +23,7 @@ internal sealed class NullableObjectFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?> where T : class, new()
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?>, IFillableFormatter<T> where T : class, new()
 {
     private static readonly IFormatter<T> s_objectFormatter = FormatterProvider.GetComplex<T>();
 
@@ -68,5 +69,36 @@ internal sealed class NullableObjectFormatter<
     {
         byte marker = reader.ReadByte();
         return marker == 0 ? null : s_objectFormatter.Deserialize(ref reader);
+    }
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Fill(ref DataReader reader, T value)
+    {
+        byte marker = reader.ReadByte();
+        if (marker == 0)
+        {
+            if (value is not null)
+            {
+                throw new Nalix.Common.Exceptions.SerializationFailureException(
+                    $"Cannot Fill a non-null instance of '{typeof(T).Name}' with null data from the stream.");
+            }
+            return;
+        }
+
+        if (value is null)
+        {
+            throw new InvalidOperationException($"Cannot call Fill on a null instance of '{typeof(T).Name}'.");
+        }
+
+        if (s_objectFormatter is IFillableFormatter<T> fillable)
+        {
+            fillable.Fill(ref reader, value);
+        }
+        else
+        {
+            throw new NotSupportedException($"The underlying formatter for '{typeof(T).Name}' does not support Fill.");
+        }
     }
 }

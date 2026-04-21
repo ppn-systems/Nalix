@@ -473,80 +473,74 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private ValueTask DispatchLeaseAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
+        // 1. Acquire pooled packet via registry (zero alloc)
+        // If TryDeserializePooled fails, it has already returned any partially-deserialized pooled objects.
+        if (!_catalog.TryDeserializePooled(lease.Span, out IPacket? packet) || packet is null)
+        {
+            connection.IncrementErrorCount();
+            lease.Dispose();
+            return ValueTask.CompletedTask;
+        }
+
         try
         {
-            // Use pooled deserialize: Get from pool, fill in-place — no new() per packet.
-            if (!_catalog.TryDeserializePooled(lease.Span, out IPacket? packet) || packet is null)
+            // 2. Execute packet handler
+            ValueTask pending = this.ExecutePacketHandlerAsync(packet, connection, ct);
+
+            // 3. Fast-path: handler completed synchronously
+            if (pending.IsCompletedSuccessfully)
             {
-                connection.IncrementErrorCount();
+                pending.GetAwaiter().GetResult();
+                _catalog.ReturnPacket(packet);
                 lease.Dispose();
                 return ValueTask.CompletedTask;
             }
 
-            ValueTask dispatchPending = this.ExecutePacketHandlerAsync(packet, connection, ct);
-            if (dispatchPending.IsCompletedSuccessfully)
-            {
-                try
-                {
-                    dispatchPending.GetAwaiter().GetResult();
-                }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                {
-                }
-                catch (Exception ex)
-                {
-                    connection.IncrementErrorCount();
-                    this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
-                }
-                finally
-                {
-                    _catalog.ReturnPacket(packet);   // Return pooled packet after sync handler.
-                    lease.Dispose();
-                }
-
-                return ValueTask.CompletedTask;
-            }
-
-            return AwaitDispatchAsync(this, connection, lease, packet, dispatchPending, ct);
+            // 4. Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
+            return AwaitDispatchAsync(this, connection, lease, packet, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            lease.Dispose();
-            return ValueTask.CompletedTask;
+            // External cancellation during sync execution
         }
         catch (Exception ex)
         {
             connection.IncrementErrorCount();
             this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
-            lease.Dispose();
-            return ValueTask.CompletedTask;
         }
 
-        static async ValueTask AwaitDispatchAsync(
-            PacketDispatchChannel owner,
-            IConnection connection,
-            IBufferLease lease,
-            IPacket packet,
-            ValueTask pending,
-            CancellationToken ct)
+        // 5. Cleanup for synchronous errors/cancellation
+        _catalog.ReturnPacket(packet);
+        lease.Dispose();
+        return ValueTask.CompletedTask;
+    }
+
+    private static async ValueTask AwaitDispatchAsync(
+        PacketDispatchChannel owner,
+        IConnection connection,
+        IBufferLease lease,
+        IPacket packet,
+        ValueTask pending,
+        CancellationToken ct)
+    {
+        try
         {
-            try
-            {
-                await pending.ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (ct.IsCancellationRequested)
-            {
-            }
-            catch (Exception ex)
-            {
-                connection.IncrementErrorCount();
-                owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
-            }
-            finally
-            {
-                owner._catalog.ReturnPacket(packet);  // Return pooled packet after async handler.
-                lease.Dispose();
-            }
+            await pending.ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            // Async cancellation
+        }
+        catch (Exception ex)
+        {
+            connection.IncrementErrorCount();
+            owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(DispatchLeaseAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+        }
+        finally
+        {
+            // Guaranteed release for async path
+            owner._catalog.ReturnPacket(packet);
+            lease.Dispose();
         }
     }
 

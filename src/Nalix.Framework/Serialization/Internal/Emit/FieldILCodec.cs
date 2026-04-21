@@ -95,6 +95,24 @@ internal static class FieldILCodec
         EMIT_READ_REF_WITH_FORMATTER(il, fi, objLocal);
     }
 
+    public static void EmitReadFieldRef(ILGenerator il, FieldSchema field, MethodInfo? directRead, int argIndex)
+    {
+        FieldInfo fi = field.FieldInfo;
+
+        if (directRead != null)
+        {
+            if (argIndex == 1) il.Emit(OpCodes.Ldarg_1);
+            else il.Emit(OpCodes.Ldarg, argIndex);
+
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Call, directRead);
+            il.Emit(OpCodes.Stfld, fi);
+            return;
+        }
+
+        EMIT_READ_REF_WITH_FORMATTER(il, fi, argIndex);
+    }
+
     public static void EmitReadFieldValue(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
     {
         FieldInfo fi = field.FieldInfo;
@@ -109,6 +127,24 @@ internal static class FieldILCodec
         }
 
         EMIT_READ_VALUE_WITH_FORMATTER(il, fi, objLocal);
+    }
+
+    public static void EmitReadFieldValue(ILGenerator il, FieldSchema field, MethodInfo? directRead, int argIndex)
+    {
+        FieldInfo fi = field.FieldInfo;
+
+        if (directRead != null)
+        {
+            if (argIndex == 1) il.Emit(OpCodes.Ldarga, (short)1);
+            else il.Emit(OpCodes.Ldarga, (short)argIndex);
+
+            il.Emit(OpCodes.Ldarg_0);
+            il.Emit(OpCodes.Call, directRead);
+            il.Emit(OpCodes.Stfld, fi);
+            return;
+        }
+
+        EMIT_READ_VALUE_WITH_FORMATTER(il, fi, argIndex);
     }
 
     private static FormatterEmitMethods ResolveFormatterMethods(Type fieldType)
@@ -332,11 +368,37 @@ internal static class FieldILCodec
         il.Emit(OpCodes.Stfld, field);
     }
 
+    private static void EMIT_READ_REF_WITH_FORMATTER(ILGenerator il, FieldInfo field, int argIndex)
+    {
+        FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
+
+        if (argIndex == 1) il.Emit(OpCodes.Ldarg_1);
+        else il.Emit(OpCodes.Ldarg, argIndex);
+
+        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Callvirt, emitMethods.DeserializeMethod);
+        il.Emit(OpCodes.Stfld, field);
+    }
+
     private static void EMIT_READ_VALUE_WITH_FORMATTER(ILGenerator il, FieldInfo field, LocalBuilder objLocal)
     {
         FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
 
         il.Emit(OpCodes.Ldloca_S, objLocal);
+        il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
+        il.Emit(OpCodes.Ldarg_0);
+        il.Emit(OpCodes.Callvirt, emitMethods.DeserializeMethod);
+        il.Emit(OpCodes.Stfld, field);
+    }
+
+    private static void EMIT_READ_VALUE_WITH_FORMATTER(ILGenerator il, FieldInfo field, int argIndex)
+    {
+        FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
+
+        if (argIndex == 1) il.Emit(OpCodes.Ldarga, (short)1);
+        else il.Emit(OpCodes.Ldarga, (short)argIndex);
+
         il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
         il.Emit(OpCodes.Ldarg_0);
         il.Emit(OpCodes.Callvirt, emitMethods.DeserializeMethod);
