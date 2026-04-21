@@ -101,8 +101,14 @@ internal static class FieldILCodec
 
         if (directRead != null)
         {
-            if (argIndex == 1) il.Emit(OpCodes.Ldarg_1);
-            else il.Emit(OpCodes.Ldarg, argIndex);
+            if (argIndex == 1)
+            {
+                il.Emit(OpCodes.Ldarg_1);
+            }
+            else
+            {
+                il.Emit(OpCodes.Ldarg, argIndex);
+            }
 
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Call, directRead);
@@ -135,8 +141,14 @@ internal static class FieldILCodec
 
         if (directRead != null)
         {
-            if (argIndex == 1) il.Emit(OpCodes.Ldarga, (short)1);
-            else il.Emit(OpCodes.Ldarga, (short)argIndex);
+            if (argIndex == 1)
+            {
+                il.Emit(OpCodes.Ldarga, (short)1);
+            }
+            else
+            {
+                il.Emit(OpCodes.Ldarga, (short)argIndex);
+            }
 
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Call, directRead);
@@ -372,8 +384,14 @@ internal static class FieldILCodec
     {
         FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
 
-        if (argIndex == 1) il.Emit(OpCodes.Ldarg_1);
-        else il.Emit(OpCodes.Ldarg, argIndex);
+        if (argIndex == 1)
+        {
+            il.Emit(OpCodes.Ldarg_1);
+        }
+        else
+        {
+            il.Emit(OpCodes.Ldarg, argIndex);
+        }
 
         il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
         il.Emit(OpCodes.Ldarg_0);
@@ -396,8 +414,14 @@ internal static class FieldILCodec
     {
         FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
 
-        if (argIndex == 1) il.Emit(OpCodes.Ldarga, (short)1);
-        else il.Emit(OpCodes.Ldarga, (short)argIndex);
+        if (argIndex == 1)
+        {
+            il.Emit(OpCodes.Ldarga, (short)1);
+        }
+        else
+        {
+            il.Emit(OpCodes.Ldarga, (short)argIndex);
+        }
 
         il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
         il.Emit(OpCodes.Ldarg_0);

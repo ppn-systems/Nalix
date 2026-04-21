@@ -389,7 +389,7 @@ public sealed class PacketRegistryFactory
                 MethodInfo bindPoolMi = typeof(PacketRegistryFactory)
                     .GetMethod(nameof(BUILD_POOL_OPS_FOR), StaticNonPublic)!
                     .MakeGenericMethod(type);
-                var ops = ((Func<IPacket>, Action<IPacket>))bindPoolMi.Invoke(null, null)!;
+                (Func<IPacket>, Action<IPacket>) ops = ((Func<IPacket>, Action<IPacket>))bindPoolMi.Invoke(null, null)!;
                 poolOps[key] = ops;
             }
             catch (Exception ex)
@@ -555,7 +555,7 @@ public sealed class PacketRegistryFactory
             // High-Performance Path: Try true zero-allocation rehydration if supported.
             if (value is TPacket existing)
             {
-                var formatter = FormatterProvider.GetComplex<TPacket>();
+                IFormatter<TPacket> formatter = FormatterProvider.GetComplex<TPacket>();
                 if (formatter is IFillableFormatter<TPacket> fillable)
                 {
                     DataReader reader = new(raw);
@@ -616,7 +616,7 @@ public sealed class PacketRegistryFactory
     {
         ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         return (
-            Rent: () => pool.Get<TPacket>(),
+            Rent: pool.Get<TPacket>,
             Return: obj => pool.Return((TPacket)obj)
         );
     }

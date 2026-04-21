@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -308,7 +307,7 @@ internal sealed class TimingWheel : IActivatable
         {
             task = s_poolManager.Get<TimeoutTask>();
             task.Conn = connection;
-            
+
             // Set version to match current connection version.
             // When we Register, we use the current version.
             // When we Unregister, we increment the connection version.
@@ -382,11 +381,11 @@ internal sealed class TimingWheel : IActivatable
         if (connection.IsRegisteredInWheel)
         {
             connection.IsRegisteredInWheel = false;
-            
+
             // Incrementing the version logically invalidates any task for this connection
             // currently sitting in the wheel.
             connection.TimeoutVersion++;
-            
+
             connection.OnCloseEvent -= this.OnConnectionClosed;
         }
     }

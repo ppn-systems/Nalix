@@ -8,7 +8,6 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
@@ -182,7 +181,7 @@ public sealed class PacketDispatchChannel
             }
 
             int wakeCount = Math.Max(_dispatchLoops, 1);
-            _wakeSignal.Release(wakeCount);
+            _ = _wakeSignal.Release(wakeCount);
         }
         catch (Exception)
         {
@@ -351,46 +350,52 @@ public sealed class PacketDispatchChannel
 
         try
         {
-                // Loop while work is available, with occasional yields to TaskManager.
-                while (Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
+            // Loop while work is available, with occasional yields to TaskManager.
+            while (Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
+            {
+                int processed = 0;
+                while (processed < _maxDrainPerWake &&
+                       _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
                 {
-                    int processed = 0;
-                    while (processed < _maxDrainPerWake &&
-                           _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
-                    {
-                        // Dispatch directly using await. 
-                        // Zero-allocation for sync completion; Pooled for async.
-                        await this.DispatchLeaseAsync(connection, lease, ct).ConfigureAwait(false);
-                        processed++;
-                    }
-
-                    if (processed > 0)
-                    {
-                        ctx.Advance(processed);
-                        // If we processed some but were capped by _maxDrainPerWake,
-                        // continue immediately to finish draining without waiting for signal.
-                        if (processed >= _maxDrainPerWake) continue;
-                    }
-
-                    // No more packets immediately available.
-                    // Reset wake requested flag before waiting.
-                    _ = Interlocked.Exchange(ref _wakeRequested, 0);
-
-                    // Check again before waiting to avoid lost wake-up.
-                    if (_dispatch.TotalPackets > 0) continue;
-
-                    try
-                    {
-                        // Zero-allocation asynchronous wait.
-                        await _wakeSignal.WaitAsync(ct).ConfigureAwait(false);
-                    }
-                    catch (OperationCanceledException)
-                    {
-                        break;
-                    }
-
-                    ctx.Beat();
+                    // Dispatch directly using await. 
+                    // Zero-allocation for sync completion; Pooled for async.
+                    await this.DispatchLeaseAsync(connection, lease, ct).ConfigureAwait(false);
+                    processed++;
                 }
+
+                if (processed > 0)
+                {
+                    ctx.Advance(processed);
+                    // If we processed some but were capped by _maxDrainPerWake,
+                    // continue immediately to finish draining without waiting for signal.
+                    if (processed >= _maxDrainPerWake)
+                    {
+                        continue;
+                    }
+                }
+
+                // No more packets immediately available.
+                // Reset wake requested flag before waiting.
+                _ = Interlocked.Exchange(ref _wakeRequested, 0);
+
+                // Check again before waiting to avoid lost wake-up.
+                if (_dispatch.TotalPackets > 0)
+                {
+                    continue;
+                }
+
+                try
+                {
+                    // Zero-allocation asynchronous wait.
+                    await _wakeSignal.WaitAsync(ct).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException)
+                {
+                    break;
+                }
+
+                ctx.Beat();
+            }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -497,18 +502,16 @@ public sealed class PacketDispatchChannel
         int count = _dispatchLoops;
         if (count > 0)
         {
-            _wakeSignal.Release(count);
+            _ = _wakeSignal.Release(count);
         }
         _ = Interlocked.Increment(ref _wakeSignals);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int DrainWakeSignals()
-    {
+    private int DrainWakeSignals() =>
         // For SemaphoreSlim, we just clear the requested flag.
         // The semaphore count will be consumed by the threads.
-        return 0;
-    }
+        0;
 
     #endregion Private Methods
 

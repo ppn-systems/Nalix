@@ -23,7 +23,7 @@ internal sealed class NullableObjectFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?>, IFillableFormatter<T> where T : class, new()
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T?>, IFillableFormatter<T?> where T : class, new()
 {
     private static readonly IFormatter<T> s_objectFormatter = FormatterProvider.GetComplex<T>();
 
@@ -74,7 +74,7 @@ internal sealed class NullableObjectFormatter<
     /// <inheritdoc/>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Fill(ref DataReader reader, T value)
+    public void Fill(ref DataReader reader, T? value)
     {
         byte marker = reader.ReadByte();
         if (marker == 0)

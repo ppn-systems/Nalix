@@ -32,7 +32,7 @@ public interface IFormatter<[
 }
 
 /// <summary>
-    /// Extends <see cref="IFormatter{T}"/> to support in-place rehydration of an existing instance.
+/// Extends <see cref="IFormatter{T}"/> to support in-place rehydration of an existing instance.
 /// </summary>
 /// <typeparam name="T">The type to deserialize.</typeparam>
 public interface IFillableFormatter<[
