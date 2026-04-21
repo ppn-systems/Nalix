@@ -99,7 +99,7 @@ internal class Program
 
         Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
         Console.WriteLine("Press Ctrl+C to stop.");
-        Console.WriteLine("Press Ctrl+, or 'R' to print instance report.");
+        Console.WriteLine("Press Ctrl+R to print instance report.");
 
         // Register a background task to listen for report requests (shortcuts)
         _ = Task.Run(async () =>
@@ -112,15 +112,17 @@ internal class Program
                     {
                         ConsoleKeyInfo key = Console.ReadKey(true);
                         // Trigger report on Ctrl + R or simply 'R'
-                        if ((key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R) || key.Key == ConsoleKey.R)
+                        if ((key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R))
                         {
                             PRINT_REPORT();
                         }
                     }
+
                     await Task.Delay(100, shutdown.Token).ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) { }
+            catch (Exception) { }
         }, shutdown.Token);
 
         static void PRINT_REPORT()
