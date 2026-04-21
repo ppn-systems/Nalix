@@ -135,6 +135,13 @@ internal class Program
 
                             Console.WriteLine(new string('-', 53) + "\n");
                         }
+                        else if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.O)
+                        {
+                            if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
+                            {
+                                bufferPoolManager.ResetMetrics();
+                            }
+                        }
                     }
                     await Task.Delay(100, shutdown.Token).ConfigureAwait(false);
                 }

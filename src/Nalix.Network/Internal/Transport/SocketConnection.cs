@@ -109,12 +109,8 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// Rented once for the lifetime of the connection.
     /// </summary>
     private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MaxChunkSize <= 0 ? 4096 : s_fragmentOptions.MaxChunkSize * 2);
-    private int _bufferDataLength;
 
-    /// <summary>
-    /// Cached string representation of the remote endpoint captured at SetCallback time.
-    /// Avoids ObjectDisposedException from reading _socket.RemoteEndPoint after socket close.
-    /// </summary>
+    private int _bufferDataLength;
     private string _endpointString = "<unknown>";
 
     #endregion Fields

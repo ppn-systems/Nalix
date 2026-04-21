@@ -8,8 +8,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Extensions;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Framework.DataFrames;
 
@@ -42,10 +40,6 @@ public sealed class PacketRegistry : IPacketRegistry
     // Action<IPacket>: returns it (calls s_objectPool.Return<TPacket>()).
     // Both are static/captured-once — zero allocation per call on the hot path.
     private readonly FrozenDictionary<uint, (Func<IPacket> Rent, Action<IPacket> Return)> _poolOps;
-
-    // Shared pool singleton.
-    private static readonly ObjectPoolManager s_objectPool =
-        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
     #endregion Fields
 
@@ -322,6 +316,8 @@ public sealed class PacketRegistry : IPacketRegistry
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ReturnPacket(IPacket packet)
     {
+        ArgumentNullException.ThrowIfNull(packet);
+
         uint magic = packet.MagicNumber;
         if (_poolOps.TryGetValue(magic, out (Func<IPacket> Rent, Action<IPacket> Return) ops))
         {

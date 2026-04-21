@@ -18,6 +18,7 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
+using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Internal.Time;
@@ -120,7 +121,7 @@ internal sealed class TimingWheel : IActivatable
     /// Represents a single timeout task in the wheel.
     /// One instance is reused per registered connection via the object pool.
     /// </summary>
-    private sealed class TimeoutTask : IPoolable
+    internal sealed class TimeoutTask : IPoolable
     {
         public IConnection? Conn;
         public int Rounds;
@@ -162,10 +163,7 @@ internal sealed class TimingWheel : IActivatable
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TimeoutTask? DequeueAll()
-        {
-            return Interlocked.Exchange(ref _head, null);
-        }
+        public TimeoutTask? DequeueAll() => Interlocked.Exchange(ref _head, null);
     }
 
     #endregion Nested types
@@ -348,6 +346,12 @@ internal sealed class TimingWheel : IActivatable
 
             _wheel[bucket].Enqueue(task);
             queued = true;
+
+            // Link the task to the connection for instant cleanup during Dispose.
+            if (connection is Connection conn)
+            {
+                conn._timeoutTask = task;
+            }
         }
         catch
         {
@@ -470,6 +474,11 @@ internal sealed class TimingWheel : IActivatable
                         if (!_active.TryGetValue(task.Conn, out int liveVersion)
                             || liveVersion != task.Version)
                         {
+                            if (task.Conn is Connection conn)
+                            {
+                                conn._timeoutTask = null;
+                            }
+
                             s_poolManager.Return(task);
                             task = next;
                             continue;
@@ -505,6 +514,10 @@ internal sealed class TimingWheel : IActivatable
                             }
 
                             _ = _active.TryRemove(task.Conn, out _);
+                            if (task.Conn is Connection conn)
+                            {
+                                conn._timeoutTask = null;
+                            }
                             s_poolManager.Return(task);
                             task = next;
                             continue;
@@ -524,7 +537,7 @@ internal sealed class TimingWheel : IActivatable
 
                         _active[task.Conn] = newVersion;
                         _wheel[nextBucket].Enqueue(task);
-                        
+
                         task = next;
                     }
 

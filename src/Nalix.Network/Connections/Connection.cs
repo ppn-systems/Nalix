@@ -50,6 +50,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
     private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
+    /// <summary>
+    /// Tracks the current timeout task in the TimingWheel.
+    /// Used for manual reference breaking during Dispose to allow instant GC.
+    /// </summary>
+    internal Internal.Time.TimingWheel.TimeoutTask? _timeoutTask;
+
     #endregion Fields
 
     #region Constructor
@@ -257,6 +263,16 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             this.Attributes.Return();
 
             this.Disconnect();
+
+            // High-Performance Cleanup: Break the TimingWheel reference chain instantly.
+            // This allows the GC to collect the Connection immediately instead of 
+            // waiting for the 102s wheel rotation.
+            Internal.Time.TimingWheel.TimeoutTask? task = _timeoutTask;
+            if (task is not null)
+            {
+                task.Conn = null;
+                _timeoutTask = null;
+            }
 
             this.Socket.Dispose();
 

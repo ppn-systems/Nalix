@@ -386,7 +386,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(ArraySegment<byte> segment)
     {
-        if (segment.Array is null) return;
+        if (segment.Array is null)
+        {
+            return;
+        }
+
         try
         {
             this.RETURN_TO_MANAGED_POOLS(segment);
