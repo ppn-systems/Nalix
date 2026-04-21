@@ -32,7 +32,7 @@ public sealed class ObjectPoolConfig : ConfigurationLoader
     /// Threshold in seconds after which an outstanding object is considered "suspicious".
     /// </summary>
     [IniComment("Threshold in seconds to flag 'suspicious' objects in reports")]
-    [Range(1, 3600, ErrorMessage = "SuspiciousThresholdSeconds must be between 1 and 3600.")]
+    [Range(0, 3600, ErrorMessage = "SuspiciousThresholdSeconds must be between 0 and 3600.")]
     public int SuspiciousThresholdSeconds { get; set; } = 30;
 
     /// <summary>
