@@ -299,6 +299,9 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
         }
 
         public override Task SendAsync(IPacket packet, CancellationToken ct = default)
+            => this.SendAsync(packet, null, ct);
+
+        public override Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
         {
             IPacket? response = SendInterceptor?.Invoke(packet);
             if (response is null && _queuedResponses.Count > 0)
@@ -316,7 +319,7 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
             return Task.CompletedTask;
         }
 
-        public override Task SendAsync(ReadOnlyMemory<byte> payload, CancellationToken ct = default)
+        public override Task SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
             => Task.CompletedTask;
 
         public void EnqueueResponse(IPacket packet) => _queuedResponses.Enqueue(packet);

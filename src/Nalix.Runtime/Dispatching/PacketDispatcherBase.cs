@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing;
@@ -114,6 +115,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
             {
                 this.Logging.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.OpCode}");
             }
+
             ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, token);
             if (pending.IsCompletedSuccessfully)
             {
@@ -123,7 +125,10 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 }
                 catch (Exception ex)
                 {
-                    this.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
+                    if (ex is not SerializationFailureException)
+                    {
+                        this.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
+                    }
                 }
 
                 return ValueTask.CompletedTask;

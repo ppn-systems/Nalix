@@ -51,7 +51,7 @@ client.OnDisconnected += (_, ex) => { };
 
 await client.ConnectAsync(options.Address, options.Port);
 await client.HandshakeAsync(); // X25519 handshake
-await client.SendAsync(myPacket);
+await client.SendAsync(myPacket, encrypt: true); // Send with optional encryption override
 await client.DisconnectAsync();
 client.Dispose();
 ```
@@ -92,6 +92,7 @@ It controls:
 - socket tuning
 - max packet size
 - compression and encryption settings
+- **ServerPublicKey**: Pinned X25519 Public Key for MitM protection (Mandatory for handshakes)
 
 ## Key API pages
 

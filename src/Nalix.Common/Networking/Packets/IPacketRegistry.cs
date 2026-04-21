@@ -94,4 +94,25 @@ public interface IPacketRegistry
         return true;
     }
 
+    /// <summary>
+    /// Attempts to deserialize a packet from <paramref name="raw"/> by renting an instance
+    /// from an internal object pool and filling it in-place (zero allocation on hot path).
+    /// On success the caller MUST later call <see cref="ReturnPacket"/> with the same instance.
+    /// </summary>
+    /// <returns><see langword="true"/> when deserialization succeeded.</returns>
+    bool TryDeserializePooled(
+        ReadOnlySpan<byte> raw,
+        [NotNullWhen(true)] out IPacket? packet) =>
+        // Default: plain deserialize (no pool). PacketRegistry in Nalix.Framework overrides this.
+        this.TryDeserialize(raw, out packet);
+
+    /// <summary>
+    /// Returns a packet previously obtained via <see cref="TryDeserializePooled"/> to the pool.
+    /// MUST be called exactly once per successful <see cref="TryDeserializePooled"/>.
+    /// </summary>
+    void ReturnPacket(IPacket packet)
+    {
+        // Default no-op. PacketRegistry overrides when pool return is supported.
+    }
+
 }

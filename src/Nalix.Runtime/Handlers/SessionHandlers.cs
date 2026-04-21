@@ -105,20 +105,26 @@ public sealed class SessionHandlers
         }
 
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
-
         RestoreSessionSnapshot(context.Connection, session);
 
         // Generate and store a new session entry with a rotated token for subsequent resume attempts.
         SessionEntry newEntry = Hub.SessionStore.CreateSession(context.Connection);
         await Hub.SessionStore.StoreAsync(newEntry).ConfigureAwait(false);
         UInt56 newToken = newEntry.Snapshot.SessionToken;
+        Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
+
+        Span<byte> newTokenBytes = stackalloc byte[8];
+        _ = newTokenSnowflake.TryWriteBytes(newTokenBytes);
+        Span<byte> responseProofBytes = stackalloc byte[32];
+        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), newTokenBytes[..7], responseProofBytes);
 
         using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
-            sessionToken: Snowflake.NewId(newToken),
+            sessionToken: newTokenSnowflake,
             reason: ProtocolReason.NONE,
+            proof: new Bytes32(responseProofBytes),
             flags: packet.Flags);
 
         await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
@@ -147,7 +153,6 @@ public sealed class SessionHandlers
         }
 
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
-        connection.Attributes[ConnectionAttributes.SessionToken] = snapshot.SessionToken;
     }
 
     /// <summary>
