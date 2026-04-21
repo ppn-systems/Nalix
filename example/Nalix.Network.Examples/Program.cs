@@ -137,9 +137,9 @@ internal class Program
                         }
                         else if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.O)
                         {
-                            if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
+                            if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
                             {
-                                bufferPoolManager.ResetMetrics();
+                                objectPoolManager.ResetMetrics();
                             }
                         }
                     }

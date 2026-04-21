@@ -422,9 +422,7 @@ internal sealed class TimingWheel : IActivatable
     #region Loop
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private async Task RUN_LOOP(
-        IWorkerContext ctx,
-        CancellationToken ct)
+    private async Task RUN_LOOP(IWorkerContext ctx, CancellationToken ct)
     {
         _ = Interlocked.Exchange(ref _tick, 0);
         long startTime = Clock.MonoTicksNow();
@@ -498,9 +496,12 @@ internal sealed class TimingWheel : IActivatable
 
                         if (idleMs >= _idleTimeoutMs)
                         {
-                            s_logger?.Debug(
+                            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                            {
+                                s_logger.Debug(
                                 $"[NW.{nameof(TimingWheel)}] timeout " +
                                 $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
+                            }
 
                             try
                             {

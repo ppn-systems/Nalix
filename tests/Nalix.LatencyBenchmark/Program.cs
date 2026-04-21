@@ -22,8 +22,8 @@ internal class Program
 
         const string Host = "127.0.0.1";
         const ushort Port = 57206;
-        const int SessionCount = 500;
-        const int PingsPerSession = 1000;
+        const int SessionCount = 1000;
+        const int PingsPerSession = 5000;
         const int TotalIterations = SessionCount * PingsPerSession;
 
         TransportOptions clientOptions = new()
