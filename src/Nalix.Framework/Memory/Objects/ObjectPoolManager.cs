@@ -187,6 +187,7 @@ public sealed class ObjectPoolManager : IReportable
     {
         _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
         _config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        _config.Validate();
     }
 
     #endregion Constructor
@@ -243,10 +244,10 @@ public sealed class ObjectPoolManager : IReportable
         if (_config.EnableDiagnostics)
         {
             PoolSentinel sentinel = new(result, _config.CaptureStackTraces);
-            
+
             // CWT keeps sentinel alive as long as 'result' is alive
             _activeSentinels.AddOrUpdate(result, sentinel);
-            
+
             // Bag allows us to iterate (using weak ref to not anchor the sentinel/object)
             _sentinelTracker.Add(new WeakReference<PoolSentinel>(sentinel));
         }
@@ -276,7 +277,7 @@ public sealed class ObjectPoolManager : IReportable
         if (_config.EnableDiagnostics && _activeSentinels.TryGetValue(obj, out PoolSentinel? sentinel))
         {
             sentinel.MarkReturned();
-            _activeSentinels.Remove(obj);
+            _ = _activeSentinels.Remove(obj);
 
             long elapsedTicks = System.Diagnostics.Stopwatch.GetTimestamp() - sentinel.RentTimestamp;
             _ = Interlocked.Add(ref metrics.TotalLifetimeTicks, elapsedTicks);
@@ -293,7 +294,7 @@ public sealed class ObjectPoolManager : IReportable
             // Update reservoir for p95
             if (metrics.LifetimeReservoir == null)
             {
-                Interlocked.CompareExchange(ref metrics.LifetimeReservoir, new long[_config.LifetimeReservoirSize], null);
+                _ = Interlocked.CompareExchange(ref metrics.LifetimeReservoir, new long[_config.LifetimeReservoirSize], null);
             }
 
             if (metrics.LifetimeReservoir != null)
@@ -442,11 +443,11 @@ public sealed class ObjectPoolManager : IReportable
 
             if (_config.EnableDiagnostics)
             {
-                double avgMs = metrics.TotalGets > 0 
+                double avgMs = metrics.TotalGets > 0
                     ? (metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0)
                     : 0;
                 double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
-                
+
                 info["AvgLifetimeMs"] = avgMs;
                 info["MaxLifetimeMs"] = maxMs;
                 info["p95LifetimeMs"] = this.CalculateP95(metrics);
@@ -720,10 +721,10 @@ public sealed class ObjectPoolManager : IReportable
             }
 
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {available,9} | {maxCap,7} | {gets,7} | {hits,7} | {misses,7} | {hitPercent,6:F1}% | {status}");
-            
+
             if (_config.EnableDiagnostics && metrics != null && metrics.TotalReturns > 0)
             {
-                double avgMs = (metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0);
+                double avgMs = metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double p95Ms = this.CalculateP95(metrics);
                 _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                         | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2} | Peak Active: {peak}");
@@ -901,7 +902,7 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
 
         long now = System.Diagnostics.Stopwatch.GetTimestamp();
-        long thresholdTicks = (long)(_config.SuspiciousThresholdSeconds * System.Diagnostics.Stopwatch.Frequency);
+        long thresholdTicks = _config.SuspiciousThresholdSeconds * System.Diagnostics.Stopwatch.Frequency;
         int found = 0;
 
         // We prune stale references while scanning to prevent the bag from growing indefinitely.
@@ -934,7 +935,7 @@ public sealed class ObjectPoolManager : IReportable
                     if (!string.IsNullOrEmpty(sentinel.StackTrace))
                     {
                         int firstLineEnd = sentinel.StackTrace.IndexOf('\n');
-                        stack = firstLineEnd > 0 ? sentinel.StackTrace.Substring(0, firstLineEnd).Trim() : sentinel.StackTrace;
+                        stack = firstLineEnd > 0 ? sentinel.StackTrace[..firstLineEnd].Trim() : sentinel.StackTrace;
                     }
 
                     if (found <= 20)
@@ -956,7 +957,7 @@ public sealed class ObjectPoolManager : IReportable
         {
             _ = sb.AppendLine("(None detected)");
         }
-        
+
         _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
     }

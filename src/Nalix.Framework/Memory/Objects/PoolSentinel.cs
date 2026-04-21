@@ -57,7 +57,7 @@ internal sealed class PoolSentinel
         
         if (captureStackTrace)
         {
-            _stackTrace = Environment.StackTrace;
+            _stackTrace = System.Environment.StackTrace;
         }
     }
 
