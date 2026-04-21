@@ -159,16 +159,14 @@ internal sealed class BufferPoolCollection : IDisposable
         for (int i = startIndex; i < keys.Length; i++)
         {
             int currentPoolSize = keys[i];
-            if (_pools.TryGetValue(currentPoolSize, out BufferPoolShared? pool))
+            if (_pools.TryGetValue(currentPoolSize, out BufferPoolShared? pool) &&
+                pool.TryAcquireBuffer(out ArraySegment<byte> buffer))
             {
-                if (pool.TryAcquireBuffer(out ArraySegment<byte> buffer))
+                if (this.AdjustCounter(currentPoolSize, isRent: true))
                 {
-                    if (this.AdjustCounter(currentPoolSize, isRent: true))
-                    {
-                        this.EvaluateResize(pool);
-                    }
-                    return buffer;
+                    this.EvaluateResize(pool);
                 }
+                return buffer;
             }
         }
 
