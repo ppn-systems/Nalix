@@ -24,6 +24,7 @@ They cover both built-in packet types and custom packet types through the generi
 - `IConnection`
 - `PacketControllerAttribute`
 - `PacketOpcodeAttribute`
+- `PacketTransportAttribute`
 
 ### Quick example
 
@@ -32,6 +33,7 @@ They cover both built-in packet types and custom packet types through the generi
 public class SamplePingHandlers
 {
     [PacketOpcode(1)]
+    [PacketTransport(NetworkTransport.TCP)]
     public Control HandlePing(PacketContext<Control> request)
         => request.Packet;
 }
@@ -90,6 +92,7 @@ Enums keep policies consistent across the stack.
 
 - `CipherSuiteType`
 - `DropPolicy`
+- `NetworkTransport`
 
 ## Key API pages
 
