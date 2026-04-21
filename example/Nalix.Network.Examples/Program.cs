@@ -27,7 +27,7 @@ internal class Program
     {
         // Turn off noisy logs for peak performance testing.
         ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Information;
+                            .MinLevel = LogLevel.Warning;
 
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();
@@ -61,11 +61,6 @@ internal class Program
                 options.MaxPerConnectionPendingPackets = 512;
                 options.MaxPendingPerIp = 10000;
                 options.MaxPendingNormalCallbacks = 100000;
-            })
-            .Configure<TimingWheelOptions>(options =>
-            {
-                options.BucketCount = 65536;
-                options.TickDuration = 1;
             })
             .Configure<DispatchOptions>(options =>
             {

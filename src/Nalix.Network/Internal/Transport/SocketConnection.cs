@@ -111,6 +111,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MaxChunkSize <= 0 ? 4096 : s_fragmentOptions.MaxChunkSize * 2);
     private int _bufferDataLength;
 
+    /// <summary>
+    /// Cached string representation of the remote endpoint captured at SetCallback time.
+    /// Avoids ObjectDisposedException from reading _socket.RemoteEndPoint after socket close.
+    /// </summary>
+    private string _endpointString = "<unknown>";
+
     #endregion Fields
 
     #region Options
@@ -175,9 +181,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         _sender = sender ?? throw new ArgumentNullException(nameof(sender));
         _cachedArgs = args ?? throw new ArgumentNullException(nameof(args));
 
+        // Cache endpoint string now while socket is alive — avoids ObjectDisposedException later.
+        _endpointString = FORMAT_ENDPOINT(_socket);
+
 #if DEBUG
         _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(SetCallback)}] " +
-                        $"configured ep={_socket.RemoteEndPoint}");
+                        $"configured ep={_endpointString}");
 #endif
     }
 
@@ -213,7 +222,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         {
 #if DEBUG
             _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
-                            $"skip — already disposed ep={_socket.RemoteEndPoint}");
+                            $"skip — already disposed ep={_endpointString}");
 #endif
             return;
         }
@@ -223,7 +232,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         {
 #if DEBUG
             _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
-                            $"skip — already started ep={_socket.RemoteEndPoint}");
+                            $"skip — already started ep={_endpointString}");
 #endif
             return;
         }
@@ -235,7 +244,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
 #if DEBUG
         _logger?.Debug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] " +
-                        $"saea-receive-loop started ep={_socket.RemoteEndPoint}");
+                        $"saea-receive-loop started ep={_endpointString}");
 #endif
 
         CancellationTokenSource linked =
@@ -276,7 +285,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
-        => $"FramedSocketConnection (Client={_socket.RemoteEndPoint}, " +
+        => $"FramedSocketConnection (Client={_endpointString}, " +
            $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
            $"UpTime={this.Uptime}ms, LastPing={this.LastPingTime}ms, " +
            $"PendingPackets={this.PendingPackets}, " +
@@ -321,7 +330,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     if (!IS_VALID_PACKET_SIZE(size))
                     {
 #if DEBUG
-                        _logger?.Debug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_socket.RemoteEndPoint}");
+                        _logger?.Debug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_endpointString}");
 #endif
                         throw new SocketException((int)SocketError.ProtocolNotSupported);
                     }
@@ -452,7 +461,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             Interlocked.Decrement(ref _pendingProcessCallbacks);
             _sender?.ThrottledWarn(
                 _logger, "socket.receive.throttle",
-                $"throttle triggered — packet dropped ep={_socket.RemoteEndPoint}");
+                $"throttle triggered — packet dropped ep={_endpointString}");
 
             return;
         }
@@ -481,7 +490,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 #if DEBUG
                 _logger?.Warn(
                     $"[NW.{nameof(SocketConnection)}] malformed-payload " +
-                    $"length={payloadLen} (too small for protocol header) ep={_socket.RemoteEndPoint}");
+                    $"length={payloadLen} (too small for protocol header) ep={_endpointString}");
 #endif
                 Interlocked.Decrement(ref _pendingProcessCallbacks);
                 args.Dispose();
@@ -495,13 +504,14 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             {
                 Interlocked.Decrement(ref _pendingProcessCallbacks);
                 args.Dispose();
+                lease.Dispose();   // ← was missing: return buffer to pool when queue is full
             }
         }
 
 #if DEBUG
         _logger?.Debug(
             $"[NW.{nameof(SocketConnection)}] handoff-to-cache " +
-            $"payload={payloadLen} pending={pending} ep={_socket.RemoteEndPoint}");
+            $"payload={payloadLen} pending={pending} ep={_endpointString}");
 #endif
     }
 
@@ -525,7 +535,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     args.Dispose();
 
 #if DEBUG
-                    _logger?.Debug($"[NW.{nameof(SocketConnection)}] fragment-limit open={openStreams} ep={_socket.RemoteEndPoint}");
+                    _logger?.Debug($"[NW.{nameof(SocketConnection)}] fragment-limit open={openStreams} ep={_endpointString}");
 #endif
                     return;
                 }
@@ -534,7 +544,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 #if DEBUG
             _logger?.Debug(
                 $"[NW.{nameof(SocketConnection)}] recv-frag stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
-                $"last={header.IsLast} ep={_socket.RemoteEndPoint}");
+                $"last={header.IsLast} ep={_endpointString}");
 #endif
 
             FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
@@ -550,13 +560,16 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     Interlocked.Decrement(ref _pendingProcessCallbacks);
                     Interlocked.Decrement(ref _openFragmentStreams);
                     args.Dispose();
+                    assembledLease.Dispose();  // ← was missing: must dispose on both paths
                 }
-
+                else
+                {
 #if DEBUG
-                _logger?.Debug($"[NW.{nameof(SocketConnection)}] assembled stream={header.StreamId} ep={_socket.RemoteEndPoint}");
+                    _logger?.Debug($"[NW.{nameof(SocketConnection)}] assembled stream={header.StreamId} ep={_endpointString}");
 #endif
-                Interlocked.Decrement(ref _openFragmentStreams);
-                assembledLease.Dispose();
+                    Interlocked.Decrement(ref _openFragmentStreams);
+                    assembledLease.Dispose();
+                }
             }
             else
             {
