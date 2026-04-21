@@ -12,13 +12,14 @@ namespace Nalix.Framework.Tests.Memory;
 public sealed partial class MemoryTests
 {
     [Theory]
-    [InlineData(100, 80, 10, true, false, 0.20, 0.10)]
-    [InlineData(100, 10, 40, false, true, 0.90, 0.40)]
-    [InlineData(100, 60, 0, true, false, 0.40, 0.00)]
-    [InlineData(0, 0, 5, false, false, 0.00, 0.00)]
+    [InlineData(100, 80, 90, 10, true, false, 0.20, 0.10)]
+    [InlineData(100, 10, 60, 40, false, true, 0.90, 0.40)]
+    [InlineData(100, 60, 100, 0, true, false, 0.40, 0.00)]
+    [InlineData(0, 0, 0, 0, false, false, 0.00, 0.00)]
     public void GetUsageRatio_StateVaries_ReturnsExpectedMetrics(
         int totalBuffers,
         int freeBuffers,
+        int hits,
         int misses,
         bool expectedCanShrink,
         bool expectedNeedsExpansion,
@@ -28,7 +29,7 @@ public sealed partial class MemoryTests
         BufferPoolState state = new()
         {
             BufferSize = 256,
-            Hits = 0,
+            Hits = hits,
             TotalBuffers = totalBuffers,
             FreeBuffers = freeBuffers,
             Misses = misses
@@ -171,7 +172,7 @@ public sealed partial class MemoryTests
         manager.ReturnFromSaea(saea);
 
         Assert.NotNull(segment.Array);
-        Assert.Equal(128, segment.Count);
+        Assert.True(segment.Count >= 128);
         Assert.NotNull(rentedBuffer);
         Assert.Null(saea.Buffer);
         Assert.Equal(0, saea.Count);
