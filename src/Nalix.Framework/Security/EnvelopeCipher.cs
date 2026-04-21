@@ -116,7 +116,7 @@ public static class EnvelopeCipher
         CipherSuiteType.Chacha20Poly1305 => ChaCha20.NonceSize,
         CipherSuiteType.Salsa20 => Salsa20.NonceSize,
         CipherSuiteType.Salsa20Poly1305 => Salsa20.NonceSize,
-        _ => throw new CipherException($"Unsupported cipher suite '{type}' for nonce length.")
+        CipherSuiteType.None or _ => throw new CipherException($"Unsupported cipher suite '{type}' for nonce length.")
     };
 
     /// <summary>
@@ -162,7 +162,7 @@ public static class EnvelopeCipher
         CipherSuiteType.Chacha20Poly1305 => EnvelopeFormat.TagSize,
         CipherSuiteType.Salsa20 => 0,
         CipherSuiteType.Salsa20Poly1305 => EnvelopeFormat.TagSize,
-        _ => throw new CipherException($"Unsupported cipher suite '{type}' for tag length.")
+        CipherSuiteType.None or _ => throw new CipherException($"Unsupported cipher suite '{type}' for tag length.")
     };
 
     /// <summary>
@@ -223,11 +223,11 @@ public static class EnvelopeCipher
                 SymmetricEngine.Encrypt(key, plaintext, ciphertext, nonce, seq, algorithm, out written);
                 return;
 
+            case CipherSuiteType.None:
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
                 AeadEngine.Encrypt(key, plaintext, ciphertext, nonce, aad, seq, algorithm, out written);
                 return;
-
             default:
                 throw new CipherException($"Unsupported cipher type '{algorithm}'.");
         }
@@ -295,11 +295,11 @@ public static class EnvelopeCipher
                 SymmetricEngine.Decrypt(key, envelope, plaintext, out written);
                 return;
 
+            case CipherSuiteType.None:
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
                 AeadEngine.Decrypt(key, envelope, plaintext, aad, out written);
                 return;
-
             default:
                 throw new CipherException($"Unsupported cipher type '{env.AeadType}'.");
         }

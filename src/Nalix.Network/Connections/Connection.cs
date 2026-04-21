@@ -155,6 +155,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// <inheritdoc />
     public Bytes32 Secret { get; set; }
 
+    /// <inheritdoc />
+    public int TimeoutVersion { get; set; }
+
+    /// <inheritdoc />
+    public bool IsRegisteredInWheel { get; set; }
+
     /// <summary>Gets the total number of bytes sent through this connection.</summary>
     /// <returns>The total number of bytes sent.</returns>
     public long BytesSent
