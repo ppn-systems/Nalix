@@ -23,6 +23,18 @@ using Nalix.Framework.Tasks;
 namespace Nalix.Framework.Memory.Buffers;
 
 /// <summary>
+/// Specifies the direction of a buffer pool resize operation.
+/// </summary>
+public enum BufferPoolResizeDirection
+{
+    /// <summary>The pool is expanding to handle more demand.</summary>
+    Increase,
+
+    /// <summary>The pool is shrinking to release memory.</summary>
+    Decrease
+}
+
+/// <summary>
 /// Manages pooled byte buffers, tracks pool metrics, and falls back to the shared
 /// ArrayPool when a requested size cannot be satisfied by a managed pool.
 /// </summary>
@@ -36,6 +48,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _suitablePoolSizeCache;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, BufferPoolMetrics> _metricsCache;
     private readonly System.Buffers.ArrayPool<byte> _fallbackArrayPool = System.Buffers.ArrayPool<byte>.Shared;
     private readonly ShrinkSafetyPolicy _shrinkPolicy;
 
@@ -638,23 +651,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         throw new InvalidOperationException("Unreachable");
     }
 
-    /// <summary>
-    /// Returns a buffer to managed Nalix pools and emits analytics if enabled.
-    /// Returning to the original pool preserves size affinity and improves the
-    /// hit rate of future rents.
-    /// </summary>
-    /// <param name="segment">The slab segment to return to the managed pools.</param>
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RETURN_TO_MANAGED_POOLS(ArraySegment<byte> segment)
-    {
-        _poolManager.ReturnBuffer(segment);
-
-        if (_config.EnableAnalytics)
-        {
-            _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={segment.Count}");
-        }
-    }
 
     /// <summary>
     /// Handles return failure by optionally returning buffer to fallback ArrayPool.
@@ -839,9 +835,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     /// <summary>
-    /// Applies trim on a single pool with metrics tracking.
+    /// Applies trim on a single bucket with metrics tracking.
     /// </summary>
-    /// <param name="pool">The pool to trim.</param>
+    /// <param name="bucket">The bucket to trim.</param>
     /// <param name="info">The current pool state snapshot.</param>
     /// <param name="shrinkStep">The number of buffers to remove.</param>
     [StackTraceHidden]

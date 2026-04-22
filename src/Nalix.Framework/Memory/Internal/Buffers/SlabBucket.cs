@@ -48,14 +48,9 @@ internal sealed class SlabBucket : IDisposable
 
     private readonly int _segmentSize;
     private readonly Lock _slabLock;
-    private readonly List<MemorySlab> _slabs;
-
     private readonly SlabBucketRing _freeRing;
-
-    [ThreadStatic]
-    private static ArraySegment<byte>[]? t_cache;
-    [ThreadStatic]
-    private static int t_cacheCount;
+    private readonly List<MemorySlab> _slabs = new();
+    private readonly ThreadLocal<ThreadLocalCache> _threadCache;
 
     private int _totalBuffers;
     private int _misses;
@@ -66,6 +61,12 @@ internal sealed class SlabBucket : IDisposable
 
     /// <summary>Occurs when the bucket needs to resize (expand or shrink).</summary>
     public event Action<SlabBucket, BufferPoolResizeDirection>? ResizeOccurred;
+
+    private sealed class ThreadLocalCache
+    {
+        public readonly ArraySegment<byte>[] Cache = new ArraySegment<byte>[ThreadCacheDepth];
+        public int Count;
+    }
 
     #endregion Fields
 
@@ -102,6 +103,7 @@ internal sealed class SlabBucket : IDisposable
             : (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)initialCapacity);
 
         _freeRing = new SlabBucketRing(ringCapacity);
+        _threadCache = new ThreadLocal<ThreadLocalCache>(() => new ThreadLocalCache(), trackAllValues: false);
 
         if (initialCapacity > 0)
         {
@@ -119,19 +121,16 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRent(out ArraySegment<byte> segment)
     {
-        if (t_cacheCount > 0 && t_cache is not null)
+        ThreadLocalCache cache = _threadCache.Value!;
+        if (cache.Count > 0)
         {
-            int idx = t_cacheCount - 1;
-            ArraySegment<byte> cached = t_cache[idx];
+            int idx = --cache.Count;
+            ArraySegment<byte> cached = cache.Cache[idx];
+            cache.Cache[idx] = default;
 
-            if (cached.Array is not null && cached.Count == _segmentSize)
-            {
-                t_cache[idx] = default;
-                t_cacheCount--;
-                segment = cached;
-                _ = Interlocked.Increment(ref _hits);
-                return true;
-            }
+            _ = Interlocked.Increment(ref _hits);
+            segment = cached;
+            return true;
         }
 
         if (_freeRing.TryDequeue(out segment) && segment.Array is not null)
@@ -160,7 +159,7 @@ internal sealed class SlabBucket : IDisposable
         // Notify manager that we need to grow.
         this.ResizeOccurred?.Invoke(this, BufferPoolResizeDirection.Increase);
 
-        if (this.TryRent(out ArraySegment<byte> segment))
+        if (this.TryRent(out segment))
         {
             return segment;
         }
@@ -189,21 +188,17 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(ArraySegment<byte> segment)
     {
-        if (segment.Array is null || segment.Count != _segmentSize)
+        if (segment.Array is null || segment.Count != _segmentSize) return;
+
+        ThreadLocalCache cache = _threadCache.Value!;
+        if (cache.Count < ThreadCacheDepth)
         {
+            cache.Cache[cache.Count++] = segment;
             return;
         }
 
-        t_cache ??= new ArraySegment<byte>[ThreadCacheDepth];
-
-        if (t_cacheCount < ThreadCacheDepth)
-        {
-            t_cache[t_cacheCount++] = segment;
-            return;
-        }
-
-        this.DrainCacheToRing();
-        t_cache[t_cacheCount++] = segment;
+        this.DrainCacheToRing(cache);
+        cache.Cache[cache.Count++] = segment;
     }
 
     /// <summary>
@@ -301,22 +296,20 @@ internal sealed class SlabBucket : IDisposable
         if (enqueued > 0) _ = Interlocked.Add(ref _totalBuffers, enqueued);
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void DrainCacheToRing()
+    /// <summary>Drains the current thread's cache to the shared ring.</summary>
+    private void DrainCacheToRing(ThreadLocalCache cache)
     {
-        if (t_cache is null || t_cacheCount == 0) return;
-
-        int drainCount = Math.Max(1, t_cacheCount / 2);
-        for (int i = 0; i < drainCount; i++)
+        int toMove = cache.Count / 2;
+        for (int i = 0; i < toMove; i++)
         {
-            ArraySegment<byte> cached = t_cache[i];
-            if (cached.Array is not null) _ = _freeRing.TryEnqueue(cached);
+            _freeRing.TryEnqueue(cache.Cache[i]);
         }
 
-        int remaining = t_cacheCount - drainCount;
-        for (int i = 0; i < remaining; i++) t_cache[i] = t_cache[drainCount + i];
-        for (int i = remaining; i < t_cacheCount; i++) t_cache[i] = default;
-        t_cacheCount = remaining;
+        // Shift remaining
+        int remaining = cache.Count - toMove;
+        Array.Copy(cache.Cache, toMove, cache.Cache, 0, remaining);
+        Array.Clear(cache.Cache, remaining, toMove);
+        cache.Count = remaining;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -347,6 +340,7 @@ internal sealed class SlabBucket : IDisposable
             if (_disposed) return;
             _ = _freeRing.DrainAll();
             _slabs.Clear();
+            _threadCache.Dispose();
             _disposed = true;
         }
     }
