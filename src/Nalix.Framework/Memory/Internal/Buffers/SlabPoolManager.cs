@@ -31,6 +31,9 @@ internal sealed class SlabPoolManager : IDisposable
     private readonly Lock _lock;
     private bool _disposed;
 
+    /// <summary>Occurs when any bucket managed by this pool manager needs to resize.</summary>
+    public event Action<SlabBucket, BufferPoolResizeDirection>? ResizeOccurred;
+
     /// <summary>
     /// Initializes a new <see cref="SlabPoolManager"/>.
     /// </summary>
@@ -57,6 +60,7 @@ internal sealed class SlabPoolManager : IDisposable
             }
 
             SlabBucket bucket = new(segmentSize, initialCapacity);
+            bucket.ResizeOccurred += (b, d) => this.ResizeOccurred?.Invoke(b, d);
             _buckets[segmentSize] = bucket;
             this.RebuildSortedKeys();
         }

@@ -64,6 +64,9 @@ internal sealed class SlabBucket : IDisposable
     private BufferPoolState _poolInfo;
     private int _isOptimizing;
 
+    /// <summary>Occurs when the bucket needs to resize (expand or shrink).</summary>
+    public event Action<SlabBucket, BufferPoolResizeDirection>? ResizeOccurred;
+
     #endregion Fields
 
     #region Properties
@@ -154,7 +157,16 @@ internal sealed class SlabBucket : IDisposable
 
         _ = Interlocked.Increment(ref _misses);
 
-        // Individual allocation for standalone slabs.
+        // Notify manager that we need to grow.
+        this.ResizeOccurred?.Invoke(this, BufferPoolResizeDirection.Increase);
+
+        if (this.TryRent(out ArraySegment<byte> segment))
+        {
+            return segment;
+        }
+
+        // Emergency fallback: if manager rejected growth, allocate one anyway 
+        // to prevent consumer failure, but this should be rare.
         this.AllocateAndEnqueue(1);
 
         if (_freeRing.TryDequeue(out segment) && segment.Array is not null)
