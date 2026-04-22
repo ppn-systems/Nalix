@@ -47,7 +47,6 @@ sequenceDiagram
 - `src/Nalix.Framework/Memory/Buffers/BufferLease.cs`
 - `src/Nalix.Framework/Memory/Buffers/BufferPoolManager.cs`
 - `src/Nalix.Framework/Options/BufferConfig.cs`
-- `src/Nalix.Framework/Memory/Internal/Buffers/MemorySlab.cs`
 - `src/Nalix.Framework/Memory/Internal/Buffers/SlabBucket.cs`
 - `src/Nalix.Framework/Memory/Internal/Buffers/SlabPoolManager.cs`
 
@@ -83,9 +82,9 @@ The manager provides a unified API for renting both raw `byte[]` arrays and `IBu
 
 To achieve maximum performance and eliminate slicing overhead, Nalix uses a **Standalone Slab** strategy. Instead of carving segments from a shared large array, each bucket manages a collection of independent pinned `byte[]` arrays of exactly the bucket's size.
 
-- **Zero-Offset Access**: All rented buffers have `Offset = 0`, allowing for faster memory operations and easier integration with external APIs.
-- **POH Placement**: Slabs are allocated on the **Pinned Object Heap (POH)** using `GC.AllocateArray(pinned: true)`, ensuring they never move and minimizing GC pause times.
-- **O(1) Fast Size Lookup**: For common sizes up to **4096 bytes**, the manager uses a direct-mapping array to resolve the correct bucket in constant time, bypassing binary search overhead.
+- **Zero-Offset Access**: All rented buffers are independent pinned arrays. This ensures `Offset = 0` and `index 0` compatibility with legacy APIs and high-performance memory operations.
+- **POH Placement**: Buffers are allocated on the **Pinned Object Heap (POH)** using `GC.AllocateArray(pinned: true)`. They remain pinned for their entire lifetime, eliminating GC movement and fragmentation.
+- **O(1) Fast Size Lookup**: For common sizes up to **4096 bytes**, the manager uses a direct-mapping array to resolve the correct bucket in constant time.
 - **SlabBucket**: Implements a two-level cache (L1: Thread-Local, L2: Shared Ring) for ultra-low contention.
 
 ### Adaptive Trimming & Shrink Safety
@@ -100,10 +99,11 @@ The manager includes a background job that monitors pool utilization. It uses a 
 
 `BufferPoolManager` provides two optimized paths for renting memory:
 
-- **`Rent(size)`**: The primary API, returning a standalone `byte[]`. Optimized for maximum speed and simplicity. All buffers have a zero offset.
-- **`RentSegment(size)`**: Returns an `ArraySegment<byte>`. Specifically designed for .NET APIs that require segments, such as `SocketAsyncEventArgs` or legacy I/O streams.
+`BufferPoolManager` provides an optimized path for renting memory:
 
-Both APIs are backed by the same high-performance **SlabBucket** infrastructure and benefit from the same O(1) optimizations.
+- **`Rent(size)`**: The primary API, returning a standalone `byte[]`. Optimized for maximum speed and simplicity. All buffers have a zero offset.
+
+The API is backed by the high-performance **SlabBucket** infrastructure and benefits from the same O(1) optimizations.
 
 
 ## BufferConfig

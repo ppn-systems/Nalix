@@ -107,6 +107,32 @@ Failures during session resumption use the `SessionResume` packet with `Stage = 
 
 ---
 
+## 5. Zero-Allocation Transport Exceptions
+
+To minimize GC pressure during high-frequency network events (including failures), Nalix uses the `NetworkErrors` utility to provide cached, zero-allocation exception instances for common transport scenarios.
+
+### Cached Exceptions
+
+Standard .NET exceptions capture a full stack trace upon instantiation, which is a significant allocation and CPU cost. `NetworkErrors` overrides this behavior for its internal types:
+
+- **Overridden `StackTrace`**: Cached instances return a static string ("at Nalix.Network.Internal.Transport (Cached Exception)") instead of performing a stack crawl.
+- **Static Reusability**: Instances like `NetworkErrors.ConnectionReset` and `NetworkErrors.SendFailed` are pre-allocated and reused across all connections.
+
+### Socket Error Mapping
+
+The `NetworkErrors.GetSocketError(SocketError)` method provides a fast lookup for common `SocketError` codes, returning cached `SocketException` instances for:
+
+- `ConnectionReset`
+- `ConnectionAborted`
+- `OperationAborted`
+- `Shutdown`
+- `MessageSize`
+- `ProtocolNotSupported`
+
+This ensures that even when the underlying OS reports a connection failure, the Nalix runtime remains allocation-free.
+
+---
+
 ## 4. Technical Constants
 
 - **OpCode Normalization:** `Directive` packets always use `OpCode = ProtocolOpCode.SYSTEM_CONTROL` (0x0001).
