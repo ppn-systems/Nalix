@@ -23,7 +23,9 @@ For a complete end-to-end walkthrough of how these optimizations work together i
 
 Instead of allocating `byte[]` per request, Nalix uses a slab-based `BufferPoolManager`. Every incoming packet is leased into a segment of a large, pre-allocated memory slab (`ArraySegment<byte>`). This ensures strict $O(1)$ lease/release performance and zero heap fragmentation.
 
-- **Lock-free slab allocation** — Minimizes thread contention during high-frequency leasing.
+- **Pinned Memory Slabs** — Eliminates **POH (Pinned Object Heap)** churn by allocating large blocks once, significantly reducing Gen 1 GC pauses.
+- **Lock-free slab allocation** — Minimizes thread contention during high-frequency leasing using thread-local caches.
+- **Atomic Lease Tracking** — `BufferLease` instances are pooled using a lock-free free-list with an **O(1) atomic counter**, avoiding the linear-time overhead of traditional collection count checks.
 - **Span-first API** — Leverages `Span<byte>` and `ReadOnlySpan<byte>` for slicing without copying data.
 - **Deterministic lifetime** — `BufferLease` implements `IDisposable`, ensuring buffers return to the slab after handler execution.
 
