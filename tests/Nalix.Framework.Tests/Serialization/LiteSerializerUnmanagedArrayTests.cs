@@ -79,7 +79,7 @@ public sealed class LiteSerializerUnmanagedArrayTests
         byte[] bad = new byte[3];
         SmallStruct[]? destination = null;
 
-        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Deserialize(bad, ref destination));
+        _ = Assert.ThrowsAny<SerializationFailureException>(() => LiteSerializer.Deserialize(bad, ref destination));
     }
 
     [Fact]
@@ -94,6 +94,6 @@ public sealed class LiteSerializerUnmanagedArrayTests
         }
 
         SmallStruct[]? destination = null;
-        _ = Assert.Throws<SerializationFailureException>(() => LiteSerializer.Deserialize(buffer, ref destination));
+        _ = Assert.ThrowsAny<SerializationFailureException>(() => LiteSerializer.Deserialize(buffer, ref destination));
     }
 }

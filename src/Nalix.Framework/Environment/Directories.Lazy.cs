@@ -195,24 +195,33 @@ public static partial class Directories
         {
             BasePathLazy = new(() =>
             {
+                // 1. Override
                 if (!string.IsNullOrEmpty(s_basePathOverride))
                 {
                     return Path.GetFullPath(s_basePathOverride);
                 }
+
+                // 2. ENV
                 string? env = GET_ENV("NALIX_BASE_PATH");
                 if (!string.IsNullOrEmpty(env))
                 {
                     return Path.GetFullPath(env);
                 }
+
+                // 3. Container
                 if (IsContainerLazy.Value)
                 {
                     return "/data";
                 }
+
+                // 4. OS-specific
                 if (OperatingSystem.IsWindows())
                 {
                     string root = System.Environment.GetFolderPath(System.Environment.SpecialFolder.CommonApplicationData);
                     return Path.Join(root, "Nalix");
                 }
+
+                // 5. Linux / XDG
                 string? xdg = GET_ENV("XDG_DATA_HOME");
                 string dataHome = !string.IsNullOrEmpty(xdg) ? xdg : Path.Join(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".local", "share");
                 return Path.Join(dataHome, "Nalix");
