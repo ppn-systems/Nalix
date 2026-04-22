@@ -452,7 +452,11 @@ public sealed class BufferLease : IBufferLease
     {
         ArraySegment<byte> seg = ByteArrayPool.RentSegment(capacity);
         BufferLease lease = s_freeList.TryPop(out BufferLease? cached) ? cached : new BufferLease();
-        lease.Initialize(seg.Array!, start: 0, length: 0, zeroOnDispose, 0, seg.Count);
+        // Use the slab segment offset as the slice start so Span/Memory views
+        // point to the correct region of the (potentially shared) backing array.
+        // poolSegmentOffset + poolSegmentCount enable correct slab-aware return
+        // in Dispose() via ByteArrayPool.ReturnSegment().
+        lease.Initialize(seg.Array!, start: seg.Offset, length: 0, zeroOnDispose, seg.Offset, seg.Count);
         return lease;
     }
 
@@ -465,9 +469,10 @@ public sealed class BufferLease : IBufferLease
     public static BufferLease CopyFrom(ReadOnlySpan<byte> src, bool zeroOnDispose = false)
     {
         ArraySegment<byte> seg = ByteArrayPool.RentSegment(src.Length);
-        src.CopyTo(new Span<byte>(seg.Array!, 0, seg.Count));
+        // Copy into the correct offset of the (potentially shared) slab array.
+        src.CopyTo(new Span<byte>(seg.Array!, seg.Offset, seg.Count));
         BufferLease lease = s_freeList.TryPop(out BufferLease? cached) ? cached : new BufferLease();
-        lease.Initialize(seg.Array!, start: 0, length: src.Length, zeroOnDispose, 0, seg.Count);
+        lease.Initialize(seg.Array!, start: seg.Offset, length: src.Length, zeroOnDispose, seg.Offset, seg.Count);
         return lease;
     }
 
