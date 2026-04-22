@@ -159,16 +159,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (packetLength < BufferLease.StackAllocThreshold)
-        {
-            // Renting memory on the stack for small packets to avoid GC pressure.
-            // Using a safe overhead (10%) for serialization margins.
-            Span<byte> buffer = stackalloc byte[packetLength + (packetLength / 20)];
-            int bytesWritten = packet.Serialize(buffer);
-            this.Send(buffer[..bytesWritten]);
-            return;
-        }
-
         using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
         int written = packet.Serialize(lease.SpanFull);
         lease.CommitLength(written);
@@ -203,30 +193,13 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     }
 
     /// <inheritdoc/>
-    public async Task SendAsync(IPacket packet, CancellationToken cancellationToken = default)
+    public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
         int packetLength = packet.Length;
 
         if (packetLength == 0)
         {
-            return;
-        }
-
-        // --- OPTIMIZATION: Zero-allocation small packet send ---
-        if (packetLength < BufferLease.StackAllocThreshold)
-        {
-            // Rent a reusable byte array from the shared pool.
-            byte[] arr = BufferLease.ByteArrayPool.Rent(packetLength + (packetLength / 20));
-            try
-            {
-                int written = packet.Serialize(arr);
-                await this.SendAsync(new ReadOnlyMemory<byte>(arr, 0, written), cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                BufferLease.ByteArrayPool.Return(arr);
-            }
             return;
         }
 
@@ -237,7 +210,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     }
 
     /// <inheritdoc/>
-    public async Task SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
+    public async ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
     {
         if (message.IsEmpty || _endPoint == null || _socket == null)
         {
