@@ -1066,9 +1066,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
     {
-        _ = sb.AppendLine("s_pool Details:");
+        _ = sb.AppendLine("Buffer Details:");
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine("SIZE     | Initial| Total  | Free   | In Use  | Hits     | Expands| Shrinks| Usage %  | MissRate");
+        _ = sb.AppendLine("SIZE     | Initial| Total  | Free  | In Use  | Hits     | Expands| Shrinks| Usage %   | MissRate ");
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
 
         List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
@@ -1091,15 +1091,19 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             double usage = info.GetUsageRatio() * 100.0;
             double miss = info.GetMissRate() * 100.0;
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, 
+            _ = sb.AppendLine(CultureInfo.InvariantCulture,
                 $"{info.BufferSize,8} | {info.InitialCapacity,6} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {info.Hits,8} | {info.Expands,6} | {info.Shrinks,6} | {usage,8:F2}% | {miss,7:F2}%");
         }
 
-        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, 
-            $"Total Hits: {totalHits,10} | Total Misses: {totalMisses,10} | Total Expands: {totalExpands,5} | Total Shrinks: {totalShrinks,5}");
+
         double totalHitRate = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) * 100.0 : 100.0;
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Overall Hit Rate: {totalHitRate:F2}%");
+
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hits      : {totalHits,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Misses    : {totalMisses,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Expands   : {totalExpands,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Shrinks   : {totalShrinks,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Overall Hit Rate: {totalHitRate,9:F2}%");
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
     }
 
@@ -1108,10 +1112,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private void APPEND_REPORT_METRICS(StringBuilder sb)
     {
         _ = sb.AppendLine();
-        _ = sb.AppendLine("s_pool Metrics (Shrink/Expand Operations):");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
-        _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("Buffer Metrics (Shrink/Expand Operations):");
+        _ = sb.AppendLine("-----------------------------------------------------------------");
+        _ = sb.AppendLine("SIZE       | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
+        _ = sb.AppendLine("-----------------------------------------------------------------");
 
         List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
         buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
@@ -1126,15 +1130,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                     ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                     : $"{metrics.TotalBytesReturned / 1024}KB";
 
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {info.Shrinks,9} | {metrics.ShrinkSkipped,11} | {info.Expands,9} | {bytesReturnedStr,14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,10} | {info.Shrinks,9} | {metrics.ShrinkSkipped,11} | {info.Expands,9} | {bytesReturnedStr,14}");
             }
             else
             {
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {0,9} | {0,11} | {0,9} | {"0KB",14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,10} | {0,9} | {0,11} | {0,9} | {"0KB",14}");
             }
         }
 
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------");
     }
 
     #endregion Private: Reporting
