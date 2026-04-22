@@ -3,7 +3,6 @@
 
 using System;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.Internal;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
