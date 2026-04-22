@@ -94,7 +94,7 @@ internal sealed partial class SocketConnection
 #endif
                         this.CANCEL_RECEIVE_ONCE();
                         this.INVOKE_CLOSE_ONCE();
-                        throw new NetworkException("The socket closed while sending.");
+                        throw NetworkErrors.SendFailed;
                     }
                     sent += n;
                 }
@@ -175,7 +175,7 @@ internal sealed partial class SocketConnection
 #endif
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    throw new NetworkException("The socket closed while sending.");
+                    throw NetworkErrors.SendFailed;
                 }
                 sent += n;
             }
@@ -470,7 +470,7 @@ internal sealed partial class SocketConnection
                 {
                     this.CANCEL_RECEIVE_ONCE();
                     this.INVOKE_CLOSE_ONCE();
-                    throw new NetworkException("The socket closed while sending.");
+                    throw NetworkErrors.SendFailed;
                 }
                 sent += n;
             }
