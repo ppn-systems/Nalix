@@ -22,13 +22,35 @@ public sealed class BufferLease : IBufferLease
 {
     #region Static
 
-    private const int PoolMaxSize = 2048;
+    private const int PoolMaxSize = 8192;
+
+    // Atomic counter for the free-list depth. ConcurrentStack.Count is O(n) — it
+    // traverses the entire linked list on every call. At millions of Dispose() calls
+    // per second this is a major hidden cost. The counter trades perfect accuracy
+    // for O(1) per-call overhead; off-by-one races are harmless (we just keep or
+    // drop one extra shell).
+    private static int s_freeListCount;
 
     // Tight lock-free free-list for BufferLease instance reuse.
     // ConcurrentStack.TryPop/Push = single CAS operation — ~2ns vs ObjectPoolManager's
     // ~150ns (3x Interlocked + ConcurrentDict + DateTime + string write per call).
-    // Cap at 2048 so idle memory stays bounded.
     private static readonly System.Collections.Concurrent.ConcurrentStack<BufferLease> s_freeList = new();
+
+    /// <summary>
+    /// Pops a lease shell from the free-list (or creates a new one).
+    /// Maintains the atomic free-list count for O(1) capacity checks.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static BufferLease RentLeaseShell()
+    {
+        if (s_freeList.TryPop(out BufferLease? cached))
+        {
+            _ = Interlocked.Decrement(ref s_freeListCount);
+            return cached;
+        }
+
+        return new BufferLease();
+    }
 
     /// <summary>
     /// Provides a centralized buffer pooling abstraction.
@@ -395,9 +417,10 @@ public sealed class BufferLease : IBufferLease
 
         // Return the BufferLease shell to the free-list for reuse (single CAS, zero alloc).
         this.ResetForFreeList();
-        if (s_freeList.Count < PoolMaxSize)
+        if (Volatile.Read(ref s_freeListCount) < PoolMaxSize)
         {
             s_freeList.Push(this);
+            _ = Interlocked.Increment(ref s_freeListCount);
         }
     }
 
@@ -451,7 +474,7 @@ public sealed class BufferLease : IBufferLease
         bool zeroOnDispose = false)
     {
         ArraySegment<byte> seg = ByteArrayPool.RentSegment(capacity);
-        BufferLease lease = s_freeList.TryPop(out BufferLease? cached) ? cached : new BufferLease();
+        BufferLease lease = RentLeaseShell();
         // Use the slab segment offset as the slice start so Span/Memory views
         // point to the correct region of the (potentially shared) backing array.
         // poolSegmentOffset + poolSegmentCount enable correct slab-aware return
@@ -471,7 +494,7 @@ public sealed class BufferLease : IBufferLease
         ArraySegment<byte> seg = ByteArrayPool.RentSegment(src.Length);
         // Copy into the correct offset of the (potentially shared) slab array.
         src.CopyTo(new Span<byte>(seg.Array!, seg.Offset, seg.Count));
-        BufferLease lease = s_freeList.TryPop(out BufferLease? cached) ? cached : new BufferLease();
+        BufferLease lease = RentLeaseShell();
         lease.Initialize(seg.Array!, start: seg.Offset, length: src.Length, zeroOnDispose, seg.Offset, seg.Count);
         return lease;
     }
@@ -492,7 +515,7 @@ public sealed class BufferLease : IBufferLease
         bool zeroOnDispose = false)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        BufferLease lease = s_freeList.TryPop(out BufferLease? cached) ? cached : new BufferLease();
+        BufferLease lease = RentLeaseShell();
         lease.Initialize(buffer, start: 0, length: length, zeroOnDispose, 0, 0);
         return lease;
     }
@@ -515,7 +538,7 @@ public sealed class BufferLease : IBufferLease
         bool zeroOnDispose = false)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        BufferLease lease = s_freeList.TryPop(out BufferLease? cached) ? cached : new BufferLease();
+        BufferLease lease = RentLeaseShell();
         lease.Initialize(buffer, start, length, zeroOnDispose, 0, 0);
         return lease;
     }
