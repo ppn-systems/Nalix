@@ -218,7 +218,8 @@ internal sealed partial class SocketConnection
     /// <param name="cancellationToken"></param>
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public async ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         this.THROW_IF_NOT_CONFIGURED();
 
@@ -226,22 +227,21 @@ internal sealed partial class SocketConnection
 
         if (data.IsEmpty)
         {
-            throw new ArgumentException("Data must not be empty.", nameof(data));
+            return ValueTask.FromException(new ArgumentException("Data must not be empty.", nameof(data)));
         }
 
         if (data.Length >= s_fragmentOptions.MaxChunkSize)
         {
-            await this.SEND_FRAGMENTED_ASYNC(data, cancellationToken).ConfigureAwait(false);
-            return;
+            return this.SEND_FRAGMENTED_ASYNC(data, cancellationToken);
         }
 
         int totalLength = data.Length + HeaderSize;
         if (totalLength > ushort.MaxValue)
         {
-            throw new ArgumentOutOfRangeException(
+            return ValueTask.FromException(new ArgumentOutOfRangeException(
                 nameof(data),
                 totalLength,
-                $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes.");
+                $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes."));
         }
 
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
@@ -261,7 +261,7 @@ internal sealed partial class SocketConnection
 
                 _logger.Debug(
                     $"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                    $"sending async frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
+                    $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
                     $"ep={_socket.RemoteEndPoint}");
             }
 #endif
@@ -269,55 +269,99 @@ internal sealed partial class SocketConnection
             int sent = 0;
             while (sent < totalLength)
             {
-                int n = await _socket.SendAsync(MemoryExtensions
-                                     .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken)
-                                     .ConfigureAwait(false);
+                ValueTask<int> vt = _socket.SendAsync(MemoryExtensions
+                                     .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken);
 
-                if (n == 0)
+                if (vt.IsCompletedSuccessfully)
                 {
-#if DEBUG
-                    if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                    int n = vt.Result;
+                    if (n == 0)
                     {
-                        _logger.Debug(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                            $"peer-closed ep={_socket.RemoteEndPoint}");
+                        return HANDLE_PEER_CLOSED(this, heapBuf);
                     }
-#endif
-                    this.CANCEL_RECEIVE_ONCE();
-                    this.INVOKE_CLOSE_ONCE();
-                    throw new NetworkException("The socket closed while sending.");
+                    sent += n;
                 }
-                sent += n;
+                else
+                {
+                    return AWAIT_SEND(this, vt, heapBuf, sent, totalLength, cancellationToken);
+                }
             }
 
             this.InvokePostCallback();
-            return;
+            BufferLease.ByteArrayPool.Return(heapBuf);
+            return default;
         }
         catch (Exception ex)
         {
-            if (IS_BENIGN_DISCONNECT(ex))
-            {
-#if DEBUG
-                if (_logger?.IsEnabled(LogLevel.Debug) == true)
-                {
-                    _logger.Debug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(SendAsync)}] " +
-                        $"benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
-                }
-#endif
-            }
-            else
-            {
-                _sender.ThrottledError(
-                    _logger,
-                    "socket.send.error",
-                    $"error ep={FORMAT_ENDPOINT(_socket)}", ex);
-            }
-            throw;
-        }
-        finally
-        {
             BufferLease.ByteArrayPool.Return(heapBuf);
+            return HANDLE_SEND_ERROR(this, ex);
+        }
+
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
+        static async ValueTask AWAIT_SEND(SocketConnection self, ValueTask<int> vt, byte[] heapBuf, int sent, int totalLength, CancellationToken token)
+        {
+            try
+            {
+                int n = await vt.ConfigureAwait(false);
+                if (n == 0)
+                {
+                    throw HANDLE_PEER_CLOSED_EXCEPTION(self);
+                }
+                sent += n;
+
+                while (sent < totalLength)
+                {
+                    n = await self._socket.SendAsync(MemoryExtensions.AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, token).ConfigureAwait(false);
+                    if (n == 0)
+                    {
+                        throw HANDLE_PEER_CLOSED_EXCEPTION(self);
+                    }
+                    sent += n;
+                }
+
+                self.InvokePostCallback();
+            }
+            catch (Exception ex)
+            {
+                throw HANDLE_SEND_ERROR_EXCEPTION(self, ex);
+            }
+            finally
+            {
+                BufferLease.ByteArrayPool.Return(heapBuf);
+            }
+        }
+
+        static ValueTask HANDLE_PEER_CLOSED(SocketConnection self, byte[] buf)
+        {
+            BufferLease.ByteArrayPool.Return(buf);
+            self.CANCEL_RECEIVE_ONCE();
+            self.INVOKE_CLOSE_ONCE();
+            return ValueTask.FromException(new NetworkException("The socket closed while sending."));
+        }
+
+        static Exception HANDLE_PEER_CLOSED_EXCEPTION(SocketConnection self)
+        {
+            self.CANCEL_RECEIVE_ONCE();
+            self.INVOKE_CLOSE_ONCE();
+            return new NetworkException("The socket closed while sending.");
+        }
+
+        static ValueTask HANDLE_SEND_ERROR(SocketConnection self, Exception ex)
+        {
+            if (!IS_BENIGN_DISCONNECT(ex))
+            {
+                self._sender.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
+            }
+            return ValueTask.FromException(ex);
+        }
+
+        static Exception HANDLE_SEND_ERROR_EXCEPTION(SocketConnection self, Exception ex)
+        {
+            if (!IS_BENIGN_DISCONNECT(ex))
+            {
+                self._sender.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
+            }
+            return ex;
         }
     }
 
@@ -433,12 +477,12 @@ internal sealed partial class SocketConnection
         }
     }
 
-    private async ValueTask SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
+    private ValueTask SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         if (payload.Length > s_fragmentOptions.MaxPayloadSize)
         {
-            throw new ArgumentOutOfRangeException(nameof(payload),
-                $"Payload exceeds maximum allowed size {s_fragmentOptions.MaxPayloadSize}");
+            return ValueTask.FromException(new ArgumentOutOfRangeException(nameof(payload),
+                $"Payload exceeds maximum allowed size {s_fragmentOptions.MaxPayloadSize}"));
         }
 
         ushort streamId = FragmentStreamId.Next();
@@ -446,77 +490,112 @@ internal sealed partial class SocketConnection
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
         if (totalChunks > ushort.MaxValue)
         {
-            throw new InternalErrorException(
-                $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
+            return ValueTask.FromException(new InternalErrorException(
+                $"Fragmented payload requires {totalChunks} chunks, which exceeds the {ushort.MaxValue}-chunk wire header limit."));
         }
 
-        byte[] headerSpan = new byte[FragmentHeader.WireSize];
+        return SEND_CHUNKS_ASYNC(this, payload, streamId, chunkBodySize, totalChunks, token);
 
-        for (int i = 0; i < totalChunks; i++)
+        [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
+        static async ValueTask SEND_CHUNKS_ASYNC(SocketConnection self, ReadOnlyMemory<byte> payload, ushort streamId, int chunkBodySize, int totalChunks, CancellationToken token)
         {
-            int offset = i * chunkBodySize;
-            int chunkLen = Math.Min(chunkBodySize, payload.Length - offset);
-            bool isLast = i == totalChunks - 1;
-
-            FragmentHeader fragHeader = new(streamId, (ushort)i, (ushort)totalChunks, isLast);
-            fragHeader.WriteTo(headerSpan);
-
-            int framePayloadLen = FragmentHeader.WireSize + chunkLen;
-            int totalFrameLen = HeaderSize + framePayloadLen;
-
-            if (totalFrameLen > ushort.MaxValue)
+            for (int i = 0; i < totalChunks; i++)
             {
-                throw new InternalErrorException(
-                    $"Fragmented frame size {totalFrameLen} exceeds the {ushort.MaxValue}-byte wire header limit.");
+                int offset = i * chunkBodySize;
+                int chunkLen = Math.Min(chunkBodySize, payload.Length - offset);
+                bool isLast = i == totalChunks - 1;
+
+                int framePayloadLen = FragmentHeader.WireSize + chunkLen;
+                int totalFrameLen = HeaderSize + framePayloadLen;
+
+                if (totalFrameLen > ushort.MaxValue)
+                {
+                    throw new InternalErrorException(
+                        $"Fragmented frame size {totalFrameLen} exceeds the {ushort.MaxValue}-byte wire header limit.");
+                }
+
+                byte[] rented = BufferLease.ByteArrayPool.Rent(totalFrameLen);
+
+                try
+                {
+                    // Write header directly into the rented buffer to avoid Span across await.
+                    FragmentHeader fragHeader = new(streamId, (ushort)i, (ushort)totalChunks, isLast);
+                    fragHeader.WriteTo(rented.AsSpan(HeaderSize, FragmentHeader.WireSize));
+
+                    BUILD_FRAGMENT_FRAME(rented.AsSpan(0, totalFrameLen), payload.Slice(offset, chunkLen).Span);
+
+                    await SEND_RAW_FRAME_ASYNC(self, rented.AsMemory(0, totalFrameLen), token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    BufferLease.ByteArrayPool.Return(rented);
+                }
             }
 
-            byte[] rented = BufferLease.ByteArrayPool.Rent(totalFrameLen);
-
-            try
-            {
-                BUILD_FRAGMENT_FRAME(rented.AsSpan(0, totalFrameLen), headerSpan, payload.Slice(offset, chunkLen).Span);
-
-                await SEND_RAW_FRAME_ASYNC(rented.AsMemory(0, totalFrameLen), token).ConfigureAwait(false);
-            }
-            finally
-            {
-                BufferLease.ByteArrayPool.Return(rented);
-            }
+            self.InvokePostCallback();
         }
-
-        this.InvokePostCallback();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static void BUILD_FRAGMENT_FRAME(Span<byte> frame, ReadOnlySpan<byte> fragHeader, ReadOnlySpan<byte> chunkBody)
+        static void BUILD_FRAGMENT_FRAME(Span<byte> frame, ReadOnlySpan<byte> chunkBody)
         {
             // Write the outer frame length first because the receiver reads this
             // prefix before it can interpret the fragment header or payload body.
             BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)frame.Length);
 
-            // Copy the fragment header, including the magic marker that lets the
-            // receiver recognize this frame as a fragment stream.
-            fragHeader.CopyTo(frame[HeaderSize..]);
-
             // Copy the chunk body into the wire frame immediately after the
-            // fragment header.
+            // fragment header (which was already written).
             chunkBody.CopyTo(frame[(HeaderSize + FragmentHeader.WireSize)..]);
         }
 
-        async Task SEND_RAW_FRAME_ASYNC(ReadOnlyMemory<byte> frame, CancellationToken token)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ValueTask SEND_RAW_FRAME_ASYNC(SocketConnection self, ReadOnlyMemory<byte> frame, CancellationToken token)
         {
             int sent = 0;
             while (sent < frame.Length)
             {
-                int n = await _socket.SendAsync(frame[sent..], SocketFlags.None, token)
-                                     .ConfigureAwait(false);
+                ValueTask<int> vt = self._socket.SendAsync(frame[sent..], SocketFlags.None, token);
+                if (vt.IsCompletedSuccessfully)
+                {
+                    int n = vt.Result;
+                    if (n == 0)
+                    {
+                        self.CANCEL_RECEIVE_ONCE();
+                        self.INVOKE_CLOSE_ONCE();
+                        return ValueTask.FromException(new NetworkException("The socket closed while sending."));
+                    }
+                    sent += n;
+                }
+                else
+                {
+                    return AWAIT_RAW_SEND(self, vt, frame, sent, token);
+                }
+            }
 
+            return default;
+
+            [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
+            static async ValueTask AWAIT_RAW_SEND(SocketConnection self, ValueTask<int> vt, ReadOnlyMemory<byte> frame, int sent, CancellationToken token)
+            {
+                int n = await vt.ConfigureAwait(false);
                 if (n == 0)
                 {
-                    this.CANCEL_RECEIVE_ONCE();
-                    this.INVOKE_CLOSE_ONCE();
+                    self.CANCEL_RECEIVE_ONCE();
+                    self.INVOKE_CLOSE_ONCE();
                     throw new NetworkException("The socket closed while sending.");
                 }
                 sent += n;
+
+                while (sent < frame.Length)
+                {
+                    n = await self._socket.SendAsync(frame[sent..], SocketFlags.None, token).ConfigureAwait(false);
+                    if (n == 0)
+                    {
+                        self.CANCEL_RECEIVE_ONCE();
+                        self.INVOKE_CLOSE_ONCE();
+                        throw new NetworkException("The socket closed while sending.");
+                    }
+                    sent += n;
+                }
             }
         }
     }
