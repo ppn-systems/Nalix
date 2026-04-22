@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text;
@@ -263,14 +262,14 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
 
         // Fast path: common sizes served directly from slab buckets.
-        if (_slabPool.TryRentArray(minimumLength, out byte[]? array))
+        if (_slabPool.TryRent(minimumLength, out byte[]? array))
         {
             goto ReturnArray;
         }
 
         if (_suitablePoolSizeCache.TryGetValue(minimumLength, out int cachedPoolSize))
         {
-            if (_slabPool.TryRentArray(cachedPoolSize, out array))
+            if (_slabPool.TryRent(cachedPoolSize, out array))
             {
                 goto ReturnArray;
             }
@@ -293,7 +292,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     ReturnArray:
 #if DEBUG
-        _ = s_activeSentinels.GetValue(array, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
+        _ = s_activeSentinels.GetValue(array!, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
 #endif
         return array;
     }
@@ -323,58 +322,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 #endif
 
-        if (!_slabPool.TryReturnArray(array))
+        if (!_slabPool.TryReturn(array))
         {
             this.HANDLE_RETURN_FAILURE(array, new ArgumentException($"Buffer of size {array.Length} not owned by managed pools."));
         }
-    }
-
-    /// <summary>Rents a buffer and wraps it as an <see cref="ArraySegment{T}"/> for <see cref="SocketAsyncEventArgs"/> workflows.</summary>
-    /// <param name="size">The minimum number of bytes required.</param>
-    /// <returns>
-    /// An <see cref="ArraySegment{T}"/> backed by a slab segment, with <c>Offset = segment.Offset</c> and <c>Count = size</c>.
-    /// </returns>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ArraySegment<byte> RentSegment(int size = 256)
-    {
-        if (_slabPool.TryRent(size, out ArraySegment<byte> slabSeg))
-        {
-            return slabSeg;
-        }
-
-        try
-        {
-            return this.RENT_SEGMENT_WITH_CACHING(size);
-        }
-        catch (ArgumentException ex)
-        {
-            byte[] fallback = this.HANDLE_RENT_FAILURE(size, ex);
-            return new ArraySegment<byte>(fallback, 0, size);
-        }
-    }
-
-    /// <summary>
-    /// Returns a buffer that was rented via <see cref="RentSegment"/> back to the pool.
-    /// Tries the slab pool first (routes by <see cref="ArraySegment{T}.Count"/>),
-    /// then falls back to the per-buffer managed pools.
-    /// </summary>
-    /// <param name="segment">The segment to return.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(ArraySegment<byte> segment)
-    {
-        if (segment.Array is null)
-        {
-            return;
-        }
-
-        if (_slabPool.TryReturn(segment))
-        {
-            return;
-        }
-
-        this.HANDLE_RETURN_FAILURE(segment.Array, new ArgumentException($"Segment of size {segment.Count} not owned by slab pools."));
     }
 
     /// <summary>
@@ -555,26 +506,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private bool TRY_RENT_ARRAY_WITH_CACHING(int size, [NotNullWhen(true)] out byte[]? array)
     {
-        if (_slabPool.TryRentArray(size, out array))
+        if (_slabPool.TryRent(size, out array))
         {
             this.CACHE_SUITABLE_POOL_SIZE(size, array.Length);
             return true;
         }
 
         return false;
-    }
-
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private ArraySegment<byte> RENT_SEGMENT_WITH_CACHING(int size)
-    {
-        if (_slabPool.TryRent(size, out ArraySegment<byte> segment))
-        {
-            this.CACHE_SUITABLE_POOL_SIZE(size, segment.Count);
-            return segment;
-        }
-
-        throw new ArgumentException($"No suitable bucket found for size {size}.");
     }
 
     [StackTraceHidden]

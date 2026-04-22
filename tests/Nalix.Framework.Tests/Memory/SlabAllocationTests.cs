@@ -75,21 +75,20 @@ public sealed class SlabAllocationTests
     {
         using SlabBucket bucket = new(256, 4);
 
-        ArraySegment<byte> seg = bucket.Rent();
-        Assert.NotNull(seg.Array);
-        Assert.Equal(256, seg.Count);
-        Assert.Equal(0, seg.Offset); 
+        byte[] arr = bucket.Rent();
+        Assert.NotNull(arr);
+        Assert.True(arr.Length >= 256);
 
         // Write some data to confirm usability
-        seg.Array!.AsSpan(seg.Offset, seg.Count).Fill(42);
+        arr.AsSpan().Fill(42);
 
-        bucket.Return(seg);
+        bucket.Return(arr);
 
         // Should be able to rent it back
-        ArraySegment<byte> seg2 = bucket.Rent();
-        Assert.NotNull(seg2.Array);
-        Assert.Equal(256, seg2.Count);
-        bucket.Return(seg2);
+        byte[] arr2 = bucket.Rent();
+        Assert.NotNull(arr2);
+        Assert.True(arr2.Length >= 256);
+        bucket.Return(arr2);
     }
 
     [Fact]
@@ -97,25 +96,24 @@ public sealed class SlabAllocationTests
     {
         using SlabBucket bucket = new(128, 2);
 
-        // Rent more segments than initially allocated to trigger growth
-        List<ArraySegment<byte>> rented = new(10);
+        // Rent more buffers than initially allocated to trigger growth
+        List<byte[]> rented = new(10);
         for (int i = 0; i < 10; i++)
         {
             rented.Add(bucket.Rent());
         }
 
         // All should be valid
-        foreach (ArraySegment<byte> seg in rented)
+        foreach (byte[] arr in rented)
         {
-            Assert.NotNull(seg.Array);
-            Assert.Equal(128, seg.Count);
-            Assert.Equal(0, seg.Offset);
+            Assert.NotNull(arr);
+            Assert.True(arr.Length >= 128);
         }
 
         // Return all
-        foreach (ArraySegment<byte> seg in rented)
+        foreach (byte[] arr in rented)
         {
-            bucket.Return(seg);
+            bucket.Return(arr);
         }
 
         Assert.True(bucket.GetPoolInfo().TotalBuffers >= 10);
@@ -128,9 +126,9 @@ public sealed class SlabAllocationTests
         using SlabBucket bucket = new(256, 0);
 
         // TryRent should return false (Rent would allocate, TryRent should not)
-        bool result = bucket.TryRent(out ArraySegment<byte> seg);
+        bool result = bucket.TryRent(out byte[]? array);
         Assert.False(result);
-        Assert.Null(seg.Array);
+        Assert.Null(array);
     }
 
     [Fact]
@@ -139,17 +137,17 @@ public sealed class SlabAllocationTests
         using SlabBucket bucket256 = new(256, 4);
         using SlabBucket bucket512 = new(512, 4);
 
-        ArraySegment<byte> seg512 = bucket512.Rent();
+        byte[] arr512 = bucket512.Rent();
 
-        // Returning a 512-byte segment to a 256-byte bucket should be silently dropped
-        bucket256.Return(seg512);
+        // Returning a 512-byte array to a 256-byte bucket should be silently dropped
+        bucket256.Return(arr512);
 
         // The 256 bucket should still have its own segments
-        ArraySegment<byte> seg256 = bucket256.Rent();
-        Assert.Equal(256, seg256.Count);
-        bucket256.Return(seg256);
+        byte[] arr256 = bucket256.Rent();
+        Assert.True(arr256.Length >= 256);
+        bucket256.Return(arr256);
 
-        bucket512.Return(seg512);
+        bucket512.Return(arr512);
     }
 
     [Fact]
@@ -201,18 +199,18 @@ public sealed class SlabAllocationTests
             {
                 try
                 {
-                    ArraySegment<byte> seg = bucket.Rent();
-                    if (seg.Array is null || seg.Count != 256 || seg.Offset != 0)
+                    byte[] arr = bucket.Rent();
+                    if (arr is null || arr.Length < 256)
                     {
                         Interlocked.Increment(ref errors);
                     }
                     else
                     {
-                        // Write to the segment to detect sharing corruption
-                        seg.Array.AsSpan(seg.Offset, seg.Count).Fill((byte)(System.Environment.CurrentManagedThreadId & 0xFF));
+                        // Write to the buffer to detect sharing corruption
+                        arr.AsSpan().Fill((byte)(System.Environment.CurrentManagedThreadId & 0xFF));
                     }
 
-                    bucket.Return(seg);
+                    bucket.Return(arr);
                 }
                 catch
                 {
@@ -235,13 +233,13 @@ public sealed class SlabAllocationTests
         mgr.CreateBucket(256, 4);
         mgr.CreateBucket(512, 4);
 
-        Assert.True(mgr.TryRent(256, out ArraySegment<byte> seg256));
-        Assert.Equal(256, seg256.Count);
-        Assert.True(mgr.TryReturn(seg256));
+        Assert.True(mgr.TryRent(256, out byte[]? arr256));
+        Assert.Equal(256, arr256.Length);
+        Assert.True(mgr.TryReturn(arr256));
 
-        Assert.True(mgr.TryRent(512, out ArraySegment<byte> seg512));
-        Assert.Equal(512, seg512.Count);
-        Assert.True(mgr.TryReturn(seg512));
+        Assert.True(mgr.TryRent(512, out byte[]? arr512));
+        Assert.Equal(512, arr512.Length);
+        Assert.True(mgr.TryReturn(arr512));
     }
 
     [Fact]
@@ -252,15 +250,15 @@ public sealed class SlabAllocationTests
         mgr.CreateBucket(512, 4);
         mgr.CreateBucket(1024, 4);
 
-        // Requesting 300 bytes should get a 512-byte segment (best fit)
-        Assert.True(mgr.TryRent(300, out ArraySegment<byte> seg));
-        Assert.Equal(512, seg.Count);
-        Assert.True(mgr.TryReturn(seg));
+        // Requesting 300 bytes should get a 512-byte array (best fit)
+        Assert.True(mgr.TryRent(300, out byte[]? arr));
+        Assert.Equal(512, arr.Length);
+        Assert.True(mgr.TryReturn(arr));
 
-        // Requesting 1 byte should get a 256-byte segment
-        Assert.True(mgr.TryRent(1, out seg));
-        Assert.Equal(256, seg.Count);
-        Assert.True(mgr.TryReturn(seg));
+        // Requesting 1 byte should get a 256-byte array
+        Assert.True(mgr.TryRent(1, out arr));
+        Assert.Equal(256, arr.Length);
+        Assert.True(mgr.TryReturn(arr));
     }
 
     [Fact]

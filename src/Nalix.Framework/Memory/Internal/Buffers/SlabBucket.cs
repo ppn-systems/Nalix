@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Memory.Buffers;
@@ -60,10 +61,10 @@ internal sealed class SlabBucket : IDisposable
 
     private sealed class ThreadLocalCache
     {
-        public readonly ArraySegment<byte>[] Cache;
+        public readonly byte[]?[] Cache;
         public int Count;
 
-        public ThreadLocalCache(int depth) => Cache = new ArraySegment<byte>[depth];
+        public ThreadLocalCache(int depth) => Cache = new byte[depth][];
     }
 
     #endregion Fields
@@ -120,41 +121,38 @@ internal sealed class SlabBucket : IDisposable
     /// Attempts to acquire a buffer from the thread-local cache or the shared ring.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryRent(out ArraySegment<byte> segment)
+    public bool TryRent([NotNullWhen(true)] out byte[]? array)
     {
         ThreadLocalCache cache = _threadCache.Value!;
         if (cache.Count > 0)
         {
             int idx = --cache.Count;
-            ArraySegment<byte> cached = cache.Cache[idx];
-            cache.Cache[idx] = default;
+            byte[]? cached = cache.Cache[idx];
+            cache.Cache[idx] = null;
 
             _ = Interlocked.Increment(ref _hits);
             _ = Interlocked.Increment(ref _rentedCount);
-            segment = cached;
+            array = cached!;
             return true;
         }
 
-        if (_freeRing.TryDequeue(out segment) && segment.Array is not null)
+        if (_freeRing.TryDequeue(out array))
         {
             _ = Interlocked.Increment(ref _hits);
             _ = Interlocked.Increment(ref _rentedCount);
             return true;
         }
 
-        segment = default;
+        array = null;
         return false;
     }
 
-    /// <summary>
-    /// Rents a buffer as an <see cref="ArraySegment{T}"/> with offset 0.
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ArraySegment<byte> Rent()
+    public byte[] Rent()
     {
-        if (this.TryRent(out ArraySegment<byte> segment))
+        if (this.TryRent(out byte[]? array))
         {
-            return segment;
+            return array;
         }
 
         _ = Interlocked.Increment(ref _misses);
@@ -162,69 +160,42 @@ internal sealed class SlabBucket : IDisposable
         // Notify manager that we need to grow.
         this.ResizeOccurred?.Invoke(this, BufferPoolResizeDirection.Increase);
 
-        if (this.TryRent(out segment))
+        if (this.TryRent(out array))
         {
-            return segment;
+            return array;
         }
 
         // Emergency fallback: if manager rejected growth, allocate one anyway 
         // to prevent consumer failure, but this should be rare.
         this.AllocateAndEnqueue(1);
 
-        if (this.TryRent(out segment))
+        if (this.TryRent(out array))
         {
-            return segment;
+            return array;
         }
 
         throw new InvalidOperationException($"SlabBucket: failed to allocate standalone buffer of size {_segmentSize}.");
     }
 
-    /// <summary>
-    /// Rents a raw <c>byte[]</c> (always offset 0).
-    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] RentArray() => this.Rent().Array!;
-
-    /// <summary>
-    /// Returns a buffer to the pool.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(ArraySegment<byte> segment)
+    public void Return(byte[] array)
     {
-        if (segment.Array is null || segment.Array.Length != _segmentSize)
+        if (array is null || array.Length != _segmentSize)
         {
             return;
         }
-
-        // Normalize the segment to ensure the full array is returned to the pool.
-        // This handles cases where consumers might have returned a sliced segment.
-        ArraySegment<byte> normalized = new(segment.Array, 0, _segmentSize);
 
         _ = Interlocked.Decrement(ref _rentedCount);
 
         ThreadLocalCache cache = _threadCache.Value!;
         if (cache.Count < _cacheDepth)
         {
-            cache.Cache[cache.Count++] = normalized;
+            cache.Cache[cache.Count++] = array;
             return;
         }
 
         this.DrainCacheToRing(cache);
-        cache.Cache[cache.Count++] = normalized;
-    }
-
-    /// <summary>
-    /// Returns a raw <c>byte[]</c> to the pool.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(byte[] array)
-    {
-        if (array == null)
-        {
-            return;
-        }
-
-        this.Return(new ArraySegment<byte>(array, 0, array.Length));
+        cache.Cache[cache.Count++] = array;
     }
 
     /// <summary>Increases capacity by adding more standalone arrays.</summary>
@@ -274,11 +245,11 @@ internal sealed class SlabBucket : IDisposable
 
             for (int i = 0; i < target; i++)
             {
-                if (_freeRing.TryDequeue(out ArraySegment<byte> segment))
+                if (_freeRing.TryDequeue(out byte[]? array))
                 {
                     lock (_slabLock)
                     {
-                        if (segment.Array != null && _slabLookup.Remove(segment.Array))
+                        if (array != null && _slabLookup.Remove(array))
                         {
                             removed++;
                         }
@@ -331,7 +302,7 @@ internal sealed class SlabBucket : IDisposable
                 byte[] array = slab.GetArray();
                 _slabLookup[array] = slab;
 
-                if (_freeRing.TryEnqueue(new ArraySegment<byte>(array, 0, _segmentSize)))
+                if (_freeRing.TryEnqueue(array))
                 {
                     enqueued++;
                 }
@@ -354,7 +325,11 @@ internal sealed class SlabBucket : IDisposable
 
         for (int i = 0; i < toMove; i++)
         {
-            _ = _freeRing.TryEnqueue(cache.Cache[i]);
+            byte[]? arr = cache.Cache[i];
+            if (arr != null)
+            {
+                _ = _freeRing.TryEnqueue(arr);
+            }
         }
 
         // Shift remaining
@@ -417,7 +392,7 @@ internal sealed class SlabBucket : IDisposable
 
     internal sealed class SlabBucketRing
     {
-        private ArraySegment<byte>[] _slots;
+        private byte[]?[] _slots;
         private int _head;
         private int _tail;
         private int _count;
@@ -427,11 +402,11 @@ internal sealed class SlabBucket : IDisposable
 
         public SlabBucketRing(int capacity)
         {
-            _slots = new ArraySegment<byte>[capacity];
+            _slots = new byte[capacity][];
             _lock = new SpinLock(false);
         }
 
-        public bool TryEnqueue(ArraySegment<byte> buffer)
+        public bool TryEnqueue(byte[] buffer)
         {
             bool taken = false;
             try
@@ -456,15 +431,15 @@ internal sealed class SlabBucket : IDisposable
             }
         }
 
-        public bool TryDequeue(out ArraySegment<byte> buffer)
+        public bool TryDequeue([NotNullWhen(true)] out byte[]? buffer)
         {
             bool taken = false;
             try
             {
                 _lock.Enter(ref taken);
-                if (_count == 0) { buffer = default; return false; }
-                buffer = _slots[_head];
-                _slots[_head] = default;
+                if (_count == 0) { buffer = null; return false; }
+                buffer = _slots[_head]!;
+                _slots[_head] = null;
                 _head = (_head + 1) & (_slots.Length - 1);
                 _count--;
                 return true;
@@ -490,10 +465,10 @@ internal sealed class SlabBucket : IDisposable
                 }
 
                 uint newSize = System.Numerics.BitOperations.RoundUpToPowerOf2((uint)targetCapacity);
-                ArraySegment<byte>[] newSlots = new ArraySegment<byte>[newSize];
+                byte[][] newSlots = new byte[newSize][];
                 for (int i = 0; i < _count; ++i)
                 {
-                    newSlots[i] = _slots[(_head + i) & (_slots.Length - 1)];
+                    newSlots[i] = _slots![(_head + i) & (_slots.Length - 1)]!;
                 }
 
                 _slots = newSlots; _head = 0; _tail = _count;
@@ -507,7 +482,7 @@ internal sealed class SlabBucket : IDisposable
             }
         }
 
-        public ArraySegment<byte>[] DrainAll()
+        public byte[][] DrainAll()
         {
             bool taken = false;
             try
@@ -515,15 +490,15 @@ internal sealed class SlabBucket : IDisposable
                 _lock.Enter(ref taken);
                 if (_count == 0)
                 {
-                    return Array.Empty<ArraySegment<byte>>();
+                    return Array.Empty<byte[]>();
                 }
 
-                ArraySegment<byte>[] result = new ArraySegment<byte>[_count];
+                byte[][] result = new byte[_count][];
                 for (int i = 0; i < _count; ++i)
                 {
                     int index = (_head + i) & (_slots.Length - 1);
-                    result[i] = _slots[index];
-                    _slots[index] = default;
+                    result[i] = _slots[index]!;
+                    _slots[index] = null;
                 }
                 _head = _tail = _count = 0;
                 return result;

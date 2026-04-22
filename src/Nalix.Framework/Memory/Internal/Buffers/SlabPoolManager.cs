@@ -69,36 +69,17 @@ internal sealed class SlabPoolManager : IDisposable
         }
     }
 
-    /// <summary>
-    /// Rents a segment of at least the requested size using best-fit lookup.
-    /// </summary>
-    /// <param name="size">The minimum segment size required.</param>
-    /// <param name="segment">The rented segment, or <c>default</c> if no bucket matches.</param>
-    /// <returns><c>true</c> if a segment was rented; <c>false</c> if no suitable bucket exists.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryRent(int size, out ArraySegment<byte> segment)
-    {
-        int bucketSize = this.FindBestFitSize(size);
-        if (bucketSize > 0 && _buckets.TryGetValue(bucketSize, out SlabBucket? bucket))
-        {
-            segment = bucket.Rent();
-            return true;
-        }
-
-        segment = default;
-        return false;
-    }
 
     /// <summary>
     /// Rents a standalone array of at least the requested size.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryRentArray(int size, [NotNullWhen(true)] out byte[]? array)
+    public bool TryRent(int size, [NotNullWhen(true)] out byte[]? array)
     {
         int bucketSize = this.FindBestFitSize(size);
         if (bucketSize > 0 && _buckets.TryGetValue(bucketSize, out SlabBucket? bucket))
         {
-            array = bucket.RentArray();
+            array = bucket.Rent();
             return true;
         }
 
@@ -107,32 +88,10 @@ internal sealed class SlabPoolManager : IDisposable
     }
 
     /// <summary>
-    /// Returns a segment to its owning bucket based on segment count.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReturn(ArraySegment<byte> segment)
-    {
-        if (segment.Array is null)
-        {
-            return false;
-        }
-
-        // Use the underlying array length to identify the owning bucket.
-        // This handles cases where consumers might have sliced the segment.
-        if (_buckets.TryGetValue(segment.Array.Length, out SlabBucket? bucket))
-        {
-            bucket.Return(segment);
-            return true;
-        }
-
-        return false;
-    }
-
-    /// <summary>
     /// Returns a raw array to its owning bucket based on array length.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryReturnArray(byte[]? array)
+    public bool TryReturn(byte[]? array)
     {
         if (array is null)
         {
