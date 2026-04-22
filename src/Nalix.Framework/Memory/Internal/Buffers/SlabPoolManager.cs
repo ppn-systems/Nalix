@@ -12,14 +12,11 @@ namespace Nalix.Framework.Memory.Internal.Buffers;
 
 /// <summary>
 /// Orchestrates multiple <see cref="SlabBucket"/> instances — one per configured buffer
-/// size class — providing best-fit segment lookup and unified lifecycle management.
+/// size class — providing best-fit buffer lookup and unified lifecycle management.
 /// </summary>
 /// <remarks>
-/// This is the slab-side counterpart of <see cref="BufferPoolCollection"/>.
-/// <see cref="BufferPoolCollection"/> manages per-buffer pinned arrays for the
-/// <c>byte[]</c> API (BufferPoolManager.Rent),
-/// while <see cref="SlabPoolManager"/> manages slab-backed segments for the
-/// <see cref="ArraySegment{T}"/> API (BufferPoolManager.RentSegment).
+/// This unified manager handles both <see cref="ArraySegment{T}"/> and raw <c>byte[]</c> 
+/// requests by utilizing standalone pinned slabs.
 /// </remarks>
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -86,19 +83,30 @@ internal sealed class SlabPoolManager : IDisposable
     }
 
     /// <summary>
+    /// Rents a standalone array of at least the requested size.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryRentArray(int size, [NotNullWhen(true)] out byte[]? array)
+    {
+        int bucketSize = this.FindBestFitSize(size);
+        if (bucketSize > 0 && _buckets.TryGetValue(bucketSize, out SlabBucket? bucket))
+        {
+            array = bucket.RentArray();
+            return true;
+        }
+
+        array = null;
+        return false;
+    }
+
+    /// <summary>
     /// Returns a segment to its owning bucket based on segment count.
     /// </summary>
-    /// <param name="segment">The segment to return.</param>
-    /// <returns><c>true</c> if the segment was accepted by a bucket; <c>false</c> otherwise.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReturn(ArraySegment<byte> segment)
     {
-        if (segment.Array is null)
-        {
-            return false;
-        }
+        if (segment.Array is null) return false;
 
-        // Route by Count — each slab segment has Count == bucket.SegmentSize.
         if (_buckets.TryGetValue(segment.Count, out SlabBucket? bucket))
         {
             bucket.Return(segment);
@@ -107,6 +115,24 @@ internal sealed class SlabPoolManager : IDisposable
 
         return false;
     }
+
+    /// <summary>
+    /// Returns a raw array to its owning bucket based on array length.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool TryReturnArray(byte[]? array)
+    {
+        if (array is null) return false;
+
+        if (_buckets.TryGetValue(array.Length, out SlabBucket? bucket))
+        {
+            bucket.Return(array);
+            return true;
+        }
+
+        return false;
+    }
+
 
     /// <summary>
     /// Gets all registered buckets for diagnostics and reporting.
