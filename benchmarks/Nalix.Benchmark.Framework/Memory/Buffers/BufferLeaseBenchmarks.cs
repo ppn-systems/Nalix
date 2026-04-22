@@ -25,7 +25,7 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
         _source = new byte[PayloadBytes];
         System.Random.Shared.NextBytes(_source);
 
-        // Wire BufferLease.ByteArrayPool → managed slab pool so ReturnSegment is exercised.
+        // Wire BufferLease.ByteArrayPool → managed slab pool so the return path is exercised.
         _manager = new BufferPoolManager(new BufferConfig
         {
             EnableMemoryTrimming = false,
@@ -39,7 +39,7 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
     [GlobalCleanup]
     public void Cleanup() => _manager.Dispose();
 
-    /// <summary>Hot path: rent → write → commit → dispose. Verifies slab-aware ReturnSegment.</summary>
+    /// <summary>Hot path: rent → write → commit → dispose. Verifies slab-aware Return.</summary>
     [Benchmark(Baseline = true)]
     public int RentCommitAndDispose()
     {
@@ -66,7 +66,7 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
         lease.CommitLength(PayloadBytes);
         lease.Dispose();         // refCount = 1 (no return yet)
         return lease.Length;     // still valid here
-        // Outer using: refCount → 0 → ReturnSegment()
+        // Outer using: refCount → 0 → Return()
     }
 
     /// <summary>Raw manager Rent+Return for direct comparison baseline.</summary>

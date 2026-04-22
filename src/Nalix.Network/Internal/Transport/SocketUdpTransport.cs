@@ -36,36 +36,42 @@ namespace Nalix.Network.Internal.Transport;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, IDisposable
 {
+    #region Static Factory
+
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+
+    #endregion Static Factory
+
+    #region APIs
 
     /// <summary>
     /// Gets an existing UDP transport instance or creates one, injecting the provided socket if available.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket? socket = null)
+    public static void CreateUDP(Connection connection, IPEndPoint remoteEndPoint, Socket socket)
     {
-        if (connection.UdpTransport == null)
+        ArgumentNullException.ThrowIfNull(socket);
+        ArgumentNullException.ThrowIfNull(remoteEndPoint);
+
+        SocketUdpTransport transport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                                               .Get<SocketUdpTransport>();
+
+        if (socket != null)
         {
-            SocketUdpTransport transport = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                   .Get<SocketUdpTransport>();
-            transport.Attach(connection);
-
-            if (socket != null)
-            {
-                transport.SetSocket(socket);
-            }
-
-            IPEndPoint ep = remoteEndPoint;
-            transport.Initialize(ref ep);
-            connection.SetUdpTransport(transport);
+            transport.SetSocket(socket);
         }
+
+        IPEndPoint ep = remoteEndPoint;
+        transport.Initialize(ref ep);
+        connection.SetUdpTransport(transport);
     }
+
+    #endregion APIs
 
     #region Fields
 
-    private EndPoint? _endPoint;
-    private Connection? _outer;
     private Socket? _socket;
+    private EndPoint? _endPoint;
 
     /// <summary>
     /// Indicates whether this transport instance owns the lifecycle of its <see cref="_socket"/>.
@@ -76,11 +82,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #endregion Fields
 
     #region Lifecycle
-
-    /// <summary>
-    /// Attaches this transport to a specific connection.
-    /// </summary>
-    internal void Attach(Connection outer) => _outer = outer;
 
     /// <summary>
     /// Sets an external socket to be used for transmission. 
@@ -251,7 +252,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     /// <inheritdoc/>
     public void ResetForPool()
     {
-        _outer = null;
         _endPoint = null;
 
         if (_ownsSocket)

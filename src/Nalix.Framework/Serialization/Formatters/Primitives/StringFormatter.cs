@@ -5,6 +5,7 @@ using System;
 using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Buffers;
 
@@ -58,7 +59,7 @@ public sealed class StringFormatter : IFormatter<string>
         int byteCount = s_utf8.GetByteCount(value);
         if (byteCount > SerializerBounds.MaxString)
         {
-            throw new SerializationFailureException("The string exceeds the allowed limit.");
+            throw FrameworkErrors.SerializationStringTooLong;
         }
 
         // Write the length first so the reader knows exactly how many bytes to consume.
@@ -72,8 +73,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         if (bytesWritten != byteCount)
         {
-            throw new SerializationFailureException(
-                $"UTF8 encoding mismatch: expected {byteCount} bytes, got {bytesWritten} bytes.");
+            throw FrameworkErrors.SerializationDataMismatch;
         }
 
         writer.Advance(byteCount);
@@ -110,10 +110,9 @@ public sealed class StringFormatter : IFormatter<string>
             return null!;
         }
 
-        // Reject corrupt or oversized payloads before we slice the input buffer.
         if (length < 0 || length > SerializerBounds.MaxString)
         {
-            throw new SerializationFailureException("String length out of range");
+            throw FrameworkErrors.SerializationLengthOutOfRange;
         }
 
         // Build a read-only span over the exact UTF-8 byte range and decode it directly.

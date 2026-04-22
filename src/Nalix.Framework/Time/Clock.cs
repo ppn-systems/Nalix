@@ -65,11 +65,10 @@ public static partial class Clock
         // by later synchronization calls.
         s_driftSmoothing = 0.1;
         IsSynchronized = false;
+        s_utcStopwatch = Stopwatch.StartNew();
         s_utcBase = DateTime.UtcNow;
-
         s_utcBaseTicks = s_utcBase.Ticks;
         LastSyncTime = DateTime.MinValue;
-        s_utcStopwatch = Stopwatch.StartNew();
     }
 
     #endregion Constructors
