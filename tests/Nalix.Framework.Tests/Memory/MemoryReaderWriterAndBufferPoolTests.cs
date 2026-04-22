@@ -8,6 +8,7 @@ using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;
 
+[Trait("Category", "Memory")]
 public sealed partial class MemoryTests
 {
     [Theory]

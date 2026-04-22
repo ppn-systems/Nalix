@@ -224,6 +224,8 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _slabPool.ResizeOccurred += this.HANDLE_BUFFER_POOL_RESIZE;
 
         _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
+        this.MinBufferSize = _bufferAllocations.Length > 0 ? _bufferAllocations[0].BufferSize : 0;
+        this.MaxBufferSize = _bufferAllocations.Length > 0 ? _bufferAllocations[^1].BufferSize : 0;
 
         this.ALLOCATE_BUFFERS();
 

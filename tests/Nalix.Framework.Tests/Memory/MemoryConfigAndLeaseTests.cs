@@ -11,6 +11,7 @@ namespace Nalix.Framework.Tests.Memory;
 /// <summary>
 /// Covers configuration and buffer-lease APIs in the Memory folder.
 /// </summary>
+[Trait("Category", "Memory")]
 public sealed partial class MemoryTests
 {
     [Theory]
@@ -58,10 +59,9 @@ public sealed partial class MemoryTests
     }
 
     [Theory]
+    [InlineData(0.20, 0.60, "256,1.0", 32, 5.0, 4, 8)]
     [InlineData(0.70, 0.60, "256,1.0", 32, 2.0, 4, 16)]
     [InlineData(0.20, 0.60, "256,0.60;256,0.20", 32, 2.0, 4, 16)]
-    [InlineData(0.20, 0.60, "256,1.0", 32, 2.0, 4, 16)]
-    [InlineData(0.20, 0.60, "256,1.0", 32, 5.0, 4, 8)]
     public void Validate_InvalidBufferConfig_ThrowsValidationException(
         double expandThreshold,
         double shrinkThreshold,
