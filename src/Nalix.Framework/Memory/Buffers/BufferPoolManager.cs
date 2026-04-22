@@ -23,18 +23,6 @@ using Nalix.Framework.Tasks;
 namespace Nalix.Framework.Memory.Buffers;
 
 /// <summary>
-/// Specifies the direction of a buffer pool resize operation.
-/// </summary>
-public enum BufferPoolResizeDirection
-{
-    /// <summary>The pool is expanding to handle more demand.</summary>
-    Increase,
-
-    /// <summary>The pool is shrinking to release memory.</summary>
-    Decrease
-}
-
-/// <summary>
 /// Manages pooled byte buffers, tracks pool metrics, and falls back to the shared
 /// ArrayPool when a requested size cannot be satisfied by a managed pool.
 /// </summary>
@@ -387,50 +375,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
         this.HANDLE_RETURN_FAILURE(segment.Array, new ArgumentException($"Segment of size {segment.Count} not owned by slab pools."));
-    }
-
-    /// <summary>
-    /// Rents a buffer from the pool and assigns it to the given
-    /// <see cref="SocketAsyncEventArgs"/> via
-    /// <see cref="SocketAsyncEventArgs.SetBuffer(byte[], int, int)"/>.
-    /// </summary>
-    /// <param name="saea">The <see cref="SocketAsyncEventArgs"/> to configure.</param>
-    /// <param name="size">The minimum buffer size required.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
-    /// <remarks>
-    /// Call <see cref="ReturnFromSaea"/> when the async operation completes to return the buffer to the pool.
-    /// </remarks>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RentForSaea(SocketAsyncEventArgs saea, int size = 256)
-    {
-        ArgumentNullException.ThrowIfNull(saea);
-
-        ArraySegment<byte> seg = this.RentSegment(size);
-        saea.SetBuffer(seg.Array, seg.Offset, seg.Count);
-    }
-
-    /// <summary>
-    /// Returns the buffer currently assigned to a
-    /// <see cref="SocketAsyncEventArgs"/> back to the pool
-    /// and clears the buffer reference on the SAEA.
-    /// </summary>
-    /// <param name="saea">The <see cref="SocketAsyncEventArgs"/> whose buffer will be returned.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ReturnFromSaea(
-        SocketAsyncEventArgs saea)
-    {
-        ArgumentNullException.ThrowIfNull(saea);
-
-        // Grab the buffer before clearing the reference
-        byte[]? buffer = saea.Buffer;
-
-        // Detach buffer from SAEA to avoid accidental reuse after return
-        saea.SetBuffer(null, 0, 0);
-
-        this.Return(buffer);
     }
 
     /// <summary>

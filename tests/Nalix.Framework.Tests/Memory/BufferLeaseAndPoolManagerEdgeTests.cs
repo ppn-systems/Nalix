@@ -1,5 +1,4 @@
 using System;
-using System.Net.Sockets;
 using Nalix.Framework.Memory.Buffers;
 using Xunit;
 
@@ -70,19 +69,6 @@ public sealed partial class MemoryTests
         Assert.Equal(0.25, high, 3);
     }
 
-    [Fact]
-    public void ReturnFromSaeaWhenNoBufferAttachedIsSafeAndClearsSegment()
-    {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
-        using SocketAsyncEventArgs saea = new();
-        saea.SetBuffer(null, 0, 0);
-
-        Exception? ex = Record.Exception(() => manager.ReturnFromSaea(saea));
-
-        Assert.Null(ex);
-        Assert.Null(saea.Buffer);
-        Assert.Equal(0, saea.Count);
-    }
 
     [Fact]
     public void DisposeCanBeCalledTwiceWithoutThrowing()
