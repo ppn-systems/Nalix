@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Text;
@@ -37,18 +36,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _suitablePoolSizeCache;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<int, BufferPoolMetrics> _metricsCache;
-
     private readonly System.Buffers.ArrayPool<byte> _fallbackArrayPool = System.Buffers.ArrayPool<byte>.Shared;
-    private readonly BufferPoolCollection _poolManager;
     private readonly ShrinkSafetyPolicy _shrinkPolicy;
 
     /// <summary>
-    /// Slab-based segment pool for the <see cref="RentSegment"/> / <see cref="BufferLease.Rent"/> path.
-    /// Each bucket manages a single buffer size class backed by large pinned slabs,
-    /// with thread-local caching for hot-path performance. This eliminates per-buffer
-    /// POH allocations for the high-frequency segment path.
-    /// The <c>byte[]</c> <see cref="Rent(int)"/> path retains per-buffer pinned arrays
-    /// via <see cref="BufferPoolCollection"/> for backward compatibility.
+    /// Slab-based buffer pool manager using standalone pinned arrays.
+    /// This unified manager handles both byte[] and ArraySegment requests.
     /// </summary>
     private readonly Internal.Buffers.SlabPoolManager _slabPool;
 
@@ -228,29 +221,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _metricsCache = new();
         _shrinkPolicy = new ShrinkSafetyPolicy();
         _slabPool = new Internal.Buffers.SlabPoolManager();
+        _slabPool.ResizeOccurred += this.HANDLE_BUFFER_POOL_RESIZE;
 
         _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
-
-        int minBufferSize = _bufferAllocations[0].BufferSize;
-        int maxBufferSize = _bufferAllocations[0].BufferSize;
-        foreach ((int BufferSize, double Allocation) in _bufferAllocations)
-        {
-            if (BufferSize < minBufferSize)
-            {
-                minBufferSize = BufferSize;
-            }
-
-            if (BufferSize > maxBufferSize)
-            {
-                maxBufferSize = BufferSize;
-            }
-        }
-
-        this.MinBufferSize = minBufferSize;
-        this.MaxBufferSize = maxBufferSize;
-
-        _poolManager = new BufferPoolCollection(bufferConfig: config);
-        _poolManager.ResizeOccurred += this.HANDLE_BUFFER_POOL_RESIZE;
+        this.MinBufferSize = _bufferAllocations.Length > 0 ? _bufferAllocations[0].BufferSize : 0;
+        this.MaxBufferSize = _bufferAllocations.Length > 0 ? _bufferAllocations[^1].BufferSize : 0;
 
         this.ALLOCATE_BUFFERS();
 
@@ -287,41 +262,41 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Rent(int minimumLength = 256)
     {
-        ArraySegment<byte> segment;
 
-        // Fast path: common sizes served directly from pool collection.
-        if (IS_FAST_COMMON_SIZE(minimumLength))
+        // Fast path: common sizes served directly from slab buckets.
+        if (_slabPool.TryRent(minimumLength, out byte[]? array))
         {
-            segment = _poolManager.RentBuffer(minimumLength);
+            goto ReturnArray;
         }
-        else if (_suitablePoolSizeCache.TryGetValue(minimumLength, out int cachedPoolSize))
+
+        if (_suitablePoolSizeCache.TryGetValue(minimumLength, out int cachedPoolSize))
         {
-            segment = _poolManager.RentBuffer(cachedPoolSize);
-        }
-        else
-        {
-            try
+            if (_slabPool.TryRent(cachedPoolSize, out array))
             {
-                segment = this.RENT_FROM_POOLS_WITH_CACHING(minimumLength);
-            }
-            catch (ArgumentException ex)
-            {
-                return this.HANDLE_RENT_FAILURE(minimumLength, ex);
+                goto ReturnArray;
             }
         }
 
-        if (segment.Array is null)
+        try
         {
-            throw new InvalidOperationException("Critical failure: The buffer rental returned a null slab segment.");
+            if (this.TRY_RENT_ARRAY_WITH_CACHING(minimumLength, out array))
+            {
+                goto ReturnArray;
+            }
+
+            // Should not happen if bucket exists, but fallback if TryRentArray returned false.
+            throw new ArgumentException("No suitable bucket found.");
+        }
+        catch (ArgumentException ex)
+        {
+            return this.HANDLE_RENT_FAILURE(minimumLength, ex);
         }
 
+    ReturnArray:
 #if DEBUG
-        _ = s_activeSentinels.GetValue(segment.Array, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
+        _ = s_activeSentinels.GetValue(array!, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
 #endif
-
-        // Return the underlying slab array. Callers use offset=0..Count.
-        // The segment is reconstructed on Return() using buffer.Length as pool key.
-        return segment.Array;
+        return array;
     }
 
     /// <summary>Returns a buffer to the appropriate pool.</summary>
@@ -349,125 +324,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 #endif
 
-        try
+        if (!_slabPool.TryReturn(array))
         {
-            // Reconstruct the segment using the array's full length as pool key.
-            // The managed pool matches on Count (which equals the batch size for slab segments).
-            this.RETURN_TO_MANAGED_POOLS(new ArraySegment<byte>(array, 0, array.Length));
+            this.HANDLE_RETURN_FAILURE(array, new ArgumentException($"Buffer of size {array.Length} not owned by managed pools."));
         }
-        catch (ArgumentException ex)
-        {
-            this.HANDLE_RETURN_FAILURE(array, ex);
-        }
-    }
-
-    /// <summary>Rents a buffer and wraps it as an <see cref="ArraySegment{T}"/> for <see cref="SocketAsyncEventArgs"/> workflows.</summary>
-    /// <param name="size">The minimum number of bytes required.</param>
-    /// <returns>
-    /// An <see cref="ArraySegment{T}"/> backed by a slab segment, with <c>Offset = segment.Offset</c> and <c>Count = size</c>.
-    /// </returns>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ArraySegment<byte> RentSegment(int size = 256)
-    {
-        // Primary path: slab-backed segments with thread-local caching.
-        // Slab segments carry correct (Array, Offset, Count) for shared slab arrays.
-        if (_slabPool.TryRent(size, out ArraySegment<byte> slabSeg))
-        {
-            return slabSeg;
-        }
-
-        // Fallback: per-buffer pools (produces offset=0 segments from standalone arrays).
-        if (IS_FAST_COMMON_SIZE(size))
-        {
-            return _poolManager.RentBuffer(size);
-        }
-
-        try
-        {
-            return this.RENT_FROM_POOLS_WITH_CACHING(size);
-        }
-        catch (ArgumentException ex)
-        {
-            byte[] fallback = this.HANDLE_RENT_FAILURE(size, ex);
-            return new ArraySegment<byte>(fallback, 0, size);
-        }
-    }
-
-    /// <summary>
-    /// Returns a buffer that was rented via <see cref="RentSegment"/> back to the pool.
-    /// Tries the slab pool first (routes by <see cref="ArraySegment{T}.Count"/>),
-    /// then falls back to the per-buffer managed pools.
-    /// </summary>
-    /// <param name="segment">The segment to return.</param>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return(ArraySegment<byte> segment)
-    {
-        if (segment.Array is null)
-        {
-            return;
-        }
-
-        // Fast path: slab-backed segments are routed by Count to their owning bucket.
-        if (_slabPool.TryReturn(segment))
-        {
-            return;
-        }
-
-        // Fallback: per-buffer pools.
-        try
-        {
-            this.RETURN_TO_MANAGED_POOLS(segment);
-        }
-        catch (ArgumentException ex)
-        {
-            this.HANDLE_RETURN_FAILURE(segment.Array, ex);
-        }
-    }
-
-    /// <summary>
-    /// Rents a buffer from the pool and assigns it to the given
-    /// <see cref="SocketAsyncEventArgs"/> via
-    /// <see cref="SocketAsyncEventArgs.SetBuffer(byte[], int, int)"/>.
-    /// </summary>
-    /// <param name="saea">The <see cref="SocketAsyncEventArgs"/> to configure.</param>
-    /// <param name="size">The minimum buffer size required.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
-    /// <remarks>
-    /// Call <see cref="ReturnFromSaea"/> when the async operation completes to return the buffer to the pool.
-    /// </remarks>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void RentForSaea(SocketAsyncEventArgs saea, int size = 256)
-    {
-        ArgumentNullException.ThrowIfNull(saea);
-
-        ArraySegment<byte> seg = this.RentSegment(size);
-        saea.SetBuffer(seg.Array, seg.Offset, seg.Count);
-    }
-
-    /// <summary>
-    /// Returns the buffer currently assigned to a
-    /// <see cref="SocketAsyncEventArgs"/> back to the pool
-    /// and clears the buffer reference on the SAEA.
-    /// </summary>
-    /// <param name="saea">The <see cref="SocketAsyncEventArgs"/> whose buffer will be returned.</param>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="saea"/> is <see langword="null"/>.</exception>
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ReturnFromSaea(
-        SocketAsyncEventArgs saea)
-    {
-        ArgumentNullException.ThrowIfNull(saea);
-
-        // Grab the buffer before clearing the reference
-        byte[]? buffer = saea.Buffer;
-
-        // Detach buffer from SAEA to avoid accidental reuse after return
-        saea.SetBuffer(null, 0, 0);
-
-        this.Return(buffer);
     }
 
     /// <summary>
@@ -588,70 +448,73 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         };
 #endif
 
-        List<Dictionary<string, object>> poolDetails = new(_bufferAllocations.Length);
-        foreach ((int bufferSize, _) in _bufferAllocations)
-        {
-            if (!_poolManager.TryGetPool(bufferSize, out BufferPoolShared? pool))
-            {
-                continue;
-            }
+        IReadOnlyCollection<SlabBucket> allBuckets = _slabPool.GetAllBuckets();
+        List<Dictionary<string, object>> poolDetails = new(allBuckets.Count);
 
-            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalExpands = 0;
+        long totalShrinks = 0;
+
+        foreach (SlabBucket bucket in allBuckets)
+        {
+            BufferPoolState info = bucket.GetPoolInfo();
+            totalHits += info.Hits;
+            totalMisses += info.Misses;
+            totalExpands += info.Expands;
+            totalShrinks += info.Shrinks;
+
             int inUse = info.TotalBuffers - info.FreeBuffers;
-            double usage = info.GetUsageRatio() * 100.0;
-            double miss = info.GetMissRate() * 100.0;
+            double usage = info.GetUsageRatio();
+            double miss = info.GetMissRate();
+
             _ = _metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics);
 
             string bytesReturned = metrics.TotalBytesReturned > 1_000_000
                 ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                 : $"{metrics.TotalBytesReturned / 1024}KB";
 
-            poolDetails.Add(new Dictionary<string, object>(11, StringComparer.Ordinal)
+            poolDetails.Add(new Dictionary<string, object>(13, StringComparer.Ordinal)
             {
                 ["BufferSize"] = info.BufferSize,
+                ["Initial"] = info.InitialCapacity,
                 ["Total"] = info.TotalBuffers,
                 ["Free"] = info.FreeBuffers,
                 ["InUse"] = inUse,
                 ["Hits"] = info.Hits,
+                ["Expands"] = info.Expands,
+                ["Shrinks"] = info.Shrinks,
                 ["UsageRatio"] = usage,
                 ["MissRate"] = miss,
-                ["ShrinkAttempted"] = metrics.ShrinkAttempted,
                 ["ShrinkSkipped"] = metrics.ShrinkSkipped,
-                ["ExpandAttempted"] = metrics.ExpandAttempted,
                 ["BytesReturned"] = bytesReturned
             });
         }
 
         data["Pools"] = poolDetails;
+        data["TotalHits"] = totalHits;
+        data["TotalMisses"] = totalMisses;
+        data["TotalExpands"] = totalExpands;
+        data["TotalShrinks"] = totalShrinks;
+        data["HitRate"] = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) : 1.0;
+
         return data;
     }
 
     #endregion Public API
-
     #region Private: Rent / Return helpers
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IS_FAST_COMMON_SIZE(int size) => size is 256 or 512 or 1024 or 2048 or 4096;
-
-    /// <summary>
-    /// Rents a buffer from the configured pools and optionally updates the size
-    /// cache when a request discovers a better pool match.
-    /// </summary>
-    /// <param name="size">The requested buffer size.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private ArraySegment<byte> RENT_FROM_POOLS_WITH_CACHING(int size)
+    private bool TRY_RENT_ARRAY_WITH_CACHING(int size, [NotNullWhen(true)] out byte[]? array)
     {
-        ArraySegment<byte> segment = _poolManager.RentBuffer(size);
-
-        if (_config.EnableAnalytics)
+        if (_slabPool.TryRent(size, out array))
         {
-            _logger?.Trace($"[{nameof(BufferPoolManager)}:Internal] rent-fast minimumLength={size}");
+            this.CACHE_SUITABLE_POOL_SIZE(size, array.Length);
+            return true;
         }
 
-        this.CACHE_SUITABLE_POOL_SIZE(size, segment.Count);
-
-        return segment;
+        return false;
     }
 
     [StackTraceHidden]
@@ -665,7 +528,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             return;
         }
 
-        if (_suitablePoolSizeCache.Count >= 1000)
+        if (_suitablePoolSizeCache.Count >= _config.SuitablePoolSizeCacheLimit)
         {
             return;
         }
@@ -699,23 +562,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         throw new InvalidOperationException("Unreachable");
     }
 
-    /// <summary>
-    /// Returns a buffer to managed Nalix pools and emits analytics if enabled.
-    /// Returning to the original pool preserves size affinity and improves the
-    /// hit rate of future rents.
-    /// </summary>
-    /// <param name="segment">The slab segment to return to the managed pools.</param>
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RETURN_TO_MANAGED_POOLS(ArraySegment<byte> segment)
-    {
-        _poolManager.ReturnBuffer(segment);
-
-        if (_config.EnableAnalytics)
-        {
-            _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] return minimumLength={segment.Count}");
-        }
-    }
 
     /// <summary>
     /// Handles return failure by optionally returning buffer to fallback ArrayPool.
@@ -755,20 +601,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         foreach ((int bufferSize, double allocation) in _bufferAllocations)
         {
             int capacity = Math.Max(1, (int)(_config.TotalBuffers * allocation));
-
-            // Per-buffer pool: serves the byte[] Rent() API (callers write from offset 0).
-            _poolManager.CreatePool(bufferSize, capacity);
-
-            // Slab pool: serves the RentSegment() API (callers handle ArraySegment offsets).
-            // Gets the same initial capacity — segments are allocated in large pinned slabs
-            // instead of individual GC.AllocateArray calls, reducing POH fragmentation.
             _slabPool.CreateBucket(bufferSize, capacity);
         }
 
         _isInitialized = true;
-        _logger?.Info($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                      $"init-ok total={_config.TotalBuffers} pools={_bufferAllocations.Length} " +
-                                      $"slabs={_bufferAllocations.Length} min={this.MinBufferSize} max={this.MaxBufferSize}");
+        _logger?.Info($"[SH.{nameof(BufferPoolManager)}:Internal] init-ok total={_config.TotalBuffers} buckets={_bufferAllocations.Length}");
     }
 
     [StackTraceHidden]
@@ -783,11 +620,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         // Compute memory budget once per cycle (cache it)
         (long targetBudget, long currentUsage, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
 
-        foreach (BufferPoolShared pool in _poolManager.GetAllPools())
+        foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
         {
-            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+            BufferPoolState info = bucket.GetPoolInfo();
 
-            // Only consider TRIM logic, NOT auto-expand events (separate concern)
             if (!SHOULD_TRIM_POOL(in info, overBudget, deepTrim))
             {
                 continue;
@@ -799,7 +635,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                 continue;
             }
 
-            this.TRIM_SINGLE_POOL(pool, in info, shrinkStep);
+            this.TRIM_SINGLE_BUCKET(bucket, in info, shrinkStep);
         }
     }
 
@@ -821,11 +657,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (now - _lastBudgetComputeTime < CacheDurationMs && _cachedMemoryBudget > 0)
         {
-            // Reuse the last budget target, but still recompute live usage so over-budget detection stays current.
             long current = 0;
-            foreach (BufferPoolShared pool in _poolManager.GetAllPools())
+            foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
             {
-                ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+                BufferPoolState info = bucket.GetPoolInfo();
                 current += info.TotalBuffers * (long)info.BufferSize;
             }
 
@@ -842,9 +677,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _cachedMemoryBudget = targetBudget;
 
         long currentUsage = 0;
-        foreach (BufferPoolShared pool in _poolManager.GetAllPools())
+        foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
         {
-            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+            BufferPoolState info = bucket.GetPoolInfo();
             currentUsage += info.TotalBuffers * (long)info.BufferSize;
         }
 
@@ -889,11 +724,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             targetAllocation * _config.TotalBuffers
         );
 
-        // 2. Never shrink below the retention floor, even if the allocation ratio is lower.
+        // 2. Never shrink below the retention floor OR the initial capacity, even if the allocation ratio is lower.
         int minimumRetain = (int)Math.Ceiling(
             info.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent
         );
-        targetBuffers = Math.Max(targetBuffers, minimumRetain);
+        targetBuffers = Math.Max(targetBuffers, Math.Max(minimumRetain, info.InitialCapacity));
 
         // 3. Only trim from buffers that are actually free.
         int excessBuffers = info.FreeBuffers - targetBuffers;
@@ -914,20 +749,19 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     /// <summary>
-    /// Applies trim on a single pool with metrics tracking.
+    /// Applies trim on a single bucket with metrics tracking.
     /// </summary>
-    /// <param name="pool">The pool to trim.</param>
+    /// <param name="bucket">The bucket to trim.</param>
     /// <param name="info">The current pool state snapshot.</param>
     /// <param name="shrinkStep">The number of buffers to remove.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void TRIM_SINGLE_POOL(BufferPoolShared pool, in BufferPoolState info, int shrinkStep)
+    private void TRIM_SINGLE_BUCKET(SlabBucket bucket, in BufferPoolState info, int shrinkStep)
     {
         double usage = info.GetUsageRatio();
 
-        pool.DecreaseCapacity(shrinkStep);
+        bucket.DecreaseCapacity(shrinkStep);
 
-        // Track metrics
         if (_metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics))
         {
             metrics.TotalBytesReturned += (long)shrinkStep * info.BufferSize;
@@ -936,9 +770,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[info.BufferSize] = metrics;
         }
 
-        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                       $"trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}% " +
-                                       $"remain={info.TotalBuffers - shrinkStep}");
+        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}%");
     }
 
     #endregion Private: Allocation & Trimming
@@ -955,9 +787,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void SHRINK_BUFFER_POOL_SIZE(BufferPoolShared pool)
+    private void SHRINK_BUCKET_SIZE(SlabBucket bucket)
     {
-        ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
+        BufferPoolState poolInfo = bucket.GetPoolInfo();
 
         int buffersToShrink = this.CALCULATE_AUTO_SHRINK_AMOUNT(in poolInfo);
         if (buffersToShrink <= 0)
@@ -975,9 +807,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             return;
         }
 
-        pool.DecreaseCapacity(buffersToShrink);
-
-        ref readonly BufferPoolState latest = ref pool.GetPoolInfoRef();
+        bucket.DecreaseCapacity(buffersToShrink);
 
         if (_metricsCache.TryGetValue(poolInfo.BufferSize, out BufferPoolMetrics m))
         {
@@ -987,7 +817,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = m;
         }
 
-        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={latest.BufferSize} by={buffersToShrink}");
+        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={poolInfo.BufferSize} by={buffersToShrink}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1004,7 +834,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         int minimumRetain = (int)Math.Ceiling(
             poolInfo.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent
         );
-        targetBuffers = Math.Max(targetBuffers, minimumRetain);
+        targetBuffers = Math.Max(targetBuffers, Math.Max(minimumRetain, poolInfo.InitialCapacity));
 
         int excessBuffers = poolInfo.FreeBuffers - targetBuffers;
         return Math.Clamp(excessBuffers, 0, _config.MaxBufferIncreaseLimit);
@@ -1012,11 +842,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void INCREASE_BUFFER_POOL_SIZE(BufferPoolShared pool)
+    private void INCREASE_BUCKET_SIZE(SlabBucket bucket)
     {
-        ref readonly BufferPoolState poolInfo = ref pool.GetPoolInfoRef();
+        BufferPoolState poolInfo = bucket.GetPoolInfo();
 
-        int threshold = Math.Max(1, (int)(poolInfo.TotalBuffers * 0.25));
+        int threshold = Math.Max(1, (int)(poolInfo.TotalBuffers * _config.ExpansionSoftCapRatio));
         if (poolInfo.FreeBuffers > threshold)
         {
             return;
@@ -1037,12 +867,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             return;
         }
 
-        if (pool.FreeBuffers > threshold)
-        {
-            return;
-        }
-
-        pool.IncreaseCapacity(increaseStep);
+        bucket.IncreaseCapacity(increaseStep);
 
         if (_metricsCache.TryGetValue(poolInfo.BufferSize, out BufferPoolMetrics metrics))
         {
@@ -1051,8 +876,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = metrics;
         }
 
-        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] " +
-                                       $"increase minimumLength={poolInfo.BufferSize} by={increaseStep} usage={usage:F2}% miss={missRatio:F2}%");
+        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] increase minimumLength={poolInfo.BufferSize} by={increaseStep}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1060,19 +884,19 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         int baseIncreasePow2 = Math.Max(_config.MinimumIncrease,
                 (int)System.Numerics.BitOperations.RoundUpToPowerOf2(
-                    (uint)Math.Max(1, poolInfo.TotalBuffers >> 2)));
+                    (uint)Math.Max(1, (int)(poolInfo.TotalBuffers * _config.ExpansionSoftCapRatio))));
 
-        double usageFactor = 1.0 + Math.Max(0.0, (usage - 0.75) * 2.0);
-        double missFactor = 1.0 + Math.Min(1.0, missRatio * 2.0);
+        double usageFactor = 1.0 + Math.Max(0.0, (usage - _config.UsageAggressiveFactor) * 2.0);
+        double missFactor = 1.0 + Math.Min(1.0, missRatio * _config.MissRateAggressiveFactor);
 
         int scaled = (int)Math.Ceiling(
             baseIncreasePow2 * usageFactor * missFactor * _config.AdaptiveGrowthFactor);
 
-        // Tính soft cap: tối đa 25% TotalBuffers hiện tại mỗi lần expand
+        // Tính soft cap: tối đa X% TotalBuffers hiện tại mỗi lần expand
         // Tránh spike lớn khi pool đang nhỏ mà miss rate đột ngột cao
         int softCap = Math.Max(
             _config.MinimumIncrease,
-            (int)Math.Ceiling(poolInfo.TotalBuffers * 0.25));
+            (int)Math.Ceiling(poolInfo.TotalBuffers * _config.ExpansionSoftCapRatio));
 
         return Math.Min(scaled, Math.Min(softCap, _config.MaxBufferIncreaseLimit));
     }
@@ -1082,15 +906,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void HANDLE_BUFFER_POOL_RESIZE(BufferPoolShared pool, BufferPoolResizeDirection direction)
+    private void HANDLE_BUFFER_POOL_RESIZE(SlabBucket bucket, BufferPoolResizeDirection direction)
     {
         if (direction == BufferPoolResizeDirection.Increase)
         {
-            this.INCREASE_BUFFER_POOL_SIZE(pool);
+            this.INCREASE_BUCKET_SIZE(bucket);
             return;
         }
 
-        this.SHRINK_BUFFER_POOL_SIZE(pool);
+        this.SHRINK_BUCKET_SIZE(bucket);
     }
 
     #endregion Private: Resize Strategies
@@ -1126,26 +950,45 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
     {
-        _ = sb.AppendLine("s_pool Details:");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
-        _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Hits     | Usage %  | MissRate");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("Buffer Details:");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("SIZE     | Initial| Total  | Free  | In Use  | Hits     | Expands| Shrinks| Usage %   | MissRate ");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
 
-        List<BufferPoolShared> pools = [.. _poolManager.GetAllPools()];
-        pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
+        List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
+        buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
 
-        foreach (BufferPoolShared pool in pools)
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalExpands = 0;
+        long totalShrinks = 0;
+
+        foreach (SlabBucket bucket in buckets)
         {
-            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+            BufferPoolState info = bucket.GetPoolInfo();
+            totalHits += info.Hits;
+            totalMisses += info.Misses;
+            totalExpands += info.Expands;
+            totalShrinks += info.Shrinks;
 
             int inUse = info.TotalBuffers - info.FreeBuffers;
             double usage = info.GetUsageRatio() * 100.0;
             double miss = info.GetMissRate() * 100.0;
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {info.Hits,8} | {usage,8:F2}% | {miss,7:F2}%");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture,
+                $"{info.BufferSize,8} | {info.InitialCapacity,6} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {info.Hits,8} | {info.Expands,6} | {info.Shrinks,6} | {usage,8:F2}% | {miss,7:F2}%");
         }
 
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+
+        double totalHitRate = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) * 100.0 : 100.0;
+
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hits      : {totalHits,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Misses    : {totalMisses,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Expands   : {totalExpands,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Shrinks   : {totalShrinks,10}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Overall Hit Rate: {totalHitRate,9:F2}%");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
     }
 
     [StackTraceHidden]
@@ -1153,17 +996,17 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private void APPEND_REPORT_METRICS(StringBuilder sb)
     {
         _ = sb.AppendLine();
-        _ = sb.AppendLine("s_pool Metrics (Shrink/Expand Operations):");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
-        _ = sb.AppendLine("SIZE     | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("Buffer Metrics (Shrink/Expand Operations):");
+        _ = sb.AppendLine("-----------------------------------------------------------------");
+        _ = sb.AppendLine("SIZE       | Shrink OK | Shrink Skip | Expand OK | Bytes Returned");
+        _ = sb.AppendLine("-----------------------------------------------------------------");
 
-        List<BufferPoolShared> pools = [.. _poolManager.GetAllPools()];
-        pools.Sort(static (a, b) => a.GetPoolInfoRef().BufferSize.CompareTo(b.GetPoolInfoRef().BufferSize));
+        List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
+        buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
 
-        foreach (BufferPoolShared pool in pools)
+        foreach (SlabBucket bucket in buckets)
         {
-            ref readonly BufferPoolState info = ref pool.GetPoolInfoRef();
+            BufferPoolState info = bucket.GetPoolInfo();
 
             if (_metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics))
             {
@@ -1171,15 +1014,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                     ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                     : $"{metrics.TotalBytesReturned / 1024}KB";
 
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {metrics.ShrinkAttempted,9} | {metrics.ShrinkSkipped,11} | {metrics.ExpandAttempted,9} | {bytesReturnedStr,14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,10} | {info.Shrinks,9} | {metrics.ShrinkSkipped,11} | {info.Expands,9} | {bytesReturnedStr,14}");
             }
             else
             {
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {0,9} | {0,11} | {0,9} | {"0KB",14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,10} | {0,9} | {0,11} | {0,9} | {"0KB",14}");
             }
         }
 
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------");
     }
 
     #endregion Private: Reporting
@@ -1199,7 +1042,6 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _suitablePoolSizeCache.Clear();
         _metricsCache.Clear();
         _slabPool.Dispose();
-        _poolManager.Dispose();
 
         if (_config.EnableMemoryTrimming)
         {

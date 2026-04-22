@@ -12,31 +12,32 @@ sequenceDiagram
     participant Lease as IBufferLease
     participant Manager as BufferPoolManager
     participant SlabPool as SlabPoolManager
-    participant OS as Managed Heap (Pinned Slabs)
+    participant OS as Pinned Object Heap (POH)
 
-    App->>Manager: RentSegment(size)
-    Manager->>SlabPool: TryRent(size)
+    App->>Manager: Rent(size)
+    Manager->>SlabPool: TryRentArray(size)
+    Note over SlabPool: O(1) Fast Map Lookup (0-4KB)
     SlabPool->>SlabPool: Best-fit lookup in SlabBucket
     
-    alt Bucket has free segments
-        SlabPool-->>Manager: Return ArraySegment (slab-backed)
+    alt Bucket has free slabs
+        SlabPool-->>Manager: Return byte[] (pinned slab)
     else Bucket empty
-        SlabPool->>OS: Allocate new MemorySlab (pinned)
-        OS-->>SlabPool: Slab allocated
-        SlabPool-->>Manager: Return ArraySegment
+        SlabPool->>OS: Allocate new pinned byte[] (slab)
+        OS-->>SlabPool: Array allocated
+        SlabPool-->>Manager: Return byte[]
     end
 
-    Manager-->>App: Return ArraySegment
+    Manager-->>App: Return byte[]
     App->>Lease: Rent(capacity)
-    Note over Lease: Wraps ArraySegment with shell
+    Note over Lease: Wraps byte[] with shell
     
     rect rgb(240, 240, 240)
     Note over App, Lease: Business Logic (Span/Memory)
     end
 
     App->>Lease: Dispose()
-    Lease->>Manager: Return(ArraySegment)
-    Manager->>SlabPool: TryReturn(segment)
+    Lease->>Manager: Return(byte[])
+    Manager->>SlabPool: TryReturn(byte[])
     SlabPool->>SlabPool: Return to thread-local cache / bucket
 ```
 
@@ -74,33 +75,36 @@ sequenceDiagram
 
 ## BufferPoolManager
 
-`BufferPoolManager` is the high-level orchestrator that manages two distinct pooling strategies:
+`BufferPoolManager` is the high-level orchestrator that manages the **Standalone Slab Pool**. It is designed for high-frequency rental of byte arrays with zero-offset access, leveraging the Pinned Object Heap (POH) to eliminate GC movement.
 
-1.  **Slab-Based Pooling (Primary)**: Optimized for `RentSegment` calls. Uses large pinned slabs to serve `ArraySegment<byte>`.
-2.  **Per-Buffer Pooling (Legacy)**: Serves `Rent(int)` calls for backward compatibility, returning standalone `byte[]`.
+The manager provides a unified API for renting both raw `byte[]` arrays and `IBufferLease` wrappers.
 
-### Slab-Based Architecture
+### Standalone Slab Architecture
 
-To eliminate POH (Pinned Object Heap) fragmentation, Nalix uses a slab allocation strategy. Instead of allocating thousands of small pinned arrays, it allocates large **Memory Slabs** (typically several MBs) and carves them into segments.
+To achieve maximum performance and eliminate slicing overhead, Nalix uses a **Standalone Slab** strategy. Instead of carving segments from a shared large array, each bucket manages a collection of independent pinned `byte[]` arrays of exactly the bucket's size.
 
-- **SlabPoolManager**: Manages multiple `SlabBucket` instances, one for each size class.
-- **SlabBucket**: Implements a lock-free segment stack with thread-local caching for ultra-low latency in the hot path.
-- **Best-Fit Lookup**: Uses binary search to find the smallest bucket that satisfies a requested size, minimizing internal fragmentation.
+- **Zero-Offset Access**: All rented buffers have `Offset = 0`, allowing for faster memory operations and easier integration with external APIs.
+- **POH Placement**: Slabs are allocated on the **Pinned Object Heap (POH)** using `GC.AllocateArray(pinned: true)`, ensuring they never move and minimizing GC pause times.
+- **O(1) Fast Size Lookup**: For common sizes up to **4096 bytes**, the manager uses a direct-mapping array to resolve the correct bucket in constant time, bypassing binary search overhead.
+- **SlabBucket**: Implements a two-level cache (L1: Thread-Local, L2: Shared Ring) for ultra-low contention.
 
-### Adaptive Trimming
+### Adaptive Trimming & Shrink Safety
 
-The manager includes a background job that monitors pool utilization. It uses a **Shrink Safety Policy** to ensure that memory is returned to the OS during idle periods without causing churn when traffic spikes resume.
+The manager includes a background job that monitors pool utilization. It uses a **Shrink Safety Policy** to balance memory footprint and performance.
 
-- **Trim Interval**: Frequency of routine memory checks.
-- **Deep Trim**: A more aggressive cleanup cycle for long-term idle pools.
-- **Safety Floor**: Always retains a minimum percentage of buffers to ensure readiness.
+- **Safety Floor**: Buckets are strictly prevented from shrinking below their **InitialCapacity**. This ensures that the system always has a "warm" baseline of buffers available for sudden traffic bursts.
+- **Step-Limit**: Shrinking happens in controlled steps to avoid massive deallocations in a single cycle.
+- **Deep Trim**: An optional aggressive cleanup cycle for long-term idle pools (while still respecting the safety floor).
 
-### Socket Excellence (SAEA Support)
+### Dual-API Support
 
-Specialized APIs are provided to integrate directly with .NET's `SocketAsyncEventArgs`:
+`BufferPoolManager` provides two optimized paths for renting memory:
 
-- `RentForSaea(saea, size)`: Rents a buffer and binds it to the SAEA.
-- `ReturnFromSaea(saea)`: Unbinds and returns the buffer automatically.
+- **`Rent(size)`**: The primary API, returning a standalone `byte[]`. Optimized for maximum speed and simplicity. All buffers have a zero offset.
+- **`RentSegment(size)`**: Returns an `ArraySegment<byte>`. Specifically designed for .NET APIs that require segments, such as `SocketAsyncEventArgs` or legacy I/O streams.
+
+Both APIs are backed by the same high-performance **SlabBucket** infrastructure and benefit from the same O(1) optimizations.
+
 
 ## BufferConfig
 
@@ -119,13 +123,15 @@ BufferAllocations = 512,0.40; 2048,0.40; 8192,0.20
 
 ## Monitoring & Metrics
 
-The `BufferPoolManager` provides deep insights into memory health:
+The `BufferPoolManager` provides deep insights into memory health via the `GenerateReport()` or `GetReportData()` APIs:
 
-- **MissRate**: If misses occur, it indicates the pool is too small or bucket sizes don't match your traffic.
-- **UsageRatio**: Helps identify if you are over-provisioned or near capacity.
+- **Expands / Shrinks**: Tracks the actual growth and contraction events of each bucket.
+- **Initial Capacity**: Shows the configured "floor" that the pool will never shrink below.
+- **HitRate / MissRate**: Measures the efficiency of the cache layers (L1/L2) vs. new allocations.
+- **Overall Hit Rate**: A high-level summary of how many rent requests were satisfied by pooled buffers.
 
-!!! tip "Reporting"
-    Call `manager.GenerateReport()` to get a detailed text summary of all pool buckets and their current efficiency.
+!!! tip "Enterprise Reporting"
+    Call `manager.GenerateReport()` for a human-readable text summary, or `manager.GetReportData()` to get a structured `IDictionary` for monitoring dashboards (e.g., Prometheus/Grafana).
 
 ## Related APIs
 

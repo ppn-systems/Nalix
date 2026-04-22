@@ -12,7 +12,6 @@ internal static class MemoryTestSupport
         {
             EnableMemoryTrimming = enableMemoryTrimming,
             TotalBuffers = 32,
-            AutoTuneOperationThreshold = 32,
             BufferAllocations = "256,0.50;512,0.25;1024,0.25",
             TrimIntervalMinutes = 1,
             DeepTrimIntervalMinutes = 1,
