@@ -21,6 +21,9 @@ using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.Connections;
 
 /// <summary>
@@ -96,7 +99,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         // Wire the socket-level events into the connection-level callback pipeline.
         this.Socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
 
-        _logger?.Trace($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+        }
     }
 
     #endregion Constructor
@@ -218,8 +224,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public void Disconnect(string? reason = null)
     {
 #if DEBUG
-        _logger?.Debug($"[NW.{nameof(Connection)}:{this.Disconnect}] " +
-                       $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug($"[NW.{nameof(Connection)}:{nameof(this.Disconnect)}] " +
+                           $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}");
+        }
 #endif
 
         this.Dispose();
@@ -264,7 +273,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                _logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] close-event-error msg={ex.Message}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] close-event-error msg={ex.Message}");
+                }
             }
             finally
             {
@@ -350,7 +362,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
+            }
         }
 
         finally

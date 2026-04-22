@@ -20,6 +20,9 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Serialization;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Framework.DataFrames;
 
 /// <summary>
@@ -616,7 +619,14 @@ public sealed class PacketRegistryFactory
 
     private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
-    private static void TRACE(string msg) => Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] {msg}");
+    private static void TRACE(string msg)
+    {
+        ILogger? logger = Logging;
+        if (logger != null && logger.IsEnabled(LogLevel.Trace))
+        {
+            logger.LogTrace($"[FW.{nameof(PacketRegistryFactory)}] {msg}");
+        }
+    }
 
     #endregion Private Helpers
 
@@ -692,7 +702,10 @@ public sealed class PacketRegistryFactory
     {
         PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
 
-        Logging?.Trace($"[SH.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
+        if (Logging is { } logger && logger.IsEnabled(LogLevel.Trace))
+        {
+            logger.LogTrace($"[FW.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
+        }
     }
 
     /// <summary>

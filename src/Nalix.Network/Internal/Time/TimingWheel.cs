@@ -20,6 +20,9 @@ using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
@@ -233,9 +236,12 @@ internal sealed class TimingWheel : IActivatable
             }
         );
 
-        _logger?.Info(
-            $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated (ref={_activeListeners}) " +
-            $"wheelsize={_wheelSize} tick={_tickMs}ms idle={_idleTimeoutMs}ms mask={_useMask}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated (ref={_activeListeners}) " +
+                $"wheelsize={_wheelSize} tick={_tickMs}ms idle={_idleTimeoutMs}ms mask={_useMask}");
+        }
     }
 
     /// <summary>
@@ -277,15 +283,21 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (ObjectDisposedException ex)
         {
-            _logger?.Debug(
-                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                $"cts-cancel-ignored reason={ex.GetType().Name}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-ignored reason={ex.GetType().Name}");
+            }
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Warn(
-                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                $"cts-cancel-failed", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex,
+                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-failed");
+            }
         }
 
         try
@@ -294,15 +306,21 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (ObjectDisposedException ex)
         {
-            _logger?.Debug(
-                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                $"cts-dispose-ignored reason={ex.GetType().Name}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug(
+                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-ignored reason={ex.GetType().Name}");
+            }
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Warn(
-                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                $"cts-dispose-failed", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex,
+                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-failed");
+            }
         }
 
         try
@@ -311,14 +329,20 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Warn(
-                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                $"worker-dispose-failed", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex,
+                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                    $"worker-dispose-failed");
+            }
         }
 
         this.DRAIN_AND_RELEASE_ALL_BUCKETS();
 
-        _logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
+        }
     }
 
     #endregion IActivatable
@@ -535,9 +559,9 @@ internal sealed class TimingWheel : IActivatable
 
                         if (idleMs >= _idleTimeoutMs)
                         {
-                            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                             {
-                                _logger.Debug(
+                                _logger.LogDebug(
                                 $"[NW.{nameof(TimingWheel)}] timeout " +
                                 $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
                             }
@@ -548,9 +572,12 @@ internal sealed class TimingWheel : IActivatable
                             }
                             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                             {
-                                _logger?.Error(
-                                    $"[NW.{nameof(TimingWheel)}] close-error " +
-                                    $"remote={task.Conn.NetworkEndpoint?.Address}", ex);
+                                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                                {
+                                    _logger.LogError(ex,
+                                        $"[NW.{nameof(TimingWheel)}] close-error " +
+                                        $"remote={task.Conn.NetworkEndpoint?.Address}");
+                                }
                             }
 
                             task.Conn.IsRegisteredInWheel = false;
@@ -591,7 +618,10 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(TimingWheel)}] loop-error");
+            }
         }
     }
 

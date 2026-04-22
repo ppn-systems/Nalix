@@ -230,7 +230,10 @@ public sealed class NetworkApplication : IActivatableAsync
                 }
                 catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
-                    _logger.Warn("Failed to stop hosted service cleanly. {Ex}", ex);
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(ex, "Failed to stop hosted service cleanly.");
+                    }
                 }
             }
 
@@ -273,7 +276,10 @@ public sealed class NetworkApplication : IActivatableAsync
         {
             if (deactivateTask.Exception?.GetBaseException() is Exception ex)
             {
-                _logger.Warn("Failed to stop Nalix application during dispose. {Ex}", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(ex, "Failed to stop Nalix application during dispose.");
+                }
             }
         }
         else
@@ -288,7 +294,10 @@ public sealed class NetworkApplication : IActivatableAsync
                 Exception? ex = task.Exception?.GetBaseException();
                 if (ex is not null)
                 {
-                    logger.Warn("Failed to stop Nalix application during deferred dispose. {Ex}", ex);
+                    if (logger != null && logger.IsEnabled(LogLevel.Warning))
+                    {
+                        logger.LogWarning(ex, "Failed to stop Nalix application during deferred dispose.");
+                    }
                 }
             }, _logger, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }

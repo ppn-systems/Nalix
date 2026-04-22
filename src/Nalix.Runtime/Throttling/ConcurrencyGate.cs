@@ -223,7 +223,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             if (newCount <= 0) // Overflow detection
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
-                this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers overflow detected");
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                {
+                    this.Logger.LogError($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers overflow detected");
+                }
                 return false;
             }
 
@@ -240,7 +243,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 
             if (remaining < 0)
             {
-                this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers underflow detected");
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                {
+                    this.Logger.LogError($"[NW.{nameof(ConcurrencyGate)}:Entry] activeUsers underflow detected");
+                }
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
             }
         }
@@ -282,7 +288,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 
             if (remaining < 0)
             {
-                this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] queueCount underflow detected");
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                {
+                    this.Logger.LogError($"[NW.{nameof(ConcurrencyGate)}:Entry] queueCount underflow detected");
+                }
                 _ = Interlocked.Exchange(ref _queueCount, 0);
             }
         }
@@ -316,8 +325,11 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 int remainingUsers = Volatile.Read(ref _activeUsers);
                 if (remainingUsers > 0)
                 {
-                    this.Logger?.Warn(
-                        $"[NW.{nameof(ConcurrencyGate)}:Entry] disposing with {remainingUsers} active users");
+                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                    {
+                        this.Logger.LogWarning(
+                            $"[NW.{nameof(ConcurrencyGate)}:Entry] disposing with {remainingUsers} active users");
+                    }
                 }
 
                 // Dispose semaphore
@@ -331,7 +343,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    this.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Entry] disposal-error", ex);
+                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                    {
+                        this.Logger.LogError(ex, $"[NW.{nameof(ConcurrencyGate)}:Entry] disposal-error");
+                    }
                 }
             }
         }
@@ -373,7 +388,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                _entry.Logger?.Error($"[NW.{nameof(ConcurrencyGate)}:Lease] release-error", ex);
+                if (_entry.Logger != null && _entry.Logger.IsEnabled(LogLevel.Error))
+                {
+                    _entry.Logger.LogError(ex, $"[NW.{nameof(ConcurrencyGate)}:Lease] release-error");
+                }
             }
             finally
             {
@@ -458,7 +476,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error($"[NW.{nameof(ConcurrencyGate)}:{nameof(TryEnter)}] unexpected error opcode={opcode:X4}", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(ConcurrencyGate)}:{nameof(TryEnter)}] unexpected error opcode={opcode:X4}");
+            }
             lease = default;
             return false;
         }
@@ -754,7 +775,10 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 _ = Interlocked.Exchange(ref _totalAcquired, 0);
                 _ = Interlocked.Exchange(ref _totalRejected, 0);
 
-                _logger?.Info($"[NW.{nameof(ConcurrencyGate)}] circuit breaker closed");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+                {
+                    _logger.LogInformation($"[NW.{nameof(ConcurrencyGate)}] circuit breaker closed");
+                }
             }
 
             return Volatile.Read(ref _circuitBreakerOpen) == 1;
@@ -778,9 +802,12 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                 long resetTime = DateTime.UtcNow.AddSeconds(_options.CircuitBreakerResetAfterSeconds).Ticks;
                 _ = Interlocked.Exchange(ref _circuitBreakerResetTimeTicks, resetTime);
 
-                _logger?.Error(
-                    $"[NW.{nameof(ConcurrencyGate)}] circuit breaker opened " +
-                    $"(rejection_rate={rejectionRate:P2}, attempts={totalAttempts})");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(
+                        $"[NW.{nameof(ConcurrencyGate)}] circuit breaker opened " +
+                        $"(rejection_rate={rejectionRate:P2}, attempts={totalAttempts})");
+                }
             }
 
             return true;
@@ -900,12 +927,18 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 
             if (removed > 0)
             {
-                _logger?.Debug($"[NW.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={_table.Count}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug($"[NW.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={_table.Count}");
+                }
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error($"[NW.{nameof(ConcurrencyGate)}] cleanup-error", ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(ConcurrencyGate)}] cleanup-error");
+            }
         }
     }
 
