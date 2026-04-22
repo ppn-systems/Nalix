@@ -410,7 +410,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             // If the buffer is full but we haven't parsed a complete frame, it means a single 
             // frame has exceeded our buffer capacity (MaxChunkSize * 2). 
             // Since the system is configured to never send frames > 1400 bytes, this is a protocol violation.
-            return ValueTask.FromException(new SocketException((int)SocketError.MessageSize));
+            return ValueTask.FromException(NetworkErrors.MessageSize);
         }
 
         ValueTask<int> vt = _recvCtx.ReceiveAsync(_socket, _buffer, _bufferDataLength, freeSpace);
@@ -420,7 +420,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             int n = vt.Result;
             if (n == 0)
             {
-                return ValueTask.FromException(new NetworkException("Connection closed by peer.", new SocketException((int)SocketError.ConnectionReset)));
+                return ValueTask.FromException(NetworkErrors.ConnectionReset);
             }
 
             _bufferDataLength += n;
@@ -435,7 +435,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             int n = await vt.ConfigureAwait(false);
             if (n == 0)
             {
-                throw new NetworkException("Connection closed by peer.", new SocketException((int)SocketError.ConnectionReset));
+                throw NetworkErrors.ConnectionReset;
             }
 
             self._bufferDataLength += n;

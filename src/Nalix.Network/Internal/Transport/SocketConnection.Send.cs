@@ -270,7 +270,7 @@ internal sealed partial class SocketConnection
             while (sent < totalLength)
             {
                 ValueTask<int> vt = _socket.SendAsync(MemoryExtensions
-                                     .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken);
+                                           .AsMemory(heapBuf, sent, totalLength - sent), SocketFlags.None, cancellationToken);
 
                 if (vt.IsCompletedSuccessfully)
                 {
@@ -336,14 +336,14 @@ internal sealed partial class SocketConnection
             BufferLease.ByteArrayPool.Return(buf);
             self.CANCEL_RECEIVE_ONCE();
             self.INVOKE_CLOSE_ONCE();
-            return ValueTask.FromException(new NetworkException("The socket closed while sending."));
+            return ValueTask.FromException(NetworkErrors.SendFailed);
         }
 
         static Exception HANDLE_PEER_CLOSED_EXCEPTION(SocketConnection self)
         {
             self.CANCEL_RECEIVE_ONCE();
             self.INVOKE_CLOSE_ONCE();
-            return new NetworkException("The socket closed while sending.");
+            return NetworkErrors.SendFailed;
         }
 
         static ValueTask HANDLE_SEND_ERROR(SocketConnection self, Exception ex)
@@ -561,7 +561,7 @@ internal sealed partial class SocketConnection
                     {
                         self.CANCEL_RECEIVE_ONCE();
                         self.INVOKE_CLOSE_ONCE();
-                        return ValueTask.FromException(new NetworkException("The socket closed while sending."));
+                        return ValueTask.FromException(NetworkErrors.SendFailed);
                     }
                     sent += n;
                 }
@@ -581,7 +581,7 @@ internal sealed partial class SocketConnection
                 {
                     self.CANCEL_RECEIVE_ONCE();
                     self.INVOKE_CLOSE_ONCE();
-                    throw new NetworkException("The socket closed while sending.");
+                    throw NetworkErrors.SendFailed;
                 }
                 sent += n;
 
@@ -592,7 +592,7 @@ internal sealed partial class SocketConnection
                     {
                         self.CANCEL_RECEIVE_ONCE();
                         self.INVOKE_CLOSE_ONCE();
-                        throw new NetworkException("The socket closed while sending.");
+                        throw NetworkErrors.SendFailed;
                     }
                     sent += n;
                 }
