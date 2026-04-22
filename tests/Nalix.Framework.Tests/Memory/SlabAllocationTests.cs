@@ -167,11 +167,12 @@ public sealed class SlabAllocationTests
     public void SlabBucket_DecreaseCapacity_RemovesFreeBuffers()
     {
         using SlabBucket bucket = new(256, 16);
-        int initialTotal = bucket.GetPoolInfo().TotalBuffers;
+        bucket.IncreaseCapacity(8); // Ensure we are above initial capacity
+        int totalBeforeShrink = bucket.GetPoolInfo().TotalBuffers;
 
         bucket.DecreaseCapacity(4);
 
-        Assert.True(bucket.GetPoolInfo().TotalBuffers < initialTotal);
+        Assert.True(bucket.GetPoolInfo().TotalBuffers < totalBeforeShrink);
     }
 
     [Fact]

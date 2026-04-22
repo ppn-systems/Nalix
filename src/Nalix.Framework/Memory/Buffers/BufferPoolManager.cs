@@ -273,10 +273,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public byte[] Rent(int minimumLength = 256)
     {
-        byte[]? array;
 
         // Fast path: common sizes served directly from slab buckets.
-        if (_slabPool.TryRentArray(minimumLength, out array))
+        if (_slabPool.TryRentArray(minimumLength, out byte[]? array))
         {
             goto ReturnArray;
         }
@@ -295,7 +294,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             {
                 goto ReturnArray;
             }
-            
+
             // Should not happen if bucket exists, but fallback if TryRentArray returned false.
             throw new ArgumentException("No suitable bucket found.");
         }
@@ -318,9 +317,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(byte[]? array, bool arrayClear = false)
     {
-        if (array is null) return;
+        if (array is null)
+        {
+            return;
+        }
 
-        if (arrayClear) array.AsSpan().Clear();
+        if (arrayClear)
+        {
+            array.AsSpan().Clear();
+        }
 
 #if DEBUG
         if (s_activeSentinels.TryGetValue(array, out BufferSentinel? sentinel))
@@ -371,9 +376,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(ArraySegment<byte> segment)
     {
-        if (segment.Array is null) return;
+        if (segment.Array is null)
+        {
+            return;
+        }
 
-        if (_slabPool.TryReturn(segment)) return;
+        if (_slabPool.TryReturn(segment))
+        {
+            return;
+        }
 
         this.HANDLE_RETURN_FAILURE(segment.Array, new ArgumentException($"Segment of size {segment.Count} not owned by slab pools."));
     }
@@ -540,45 +551,61 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         };
 #endif
 
-        List<Dictionary<string, object>> poolDetails = new(_bufferAllocations.Length);
-        foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
+        IReadOnlyCollection<SlabBucket> allBuckets = _slabPool.GetAllBuckets();
+        List<Dictionary<string, object>> poolDetails = new(allBuckets.Count);
+
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalExpands = 0;
+        long totalShrinks = 0;
+
+        foreach (SlabBucket bucket in allBuckets)
         {
             BufferPoolState info = bucket.GetPoolInfo();
+            totalHits += info.Hits;
+            totalMisses += info.Misses;
+            totalExpands += info.Expands;
+            totalShrinks += info.Shrinks;
+
             int inUse = info.TotalBuffers - info.FreeBuffers;
-            double usage = info.GetUsageRatio() * 100.0;
-            double miss = info.GetMissRate() * 100.0;
+            double usage = info.GetUsageRatio();
+            double miss = info.GetMissRate();
+
             _ = _metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics);
 
             string bytesReturned = metrics.TotalBytesReturned > 1_000_000
                 ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                 : $"{metrics.TotalBytesReturned / 1024}KB";
 
-            poolDetails.Add(new Dictionary<string, object>(11, StringComparer.Ordinal)
+            poolDetails.Add(new Dictionary<string, object>(13, StringComparer.Ordinal)
             {
                 ["BufferSize"] = info.BufferSize,
+                ["Initial"] = info.InitialCapacity,
                 ["Total"] = info.TotalBuffers,
                 ["Free"] = info.FreeBuffers,
                 ["InUse"] = inUse,
                 ["Hits"] = info.Hits,
+                ["Expands"] = info.Expands,
+                ["Shrinks"] = info.Shrinks,
                 ["UsageRatio"] = usage,
                 ["MissRate"] = miss,
-                ["ShrinkAttempted"] = metrics.ShrinkAttempted,
                 ["ShrinkSkipped"] = metrics.ShrinkSkipped,
-                ["ExpandAttempted"] = metrics.ExpandAttempted,
                 ["BytesReturned"] = bytesReturned
             });
         }
 
         data["Pools"] = poolDetails;
+        data["TotalHits"] = totalHits;
+        data["TotalMisses"] = totalMisses;
+        data["TotalExpands"] = totalExpands;
+        data["TotalShrinks"] = totalShrinks;
+        data["HitRate"] = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) : 1.0;
+
         return data;
     }
 
     #endregion Public API
-
     #region Private: Rent / Return helpers
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IS_FAST_COMMON_SIZE(int size) => size is 256 or 512 or 1024 or 2048 or 4096;
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -617,7 +644,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             return;
         }
 
-        if (_suitablePoolSizeCache.Count >= 1000)
+        if (_suitablePoolSizeCache.Count >= _config.SuitablePoolSizeCacheLimit)
         {
             return;
         }
@@ -682,7 +709,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ALLOCATE_BUFFERS()
     {
-        if (_isInitialized) return;
+        if (_isInitialized)
+        {
+            return;
+        }
 
         foreach ((int bufferSize, double allocation) in _bufferAllocations)
         {
@@ -810,11 +840,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             targetAllocation * _config.TotalBuffers
         );
 
-        // 2. Never shrink below the retention floor, even if the allocation ratio is lower.
+        // 2. Never shrink below the retention floor OR the initial capacity, even if the allocation ratio is lower.
         int minimumRetain = (int)Math.Ceiling(
             info.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent
         );
-        targetBuffers = Math.Max(targetBuffers, minimumRetain);
+        targetBuffers = Math.Max(targetBuffers, Math.Max(minimumRetain, info.InitialCapacity));
 
         // 3. Only trim from buffers that are actually free.
         int excessBuffers = info.FreeBuffers - targetBuffers;
@@ -878,7 +908,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         BufferPoolState poolInfo = bucket.GetPoolInfo();
 
         int buffersToShrink = this.CALCULATE_AUTO_SHRINK_AMOUNT(in poolInfo);
-        if (buffersToShrink <= 0) return;
+        if (buffersToShrink <= 0)
+        {
+            return;
+        }
 
         if (!SHOULD_APPLY_SHRINK(in poolInfo, buffersToShrink))
         {
@@ -917,7 +950,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         int minimumRetain = (int)Math.Ceiling(
             poolInfo.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent
         );
-        targetBuffers = Math.Max(targetBuffers, minimumRetain);
+        targetBuffers = Math.Max(targetBuffers, Math.Max(minimumRetain, poolInfo.InitialCapacity));
 
         int excessBuffers = poolInfo.FreeBuffers - targetBuffers;
         return Math.Clamp(excessBuffers, 0, _config.MaxBufferIncreaseLimit);
@@ -929,14 +962,20 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         BufferPoolState poolInfo = bucket.GetPoolInfo();
 
-        int threshold = Math.Max(1, (int)(poolInfo.TotalBuffers * 0.25));
-        if (poolInfo.FreeBuffers > threshold) return;
+        int threshold = Math.Max(1, (int)(poolInfo.TotalBuffers * _config.ExpansionSoftCapRatio));
+        if (poolInfo.FreeBuffers > threshold)
+        {
+            return;
+        }
 
         double usage = poolInfo.GetUsageRatio();
         double missRatio = poolInfo.GetMissRate();
 
         int increaseStep = this.CALCULATE_INCREASE_STEP(in poolInfo, usage, missRatio);
-        if (increaseStep <= 0) return;
+        if (increaseStep <= 0)
+        {
+            return;
+        }
 
         if (this.IS_OVER_MEMORY_BUDGET())
         {
@@ -961,19 +1000,19 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     {
         int baseIncreasePow2 = Math.Max(_config.MinimumIncrease,
                 (int)System.Numerics.BitOperations.RoundUpToPowerOf2(
-                    (uint)Math.Max(1, poolInfo.TotalBuffers >> 2)));
+                    (uint)Math.Max(1, (int)(poolInfo.TotalBuffers * _config.ExpansionSoftCapRatio))));
 
-        double usageFactor = 1.0 + Math.Max(0.0, (usage - 0.75) * 2.0);
-        double missFactor = 1.0 + Math.Min(1.0, missRatio * 2.0);
+        double usageFactor = 1.0 + Math.Max(0.0, (usage - _config.UsageAggressiveFactor) * 2.0);
+        double missFactor = 1.0 + Math.Min(1.0, missRatio * _config.MissRateAggressiveFactor);
 
         int scaled = (int)Math.Ceiling(
             baseIncreasePow2 * usageFactor * missFactor * _config.AdaptiveGrowthFactor);
 
-        // Tính soft cap: tối đa 25% TotalBuffers hiện tại mỗi lần expand
+        // Tính soft cap: tối đa X% TotalBuffers hiện tại mỗi lần expand
         // Tránh spike lớn khi pool đang nhỏ mà miss rate đột ngột cao
         int softCap = Math.Max(
             _config.MinimumIncrease,
-            (int)Math.Ceiling(poolInfo.TotalBuffers * 0.25));
+            (int)Math.Ceiling(poolInfo.TotalBuffers * _config.ExpansionSoftCapRatio));
 
         return Math.Min(scaled, Math.Min(softCap, _config.MaxBufferIncreaseLimit));
     }
@@ -1028,25 +1067,40 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
     {
         _ = sb.AppendLine("s_pool Details:");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
-        _ = sb.AppendLine("SIZE     | Total  | Free   | In Use  | Hits     | Usage %  | MissRate");
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("SIZE     | Initial| Total  | Free   | In Use  | Hits     | Expands| Shrinks| Usage %  | MissRate");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
 
         List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
         buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
 
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalExpands = 0;
+        long totalShrinks = 0;
+
         foreach (SlabBucket bucket in buckets)
         {
             BufferPoolState info = bucket.GetPoolInfo();
+            totalHits += info.Hits;
+            totalMisses += info.Misses;
+            totalExpands += info.Expands;
+            totalShrinks += info.Shrinks;
 
             int inUse = info.TotalBuffers - info.FreeBuffers;
             double usage = info.GetUsageRatio() * 100.0;
             double miss = info.GetMissRate() * 100.0;
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {info.Hits,8} | {usage,8:F2}% | {miss,7:F2}%");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, 
+                $"{info.BufferSize,8} | {info.InitialCapacity,6} | {info.TotalBuffers,6} | {info.FreeBuffers,5} | {inUse,7} | {info.Hits,8} | {info.Expands,6} | {info.Shrinks,6} | {usage,8:F2}% | {miss,7:F2}%");
         }
 
-        _ = sb.AppendLine("-----------------------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, 
+            $"Total Hits: {totalHits,10} | Total Misses: {totalMisses,10} | Total Expands: {totalExpands,5} | Total Shrinks: {totalShrinks,5}");
+        double totalHitRate = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) * 100.0 : 100.0;
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Overall Hit Rate: {totalHitRate:F2}%");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
     }
 
     [StackTraceHidden]
@@ -1072,7 +1126,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                     ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                     : $"{metrics.TotalBytesReturned / 1024}KB";
 
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {metrics.ShrinkAttempted,9} | {metrics.ShrinkSkipped,11} | {metrics.ExpandAttempted,9} | {bytesReturnedStr,14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,8} | {info.Shrinks,9} | {metrics.ShrinkSkipped,11} | {info.Expands,9} | {bytesReturnedStr,14}");
             }
             else
             {

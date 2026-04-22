@@ -5,9 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Diagnostics.CodeAnalysis;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
@@ -31,6 +31,7 @@ internal sealed class SlabPoolManager : IDisposable
     private readonly Dictionary<int, SlabBucket> _buckets;
 
     private readonly Lock _lock;
+    private int[]? _fastBucketMap; // Fast lookup for sizes up to 4KB
     private bool _disposed;
 
     /// <summary>Occurs when any bucket managed by this pool manager needs to resize.</summary>
@@ -111,9 +112,14 @@ internal sealed class SlabPoolManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReturn(ArraySegment<byte> segment)
     {
-        if (segment.Array is null) return false;
+        if (segment.Array is null)
+        {
+            return false;
+        }
 
-        if (_buckets.TryGetValue(segment.Count, out SlabBucket? bucket))
+        // Use the underlying array length to identify the owning bucket.
+        // This handles cases where consumers might have sliced the segment.
+        if (_buckets.TryGetValue(segment.Array.Length, out SlabBucket? bucket))
         {
             bucket.Return(segment);
             return true;
@@ -128,7 +134,10 @@ internal sealed class SlabPoolManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryReturnArray(byte[]? array)
     {
-        if (array is null) return false;
+        if (array is null)
+        {
+            return false;
+        }
 
         if (_buckets.TryGetValue(array.Length, out SlabBucket? bucket))
         {
@@ -156,6 +165,18 @@ internal sealed class SlabPoolManager : IDisposable
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindBestFitSize(int size)
+    {
+        // O(1) Fast path for common small sizes
+        if (size is > 0 and <= 4096)
+        {
+            return _fastBucketMap?[size] ?? this.BINARY_SEARCH_BEST_FIT(size);
+        }
+
+        return this.BINARY_SEARCH_BEST_FIT(size);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int BINARY_SEARCH_BEST_FIT(int size)
     {
         int[] keys = _sortedSizes;
         if (keys.Length == 0)
@@ -189,6 +210,14 @@ internal sealed class SlabPoolManager : IDisposable
 
         Array.Sort(keys);
         _sortedSizes = keys;
+
+        // Build fast lookup map for sizes 0..4096
+        int[] map = new int[4097];
+        for (int s = 1; s <= 4096; s++)
+        {
+            map[s] = this.BINARY_SEARCH_BEST_FIT(s);
+        }
+        _fastBucketMap = map;
     }
 
     /// <inheritdoc/>

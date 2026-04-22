@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Memory.Buffers;
@@ -37,26 +36,23 @@ namespace Nalix.Framework.Memory.Internal.Buffers;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class SlabBucket : IDisposable
 {
-    #region Constants
-
-    /// <summary>Maximum per-thread cache depth to limit memory overhead.</summary>
-    private const int ThreadCacheDepth = 8;
-
-    #endregion Constants
-
     #region Fields
 
     private readonly int _segmentSize;
+    private readonly int _initialCapacity;
+    private readonly int _cacheDepth;
     private readonly Lock _slabLock;
     private readonly SlabBucketRing _freeRing;
-    private readonly List<MemorySlab> _slabs = new();
+    private readonly Dictionary<byte[], MemorySlab> _slabLookup = new();
     private readonly ThreadLocal<ThreadLocalCache> _threadCache;
 
     private int _totalBuffers;
+    private int _rentedCount;
     private int _misses;
     private int _hits;
+    private int _expands;
+    private int _shrinks;
     private bool _disposed;
-    private BufferPoolState _poolInfo;
     private int _isOptimizing;
 
     /// <summary>Occurs when the bucket needs to resize (expand or shrink).</summary>
@@ -64,8 +60,10 @@ internal sealed class SlabBucket : IDisposable
 
     private sealed class ThreadLocalCache
     {
-        public readonly ArraySegment<byte>[] Cache = new ArraySegment<byte>[ThreadCacheDepth];
+        public readonly ArraySegment<byte>[] Cache;
         public int Count;
+
+        public ThreadLocalCache(int depth) => Cache = new ArraySegment<byte>[depth];
     }
 
     #endregion Fields
@@ -79,7 +77,7 @@ internal sealed class SlabBucket : IDisposable
     public int TotalBuffers => Volatile.Read(ref _totalBuffers);
 
     /// <summary>Gets the approximate number of free buffers available.</summary>
-    public int FreeBuffers => _freeRing.Count;
+    public int FreeBuffers => Math.Max(0, Volatile.Read(ref _totalBuffers) - Volatile.Read(ref _rentedCount));
 
     #endregion Properties
 
@@ -90,20 +88,23 @@ internal sealed class SlabBucket : IDisposable
     /// </summary>
     /// <param name="segmentSize">The buffer size in bytes.</param>
     /// <param name="initialCapacity">Number of buffers to preallocate.</param>
-    public SlabBucket(int segmentSize, int initialCapacity)
+    /// <param name="cacheDepth">Maximum depth for the per-thread cache.</param>
+    public SlabBucket(int segmentSize, int initialCapacity, int cacheDepth = 8)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(segmentSize);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cacheDepth);
 
         _segmentSize = segmentSize;
+        _initialCapacity = initialCapacity;
+        _cacheDepth = cacheDepth;
         _slabLock = new();
-        _slabs = new(initialCapacity > 0 ? initialCapacity : 4);
 
         int ringCapacity = initialCapacity <= 0
             ? 4
             : (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)initialCapacity);
 
         _freeRing = new SlabBucketRing(ringCapacity);
-        _threadCache = new ThreadLocal<ThreadLocalCache>(() => new ThreadLocalCache(), trackAllValues: false);
+        _threadCache = new ThreadLocal<ThreadLocalCache>(() => new ThreadLocalCache(cacheDepth), trackAllValues: false);
 
         if (initialCapacity > 0)
         {
@@ -129,6 +130,7 @@ internal sealed class SlabBucket : IDisposable
             cache.Cache[idx] = default;
 
             _ = Interlocked.Increment(ref _hits);
+            _ = Interlocked.Increment(ref _rentedCount);
             segment = cached;
             return true;
         }
@@ -136,6 +138,7 @@ internal sealed class SlabBucket : IDisposable
         if (_freeRing.TryDequeue(out segment) && segment.Array is not null)
         {
             _ = Interlocked.Increment(ref _hits);
+            _ = Interlocked.Increment(ref _rentedCount);
             return true;
         }
 
@@ -168,7 +171,7 @@ internal sealed class SlabBucket : IDisposable
         // to prevent consumer failure, but this should be rare.
         this.AllocateAndEnqueue(1);
 
-        if (_freeRing.TryDequeue(out segment) && segment.Array is not null)
+        if (this.TryRent(out segment))
         {
             return segment;
         }
@@ -188,17 +191,26 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(ArraySegment<byte> segment)
     {
-        if (segment.Array is null || segment.Count != _segmentSize) return;
+        if (segment.Array is null || segment.Array.Length != _segmentSize)
+        {
+            return;
+        }
+
+        // Normalize the segment to ensure the full array is returned to the pool.
+        // This handles cases where consumers might have returned a sliced segment.
+        ArraySegment<byte> normalized = new(segment.Array, 0, _segmentSize);
+
+        _ = Interlocked.Decrement(ref _rentedCount);
 
         ThreadLocalCache cache = _threadCache.Value!;
-        if (cache.Count < ThreadCacheDepth)
+        if (cache.Count < _cacheDepth)
         {
-            cache.Cache[cache.Count++] = segment;
+            cache.Cache[cache.Count++] = normalized;
             return;
         }
 
         this.DrainCacheToRing(cache);
-        cache.Cache[cache.Count++] = segment;
+        cache.Cache[cache.Count++] = normalized;
     }
 
     /// <summary>
@@ -207,7 +219,11 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Return(byte[] array)
     {
-        if (array == null) return;
+        if (array == null)
+        {
+            return;
+        }
+
         this.Return(new ArraySegment<byte>(array, 0, array.Length));
     }
 
@@ -216,11 +232,15 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void IncreaseCapacity(int additionalCapacity)
     {
-        if (additionalCapacity <= 0 || !this.TryBeginOptimize()) return;
+        if (additionalCapacity <= 0 || !this.TryBeginOptimize())
+        {
+            return;
+        }
 
         try
         {
             this.AllocateAndEnqueue(additionalCapacity);
+            _ = Interlocked.Increment(ref _expands);
         }
         finally
         {
@@ -228,25 +248,53 @@ internal sealed class SlabBucket : IDisposable
         }
     }
 
-    /// <summary>Decreases capacity by dropping free buffers.</summary>
+    /// <summary>Decreases capacity by dropping free buffers and releasing slabs.</summary>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void DecreaseCapacity(int capacityToRemove)
     {
-        if (capacityToRemove <= 0 || !this.TryBeginOptimize()) return;
+        if (capacityToRemove <= 0 || !this.TryBeginOptimize())
+        {
+            return;
+        }
 
         try
         {
+            // NEW RULE: Do not shrink below the initial (default) capacity
+            int currentTotal = Volatile.Read(ref _totalBuffers);
+            int canRemove = Math.Min(capacityToRemove, currentTotal - _initialCapacity);
+            if (canRemove <= 0)
+            {
+                return;
+            }
+
             int removed = 0;
-            int target = Math.Min(capacityToRemove, _freeRing.Count);
+            int ringCount = _freeRing.Count;
+            int target = Math.Min(canRemove, ringCount);
 
             for (int i = 0; i < target; i++)
             {
-                if (_freeRing.TryDequeue(out _)) removed++;
-                else break;
+                if (_freeRing.TryDequeue(out ArraySegment<byte> segment))
+                {
+                    lock (_slabLock)
+                    {
+                        if (segment.Array != null && _slabLookup.Remove(segment.Array))
+                        {
+                            removed++;
+                        }
+                    }
+                }
+                else
+                {
+                    break;
+                }
             }
 
-            if (removed > 0) _ = Interlocked.Add(ref _totalBuffers, -removed);
+            if (removed > 0)
+            {
+                _ = Interlocked.Add(ref _totalBuffers, -removed);
+                _ = Interlocked.Increment(ref _shrinks);
+            }
         }
         finally
         {
@@ -256,13 +304,6 @@ internal sealed class SlabBucket : IDisposable
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public BufferPoolState GetPoolInfo() => this.CreateSnapshot();
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ref readonly BufferPoolState GetPoolInfoRef()
-    {
-        _poolInfo = this.CreateSnapshot();
-        return ref _poolInfo;
-    }
 
     #endregion Public API
 
@@ -274,7 +315,10 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void AllocateAndEnqueue(int count)
     {
-        if (count <= 0) return;
+        if (count <= 0)
+        {
+            return;
+        }
 
         _freeRing.EnsureCapacity(_freeRing.Count + count);
 
@@ -284,25 +328,33 @@ internal sealed class SlabBucket : IDisposable
             for (int i = 0; i < count; i++)
             {
                 MemorySlab slab = new(_segmentSize);
-                _slabs.Add(slab);
-                
-                if (_freeRing.TryEnqueue(new ArraySegment<byte>(slab.GetArray(), 0, _segmentSize)))
+                byte[] array = slab.GetArray();
+                _slabLookup[array] = slab;
+
+                if (_freeRing.TryEnqueue(new ArraySegment<byte>(array, 0, _segmentSize)))
                 {
                     enqueued++;
                 }
             }
         }
 
-        if (enqueued > 0) _ = Interlocked.Add(ref _totalBuffers, enqueued);
+        if (enqueued > 0)
+        {
+            _ = Interlocked.Add(ref _totalBuffers, enqueued);
+        }
     }
 
     /// <summary>Drains the current thread's cache to the shared ring.</summary>
     private void DrainCacheToRing(ThreadLocalCache cache)
     {
         int toMove = cache.Count / 2;
+
+        // Ensure the ring can hold the new buffers to prevent loss.
+        _freeRing.EnsureCapacity(_freeRing.Count + toMove);
+
         for (int i = 0; i < toMove; i++)
         {
-            _freeRing.TryEnqueue(cache.Cache[i]);
+            _ = _freeRing.TryEnqueue(cache.Cache[i]);
         }
 
         // Shift remaining
@@ -315,10 +367,16 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private BufferPoolState CreateSnapshot()
     {
+        int total = Volatile.Read(ref _totalBuffers);
+        int rented = Volatile.Read(ref _rentedCount);
+
         return new BufferPoolState
         {
-            FreeBuffers = _freeRing.Count,
-            TotalBuffers = Volatile.Read(ref _totalBuffers),
+            FreeBuffers = Math.Max(0, total - rented),
+            TotalBuffers = total,
+            InitialCapacity = _initialCapacity,
+            Expands = Volatile.Read(ref _expands),
+            Shrinks = Volatile.Read(ref _shrinks),
             BufferSize = _segmentSize,
             Misses = Volatile.Read(ref _misses),
             Hits = Volatile.Read(ref _hits)
@@ -334,12 +392,20 @@ internal sealed class SlabBucket : IDisposable
 
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         lock (_slabLock)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             _ = _freeRing.DrainAll();
-            _slabs.Clear();
+            _slabLookup.Clear();
             _threadCache.Dispose();
             _disposed = true;
         }
@@ -371,13 +437,23 @@ internal sealed class SlabBucket : IDisposable
             try
             {
                 _lock.Enter(ref taken);
-                if (_count == _slots.Length) return false;
+                if (_count == _slots.Length)
+                {
+                    return false;
+                }
+
                 _slots[_tail] = buffer;
                 _tail = (_tail + 1) & (_slots.Length - 1);
                 _count++;
                 return true;
             }
-            finally { if (taken) _lock.Exit(); }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
         }
 
         public bool TryDequeue(out ArraySegment<byte> buffer)
@@ -393,7 +469,13 @@ internal sealed class SlabBucket : IDisposable
                 _count--;
                 return true;
             }
-            finally { if (taken) _lock.Exit(); }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
         }
 
         public void EnsureCapacity(int targetCapacity)
@@ -402,14 +484,27 @@ internal sealed class SlabBucket : IDisposable
             try
             {
                 _lock.Enter(ref taken);
-                if (targetCapacity <= _slots.Length) return;
+                if (targetCapacity <= _slots.Length)
+                {
+                    return;
+                }
+
                 uint newSize = System.Numerics.BitOperations.RoundUpToPowerOf2((uint)targetCapacity);
                 ArraySegment<byte>[] newSlots = new ArraySegment<byte>[newSize];
                 for (int i = 0; i < _count; ++i)
+                {
                     newSlots[i] = _slots[(_head + i) & (_slots.Length - 1)];
+                }
+
                 _slots = newSlots; _head = 0; _tail = _count;
             }
-            finally { if (taken) _lock.Exit(); }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
         }
 
         public ArraySegment<byte>[] DrainAll()
@@ -418,7 +513,11 @@ internal sealed class SlabBucket : IDisposable
             try
             {
                 _lock.Enter(ref taken);
-                if (_count == 0) return Array.Empty<ArraySegment<byte>>();
+                if (_count == 0)
+                {
+                    return Array.Empty<ArraySegment<byte>>();
+                }
+
                 ArraySegment<byte>[] result = new ArraySegment<byte>[_count];
                 for (int i = 0; i < _count; ++i)
                 {
@@ -429,7 +528,13 @@ internal sealed class SlabBucket : IDisposable
                 _head = _tail = _count = 0;
                 return result;
             }
-            finally { if (taken) _lock.Exit(); }
+            finally
+            {
+                if (taken)
+                {
+                    _lock.Exit();
+                }
+            }
         }
     }
 

@@ -42,7 +42,6 @@ public sealed partial class MemoryTests
         BufferConfig config = new()
         {
             TotalBuffers = 64,
-            AutoTuneOperationThreshold = 64,
             BufferAllocations = "256,0.50;512,0.50",
             ExpandThresholdPercent = 0.20,
             ShrinkThresholdPercent = 0.60,
@@ -59,16 +58,15 @@ public sealed partial class MemoryTests
     }
 
     [Theory]
-    [InlineData(0.70, 0.60, "256,1.0", 32, 32, 2.0, 4, 16)]
-    [InlineData(0.20, 0.60, "256,0.60;256,0.20", 32, 32, 2.0, 4, 16)]
-    [InlineData(0.20, 0.60, "256,1.0", 32, 16, 2.0, 4, 16)]
-    [InlineData(0.20, 0.60, "256,1.0", 32, 32, 5.0, 4, 8)]
+    [InlineData(0.70, 0.60, "256,1.0", 32, 2.0, 4, 16)]
+    [InlineData(0.20, 0.60, "256,0.60;256,0.20", 32, 2.0, 4, 16)]
+    [InlineData(0.20, 0.60, "256,1.0", 32, 2.0, 4, 16)]
+    [InlineData(0.20, 0.60, "256,1.0", 32, 5.0, 4, 8)]
     public void Validate_InvalidBufferConfig_ThrowsValidationException(
         double expandThreshold,
         double shrinkThreshold,
         string allocations,
         int totalBuffers,
-        int autoTuneThreshold,
         double growthFactor,
         int minimumIncrease,
         int maxIncreaseLimit)
@@ -79,7 +77,6 @@ public sealed partial class MemoryTests
             ShrinkThresholdPercent = shrinkThreshold,
             BufferAllocations = allocations,
             TotalBuffers = totalBuffers,
-            AutoTuneOperationThreshold = autoTuneThreshold,
             AdaptiveGrowthFactor = growthFactor,
             MinimumIncrease = minimumIncrease,
             MaxBufferIncreaseLimit = maxIncreaseLimit
