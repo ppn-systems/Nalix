@@ -10,105 +10,66 @@ using System.Threading;
 namespace Nalix.Framework.Memory.Internal.Buffers;
 
 /// <summary>
-/// A large pinned byte array divided into fixed-size segments for high-performance
-/// buffer pooling. Each slab is allocated once via <see cref="GC.AllocateArray{T}(int, bool)"/>
+/// A standalone pinned byte array for high-performance buffer pooling.
+/// Each slab is allocated once via <see cref="GC.AllocateArray{T}(int, bool)"/>
 /// with <c>pinned: true</c>, so IOCP / native socket operations can use the memory directly
 /// without additional pinning.
 /// </summary>
 /// <remarks>
 /// <b>Design rationale:</b>
 /// <list type="bullet">
-///   <item>One pinning operation per slab instead of per buffer eliminates POH fragmentation.</item>
-///   <item>Segments are tracked externally (no inline metadata) so the full segment is clean user bytes.</item>
-///   <item>The slab itself is reference-counted: when all segments are returned, the slab
-///         can optionally be released to allow the GC to reclaim the memory.</item>
+///   <item>Standalone pinned arrays eliminate complex slicing logic and ensure data always starts at offset 0.</item>
+///   <item>Pinned memory prevents GC fragmentation for long-lived network buffers.</item>
 /// </list>
 /// </remarks>
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class MemorySlab
 {
-    /// <summary>The single large pinned backing array for this slab.</summary>
+    /// <summary>The single pinned backing array for this slab.</summary>
     private readonly byte[] _data;
 
-    /// <summary>Fixed segment size in bytes.</summary>
-    private readonly int _segmentSize;
-
-    /// <summary>Total number of segments carved from this slab.</summary>
-    private readonly int _segmentCount;
-
     /// <summary>
-    /// Unique slab identifier used for diagnostics and cross-pool validation.
+    /// Unique slab identifier used for diagnostics.
     /// </summary>
     public readonly int SlabId;
 
     /// <summary>
-    /// Number of segments currently rented out (not in the free ring).
-    /// When this reaches 0 and the slab is decommissioned, the GC can reclaim the backing array.
+    /// Whether this slab is currently rented out.
     /// </summary>
-    private int _activeSegments;
+    private int _isActive;
 
     /// <summary>Global slab ID counter.</summary>
     private static int s_nextSlabId;
 
     /// <summary>
-    /// Initializes a new <see cref="MemorySlab"/> with <paramref name="segmentCount"/> segments
-    /// of <paramref name="segmentSize"/> bytes each.
+    /// Initializes a new <see cref="MemorySlab"/> with a pinned array of the given size.
     /// </summary>
-    /// <param name="segmentSize">The size of each segment in bytes. Must be positive.</param>
-    /// <param name="segmentCount">The number of segments to carve from this slab. Must be positive.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="segmentSize"/> or <paramref name="segmentCount"/> is not positive.</exception>
-    public MemorySlab(int segmentSize, int segmentCount)
+    /// <param name="size">The size of the array in bytes.</param>
+    public MemorySlab(int size)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(segmentSize);
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(segmentCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(size);
 
-        _segmentSize = segmentSize;
-        _segmentCount = segmentCount;
         SlabId = Interlocked.Increment(ref s_nextSlabId);
 
-        // Single pinned allocation — this is the entire point of slab-based pooling.
-        // The array lives on the Pinned Object Heap and stays pinned for its lifetime,
-        // so IOCP completions can write directly into these segments.
-        _data = GC.AllocateArray<byte>(segmentSize * segmentCount, pinned: true);
+        // Single pinned allocation — the entire point of standalone slab-based pooling.
+        // The array lives on the Pinned Object Heap and stays pinned for its lifetime.
+        _data = GC.AllocateArray<byte>(size, pinned: true);
     }
-
-    /// <summary>Gets the segment size for this slab.</summary>
-    public int SegmentSize => _segmentSize;
-
-    /// <summary>Gets the total number of segments in this slab.</summary>
-    public int SegmentCount => _segmentCount;
-
-    /// <summary>Gets the number of segments currently in use.</summary>
-    public int ActiveSegments => Volatile.Read(ref _activeSegments);
 
     /// <summary>Gets the total slab size in bytes.</summary>
     public int TotalBytes => _data.Length;
 
     /// <summary>
-    /// Gets whether this slab is fully idle (all segments returned).
+    /// Gets whether this slab is currently idle.
     /// </summary>
-    public bool IsFullyIdle => Volatile.Read(ref _activeSegments) == 0;
+    public bool IsIdle => Volatile.Read(ref _isActive) == 0;
 
     /// <summary>
-    /// Creates an <see cref="ArraySegment{T}"/> for the segment at the given index.
-    /// The segment points into the shared slab backing array at the correct offset.
-    /// </summary>
-    /// <param name="segmentIndex">Zero-based segment index within this slab.</param>
-    /// <returns>An <see cref="ArraySegment{T}"/> covering exactly <see cref="SegmentSize"/> bytes.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ArraySegment<byte> GetSegment(int segmentIndex)
-    {
-        Debug.Assert((uint)segmentIndex < (uint)_segmentCount, "Segment index out of range.");
-        int offset = segmentIndex * _segmentSize;
-        return new ArraySegment<byte>(_data, offset, _segmentSize);
-    }
-
-    /// <summary>
-    /// Gets the raw backing array. Callers must use offset arithmetic to locate segments.
+    /// Gets the raw backing array.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte[] GetBackingArray() => _data;
+    public byte[] GetArray() => _data;
 
     /// <summary>
     /// Validates that the given array is the backing array of this slab.
@@ -117,14 +78,14 @@ internal sealed class MemorySlab
     public bool OwnsBacking(byte[] array) => ReferenceEquals(_data, array);
 
     /// <summary>
-    /// Increments the active segment counter. Called when a segment is rented out.
+    /// Marks the slab as rented.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void IncrementActive() => Interlocked.Increment(ref _activeSegments);
+    public void MarkActive() => Volatile.Write(ref _isActive, 1);
 
     /// <summary>
-    /// Decrements the active segment counter. Called when a segment is returned.
+    /// Marks the slab as idle.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void DecrementActive() => Interlocked.Decrement(ref _activeSegments);
+    public void MarkIdle() => Volatile.Write(ref _isActive, 0);
 }
