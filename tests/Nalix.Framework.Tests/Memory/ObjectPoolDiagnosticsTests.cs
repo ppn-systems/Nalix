@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Memory.Objects;
@@ -106,9 +104,9 @@ public sealed class ObjectPoolDiagnosticsTests
             this.CreateLeak(manager);
 
             // Force GC
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            GC.Collect();
+            System.GC.Collect();
+            System.GC.WaitForPendingFinalizers();
+            System.GC.Collect();
 
             string report = manager.GenerateReport();
             Assert.Contains("GC Leak Detected", report);
@@ -123,7 +121,7 @@ public sealed class ObjectPoolDiagnosticsTests
         }
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void CreateLeak(ObjectPoolManager manager) => _ = manager.Get<TestPoolable>();
 #endif
 }
