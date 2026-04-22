@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nalix.Framework.Exceptions;
 
 namespace Nalix.Framework.Memory.Buffers;
 
@@ -177,8 +178,7 @@ public ref struct DataWriter
 
         if (!_rent) // external array (or external span if we ever add such ctor) cannot expand by policy
         {
-            throw new InvalidOperationException(
-                $"Cannot expand fixed buffer: available={_span.Length}, required={minimumSize}.");
+            throw FrameworkErrors.SerializationFixedBufferExpansion;
         }
 
         // Rent a larger buffer and copy committed bytes

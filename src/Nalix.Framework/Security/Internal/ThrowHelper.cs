@@ -6,6 +6,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Exceptions;
+using Nalix.Framework.Exceptions;
 
 namespace Nalix.Framework.Security.Internal;
 
@@ -32,7 +33,10 @@ internal static class ThrowHelper
     /// <exception cref="CipherException">Always thrown to signal an invalid key length.</exception>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidKeyLengthException(string paramName = "key")
-        => throw new CipherException($"The key length is invalid. {paramName}");
+    {
+        if (paramName == "key") throw FrameworkErrors.CipherInvalidKeyLength;
+        throw new CipherException($"The key length is invalid. {paramName}");
+    }
 
     /// <summary>
     /// Throws an <see cref="CipherException"/> for an invalid nonce length.
@@ -41,7 +45,10 @@ internal static class ThrowHelper
     /// <exception cref="CipherException">Always thrown to signal an invalid nonce length.</exception>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidNonceLengthException(string paramName = "nonce")
-        => throw new CipherException($"The nonce length is invalid. {paramName}");
+    {
+        if (paramName == "nonce") throw FrameworkErrors.CipherInvalidNonceLength;
+        throw new CipherException($"The nonce length is invalid. {paramName}");
+    }
 
     /// <summary>
     /// Throws an <see cref="CipherException"/> for an invalid authentication tag length.
@@ -50,7 +57,10 @@ internal static class ThrowHelper
     /// <exception cref="CipherException">Always thrown to signal an invalid authentication tag length.</exception>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowInvalidTagLengthException(string paramName = "tag")
-        => throw new CipherException($"The authentication tag length is invalid. {paramName}");
+    {
+        if (paramName == "tag") throw FrameworkErrors.CipherInvalidTagLength;
+        throw new CipherException($"The authentication tag length is invalid. {paramName}");
+    }
 
     /// <summary>
     /// Throws an <see cref="CipherException"/> when output length does not match input length.
@@ -58,7 +68,7 @@ internal static class ThrowHelper
     /// <exception cref="CipherException">Always thrown when cipher output length validation fails.</exception>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowOutputLengthMismatchException()
-        => throw new CipherException("The output length does not match the input length.");
+        => throw FrameworkErrors.CipherOutputLengthMismatch;
 
     /// <summary>
     /// Throws an <see cref="CipherException"/> when the ciphertext buffer is too small.
@@ -67,5 +77,8 @@ internal static class ThrowHelper
     /// <exception cref="CipherException">Always thrown when the ciphertext buffer is shorter than required.</exception>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowCiphertextTooShortException(string paramName = "ciphertext")
-        => throw new CipherException($"The ciphertext buffer is too small. {paramName}");
+    {
+        if (paramName == "ciphertext") throw FrameworkErrors.CiphertextTooShort;
+        throw new CipherException($"The ciphertext buffer is too small. {paramName}");
+    }
 }

@@ -207,10 +207,8 @@ public static partial class Directories
     /// <param name="path">
     /// The path that was created and will be passed to registered handlers.
     /// </param>
-    [EditorBrowsable(
-        EditorBrowsableState.Never)]
-    private static void RAISE_DIRECTORY_CREATED(
-        [DisallowNull] string path)
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    private static void RAISE_DIRECTORY_CREATED([DisallowNull] string path)
     {
         Action<string>? handlers = DirectoryCreated;
         if (handlers == null)

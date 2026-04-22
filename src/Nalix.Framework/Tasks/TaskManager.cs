@@ -17,6 +17,7 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Internal;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 
