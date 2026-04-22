@@ -242,18 +242,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         $"saea-receive-loop started ep={_endpointString}");
 #endif
 
-        Task receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
-        _receiveLoopTask = receiveLoopTask;
-
-        _ = receiveLoopTask.ContinueWith(static (t, state) =>
-        {
-            ILogger l = (ILogger)state!;
-
-            if (t.IsFaulted)
-            {
-                l?.Error($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop faulted", t.Exception!);
-            }
-        }, _logger, TaskScheduler.Default);
+        _receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
     }
     #endregion Public Methods
 
@@ -264,12 +253,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     {
         this.DISPOSE(true);
         GC.SuppressFinalize(this);
-    }
-
-    /// <summary>Finalizes an instance of the <see cref="SocketConnection"/> class.</summary>
-    ~SocketConnection()
-    {
-        this.DISPOSE(false);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

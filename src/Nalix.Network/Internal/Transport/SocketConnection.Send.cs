@@ -218,7 +218,7 @@ internal sealed partial class SocketConnection
     /// <param name="cancellationToken"></param>
     /// <returns><see langword="true"/> if the data was sent successfully.</returns>
     /// <exception cref="ArgumentOutOfRangeException"></exception>
-    public async Task SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
+    public async ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
         this.THROW_IF_NOT_CONFIGURED();
 
@@ -433,7 +433,7 @@ internal sealed partial class SocketConnection
         }
     }
 
-    private async Task SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
+    private async ValueTask SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken token)
     {
         if (payload.Length > s_fragmentOptions.MaxPayloadSize)
         {
