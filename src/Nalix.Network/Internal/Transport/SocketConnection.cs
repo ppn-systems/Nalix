@@ -307,7 +307,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                             _logger.Debug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_endpointString}");
                         }
 #endif
-                        throw new SocketException((int)SocketError.ProtocolNotSupported);
+                        throw NetworkErrors.ProtocolNotSupported;
                     }
 
                     // Check if the full frame (header + payload) is present in the buffer.
@@ -628,6 +628,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             if (receiveLoopTask is not null)
             {
                 _receiveLoopTask = null;
+
+                // Wait for the loop to exit. Since we closed the socket above, 
+                // the loop should exit almost immediately. This ensures that 
+                // any pending AWAIT_RECEIVE has finished and released its 
+                // references to this connection.
+                try { receiveLoopTask.GetAwaiter().GetResult(); } catch { /* ignore */ }
             }
 
             // 3. Return the pooled receive context only after the socket can no
