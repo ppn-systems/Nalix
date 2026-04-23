@@ -107,9 +107,9 @@ public sealed class SessionHandlers
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
         RestoreSessionSnapshot(context.Connection, session);
 
-        // Generate and store a new session entry with a rotated token for subsequent resume attempts.
+        // Generate a new session entry with a rotated token for subsequent resume attempts.
+        // Storage is deferred until connection unregistration.
         SessionEntry newEntry = Hub.SessionStore.CreateSession(context.Connection);
-        await Hub.SessionStore.StoreAsync(newEntry).ConfigureAwait(false);
         UInt56 newToken = newEntry.Snapshot.SessionToken;
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
 

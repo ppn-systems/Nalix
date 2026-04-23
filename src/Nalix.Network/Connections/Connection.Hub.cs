@@ -56,6 +56,7 @@ public sealed class ConnectionHub : IConnectionHub
     private readonly ConcurrentDictionary<UInt56, IConnection>[] _shards;
 
     private readonly ISessionStore _sessionStore;
+    private readonly SessionStoreOptions _sessionOptions;
 
     private readonly ILogger? _logger;
     private readonly ConnectionHubOptions _options;
@@ -119,6 +120,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         _logger = logger;
         _sessionStore = sessionStore ?? new InMemorySessionStore();
+        _sessionOptions = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         _maxConnections = _options.MaxConnections;
         _shardCount = Math.Max(1, _options.ShardCount);
@@ -752,6 +754,11 @@ public sealed class ConnectionHub : IConnectionHub
         removedConnection.OnCloseEvent -= this.OnClientDisconnected;
         _ = Interlocked.Decrement(ref _count);
 
+        if (_sessionOptions.AutoSaveOnUnregister)
+        {
+            this.TryPersistSession(removedConnection);
+        }
+
         try
         {
             removedConnection.Dispose();
@@ -1208,6 +1215,61 @@ public sealed class ConnectionHub : IConnectionHub
         }
 
         _ = this.TryUnregisterCore(args.Connection);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void TryPersistSession(IConnection connection)
+    {
+        if (_disposed || connection.IsDisposed)
+        {
+            return;
+        }
+
+        // Only persist if the handshake was established
+        if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) || established is not true)
+        {
+            return;
+        }
+
+        // Only persist if there is meaningful metadata beyond internal flags
+        // We subtract 1 if HandshakeEstablished is present, but for simplicity
+        // we just use the threshold configured. Default threshold is 4.
+        // Usually, a "useful" session has at least one user-defined attribute.
+        if (connection.Attributes.Count <= _sessionOptions.MinAttributesForPersistence)
+        {
+            return;
+        }
+
+        try
+        {
+            SessionEntry session = _sessionStore.CreateSession(connection);
+
+            // Fire-and-forget storage to avoid blocking the critical unregistration path.
+            // Capture metadata early to avoid potential race conditions if the connection is recycled.
+            ILogger? logger = _logger;
+            ISnowflake id = connection.ID;
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _sessionStore.StoreAsync(session).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
+                }
+            });
+
+            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            {
+                _logger.Debug($"[NW.{nameof(ConnectionHub)}] auto-persist queued id={connection.ID} attributes={connection.Attributes.Count}");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-prepare-error id={connection.ID}");
+        }
     }
 
     private enum RegisterResult : byte

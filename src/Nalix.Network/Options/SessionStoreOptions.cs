@@ -22,6 +22,20 @@ public sealed class SessionStoreOptions : ConfigurationLoader
     public TimeSpan SessionTtl { get; init; } = TimeSpan.FromMinutes(30);
 
     /// <summary>
+    /// Gets or sets a value indicating whether sessions should be automatically saved when a connection is unregistered.
+    /// </summary>
+    [IniComment("Enable automatic session saving when a connection is unregistered from the hub")]
+    public bool AutoSaveOnUnregister { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the minimum number of attributes in the ObjectMap required to persist a session.
+    /// This helps prevent DDoS by not saving "empty" sessions from handshake-only connections.
+    /// </summary>
+    [IniComment("Minimum number of attributes required to persist a session (excluding internal flags, default 4)")]
+    [Range(0, int.MaxValue, ErrorMessage = "MinAttributesForPersistence cannot be negative.")]
+    public int MinAttributesForPersistence { get; set; } = 4;
+
+    /// <summary>
     /// Validates the configuration options.
     /// </summary>
     public void Validate()
