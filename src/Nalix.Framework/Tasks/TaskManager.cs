@@ -19,6 +19,7 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
+using Nalix.Framework.Extensions;
 
 namespace Nalix.Framework.Tasks;
 
@@ -627,36 +628,26 @@ public sealed partial class TaskManager : ITaskManager
 
         recurringSnapshot.Sort(static (a, b) => b.ConsecutiveFailures.CompareTo(a.ConsecutiveFailures));
 
-        _ = sb.AppendLine("Recurring:");
-        _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine("Naming                       | Runs     | Fails | Running | Last UTC             | Next UTC             |  Interval | Tag        ");
-        _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Recurring (Dashboard):");
+        _ = sb.AppendLine("-------------------------+---------------+-----+-------------------------+-----------+-------");
+        _ = sb.AppendLine("NAMING                   | RUNS (T/F)    | RUN | SCHEDULE (L/N)          | INTERVAL  | TAG   ");
+        _ = sb.AppendLine("-------------------------+---------------+-----+-------------------------+-----------+-------");
         foreach (RecurringState s in recurringSnapshot)
         {
-            string nm = PadName(s.Name, 28);
-            string runs = s.TotalRuns.ToString(CultureInfo.InvariantCulture).PadLeft(8);
-            string fails = s.ConsecutiveFailures.ToString(CultureInfo.InvariantCulture).PadLeft(5);
+            string nm = ReportExtensions.FormatTypeName(s.Name, 24);
+            string runsFails = $"{s.TotalRuns.FormatCompact()} / {s.ConsecutiveFailures}";
             string run = s.IsRunning ? "yes" : " no";
-            string last = s.LastRunUtc?.ToString("u") ?? "-";
-            string next = s.NextRunUtc?.ToString("u") ?? "-";
-            string iv = $"{s.Interval.TotalMilliseconds:F0}ms".PadLeft(9);
-            string tag = s.Options.Tag ?? "-";
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{nm} | {runs} | {fails} | {run.PadLeft(7)} | {last,-20} | {next,-20} | {iv} | {tag}");
-        }
-        _ = sb.AppendLine("---------------------------------------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine();
+            
+            string last = s.LastRunUtc?.ToString("HH:mm:ss") ?? "--:--:--";
+            string next = s.NextRunUtc?.ToString("HH:mm:ss") ?? "--:--:--";
+            string schedule = $"{last} / {next}";
 
-        _ = sb.AppendLine("Top Recurring Tasks with Maximum Failures:");
-        _ = sb.AppendLine("------------------------------------------------------------------------------");
-        _ = sb.AppendLine("Name                         | Fails    | LastRun              | Tag          ");
-        _ = sb.AppendLine("------------------------------------------------------------------------------");
-        int topRecurringCount = recurringSnapshot.Count < 5 ? recurringSnapshot.Count : 5;
-        for (int i = 0; i < topRecurringCount; i++)
-        {
-            RecurringState r = recurringSnapshot[i];
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{PadName(r.Name, 28)} | {r.ConsecutiveFailures,8} | {r.LastRunUtc?.ToString("u"),-20} | {r.Options.Tag ?? "-"}");
+            string iv = s.Interval.FormatTimeSpan();
+            string tag = s.Options.Tag ?? "-";
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{nm} | {runsFails,-13} | {run,3} | {schedule,-23} | {iv,9} | {tag}");
         }
-        _ = sb.AppendLine("------------------------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine();
         _ = sb.AppendLine();
 
         // Workers summary by group
@@ -724,7 +715,7 @@ public sealed partial class TaskManager : ITaskManager
                 continue;
             }
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{w.Id} | {PadName(w.Name, 28)} | {PadName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress,8} |  {w.LastHeartbeatUtc?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? "-"}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{w.Id} | {ReportExtensions.FormatTypeName(w.Name, 28)} | {ReportExtensions.FormatTypeName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress.FormatCompact(),8} |  {w.LastHeartbeatUtc?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? "-"}");
             if (++show >= 50)
             {
                 break;

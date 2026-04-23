@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Pools;
@@ -231,22 +232,22 @@ public sealed class ObjectPoolManager : IReportable
         metrics.LastAccessType = "Get";
         _ = Interlocked.Increment(ref metrics.TotalGets);
 
+        // Track outstanding objects so we can detect leaks (Gets - Returns)
+        long outstanding = Interlocked.Increment(ref metrics.Outstanding);
+
+        // Update peak outstanding
+        long currentPeak;
+        while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
+        {
+            if (Interlocked.CompareExchange(ref metrics.PeakOutstanding, outstanding, currentPeak) == currentPeak)
+            {
+                break;
+            }
+        }
+
         // Diagnostics Path
         if (_config.EnableDiagnostics)
         {
-            // Track outstanding objects so we can detect leaks (Gets - Returns)
-            long outstanding = Interlocked.Increment(ref metrics.Outstanding);
-
-            // Update peak outstanding
-            long currentPeak;
-            while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
-            {
-                if (Interlocked.CompareExchange(ref metrics.PeakOutstanding, outstanding, currentPeak) == currentPeak)
-                {
-                    break;
-                }
-            }
-
             PoolSentinel sentinel = new(result, _config.CaptureStackTraces);
 
             // CWT keeps sentinel alive as long as 'result' is alive
@@ -319,19 +320,15 @@ public sealed class ObjectPoolManager : IReportable
         metrics.LastAccessType = "Return";
         _ = Interlocked.Increment(ref metrics.TotalReturns);
 
-        // Diagnostics Path
-        if (_config.EnableDiagnostics)
+        // Decrement outstanding; ensure it doesn't go negative
+        long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
+        if (outstandingAfter < 0)
         {
-            // Decrement outstanding; ensure it doesn't go negative
-            long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
-            if (outstandingAfter < 0)
-            {
-                // Log and reset to zero to avoid negative counters due to bugs
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[SH.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+            // Log and reset to zero to avoid negative counters due to bugs
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[SH.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
 
-                _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
-            }
+            _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
         }
     }
 
@@ -729,12 +726,17 @@ public sealed class ObjectPoolManager : IReportable
         }
         _ = sb.AppendLine();
 
+        // Configuration
+        _ = sb.AppendLine("Configuration:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size: {this.DefaultMaxPoolSize}");
+        _ = sb.AppendLine();
+
         // Pool Details
-        _ = sb.AppendLine("==============================================================================================");
-        _ = sb.AppendLine("Pool Details:");
-        _ = sb.AppendLine("==============================================================================================");
-        _ = sb.AppendLine("TYPE                     | Available | Max Cap | Gets    | Hits    | Misses  | Util% | Hit%    | Status");
-        _ = sb.AppendLine("------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("===========================================================================================");
+        _ = sb.AppendLine("Object Details (Dashboard):");
+        _ = sb.AppendLine("===========================================================================================");
+        _ = sb.AppendLine("TYPE                     | STORAGE (A/M) | USAGE (O/P)  | TRAFFIC (G/R) | HIT%     | STATUS");
+        _ = sb.AppendLine("-------------------------+---------------+--------------+---------------+----------+-------");
 
         // Fix: create sortable list from dictionary
         List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
@@ -745,24 +747,22 @@ public sealed class ObjectPoolManager : IReportable
             Type type = kvp.Key;
             Dictionary<string, object> typeInfo = kvp.Value.GetTypeInfoByType(kvp.Key);
 
-            string typeName = type.Name.Length > 24
-                ? $"{type.Name.AsSpan(0, 21)}..."
-                : type.Name.PadRight(24);
+            string typeName = ReportExtensions.FormatTypeName(type.Name, 24);
 
             int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"], CultureInfo.InvariantCulture);
             int available = Convert.ToInt32(typeInfo["AvailableCount"], CultureInfo.InvariantCulture);
 
-            long gets = 0, hits = 0, misses = 0, peak = 0;
+            long gets = 0, returns = 0, peak = 0, active = 0;
             double hitPercent = 0.0;
             string status = "OK";
 
             if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
             {
                 gets = metrics.TotalGets;
-                hits = metrics.CacheHits;
-                misses = metrics.CacheMisses;
+                returns = metrics.TotalReturns;
                 peak = metrics.PeakOutstanding;
-                hitPercent = gets > 0 ? (hits / (double)gets * 100.0) : 0.0;
+                active = metrics.Outstanding;
+                hitPercent = gets > 0 ? (metrics.CacheHits / (double)gets * 100.0) : 0.0;
 
                 if (metrics.ConsecutiveFailures > 0)
                 {
@@ -770,19 +770,22 @@ public sealed class ObjectPoolManager : IReportable
                 }
             }
 
-            double utilPercent = maxCap > 0 ? (available / (double)maxCap * 100.0) : 0.0;
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {available,9} | {maxCap,7} | {gets,7} | {hits,7} | {misses,7} | {utilPercent,5:F0}% | {hitPercent,6:F1}% | {status}");
+            string storage = ReportExtensions.FormatGroup(available, maxCap);
+            string usage = ReportExtensions.FormatGroup(active, peak);
+            string traffic = ReportExtensions.FormatGroup(gets, returns, compact: true);
+
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {storage,-13} | {usage,-12} | {traffic,-13} | {hitPercent,7:F1}% | {status}");
 
             if (_config.EnableDiagnostics && metrics != null && metrics.TotalReturns > 0)
             {
                 double avgMs = metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double p95Ms = this.CalculateP95(metrics);
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                         | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2} | Peak Active: {peak}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                         | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2}");
             }
         }
 
-        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("-------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Suspicious Objects Section
@@ -816,11 +819,6 @@ public sealed class ObjectPoolManager : IReportable
             _ = sb.AppendLine("----------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
-
-        // Configuration
-        _ = sb.AppendLine("Configuration:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size  : {this.DefaultMaxPoolSize}");
-        _ = sb.AppendLine();
 
         return sb.ToString();
     }

@@ -169,7 +169,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         {
             throw new ArgumentNullException(nameof(obj));
         }
-        
+
         Type type = obj.GetType();
 
         // Reset first so the next renter always sees a clean object.
