@@ -250,17 +250,15 @@ public abstract partial class UdpListenerBase
             BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
             incomingLease.IsReliable = false;
 
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+            // Optimize: Try local connection pool first, fallback to global s_pool.
+            ConnectionEventArgs args = (connection as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
             args.Initialize(incomingLease, connection);
 
-            try
+            // Align with TCP: Offload to ThreadPool via AsyncCallback.
+            // Disposal is handled by s_onProcessFrameBridge.
+            if (!Internal.Transport.AsyncCallback.Invoke(s_onProcessFrameBridge, this, args))
             {
-                // Route through the full frame pipeline so args/lease ownership matches the TCP path.
-                this.ProcessFrame(this, args);
-            }
-            catch (Exception ex)
-            {
-                s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] protocol-error id={connection.ID}", ex);
+                args.Dispose();
             }
 
 #if DEBUG
@@ -291,6 +289,33 @@ public abstract partial class UdpListenerBase
         return connection is not null;
     }
 
+    #region Event Bridge
+
+    private static readonly EventHandler<IConnectEventArgs> s_onProcessFrameBridge = OnProcessFrameBridge;
+
+    /// <summary>
+    /// Align with TCP's OnProcessEventBridge: ensures disposal after the pipeline.
+    /// </summary>
+    private static void OnProcessFrameBridge(object? sender, IConnectEventArgs e)
+    {
+        if (sender is not UdpListenerBase self)
+        {
+            e?.Dispose();
+            return;
+        }
+
+        try
+        {
+            self.ProcessFrame(sender, e);
+        }
+        finally
+        {
+            e.Dispose();
+        }
+    }
+
+    #endregion Event Bridge
+
     /// <summary>
     /// Processes an incoming network frame from a connected client.
     /// Applies inbound pipeline transformations (e.g., decrypt, decompress),
@@ -318,7 +343,7 @@ public abstract partial class UdpListenerBase
     /// <exception cref="SerializationFailureException">Thrown when deserialization fails.</exception>
     /// <exception cref="Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
     [DebuggerStepThrough]
-    protected void ProcessFrame(object? sender, ConnectionEventArgs args)
+    protected void ProcessFrame(object? sender, IConnectEventArgs args)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -346,16 +371,13 @@ public abstract partial class UdpListenerBase
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
 #if DEBUG
-                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                s_logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
 #endif
             }
             else
             {
-                args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
+                args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
             }
-
-            // Path failed before handoff to ProtocolHandler could guarantee disposal
-            args.Dispose();
         }
     }
 }
