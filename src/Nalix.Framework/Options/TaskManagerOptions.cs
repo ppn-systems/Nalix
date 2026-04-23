@@ -71,6 +71,38 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     public TimeSpan ObservingInterval { get; init; } = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    /// Duration of the CPU measurement warmup period (default 60 seconds).
+    /// </summary>
+    [IniComment("Warmup period before CPU measurement baseline is established")]
+    public TimeSpan CpuWarmupDuration { get; init; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>
+    /// Number of consecutive samples above/below threshold required to adjust concurrency.
+    /// </summary>
+    [IniComment("Consecutive samples required before adjusting concurrency (hysteresis)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 64)]
+    public int AdjustmentStreakRequired { get; init; } = 3;
+
+    /// <summary>
+    /// Maximum duration for a busy-wait spin in recurring tasks (default 200 microseconds).
+    /// </summary>
+    [IniComment("Max duration for high-precision busy-wait spin (e.g. 00:00:00.0002)")]
+    public TimeSpan BusyWaitThreshold { get; init; } = TimeSpan.FromTicks(2000); // 200 µs
+
+    /// <summary>
+    /// Maximum exponent for recurring task failure backoff (default 5 = 2^5 = 32x).
+    /// </summary>
+    [IniComment("Maximum power for exponential backoff (e.g. 5 = 2^5 = 32x)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 16)]
+    public int BackoffMaxPower { get; init; } = 5;
+
+    /// <summary>
+    /// Base interval for recurring task failure backoff (default 1 second).
+    /// </summary>
+    [IniComment("Base interval for exponential backoff calculations")]
+    public TimeSpan BackoffBaseInterval { get; init; } = TimeSpan.FromSeconds(1);
+
+    /// <summary>
     /// Gets or sets the interval at which completed workers are cleaned up.
     /// Default is 30 seconds. Must be at least 1 second.
     /// </summary>
@@ -97,6 +129,21 @@ public sealed class TaskManagerOptions : ConfigurationLoader
         if (this.CleanupInterval < TimeSpan.FromSeconds(1))
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("CleanupInterval must be at least 1 second.");
+        }
+        
+        if (this.BusyWaitThreshold < TimeSpan.Zero)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("BusyWaitThreshold cannot be negative.");
+        }
+
+        if (this.BackoffBaseInterval < TimeSpan.FromMilliseconds(10))
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("BackoffBaseInterval must be at least 10ms.");
+        }
+
+        if (this.CpuWarmupDuration < TimeSpan.Zero)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("CpuWarmupDuration cannot be negative.");
         }
     }
 }

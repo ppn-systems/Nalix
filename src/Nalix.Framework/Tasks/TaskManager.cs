@@ -47,12 +47,15 @@ public sealed partial class TaskManager : ITaskManager
 
     private int _workerErrorCount;
     private int _runningWorkerCount;
+    private int _peakRunningWorkerCount;
     private int _recurringErrorCount;
+    private long _workerWaitTicks;
     private long _workerExecutionTicks;
     private long _workerExecutionCount;
     private long _workerScheduleSequence;
     private long _recurringExecutionTicks;
     private long _recurringExecutionCount;
+    private readonly long[] _workerLatencyBuckets = new long[11];
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
@@ -117,6 +120,54 @@ public sealed partial class TaskManager : ITaskManager
     /// may be updated concurrently by recurring execution paths.
     /// </remarks>
     public int RecurringErrorCount => Volatile.Read(ref _recurringErrorCount);
+
+    /// <summary>
+    /// Gets the peak number of concurrently running workers observed.
+    /// </summary>
+    public int PeakRunningWorkerCount => Volatile.Read(ref _peakRunningWorkerCount);
+
+    /// <summary>
+    /// Gets the average time workers spent in the queue before starting, in milliseconds.
+    /// </summary>
+    public double AverageWorkerWaitTime =>
+        _workerExecutionCount == 0 ? 0 : (double)_workerWaitTicks / _workerExecutionCount / 10000.0;
+
+    /// <summary>
+    /// Gets the 95th percentile worker execution time in milliseconds (approximation).
+    /// </summary>
+    public double P95WorkerExecutionTime => this.GetWorkerPercentile(0.95);
+
+    /// <summary>
+    /// Gets the 99th percentile worker execution time in milliseconds (approximation).
+    /// </summary>
+    public double P99WorkerExecutionTime => this.GetWorkerPercentile(0.99);
+
+    /// <summary>
+    /// Calculates an approximate percentile for worker execution time based on histogram buckets.
+    /// </summary>
+    /// <param name="percentile">The percentile to calculate (e.g., 0.95 for P95).</param>
+    /// <returns>The approximate latency in milliseconds.</returns>
+    public double GetWorkerPercentile(double percentile)
+    {
+        long total = _workerExecutionCount;
+        if (total == 0) return 0;
+
+        long target = (long)(total * percentile);
+        long accumulated = 0;
+
+        double[] thresholds = { 1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0 };
+
+        for (int i = 0; i < _workerLatencyBuckets.Length; i++)
+        {
+            accumulated += Volatile.Read(ref _workerLatencyBuckets[i]);
+            if (accumulated >= target)
+            {
+                return thresholds[i];
+            }
+        }
+
+        return thresholds[^1];
+    }
 
     #endregion Properties
 
@@ -505,6 +556,8 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"High CPU Threshold                : {_options.ThresholdHighCpu:F1}%");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Low CPU Threshold                 : {_options.ThresholdLowCpu:F1}%");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Observing Interval                : {_options.ObservingInterval.TotalSeconds:F1}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Warmup Duration                   : {_options.CpuWarmupDuration.TotalSeconds:F1}s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Adjustment Streak Required        : {_options.AdjustmentStreakRequired}");
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine();
 
@@ -547,11 +600,19 @@ public sealed partial class TaskManager : ITaskManager
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Monitoring Statistics:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Execution Count            : {_workerExecutionCount}");
+        double uptimeSec = (DateTimeOffset.UtcNow - Process.GetCurrentProcess().StartTime.ToUniversalTime()).TotalSeconds;
+        double workerTps = uptimeSec > 0 ? _workerExecutionCount / uptimeSec : 0;
+        double recurringTps = uptimeSec > 0 ? _recurringExecutionCount / uptimeSec : 0;
+
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Execution Count            : {_workerExecutionCount} ({workerTps:F2} ops/s)");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Execution Time     : {this.AverageWorkerExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"P95 Worker Execution Time         : <{this.P95WorkerExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"P99 Worker Execution Time         : <{this.P99WorkerExecutionTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Worker Wait Time          : {this.AverageWorkerWaitTime:F2} ms");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Peak Running Workers              : {this.PeakRunningWorkerCount}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Worker Error Count                : {this.WorkerErrorCount}");
         _ = sb.AppendLine();
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Execution Count         : {_recurringExecutionCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Execution Count         : {_recurringExecutionCount} ({recurringTps:F2} ops/s)");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Recurring Execution Time  : {this.AverageRecurringExecutionTime:F2} ms");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Recurring Error Count             : {this.RecurringErrorCount}");
         _ = sb.AppendLine("---------------------------------------------------------------------");
@@ -715,7 +776,9 @@ public sealed partial class TaskManager : ITaskManager
             ["MaxWorkers"] = _options.MaxWorkers,
             ["HighCpuThreshold"] = _options.ThresholdHighCpu,
             ["LowCpuThreshold"] = _options.ThresholdLowCpu,
-            ["ObservingIntervalSeconds"] = _options.ObservingInterval.TotalSeconds
+            ["ObservingIntervalSeconds"] = _options.ObservingInterval.TotalSeconds,
+            ["WarmupDurationSeconds"] = _options.CpuWarmupDuration.TotalSeconds,
+            ["AdjustmentStreakRequired"] = _options.AdjustmentStreakRequired
         };
 
         // Memory usage (best effort)
@@ -751,6 +814,10 @@ public sealed partial class TaskManager : ITaskManager
         // Stats
         data["WorkerExecutionCount"] = _workerExecutionCount;
         data["AverageWorkerExecutionTimeMs"] = this.AverageWorkerExecutionTime;
+        data["P95WorkerExecutionTimeMs"] = this.P95WorkerExecutionTime;
+        data["P99WorkerExecutionTimeMs"] = this.P99WorkerExecutionTime;
+        data["AverageWorkerWaitTimeMs"] = this.AverageWorkerWaitTime;
+        data["PeakRunningWorkerCount"] = this.PeakRunningWorkerCount;
         data["WorkerErrorCount"] = this.WorkerErrorCount;
         data["RecurringExecutionCount"] = _recurringExecutionCount;
         data["AverageRecurringExecutionTimeMs"] = this.AverageRecurringExecutionTime;
