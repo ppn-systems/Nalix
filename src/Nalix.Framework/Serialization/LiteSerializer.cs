@@ -61,7 +61,7 @@ public static class LiteSerializer
     public static byte[] Serialize<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             byte[] array = GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
             Unsafe.WriteUnaligned(
@@ -165,7 +165,7 @@ public static class LiteSerializer
         ArgumentNullException.ThrowIfNull(buffer);
 
         // Primitive or unmanaged struct
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             int size = TypeMetadata.SizeOf<T>();
             if (buffer.Length < size)
@@ -234,7 +234,7 @@ public static class LiteSerializer
         // ── Case 1: Primitive / unmanaged struct ──────────────────────────────────
         // T is a plain value type with no references (e.g. int, float, custom struct).
         // Write the value directly into the span using unaligned write for performance.
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             int size = TypeMetadata.SizeOf<T>();
 
@@ -553,7 +553,7 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
@@ -673,7 +673,7 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        if (!TypeMetadata.IsReferenceOrNullable<T>())
+        if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
@@ -773,7 +773,7 @@ public static class LiteSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool UsesFormatterReader<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
-        => TypeMetadata.IsReferenceOrNullable<T>() &&
+        => !TypeMetadata.IsUnmanaged<T>() &&
            TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out _) is not TypeKind.UnmanagedSZArray;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
