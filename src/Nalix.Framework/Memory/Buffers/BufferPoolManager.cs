@@ -31,7 +31,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     #region Fields & Constants
 
     private readonly ILogger? _logger;
-    private readonly BufferConfig _config;
+    private readonly BufferOptions _config;
 
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _suitablePoolSizeCache;
@@ -209,9 +209,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     /// <param name="logger">
     /// Optional logger for emitting internal events and diagnostics.
     /// </param>
-    public BufferPoolManager(BufferConfig? bufferConfig = null, ILogger? logger = null)
+    public BufferPoolManager(BufferOptions? bufferConfig = null, ILogger? logger = null)
     {
-        BufferConfig config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferConfig>();
+        BufferOptions config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferOptions>();
         config.Validate();
 
         _logger = logger;
@@ -223,7 +223,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _slabPool = new Internal.Buffers.SlabPoolManager();
         _slabPool.ResizeOccurred += this.HANDLE_BUFFER_POOL_RESIZE;
 
-        _bufferAllocations = BufferConfig.ParseBufferAllocations(config.BufferAllocations);
+        _bufferAllocations = BufferOptions.ParseBufferAllocations(config.BufferAllocations);
         this.MinBufferSize = _bufferAllocations.Length > 0 ? _bufferAllocations[0].BufferSize : 0;
         this.MaxBufferSize = _bufferAllocations.Length > 0 ? _bufferAllocations[^1].BufferSize : 0;
 

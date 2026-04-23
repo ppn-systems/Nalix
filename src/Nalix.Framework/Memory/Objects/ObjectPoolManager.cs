@@ -83,7 +83,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Configuration for object pool diagnostics.
     /// </summary>
-    private readonly ObjectPoolConfig _config;
+    private readonly ObjectPoolOptions _config;
 
     /// <summary>
     /// Tracks active sentinels for lifetime and leak detection.
@@ -187,7 +187,7 @@ public sealed class ObjectPoolManager : IReportable
     public ObjectPoolManager()
     {
         _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
-        _config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        _config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         _config.Validate();
     }
 

@@ -63,7 +63,7 @@ public sealed partial class DataFramesPublicApiTests
         }
         else
         {
-            _ = Assert.IsType<InvalidOperationException>(exception);
+            _ = Assert.IsType<System.ComponentModel.DataAnnotations.ValidationException>(exception);
         }
     }
 

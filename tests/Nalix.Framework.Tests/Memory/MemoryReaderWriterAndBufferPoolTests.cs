@@ -145,7 +145,7 @@ public sealed partial class MemoryTests
     [Fact]
     public void Rent_BufferPoolManagerConfigured_ReturnsSizedBuffer()
     {
-        BufferConfig config = MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false);
+        BufferOptions config = MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false);
         using BufferPoolManager manager = new(config);
 
         byte[] rented = manager.Rent(300);
@@ -163,7 +163,7 @@ public sealed partial class MemoryTests
     [Fact]
     public void GenerateReport_StateUnderTest_ReturnsReportAndData()
     {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
+        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
         _ = manager.Rent(256);
 
         string report = manager.GenerateReport();

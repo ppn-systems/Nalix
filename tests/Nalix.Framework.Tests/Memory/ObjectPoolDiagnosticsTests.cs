@@ -38,7 +38,7 @@ public sealed class ObjectPoolDiagnosticsTests
     public void GenerateReport_WithDiagnostics_IncludesLifetimeMetrics()
     {
         // Enable diagnostics
-        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         config.EnableDiagnostics = true;
 
         try
@@ -65,7 +65,7 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void GenerateReport_SuspiciousObjects_Detected()
     {
-        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         config.EnableDiagnostics = true;
         config.SuspiciousThresholdSeconds = 0; // Trigger immediately for test
 
@@ -92,7 +92,7 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void Finalizer_LeakDetection_IncrementsCount()
     {
-        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         config.EnableDiagnostics = true;
         config.EnableLeakDetection = true;
 

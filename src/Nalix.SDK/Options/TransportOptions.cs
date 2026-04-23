@@ -184,6 +184,9 @@ public sealed class TransportOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
+        ValidationContext context = new(this);
+        Validator.ValidateObject(this, context, validateAllProperties: true);
+
         if (this.ReconnectBaseDelayMillis > this.ReconnectMaxDelayMillis)
         {
             throw new ValidationException("ReconnectBaseDelayMillis cannot be greater than ReconnectMaxDelayMillis.");

@@ -49,7 +49,7 @@ public sealed partial class MemoryTests
     [Fact]
     public void ReturnWithNullArrayDoesNotThrow()
     {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
+        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
         Exception? ex = Record.Exception(() => manager.Return((byte[]?)null));
 
@@ -59,7 +59,7 @@ public sealed partial class MemoryTests
     [Fact]
     public void GetAllocationForSizeWhenOutsideBoundsReturnsBoundaryAllocation()
     {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
+        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
         double low = manager.GetAllocationForSize(manager.MinBufferSize - 1);
         double exactMin = manager.GetAllocationForSize(manager.MinBufferSize);
@@ -73,7 +73,7 @@ public sealed partial class MemoryTests
     [Fact]
     public void DisposeCanBeCalledTwiceWithoutThrowing()
     {
-        BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
+        BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
         Exception? ex = Record.Exception(() =>
         {

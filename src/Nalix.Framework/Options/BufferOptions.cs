@@ -19,7 +19,7 @@ namespace Nalix.Framework.Options;
 /// Configuration for buffer settings with validation and performance/security options.
 /// </summary>
 [IniComment("Buffer pool configuration — controls pool sizing, trimming, adaptive growth, and memory limits")]
-public sealed class BufferConfig : ConfigurationLoader
+public sealed class BufferOptions : ConfigurationLoader
 {
     #region Properties
     /// <summary>
@@ -247,7 +247,7 @@ public sealed class BufferConfig : ConfigurationLoader
     {
         return string.IsNullOrWhiteSpace(bufferAllocationsString)
             ? throw new ArgumentException(
-                $"[{nameof(BufferConfig)}] The input string must not be blank.", nameof(bufferAllocationsString))
+                $"[{nameof(BufferOptions)}] The input string must not be blank.", nameof(bufferAllocationsString))
             : s_allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
             {
                 try
@@ -256,18 +256,18 @@ public sealed class BufferConfig : ConfigurationLoader
                     double totalAllocation = Enumerable.Sum(allocations, a => a.ratio);
                     return totalAllocation > 1.1
                         ? throw new ArgumentException(
-                            $"[{nameof(BufferConfig)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
+                            $"[{nameof(BufferOptions)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
                         : ((int, double)[])allocations;
                 }
                 catch (Exception ex) when (ex is FormatException or ArgumentException
                                                       or OverflowException or ArgumentOutOfRangeException)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[SH.{nameof(BufferConfig)}:Internal] " +
+                                            .Error($"[SH.{nameof(BufferOptions)}:Internal] " +
                                                    $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
 
                     throw new ArgumentException(
-                        $"[{nameof(BufferConfig)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
+                        $"[{nameof(BufferOptions)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
                 }
             });
     }
@@ -285,17 +285,17 @@ public sealed class BufferConfig : ConfigurationLoader
 
             if (parts.Length != 2)
             {
-                throw new FormatException($"[{nameof(BufferConfig)}] Incorrectly formatted pair: '{pair}'.");
+                throw new FormatException($"[{nameof(BufferOptions)}] Incorrectly formatted pair: '{pair}'.");
             }
 
             if (!int.TryParse(parts[0].Trim(), out int allocationSize) || allocationSize <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] SIZE must be > 0.");
+                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferOptions)}] SIZE must be > 0.");
             }
 
             if (!double.TryParse(parts[1].Trim(), out double ratio) || ratio <= 0 || ratio > 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] Ratio must be (0,1].");
+                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferOptions)}] Ratio must be (0,1].");
             }
 
             list.Add((allocationSize, ratio));

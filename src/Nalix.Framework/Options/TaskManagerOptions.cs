@@ -54,12 +54,14 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     /// High CPU utilization threshold to reduce concurrency. Default is 80%.
     /// </summary>
     [IniComment("CPU usage % above which concurrency is reduced (0–100)")]
+    [System.ComponentModel.DataAnnotations.Range(0.0, 100.0, ErrorMessage = "ThresholdHighCpu must be between 0 and 100.")]
     public double ThresholdHighCpu { get; init; } = 80.0;
 
     /// <summary>
     /// Low CPU utilization threshold to increase concurrency. Default is 40%.
     /// </summary>
     [IniComment("CPU usage % below which concurrency is increased (0–100)")]
+    [System.ComponentModel.DataAnnotations.Range(0.0, 100.0, ErrorMessage = "ThresholdLowCpu must be between 0 and 100.")]
     public double ThresholdLowCpu { get; init; } = 40.0;
 
     /// <summary>
@@ -81,15 +83,20 @@ public sealed class TaskManagerOptions : ConfigurationLoader
     /// <summary>
     /// Validates the options and throws if any values are invalid.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when CleanupInterval is less than 1 second.</exception>
     public void Validate()
     {
+        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
+        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+
+        if (this.ThresholdHighCpu < this.ThresholdLowCpu)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"{nameof(this.ThresholdHighCpu)} ({this.ThresholdHighCpu}) must be greater than or equal to {nameof(this.ThresholdLowCpu)} ({this.ThresholdLowCpu}).");
+        }
+
         if (this.CleanupInterval < TimeSpan.FromSeconds(1))
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(this.CleanupInterval),
-                this.CleanupInterval,
-                "CleanupInterval must be at least 1 second");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("CleanupInterval must be at least 1 second.");
         }
     }
 }
