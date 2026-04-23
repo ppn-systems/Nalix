@@ -56,6 +56,11 @@ public partial class TaskManager
         /// </summary>
         private long _completedUtcTicks;
 
+        /// <summary>
+        /// Timestamp of when the worker was scheduled (added to queue).
+        /// </summary>
+        private long _scheduledUtcTicks;
+
         #endregion Backing fields (thread-safe)
 
         #region Properties
@@ -131,9 +136,22 @@ public partial class TaskManager
 
         internal bool HasCompleted => Interlocked.Read(ref _completedUtcTicks) != 0;
 
+        /// <summary>
+        /// Gets the time when the worker was scheduled.
+        /// </summary>
+        internal DateTimeOffset ScheduledUtc
+            => new(Interlocked.Read(ref _scheduledUtcTicks), TimeSpan.Zero);
+
         #endregion Properties
 
         #region Computed Methods
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public void MarkScheduled()
+        {
+            long nowTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            _ = Interlocked.Exchange(ref _scheduledUtcTicks, nowTicks);
+        }
 
         /// <summary>
         /// Marks the worker as running and resets completion metadata for a new execution.

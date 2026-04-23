@@ -253,7 +253,7 @@ public sealed class SlabAllocationTests
     [Fact]
     public void BufferPoolManager_RentByteArray_ReturnsOffset0()
     {
-        using BufferPoolManager manager = new(new BufferConfig
+        using BufferPoolManager manager = new(new BufferOptions
         {
             TotalBuffers = 100,
             FallbackToArrayPool = true

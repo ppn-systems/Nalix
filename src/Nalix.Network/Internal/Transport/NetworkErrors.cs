@@ -22,6 +22,12 @@ internal static class NetworkErrors
 
     public static readonly NetworkException MessageTooLarge = new CachedNetworkException("Frame size exceeds the wire header limit.");
 
+    public static readonly NetworkException UdpPayloadTooLarge = new CachedNetworkException("UDP payload too large. Use TCP for large data.");
+
+    public static readonly NetworkException UdpPartialSend = new CachedNetworkException("UDP partial send occurred.");
+
+    public static readonly NetworkException UdpSendFailed = new CachedNetworkException("UDP transmission failed.");
+
     public static readonly SocketException MessageSize = new CachedSocketException((int)SocketError.MessageSize);
 
     public static readonly SocketException OperationAborted = new CachedSocketException((int)SocketError.OperationAborted);

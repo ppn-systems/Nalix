@@ -177,6 +177,9 @@ public void RouteToUserShard(IConnection rawConnection, IBufferLease packet)
 }
 ```
 
+!!! tip "Full Implementation Guide"
+    For a complete, step-by-step example of implementing a `ShardProxy` and registering a custom router in the hosting builder, see the [Custom Packet Router Guide](../../guides/extensibility/custom-packet-router.md).
+
 ---
 
 ## 4. Error Handling & Backpressure

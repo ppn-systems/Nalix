@@ -3,8 +3,10 @@ using System.Net;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Time;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -17,8 +19,8 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        var options = CommandLineArgs.Parse(args);
-        
+        CommandLineArgs options = CommandLineArgs.Parse(args);
+
         if (options.ShowHelp)
         {
             options.PrintUsage();
@@ -38,10 +40,10 @@ internal class Program
 
         Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
 
-        var registry = new PacketRegistry(factory =>
+        PacketRegistry registry = new(factory =>
         {
-            factory.RegisterPacket<Control>();
-            factory.RegisterPacket<Handshake>();
+            _ = factory.RegisterPacket<Control>();
+            _ = factory.RegisterPacket<Handshake>();
         });
 
         try
@@ -57,6 +59,8 @@ internal class Program
                 case BenchmarkMode.Throughput:
                     await RunThroughputBenchmark(options, registry).ConfigureAwait(false);
                     break;
+                default:
+                    break;
             }
         }
         catch (Exception ex)
@@ -67,7 +71,10 @@ internal class Program
         }
 
         Console.WriteLine("\nBenchmark finished. Press any key to exit...");
-        if (!Console.IsInputRedirected) Console.ReadKey();
+        if (!Console.IsInputRedirected)
+        {
+            _ = Console.ReadKey();
+        }
     }
 
     private static void PrintHeader(CommandLineArgs options)
@@ -78,13 +85,15 @@ internal class Program
         Console.WriteLine("=====================================================");
         Console.ResetColor();
         Console.WriteLine($"Target   : {options.Host}:{options.Port}");
-        Console.WriteLine($"Mode     : {options.Mode.ToString().ToUpper()}");
+        Console.WriteLine($"Mode     : {options.Mode.ToString().ToUpper(System.Globalization.CultureInfo.CurrentCulture)}");
         Console.WriteLine($"Sessions : {options.Sessions}");
         Console.WriteLine($"Capacity : {options.Count} iterations/session");
-        
+
         if (options.Mode == BenchmarkMode.Throughput)
+        {
             Console.WriteLine($"Payload  : {options.PayloadSize} bytes");
-        
+        }
+
         Console.WriteLine($"Timeout  : {options.TimeoutMs}ms");
         Console.WriteLine("-----------------------------------------------------");
     }
@@ -93,21 +102,25 @@ internal class Program
 
     private static async Task RunPingBenchmark(CommandLineArgs options, IPacketRegistry registry)
     {
-        var sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
-        if (sessions == null) return;
+        TcpSession[]? sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
+        if (sessions == null)
+        {
+            return;
+        }
 
         try
         {
             if (options.Warmup > 0)
             {
-                Console.WriteLine($"[2/4] Warming up ({options.Warmup} iterations)...");
+                Console.WriteLine($"[2/4] Warming up ({options.Warmup} iterations per session)...");
                 await Parallel.ForEachAsync(sessions, async (session, ct) =>
                 {
                     for (int i = 0; i < options.Warmup; i++)
                     {
-                        try { await session.PingAsync(options.TimeoutMs, ct).ConfigureAwait(false); } catch { }
+                        try { _ = await session.PingAsync(options.TimeoutMs, ct).ConfigureAwait(false); } catch { }
                     }
                 }).ConfigureAwait(false);
+                Console.WriteLine("[OK] Warmup completed.");
             }
 
             Console.WriteLine("[3/4] Preparing controlled environment (GC.Collect)...");
@@ -115,35 +128,60 @@ internal class Program
             GC.WaitForPendingFinalizers();
 
             Console.WriteLine("[4/4] Executing benchmark...");
-            var samples = new double[options.Sessions * options.Count];
+            double[] samples = new double[options.Sessions * options.Count];
             int completed = 0;
             int failed = 0;
-            var swBench = Stopwatch.StartNew();
+            Stopwatch swBench = Stopwatch.StartNew();
 
             await Parallel.ForAsync(0, options.Sessions, async (i, ct) =>
             {
-                var session = sessions[i];
+                TcpSession session = sessions[i];
+                // Optimization: Reuse a single Control packet for all pings in this session loop
+                using Control ping = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING).Build();
+
                 for (int j = 0; j < options.Count; j++)
                 {
                     try
                     {
-                        double rtt = await session.PingAsync(options.TimeoutMs).ConfigureAwait(false);
+                        ushort seq = (ushort)(j + 1);
+                        ping.SequenceId = seq;
+                        ping.MonoTicks = Clock.MonoTicksNow();
+
+                        long startTicks = ping.MonoTicks;
+
+                        using Control pong = await session.RequestAsync<Control>(
+                            ping,
+                            options: RequestOptions.Default.WithTimeout(options.TimeoutMs),
+                            predicate: p => p.Type == ControlType.PONG && p.SequenceId == seq,
+                            ct: ct).ConfigureAwait(false);
+
+                        double rtt = Clock.MonoTicksToMilliseconds(Clock.MonoTicksNow() - startTicks);
+
                         int index = Interlocked.Increment(ref completed) - 1;
-                        if (index < samples.Length) samples[index] = rtt;
+                        if (index < samples.Length)
+                        {
+                            samples[index] = rtt;
+                        }
                     }
-                    catch { Interlocked.Increment(ref failed); }
+                    catch { _ = Interlocked.Increment(ref failed); }
 
                     if (completed % 10000 == 0 && completed > 0)
+                    {
                         Console.WriteLine($"      Progress: {completed}/{samples.Length} ({(double)completed / samples.Length:P0})");
+                    }
                 }
             }).ConfigureAwait(false);
 
+            await Task.Delay(100).ConfigureAwait(false); // Settle
             swBench.Stop();
             PrintPingResults(samples, completed, failed, swBench.Elapsed);
         }
         finally
         {
-            foreach (var s in sessions) s.Dispose();
+            foreach (TcpSession s in sessions)
+            {
+                s.Dispose();
+            }
         }
     }
 
@@ -152,9 +190,9 @@ internal class Program
         Console.WriteLine("[1/2] Executing Handshake Stress Test...");
         int completed = 0;
         int failed = 0;
-        var sw = Stopwatch.StartNew();
+        Stopwatch sw = Stopwatch.StartNew();
 
-        var transportOptions = new TransportOptions
+        TransportOptions transportOptions = new()
         {
             NoDelay = true,
             ConnectTimeoutMillis = options.TimeoutMs,
@@ -171,13 +209,15 @@ internal class Program
                     session = new TcpSession(transportOptions, registry);
                     await session.ConnectAsync(options.Host, options.Port, ct).ConfigureAwait(false);
                     await session.HandshakeAsync(ct).ConfigureAwait(false);
-                    Interlocked.Increment(ref completed);
+                    _ = Interlocked.Increment(ref completed);
                 }
-                catch { Interlocked.Increment(ref failed); }
+                catch { _ = Interlocked.Increment(ref failed); }
                 finally { session?.Dispose(); }
 
                 if (completed % 100 == 0 && completed > 0)
+                {
                     Console.WriteLine($"      Handshakes: {completed} (Failed: {failed})");
+                }
             }
         }).ConfigureAwait(false);
 
@@ -187,30 +227,33 @@ internal class Program
 
     private static async Task RunThroughputBenchmark(CommandLineArgs options, IPacketRegistry registry)
     {
-        var sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
-        if (sessions == null) return;
+        TcpSession[]? sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
+        if (sessions == null)
+        {
+            return;
+        }
 
         try
         {
             Console.WriteLine("[2/2] Pushing data...");
             int completed = 0;
             int failed = 0;
-            var payload = new byte[options.PayloadSize];
+            byte[] payload = new byte[options.PayloadSize];
             new Random().NextBytes(payload);
-            
-            var sw = Stopwatch.StartNew();
+
+            Stopwatch sw = Stopwatch.StartNew();
 
             await Parallel.ForAsync(0, options.Sessions, async (i, ct) =>
             {
-                var session = sessions[i];
+                TcpSession session = sessions[i];
                 for (int j = 0; j < options.Count; j++)
                 {
                     try
                     {
                         await session.SendAsync(payload, encrypt: false, ct).ConfigureAwait(false);
-                        Interlocked.Increment(ref completed);
+                        _ = Interlocked.Increment(ref completed);
                     }
-                    catch { Interlocked.Increment(ref failed); }
+                    catch { _ = Interlocked.Increment(ref failed); }
                 }
             }).ConfigureAwait(false);
 
@@ -219,7 +262,10 @@ internal class Program
         }
         finally
         {
-            foreach (var s in sessions) s.Dispose();
+            foreach (TcpSession s in sessions)
+            {
+                s.Dispose();
+            }
         }
     }
 
@@ -230,26 +276,29 @@ internal class Program
     private static async Task<TcpSession[]?> ConnectSessions(CommandLineArgs options, IPacketRegistry registry)
     {
         Console.WriteLine($"[1/4] Connecting {options.Sessions} sessions...");
-        var transportOptions = new TransportOptions 
-        { 
-            NoDelay = true, 
+        TransportOptions transportOptions = new()
+        {
+            NoDelay = true,
             ConnectTimeoutMillis = options.TimeoutMs,
             ServerPublicKey = options.PublicKey
         };
-        
-        var sessions = new TcpSession[options.Sessions];
-        var swTotal = Stopwatch.StartNew();
+
+        TcpSession[] sessions = new TcpSession[options.Sessions];
+        Stopwatch swTotal = Stopwatch.StartNew();
 
         try
         {
-            var connectTasks = new Task[options.Sessions];
+            Task[] connectTasks = new Task[options.Sessions];
             for (int i = 0; i < options.Sessions; i++)
             {
-                var session = new TcpSession(transportOptions, registry);
+                TcpSession session = new(transportOptions, registry);
                 sessions[i] = session;
                 connectTasks[i] = session.ConnectAsync(options.Host, options.Port);
 
-                if (i % 20 == 0 && i > 0) await Task.Delay(5).ConfigureAwait(false);
+                if (i % 20 == 0 && i > 0)
+                {
+                    await Task.Delay(5).ConfigureAwait(false);
+                }
             }
 
             await Task.WhenAll(connectTasks).ConfigureAwait(false);
@@ -261,14 +310,18 @@ internal class Program
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"[FAIL] Connection failed: {ex.Message}");
             Console.ResetColor();
-            foreach (var s in sessions) s?.Dispose();
+            foreach (TcpSession s in sessions)
+            {
+                s?.Dispose();
+            }
+
             return null;
         }
     }
 
     private static void PrintPingResults(double[] samples, int completed, int failed, TimeSpan duration)
     {
-        var validSamples = samples.Where(s => s > 0).OrderBy(s => s).ToList();
+        List<double> validSamples = [.. samples.Where(s => s > 0).OrderBy(s => s)];
         int count = validSamples.Count;
 
         if (count == 0) { Console.WriteLine("\n[ERROR] No valid samples collected."); return; }
@@ -352,7 +405,7 @@ internal class CommandLineArgs
 
     public static CommandLineArgs Parse(string[] args)
     {
-        var options = new CommandLineArgs();
+        CommandLineArgs options = new();
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i])
@@ -380,9 +433,10 @@ internal class CommandLineArgs
                         "ping" => BenchmarkMode.Ping,
                         "handshake" => BenchmarkMode.Handshake,
                         "throughput" => BenchmarkMode.Throughput,
-                        _ => throw new ArgumentException($"Unknown mode: {args[i]}")
+                        _ => BenchmarkMode.Ping
                     };
                     break;
+                case "--": break;
             }
         }
         return options;

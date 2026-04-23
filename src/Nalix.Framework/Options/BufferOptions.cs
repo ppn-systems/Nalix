@@ -19,7 +19,7 @@ namespace Nalix.Framework.Options;
 /// Configuration for buffer settings with validation and performance/security options.
 /// </summary>
 [IniComment("Buffer pool configuration — controls pool sizing, trimming, adaptive growth, and memory limits")]
-public sealed class BufferConfig : ConfigurationLoader
+public sealed class BufferOptions : ConfigurationLoader
 {
     #region Properties
     /// <summary>
@@ -27,7 +27,7 @@ public sealed class BufferConfig : ConfigurationLoader
     /// </summary>
     [IniComment("Total buffers to create across all pools (minimum 1)")]
     [Range(1, int.MaxValue, ErrorMessage = "TotalBuffers must be greater than 0.")]
-    public int TotalBuffers { get; set; } = 16384;
+    public int TotalBuffers { get; set; } = 32768;
 
     /// <summary>
     /// Enables memory trimming to periodically recover unused buffers.
@@ -123,7 +123,7 @@ public sealed class BufferConfig : ConfigurationLoader
     [IniComment("Semicolon-separated size,ratio pairs for pool allocation (e.g. 1024,0.25; 4096,0.15)\nSizes must be strictly increasing and ratios must sum to <= 1.0")]
     [Required(ErrorMessage = "BufferAllocations is required.")]
     [MinLength(1, ErrorMessage = "BufferAllocations cannot be empty.")]
-    public string BufferAllocations { get; set; } = "256,0.15; 512,0.10; 1024,0.10; 2048,0.10; 4096,0.10; 8192,0.10; 16384,0.35";
+    public string BufferAllocations { get; set; } = "256,0.15; 1024,0.15; 4096,0.30; 16384,0.30; 32768,0.10";
 
     /// <summary>
     /// Maximum memory in bytes that buffer pools can use. 0 means no limit.
@@ -162,7 +162,7 @@ public sealed class BufferConfig : ConfigurationLoader
     /// Initial internal capacity for the slab tracking dictionary.
     /// </summary>
     [IniComment("Initial capacity for internal slab tracking (power of 2)")]
-    public int InitialSlabTrackingCapacity { get; set; } = 8;
+    public int InitialSlabTrackingCapacity { get; set; } = 128;
 
     #endregion Properties
 
@@ -247,7 +247,7 @@ public sealed class BufferConfig : ConfigurationLoader
     {
         return string.IsNullOrWhiteSpace(bufferAllocationsString)
             ? throw new ArgumentException(
-                $"[{nameof(BufferConfig)}] The input string must not be blank.", nameof(bufferAllocationsString))
+                $"[{nameof(BufferOptions)}] The input string must not be blank.", nameof(bufferAllocationsString))
             : s_allocationPatternCache.GetOrAdd(bufferAllocationsString, key =>
             {
                 try
@@ -256,18 +256,18 @@ public sealed class BufferConfig : ConfigurationLoader
                     double totalAllocation = Enumerable.Sum(allocations, a => a.ratio);
                     return totalAllocation > 1.1
                         ? throw new ArgumentException(
-                            $"[{nameof(BufferConfig)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
+                            $"[{nameof(BufferOptions)}] Total allocation ratio ({totalAllocation:F2}) exceeds 1.0.")
                         : ((int, double)[])allocations;
                 }
                 catch (Exception ex) when (ex is FormatException or ArgumentException
                                                       or OverflowException or ArgumentOutOfRangeException)
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[SH.{nameof(BufferConfig)}:Internal] " +
+                                            .Error($"[SH.{nameof(BufferOptions)}:Internal] " +
                                                    $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
 
                     throw new ArgumentException(
-                        $"[{nameof(BufferConfig)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
+                        $"[{nameof(BufferOptions)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
                 }
             });
     }
@@ -285,17 +285,17 @@ public sealed class BufferConfig : ConfigurationLoader
 
             if (parts.Length != 2)
             {
-                throw new FormatException($"[{nameof(BufferConfig)}] Incorrectly formatted pair: '{pair}'.");
+                throw new FormatException($"[{nameof(BufferOptions)}] Incorrectly formatted pair: '{pair}'.");
             }
 
             if (!int.TryParse(parts[0].Trim(), out int allocationSize) || allocationSize <= 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] SIZE must be > 0.");
+                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferOptions)}] SIZE must be > 0.");
             }
 
             if (!double.TryParse(parts[1].Trim(), out double ratio) || ratio <= 0 || ratio > 1)
             {
-                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferConfig)}] Ratio must be (0,1].");
+                throw new ArgumentOutOfRangeException(nameof(bufferAllocationsString), $"[{nameof(BufferOptions)}] Ratio must be (0,1].");
             }
 
             list.Add((allocationSize, ratio));

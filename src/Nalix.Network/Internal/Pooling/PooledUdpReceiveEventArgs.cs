@@ -35,7 +35,7 @@ internal sealed class PooledUdpReceiveEventArgs : SocketAsyncEventArgs, IPoolabl
         int bufferSize = 1400;
         try
         {
-            bufferSize = ConfigurationManager.Instance.Get<NetworkSocketOptions>().MaxUdpDatagramSize;
+            bufferSize = ConfigurationManager.Instance.Get<ConnectionLimitOptions>().MaxUdpDatagramSize;
         }
         catch (Exception ex) when (
             ex is InvalidOperationException ||

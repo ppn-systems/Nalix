@@ -163,14 +163,14 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <exception cref="ArgumentNullException">Thrown when obj is null.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Return<T>(T obj) where T : IPoolable, new()
+    public void Return<T>(T obj) where T : IPoolable
     {
         if (EqualityComparer<T>.Default.Equals(obj, default))
         {
             throw new ArgumentNullException(nameof(obj));
         }
 
-        Type type = typeof(T);
+        Type type = obj.GetType();
 
         // Reset first so the next renter always sees a clean object.
         obj.ResetForPool();
@@ -394,7 +394,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <param name="objects">The objects to return to the pool.</param>
     /// <returns>The number of objects successfully returned to the pool.</returns>
     /// <exception cref="ArgumentNullException">Thrown when objects is null.</exception>
-    public int ReturnMultiple<T>(IEnumerable<T> objects) where T : IPoolable, new()
+    public int ReturnMultiple<T>(IEnumerable<T> objects) where T : IPoolable
     {
         ArgumentNullException.ThrowIfNull(objects);
 
@@ -447,10 +447,10 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     }
 
     /// <summary>
-    /// Creates a new type-specific pool adapter for more efficient operations with a specific type.
+    /// Creates a new type-specific pool for more efficient operations without runtime type checking.
     /// </summary>
     /// <typeparam name="T">The type of objects to manage in the pool.</typeparam>
-    /// <returns>A type-specific pool adapter.</returns>
+    /// <returns>A type-specific pool for <typeparamref name="T"/>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TypedObjectPool<T> CreateTypedPool<T>() where T : IPoolable, new() => new(this);
