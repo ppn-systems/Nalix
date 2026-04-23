@@ -39,10 +39,10 @@ public class PoolingOptions : ConfigurationLoader
     /// <summary>
     /// Number of <see cref="PacketContext{T}"/> instances to create at startup.
     /// </summary>
-    [IniComment("IPacketContext instances to warm up at startup (default 16)")]
+    [IniComment("IPacketContext instances to warm up at startup (default 32)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "IPacketContext.Preallocate must be between 0 and 1,000,000.")]
-    public int PacketContextPreallocate { get; set; } = 16;
+    public int PacketContextPreallocate { get; set; } = 32;
 
     #endregion Packet Context — reusable packet processing contexts
 
