@@ -77,7 +77,7 @@ A worker loop doesn't just process one packet and sleep. It attempts to "drain" 
 Developers can override the default connection-based sharding by wrapping `IPacketDispatch` in a custom router. This is useful for grouping related connections (e.g., all devices for a single User) into the same sequential worker loop.
 
 !!! example "Shard Wrapping"
-    See the [Custom Packet Router Guide](../../guides/extensibility/custom-packet-router.md) for a detailed implementation of a Shard Proxy and Custom Router.
+    See the [Custom Packet Router Guide](../../../guides/extensibility/custom-packet-router.md) for a detailed implementation of a Shard Proxy and Custom Router.
 
 ## Related APIs
 

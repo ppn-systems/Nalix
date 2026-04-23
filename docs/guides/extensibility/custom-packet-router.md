@@ -147,6 +147,6 @@ By passing the **Proxy Instance** to `HandlePacket`, the `DispatchChannel<T>` us
 
 ## Related APIs
 
-- [IPacketDispatch](../runtime/routing/packet-dispatch.md)
-- [Dispatch Options](../options/dispatch-options.md)
-- [IConnection](../../common/connection-contracts.md)
+- [IPacketDispatch](../../api/runtime/routing/packet-dispatch.md)
+- [Dispatch Options](../../api/runtime/options/dispatch-options.md)
+- [IConnection](../../api/common/connection-contracts.md)
