@@ -342,9 +342,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         return null;
     }
 
-    internal void ReturnEventArgsInternal(ConnectionEventArgs args)
+    internal bool ReturnEventArgsInternal(ConnectionEventArgs args)
     {
-        if (_argsPool == null) return;
+        if (_argsPool == null) return false;
 
         for (int i = 0; i < 8; i++)
         {
@@ -353,9 +353,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 long bit = 1L << i;
                 _argsPool[i].ResetForPool();
                 _ = Interlocked.And(ref _argsPoolMask, ~bit);
-                return;
+                return true;
             }
         }
+        return false;
     }
 
     /// <summary>
