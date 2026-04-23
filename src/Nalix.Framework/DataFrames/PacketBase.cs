@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
@@ -275,14 +275,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void OnRent() => Volatile.Write(ref _isRented, 1);
-
-    /// <summary>
-    /// Marks the current packet as rented, ensuring it will be returned to the pool upon disposal.
-    /// </summary>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [Obsolete("Use OnRent or let the pool manager handle it automatically.")]
-    public void MarkAsRented() => this.OnRent();
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

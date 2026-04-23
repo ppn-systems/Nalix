@@ -12,26 +12,37 @@ namespace Nalix.Framework.Tests.Memory;
 public sealed class ObjectPoolDiagnosticsTests
 {
     [Fact]
-    public void Get_PeakOutstanding_AlwaysTracked()
+    public void Get_PeakOutstanding_AlwaysTracked_WithDiagnostics()
     {
-        ObjectPoolManager manager = new();
+        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
+        bool previous = config.EnableDiagnostics;
+        config.EnableDiagnostics = true;
 
-        // Rent 3 items
-        TestPoolable item1 = manager.Get<TestPoolable>();
-        TestPoolable item2 = manager.Get<TestPoolable>();
-        _ = manager.Get<TestPoolable>();
+        try
+        {
+            ObjectPoolManager manager = new();
 
-        Assert.Equal(3L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
+            // Rent 3 items
+            TestPoolable item1 = manager.Get<TestPoolable>();
+            TestPoolable item2 = manager.Get<TestPoolable>();
+            _ = manager.Get<TestPoolable>();
 
-        // Rent 1 more to hit peak of 4
-        _ = manager.Get<TestPoolable>();
-        Assert.Equal(4L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
+            Assert.Equal(3L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
 
-        // Return 2, peak should still be 4
-        manager.Return(item1);
-        manager.Return(item2);
-        Assert.Equal(4L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
-        Assert.Equal(2L, manager.GetTypeInfo<TestPoolable>()["Outstanding"]);
+            // Rent 1 more to hit peak of 4
+            _ = manager.Get<TestPoolable>();
+            Assert.Equal(4L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
+
+            // Return 2, peak should still be 4
+            manager.Return(item1);
+            manager.Return(item2);
+            Assert.Equal(4L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
+            Assert.Equal(2L, manager.GetTypeInfo<TestPoolable>()["Outstanding"]);
+        }
+        finally
+        {
+            config.EnableDiagnostics = previous;
+        }
     }
 
     [Fact]

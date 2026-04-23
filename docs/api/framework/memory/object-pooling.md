@@ -28,7 +28,7 @@ flowchart LR
 - `src/Nalix.Common/Abstractions/IPoolable.cs`
 - `src/Nalix.Framework/Memory/Pools/ObjectPool.cs`
 - `src/Nalix.Framework/Memory/Objects/ObjectPoolManager.cs`
-- `src/Nalix.Framework/Memory/Objects/TypedObjectPoolAdapter.cs`
+- `src/Nalix.Framework/Memory/Objects/TypedObjectPool.cs`
 
 ## IPoolable Interface
 
@@ -54,9 +54,9 @@ public interface IPoolable
 ### Key Features
 
 - **Dynamic Creation**: Pools are created lazily for each type as needed.
-- **Typed Adapters**: Provides `TypedObjectPoolAdapter<T>` for high-performance, type-safe access.
-- **Health Monitoring**: Tracks cache hits, misses, outstanding counts, and **Peak Concurrent Usage**.
-- **Advanced Diagnostics**: Optional deep tracking for object lifetimes (avg/p95/max), suspicious long-lived objects, and GC leak detection.
+- **Typed Pools**: Provides `TypedObjectPool<T>` for high-performance, type-safe access.
+- **Health Monitoring**: Tracks cache hits, misses, and **Peak Concurrent Usage**.
+- **Advanced Diagnostics**: Optional deep tracking for object lifetimes (avg/p95/max), outstanding counts, suspicious long-lived objects, and GC leak detection.
 - **Trimming**: Supports scheduled or manual trimming to release objects back to the GC during low-load periods.
 
 ### Key API Members
@@ -69,13 +69,13 @@ public interface IPoolable
 | `PerformHealthCheck()` | Identifies "unhealthy" pools (those with consistently high miss rates or leaks). |
 | `GenerateReport()` | Produces a detailed text summary of all managed pools and their metrics. |
 
-## TypedObjectPoolAdapter<T>
+## TypedObjectPool<T>
 
-For performance-critical code, it is recommended to cache a `TypedObjectPoolAdapter<T>` rather than calling the manager directly.
+For performance-critical code, it is recommended to cache a `TypedObjectPool<T>` rather than calling the manager directly.
 
 ```csharp
 // Recommended performance pattern
-private readonly TypedObjectPoolAdapter<MyPacket> _pool = 
+private readonly TypedObjectPool<MyPacket> _pool = 
     ObjectPoolManager.Instance.GetTypedPool<MyPacket>();
 
 public void Process()
@@ -91,8 +91,8 @@ public void Process()
 The manager tracks several critical metrics to help tune pool capacities:
 
 - **Hit Rate**: The percentage of requests satisfied by the pool without creating a new object.
-- **Outstanding**: Number of objects currently held by application code.
-- **Peak Outstanding**: The high-water mark of concurrent objects active at any time. Useful for tuning `MaxCapacity`.
+- **Outstanding**: Number of objects currently held by application code (requires `EnableDiagnostics`).
+- **Peak Outstanding**: The high-water mark of concurrent objects active at any time (requires `EnableDiagnostics`).
 - **Consecutive Failures**: High number of cache misses in sequence, suggesting the pool capacity is too low for the current load.
 
 ## Advanced Diagnostics

@@ -231,22 +231,22 @@ public sealed class ObjectPoolManager : IReportable
         metrics.LastAccessType = "Get";
         _ = Interlocked.Increment(ref metrics.TotalGets);
 
-        // Track outstanding objects so we can detect leaks (Gets - Returns)
-        long outstanding = Interlocked.Increment(ref metrics.Outstanding);
-
-        // Update peak outstanding (Always-On)
-        long currentPeak;
-        while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
-        {
-            if (Interlocked.CompareExchange(ref metrics.PeakOutstanding, outstanding, currentPeak) == currentPeak)
-            {
-                break;
-            }
-        }
-
         // Diagnostics Path
         if (_config.EnableDiagnostics)
         {
+            // Track outstanding objects so we can detect leaks (Gets - Returns)
+            long outstanding = Interlocked.Increment(ref metrics.Outstanding);
+
+            // Update peak outstanding
+            long currentPeak;
+            while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
+            {
+                if (Interlocked.CompareExchange(ref metrics.PeakOutstanding, outstanding, currentPeak) == currentPeak)
+                {
+                    break;
+                }
+            }
+
             PoolSentinel sentinel = new(result, _config.CaptureStackTraces);
 
             // CWT keeps sentinel alive as long as 'result' is alive
@@ -254,6 +254,11 @@ public sealed class ObjectPoolManager : IReportable
 
             // Bag allows us to iterate (using weak ref to not anchor the sentinel/object)
             _sentinelTracker.Add(new WeakReference<PoolSentinel>(sentinel));
+        }
+
+        if (result is IPoolRentable rentable)
+        {
+            rentable.OnRent();
         }
 
         return result;
@@ -264,7 +269,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="obj">The object to return.</param>
     /// <exception cref="ArgumentNullException"><paramref name="obj"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return<T>(T obj) where T : IPoolable, new()
+    public void Return<T>(T obj) where T : IPoolable
     {
         if (EqualityComparer<T>.Default.Equals(obj, default))
         {
@@ -274,7 +279,7 @@ public sealed class ObjectPoolManager : IReportable
         _ = Interlocked.Increment(ref _totalReturnOperations);
         ObjectPool pool = this.GetOrCreatePool<T>();
 
-        Type type = typeof(T);
+        Type type = obj.GetType();
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
         // Diagnostics Path
@@ -314,24 +319,28 @@ public sealed class ObjectPoolManager : IReportable
         metrics.LastAccessType = "Return";
         _ = Interlocked.Increment(ref metrics.TotalReturns);
 
-        // Decrement outstanding; ensure it doesn't go negative
-        long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
-        if (outstandingAfter < 0)
+        // Diagnostics Path
+        if (_config.EnableDiagnostics)
         {
-            // Log and reset to zero to avoid negative counters due to bugs
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+            // Decrement outstanding; ensure it doesn't go negative
+            long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
+            if (outstandingAfter < 0)
+            {
+                // Log and reset to zero to avoid negative counters due to bugs
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Warn($"[SH.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
 
-            _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
+                _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
+            }
         }
     }
 
     /// <summary>Gets or creates a type-specific pool adapter for <typeparamref name="T"/>.</summary>
     /// <typeparam name="T">The poolable type.</typeparam>
-    public TypedObjectPoolAdapter<T> GetTypedPool<T>() where T : IPoolable, new()
+    public TypedObjectPool<T> GetTypedPool<T>() where T : IPoolable, new()
     {
         ObjectPool pool = this.GetOrCreatePool<T>();
-        return new TypedObjectPoolAdapter<T>(pool, this);
+        return new TypedObjectPool<T>(pool, this);
     }
 
     /// <summary>Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.</summary>
@@ -426,17 +435,42 @@ public sealed class ObjectPoolManager : IReportable
         Type type = typeof(T);
         Dictionary<string, object> info = _poolDict.TryGetValue(type, out ObjectPool? pool)
             ? pool.GetTypeInfo<T>()
-            : new Dictionary<string, object>
+            : new Dictionary<string, object>(16, StringComparer.Ordinal)
             {
                 ["TypeName"] = type.Name,
                 ["AvailableCount"] = 0,
                 ["MaxCapacity"] = this.DefaultMaxPoolSize,
-                ["IsActive"] = false
+                ["IsActive"] = false,
+                ["TotalGets"] = 0L,
+                ["TotalReturns"] = 0L,
+                ["TotalCreated"] = 0L,
+                ["CacheHitRate"] = 0.0,
+                ["CacheMisses"] = 0L,
+                ["Outstanding"] = 0L,
+                ["PeakOutstanding"] = 0L,
+                ["LastAccessUtc"] = DateTime.MinValue,
+                ["LastAccessType"] = "None",
+                ["Status"] = "OK"
             };
+
+        // Ensure all keys exist
+        _ = info.TryAdd("TotalGets", 0L);
+        _ = info.TryAdd("TotalReturns", 0L);
+        _ = info.TryAdd("TotalCreated", 0L);
+        _ = info.TryAdd("CacheHitRate", 0.0);
+        _ = info.TryAdd("CacheMisses", 0L);
+        _ = info.TryAdd("Outstanding", 0L);
+        _ = info.TryAdd("PeakOutstanding", 0L);
+        _ = info.TryAdd("LastAccessUtc", DateTime.MinValue);
+        _ = info.TryAdd("LastAccessType", "None");
+        _ = info.TryAdd("Status", "OK");
 
         // Add metrics if available
         if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
         {
+            info["TotalGets"] = metrics.TotalGets;
+            info["TotalReturns"] = metrics.TotalReturns;
+            info["TotalCreated"] = metrics.TotalCreated;
             info["CacheHitRate"] = metrics.TotalGets > 0
                 ? (metrics.CacheHits / (double)metrics.TotalGets * 100.0)
                 : 0.0;
@@ -445,6 +479,7 @@ public sealed class ObjectPoolManager : IReportable
             info["LastAccessType"] = metrics.LastAccessType ?? "None";
             info["Outstanding"] = metrics.Outstanding;
             info["PeakOutstanding"] = metrics.PeakOutstanding;
+            info["Status"] = metrics.ConsecutiveFailures > 0 ? "Unhealthy" : "OK";
 
             if (_config.EnableDiagnostics)
             {
@@ -696,7 +731,7 @@ public sealed class ObjectPoolManager : IReportable
 
         // Pool Details
         _ = sb.AppendLine("==============================================================================================");
-        _ = sb.AppendLine("s_pool Details:");
+        _ = sb.AppendLine("Pool Details:");
         _ = sb.AppendLine("==============================================================================================");
         _ = sb.AppendLine("TYPE                     | Available | Max Cap | Gets    | Hits    | Misses  | Util% | Hit%    | Status");
         _ = sb.AppendLine("------------------------------------------------------------------------------------------------------");
@@ -812,6 +847,8 @@ public sealed class ObjectPoolManager : IReportable
             ["TotalCacheMisses"] = this.TotalCacheMisses,
             ["TotalCreated"] = Interlocked.Read(ref _totalCreated),
             ["TotalDisposed"] = Interlocked.Read(ref _totalDisposed),
+            ["TotalLeaked"] = PoolSentinel.TotalLeaked,
+            ["UptimeMs"] = this.Uptime.TotalMilliseconds,
             ["CacheHitRate"] = this.CacheHitRate,
             ["Throughput"] = this.Uptime.TotalSeconds > 0 ? this.TotalGetOperations / this.Uptime.TotalSeconds : 0,
             ["CreationRate"] = this.Uptime.TotalSeconds > 0 ? Interlocked.Read(ref _totalCreated) / this.Uptime.TotalSeconds : 0,
@@ -887,7 +924,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T"></typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
+    private ObjectPool GetOrCreatePool<T>() where T : IPoolable
     {
         Type type = typeof(T);
 
