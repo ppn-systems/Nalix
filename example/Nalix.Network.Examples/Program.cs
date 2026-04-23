@@ -3,12 +3,13 @@
 
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
+using Nalix.Logging;
 using Nalix.Logging.Options;
+using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
@@ -33,8 +34,7 @@ internal class Program
         // Create one logger instance and let the hosting package register it into the shared runtime.
         ConnectionHub hub = new();
         BufferPoolManager buffer = new();
-        //ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
-        ILogger? logger = null;
+        ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
 
         using NetworkApplication host = NetworkApplication.CreateBuilder()
             .ConfigureConnectionHub(hub)
@@ -65,8 +65,6 @@ internal class Program
             {
                 options.MaxPerConnectionQueue = 0;
             })
-            // Handshake is a built-in frame that lives in Nalix.Framework, so register that assembly explicitly.
-            .AddPacket<Handshake>()
             .AddHandler<PacketCommandHandler>()
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .ConfigureDispatch(options =>

@@ -673,7 +673,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         state.HardBlockedUntilSw = now + this.TO_TICKS(_options.HardLockoutSeconds);
         state.SoftViolations = 0;
- 
+
         int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
         {
