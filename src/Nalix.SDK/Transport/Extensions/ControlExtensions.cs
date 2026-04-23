@@ -108,7 +108,7 @@ public static class ControlExtensions
         ControlType type,
         bool reliable = true)
     {
-        Control c = new();
+        Control c = Control.Create();
         // Initialize already stamps MonoTicks + Timestamp internally.
         c.Initialize(opCode, type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.NONE);
         return new ControlBuilder(c);

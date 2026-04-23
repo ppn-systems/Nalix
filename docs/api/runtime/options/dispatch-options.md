@@ -13,6 +13,9 @@
 | `MaxPerConnectionQueue` | Max queued items for one connection. `0` means unlimited (not recommended). | `4096` |
 | `DropPolicy` | What to do when the queue is full. | `DropNewest` |
 | `BlockTimeout` | Wait budget when `DropPolicy` is `Block`. | `1000 ms` |
+| `BucketCountMultiplier` | Multiplier for internal bucket count based on CPU count. | `64` |
+| `MinBucketCount` | Minimum internal bucket count. | `256` |
+| `MaxBucketCount` | Maximum internal bucket count. | `16384` |
 
 ## How to think about it
 

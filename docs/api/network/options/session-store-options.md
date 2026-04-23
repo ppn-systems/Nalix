@@ -33,6 +33,8 @@ It is consumed by session-store implementations rather than packet dispatch or m
 | Property | Type | Default | Purpose |
 |---|---|---:|---|
 | `SessionTtl` | `TimeSpan` | `00:30:00` | Expiration window for inactive resumable sessions. |
+| `AutoSaveOnUnregister` | `bool` | `true` | Automatically persist sessions when a connection is unregistered. |
+| `MinAttributesForPersistence` | `int` | `4` | Min attribute count required to persist a session (prevents DDoS on empty sessions). |
 
 ## Usage Notes
 

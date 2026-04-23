@@ -22,11 +22,11 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
     [GlobalSetup]
     public void Setup()
     {
-        _source = new byte[PayloadBytes];
+        _source = new byte[this.PayloadBytes];
         System.Random.Shared.NextBytes(_source);
 
         // Wire BufferLease.ByteArrayPool → managed slab pool so the return path is exercised.
-        _manager = new BufferPoolManager(new BufferConfig
+        _manager = new BufferPoolManager(new BufferOptions
         {
             EnableMemoryTrimming = false,
             EnableAnalytics = false,
@@ -43,7 +43,7 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
     [Benchmark(Baseline = true)]
     public int RentCommitAndDispose()
     {
-        using BufferLease lease = BufferLease.Rent(PayloadBytes);
+        using BufferLease lease = BufferLease.Rent(this.PayloadBytes);
         _source.AsSpan().CopyTo(lease.SpanFull);
         lease.CommitLength(_source.Length);
         return lease.Length;
@@ -61,9 +61,9 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
     [Benchmark]
     public int RentRetainDispose()
     {
-        using BufferLease lease = BufferLease.Rent(PayloadBytes);
+        using BufferLease lease = BufferLease.Rent(this.PayloadBytes);
         lease.Retain();          // refCount = 2
-        lease.CommitLength(PayloadBytes);
+        lease.CommitLength(this.PayloadBytes);
         lease.Dispose();         // refCount = 1 (no return yet)
         return lease.Length;     // still valid here
         // Outer using: refCount → 0 → Return()
@@ -73,7 +73,7 @@ public class BufferLeaseBenchmarks : NalixBenchmarkBase
     [Benchmark]
     public byte[] ManagerRentAndReturn()
     {
-        byte[] buf = _manager.Rent(PayloadBytes);
+        byte[] buf = _manager.Rent(this.PayloadBytes);
         _manager.Return(buf);
         return buf;
     }

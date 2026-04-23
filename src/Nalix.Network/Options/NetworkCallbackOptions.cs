@@ -41,13 +41,13 @@ public sealed class NetworkCallbackOptions : ConfigurationLoader
     /// When a connection sends packets faster than the protocol handler can
     /// consume them the excess packets are dropped at the receive loop and a
     /// warning is logged. Legitimate clients rarely have more than 1–2 packets
-    /// in-flight simultaneously; the default of <c>8</c> gives generous
+    /// in-flight simultaneously; the default of <c>16</c> gives generous
     /// headroom while blocking flood attacks.
     /// </para>
     /// </summary>
-    [IniComment("Max packets queued per connection before dropping (Layer 1, default 8)")]
+    [IniComment("Max packets queued per connection before dropping (Layer 1, default 16)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxPerConnectionPendingPackets must be between 1 and 1024.")]
-    public int MaxPerConnectionPendingPackets { get; set; } = 8;
+    public int MaxPerConnectionPendingPackets { get; set; } = 16;
 
     /// <summary>
     /// Maximum number of concurrently open fragmented streams per connection.

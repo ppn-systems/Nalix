@@ -247,7 +247,8 @@ public sealed class PacketRegistryTests : IDisposable
         byte[] bytes = original.Serialize();
         Control destination = new();
 
-        Control result = _catalog.Deserialize(bytes, ref destination);
+        IPacket packet = _catalog.Deserialize(bytes);
+        Control result = Assert.IsType<Control>(packet);
 
         Assert.Equal(original.OpCode, result.OpCode);
         Assert.Equal(original.MagicNumber, result.MagicNumber);
@@ -262,7 +263,7 @@ public sealed class PacketRegistryTests : IDisposable
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
 
         Control destination = new();
-        bool ok = _catalog.TryDeserialize(buf, ref destination);
+        bool ok = _catalog.TryDeserialize(buf, out IPacket? packet);
 
         Assert.False(ok);
     }

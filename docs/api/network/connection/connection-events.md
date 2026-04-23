@@ -54,7 +54,8 @@ Nalix separates callbacks into two distinct lanes to maintain system stability u
 
 ### 2. Zero-Allocation Pooling
 Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recyclables. 
-- They are rented from the `ObjectPoolManager` before being sent to the `ThreadPool`.
+- **Two-Level Pooling**: `ConnectionEventArgs` are first attempted to be returned to a high-speed **local pool** on the `Connection` instance itself to minimize global lock contention. If the local pool is full, they fallback to the `ObjectPoolManager`.
+- They are rented before being sent to the `ThreadPool`.
 - They are strictly returned to the pool in a `finally` block after the user handler completes (or if the callback is throttled/dropped).
 
 !!! warning "Handler Safety"

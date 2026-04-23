@@ -114,17 +114,14 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         }
 
         // Local pool priority
-        if (this.Connection is Connection owner)
+        if (this.Connection is Connection owner && owner.ReturnEventArgsInternal(this))
         {
-            owner.ReturnEventArgsInternal(this);
             return;
         }
 
         if (!_poolManaged)
         {
-            _lease?.Dispose();
-            _lease = null;
-            this.Connection = null;
+            this.ResetForPool();
             return;
         }
 

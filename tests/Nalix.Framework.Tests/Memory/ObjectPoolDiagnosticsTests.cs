@@ -21,24 +21,24 @@ public sealed class ObjectPoolDiagnosticsTests
         TestPoolable item2 = manager.Get<TestPoolable>();
         _ = manager.Get<TestPoolable>();
 
-        Assert.Equal(3L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
+        Assert.Equal(3L, (long)manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
 
         // Rent 1 more to hit peak of 4
         _ = manager.Get<TestPoolable>();
-        Assert.Equal(4L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
+        Assert.Equal(4L, (long)manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
 
         // Return 2, peak should still be 4
         manager.Return(item1);
         manager.Return(item2);
-        Assert.Equal(4L, manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
-        Assert.Equal(2L, manager.GetTypeInfo<TestPoolable>()["Outstanding"]);
+        Assert.Equal(4L, (long)manager.GetTypeInfo<TestPoolable>()["PeakOutstanding"]);
+        Assert.Equal(2L, (long)manager.GetTypeInfo<TestPoolable>()["Outstanding"]);
     }
 
     [Fact]
     public void GenerateReport_WithDiagnostics_IncludesLifetimeMetrics()
     {
         // Enable diagnostics
-        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         config.EnableDiagnostics = true;
 
         try
@@ -65,7 +65,7 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void GenerateReport_SuspiciousObjects_Detected()
     {
-        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         config.EnableDiagnostics = true;
         config.SuspiciousThresholdSeconds = 0; // Trigger immediately for test
 
@@ -92,7 +92,7 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void Finalizer_LeakDetection_IncrementsCount()
     {
-        ObjectPoolConfig config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         config.EnableDiagnostics = true;
         config.EnableLeakDetection = true;
 

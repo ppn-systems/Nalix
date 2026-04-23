@@ -435,8 +435,8 @@ public sealed class PacketDispatchChannel
     private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
         // 1. Acquire pooled packet via registry (zero alloc)
-        // If TryDeserializePooled fails, it has already returned any partially-deserialized pooled objects.
-        if (!_catalog.TryDeserializePooled(lease.Span, out IPacket? packet) || packet is null)
+        // If TryDeserialize fails, the packet is already handled.
+        if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
         {
             connection.IncrementErrorCount();
             lease.Dispose();
@@ -451,7 +451,11 @@ public sealed class PacketDispatchChannel
             // 3. Fast-path: handler completed synchronously
             if (pending.IsCompletedSuccessfully)
             {
-                _catalog.ReturnPacket(packet);
+                if (packet is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+
                 lease.Dispose();
                 return ValueTask.CompletedTask;
             }
@@ -470,7 +474,11 @@ public sealed class PacketDispatchChannel
         }
 
         // 5. Cleanup for synchronous errors/cancellation
-        _catalog.ReturnPacket(packet);
+        if (packet is IDisposable disposableSync)
+        {
+            disposableSync.Dispose();
+        }
+
         lease.Dispose();
         return ValueTask.CompletedTask;
     }
@@ -495,7 +503,11 @@ public sealed class PacketDispatchChannel
         finally
         {
             // Guaranteed release for async path
-            owner._catalog.ReturnPacket(packet);
+            if (packet is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
             lease.Dispose();
         }
     }

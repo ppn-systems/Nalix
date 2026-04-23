@@ -19,4 +19,13 @@ public sealed class SecurityOptions : ConfigurationLoader
     [IniComment("Iteration count for PBKDF2 hashing (default 310,000)")]
     [System.ComponentModel.DataAnnotations.Range(1000, 10_000_000)]
     public int Pbkdf2Iterations { get; set; } = 310_000;
+
+    /// <summary>
+    /// Validates the configuration options.
+    /// </summary>
+    public void Validate()
+    {
+        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
+        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+    }
 }

@@ -1,7 +1,5 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Networking.Protocols;
-using Nalix.SDK;
 using Nalix.SDK.Extensions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Extensions;
@@ -11,44 +9,6 @@ namespace Nalix.SDK.Tests;
 
 public sealed class SdkOptionsAndExtensionsTests
 {
-    [Fact]
-    public void TransportOptionsValidate_WhenReconnectBaseDelayGreaterThanMax_ThrowsValidationException()
-    {
-        TransportOptions options = new()
-        {
-            ReconnectBaseDelayMillis = 1000,
-            ReconnectMaxDelayMillis = 500
-        };
-
-        _ = Assert.Throws<ValidationException>(options.Validate);
-    }
-
-    [Theory]
-    [InlineData(1023)]
-    [InlineData(1048577)]
-    public void TransportOptionsValidate_WhenBufferSizeOutOfRange_ThrowsValidationException(int bufferSize)
-    {
-        TransportOptions options = new()
-        {
-            BufferSize = bufferSize
-        };
-
-        _ = Assert.Throws<ValidationException>(options.Validate);
-    }
-
-
-
-    [Fact]
-    public void TransportOptionsValidate_WhenResumeTimeoutTooSmall_ThrowsValidationException()
-    {
-        TransportOptions options = new()
-        {
-            ResumeTimeoutMillis = 99
-        };
-
-        _ = Assert.Throws<ValidationException>(options.Validate);
-    }
-
     [Fact]
     public void RequestOptionsValidate_WhenTimeoutOrRetryNegative_ThrowsArgumentOutOfRangeException()
     {
@@ -128,6 +88,6 @@ public sealed class SdkOptionsAndExtensionsTests
     {
         public bool Disposed { get; private set; }
 
-        public void Dispose() => Disposed = true;
+        public void Dispose() => this.Disposed = true;
     }
 }

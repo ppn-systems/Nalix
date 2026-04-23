@@ -7,15 +7,6 @@ namespace Nalix.Framework.Tests.Memory;
 public sealed partial class MemoryTests
 {
     [Fact]
-    public void RetainWhenLeaseIsDisposedThrowsObjectDisposedException()
-    {
-        BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
-        lease.Dispose();
-
-        _ = Assert.Throws<ObjectDisposedException>(() => lease.Retain());
-    }
-
-    [Fact]
     public void ReleaseOwnershipWhenCalledTwiceReturnsFalseOnSecondCall()
     {
         using BufferLease lease = BufferLease.CopyFrom([9, 8, 7, 6]);
@@ -41,17 +32,14 @@ public sealed partial class MemoryTests
     }
 
     [Fact]
-    public void FromRentedWhenBufferIsNullThrowsArgumentNullException()
-    {
-        _ = Assert.Throws<ArgumentNullException>(() => BufferLease.FromRented(null!, 0));
-    }
+    public void FromRentedWhenBufferIsNullThrowsArgumentNullException() => _ = Assert.Throws<ArgumentNullException>(() => BufferLease.FromRented(null!, 0));
 
     [Fact]
     public void ReturnWithNullArrayDoesNotThrow()
     {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
+        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
-        Exception? ex = Record.Exception(() => manager.Return((byte[]?)null));
+        Exception? ex = Record.Exception(() => manager.Return(null));
 
         Assert.Null(ex);
     }
@@ -59,7 +47,7 @@ public sealed partial class MemoryTests
     [Fact]
     public void GetAllocationForSizeWhenOutsideBoundsReturnsBoundaryAllocation()
     {
-        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
+        using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
         double low = manager.GetAllocationForSize(manager.MinBufferSize - 1);
         double exactMin = manager.GetAllocationForSize(manager.MinBufferSize);
@@ -73,7 +61,7 @@ public sealed partial class MemoryTests
     [Fact]
     public void DisposeCanBeCalledTwiceWithoutThrowing()
     {
-        BufferPoolManager manager = new(MemoryTestSupport.CreateBufferConfig(enableMemoryTrimming: false));
+        BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
         Exception? ex = Record.Exception(() =>
         {

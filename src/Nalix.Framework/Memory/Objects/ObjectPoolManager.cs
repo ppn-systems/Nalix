@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Pools;
@@ -83,7 +84,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <summary>
     /// Configuration for object pool diagnostics.
     /// </summary>
-    private readonly ObjectPoolConfig _config;
+    private readonly ObjectPoolOptions _config;
 
     /// <summary>
     /// Tracks active sentinels for lifetime and leak detection.
@@ -105,6 +106,8 @@ public sealed class ObjectPoolManager : IReportable
     internal long _totalReturnOperations;
     internal long _totalCacheMisses;
     internal long _totalCacheHits;
+    internal long _totalCreated;
+    internal long _totalDisposed;
     internal DateTime _startTime = DateTime.UtcNow;
     internal int _peakPoolCount;
 
@@ -187,7 +190,7 @@ public sealed class ObjectPoolManager : IReportable
     public ObjectPoolManager()
     {
         _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
-        _config = ConfigurationManager.Instance.Get<ObjectPoolConfig>();
+        _config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
         _config.Validate();
     }
 
@@ -220,6 +223,7 @@ public sealed class ObjectPoolManager : IReportable
             // Miss: create new instance rather than calling pool.Get again
             result = new T();
             _ = Interlocked.Increment(ref _totalCacheMisses);
+            _ = Interlocked.Increment(ref _totalCreated);
             _ = Interlocked.Increment(ref metrics.CacheMisses);
             _ = Interlocked.Increment(ref metrics.TotalCreated);
         }
@@ -231,7 +235,7 @@ public sealed class ObjectPoolManager : IReportable
         // Track outstanding objects so we can detect leaks (Gets - Returns)
         long outstanding = Interlocked.Increment(ref metrics.Outstanding);
 
-        // Update peak outstanding (Always-On)
+        // Update peak outstanding
         long currentPeak;
         while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
         {
@@ -253,6 +257,11 @@ public sealed class ObjectPoolManager : IReportable
             _sentinelTracker.Add(new WeakReference<PoolSentinel>(sentinel));
         }
 
+        if (result is IPoolRentable rentable)
+        {
+            rentable.OnRent();
+        }
+
         return result;
     }
 
@@ -261,7 +270,7 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="obj">The object to return.</param>
     /// <exception cref="ArgumentNullException"><paramref name="obj"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Return<T>(T obj) where T : IPoolable, new()
+    public void Return<T>(T obj) where T : IPoolable
     {
         if (EqualityComparer<T>.Default.Equals(obj, default))
         {
@@ -271,7 +280,7 @@ public sealed class ObjectPoolManager : IReportable
         _ = Interlocked.Increment(ref _totalReturnOperations);
         ObjectPool pool = this.GetOrCreatePool<T>();
 
-        Type type = typeof(T);
+        Type type = obj.GetType();
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
         // Diagnostics Path
@@ -325,10 +334,10 @@ public sealed class ObjectPoolManager : IReportable
 
     /// <summary>Gets or creates a type-specific pool adapter for <typeparamref name="T"/>.</summary>
     /// <typeparam name="T">The poolable type.</typeparam>
-    public TypedObjectPoolAdapter<T> GetTypedPool<T>() where T : IPoolable, new()
+    public TypedObjectPool<T> GetTypedPool<T>() where T : IPoolable, new()
     {
         ObjectPool pool = this.GetOrCreatePool<T>();
-        return new TypedObjectPoolAdapter<T>(pool, this);
+        return new TypedObjectPool<T>(pool, this);
     }
 
     /// <summary>Creates and adds multiple new instances of <typeparamref name="T"/> to the pool.</summary>
@@ -347,6 +356,7 @@ public sealed class ObjectPoolManager : IReportable
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
         int allocated = pool.Prealloc<T>(count);
+        _ = Interlocked.Add(ref _totalCreated, allocated);
         _ = Interlocked.Add(ref metrics.TotalCreated, allocated);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -422,17 +432,42 @@ public sealed class ObjectPoolManager : IReportable
         Type type = typeof(T);
         Dictionary<string, object> info = _poolDict.TryGetValue(type, out ObjectPool? pool)
             ? pool.GetTypeInfo<T>()
-            : new Dictionary<string, object>
+            : new Dictionary<string, object>(16, StringComparer.Ordinal)
             {
                 ["TypeName"] = type.Name,
                 ["AvailableCount"] = 0,
                 ["MaxCapacity"] = this.DefaultMaxPoolSize,
-                ["IsActive"] = false
+                ["IsActive"] = false,
+                ["TotalGets"] = 0L,
+                ["TotalReturns"] = 0L,
+                ["TotalCreated"] = 0L,
+                ["CacheHitRate"] = 0.0,
+                ["CacheMisses"] = 0L,
+                ["Outstanding"] = 0L,
+                ["PeakOutstanding"] = 0L,
+                ["LastAccessUtc"] = DateTime.MinValue,
+                ["LastAccessType"] = "None",
+                ["Status"] = "OK"
             };
+
+        // Ensure all keys exist
+        _ = info.TryAdd("TotalGets", 0L);
+        _ = info.TryAdd("TotalReturns", 0L);
+        _ = info.TryAdd("TotalCreated", 0L);
+        _ = info.TryAdd("CacheHitRate", 0.0);
+        _ = info.TryAdd("CacheMisses", 0L);
+        _ = info.TryAdd("Outstanding", 0L);
+        _ = info.TryAdd("PeakOutstanding", 0L);
+        _ = info.TryAdd("LastAccessUtc", DateTime.MinValue);
+        _ = info.TryAdd("LastAccessType", "None");
+        _ = info.TryAdd("Status", "OK");
 
         // Add metrics if available
         if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
         {
+            info["TotalGets"] = metrics.TotalGets;
+            info["TotalReturns"] = metrics.TotalReturns;
+            info["TotalCreated"] = metrics.TotalCreated;
             info["CacheHitRate"] = metrics.TotalGets > 0
                 ? (metrics.CacheHits / (double)metrics.TotalGets * 100.0)
                 : 0.0;
@@ -441,6 +476,7 @@ public sealed class ObjectPoolManager : IReportable
             info["LastAccessType"] = metrics.LastAccessType ?? "None";
             info["Outstanding"] = metrics.Outstanding;
             info["PeakOutstanding"] = metrics.PeakOutstanding;
+            info["Status"] = metrics.ConsecutiveFailures > 0 ? "Unhealthy" : "OK";
 
             if (_config.EnableDiagnostics)
             {
@@ -484,6 +520,7 @@ public sealed class ObjectPoolManager : IReportable
         if (_poolDict.TryGetValue(type, out ObjectPool? pool))
         {
             int removed = pool.ClearType<T>();
+            _ = Interlocked.Add(ref _totalDisposed, removed);
             if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
             {
                 _ = Interlocked.Add(ref metrics.TotalDisposed, removed);
@@ -502,6 +539,8 @@ public sealed class ObjectPoolManager : IReportable
         {
             totalRemoved += pool.Clear();
         }
+
+        _ = Interlocked.Add(ref _totalDisposed, totalRemoved);
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                 .Debug($"[SH.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
@@ -655,6 +694,13 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Return Operations: {this.TotalReturnOperations:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Net Objects            : {this.TotalGetOperations - this.TotalReturnOperations:N0}");
 
+        double uptimeSec = this.Uptime.TotalSeconds;
+        if (uptimeSec > 0)
+        {
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Throughput             : {this.TotalGetOperations / uptimeSec:F1} ops/s");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Creation Rate          : {Interlocked.Read(ref _totalCreated) / uptimeSec:F1} objects/s");
+        }
+
         if (_config.EnableDiagnostics && _config.EnableLeakDetection)
         {
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GC Leak Detected       : {PoolSentinel.TotalLeaked:N0} objects");
@@ -680,12 +726,17 @@ public sealed class ObjectPoolManager : IReportable
         }
         _ = sb.AppendLine();
 
+        // Configuration
+        _ = sb.AppendLine("Configuration:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size: {this.DefaultMaxPoolSize}");
+        _ = sb.AppendLine();
+
         // Pool Details
-        _ = sb.AppendLine("==============================================================================================");
-        _ = sb.AppendLine("s_pool Details:");
-        _ = sb.AppendLine("==============================================================================================");
-        _ = sb.AppendLine("TYPE                     | Available | Max Cap | Gets    | Hits    | Misses  | Hit%    | Status");
-        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("==========================================================================================================");
+        _ = sb.AppendLine("Object Details (Dashboard):");
+        _ = sb.AppendLine("==========================================================================================================");
+        _ = sb.AppendLine("TYPE                         | STORAGE (A/M)     | USAGE (O/P)       | TRAFFIC (G/R)     | HIT%   | STATUS");
+        _ = sb.AppendLine("-----------------------------+-------------------+-------------------+-------------------+--------+-------");
 
         // Fix: create sortable list from dictionary
         List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
@@ -696,24 +747,22 @@ public sealed class ObjectPoolManager : IReportable
             Type type = kvp.Key;
             Dictionary<string, object> typeInfo = kvp.Value.GetTypeInfoByType(kvp.Key);
 
-            string typeName = type.Name.Length > 24
-                ? $"{type.Name.AsSpan(0, 21)}..."
-                : type.Name.PadRight(24);
+            string typeName = ReportExtensions.FormatTypeName(type.Name, 28);
 
             int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"], CultureInfo.InvariantCulture);
             int available = Convert.ToInt32(typeInfo["AvailableCount"], CultureInfo.InvariantCulture);
 
-            long gets = 0, hits = 0, misses = 0, peak = 0;
+            long gets = 0, returns = 0, peak = 0, active = 0;
             double hitPercent = 0.0;
             string status = "OK";
 
             if (_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
             {
                 gets = metrics.TotalGets;
-                hits = metrics.CacheHits;
-                misses = metrics.CacheMisses;
+                returns = metrics.TotalReturns;
                 peak = metrics.PeakOutstanding;
-                hitPercent = gets > 0 ? (hits / (double)gets * 100.0) : 0.0;
+                active = metrics.Outstanding;
+                hitPercent = gets > 0 ? (metrics.CacheHits / (double)gets * 100.0) : 0.0;
 
                 if (metrics.ConsecutiveFailures > 0)
                 {
@@ -721,18 +770,22 @@ public sealed class ObjectPoolManager : IReportable
                 }
             }
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {available,9} | {maxCap,7} | {gets,7} | {hits,7} | {misses,7} | {hitPercent,6:F1}% | {status}");
+            string storage = ReportExtensions.FormatGroup(available, maxCap, compact: true);
+            string usage = ReportExtensions.FormatGroup(active, peak, compact: true);
+            string traffic = ReportExtensions.FormatGroup(gets, returns, compact: true);
+
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {storage,-17} | {usage,-17} | {traffic,-17} | {hitPercent,5:F1}% | {status}");
 
             if (_config.EnableDiagnostics && metrics != null && metrics.TotalReturns > 0)
             {
                 double avgMs = metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double p95Ms = this.CalculateP95(metrics);
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                         | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2} | Peak Active: {peak}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                             | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2}");
             }
         }
 
-        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Suspicious Objects Section
@@ -747,7 +800,7 @@ public sealed class ObjectPoolManager : IReportable
             _ = sb.AppendLine("Unhealthy Pools:");
             _ = sb.AppendLine("----------------------------------------------------------------------");
             _ = sb.AppendLine("TYPE                     | Consecutive Failures | Last Access");
-            _ = sb.AppendLine("----------------------------------------------------------------------");
+            _ = sb.AppendLine("-------------------------+----------------------+---------------------");
 
             foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
             {
@@ -766,11 +819,6 @@ public sealed class ObjectPoolManager : IReportable
             _ = sb.AppendLine("----------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
-
-        // Configuration
-        _ = sb.AppendLine("Configuration:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size  : {this.DefaultMaxPoolSize}");
-        _ = sb.AppendLine();
 
         return sb.ToString();
     }
@@ -795,7 +843,13 @@ public sealed class ObjectPoolManager : IReportable
             ["TotalReturnOperations"] = this.TotalReturnOperations,
             ["TotalCacheHits"] = this.TotalCacheHits,
             ["TotalCacheMisses"] = this.TotalCacheMisses,
+            ["TotalCreated"] = Interlocked.Read(ref _totalCreated),
+            ["TotalDisposed"] = Interlocked.Read(ref _totalDisposed),
+            ["TotalLeaked"] = PoolSentinel.TotalLeaked,
+            ["UptimeMs"] = this.Uptime.TotalMilliseconds,
             ["CacheHitRate"] = this.CacheHitRate,
+            ["Throughput"] = this.Uptime.TotalSeconds > 0 ? this.TotalGetOperations / this.Uptime.TotalSeconds : 0,
+            ["CreationRate"] = this.Uptime.TotalSeconds > 0 ? Interlocked.Read(ref _totalCreated) / this.Uptime.TotalSeconds : 0,
             ["NetObjects"] = this.TotalGetOperations - this.TotalReturnOperations,
         };
 
@@ -868,7 +922,7 @@ public sealed class ObjectPoolManager : IReportable
     /// </summary>
     /// <typeparam name="T"></typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ObjectPool GetOrCreatePool<T>() where T : IPoolable, new()
+    private ObjectPool GetOrCreatePool<T>() where T : IPoolable
     {
         Type type = typeof(T);
 
