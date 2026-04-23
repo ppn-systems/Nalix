@@ -27,7 +27,7 @@ public sealed class BufferOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Total buffers to create across all pools (minimum 1)")]
     [Range(1, int.MaxValue, ErrorMessage = "TotalBuffers must be greater than 0.")]
-    public int TotalBuffers { get; set; } = 16384;
+    public int TotalBuffers { get; set; } = 32768;
 
     /// <summary>
     /// Enables memory trimming to periodically recover unused buffers.
@@ -162,7 +162,7 @@ public sealed class BufferOptions : ConfigurationLoader
     /// Initial internal capacity for the slab tracking dictionary.
     /// </summary>
     [IniComment("Initial capacity for internal slab tracking (power of 2)")]
-    public int InitialSlabTrackingCapacity { get; set; } = 8;
+    public int InitialSlabTrackingCapacity { get; set; } = 128;
 
     #endregion Properties
 

@@ -13,6 +13,8 @@ namespace Nalix.Runtime.Options;
 [IniComment("Dispatch channel configuration — controls per-connection queue size, drop policy, and block timeout")]
 public sealed class DispatchOptions : ConfigurationLoader
 {
+    #region Properties
+
     /// <summary>
     /// Max items allowed in a single connection queue.
     /// Set to 0 or negative to disable bounding (NOT recommended for production).
@@ -45,6 +47,29 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Relative weights for priority levels [NONE, LOW, MEDIUM, HIGH, URGENT] (Comma-separated)")]
     public string PriorityWeights { get; set; } = "1,2,4,8,16";
+    
+    /// <summary>
+    /// Multiplier for the internal bucket count based on processor count.
+    /// </summary>
+    [IniComment("Multiplier for internal bucket count based on CPU count (default 64)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1024)]
+    public int BucketCountMultiplier { get; set; } = 64;
+
+    /// <summary>
+    /// Minimum number of internal buckets for the dispatch channel.
+    /// </summary>
+    [IniComment("Minimum internal bucket count (power of 2 recommended, default 256)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 65536)]
+    public int MinBucketCount { get; set; } = 256;
+
+    /// <summary>
+    /// Maximum number of internal buckets for the dispatch channel.
+    /// </summary>
+    [IniComment("Maximum internal bucket count (power of 2 recommended, default 16384)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1048576)]
+    public int MaxBucketCount { get; set; } = 16384;
+
+    #endregion Properties
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
@@ -56,5 +81,11 @@ public sealed class DispatchOptions : ConfigurationLoader
     {
         System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+
+        if (this.MinBucketCount > this.MaxBucketCount)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"{nameof(this.MinBucketCount)} ({this.MinBucketCount}) cannot be greater than {nameof(this.MaxBucketCount)} ({this.MaxBucketCount}).");
+        }
     }
 }

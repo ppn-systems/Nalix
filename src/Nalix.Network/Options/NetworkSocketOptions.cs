@@ -122,12 +122,12 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// thread is busy.
     /// <para>
     /// Tune to roughly <c>2 × burst rate × ProcessConnection latency (ms)</c>.
-    /// Default 128 matches the typical TCP backlog.
+    /// Default 256 matches the typical TCP backlog.
     /// </para>
     /// </summary>
     [IniComment("Maximum accepted connections that may queue in the channel while the consumer thread is busy (tune to ~2 × burst rate × ProcessConnection latency in ms, default 128)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ProcessChannelCapacity must be at least 1.")]
-    public int ProcessChannelCapacity { get; set; } = 128;
+    public int ProcessChannelCapacity { get; set; } = 256;
 
     /// <summary>
     /// Gets or sets the maximum size (in bytes) allowed for a single UDP datagram.
@@ -170,8 +170,8 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum number of packets allowed per second from a single connection before it is considered abusive and disconnected.
     /// </summary>
-    [IniComment("Maximum packets per second allowed from a single connection (SEC-55, default 1000)")]
-    public int MaxPacketPerSecond { get; set; } = 1000;
+    [IniComment("Maximum packets per second allowed from a single connection (SEC-55, default 128)")]
+    public int MaxPacketPerSecond { get; set; } = 128;
 
     #endregion Properties
 
