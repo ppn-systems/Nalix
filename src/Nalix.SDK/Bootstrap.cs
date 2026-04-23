@@ -1,8 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Environment;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
 
@@ -27,7 +29,7 @@ public static class Bootstrap
     public static void Initialize()
     {
         // Use a dedicated client configuration file to avoid conflicts with server-side default.ini
-        ConfigurationManager.Instance.SetConfigFilePath("client.ini");
+        ConfigurationManager.Instance.SetConfigFilePath(Path.Combine(Directories.ConfigurationDirectory, "client.ini"));
 
         // 1. Disable packet pooling for simpler memory management on client platforms
         ConfigurationManager.Instance.Get<PacketOptions>().EnablePooling = false;
