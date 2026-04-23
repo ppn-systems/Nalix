@@ -732,11 +732,11 @@ public sealed class ObjectPoolManager : IReportable
         _ = sb.AppendLine();
 
         // Pool Details
-        _ = sb.AppendLine("===========================================================================================");
+        _ = sb.AppendLine("==========================================================================================================");
         _ = sb.AppendLine("Object Details (Dashboard):");
-        _ = sb.AppendLine("===========================================================================================");
-        _ = sb.AppendLine("TYPE                     | STORAGE (A/M) | USAGE (O/P)  | TRAFFIC (G/R) | HIT%     | STATUS");
-        _ = sb.AppendLine("-------------------------+---------------+--------------+---------------+----------+-------");
+        _ = sb.AppendLine("==========================================================================================================");
+        _ = sb.AppendLine("TYPE                         | STORAGE (A/M)     | USAGE (O/P)       | TRAFFIC (G/R)     | HIT%   | STATUS");
+        _ = sb.AppendLine("-----------------------------+-------------------+-------------------+-------------------+--------+-------");
 
         // Fix: create sortable list from dictionary
         List<KeyValuePair<Type, ObjectPool>> sortedPools = [.. _poolDict];
@@ -747,7 +747,7 @@ public sealed class ObjectPoolManager : IReportable
             Type type = kvp.Key;
             Dictionary<string, object> typeInfo = kvp.Value.GetTypeInfoByType(kvp.Key);
 
-            string typeName = ReportExtensions.FormatTypeName(type.Name, 24);
+            string typeName = ReportExtensions.FormatTypeName(type.Name, 28);
 
             int maxCap = Convert.ToInt32(typeInfo["MaxCapacity"], CultureInfo.InvariantCulture);
             int available = Convert.ToInt32(typeInfo["AvailableCount"], CultureInfo.InvariantCulture);
@@ -770,22 +770,22 @@ public sealed class ObjectPoolManager : IReportable
                 }
             }
 
-            string storage = ReportExtensions.FormatGroup(available, maxCap);
-            string usage = ReportExtensions.FormatGroup(active, peak);
+            string storage = ReportExtensions.FormatGroup(available, maxCap, compact: true);
+            string usage = ReportExtensions.FormatGroup(active, peak, compact: true);
             string traffic = ReportExtensions.FormatGroup(gets, returns, compact: true);
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {storage,-13} | {usage,-12} | {traffic,-13} | {hitPercent,7:F1}% | {status}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName} | {storage,-17} | {usage,-17} | {traffic,-17} | {hitPercent,5:F1}% | {status}");
 
             if (_config.EnableDiagnostics && metrics != null && metrics.TotalReturns > 0)
             {
                 double avgMs = metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
                 double p95Ms = this.CalculateP95(metrics);
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                         | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                             | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2}");
             }
         }
 
-        _ = sb.AppendLine("-------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------------------");
         _ = sb.AppendLine();
 
         // Suspicious Objects Section
@@ -800,7 +800,7 @@ public sealed class ObjectPoolManager : IReportable
             _ = sb.AppendLine("Unhealthy Pools:");
             _ = sb.AppendLine("----------------------------------------------------------------------");
             _ = sb.AppendLine("TYPE                     | Consecutive Failures | Last Access");
-            _ = sb.AppendLine("----------------------------------------------------------------------");
+            _ = sb.AppendLine("-------------------------+----------------------+---------------------");
 
             foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
             {

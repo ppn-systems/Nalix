@@ -985,11 +985,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void APPEND_REPORT_POOL_DETAILS(StringBuilder sb)
     {
-        _ = sb.AppendLine("===========================================================================");
+        _ = sb.AppendLine("============================================================================");
         _ = sb.AppendLine("Buffer Details (Dashboard):");
-        _ = sb.AppendLine("===========================================================================");
-        _ = sb.AppendLine("SIZE     | CAPACITY (F/T/I)    | OPS (H/E/S)       | USAGE %   | MISS %    ");
-        _ = sb.AppendLine("---------+---------------------+-------------------+-----------+-----------");
+        _ = sb.AppendLine("============================================================================");
+        _ = sb.AppendLine("SIZE     | CAPACITY (F/T/I)         | OPS (H/E/S)         | USAGE % | MISS %");
+        _ = sb.AppendLine("---------+--------------------------+---------------------+---------+-------");
 
         List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
         buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
@@ -1010,17 +1010,18 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             double usage = info.GetUsageRatio() * 100.0;
             double miss = info.GetMissRate() * 100.0;
 
-            string capacity = $"{info.FreeBuffers} / {info.TotalBuffers} / {info.InitialCapacity}";
-            string ops = $"{info.Hits.FormatCompact()} / {info.Expands} / {info.Shrinks}";
+            string capacity = $"{info.FreeBuffers.FormatCompact()} / {info.TotalBuffers.FormatCompact()} / {info.InitialCapacity.FormatCompact()}";
+            string ops = $"{info.Hits.FormatCompact()} / {info.Expands.FormatCompact()} / {info.Shrinks.FormatCompact()}";
 
             _ = sb.AppendLine(CultureInfo.InvariantCulture,
-                $"{info.BufferSize,8} | {capacity,-19} | {ops,-17} | {usage,8:F2}% | {miss,9:F2}%");
+                $"{info.BufferSize,8} | {capacity,-24} | {ops,-19} | {usage,6:F2}% | {miss:F2}%");
         }
 
 
         double hitRate = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) : 1.0;
 
-        _ = sb.AppendLine("---------------------------------------------------------------------------");
+        _ = sb.AppendLine("----------------------------------------------------------------------------");
+        _ = sb.AppendLine();
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hits           : {totalHits}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Misses         : {totalMisses}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hit Rate       : {hitRate * 100:F2}%");
@@ -1055,7 +1056,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine("Buffer Metrics (Shrink/Expand Operations):");
         _ = sb.AppendLine("===========================================================================");
         _ = sb.AppendLine("SIZE         | Shrink OK    | Shrink Skip  | Expand OK  | Bytes Returned   ");
-        _ = sb.AppendLine("---------------------------------------------------------------------------");
+        _ = sb.AppendLine("-------------+--------------+--------------+------------+------------------");
 
         List<SlabBucket> buckets = [.. _slabPool.GetAllBuckets()];
         buckets.Sort(static (a, b) => a.GetPoolInfo().BufferSize.CompareTo(b.GetPoolInfo().BufferSize));
@@ -1070,11 +1071,11 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                     ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
                     : $"{metrics.TotalBytesReturned / 1024}KB";
 
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,12} | {info.Shrinks,12} | {metrics.ShrinkSkipped,12} | {info.Expands,10} | {bytesReturnedStr,17}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,12} | {info.Shrinks,12} | {metrics.ShrinkSkipped,12} | {info.Expands,10} | {bytesReturnedStr}");
             }
             else
             {
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,12} | {0,12} | {0,12} | {0,10} | {"0KB",14}");
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{info.BufferSize,12} | {0,12} | {0,12} | {0,10} | {"0KB"}");
             }
         }
 

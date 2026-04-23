@@ -28,9 +28,11 @@ public static class ReportExtensions
 
         static string FormatDecimal(double val, string unit)
         {
-            return Math.Abs(val % 1) < 0.001 
-                ? $"{val:F0}{unit}" 
-                : $"{val:F1}{unit}";
+            if (Math.Abs(val - Math.Round(val)) < 0.0001)
+            {
+                return val.ToString("F0", CultureInfo.InvariantCulture) + unit;
+            }
+            return val.ToString("F1", CultureInfo.InvariantCulture) + unit;
         }
     }
 

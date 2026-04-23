@@ -16,10 +16,10 @@ using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
-using Nalix.Framework.Extensions;
 
 namespace Nalix.Framework.Tasks;
 
@@ -151,12 +151,15 @@ public sealed partial class TaskManager : ITaskManager
     public double GetWorkerPercentile(double percentile)
     {
         long total = _workerExecutionCount;
-        if (total == 0) return 0;
+        if (total == 0)
+        {
+            return 0;
+        }
 
         long target = (long)(total * percentile);
         long accumulated = 0;
 
-        double[] thresholds = { 1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0 };
+        double[] thresholds = [1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0];
 
         for (int i = 0; i < _workerLatencyBuckets.Length; i++)
         {
@@ -629,17 +632,17 @@ public sealed partial class TaskManager : ITaskManager
         recurringSnapshot.Sort(static (a, b) => b.ConsecutiveFailures.CompareTo(a.ConsecutiveFailures));
 
         _ = sb.AppendLine("Recurring (Dashboard):");
-        _ = sb.AppendLine("-------------------------+---------------+-----+-------------------------+-----------+-------");
-        _ = sb.AppendLine("NAMING                   | RUNS (T/F)    | RUN | SCHEDULE (L/N)          | INTERVAL  | TAG   ");
-        _ = sb.AppendLine("-------------------------+---------------+-----+-------------------------+-----------+-------");
+        _ = sb.AppendLine("-----------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("NAMING                       | RUNS (T/F)    | RUN | SCHEDULE (L/N)          | INTERVAL  | TAG       ");
+        _ = sb.AppendLine("-----------------------------+---------------+-----+-------------------------+-----------+-----------");
         foreach (RecurringState s in recurringSnapshot)
         {
-            string nm = ReportExtensions.FormatTypeName(s.Name, 24);
+            string nm = ReportExtensions.FormatTypeName(s.Name, 28);
             string runsFails = $"{s.TotalRuns.FormatCompact()} / {s.ConsecutiveFailures}";
             string run = s.IsRunning ? "yes" : " no";
-            
-            string last = s.LastRunUtc?.ToString("HH:mm:ss") ?? "--:--:--";
-            string next = s.NextRunUtc?.ToString("HH:mm:ss") ?? "--:--:--";
+
+            string last = s.LastRunUtc?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? "--:--:--";
+            string next = s.NextRunUtc?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? "--:--:--";
             string schedule = $"{last} / {next}";
 
             string iv = s.Interval.FormatTimeSpan();
@@ -654,7 +657,7 @@ public sealed partial class TaskManager : ITaskManager
         _ = sb.AppendLine("Workers by Group:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine("Group                        | Running | Total | Concurrency");
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("-----------------------------+---------+-------+------------");
         Dictionary<string, (int running, int total)> perGroup = new(StringComparer.Ordinal);
         foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
         {
@@ -698,8 +701,8 @@ public sealed partial class TaskManager : ITaskManager
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress |  LastBeat");
-        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress | LastBeat ");
+        _ = sb.AppendLine("---------------+------------------------------+------------------------------+---------+----------+----------");
         List<WorkerState> top = new(_workers.Count);
         foreach (WorkerState worker in _workers.Values)
         {
@@ -715,7 +718,7 @@ public sealed partial class TaskManager : ITaskManager
                 continue;
             }
 
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{w.Id} | {ReportExtensions.FormatTypeName(w.Name, 28)} | {ReportExtensions.FormatTypeName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress.FormatCompact(),8} |  {w.LastHeartbeatUtc?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? "-"}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{w.Id} | {ReportExtensions.FormatTypeName(w.Name, 28)} | {ReportExtensions.FormatTypeName(w.Group, 28)} | {FormatAge(w.StartedUtc),7} | {w.Progress.FormatCompact(),8} | {w.LastHeartbeatUtc?.ToString("HH:mm:ss", CultureInfo.InvariantCulture) ?? "-"}");
             if (++show >= 50)
             {
                 break;

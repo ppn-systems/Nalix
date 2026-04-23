@@ -306,7 +306,7 @@ public partial class TaskManager
 
             st.MarkStart();
             startedExecution = true;
-            
+
             int currentRunning = Interlocked.Increment(ref _runningWorkerCount);
             int peak = Volatile.Read(ref _peakRunningWorkerCount);
             while (currentRunning > peak)
@@ -544,7 +544,7 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-timeout name={s.Name} msg={oce.Message}");
 
-                    await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
+                    await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -552,7 +552,7 @@ public partial class TaskManager
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-error name={s.Name} msg={ex.Message}");
 
-                    await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
+                    await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
                 finally
                 {
@@ -585,7 +585,7 @@ public partial class TaskManager
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[FW.{nameof(TaskManager)}:Internal] recurring-loop-error name={s.Name} msg={ex.Message}");
 
-                await RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
+                await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
             }
         }
     }
