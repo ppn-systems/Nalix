@@ -51,7 +51,7 @@ public sealed class HostingOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public void Validate()
+    public static void Validate()
     {
         // No validation needed for boolean flags
     }

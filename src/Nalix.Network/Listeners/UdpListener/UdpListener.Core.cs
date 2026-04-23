@@ -37,9 +37,8 @@ public abstract partial class UdpListenerBase
 
     #region Fields
 
-    internal static NetworkSocketOptions Config => s_config;
-
-    private static readonly NetworkSocketOptions s_config;
+    private static readonly NetworkSocketOptions s_options;
+    private static readonly ConnectionLimitOptions s_connectionLimitOptions;
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
@@ -87,8 +86,9 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static UdpListenerBase()
     {
-        s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        s_config.Validate();
+        s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+        s_connectionLimitOptions.Validate();
     }
 
     /// <summary>
@@ -109,7 +109,7 @@ public abstract partial class UdpListenerBase
         _protocol = protocol;
         _lock = new SemaphoreSlim(1, 1);
         _state = (int)ListenerState.STOPPED;
-        _rateLimiter = new(s_config.MaxPacketPerSecond);
+        _rateLimiter = new(s_connectionLimitOptions.MaxPacketPerSecond);
 
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
@@ -123,7 +123,7 @@ public abstract partial class UdpListenerBase
     /// <param name="protocol">The protocol handler for processing datagrams.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected UdpListenerBase(IProtocol protocol, IConnectionHub hub) : this(s_config.Port, protocol, hub)
+    protected UdpListenerBase(IProtocol protocol, IConnectionHub hub) : this(s_options.Port, protocol, hub)
     {
     }
 

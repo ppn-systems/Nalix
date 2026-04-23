@@ -25,11 +25,6 @@ namespace Nalix.Network.Listeners.Tcp;
 [SkipLocalsInit]
 public abstract partial class TcpListenerBase : IListener
 {
-    #region Constants
-    private const int MaxAcceptWorkers = 64;
-
-    #endregion Constants
-
     #region Fields
 
     private readonly ushort _port;
@@ -123,19 +118,6 @@ public abstract partial class TcpListenerBase : IListener
                                     .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
-
-        if (OperatingSystem.IsWindows() && s_config.TuneThreadPool)
-        {
-            int parallelism = Math.Clamp(Environment.ProcessorCount * s_config.MinWorkerThreadsMultiplier, 16, s_config.MaxThreadPoolWorkers);
-            // Thread pool optimization for IOCP
-            ThreadPool.GetMinThreads(out int workerThreads, out int completionPortThreads);
-            _ = ThreadPool.SetMinThreads(Math.Max(workerThreads, parallelism), Math.Max(completionPortThreads, parallelism));
-
-            ThreadPool.GetMinThreads(out int afterWorker, out int afterIOCP);
-
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Info("[NW.{Class}] set-min-threads worker={Worker} iocp={IOCP}", nameof(TcpListenerBase), afterWorker, afterIOCP);
-        }
     }
 
     /// <summary>

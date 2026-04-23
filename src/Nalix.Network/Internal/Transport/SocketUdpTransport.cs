@@ -39,6 +39,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Static Factory
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+    private static readonly ConnectionLimitOptions s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 
     #endregion Static Factory
 
@@ -174,9 +175,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > s_options.MaxUdpDatagramSize)
+        if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_connectionLimitOptions.MaxUdpDatagramSize} bytes. Use TCP for large data.");
         }
 
         try
@@ -218,9 +219,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > s_options.MaxUdpDatagramSize)
+        if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
+            throw new NetworkException($"UDP payload too large: {message.Length} bytes. Max allowed is {s_connectionLimitOptions.MaxUdpDatagramSize} bytes. Use TCP for large data.");
         }
 
         try

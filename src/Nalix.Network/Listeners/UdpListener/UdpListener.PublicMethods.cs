@@ -91,7 +91,7 @@ public abstract partial class UdpListenerBase : IListener
                 $"listening port={_port} protocol={_protocol.GetType().Name}");
 
             // Dispatch parallel SAEA receive workers
-            int concurrency = Math.Max(1, s_config.MaxParallel);
+            int concurrency = Math.Max(1, s_connectionLimitOptions.MaxParallel);
             for (int i = 0; i < concurrency; i++)
             {
                 PooledUdpReceiveEventArgs args = new();
@@ -245,17 +245,17 @@ public abstract partial class UdpListenerBase : IListener
         // Socket configuration — UDP-relevant settings only.
         _ = sb.AppendLine("Configuration:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress    : {s_config.ReuseAddress}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize      : {s_config.BufferSize}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6      : {s_config.EnableIPv6}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DualMode        : {s_config.DualMode}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress    : {s_connectionLimitOptions.ReuseAddress}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize      : {s_connectionLimitOptions.BufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6      : {s_connectionLimitOptions.EnableIPv6}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DualMode        : {s_connectionLimitOptions.DualMode}");
         _ = sb.AppendLine();
 
         // Worker concurrency info.
         _ = sb.AppendLine("Worker:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Group           : {TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GroupConcurrency: {s_config.MaxGroupConcurrency}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GroupConcurrency: {s_connectionLimitOptions.MaxGroupConcurrency}");
         _ = sb.AppendLine();
 
         // Traffic counters.
@@ -309,16 +309,16 @@ public abstract partial class UdpListenerBase : IListener
 
             ["Config"] = new Dictionary<string, object>
             {
-                ["ReuseAddress"] = s_config.ReuseAddress,
-                ["BufferSize"] = s_config.BufferSize,
-                ["EnableIPv6"] = s_config.EnableIPv6,
-                ["DualMode"] = s_config.DualMode
+                ["ReuseAddress"] = s_connectionLimitOptions.ReuseAddress,
+                ["BufferSize"] = s_connectionLimitOptions.BufferSize,
+                ["EnableIPv6"] = s_connectionLimitOptions.EnableIPv6,
+                ["DualMode"] = s_connectionLimitOptions.DualMode
             },
 
             ["Worker"] = new Dictionary<string, object>
             {
                 ["Group"] = $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
-                ["GroupConcurrencyLimit"] = s_config.MaxGroupConcurrency
+                ["GroupConcurrencyLimit"] = s_connectionLimitOptions.MaxGroupConcurrency
             },
 
             ["Traffic"] = new Dictionary<string, object>

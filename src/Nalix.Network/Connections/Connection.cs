@@ -35,7 +35,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
     #region Fields
 
-    private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+    private static readonly ConnectionLimitOptions s_options = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 
     private readonly ILogger? _logger;
 
@@ -157,7 +157,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public void IncrementErrorCount()
     {
         int count = Interlocked.Increment(ref _errorCount);
-        if (s_options.MaxErrorThreshold > 0 && count >= s_options.MaxErrorThreshold) // SEC-54: Disconnect persistent noisy/malformed connections
+
+        // SEC-54: Disconnect persistent noisy/malformed connections
+        if (s_options.MaxErrorThreshold > 0 && count >= s_options.MaxErrorThreshold)
         {
             this.Disconnect("Exceeded maximum error threshold.");
         }
