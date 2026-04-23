@@ -1,6 +1,3 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
-// Licensed under the Apache License, Version 2.0.
-
 using System;
 using System.Net.Sockets;
 using System.Threading;
@@ -28,11 +25,8 @@ public class TcpSession : TransportSession
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private Socket? _socket;
     private CancellationTokenSource? _loopCts;
+    private Task? _readerTask;
     private int _disposed;
-
-    // Sequential dispatcher for async handlers (BUG-10)
-    private System.Threading.Channels.Channel<Func<Task>>? _asyncQueue;
-
 
     #endregion Fields
 
@@ -122,20 +116,8 @@ public class TcpSession : TransportSession
             // Start background worker for reading frames
             _loopCts = new CancellationTokenSource();
 
-            // Initialize sequential async dispatcher with backpressure (SEC-56)
-            _asyncQueue = System.Threading.Channels.Channel.CreateBounded<Func<Task>>(
-                new System.Threading.Channels.BoundedChannelOptions(this.Options.AsyncQueueCapacity)
-                {
-                    SingleReader = true,
-                    SingleWriter = true,
-                    FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
-                });
-
-            _ = Task.Factory.StartNew(() => this.ProcessAsyncQueueAsync(_loopCts.Token), 
-                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-
-            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token), 
-                CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            _readerTask = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token), 
+                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
         catch (Exception ex)
         {
@@ -199,10 +181,6 @@ public class TcpSession : TransportSession
             this.OnDisconnected?.Invoke(this, new NetworkException("The TCP session was disconnected."));
         }
 
-        // Close async queue
-        _ = (_asyncQueue?.Writer.TryComplete());
-        _asyncQueue = null;
-
         return Task.CompletedTask;
     }
 
@@ -220,10 +198,9 @@ public class TcpSession : TransportSession
 
         packet.Flags = (packet.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
 
-        // Rent a buffer, serialize the packet, and delegate sending to FrameSender
         using BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));
-        bool sent = await _sender.SendAsync(lease.Memory, encrypt, ct).ConfigureAwait(false);
+        bool sent = await _sender.SendAsync(lease, encrypt, ct).ConfigureAwait(false);
         if (!sent)
         {
             throw new NetworkException("Failed to send TCP packet: the frame was not delivered to the socket.");
@@ -264,91 +241,26 @@ public class TcpSession : TransportSession
     /// </summary>
     private void HandleReceiveMessage(IBufferLease lease)
     {
-        Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
-        EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;
-
         try
         {
-            ReadOnlyMemory<byte>? asyncPayload = null;
-            System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
+            // Direct synchronous dispatch (hot path for benchmarks)
+            this.OnMessageReceived?.Invoke(this, lease);
 
-            if (asyncHandler is not null && syncHandler is not null)
+            // Concurrent asynchronous dispatch
+            if (this.OnMessageAsync is { } asyncHandler)
             {
-                asyncPayload = lease.Memory.ToArray();
-            }
-
-            syncHandler?.Invoke(this, lease);
-
-            if (asyncHandler is not null && writer is not null)
-            {
-                if (asyncPayload is { } copiedPayload)
-                {
-                    if (!writer.TryWrite(async () =>
-                        {
-                            try { await asyncHandler(copiedPayload).ConfigureAwait(false); }
-                            catch (Exception ex) when (ex is not OutOfMemoryException && ex is not StackOverflowException && ex is not AccessViolationException) { this.OnError?.Invoke(this, ex); }
-                        }))
-                    {
-                        this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
-                    }
-                    return;
-                }
-
                 lease.Retain();
-                if (!writer.TryWrite(async () =>
+                _ = Task.Run(async () =>
                 {
                     try { await asyncHandler(lease.Memory).ConfigureAwait(false); }
                     catch (Exception ex) { this.OnError?.Invoke(this, ex); }
                     finally { lease.Dispose(); }
-                }))
-                {
-                    this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; frame dropped."));
-                    lease.Dispose();
-                }
-                return;
+                });
             }
         }
         catch (Exception ex)
         {
             this.OnError?.Invoke(this, ex);
-        }
-    }
-
-    private async Task ProcessAsyncQueueAsync(CancellationToken ct)
-    {
-        System.Threading.Channels.ChannelReader<Func<Task>>? reader = _asyncQueue?.Reader;
-        if (reader is null)
-        {
-            return;
-        }
-
-        try
-        {
-            while (await reader.WaitToReadAsync(ct).ConfigureAwait(false))
-            {
-                while (reader.TryRead(out Func<Task>? work))
-                {
-                    try
-                    {
-                        await work().ConfigureAwait(false);
-                    }
-                    catch (Exception ex)
-                    {
-                        this.OnError?.Invoke(this, ex);
-                    }
-                }
-            }
-        }
-        finally
-        {
-            // Drain the queue to ensure any enqueued work (with finally { lease.Dispose() })
-            // is executed so we don't leak leases on shutdown.
-            while (reader.TryRead(out Func<Task>? work))
-            {
-                // We don't await because we're shutting down, but we must start it 
-                // so the 'finally' blocks inside 'work()' run.
-                _ = work();
-            }
         }
     }
 

@@ -61,24 +61,27 @@ internal static class PacketAwaiter
             try { _ = tcs.TrySetCanceled(linkedCts.Token); } catch { }
         });
 
-        using IDisposable subscription = client.SubscribeTemp<TPkt>(
-            onMessage: packet =>
+        using IDisposable subscription = client.OnOnce<TPkt>(
+            predicate: packet =>
             {
                 try
                 {
-                    if (!predicate(packet))
-                    {
-                        return;
-                    }
+                    return predicate(packet);
                 }
                 catch (Exception ex)
                 {
                     _ = tcs.TrySetException(ex);
-                    return;
+                    return false;
                 }
-
+            },
+            handler: packet =>
+            {
                 _ = tcs.TrySetResult(packet);
             },
+            disposeAfter: false);
+
+        IDisposable disconnectSub = client.SubscribeTemp<TPkt>(
+            onMessage: _ => { },
             onDisconnected: ex =>
             {
                 Exception error = new Common.Exceptions.NetworkException(
@@ -87,6 +90,8 @@ internal static class PacketAwaiter
 
                 try { _ = tcs.TrySetException(error); } catch { }
             });
+
+        using CompositeSubscription composite = client.Subscribe(subscription, disconnectSub);
 
         try
         {

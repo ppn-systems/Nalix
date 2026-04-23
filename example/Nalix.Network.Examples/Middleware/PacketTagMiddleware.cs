@@ -19,6 +19,9 @@ public sealed class PacketTagMiddleware : IPacketMiddleware<IPacket>
     /// </summary>
     public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
+        ArgumentNullException.ThrowIfNull(next);
+        ArgumentNullException.ThrowIfNull(context);
+
         if (!context.Attributes.CustomAttributes.TryGetValue(typeof(PacketTagAttribute), out Attribute? attribute) ||
             attribute is not PacketTagAttribute tagAttribute)
         {

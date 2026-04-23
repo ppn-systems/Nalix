@@ -20,6 +20,8 @@ using Nalix.Runtime.Options;
 
 internal class Program
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
     private static async Task Main(string[] args)
     {
         // Turn off noisy logs for peak performance testing.
@@ -38,7 +40,6 @@ internal class Program
             .Configure<NetworkSocketOptions>(options =>
             {
                 options.Port = 57206;
-                options.MaxPacketPerSecond = int.MaxValue;
                 options.BufferSize = 1024 * 64; // 64KB buffers
                 options.Backlog = 1024;         // Increase OS backlog for high burst connection attempts
             })
@@ -48,6 +49,7 @@ internal class Program
             })
             .Configure<ConnectionLimitOptions>(options =>
             {
+                options.MaxPacketPerSecond = int.MaxValue;
                 options.MaxConnectionsPerIpAddress = 10_000;
                 options.MaxConnectionsPerWindow = 10_000_000;
             })
