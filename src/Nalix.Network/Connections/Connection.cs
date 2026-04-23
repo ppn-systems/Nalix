@@ -307,11 +307,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             {
                 for (int i = 0; i < argsPool.Length; i++)
                 {
-                    if (argsPool[i] != null)
-                    {
-                        // Use the default constructor-initialized state to ensure it goes to global pool
-                        argsPool[i].Dispose();
-                    }
+                    // Use the default constructor-initialized state to ensure it goes to global pool
+                    argsPool[i]?.Dispose();
                 }
             }
 
@@ -320,10 +317,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             {
                 for (int i = 0; i < ctxPool.Length; i++)
                 {
-                    if (ctxPool[i] != null)
-                    {
-                        ctxPool[i].Dispose();
-                    }
+                    ctxPool[i]?.Dispose();
                 }
             }
         }

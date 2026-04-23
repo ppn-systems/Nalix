@@ -48,10 +48,10 @@ public sealed class ConnectionHub : IConnectionHub
     /// </summary>
     private readonly ConcurrentQueue<UInt56> _anonymousQueue;
 
-    private readonly bool _trackEvictionQueue;
-    private readonly int _maxConnections;
-    private readonly int _shardCount;
     private readonly int _shardMask;
+    private readonly int _shardCount;
+    private readonly int _maxConnections;
+    private readonly bool _trackEvictionQueue;
     private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<UInt56, IConnection>[] _shards;
 

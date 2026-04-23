@@ -12,8 +12,8 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Rate;
 using Nalix.Network.Options;
+using Nalix.Network.RateLimiting;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -47,7 +47,7 @@ public abstract partial class UdpListenerBase
     private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
-    private readonly DatagramRateLimiter _rateLimiter;
+    private readonly DatagramGuard _rateLimiter;
 
     private Socket? _socket;
     private EndPoint _anyEndPoint;

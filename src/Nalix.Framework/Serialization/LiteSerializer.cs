@@ -392,13 +392,23 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
         unsafe
         {
             fixed (byte* ptr = buffer)
             {
                 DataReader reader = new(ptr, buffer.Length);
-                value = formatter.Deserialize(ref reader);
+                if (value is not null && fillable is not null)
+                {
+                    fillable.Fill(ref reader, value);
+                }
+                else
+                {
+                    value = formatter.Deserialize(ref reader);
+                }
+
                 return reader.BytesRead;
             }
         }
@@ -466,13 +476,23 @@ public static class LiteSerializer
             throw FrameworkErrors.SerializationEmptyBuffer;
         }
 
-        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
         unsafe
         {
             fixed (byte* ptr = buffer.Span)
             {
                 DataReader reader = new(ptr, buffer.Length);
-                value = formatter.Deserialize(ref reader);
+                if (value is not null && fillable is not null)
+                {
+                    fillable.Fill(ref reader, value);
+                }
+                else
+                {
+                    value = formatter.Deserialize(ref reader);
+                }
+
                 return reader.BytesRead;
             }
         }
@@ -605,13 +625,23 @@ public static class LiteSerializer
             return dataSize + 4;
         }
 
-        IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
+        IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
+
         unsafe
         {
             fixed (byte* ptr = buffer)
             {
                 DataReader reader = new(ptr, buffer.Length);
-                value = formatter.Deserialize(ref reader);
+                if (value is not null && fillable is not null)
+                {
+                    fillable.Fill(ref reader, value);
+                }
+                else
+                {
+                    value = formatter.Deserialize(ref reader);
+                }
+
                 return reader.BytesRead;
             }
         }
@@ -769,6 +799,7 @@ public static class LiteSerializer
     {
         public static readonly bool ThrowsOnNull;
         public static readonly IFormatter<T> Formatter;
+        public static readonly IFillableFormatter<T>? Fillable;
 
         static RootFormatterCache()
         {
@@ -781,11 +812,14 @@ public static class LiteSerializer
             {
                 ThrowsOnNull = true;
                 Formatter = FormatterProvider.GetComplex<T>();
-                return;
+            }
+            else
+            {
+                ThrowsOnNull = false;
+                Formatter = formatter;
             }
 
-            ThrowsOnNull = false;
-            Formatter = formatter;
+            Fillable = Formatter as IFillableFormatter<T>;
         }
     }
 
