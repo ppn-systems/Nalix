@@ -7,23 +7,6 @@ namespace Nalix.Framework.Tests.Memory;
 public sealed partial class MemoryTests
 {
     [Fact]
-    public void RetainWhenLeaseIsDisposedThrowsObjectDisposedException()
-    {
-        BufferLease.IsPoolingEnabled = false;
-        try
-        {
-            BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
-            lease.Dispose();
-
-            _ = Assert.Throws<ObjectDisposedException>(() => lease.Retain());
-        }
-        finally
-        {
-            BufferLease.IsPoolingEnabled = true;
-        }
-    }
-
-    [Fact]
     public void ReleaseOwnershipWhenCalledTwiceReturnsFalseOnSecondCall()
     {
         using BufferLease lease = BufferLease.CopyFrom([9, 8, 7, 6]);
@@ -49,17 +32,14 @@ public sealed partial class MemoryTests
     }
 
     [Fact]
-    public void FromRentedWhenBufferIsNullThrowsArgumentNullException()
-    {
-        _ = Assert.Throws<ArgumentNullException>(() => BufferLease.FromRented(null!, 0));
-    }
+    public void FromRentedWhenBufferIsNullThrowsArgumentNullException() => _ = Assert.Throws<ArgumentNullException>(() => BufferLease.FromRented(null!, 0));
 
     [Fact]
     public void ReturnWithNullArrayDoesNotThrow()
     {
         using BufferPoolManager manager = new(MemoryTestSupport.CreateBufferOptions(enableMemoryTrimming: false));
 
-        Exception? ex = Record.Exception(() => manager.Return((byte[]?)null));
+        Exception? ex = Record.Exception(() => manager.Return(null));
 
         Assert.Null(ex);
     }

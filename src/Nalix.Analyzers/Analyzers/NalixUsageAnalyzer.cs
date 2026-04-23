@@ -581,8 +581,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         ConcurrentDictionary<string, INamedTypeSymbol> controllerNames)
     {
         string controllerName = GetPacketControllerName(typeSymbol, symbols.ControllerAttribute) ?? typeSymbol.Name;
-        if (controllerNames.TryGetValue(controllerName, out INamedTypeSymbol? existing)
-            && !SymbolEqualityComparer.Default.Equals(existing, typeSymbol))
+        INamedTypeSymbol existing = controllerNames.GetOrAdd(controllerName, typeSymbol);
+        if (!SymbolEqualityComparer.Default.Equals(existing, typeSymbol))
         {
             Report(
                 context,
@@ -591,10 +591,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 controllerName,
                 existing.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
                 typeSymbol.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-        }
-        else
-        {
-            controllerNames[controllerName] = typeSymbol;
         }
 
         ImmutableArray<IMethodSymbol> methods = [.. typeSymbol.GetMembers()
@@ -645,13 +641,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                     Report(context, DiagnosticDescriptors.ReservedOpCodeRange, methodSymbol, methodSymbol.Name, opcode.Value);
                 }
 
-                if (globalOpcodes.TryGetValue(opcode.Value, out (IMethodSymbol Method, INamedTypeSymbol Controller) existingOpcode) && !SymbolEqualityComparer.Default.Equals(existingOpcode.Controller, typeSymbol))
+                var existingOpcode = globalOpcodes.GetOrAdd(opcode.Value, (methodSymbol, typeSymbol));
+                if (!SymbolEqualityComparer.Default.Equals(existingOpcode.Controller, typeSymbol))
                 {
                     Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, existingOpcode.Method.Name, existingOpcode.Controller.Name);
-                }
-                else
-                {
-                    globalOpcodes[opcode.Value] = (methodSymbol, typeSymbol);
                 }
 
                 if (!HasSupportedParameterSignature(methodSymbol, symbols))

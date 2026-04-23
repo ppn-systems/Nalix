@@ -233,7 +233,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             }
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception)
         {
             throw NetworkErrors.UdpSendFailed;
         }
