@@ -168,6 +168,7 @@ nav:
           - Middleware Usage Guide: guides/application/middleware-usage.md
       - Extensibility:
           - Custom Middleware Guide: guides/extensibility/custom-middleware.md
+          - Custom Packet Router: guides/extensibility/custom-packet-router.md
           - Custom Metadata Providers: guides/extensibility/metadata-providers.md
           - Custom Serialization Provider: guides/extensibility/serialization-providers.md
       - Deployment & Operations:

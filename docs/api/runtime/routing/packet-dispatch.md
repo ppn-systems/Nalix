@@ -73,6 +73,12 @@ A worker loop doesn't just process one packet and sleep. It attempts to "drain" 
 !!! tip "Performance Tuning"
     Monitor `WakeSignals` vs `TotalPackets`. A high ratio of signals to packets might indicate that `MaxDrainPerWake` is set too low for your traffic pattern, causing excessive wake/sleep cycles.
 
+### 3. Custom Routing & Shard Keys
+Developers can override the default connection-based sharding by wrapping `IPacketDispatch` in a custom router. This is useful for grouping related connections (e.g., all devices for a single User) into the same sequential worker loop.
+
+!!! example "Shard Wrapping"
+    See the [Custom Packet Router Guide](../../guides/extensibility/custom-packet-router.md) for a detailed implementation of a Shard Proxy and Custom Router.
+
 ## Related APIs
 
 - [Dispatch Contracts](./dispatch-contracts.md)
