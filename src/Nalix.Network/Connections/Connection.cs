@@ -325,7 +325,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 if (_argsPool == null)
                 {
                     _argsPool = new ConnectionEventArgs[8];
-                    for (int i = 0; i < 8; i++) _argsPool[i] = new ConnectionEventArgs(this);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        _argsPool[i] = new ConnectionEventArgs(this);
+                    }
                 }
             }
         }
@@ -344,7 +347,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     internal bool ReturnEventArgsInternal(ConnectionEventArgs args)
     {
-        if (_argsPool == null) return false;
+        if (_argsPool == null)
+        {
+            return false;
+        }
 
         for (int i = 0; i < 8; i++)
         {
@@ -372,7 +378,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 if (_contextPool == null)
                 {
                     _contextPool = new PooledConnectEventContext[8];
-                    for (int i = 0; i < 8; i++) _contextPool[i] = new PooledConnectEventContext { LocalOwner = this };
+                    for (int i = 0; i < 8; i++)
+                    {
+                        _contextPool[i] = new PooledConnectEventContext { LocalOwner = this };
+                    }
                 }
             }
         }
@@ -393,7 +402,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     internal void ReturnContextInternal(PooledConnectEventContext context)
     {
-        if (_contextPool == null) return;
+        if (_contextPool == null)
+        {
+            return;
+        }
 
         for (int i = 0; i < 8; i++)
         {

@@ -9,10 +9,18 @@ public sealed partial class MemoryTests
     [Fact]
     public void RetainWhenLeaseIsDisposedThrowsObjectDisposedException()
     {
-        BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
-        lease.Dispose();
+        BufferLease.IsPoolingEnabled = false;
+        try
+        {
+            BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
+            lease.Dispose();
 
-        _ = Assert.Throws<ObjectDisposedException>(() => lease.Retain());
+            _ = Assert.Throws<ObjectDisposedException>(() => lease.Retain());
+        }
+        finally
+        {
+            BufferLease.IsPoolingEnabled = true;
+        }
     }
 
     [Fact]

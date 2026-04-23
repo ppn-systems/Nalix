@@ -46,10 +46,16 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     private readonly Internal.Buffers.SlabPoolManager _slabPool;
 
     private int _trimCycleCount;
+    private int _fallbackCount;
+    private int _suitablePoolSizeCacheHits;
+    private int _suitablePoolSizeCacheMisses;
     private int _disposed;
     private bool _isInitialized;
     private long _cachedMemoryBudget;
     private long _lastBudgetComputeTime;
+    private long _totalBytesRented;
+    private long _peakMemoryUsage;
+    private readonly DateTime _startTime;
 
 #if DEBUG
     private static readonly ConditionalWeakTable<byte[], BufferSentinel> s_activeSentinels = new();
@@ -222,6 +228,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _shrinkPolicy = new ShrinkSafetyPolicy();
         _slabPool = new Internal.Buffers.SlabPoolManager();
         _slabPool.ResizeOccurred += this.HANDLE_BUFFER_POOL_RESIZE;
+        _startTime = DateTime.UtcNow;
 
         _bufferAllocations = BufferOptions.ParseBufferAllocations(config.BufferAllocations);
         this.MinBufferSize = _bufferAllocations.Length > 0 ? _bufferAllocations[0].BufferSize : 0;
@@ -273,9 +280,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             if (_slabPool.TryRent(cachedPoolSize, out array))
             {
+                _ = Interlocked.Increment(ref _suitablePoolSizeCacheHits);
                 goto ReturnArray;
             }
         }
+
+        _ = Interlocked.Increment(ref _suitablePoolSizeCacheMisses);
 
         try
         {
@@ -293,8 +303,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
     ReturnArray:
+        _ = Interlocked.Add(ref _totalBytesRented, array.Length);
 #if DEBUG
-        _ = s_activeSentinels.GetValue(array!, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
+        _ = s_activeSentinels.GetValue(array, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
 #endif
         return array;
     }
@@ -429,6 +440,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             ["TrimIntervalMinutes"] = _config.TrimIntervalMinutes,
             ["DeepTrimIntervalMinutes"] = _config.DeepTrimIntervalMinutes,
             ["TrimCycleCount"] = _trimCycleCount,
+            ["FallbackCount"] = _fallbackCount,
+            ["BucketCacheHits"] = _suitablePoolSizeCacheHits,
+            ["BucketCacheMisses"] = _suitablePoolSizeCacheMisses,
+            ["PeakMemoryUsageBytes"] = _peakMemoryUsage,
+            ["ThroughputMBps"] = (DateTime.UtcNow - _startTime).TotalSeconds > 0
+                ? (double)Volatile.Read(ref _totalBytesRented) / (1024 * 1024) / (DateTime.UtcNow - _startTime).TotalSeconds
+                : 0,
             ["ShrinkSafetyPolicy"] = new Dictionary<string, object>(4, StringComparer.Ordinal)
             {
                 ["MinimumRetentionPercent"] = _shrinkPolicy.MinimumRetentionPercent,
@@ -553,6 +571,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             // If fallback is enabled, return a shared ArrayPool buffer instead of
             // failing the operation outright.
             _logger?.Warn($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
+            _ = Interlocked.Increment(ref _fallbackCount);
 
             return _fallbackArrayPool.Rent(size);
         }
@@ -681,6 +700,13 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             BufferPoolState info = bucket.GetPoolInfo();
             currentUsage += info.TotalBuffers * (long)info.BufferSize;
+        }
+
+        long peak = Volatile.Read(ref _peakMemoryUsage);
+        while (currentUsage > peak)
+        {
+            _ = Interlocked.CompareExchange(ref _peakMemoryUsage, currentUsage, peak);
+            peak = Volatile.Read(ref _peakMemoryUsage);
         }
 
         return (targetBudget, currentUsage, currentUsage > targetBudget);
@@ -938,6 +964,9 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Trim Interval (min): {_config.TrimIntervalMinutes}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deep Trim Interval (min): {_config.DeepTrimIntervalMinutes}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Trim Cycles Run: {_trimCycleCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fallback (ArrayPool): {_fallbackCount}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Bucket Cache Hits: {_suitablePoolSizeCacheHits}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Bucket Cache Miss: {_suitablePoolSizeCacheMisses}");
         _ = sb.AppendLine();
         _ = sb.AppendLine("Shrink Safety Policy:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Minimum Retention: {_shrinkPolicy.MinimumRetentionPercent * 100:F1}%");
@@ -980,14 +1009,31 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
 
-        double totalHitRate = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) * 100.0 : 100.0;
+        double hitRate = (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) : 1.0;
 
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hits      : {totalHits,10}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Misses    : {totalMisses,10}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Expands   : {totalExpands,10}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Shrinks   : {totalShrinks,10}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Overall Hit Rate: {totalHitRate,9:F2}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hits           : {totalHits}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Misses         : {totalMisses}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Hit Rate       : {hitRate * 100:F2}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Expands        : {totalExpands}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Shrinks        : {totalShrinks}");
+
+        double uptimeSec = (DateTime.UtcNow - _startTime).TotalSeconds;
+        double throughputMBps = uptimeSec > 0 ? (double)Volatile.Read(ref _totalBytesRented) / (1024 * 1024) / uptimeSec : 0;
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Throughput           : {throughputMBps:F2} MB/s");
+
+        long currentMem = 0;
+        foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
+        {
+            BufferPoolState info = bucket.GetPoolInfo();
+            currentMem += (long)info.TotalBuffers * info.BufferSize;
+        }
+
+        (long targetBudget, long _, bool _) = this.COMPUTE_MEMORY_BUDGET();
+        double budgetUsage = targetBudget > 0 ? (double)currentMem / targetBudget * 100.0 : 0;
+
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Current Memory (POH) : {currentMem / 1048576:N0} MB ({budgetUsage:F1}% of budget)");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Peak Memory (POH)    : {Volatile.Read(ref _peakMemoryUsage) / 1048576:N0} MB");
         _ = sb.AppendLine("-------------------------------------------------------------------------------------------------");
     }
 

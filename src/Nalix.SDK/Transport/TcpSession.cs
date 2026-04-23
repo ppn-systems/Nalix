@@ -131,8 +131,11 @@ public class TcpSession : TransportSession
                     FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait
                 });
 
-            _ = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), ct);
-            _ = Task.Run(() => _reader.ReceiveLoopAsync(_loopCts.Token), CancellationToken.None);
+            _ = Task.Factory.StartNew(() => this.ProcessAsyncQueueAsync(_loopCts.Token), 
+                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token), 
+                CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         }
         catch (Exception ex)
         {

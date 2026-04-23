@@ -1,7 +1,4 @@
 using System.Diagnostics;
-using System.Net;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
@@ -17,8 +14,8 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        var options = CommandLineArgs.Parse(args);
-        
+        CommandLineArgs options = CommandLineArgs.Parse(args);
+
         if (options.ShowHelp)
         {
             options.PrintUsage();
@@ -38,10 +35,10 @@ internal class Program
 
         Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.High;
 
-        var registry = new PacketRegistry(factory =>
+        PacketRegistry registry = new(factory =>
         {
-            factory.RegisterPacket<Control>();
-            factory.RegisterPacket<Handshake>();
+            _ = factory.RegisterPacket<Control>();
+            _ = factory.RegisterPacket<Handshake>();
         });
 
         try
@@ -57,6 +54,8 @@ internal class Program
                 case BenchmarkMode.Throughput:
                     await RunThroughputBenchmark(options, registry).ConfigureAwait(false);
                     break;
+                default:
+                    break;
             }
         }
         catch (Exception ex)
@@ -67,7 +66,10 @@ internal class Program
         }
 
         Console.WriteLine("\nBenchmark finished. Press any key to exit...");
-        if (!Console.IsInputRedirected) Console.ReadKey();
+        if (!Console.IsInputRedirected)
+        {
+            _ = Console.ReadKey();
+        }
     }
 
     private static void PrintHeader(CommandLineArgs options)
@@ -78,13 +80,15 @@ internal class Program
         Console.WriteLine("=====================================================");
         Console.ResetColor();
         Console.WriteLine($"Target   : {options.Host}:{options.Port}");
-        Console.WriteLine($"Mode     : {options.Mode.ToString().ToUpper()}");
+        Console.WriteLine($"Mode     : {options.Mode.ToString().ToUpper(System.Globalization.CultureInfo.CurrentCulture)}");
         Console.WriteLine($"Sessions : {options.Sessions}");
         Console.WriteLine($"Capacity : {options.Count} iterations/session");
-        
+
         if (options.Mode == BenchmarkMode.Throughput)
+        {
             Console.WriteLine($"Payload  : {options.PayloadSize} bytes");
-        
+        }
+
         Console.WriteLine($"Timeout  : {options.TimeoutMs}ms");
         Console.WriteLine("-----------------------------------------------------");
     }
@@ -93,19 +97,35 @@ internal class Program
 
     private static async Task RunPingBenchmark(CommandLineArgs options, IPacketRegistry registry)
     {
-        var sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
-        if (sessions == null) return;
+        TcpSession[]? sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
+        if (sessions == null)
+        {
+            return;
+        }
 
         try
         {
+            // Auto-handshake if key is provided
+            if (!string.IsNullOrEmpty(options.PublicKey))
+            {
+                Console.WriteLine($"[2/4] Performing authenticated handshake on {sessions.Length} sessions...");
+                Task[] handshakes = new Task[sessions.Length];
+                for (int i = 0; i < sessions.Length; i++)
+                {
+                    handshakes[i] = sessions[i].HandshakeAsync();
+                }
+                await Task.WhenAll(handshakes).ConfigureAwait(false);
+                Console.WriteLine("[OK] Handshakes completed.");
+            }
+
             if (options.Warmup > 0)
             {
-                Console.WriteLine($"[2/4] Warming up ({options.Warmup} iterations)...");
-                await Parallel.ForEachAsync(sessions, async (session, ct) =>
+                Console.WriteLine($"[W] Warming up ({options.Warmup} iterations)...");
+                await Parallel.ForEachAsync(sessions, new ParallelOptions { MaxDegreeOfParallelism = sessions.Length }, async (session, ct) =>
                 {
                     for (int i = 0; i < options.Warmup; i++)
                     {
-                        try { await session.PingAsync(options.TimeoutMs, ct).ConfigureAwait(false); } catch { }
+                        try { _ = await session.PingAsync(options.TimeoutMs, ct).ConfigureAwait(false); } catch { }
                     }
                 }).ConfigureAwait(false);
             }
@@ -115,26 +135,31 @@ internal class Program
             GC.WaitForPendingFinalizers();
 
             Console.WriteLine("[4/4] Executing benchmark...");
-            var samples = new double[options.Sessions * options.Count];
+            double[] samples = new double[options.Sessions * options.Count];
             int completed = 0;
             int failed = 0;
-            var swBench = Stopwatch.StartNew();
+            Stopwatch swBench = Stopwatch.StartNew();
 
-            await Parallel.ForAsync(0, options.Sessions, async (i, ct) =>
+            await Parallel.ForAsync(0, options.Sessions, new ParallelOptions { MaxDegreeOfParallelism = options.Sessions }, async (i, ct) =>
             {
-                var session = sessions[i];
+                TcpSession session = sessions[i];
                 for (int j = 0; j < options.Count; j++)
                 {
                     try
                     {
-                        double rtt = await session.PingAsync(options.TimeoutMs).ConfigureAwait(false);
+                        double rtt = await session.PingAsync(options.TimeoutMs, ct: ct).ConfigureAwait(false);
                         int index = Interlocked.Increment(ref completed) - 1;
-                        if (index < samples.Length) samples[index] = rtt;
+                        if (index < samples.Length)
+                        {
+                            samples[index] = rtt;
+                        }
                     }
-                    catch { Interlocked.Increment(ref failed); }
+                    catch { _ = Interlocked.Increment(ref failed); }
 
                     if (completed % 10000 == 0 && completed > 0)
+                    {
                         Console.WriteLine($"      Progress: {completed}/{samples.Length} ({(double)completed / samples.Length:P0})");
+                    }
                 }
             }).ConfigureAwait(false);
 
@@ -143,7 +168,10 @@ internal class Program
         }
         finally
         {
-            foreach (var s in sessions) s.Dispose();
+            foreach (TcpSession s in sessions)
+            {
+                s.Dispose();
+            }
         }
     }
 
@@ -152,9 +180,9 @@ internal class Program
         Console.WriteLine("[1/2] Executing Handshake Stress Test...");
         int completed = 0;
         int failed = 0;
-        var sw = Stopwatch.StartNew();
+        Stopwatch sw = Stopwatch.StartNew();
 
-        var transportOptions = new TransportOptions
+        TransportOptions transportOptions = new()
         {
             NoDelay = true,
             ConnectTimeoutMillis = options.TimeoutMs,
@@ -171,13 +199,15 @@ internal class Program
                     session = new TcpSession(transportOptions, registry);
                     await session.ConnectAsync(options.Host, options.Port, ct).ConfigureAwait(false);
                     await session.HandshakeAsync(ct).ConfigureAwait(false);
-                    Interlocked.Increment(ref completed);
+                    _ = Interlocked.Increment(ref completed);
                 }
-                catch { Interlocked.Increment(ref failed); }
+                catch { _ = Interlocked.Increment(ref failed); }
                 finally { session?.Dispose(); }
 
                 if (completed % 100 == 0 && completed > 0)
+                {
                     Console.WriteLine($"      Handshakes: {completed} (Failed: {failed})");
+                }
             }
         }).ConfigureAwait(false);
 
@@ -187,39 +217,64 @@ internal class Program
 
     private static async Task RunThroughputBenchmark(CommandLineArgs options, IPacketRegistry registry)
     {
-        var sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
-        if (sessions == null) return;
+        TcpSession[]? sessions = await ConnectSessions(options, registry).ConfigureAwait(false);
+        if (sessions == null)
+        {
+            return;
+        }
 
         try
         {
-            Console.WriteLine("[2/2] Pushing data...");
+            // Auto-handshake if key is provided
+            if (!string.IsNullOrEmpty(options.PublicKey))
+            {
+                Console.WriteLine($"[2/4] Performing authenticated handshake on {sessions.Length} sessions...");
+                Task[] handshakes = new Task[sessions.Length];
+                for (int i = 0; i < sessions.Length; i++)
+                {
+                    handshakes[i] = sessions[i].HandshakeAsync();
+                }
+                await Task.WhenAll(handshakes).ConfigureAwait(false);
+                Console.WriteLine("[OK] Handshakes completed.");
+            }
+
+            Console.WriteLine("[3/4] Pushing data...");
             int completed = 0;
             int failed = 0;
-            var payload = new byte[options.PayloadSize];
+            byte[] payload = new byte[options.PayloadSize];
             new Random().NextBytes(payload);
-            
-            var sw = Stopwatch.StartNew();
 
-            await Parallel.ForAsync(0, options.Sessions, async (i, ct) =>
+            Stopwatch sw = Stopwatch.StartNew();
+
+            await Parallel.ForAsync(0, options.Sessions, new ParallelOptions { MaxDegreeOfParallelism = options.Sessions }, async (i, ct) =>
             {
-                var session = sessions[i];
+                TcpSession session = sessions[i];
                 for (int j = 0; j < options.Count; j++)
                 {
                     try
                     {
-                        await session.SendAsync(payload, encrypt: false, ct).ConfigureAwait(false);
-                        Interlocked.Increment(ref completed);
+                        await session.SendAsync(payload, ct: ct).ConfigureAwait(false);
+                        _ = Interlocked.Increment(ref completed);
                     }
-                    catch { Interlocked.Increment(ref failed); }
+                    catch
+                    {
+                        _ = Interlocked.Increment(ref failed);
+                        break; // Stop session on failure
+                    }
                 }
             }).ConfigureAwait(false);
 
             sw.Stop();
+            Console.WriteLine("[4/4] Finalizing transmission (2s cooldown)...");
+            await Task.Delay(2000).ConfigureAwait(false);
             PrintThroughputResults(completed, failed, options.PayloadSize, sw.Elapsed);
         }
         finally
         {
-            foreach (var s in sessions) s.Dispose();
+            foreach (TcpSession s in sessions)
+            {
+                s.Dispose();
+            }
         }
     }
 
@@ -230,26 +285,29 @@ internal class Program
     private static async Task<TcpSession[]?> ConnectSessions(CommandLineArgs options, IPacketRegistry registry)
     {
         Console.WriteLine($"[1/4] Connecting {options.Sessions} sessions...");
-        var transportOptions = new TransportOptions 
-        { 
-            NoDelay = true, 
+        TransportOptions transportOptions = new()
+        {
+            NoDelay = true,
             ConnectTimeoutMillis = options.TimeoutMs,
             ServerPublicKey = options.PublicKey
         };
-        
-        var sessions = new TcpSession[options.Sessions];
-        var swTotal = Stopwatch.StartNew();
+
+        TcpSession[] sessions = new TcpSession[options.Sessions];
+        Stopwatch swTotal = Stopwatch.StartNew();
 
         try
         {
-            var connectTasks = new Task[options.Sessions];
+            Task[] connectTasks = new Task[options.Sessions];
             for (int i = 0; i < options.Sessions; i++)
             {
-                var session = new TcpSession(transportOptions, registry);
+                TcpSession session = new(transportOptions, registry);
                 sessions[i] = session;
                 connectTasks[i] = session.ConnectAsync(options.Host, options.Port);
 
-                if (i % 20 == 0 && i > 0) await Task.Delay(5).ConfigureAwait(false);
+                if (i % 20 == 0 && i > 0)
+                {
+                    await Task.Delay(5).ConfigureAwait(false);
+                }
             }
 
             await Task.WhenAll(connectTasks).ConfigureAwait(false);
@@ -261,14 +319,18 @@ internal class Program
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"[FAIL] Connection failed: {ex.Message}");
             Console.ResetColor();
-            foreach (var s in sessions) s?.Dispose();
+            foreach (TcpSession s in sessions)
+            {
+                s?.Dispose();
+            }
+
             return null;
         }
     }
 
     private static void PrintPingResults(double[] samples, int completed, int failed, TimeSpan duration)
     {
-        var validSamples = samples.Where(s => s > 0).OrderBy(s => s).ToList();
+        List<double> validSamples = [.. samples.Where(s => s > 0).OrderBy(s => s)];
         int count = validSamples.Count;
 
         if (count == 0) { Console.WriteLine("\n[ERROR] No valid samples collected."); return; }
@@ -318,7 +380,7 @@ internal class Program
     private static void PrintThroughputResults(int completed, int failed, int payloadSize, TimeSpan duration)
     {
         double pps = completed / duration.TotalSeconds;
-        double mbps = (pps * payloadSize) / (1024.0 * 1024.0);
+        double mbps = pps * payloadSize / (1024.0 * 1024.0);
         Console.WriteLine("\n" + new string('=', 60));
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine("                   THROUGHPUT RESULTS                     ");
@@ -352,36 +414,50 @@ internal class CommandLineArgs
 
     public static CommandLineArgs Parse(string[] args)
     {
-        var options = new CommandLineArgs();
+        CommandLineArgs options = new();
         for (int i = 0; i < args.Length; i++)
         {
             switch (args[i])
             {
-                case "--help":
-                case "-h": options.ShowHelp = true; break;
+                case "--help": options.ShowHelp = true; break;
+                case "-h":
                 case "--host": options.Host = args[++i]; break;
-                case "--port":
-                case "-p": options.Port = ushort.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
-                case "--sessions":
-                case "-s": options.Sessions = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
-                case "--count":
-                case "-n": options.Count = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
-                case "--timeout":
-                case "-t": options.TimeoutMs = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
-                case "--warmup": options.Warmup = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
-                case "--payload":
-                case "-b": options.PayloadSize = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
-                case "--key":
-                case "-k": options.PublicKey = args[++i]; break;
-                case "--mode":
-                case "-m":
-                    options.Mode = args[++i].ToLower() switch
+                case "-p":
+                case "--port": options.Port = ushort.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
+                case "-s":
+                case "--sessions": options.Sessions = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
+                case "-n":
+                case "--count": options.Count = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
+                case "-t":
+                case "--timeout": options.TimeoutMs = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
+                case "-b":
+                case "--payload": options.PayloadSize = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
+                case "--handshake": 
+                case "-m": 
+                case "--mode": 
+                    string modeStr = args[++i].ToLowerInvariant();
+                    options.Mode = modeStr switch
                     {
-                        "ping" => BenchmarkMode.Ping,
-                        "handshake" => BenchmarkMode.Handshake,
-                        "throughput" => BenchmarkMode.Throughput,
-                        _ => throw new ArgumentException($"Unknown mode: {args[i]}")
+                        "ping" or "0" => BenchmarkMode.Ping,
+                        "handshake" or "1" => BenchmarkMode.Handshake,
+                        "throughput" or "2" => BenchmarkMode.Throughput,
+                        _ => BenchmarkMode.Ping
                     };
+                    break;
+                case "-k":
+                case "--key":
+                case "key":
+                    options.PublicKey = args[++i];
+                    break;
+                case "--warmup": options.Warmup = int.Parse(args[++i], System.Globalization.CultureInfo.InvariantCulture); break;
+                case "--": // Skip double-dash separator often used in dotnet run
+                    break;
+                default:
+                    // If it looks like a hex key and we don't have one, take it
+                    if (args[i].Length >= 32 && string.IsNullOrEmpty(options.PublicKey) && System.Text.RegularExpressions.Regex.IsMatch(args[i], "^[0-9a-fA-F]+$"))
+                    {
+                        options.PublicKey = args[i];
+                    }
                     break;
             }
         }
