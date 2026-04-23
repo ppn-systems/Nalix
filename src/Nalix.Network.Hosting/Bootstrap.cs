@@ -4,7 +4,10 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Environment;
 using Nalix.Framework.Injection;
@@ -19,9 +22,10 @@ namespace Nalix.Network.Hosting;
 /// <summary>
 /// Provides bootstrapping and global initialization for Nalix server-side hosting.
 /// </summary>
-public static class Bootstrap
+public static partial class Bootstrap
 {
     private static readonly Lock s_lock = new();
+    private static bool s_isHighPrecisionTimerEnabled;
     private static readonly string s_serverGC = System.Runtime.GCSettings.IsServerGC ? "Server GC" : "Workstation GC";
 
     static Bootstrap()
@@ -50,11 +54,15 @@ public static class Bootstrap
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                         .CancelAllWorkers();
 
-            InstanceManager.Instance.Dispose();
-
             // Flush any pending configuration changes to disk on shutdown.
             // This ensures that if the server was running with defaults
             ConfigurationManager.Instance.Flush();
+
+            if (s_isHighPrecisionTimerEnabled && OperatingSystem.IsWindows())
+            {
+                _ = TimeEndPeriod(1);
+                s_isHighPrecisionTimerEnabled = false;
+            }
         }
     }
 
@@ -101,6 +109,30 @@ public static class Bootstrap
         // 3. Hosting specific options
         HostingOptions hostingOptions = ConfigurationManager.Instance.Get<HostingOptions>();
 
+        // 3.1. ThreadPool tuning for high-concurrency server workloads
+        if (hostingOptions.MinWorkerThreads > 0 || hostingOptions.MinCompletionPortThreads > 0)
+        {
+            ThreadPool.GetMinThreads(out int worker, out int iocp);
+            _ = ThreadPool.SetMinThreads(
+                hostingOptions.MinWorkerThreads > 0 ? hostingOptions.MinWorkerThreads : worker,
+                hostingOptions.MinCompletionPortThreads > 0 ? hostingOptions.MinCompletionPortThreads : iocp);
+        }
+
+        // 3.2. Global exception handling for production stability
+        if (hostingOptions.EnableGlobalExceptionHandling)
+        {
+            RegisterGlobalExceptionHandlers();
+        }
+
+        // 3.3. High-precision timer for low-latency networking
+        if (hostingOptions.EnableHighPrecisionTimer && OperatingSystem.IsWindows())
+        {
+            if (TimeBeginPeriod(1) == 0)
+            {
+                s_isHighPrecisionTimerEnabled = true;
+            }
+        }
+
         // Persist all server-side defaults to server.ini
         ConfigurationManager.Instance.Flush();
 
@@ -127,10 +159,57 @@ public static class Bootstrap
         Console.ResetColor();
 
         Console.WriteLine($"[INIT] Version   : {typeof(Bootstrap).Assembly.GetName().Version}");
+        Console.WriteLine($"[INIT] PID       : {Environment.ProcessId}");
         Console.WriteLine($"[INIT] OS        : {Environment.OSVersion}");
-        Console.WriteLine($"[INIT] Runtime   : {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
+        Console.WriteLine($"[INIT] Arch      : {RuntimeInformation.ProcessArchitecture}");
+        Console.WriteLine($"[INIT] Runtime   : {RuntimeInformation.FrameworkDescription}");
+        Console.WriteLine($"[INIT] Config    : {ConfigurationManager.Instance.ConfigFilePath}");
         Console.WriteLine($"[INIT] GC Mode   : {s_serverGC}");
         Console.WriteLine($"[INIT] Processors: {Environment.ProcessorCount}");
+        Console.WriteLine();
+        Console.WriteLine();
+
+        if (!System.Runtime.GCSettings.IsServerGC)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine(Resource.ServerGC);
+            Console.ResetColor();
+        }
+
         Console.WriteLine(Resource.Separator);
     }
+
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
+    private static void RegisterGlobalExceptionHandlers()
+    {
+        AppDomain.CurrentDomain.UnhandledException += static (s, e) =>
+        {
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+            if (logger != null)
+            {
+                Exception? ex = e.ExceptionObject as Exception;
+                logger?.LogCritical(ex, "[BOOTSTRAP] Unhandled exception occurred. IsTerminating: {IsTerminating}", e.IsTerminating);
+            }
+
+            if (e.IsTerminating)
+            {
+                ConfigurationManager.Instance.Flush();
+            }
+        };
+
+        TaskScheduler.UnobservedTaskException += static (s, e) =>
+        {
+            ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+            logger?.LogError(e.Exception, "[BOOTSTRAP] Unobserved task exception occurred.");
+            e.SetObserved();
+        };
+    }
+
+    [LibraryImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
+    private static partial uint TimeBeginPeriod(uint uPeriod);
+
+    [LibraryImport("winmm.dll", EntryPoint = "timeEndPeriod")]
+    private static partial uint TimeEndPeriod(uint uPeriod);
 }

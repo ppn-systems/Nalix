@@ -70,7 +70,7 @@ namespace Nalix.Network.Hosting {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to    / | / /___ _/ (_).
+        ///   Looks up a localized string similar to    / | / /___ _/ (_)  __.
         /// </summary>
         internal static string Banner2 {
             get {
@@ -111,6 +111,15 @@ namespace Nalix.Network.Hosting {
         internal static string Separator {
             get {
                 return ResourceManager.GetString("Separator", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [WARN] Server GC is NOT enabled. Performance may be degraded in high-load scenarios..
+        /// </summary>
+        internal static string ServerGC {
+            get {
+                return ResourceManager.GetString("ServerGC", resourceCulture);
             }
         }
     }
