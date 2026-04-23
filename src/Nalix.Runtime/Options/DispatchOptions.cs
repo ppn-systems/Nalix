@@ -47,7 +47,7 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Relative weights for priority levels [NONE, LOW, MEDIUM, HIGH, URGENT] (Comma-separated)")]
     public string PriorityWeights { get; set; } = "1,2,4,8,16";
-    
+
     /// <summary>
     /// Multiplier for the internal bucket count based on processor count.
     /// </summary>

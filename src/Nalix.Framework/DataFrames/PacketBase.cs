@@ -15,11 +15,13 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Configuration;
 using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Options;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Framework.DataFrames;
@@ -89,6 +91,9 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
 
     [SerializeIgnore]
     private static readonly Cache s_cache = InitializeCache();
+
+    [SerializeIgnore]
+    private static readonly bool s_enablePooling = ConfigurationManager.Instance.Get<PacketOptions>().EnablePooling;
 
     #endregion Static Cache
 
@@ -179,6 +184,23 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     }
 
     /// <summary>
+    /// Creates or rents an instance of <typeparamref name="TSelf"/>, respecting the 
+    /// <see cref="PacketOptions.EnablePooling"/> setting.
+    /// </summary>
+    /// <returns>A new or rented <typeparamref name="TSelf"/> instance.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "Factory pattern")]
+    public static TSelf Create()
+    {
+        if (s_enablePooling)
+        {
+            return InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<TSelf>();
+        }
+
+        return new TSelf();
+    }
+
+    /// <summary>
     /// Deserializes a <typeparamref name="TSelf"/> packet from <paramref name="buffer"/>
     /// using object pooling to avoid heap allocation.
     /// </summary>
@@ -199,7 +221,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     {
         VALIDATE_BUFFER_HEADER(buffer);
 
-        TSelf packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<TSelf>();
+        TSelf packet = Create();
         int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         if (bytesRead == 0)
