@@ -57,7 +57,12 @@ Adds a one-time task to the system. Returns an `IWorkerHandle` for tracking prog
 Starts a background loop. You can monitor the `LastRunUtc` and `ConsecutiveFailures` through the returned `IRecurringHandle`.
 
 ### `GenerateReport()`
-Produces a comprehensive diagnostic report (text-based) detailing CPU usage, memory footprint, and the top-50 most active/aged workers.
+Produces a comprehensive diagnostic report (text-based) detailing:
+- **Throughput**: Workers and recurring tasks processed per second (TPS).
+- **Latency**: Approximate P95 and P99 execution percentiles based on internal histogram buckets.
+- **Congestion**: `AverageWorkerWaitTime` and `PeakRunningWorkers` to identify queue pressure and resource saturation.
+- **Errors**: Real-time error counts and consecutive failure tracking.
+- **Top Activity**: Breakdown of the top-50 most active or aged workers.
 
 ## Best Practices
 

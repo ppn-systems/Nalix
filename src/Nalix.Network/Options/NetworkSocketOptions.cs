@@ -74,6 +74,13 @@ public sealed class NetworkSocketOptions : ConfigurationLoader
     public int MaxParallel { get; set; } = 5;
 
     /// <summary>
+    /// Gets or sets the maximum number of parallel connections.
+    /// </summary>
+    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 2)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel UDP must be between 1 and 1024.")]
+    public int MaxParallelUDP { get; set; } = 2;
+
+    /// <summary>
     /// Gets or sets the buffer size for both sending and receiving data.
     /// </summary>
     [IniComment("Send and receive buffer size in bytes (1024–10,485,760)")]

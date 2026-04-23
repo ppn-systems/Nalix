@@ -61,10 +61,10 @@ public interface IPoolable
 
 ### Key API Members
 
-| Method | Description |
-| :--- | :--- |
 | `Get<T>()` | Retrieves an item from the pool for type `T`. Creates a new one if the pool is empty. |
 | `Return<T>(obj)` | Resets and returns an object to the pool. |
+| `GetMultiple<T>(count)` | Retrieves a batch of items from the pool. |
+| `ReturnMultiple<T>(objs)` | Returns a collection of items to the pool. |
 | `Prealloc<T>(count)` | Force-fills the pool with a specific number of instances (useful at startup). |
 | `PerformHealthCheck()` | Identifies "unhealthy" pools (those with consistently high miss rates or leaks). |
 | `GenerateReport()` | Produces a detailed text summary of all managed pools and their metrics. |
@@ -97,7 +97,7 @@ The manager tracks several critical metrics to help tune pool capacities:
 
 ## Advanced Diagnostics
 
-Advanced diagnostics can be enabled via `ObjectPoolConfig` (usually in `default.ini` under `[ObjectPool]`). These features provide deep insight at a slight performance cost.
+Advanced diagnostics can be enabled via `ObjectPoolOptions` (usually in `default.ini` under `[ObjectPool]`). These features provide deep insight at a slight performance cost.
 
 ### Statistics Collected
 - **Lifetime (Avg/p95/Max)**: How long objects stay rented. High values might indicate slow processing segments.

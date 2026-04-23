@@ -218,6 +218,7 @@ nav:
         - Options:
           - Worker Options: api/framework/options/worker-options.md
           - Recurring Options: api/framework/options/recurring-options.md
+          - Packet Options: api/framework/options/packet-options.md
         - Packets:
           - Frame Model: api/framework/packets/frame-model.md
           - Fragmentation: api/framework/packets/fragmentation.md
@@ -299,6 +300,7 @@ nav:
           - Token Bucket Options: api/network/options/token-bucket-options.md
       - Hosting:
         - Application: api/hosting/network-application.md
+        - Hosting Options: api/hosting/hosting-options.md
       - SDK:
         - Overview: api/sdk/index.md
         - TCP Session: api/sdk/tcp-session.md

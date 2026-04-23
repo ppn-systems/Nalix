@@ -24,14 +24,16 @@ namespace Nalix.Network.Hosting;
 /// </summary>
 public static partial class Bootstrap
 {
-    private static readonly Lock s_lock = new();
+    private static readonly Lock s_lock;
+    private static readonly string s_serverGC;
     private static bool s_isHighPrecisionTimerEnabled;
-    private static readonly string s_serverGC = System.Runtime.GCSettings.IsServerGC ? "Server GC" : "Workstation GC";
 
     static Bootstrap()
     {
+        s_lock = new();
         Console.CancelKeyPress += OnProcessExit;
         AppDomain.CurrentDomain.ProcessExit += OnProcessExit;
+        s_serverGC = System.Runtime.GCSettings.IsServerGC ? "Server GC" : "Workstation GC";
     }
 
     /// <summary>

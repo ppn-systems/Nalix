@@ -26,14 +26,14 @@ public abstract partial class UdpListenerBase
     protected virtual void Initialize()
     {
         // Determine address family from configuration.
-        AddressFamily af = s_connectionLimitOptions.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
-        IPAddress bindAddress = s_connectionLimitOptions.EnableIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
+        AddressFamily af = s_options.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
+        IPAddress bindAddress = s_options.EnableIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
 
         _socket = new Socket(af, SocketType.Dgram, ProtocolType.Udp);
 
         // IPv6 dual-mode allows the socket to accept both IPv4 and IPv6 datagrams
         // on a single binding when the OS supports it.
-        if (af == AddressFamily.InterNetworkV6 && s_connectionLimitOptions.DualMode)
+        if (af == AddressFamily.InterNetworkV6 && s_options.DualMode)
         {
             try { _socket.DualMode = true; }
             catch { /* Not supported on all platforms */ }
@@ -50,7 +50,7 @@ public abstract partial class UdpListenerBase
 
         s_logger?.Debug(
             $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
-            $"init-ok port={_port} af={af} reuse={s_connectionLimitOptions.ReuseAddress} buf={s_connectionLimitOptions.BufferSize}");
+            $"init-ok port={_port} af={af} reuse={s_options.ReuseAddress} buf={s_options.BufferSize}");
     }
 
     /// <summary>
@@ -76,11 +76,11 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(socket, nameof(socket));
 
         socket.Blocking = false;
-        socket.ExclusiveAddressUse = !s_connectionLimitOptions.ReuseAddress;
-        socket.SendBufferSize = s_connectionLimitOptions.BufferSize;
-        socket.ReceiveBufferSize = s_connectionLimitOptions.BufferSize;
+        socket.ExclusiveAddressUse = !s_options.ReuseAddress;
+        socket.SendBufferSize = s_options.BufferSize;
+        socket.ReceiveBufferSize = s_options.BufferSize;
 
-        if (s_connectionLimitOptions.ReuseAddress)
+        if (s_options.ReuseAddress)
         {
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         }
