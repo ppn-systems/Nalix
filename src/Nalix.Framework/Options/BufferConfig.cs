@@ -123,7 +123,7 @@ public sealed class BufferConfig : ConfigurationLoader
     [IniComment("Semicolon-separated size,ratio pairs for pool allocation (e.g. 1024,0.25; 4096,0.15)\nSizes must be strictly increasing and ratios must sum to <= 1.0")]
     [Required(ErrorMessage = "BufferAllocations is required.")]
     [MinLength(1, ErrorMessage = "BufferAllocations cannot be empty.")]
-    public string BufferAllocations { get; set; } = "256,0.15; 512,0.10; 1024,0.10; 2048,0.10; 4096,0.10; 8192,0.10; 16384,0.35";
+    public string BufferAllocations { get; set; } = "256,0.15; 1024,0.10; 2048,0.10; 4096,0.10; 8192,0.10; 16384,0.35; 32768,0.10";
 
     /// <summary>
     /// Maximum memory in bytes that buffer pools can use. 0 means no limit.
