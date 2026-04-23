@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -16,7 +17,9 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Extensions;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Serialization;
 
 namespace Nalix.Framework.DataFrames;
@@ -30,8 +33,19 @@ namespace Nalix.Framework.DataFrames;
 /// </para>
 /// </summary>
 /// <typeparam name="TSelf">The concrete packet type.</typeparam>
-public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>, new()
+public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, IReportable, IPacketDeserializer<TSelf>, IDisposable where TSelf : PacketBase<TSelf>, new()
 {
+    #region Fields
+
+    /// <summary>
+    /// Indicates whether this packet was rented from a pool and should be returned on disposal.
+    /// 1 = Rented, 0 = Available/Returned.
+    /// </summary>
+    [SerializeIgnore]
+    private int _isRented;
+
+    #endregion Fields
+
     #region Static Cache
 
     /// <summary>
@@ -185,7 +199,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     {
         VALIDATE_BUFFER_HEADER(buffer);
 
-        TSelf packet = new();
+        TSelf packet = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<TSelf>();
         int bytesRead = LiteSerializer.Deserialize(buffer, ref packet);
 
         if (bytesRead == 0)
@@ -202,63 +216,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
         }
 
         return packet;
-    }
-
-    /// <inheritdoc/>    
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="buffer"/> is empty.
-    /// </exception>
-    /// <exception cref="InvalidOperationException">
-    /// Thrown when deserialization reads zero bytes or no formatter is available for the packet type.
-    /// </exception>
-    /// <exception cref="SerializationFailureException">
-    /// Thrown when the payload is malformed or does not contain enough data to deserialize the packet.
-    /// </exception>
-    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "<Pending>")]
-    public static TSelf Deserialize(ReadOnlySpan<byte> buffer, ref TSelf value)
-    {
-        VALIDATE_BUFFER_HEADER(buffer);
-
-        int bytesRead = LiteSerializer.Deserialize(buffer, ref value);
-        if (bytesRead == 0)
-        {
-            throw new InvalidOperationException(
-                $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={buffer.Length}.");
-        }
-
-        if (bytesRead < buffer.Length)
-        {
-            throw new SerializationFailureException(
-                $"Deserialize incomplete: type={typeof(TSelf).Name}, bytesRead={bytesRead}, expected={buffer.Length}. " +
-                "Potential payload corruption or trailing unconsumed data.");
-        }
-
-        return value;
-    }
-
-    /// <summary>
-    /// Initializes the current packet instance with data from the provided buffer.
-    /// This method is optimized for pooling and guarantees that the instance identity is preserved.
-    /// </summary>
-    /// <param name="buffer">The buffer containing serialized packet data.</param>
-    /// <returns>The number of bytes read from the buffer.</returns>
-    /// <exception cref="SerializationFailureException">Thrown if deserialization fails.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal int Initialize(ReadOnlySpan<byte> buffer)
-    {
-        VALIDATE_BUFFER_HEADER(buffer);
-
-        TSelf @this = (TSelf)this;
-        int bytesRead = LiteSerializer.Deserialize(buffer, ref @this);
-
-        if (bytesRead <= 0)
-        {
-            throw new SerializationFailureException(
-                $"Initialize failed for {typeof(TSelf).Name}: bytesRead={bytesRead}. " +
-                "The deserializer returned zero bytes during an in-place population attempt.");
-        }
-
-        return bytesRead;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -288,6 +245,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override void ResetForPool()
     {
+        Volatile.Write(ref _isRented, 0);
+
         // Reset all user-defined serializable properties via compiled delegates.
         // No GetCustomAttribute calls in this path.
         foreach (PropertyMetadata meta in s_metadata.Value)
@@ -307,6 +266,40 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IReportable, IPa
 
         // Restore type identity — never reset to 0.
         this.MagicNumber = s_autoMagic;
+
+        // Reset the rental flag so it doesn't immediately return itself when put back in pool.
+        Volatile.Write(ref _isRented, 0);
+    }
+
+    /// <inheritdoc/>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void OnRent() => Volatile.Write(ref _isRented, 1);
+
+    /// <summary>
+    /// Marks the current packet as rented, ensuring it will be returned to the pool upon disposal.
+    /// </summary>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Obsolete("Use OnRent or let the pool manager handle it automatically.")]
+    public void MarkAsRented() => this.OnRent();
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Dispose()
+    {
+        // Atomically check and clear the rented flag to ensure we only return to pool once.
+        if (Interlocked.Exchange(ref _isRented, 0) == 1)
+        {
+            // Reset state before returning to pool
+            this.ResetForPool();
+
+            // Use the concrete type TSelf to call the fast generic Return path.
+            InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                    .Return((TSelf)this);
+        }
+
+        GC.SuppressFinalize(this);
     }
 
     #endregion APIs

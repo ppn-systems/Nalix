@@ -22,3 +22,18 @@ public interface IPoolable
     /// </remarks>
     void ResetForPool();
 }
+
+/// <summary>
+/// Defines a contract for objects that need to be notified when they are rented from a pool.
+/// </summary>
+public interface IPoolRentable : IPoolable
+{
+    /// <summary>
+    /// Notifies the object that it has been rented from the pool.
+    /// </summary>
+    /// <remarks>
+    /// This method is called automatically by the pool manager immediately after an object
+    /// is retrieved from the pool or newly created.
+    /// </remarks>
+    void OnRent();
+}

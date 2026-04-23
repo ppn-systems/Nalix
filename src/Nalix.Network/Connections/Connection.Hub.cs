@@ -404,7 +404,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             try
             {
-                connection.Disconnect(reason);
+                connection.Dispose();
             }
             catch (Exception ex)
             {
@@ -751,6 +751,15 @@ public sealed class ConnectionHub : IConnectionHub
         IConnection removedConnection = existing ?? connection;
         removedConnection.OnCloseEvent -= this.OnClientDisconnected;
         _ = Interlocked.Decrement(ref _count);
+
+        try
+        {
+            removedConnection.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] dispose-error id={removedConnection.ID}");
+        }
 
         if (_logger?.IsEnabled(LogLevel.Trace) == true)
         {

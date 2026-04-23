@@ -175,31 +175,4 @@ public sealed class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Allow global clock synchronization from this session (recommended: true for trusted servers)")]
     public bool TimeSyncEnabled { get; set; } = true;
-
-    /// <summary>
-    /// Validates the configuration options and throws an exception if validation fails.
-    /// </summary>
-    /// <exception cref="ValidationException">
-    /// Thrown when one or more validation attributes fail.
-    /// </exception>
-    public void Validate()
-    {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
-
-        if (this.ReconnectBaseDelayMillis > this.ReconnectMaxDelayMillis)
-        {
-            throw new ValidationException("ReconnectBaseDelayMillis cannot be greater than ReconnectMaxDelayMillis.");
-        }
-
-        if (this.BufferSize is < 1024 or > 1048576)
-        {
-            throw new ValidationException("BufferSize must be between 1024 and 1048576 bytes.");
-        }
-
-        if (this.ResumeTimeoutMillis < 100)
-        {
-            throw new ValidationException("ResumeTimeoutMillis must be at least 100.");
-        }
-    }
 }

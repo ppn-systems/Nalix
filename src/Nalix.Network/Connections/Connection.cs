@@ -299,6 +299,33 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                         .Return(this.UdpTransport);
             }
+
+            // Return local pooled objects to global pool to prevent "leak" when connection is destroyed.
+            // Without this, every connection "steals" 8 args and 8 contexts from the global pool forever.
+            ConnectionEventArgs[]? argsPool = Interlocked.Exchange(ref _argsPool, null);
+            if (argsPool != null)
+            {
+                for (int i = 0; i < argsPool.Length; i++)
+                {
+                    if (argsPool[i] != null)
+                    {
+                        // Use the default constructor-initialized state to ensure it goes to global pool
+                        argsPool[i].Dispose();
+                    }
+                }
+            }
+
+            PooledConnectEventContext[]? ctxPool = Interlocked.Exchange(ref _contextPool, null);
+            if (ctxPool != null)
+            {
+                for (int i = 0; i < ctxPool.Length; i++)
+                {
+                    if (ctxPool[i] != null)
+                    {
+                        ctxPool[i].Dispose();
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -347,17 +374,18 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     internal bool ReturnEventArgsInternal(ConnectionEventArgs args)
     {
-        if (_argsPool == null)
+        ConnectionEventArgs[]? pool = _argsPool;
+        if (pool == null)
         {
             return false;
         }
 
         for (int i = 0; i < 8; i++)
         {
-            if (ReferenceEquals(_argsPool[i], args))
+            if (ReferenceEquals(pool[i], args))
             {
                 long bit = 1L << i;
-                _argsPool[i].ResetForPool();
+                pool[i].ResetForPool();
                 _ = Interlocked.And(ref _argsPoolMask, ~bit);
                 return true;
             }
@@ -402,17 +430,18 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     internal void ReturnContextInternal(PooledConnectEventContext context)
     {
-        if (_contextPool == null)
+        PooledConnectEventContext[]? pool = _contextPool;
+        if (pool == null)
         {
             return;
         }
 
         for (int i = 0; i < 8; i++)
         {
-            if (ReferenceEquals(_contextPool[i], context))
+            if (ReferenceEquals(pool[i], context))
             {
                 long bit = 1L << i;
-                _contextPool[i].ResetForPool();
+                pool[i].ResetForPool();
                 _ = Interlocked.And(ref _contextPoolMask, ~bit);
                 return;
             }
@@ -428,6 +457,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     {
         if (Interlocked.Exchange(ref _closeSignaled, 1) != 0)
         {
+            e.Dispose();
             return;
         }
 

@@ -284,7 +284,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         catch
         {
-            context.Return();
+            context.Dispose();
             throw;
         }
 
@@ -297,23 +297,19 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
             finally
             {
-                context.Return();
+                context.Dispose();
             }
 
             return ValueTask.CompletedTask;
         }
 
-        return AwaitAndReturnAsync(pending, context);
+        return AwaitAndDisposeAsync(pending, context);
 
-        static async ValueTask AwaitAndReturnAsync(ValueTask operation, PacketContext<TPacket> pooledContext)
+        static async ValueTask AwaitAndDisposeAsync(ValueTask operation, PacketContext<TPacket> pooledContext)
         {
-            try
+            using (pooledContext)
             {
                 await operation.ConfigureAwait(false);
-            }
-            finally
-            {
-                pooledContext.Return();
             }
         }
     }

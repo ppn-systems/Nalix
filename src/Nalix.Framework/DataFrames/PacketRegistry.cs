@@ -33,13 +33,6 @@ public sealed class PacketRegistry : IPacketRegistry
     #region Fields
 
     private readonly FrozenDictionary<uint, PacketDeserializer> _deserializers;
-    private readonly FrozenDictionary<uint, PacketDeserializerInto<IPacket>> _deserializersInto;
-
-    // Per-magic rent/return delegates built once at catalog creation time.
-    // Func<IPacket>: rents a pooled instance (calls s_objectPool.Get<TPacket>()).
-    // Action<IPacket>: returns it (calls s_objectPool.Return<TPacket>()).
-    // Both are static/captured-once — zero allocation per call on the hot path.
-    private readonly FrozenDictionary<uint, (Func<IPacket> Rent, Action<IPacket> Return)> _poolOps;
 
     #endregion Fields
 
@@ -58,32 +51,7 @@ public sealed class PacketRegistry : IPacketRegistry
     public PacketRegistry(FrozenDictionary<uint, PacketDeserializer> deserializers)
     {
         ArgumentNullException.ThrowIfNull(deserializers);
-
         _deserializers = deserializers;
-        _deserializersInto = BUILD_INTO_DESERIALIZERS(deserializers);
-        _poolOps = FrozenDictionary<uint, (Func<IPacket>, Action<IPacket>)>.Empty;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PacketRegistry"/> class using
-    /// pre-built frozen lookup tables, including deserializers that support
-    /// writing into an existing packet reference.
-    /// </summary>
-    /// <param name="deserializers">A frozen dictionary mapping magic numbers to regular deserializers.</param>
-    /// <param name="deserializersInto">A frozen dictionary mapping magic numbers to reference-aware deserializers.</param>
-    /// <param name="poolOps"></param>
-    /// <exception cref="ArgumentNullException">Thrown when either argument is <see langword="null"/>.</exception>
-    internal PacketRegistry(
-        FrozenDictionary<uint, PacketDeserializer> deserializers,
-        FrozenDictionary<uint, PacketDeserializerInto<IPacket>> deserializersInto,
-        FrozenDictionary<uint, (Func<IPacket> Rent, Action<IPacket> Return)>? poolOps = null)
-    {
-        ArgumentNullException.ThrowIfNull(deserializers);
-        ArgumentNullException.ThrowIfNull(deserializersInto);
-
-        _deserializers = deserializers;
-        _deserializersInto = deserializersInto;
-        _poolOps = poolOps ?? FrozenDictionary<uint, (Func<IPacket>, Action<IPacket>)>.Empty;
     }
 
     /// <summary>
@@ -107,8 +75,6 @@ public sealed class PacketRegistry : IPacketRegistry
         PacketRegistry built = factory.CreateCatalog();
 
         _deserializers = built._deserializers;
-        _deserializersInto = built._deserializersInto;
-        _poolOps = built._poolOps;
     }
 
     #endregion Constructors
@@ -159,45 +125,6 @@ public sealed class PacketRegistry : IPacketRegistry
     }
 
     /// <inheritdoc/>
-    /// <exception cref="ArgumentException">Thrown when a registered deserializer attempts to read a malformed packet header.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when deserialized type does not match <typeparamref name="TPacket"/>.</exception>
-    public TPacket Deserialize<TPacket>(ReadOnlySpan<byte> raw, ref TPacket value) where TPacket : IPacket
-    {
-        if (this.TryDeserialize(raw, ref value))
-        {
-            return value;
-        }
-
-        if (raw.Length < PacketConstants.HeaderSize)
-        {
-            throw new ArgumentException(
-                $"Raw packet data is too short to contain a valid header. " +
-                $"Expected at least {PacketConstants.HeaderSize} bytes, but got {raw.Length}.", nameof(raw));
-        }
-
-        uint magic = raw.ReadMagicNumberLE();
-
-        if (!_deserializersInto.TryGetValue(magic, out PacketDeserializerInto<IPacket>? deserializerInto))
-        {
-            throw new InvalidOperationException(
-                $"Cannot deserialize packet: Magic 0x{magic:X8} is not registered. " +
-                $"Check your PacketRegistryFactory configuration.");
-        }
-
-        IPacket packet = value;
-        IPacket resolved = deserializerInto(raw, ref packet);
-
-        if (resolved is not TPacket typed)
-        {
-            throw new InvalidOperationException(
-                $"Deserialized packet type mismatch. Expected '{typeof(TPacket).FullName}', actual '{resolved.GetType().FullName}'.");
-        }
-
-        value = typed;
-        return typed;
-    }
-
-    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
     {
@@ -218,132 +145,5 @@ public sealed class PacketRegistry : IPacketRegistry
         return packet is not null;
     }
 
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool TryDeserialize<TPacket>(ReadOnlySpan<byte> raw, ref TPacket value) where TPacket : IPacket
-    {
-        if (raw.Length < PacketConstants.HeaderSize)
-        {
-            return false;
-        }
-
-        uint magic = raw.ReadMagicNumberLE();
-        if (!_deserializersInto.TryGetValue(magic, out PacketDeserializerInto<IPacket>? deserializer) || deserializer is null)
-        {
-            return false;
-        }
-
-        IPacket packet = value;
-        IPacket resolved = deserializer(raw, ref packet);
-
-        if (resolved is not TPacket typed)
-        {
-            return false;
-        }
-
-        value = typed;
-        return true;
-    }
-
     #endregion Public API
-
-    #region Private Helpers
-
-    private static FrozenDictionary<uint, PacketDeserializerInto<IPacket>> BUILD_INTO_DESERIALIZERS(
-        FrozenDictionary<uint, PacketDeserializer> deserializers)
-    {
-        Dictionary<uint, PacketDeserializerInto<IPacket>> map = new(deserializers.Count);
-
-        foreach (KeyValuePair<uint, PacketDeserializer> pair in deserializers)
-        {
-            PacketDeserializer fallback = pair.Value;
-            map[pair.Key] = (raw, ref value) =>
-            {
-                IPacket packet = fallback(raw);
-                value = packet;
-                return packet;
-            };
-        }
-
-        return FrozenDictionary.ToFrozenDictionary(map);
-    }
-
-    #endregion Private Helpers
-
-    #region Pooled Deserialize API
-
-    /// <inheritdoc/>
-    /// <remarks>
-    /// Rents a pooled instance via <c>_poolOps[magic].Rent()</c>, then fills it in-place
-    /// via <see cref="_deserializersInto"/> — no <c>new()</c> on the hot path.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool TryDeserializePooled(
-        ReadOnlySpan<byte> raw,
-        [NotNullWhen(true)] out IPacket? packet)
-    {
-        if (raw.Length < PacketConstants.HeaderSize)
-        {
-            packet = null;
-            return false;
-        }
-
-        uint magic = raw.ReadMagicNumberLE();
-
-        if (!_deserializersInto.TryGetValue(magic, out PacketDeserializerInto<IPacket>? deserializerInto)
-            || deserializerInto is null)
-        {
-            packet = null;
-            return false;
-        }
-
-        // Fast path: pool ops available for this type — rent + fill.
-        if (_poolOps.TryGetValue(magic, out (Func<IPacket> Rent, Action<IPacket> Return) ops))
-        {
-            IPacket rented = ops.Rent();   // pool.Get<TPacket>() — no new()
-            IPacket current = rented;
-            try
-            {
-                // The trampoline now returns the actual data-populated instance (Instance B).
-                current = deserializerInto(raw, ref current);
-
-                // IDENTITY SWAP: If the deserializer layer substituted the instance (A -> B),
-                // we must return the original rented instance (A) to the pool immediately.
-                if (!ReferenceEquals(rented, current))
-                {
-                    ops.Return(rented);
-                }
-
-                packet = current;
-                return true;
-            }
-            catch
-            {
-                // Guaranteed return of the original rented instance on catastrophic failure.
-                ops.Return(rented);
-                throw;
-            }
-        }
-
-        // Fallback: no pool ops (e.g. created from raw FrozenDict ctor) — plain deserialize.
-        IPacket fallback = _deserializersInto[magic](raw, ref Unsafe.NullRef<IPacket>());
-        packet = fallback;
-        return packet is not null;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void ReturnPacket(IPacket packet)
-    {
-        ArgumentNullException.ThrowIfNull(packet);
-
-        uint magic = packet.MagicNumber;
-        if (_poolOps.TryGetValue(magic, out (Func<IPacket> Rent, Action<IPacket> Return) ops))
-        {
-            ops.Return(packet);
-        }
-        // If no pool ops: let GC collect (non-pooled registry path).
-    }
-
-    #endregion Pooled Deserialize API
 }
