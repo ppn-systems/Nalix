@@ -254,7 +254,32 @@ public sealed class NetworkApplication : IActivatableAsync
     /// <inheritdoc />
     public void Dispose()
     {
-        this.DeactivateAsync(CancellationToken.None).GetAwaiter().GetResult();
+        Task deactivateTask = this.DeactivateAsync(CancellationToken.None);
+
+        if (deactivateTask.IsCompleted)
+        {
+            if (deactivateTask.Exception?.GetBaseException() is Exception ex)
+            {
+                _logger.Warn("Failed to stop Nalix application during dispose. {Ex}", ex);
+            }
+        }
+        else
+        {
+            _ = deactivateTask.ContinueWith(static (task, state) =>
+            {
+                if (state is not ILogger logger)
+                {
+                    return;
+                }
+
+                Exception? ex = task.Exception?.GetBaseException();
+                if (ex is not null)
+                {
+                    logger.Warn("Failed to stop Nalix application during deferred dispose. {Ex}", ex);
+                }
+            }, _logger, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+        }
+
         GC.SuppressFinalize(this);
     }
 

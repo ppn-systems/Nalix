@@ -45,6 +45,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     private readonly ConcurrentDictionary<uint, WindowSlot> _ipv4Map;
     private readonly ConcurrentDictionary<string, WindowSlot> _ipv6Map;
     private readonly CancellationTokenSource _cts;
+    private readonly Task _cleanupTask;
     private ILogger? _logger;
     private int _disposed;
 
@@ -67,7 +68,20 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             concurrency, capacity: 64, StringComparer.Ordinal);
 
         _cts = new CancellationTokenSource();
-        _ = Task.Run(() => this.CleanupLoopAsync(_cts.Token));
+        _cleanupTask = this.CleanupLoopAsync(_cts.Token);
+        _ = _cleanupTask.ContinueWith(static (task, state) =>
+        {
+            if (state is not DatagramGuard self)
+            {
+                return;
+            }
+
+            Exception? ex = task.Exception?.GetBaseException();
+            if (ex is not null && Volatile.Read(ref self._disposed) == 0)
+            {
+                self._logger?.Error($"[NW.{nameof(DatagramGuard)}] cleanup-loop-faulted", ex);
+            }
+        }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
     /// <inheritdoc/>
@@ -250,6 +264,11 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             _cts.Dispose();
             _ipv4Map.Clear();
             _ipv6Map.Clear();
+
+            if (_cleanupTask.IsCompleted && _cleanupTask.Exception?.GetBaseException() is Exception ex)
+            {
+                _logger?.Debug($"[NW.{nameof(DatagramGuard)}] cleanup-task-completed-with-error during dispose", ex);
+            }
         }
     }
 }

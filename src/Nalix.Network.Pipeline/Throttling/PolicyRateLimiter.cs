@@ -75,6 +75,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         private long _lastUsedUtcTicks;
         private int _activeUsers;
         private int _disposed;
+        private int _disposeFinalized;
         private readonly ManualResetEventSlim _idleSignal = new(true);
 
         public TokenBucketLimiter Limiter { get; }
@@ -169,10 +170,45 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                 return;
             }
 
-            const int maxWaitMs = 500;
-            _ = _idleSignal.Wait(maxWaitMs);
+            if (Volatile.Read(ref _activeUsers) == 0)
+            {
+                this.FINALIZE_DISPOSE();
+                return;
+            }
 
-            int remainingUsers = Volatile.Read(ref _activeUsers);
+            _ = ThreadPool.UnsafeQueueUserWorkItem(
+                static (Entry state) => state.WAIT_FOR_IDLE_AND_DISPOSE(),
+                this,
+                preferLocal: false);
+        }
+
+        private void WAIT_FOR_IDLE_AND_DISPOSE()
+        {
+            const int maxWaitMs = 500;
+
+            try
+            {
+                if (!_idleSignal.Wait(maxWaitMs))
+                {
+                    _logger?.Warn(
+                        $"[NW.{nameof(PolicyRateLimiter)}:Entry] " +
+                        $"dispose-timeout active-users={Volatile.Read(ref _activeUsers)}");
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Dispose already completed on another path.
+            }
+
+            this.FINALIZE_DISPOSE();
+        }
+
+        private void FINALIZE_DISPOSE()
+        {
+            if (Interlocked.CompareExchange(ref _disposeFinalized, 1, 0) != 0)
+            {
+                return;
+            }
 
             try
             {
@@ -405,7 +441,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         int disposedCount = 0;
         int totalCount = _limiters.Count;
-        using ManualResetEventSlim drainSignal = new(true);
 
         const int maxAttempts = 10;
         int attempt = 0;
@@ -432,7 +467,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
             if (!_limiters.IsEmpty)
             {
-                _ = drainSignal.Wait(50);
+                Thread.Yield();
             }
         }
 

@@ -174,9 +174,36 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
         }
 
         this.TERMINATE_SYNC_LOOP();
-        _ = _stoppedSignal.Wait(TimeSpan.FromMilliseconds(50));
 
-        this.INITIALIZE_SYNC_LOOP();
+        if (_stoppedSignal.IsSet)
+        {
+            this.INITIALIZE_SYNC_LOOP();
+            return;
+        }
+
+        _ = ThreadPool.UnsafeQueueUserWorkItem(static state =>
+        {
+            if (state is not TimeSynchronizer self)
+            {
+                return;
+            }
+
+            try
+            {
+                if (self._stoppedSignal.Wait(TimeSpan.FromMilliseconds(50)))
+                {
+                    self.INITIALIZE_SYNC_LOOP();
+                }
+                else
+                {
+                    s_logger?.Warn($"[NW.{nameof(TimeSynchronizer)}] restart-timeout waiting for previous loop to stop");
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // Dispose won the race.
+            }
+        }, this, preferLocal: false);
     }
 
     #endregion APIs
@@ -193,11 +220,38 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
         this.Deactivate();
 
-        // Wait for the background loop to finish before disposing the signal
-        _ = _stoppedSignal.Wait(TimeSpan.FromSeconds(2));
-
         TimeSynchronized = null;
-        _stoppedSignal.Dispose();
+
+        if (_stoppedSignal.IsSet)
+        {
+            _stoppedSignal.Dispose();
+        }
+        else
+        {
+            _ = ThreadPool.UnsafeQueueUserWorkItem(static state =>
+            {
+                if (state is not TimeSynchronizer self)
+                {
+                    return;
+                }
+
+                try
+                {
+                    if (self._stoppedSignal.Wait(TimeSpan.FromSeconds(2)))
+                    {
+                        self._stoppedSignal.Dispose();
+                    }
+                    else
+                    {
+                        s_logger?.Warn($"[NW.{nameof(TimeSynchronizer)}] dispose-timeout waiting for loop shutdown");
+                    }
+                }
+                catch (ObjectDisposedException)
+                {
+                    // Signal already disposed.
+                }
+            }, this, preferLocal: false);
+        }
 
         GC.SuppressFinalize(this);
 
