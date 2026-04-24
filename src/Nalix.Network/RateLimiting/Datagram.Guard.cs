@@ -42,10 +42,16 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     // Using IPAddress as keys incurs heap allocation; raw uint is faster. 
     // IPv6 fallback uses string.GetHashCode(), handled separately below.
     private readonly int _maxPacketsPerSecond;
+    private readonly int _maxTrackedIPv4Windows;
+    private readonly int _maxTrackedIPv6Windows;
+    private readonly TimeSpan _cleanupInterval;
+    private readonly uint _staleWindowThresholdSeconds;
+
+    private readonly Task _cleanupTask;
+    private readonly CancellationTokenSource _cts;
     private readonly ConcurrentDictionary<uint, WindowSlot> _ipv4Map;
     private readonly ConcurrentDictionary<string, WindowSlot> _ipv6Map;
-    private readonly CancellationTokenSource _cts;
-    private readonly Task _cleanupTask;
+
     private ILogger? _logger;
     private int _disposed;
 
@@ -57,15 +63,32 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     /// Initializes a new instance of <see cref="DatagramGuard"/>.
     /// </summary>
     /// <param name="maxPacketsPerSecond">The maximum number of accepted packets per second per IP address. Defaults to 1000.</param>
-    public DatagramGuard(int maxPacketsPerSecond = 1000)
+    /// <param name="maxTrackedIPv4Windows">The maximum number of IPv4 source windows tracked at once.</param>
+    /// <param name="maxTrackedIPv6Windows">The maximum number of IPv6 source windows tracked at once.</param>
+    /// <param name="cleanupInterval">How often stale source windows are purged.</param>
+    /// <param name="staleWindowThreshold">How long an inactive source window is retained before eviction.</param>
+    /// <param name="initialIPv4Capacity">Initial capacity for the IPv4 source window map.</param>
+    /// <param name="initialIPv6Capacity">Initial capacity for the IPv6 source window map.</param>
+    public DatagramGuard(
+        int maxPacketsPerSecond = 1000,
+        int maxTrackedIPv4Windows = 65_536,
+        int maxTrackedIPv6Windows = 16_384,
+        TimeSpan? cleanupInterval = null,
+        TimeSpan? staleWindowThreshold = null,
+        int initialIPv4Capacity = 1024,
+        int initialIPv6Capacity = 64)
     {
-        _maxPacketsPerSecond = maxPacketsPerSecond;
+        _maxPacketsPerSecond = Math.Max(1, maxPacketsPerSecond);
+        _maxTrackedIPv4Windows = Math.Max(1, maxTrackedIPv4Windows);
+        _maxTrackedIPv6Windows = Math.Max(1, maxTrackedIPv6Windows);
+        _cleanupInterval = NormalizePositive(cleanupInterval, TimeSpan.FromMinutes(1));
+        _staleWindowThresholdSeconds = (uint)Math.Max(1, (int)NormalizePositive(staleWindowThreshold, TimeSpan.FromSeconds(10)).TotalSeconds);
 
-        // Capacity hint to avoid early resizes, concurrencyLevel = number of CPU cores
+        // Capacity hint to avoid early resizes, concurrencyLevel = number of CPU cores.
         int concurrency = Environment.ProcessorCount;
-        _ipv4Map = new ConcurrentDictionary<uint, WindowSlot>(concurrency, capacity: 1024);
+        _ipv4Map = new ConcurrentDictionary<uint, WindowSlot>(concurrency, Math.Max(1, initialIPv4Capacity));
         _ipv6Map = new ConcurrentDictionary<string, WindowSlot>(
-            concurrency, capacity: 64, StringComparer.Ordinal);
+            concurrency, Math.Max(1, initialIPv6Capacity), StringComparer.Ordinal);
 
         _cts = new CancellationTokenSource();
         _cleanupTask = this.CleanupLoopAsync(_cts.Token);
@@ -105,10 +128,8 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             return false;
         }
 
-        // Use Environment.TickCount64 / 1000 to obtain a "second token".
-        // Shifting by 10 (>> 10) is roughly equivalent to division by 1024 ms—this is faster than direct division but has ~2.4% error.
-        // Use / 1000 for exact precision if strictly required.
-        uint currentSecond = (uint)(Environment.TickCount64 >> 10);
+        // Use a real 1000 ms second window so configured PPS limits are precise.
+        uint currentSecond = (uint)(Environment.TickCount64 / 1000);
 
         return endPoint.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
             ? this.TryAcceptIPv4(endPoint.Address, currentSecond)
@@ -123,7 +144,16 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         uint key = (uint)address.Address; // Obsolete API, but fastest path for IPv4
 #pragma warning restore CS0618
 
-        WindowSlot slot = _ipv4Map.GetOrAdd(key, static _ => new WindowSlot());
+        if (!_ipv4Map.TryGetValue(key, out WindowSlot? slot))
+        {
+            if (_ipv4Map.Count >= _maxTrackedIPv4Windows)
+            {
+                return false;
+            }
+
+            slot = _ipv4Map.GetOrAdd(key, static _ => new WindowSlot());
+        }
+
         return this.CasAccept(slot, currentSecond);
     }
 
@@ -132,7 +162,16 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     {
         // For IPv6, use the address as a string key (less common for UDP DDoS scenarios)
         string key = address.ToString();
-        WindowSlot slot = _ipv6Map.GetOrAdd(key, static _ => new WindowSlot());
+        if (!_ipv6Map.TryGetValue(key, out WindowSlot? slot))
+        {
+            if (_ipv6Map.Count >= _maxTrackedIPv6Windows)
+            {
+                return false;
+            }
+
+            slot = _ipv6Map.GetOrAdd(key, static _ => new WindowSlot());
+        }
+
         return this.CasAccept(slot, currentSecond);
     }
 
@@ -185,13 +224,12 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     /// <param name="token">Cancellation token for loop termination.</param>
     private async Task CleanupLoopAsync(CancellationToken token)
     {
-        TimeSpan cleanupInterval = TimeSpan.FromMinutes(1);
 
         while (!token.IsCancellationRequested)
         {
             try
             {
-                await Task.Delay(cleanupInterval, token).ConfigureAwait(false);
+                await Task.Delay(_cleanupInterval, token).ConfigureAwait(false);
                 this.EvictStaleWindows();
             }
             catch (OperationCanceledException) { break; }
@@ -207,43 +245,23 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     /// </summary>
     private void EvictStaleWindows()
     {
-        uint currentSecond = (uint)(Environment.TickCount64 >> 10);
-        const uint staleThreshold = 10; // Inactivity threshold: ~10 seconds
+        uint currentSecond = (uint)(Environment.TickCount64 / 1000);
+        uint staleThreshold = _staleWindowThresholdSeconds;
         int removed = 0;
-
-        // Reuse list with capacity hints for efficiency.
-        List<uint> toRemoveV4 = new((_ipv4Map.Count / 4) + 1);
-        List<string> toRemoveV6 = new((_ipv6Map.Count / 4) + 1);
 
         foreach ((uint key, WindowSlot? slot) in _ipv4Map)
         {
             uint slotSecond = (uint)(Volatile.Read(ref slot.Packed) >> SecondShift);
-            if ((currentSecond - slotSecond) > staleThreshold)
+            if ((currentSecond - slotSecond) > staleThreshold && _ipv4Map.TryRemove(key, out _))
             {
-                toRemoveV4.Add(key);
+                removed++;
             }
         }
 
         foreach ((string? key, WindowSlot? slot) in _ipv6Map)
         {
             uint slotSecond = (uint)(Volatile.Read(ref slot.Packed) >> SecondShift);
-            if ((currentSecond - slotSecond) > staleThreshold)
-            {
-                toRemoveV6.Add(key);
-            }
-        }
-
-        foreach (uint key in toRemoveV4)
-        {
-            if (_ipv4Map.TryRemove(key, out _))
-            {
-                removed++;
-            }
-        }
-
-        foreach (string key in toRemoveV6)
-        {
-            if (_ipv6Map.TryRemove(key, out _))
+            if ((currentSecond - slotSecond) > staleThreshold && _ipv6Map.TryRemove(key, out _))
             {
                 removed++;
             }
@@ -253,6 +271,12 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         {
             _logger?.Debug($"[NW.{nameof(DatagramGuard)}] Evicted {removed} idle windows. IPv4={_ipv4Map.Count}, IPv6={_ipv6Map.Count}");
         }
+    }
+
+    private static TimeSpan NormalizePositive(TimeSpan? configured, TimeSpan fallback)
+    {
+        TimeSpan value = configured ?? fallback;
+        return value > TimeSpan.Zero ? value : fallback;
     }
 
     /// <inheritdoc/>
