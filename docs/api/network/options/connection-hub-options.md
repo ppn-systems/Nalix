@@ -12,29 +12,33 @@ The `ConnectionHub` is the central repository for all active connections. As a s
 
 ## Configuration Table
 
-| Option | Description | Typical Value |
-|---|---|---|
-| `MaxConnections` | Total concurrent connections allowed server-wide. `-1` means unlimited. | -1 or 50,000+ |
-| `DropPolicy` | How to handle new connections when `MaxConnections` is reached (`DropNewest` or `DropOldest`). | `DropNewest` |
-| `ShardCount` | The number of internal dictionary shards. More shards reduce lock contention. | `ProcessorCount` |
-| `BroadcastBatchSize` | Connections processed per broadcast batch. `0` disables batching. | 0 or 1000 |
-| `ParallelDisconnectDegree` | Parallelism for bulk disconnect operations. `-1` uses ThreadPool default. | -1 |
-| `IsEnableLatency` | Enables real-time latency diagnostics for every connection. | `true` |
+| Option | Default | Validation | Description |
+|---|---:|---|---|
+| `MaxConnections` | `-1` | `-1` or positive; `0` rejected by `Validate()` | Total concurrent connections allowed server-wide. |
+| `DropPolicy` | `DropNewest` | `DropPolicy` enum value | Rejection policy when the connection limit is reached. |
+| `ParallelDisconnectDegree` | `-1` | `-1` or positive; `0` rejected by `Validate()` | Parallelism for bulk disconnect operations. |
+| `BroadcastBatchSize` | `0` | `>= 0` | Connections processed per broadcast batch; `0` means no batching. |
+| `ShardCount` | `max(1, Environment.ProcessorCount)` | `>= 1` | Number of internal connection dictionary shards. |
+| `IsEnableLatency` | `true` | Boolean | Enables latency measurement for diagnostics and performance monitoring. |
 
 ## Internal Responsibilities (Source-Verified)
 
 ### 1. Dictionary Sharding
-To achieve extreme throughput, the hub doesn't use a single dictionary. Instead, it shards connections across `ShardCount` buckets based on the `ConnectionID` hash. 
-- This ensures that while one thread is modifying connections in Shard A, other threads can simultaneously work on Shard B without waiting for a global lock.
+
+The hub shards connections across `ShardCount` buckets based on the `ConnectionId` hash.
+This reduces contention versus a single global connection dictionary.
 
 ### 2. Broadcast Batching
-Broadcasting a packet to 10,000+ connected clients can cause a massive burst of I/O. 
-- Setting `BroadcastBatchSize` allows the hub to split the broadcast into chunks, allowing the ThreadPool to interleave other network operations between batches.
+
+Broadcast operations use `BroadcastBatchSize` to control how many connections are processed per batch.
+The source default is `0`, which disables batching unless the operator opts in.
 
 ### 3. Drop Policies
-When `MaxConnections` is reached, the hub uses the `DropPolicy` to decide the fate of incoming traffic:
-- **DropNewest**: Rejects the incoming connection immediately. Efficient for maintaining stability.
-- **DropOldest**: Disconnects the longest-running connection to make room for the new one. Useful for systems where only the most recent activity matters.
+
+When `MaxConnections` is reached, the hub uses `DropPolicy` to decide admission behavior:
+
+- **DropNewest**: reject the incoming connection immediately.
+- **DropOldest**: disconnect an existing connection to make room for the new one.
 
 ## Related Information Paths
 
