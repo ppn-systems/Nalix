@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -52,9 +51,16 @@ public static class TcpSessionSubscriptions
         {
             // Cheap check: if the magic doesn't match, don't even try to deserialize.
             // This prevents O(N*M) deserialization costs when multiple subscribers are active.
-            if (buffer.Length < PacketConstants.HeaderSize) return;
+            if (buffer.Length < PacketConstants.HeaderSize)
+            {
+                return;
+            }
+
             uint magic = buffer.Span.ReadMagicNumberLE();
-            if (magic != targetMagic) return;
+            if (magic != targetMagic)
+            {
+                return;
+            }
 
             try
             {
@@ -72,10 +78,13 @@ public static class TcpSessionSubscriptions
                     // If the handler wants to keep it, it should have its own retention logic
                     // or we should follow the framework convention.
                     // In Nalix, the dispatcher/subscriber owns the IPacket instance lifecycle.
-                    if (p is IDisposable d) d.Dispose();
+                    if (p is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
@@ -120,10 +129,13 @@ public static class TcpSessionSubscriptions
                 }
                 finally
                 {
-                    if (p is IDisposable d) d.Dispose();
+                    if (p is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
@@ -160,7 +172,7 @@ public static class TcpSessionSubscriptions
 
                 handler(p);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On(predicate) failed: {0}", ex);
             }
@@ -194,8 +206,15 @@ public static class TcpSessionSubscriptions
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            if (buffer.Length < PacketConstants.HeaderSize) return;
-            if (buffer.Span.ReadMagicNumberLE() != targetMagic) return;
+            if (buffer.Length < PacketConstants.HeaderSize)
+            {
+                return;
+            }
+
+            if (buffer.Span.ReadMagicNumberLE() != targetMagic)
+            {
+                return;
+            }
 
             try
             {
@@ -218,10 +237,13 @@ public static class TcpSessionSubscriptions
                 }
                 finally
                 {
-                    if (disposeAfter && p is IDisposable d) d.Dispose();
+                    if (disposeAfter && p is IDisposable d)
+                    {
+                        d.Dispose();
+                    }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnOnce<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
@@ -271,7 +293,14 @@ public static class TcpSessionSubscriptions
 
         void DisconnectHandler(object? _, Exception ex)
         {
-            try { onDisconnected(ex); } catch { }
+            try
+            {
+                onDisconnected(ex);
+            }
+            catch (Exception callbackEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(callbackEx))
+            {
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
+            }
         }
 
         client.OnDisconnected += DisconnectHandler;
@@ -311,7 +340,14 @@ public static class TcpSessionSubscriptions
 
         void DisconnectHandler(object? _, Exception ex)
         {
-            try { onDisconnected(ex); } catch { }
+            try
+            {
+                onDisconnected(ex);
+            }
+            catch (Exception callbackEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(callbackEx))
+            {
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> predicate disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
+            }
         }
 
         client.OnDisconnected += DisconnectHandler;
@@ -404,8 +440,14 @@ public sealed class CompositeSubscription : IDisposable
 
         foreach (IDisposable s in Interlocked.Exchange(ref _subs, []))
         {
-            try { s?.Dispose(); }
-            catch { /* one bad subscription must not prevent others from being disposed */ }
+            try
+            {
+                s?.Dispose();
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                Trace.TraceError("Nalix.SDK.CompositeSubscription.Dispose failed: {0}", ex);
+            }
         }
     }
 }

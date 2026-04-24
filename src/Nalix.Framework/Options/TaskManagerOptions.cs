@@ -130,7 +130,7 @@ public sealed class TaskManagerOptions : ConfigurationLoader
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("CleanupInterval must be at least 1 second.");
         }
-        
+
         if (this.BusyWaitThreshold < TimeSpan.Zero)
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("BusyWaitThreshold cannot be negative.");

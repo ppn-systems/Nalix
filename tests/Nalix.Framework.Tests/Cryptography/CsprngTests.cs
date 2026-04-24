@@ -12,7 +12,9 @@ public sealed class CsprngTests
     [Theory]
     [InlineData(-1)]
     [InlineData(-128)]
-    public void GetBytesWhenLengthIsNegativeThrowsArgumentOutOfRangeException(int length)
+    [InlineData(Csprng.MaxByteArrayLength + 1)]
+    [InlineData(int.MaxValue)]
+    public void GetBytesWhenLengthIsOutOfRangeThrowsArgumentOutOfRangeException(int length)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Csprng.GetBytes(length));
     }
@@ -44,7 +46,9 @@ public sealed class CsprngTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void CreateNonceWhenLengthIsNonPositiveThrowsArgumentOutOfRangeException(int length)
+    [InlineData(Csprng.MaxByteArrayLength + 1)]
+    [InlineData(int.MaxValue)]
+    public void CreateNonceWhenLengthIsOutOfRangeThrowsArgumentOutOfRangeException(int length)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => Csprng.CreateNonce(length));
     }

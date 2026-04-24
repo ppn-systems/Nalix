@@ -150,7 +150,9 @@ internal sealed class PooledAcceptContext : IPoolable
         {
             // Synchronous completion means the OS already produced a socket, so we
             // can resolve the TCS inline and dispose the cancellation registration now.
+#pragma warning disable CA1849 // BeginAcceptAsync is a ValueTask factory with synchronous SAEA completion; no async context exists to await DisposeAsync here.
             reg.Dispose();
+#pragma warning restore CA1849
 
             if (args.SocketError != SocketError.Success)
             {
@@ -181,7 +183,9 @@ internal sealed class PooledAcceptContext : IPoolable
                 {
                     if (state is CancellationTokenRegistration registration)
                     {
+#pragma warning disable CA1849 // Continuation is intentionally synchronous to release the cancellation registration when the accept task settles.
                         registration.Dispose();
+#pragma warning restore CA1849
                     }
                 },
                 reg,

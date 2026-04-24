@@ -30,7 +30,7 @@ public static class CipherExtensions
     /// <returns>A task representing the async operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="NetworkException">Thrown if the session is not connected.</exception>
-    public static async Task UpdateCipherAsync(
+    public static async ValueTask UpdateCipherAsync(
         this TcpSession session,
         CipherSuiteType cipherSuite,
         int timeoutMs = 5000,
@@ -68,7 +68,7 @@ public static class CipherExtensions
                 },
                 ct: ct).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             RestoreCipher(session, previousCipher);
             throw;

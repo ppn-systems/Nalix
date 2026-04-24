@@ -212,7 +212,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Trace($"[NW.{nameof(PacketHandlerCompiler<,>)}:Internal] compiled {x01}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 

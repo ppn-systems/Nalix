@@ -184,7 +184,7 @@ internal static partial class FieldCache<
         // <PropertyName>k__BackingField
         if (field.Name.Length > 2 && field.Name[0] == '<')
         {
-            int end = field.Name.IndexOf('>');
+            int end = field.Name.IndexOf('>', StringComparison.Ordinal);
             if (end > 1)
             {
                 if (ignoredProperties.Contains(field.Name[1..end]))
@@ -242,7 +242,7 @@ internal static partial class FieldCache<
         {
             return System.Runtime.InteropServices.Marshal.SizeOf(type);
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             return IntPtr.Size;
         }
@@ -259,7 +259,7 @@ internal static partial class FieldCache<
 
         if (field.Name.Length > 2 && field.Name[0] == '<')
         {
-            int end = field.Name.IndexOf('>');
+            int end = field.Name.IndexOf('>', StringComparison.Ordinal);
             if (end > 1 && propertyOrders.TryGetValue(field.Name[1..end], out (int Order, bool IsHeader) backingFieldOrder))
             {
                 return backingFieldOrder;

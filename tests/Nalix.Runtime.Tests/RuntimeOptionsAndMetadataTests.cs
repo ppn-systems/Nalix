@@ -33,6 +33,17 @@ public sealed class RuntimeOptionsAndMetadataTests
     }
 
     [Fact]
+    public void DispatchOptionsValidate_WhenMaxPerConnectionQueueTooLarge_ThrowsValidationException()
+    {
+        DispatchOptions options = new()
+        {
+            MaxPerConnectionQueue = 1_048_577
+        };
+
+        _ = Assert.Throws<ValidationException>(options.Validate);
+    }
+
+    [Fact]
     public void PoolingOptionsValidate_WhenPreallocateExceedsCapacity_ThrowsValidationException()
     {
         PoolingOptions options = new()

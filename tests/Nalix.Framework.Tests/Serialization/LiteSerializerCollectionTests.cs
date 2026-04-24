@@ -114,6 +114,15 @@ public sealed class LiteSerializerCollectionTests
     }
 
     [Fact]
+    public void Deserialize_Memory_WhenLengthTooLarge_ThrowsSerializationFailureException()
+    {
+        byte[] buffer = BitConverter.GetBytes(1_048_577);
+        Memory<int> output = default;
+
+        _ = Assert.ThrowsAny<Common.Exceptions.SerializationFailureException>(() => LiteSerializer.Deserialize(buffer, ref output));
+    }
+
+    [Fact]
     public void SerializeDeserialize_ValueTuples_Arity2Through5_RoundTripState()
     {
         // Arity 2

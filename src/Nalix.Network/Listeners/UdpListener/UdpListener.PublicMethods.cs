@@ -53,9 +53,14 @@ public abstract partial class UdpListenerBase : IListener
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
-        // Acquire the mutex with CancellationToken.None so the state transition
-        // finishes completely even if the caller's token is already canceled.
-        _lock.Wait(CancellationToken.None);
+        // Avoid blocking lifecycle calls behind an already-running transition.
+        if (!_lock.Wait(0, CancellationToken.None))
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
+                $"activate-skipped lock-busy port={_port}");
+            return;
+        }
 
         try
         {
@@ -94,7 +99,9 @@ public abstract partial class UdpListenerBase : IListener
             int concurrency = Math.Max(1, s_options.MaxParallelUDP);
             for (int i = 0; i < concurrency; i++)
             {
+#pragma warning disable CA2000 // Ownership transfers to StartReceive/SAEA completion once queued to the ThreadPool.
                 PooledUdpReceiveEventArgs args = new();
+#pragma warning restore CA2000
                 args.Completed += this.OnReceiveCompleted;
 
                 // Offload start to ThreadPool to prevent blocking Activate if ReceiveFromAsync completes inline.
@@ -120,7 +127,7 @@ public abstract partial class UdpListenerBase : IListener
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"bind-fail port={_port}", ex);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
@@ -175,14 +182,40 @@ public abstract partial class UdpListenerBase : IListener
 
         try
         {
-            try { cts?.Cancel(); } catch { }
+            try
+            {
+                cts?.Cancel();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-failed port={_port}", ex);
+            }
 
             try
             {
                 _socket?.Close();
                 _socket?.Dispose();
             }
-            catch { }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"socket-close-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"socket-close-failed port={_port}", ex);
+            }
 
             _socket = null;
 
@@ -194,7 +227,7 @@ public abstract partial class UdpListenerBase : IListener
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                 $"stopped port={_port}");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Error(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
@@ -202,7 +235,39 @@ public abstract partial class UdpListenerBase : IListener
         }
         finally
         {
-            try { cts?.Dispose(); } catch { }
+            try
+            {
+                cts?.Dispose();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-failed port={_port}", ex);
+            }
+
+            try
+            {
+                _rateLimiter.Dispose();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"rate-limiter-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"rate-limiter-dispose-failed port={_port}", ex);
+            }
 
             _cancellationToken = default;
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
@@ -287,6 +352,7 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Socket          : {(_socket is null ? "<null>" : "OK")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS             : {(_cts is null ? "<null>" : "OK")}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RateLimiter     : OK");
         _ = sb.AppendLine();
 
         return sb.ToString();
@@ -338,7 +404,8 @@ public abstract partial class UdpListenerBase : IListener
             ["Runtime"] = new Dictionary<string, object>
             {
                 ["Socket"] = _socket is null ? "<null>" : "OK",
-                ["CTS"] = _cts is null ? "<null>" : "OK"
+                ["CTS"] = _cts is null ? "<null>" : "OK",
+                ["RateLimiter"] = "OK"
             }
         };
 
