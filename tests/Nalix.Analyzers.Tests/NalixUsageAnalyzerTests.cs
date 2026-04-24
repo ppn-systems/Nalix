@@ -682,6 +682,31 @@ public sealed class ExplicitPacket
     }
 
     [Fact]
+    public async Task SerializeHeaderInBaseAndSerializeOrderInDerived_DoesNotReportNalix014()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Common.Serialization;
+
+[SerializePackable(SerializeLayout.Explicit)]
+public abstract class BasePacket
+{
+    [SerializeHeader(0)]
+    public int Header { get; set; }
+}
+
+[SerializePackable(SerializeLayout.Explicit)]
+public sealed class DerivedPacket : BasePacket
+{
+    [SerializeOrder(0)]
+    public int Payload { get; set; }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
     public async Task SerializeIgnoreWithOrder_ReportsNalix015()
     {
         const string source = """

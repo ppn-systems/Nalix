@@ -89,7 +89,7 @@ public sealed class PolicyRateLimiterTests
         public PacketMetadata Attributes { get; } =
             new(new PacketOpcodeAttribute(opCode), timeout: null, permission: null, encryption: null, rateLimit, concurrencyLimit: null, transport: null);
 
-        public IPacketSender<IPacket> Sender => throw new NotSupportedException();
+        public IPacketSender Sender => throw new NotSupportedException();
 
         public CancellationToken CancellationToken => CancellationToken.None;
 

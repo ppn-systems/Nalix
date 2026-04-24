@@ -246,7 +246,7 @@ public sealed class PacketRegistryFactory
     /// <summary>
     /// Registers all concrete <see cref="IPacket"/> types whose namespace exactly matches
     /// <paramref name="ns"/>, from all assemblies that have been added via
-    /// <see cref="IncludeAssembly"/> or <see cref="IncludeCurrentDomain"/>.
+    /// <see cref="IncludeAssembly(Assembly)"/> or <see cref="IncludeCurrentDomain"/>.
     /// </summary>
     /// <param name="ns">
     /// The exact namespace to match, e.g. <c>"MyGame.Network.Packets"</c>.
@@ -273,7 +273,7 @@ public sealed class PacketRegistryFactory
     /// <summary>
     /// Registers all concrete <see cref="IPacket"/> types whose namespace is exactly
     /// <paramref name="rootNs"/> <b>or starts with <c>"{rootNs}."</c></b>, from all
-    /// assemblies that have been added via <see cref="IncludeAssembly"/> or
+    /// assemblies that have been added via <see cref="IncludeAssembly(Assembly)"/> or
     /// <see cref="IncludeCurrentDomain"/>.
     /// </summary>
     /// <param name="rootNs">
