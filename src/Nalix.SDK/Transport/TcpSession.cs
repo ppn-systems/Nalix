@@ -23,8 +23,10 @@ public class TcpSession : TransportSession
     private readonly FrameReader _reader;
 
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
+#pragma warning disable CA2213 // Disposed through Interlocked.Exchange locals inside DisconnectInternalAsync/Dispose(bool).
     private Socket? _socket;
     private CancellationTokenSource? _loopCts;
+#pragma warning restore CA2213
     private int _disposed;
 
     #endregion Fields
@@ -156,7 +158,9 @@ public class TcpSession : TransportSession
 
         try
         {
+#pragma warning disable CA1849 // DisconnectInternalAsync is synchronous teardown; callers cannot await CancelAsync without changing API shape.
             loopCts?.Cancel();
+#pragma warning restore CA1849
         }
         catch (ObjectDisposedException ex)
         {
@@ -229,9 +233,9 @@ public class TcpSession : TransportSession
         => await _sender.SendAsync(payload, encrypt, ct).ConfigureAwait(false);
 
     /// <inheritdoc/>
-    public override void Dispose()
+    protected override void Dispose(bool disposing)
     {
-        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        if (!disposing || Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
         {
             return;
         }
@@ -240,7 +244,6 @@ public class TcpSession : TransportSession
         _sender.Dispose();
         _reader.Dispose();
         _connectionLock.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     #endregion APIs

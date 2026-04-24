@@ -35,7 +35,7 @@ public static class TimeSyncExtensions
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="NetworkException">Thrown if the session is not connected.</exception>
     /// <exception cref="TimeoutException">Thrown if no response is received within the specified timeout.</exception>
-    public static async Task<(double RttMs, double AdjustedMs)> SyncTimeAsync(this TcpSession session, int timeoutMs = 5000, CancellationToken ct = default)
+    public static async ValueTask<(double RttMs, double AdjustedMs)> SyncTimeAsync(this TcpSession session, int timeoutMs = 5000, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 

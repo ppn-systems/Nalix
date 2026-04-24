@@ -23,7 +23,7 @@ public static class DisconnectExtensions
     /// <param name="ct">A cancellation token for the send operation.</param>
     /// <returns>A task representing the async disconnect sequence.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
-    public static async Task DisconnectGracefullyAsync(
+    public static async ValueTask DisconnectGracefullyAsync(
         this TcpSession session,
         ProtocolReason reason = ProtocolReason.NONE,
         bool closeLocalConnection = true,

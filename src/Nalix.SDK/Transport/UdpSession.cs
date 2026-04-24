@@ -27,10 +27,12 @@ public class UdpSession : TransportSession
 {
     #region Fields
 
+#pragma warning disable CA2213 // Disposed through Interlocked.Exchange locals inside DisconnectInternalAsync/Dispose(bool).
     private Socket? _socket;
     private IPEndPoint? _remoteEndPoint;
     private Snowflake? _sessionToken;
     private CancellationTokenSource? _loopCts;
+#pragma warning restore CA2213
     private System.Threading.Channels.Channel<Func<Task>>? _asyncQueue;
     private int _disposed;
 
@@ -186,7 +188,9 @@ public class UdpSession : TransportSession
         CancellationTokenSource? cts = Interlocked.Exchange(ref _loopCts, null);
         if (cts is not null)
         {
+#pragma warning disable CA1849 // DisconnectInternalAsync is synchronous teardown; callers cannot await CancelAsync without changing API shape.
             try { cts.Cancel(); }
+#pragma warning restore CA1849
             catch (ObjectDisposedException ex) when (Volatile.Read(ref _disposed) == 1)
             {
                 this.OnError?.Invoke(this, ex);
@@ -333,6 +337,17 @@ public class UdpSession : TransportSession
         }
     }
 
+    /// <inheritdoc/>
+    protected override void Dispose(bool disposing)
+    {
+        if (!disposing || Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _ = this.DisconnectInternalAsync();
+    }
+
     #endregion APIs
 
     #region Internal
@@ -466,20 +481,6 @@ public class UdpSession : TransportSession
 
     #endregion Internal
 
-    #region Dispose
-
-    /// <inheritdoc/>
-    public override void Dispose()
-    {
-        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-        {
-            return;
-        }
-
-        _ = this.DisconnectInternalAsync();
-        GC.SuppressFinalize(this);
-    }
-
     private async Task ProcessAsyncQueueAsync(CancellationToken ct)
     {
         System.Threading.Channels.ChannelReader<Func<Task>>? reader = _asyncQueue?.Reader;
@@ -546,5 +547,4 @@ public class UdpSession : TransportSession
         }, Tuple.Create(this, operation), CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
-    #endregion
 }
