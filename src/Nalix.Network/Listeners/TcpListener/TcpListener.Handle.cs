@@ -102,10 +102,19 @@ public abstract partial class TcpListenerBase
 
         IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
         IBufferLease current = lease;
+        bool exchanged = false;
 
         try
         {
             FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
+
+            if (!ReferenceEquals(current, lease))
+            {
+                replaceable.ExchangeLease(current)?.Dispose();
+                lease = current;
+                exchanged = true;
+            }
+
             _protocol.ProcessMessage(sender, args);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -126,11 +135,9 @@ public abstract partial class TcpListenerBase
         }
         finally
         {
-            // Sync the lease back to args even on failure. If the pipeline disposed the original 
-            // lease but failed before ExchangeLease, args would still point to the dead lease.
-            if (current != lease)
+            if (!exchanged && !ReferenceEquals(current, lease))
             {
-                replaceable.ExchangeLease(current)?.Dispose();
+                current.Dispose();
             }
         }
     }
