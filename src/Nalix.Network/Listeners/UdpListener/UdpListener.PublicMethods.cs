@@ -250,6 +250,23 @@ public abstract partial class UdpListenerBase : IListener
                     $"cts-dispose-failed port={_port}", ex);
             }
 
+            try
+            {
+                _rateLimiter.Dispose();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"rate-limiter-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"rate-limiter-dispose-failed port={_port}", ex);
+            }
+
             _cancellationToken = default;
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
@@ -333,6 +350,7 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Socket          : {(_socket is null ? "<null>" : "OK")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"CTS             : {(_cts is null ? "<null>" : "OK")}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"RateLimiter     : OK");
         _ = sb.AppendLine();
 
         return sb.ToString();
@@ -384,7 +402,8 @@ public abstract partial class UdpListenerBase : IListener
             ["Runtime"] = new Dictionary<string, object>
             {
                 ["Socket"] = _socket is null ? "<null>" : "OK",
-                ["CTS"] = _cts is null ? "<null>" : "OK"
+                ["CTS"] = _cts is null ? "<null>" : "OK",
+                ["RateLimiter"] = "OK"
             }
         };
 
