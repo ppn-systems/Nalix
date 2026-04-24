@@ -62,8 +62,8 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 
 ## Internal Guidelines (Source-Verified)
 
-### 1. High-Performance Sharding
-Configuring `ShardCount` in `ConnectionHubOptions` is critical for servers with more than 16 CPU cores. Setting this to `ProcessorCount` (default) ensures that hub lock contention remains near-zero even during massive registration bursts.
+### 1. Hub Sharding
+`ConnectionHubOptions.ShardCount` defaults to `max(1, Environment.ProcessorCount)` and must be at least `1`. It controls how many internal connection dictionary shards the hub uses to reduce contention during registration, lookup, broadcast, and disconnect operations.
 
 ### 2. Callback Backpressure
 `NetworkCallbackOptions.MaxPendingNormalCallbacks` acts as the server's circuit breaker. If Nalix cannot keep up with the incoming packet rate, it will drop callbacks rather than allowing the `ThreadPool` queue to grow indefinitely, preventing an "Out of Memory" event.
