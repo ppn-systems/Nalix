@@ -58,7 +58,7 @@ internal static class PacketAwaiter
 
         using CancellationTokenRegistration registration = linkedCts.Token.Register(() =>
         {
-            try { _ = tcs.TrySetCanceled(linkedCts.Token); } catch { }
+            _ = tcs.TrySetCanceled(linkedCts.Token);
         });
 
         IDisposable subscription = client.OnOnce<TPkt>(
@@ -86,7 +86,7 @@ internal static class PacketAwaiter
                 $"Disconnected while waiting for {typeof(TPkt).Name}.",
                 ex ?? new InvalidOperationException("The TCP session was disconnected."));
 
-            try { _ = tcs.TrySetException(error); } catch { }
+            _ = tcs.TrySetException(error);
         }
 
         client.OnDisconnected += DisconnectHandler;
@@ -105,11 +105,11 @@ internal static class PacketAwaiter
                 Exception wrapped = new Common.Exceptions.NetworkException(
                     $"Disconnected while sending {typeof(TPkt).Name}.", sendEx);
 
-                try { _ = tcs.TrySetException(wrapped); } catch { }
+                _ = tcs.TrySetException(wrapped);
                 throw wrapped;
             }
 
-            try { _ = tcs.TrySetException(sendEx); } catch { }
+            _ = tcs.TrySetException(sendEx);
             throw;
         }
 

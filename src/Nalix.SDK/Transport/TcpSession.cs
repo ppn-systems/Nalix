@@ -158,7 +158,13 @@ public class TcpSession : TransportSession
         {
             loopCts?.Cancel();
         }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException ex)
+        {
+            if (Volatile.Read(ref _disposed) == 0)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
+        }
         finally
         {
             loopCts?.Dispose();
@@ -173,8 +179,20 @@ public class TcpSession : TransportSession
                     socket.Shutdown(SocketShutdown.Both);
                 }
             }
-            catch (SocketException) { }
-            catch (ObjectDisposedException) { }
+            catch (SocketException ex)
+            {
+                if (Volatile.Read(ref _disposed) == 0)
+                {
+                    this.OnError?.Invoke(this, ex);
+                }
+            }
+            catch (ObjectDisposedException ex)
+            {
+                if (Volatile.Read(ref _disposed) == 0)
+                {
+                    this.OnError?.Invoke(this, ex);
+                }
+            }
 
             socket.Dispose();
             this.OnDisconnected?.Invoke(this, new NetworkException("The TCP session was disconnected."));
@@ -249,12 +267,47 @@ public class TcpSession : TransportSession
             if (this.OnMessageAsync is { } asyncHandler)
             {
                 lease.Retain();
-                _ = Task.Run(async () =>
+
+                Task dispatchTask;
+                try
                 {
-                    try { await asyncHandler(lease.Memory).ConfigureAwait(false); }
-                    catch (Exception ex) { this.OnError?.Invoke(this, ex); }
-                    finally { lease.Dispose(); }
-                });
+                    dispatchTask = asyncHandler(lease.Memory);
+                }
+                catch (Exception ex)
+                {
+                    lease.Dispose();
+                    this.OnError?.Invoke(this, ex);
+                    return;
+                }
+
+                if (dispatchTask.IsCompletedSuccessfully)
+                {
+                    lease.Dispose();
+                }
+                else
+                {
+                    _ = dispatchTask.ContinueWith(static (task, state) =>
+                    {
+                        if (state is not Tuple<TcpSession, IBufferLease> payload)
+                        {
+                            return;
+                        }
+
+                        TcpSession self = payload.Item1;
+                        IBufferLease retained = payload.Item2;
+                        try
+                        {
+                            if (task.Exception?.GetBaseException() is Exception ex)
+                            {
+                                self.OnError?.Invoke(self, ex);
+                            }
+                        }
+                        finally
+                        {
+                            retained.Dispose();
+                        }
+                    }, Tuple.Create(this, (IBufferLease)lease), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                }
             }
         }
         catch (Exception ex)

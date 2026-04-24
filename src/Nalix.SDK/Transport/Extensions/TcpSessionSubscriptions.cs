@@ -271,7 +271,14 @@ public static class TcpSessionSubscriptions
 
         void DisconnectHandler(object? _, Exception ex)
         {
-            try { onDisconnected(ex); } catch { }
+            try
+            {
+                onDisconnected(ex);
+            }
+            catch (Exception callbackEx)
+            {
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
+            }
         }
 
         client.OnDisconnected += DisconnectHandler;
@@ -311,7 +318,14 @@ public static class TcpSessionSubscriptions
 
         void DisconnectHandler(object? _, Exception ex)
         {
-            try { onDisconnected(ex); } catch { }
+            try
+            {
+                onDisconnected(ex);
+            }
+            catch (Exception callbackEx)
+            {
+                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> predicate disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
+            }
         }
 
         client.OnDisconnected += DisconnectHandler;
@@ -404,8 +418,14 @@ public sealed class CompositeSubscription : IDisposable
 
         foreach (IDisposable s in Interlocked.Exchange(ref _subs, []))
         {
-            try { s?.Dispose(); }
-            catch { /* one bad subscription must not prevent others from being disposed */ }
+            try
+            {
+                s?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceError("Nalix.SDK.CompositeSubscription.Dispose failed: {0}", ex);
+            }
         }
     }
 }

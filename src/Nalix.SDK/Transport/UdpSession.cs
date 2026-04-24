@@ -145,21 +145,23 @@ public class UdpSession : TransportSession
 
             // Start background workers
             _loopCts = new CancellationTokenSource();
-            _ = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), ct);
+            Task asyncQueueTask = Task.Run(() => this.ProcessAsyncQueueAsync(_loopCts.Token), _loopCts.Token);
+            this.ObserveBackgroundTask(asyncQueueTask, nameof(ProcessAsyncQueueAsync));
 
             _socket.SendBufferSize = this.Options.BufferSize;
             _socket.ReceiveBufferSize = this.Options.BufferSize;
 
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
-            _ = Task.Factory.StartNew(() => this.ReceiveLoopAsync(_loopCts.Token),
-                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            Task receiveLoopTask = Task.Factory.StartNew(() => this.ReceiveLoopAsync(_loopCts.Token),
+                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+            this.ObserveBackgroundTask(receiveLoopTask, nameof(ReceiveLoopAsync));
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex)
         {
             this.OnError?.Invoke(this, ex);
-            this.DisconnectAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+            await this.DisconnectAsync().ConfigureAwait(false);
             throw new NetworkException($"UDP Connection failed: {ex.Message}", ex);
         }
     }
@@ -185,14 +187,28 @@ public class UdpSession : TransportSession
         if (cts is not null)
         {
             try { cts.Cancel(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException ex) when (Volatile.Read(ref _disposed) == 1)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
         }
 
         Socket? socket = Interlocked.Exchange(ref _socket, null);
         if (socket != null)
         {
             try { socket.Dispose(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException ex) when (Volatile.Read(ref _disposed) == 1)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
 
             this.OnDisconnected?.Invoke(this, new NetworkException("The UDP session was disconnected."));
         }
@@ -201,7 +217,14 @@ public class UdpSession : TransportSession
         if (cts is not null)
         {
             try { cts.Dispose(); }
-            catch (ObjectDisposedException) { }
+            catch (ObjectDisposedException ex) when (Volatile.Read(ref _disposed) == 1)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
+            catch (ObjectDisposedException ex)
+            {
+                this.OnError?.Invoke(this, ex);
+            }
         }
 
         _ = (_asyncQueue?.Writer.TryComplete());
@@ -472,15 +495,51 @@ public class UdpSession : TransportSession
                 }
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException ex)
+        {
+            this.OnError?.Invoke(this, ex);
+        }
         catch (Exception ex) { this.OnError?.Invoke(this, ex); }
         finally
         {
             while (reader.TryRead(out Func<Task>? work))
             {
-                _ = work();
+                Task task;
+                try
+                {
+                    task = work();
+                }
+                catch (Exception ex)
+                {
+                    this.OnError?.Invoke(this, ex);
+                    continue;
+                }
+
+                this.ObserveBackgroundTask(task, "AsyncQueueDrain");
             }
         }
+    }
+
+    private void ObserveBackgroundTask(Task task, string operation)
+    {
+        _ = task.ContinueWith(static (t, state) =>
+        {
+            if (state is not Tuple<UdpSession, string> payload)
+            {
+                return;
+            }
+
+            UdpSession self = payload.Item1;
+            string op = payload.Item2;
+            Exception? error = t.Exception?.GetBaseException();
+            if (error is not null && Volatile.Read(ref self._disposed) == 0)
+            {
+                self.OnError?.Invoke(self, new NetworkException($"Background operation '{op}' failed.", error));
+            }
+        }, Tuple.Create(this, operation), CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
     #endregion
