@@ -88,8 +88,34 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
         ArgumentNullException.ThrowIfNull(entry);
         cancellationToken.ThrowIfCancellationRequested();
 
-        _store[entry.Snapshot.SessionToken] = entry;
-        return ValueTask.CompletedTask;
+        UInt56 token = entry.Snapshot.SessionToken;
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            if (_store.TryAdd(token, entry))
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            if (!_store.TryGetValue(token, out SessionEntry? current))
+            {
+                continue;
+            }
+
+            // Already stored this exact reference for the token.
+            if (ReferenceEquals(current, entry))
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            if (_store.TryUpdate(token, entry, current))
+            {
+                current.Return();
+                return ValueTask.CompletedTask;
+            }
+        }
     }
 
     /// <inheritdoc />
