@@ -1,54 +1,70 @@
 # Nalix.Runtime.Middleware
 
-Middleware in Nalix allows you to intercept and transform packets at specific stages of the execution lifecycle. It is designed for cross-cutting concerns like security, rate limiting, logging, and data compression.
+Runtime middleware is the packet execution layer between dispatch metadata and
+handler invocation. It is used for fail-closed security checks, endpoint and
+opcode throttling, concurrency limits, timeouts, diagnostics, and outbound
+post-processing.
 
-## Middleware Execution Lifecycle
+## Source mapping
 
-Nalix uses a multi-stage pipeline. The following diagram illustrates the order of execution and how the system reacts to successes or failures.
+- `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs`
+- `src/Nalix.Common/Middleware/IPacketMiddleware.cs`
+- `src/Nalix.Network.Pipeline/Inbound/*Middleware.cs`
+- `src/Nalix.Network.Pipeline/Throttling/*`
+
+## Execution lifecycle
 
 ```mermaid
 flowchart TD
-    Start([1. Dispatch Start]) --> Inbound[2. Inbound Stage]
-    
-    Inbound -->|Success| Handler{3. Final Handler}
-    Inbound -->|Exception| Error[4. Pipeline Error Handle]
-    
-    Handler -->|Execute| Always[5. OutboundAlways Stage]
-    Always -->|Success| Decision{6. Should Run Outbound?}
-
-    Decision -->|Yes| Outbound[7. Outbound Stage]
-    Decision -->|No / Skip| End([8. Dispatch End])
-    
+    Start([Dispatch start]) --> Inbound[Inbound middleware]
+    Inbound -->|Allowed| Handler[Packet handler]
+    Inbound -->|Denied or failed| Error[Pipeline error or middleware return]
+    Handler --> Always[OutboundAlways middleware]
+    Always --> Decision{Run outbound?}
+    Decision -->|Handler success and not SkipOutbound| Outbound[Outbound middleware]
+    Decision -->|Failure or SkipOutbound| End([Dispatch end])
     Outbound --> End
-    Error -.->|Protocol FAIL| End
+    Error --> Always
 ```
 
-## Middleware Stages (Source-Verified)
+The pipeline executes immutable middleware snapshots. Metadata such as stage,
+order, `AlwaysExecute`, and `ContinueOnError` is cached per middleware type so
+runtime dispatch avoids repeated reflection.
 
-The `MiddlewarePipeline<TPacket>` executes in three distinct architectural stages:
+For the detailed runner lifecycle, ordering rules, and error semantics, see the
+[Pipeline](./pipeline.md) reference.
 
-| Stage | Triggered When | Common Use Cases |
+## Middleware stages
+
+| Stage | Triggered when | Common use cases |
 |---|---|---|
-| **Inbound** | Before the handler runs. | Authentication, Permissions, Rate Limiting, Validation. |
-| **OutboundAlways** | Always, even after failures. | Request Logging, Metrics, Transaction Cleanup. |
-| **Outbound** | On handler success + `!SkipOutbound`. | Cipher Updates, Response Transformation, Compression. |
+| `Inbound` | Before the handler runs. | Permission checks, rate limits, concurrency gates, timeout wrappers. |
+| `OutboundAlways` | During the outbound-always pass, including failure cases. | Auditing, metrics, cleanup, transaction finalization. |
+| `Outbound` | After successful handler execution when outbound was not skipped. | Response transformation, compression, encryption updates. |
 
-## Core Pipelines
+## Built-in runtime middleware
 
-### [Packet Pipeline](./pipeline.md)
-The primary execution engine for typed packet logic. It uses `MiddlewareOrderAttribute` to determine the sequence within each stage and supports `ContinueOnError` policies for specialized auditing requirements.
+| Middleware | Order | Stage | Runtime behavior |
+|---|---:|---|---|
+| [Permission Middleware](./permission-middleware.md) | `-50` | Inbound | Enforces `[PacketPermission]` and rejects unauthorized packets with fail-closed directives. |
+| [Policy Rate Limiter](./policy-rate-limiter.md) | `50` | Inbound | Enforces attribute-driven per-opcode/per-address policy limits and global endpoint fallback limits. |
+| [Concurrency Gate](./concurrency-gate.md) | `50` | Inbound | Bounds simultaneous handler execution per opcode and optionally queues excess work. |
+| [Timeout Middleware](./timeout-middleware.md) | `75` | Inbound | Applies method-level handler timeouts using a scoped cancellation token. |
 
-## Built-in Middlewares
+## Security posture
 
-Nalix provides several production-ready middleware components:
+Inbound security middleware follows a fail-closed model:
 
-- [**Concurrency Gate**](./concurrency-gate.md): Limits total in-flight handlers to protect server resources.
-- [**Permission Middleware**](./permission-middleware.md): Enforces `[PacketPermission]` requirements at the pipeline level.
-- [**Policy Rate Limiter**](./policy-rate-limiter.md): Implements complex, sharded rate-limiting policies.
-- [**Timeout Middleware**](./timeout-middleware.md): Ensures runaway handlers are cancelled before they consume too many resources.
+- permission failures stop handler execution
+- limiter disposal during shutdown denies traffic rather than bypassing limits
+- rate-limit and concurrency rejections emit transient `FAIL/RATE_LIMITED`
+  directives when `DirectiveGuard` permits
+- timeout responses are emitted only for middleware-owned timer cancellation
+- directive sends use pooled `Directive` packets to avoid hot-path allocation
 
-## Related Information
+## Related information
 
 - [Middleware Usage Guide](../../../guides/application/middleware-usage.md)
 - [Packet Context](../routing/packet-context.md)
+- [Packet Attributes](../routing/packet-attributes.md)
 - [Dispatch Options](../options/dispatch-options.md)
