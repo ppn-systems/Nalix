@@ -39,9 +39,22 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     internal NetworkApplicationBuilder(HostingBuilderContext state)
     {
         _state = state ?? throw new ArgumentNullException(nameof(state));
-        _ = this.AddHandler<HandshakeHandlers>()
-                .AddHandler<SessionHandlers>()
+        _ = this.AddHandler<SessionHandlers>()
+                .AddHandler<HandshakeHandlers>()
                 .AddHandler<SystemControlHandlers>();
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder Configure<TOptions>(Action<TOptions> configure)
+        where TOptions : ConfigurationLoader, new()
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        _state.Options.Add(new OptionsConfiguration(
+            typeof(TOptions),
+            options => configure((TOptions)options)));
+
+        return this;
     }
 
     /// <inheritdoc />
@@ -63,15 +76,29 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder Configure<TOptions>(Action<TOptions> configure)
-        where TOptions : ConfigurationLoader, new()
+    public INetworkApplicationBuilder ConfigurePacketRegistry(IPacketRegistry packetRegistry)
     {
-        ArgumentNullException.ThrowIfNull(configure);
+        ArgumentNullException.ThrowIfNull(packetRegistry);
 
-        _state.Options.Add(new OptionsConfiguration(
-            typeof(TOptions),
-            options => configure((TOptions)options)));
+        _state.PacketRegistryOverride = packetRegistry;
+        return this;
+    }
 
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        InstanceManager.Instance.Register<BufferPoolManager>(manager);
+        BufferLease.ByteArrayPool.Configure(manager);
+
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureCertificate(string certificatePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(certificatePath);
+        _state.IdentityCertificatePath = certificatePath;
         return this;
     }
 
@@ -85,8 +112,36 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public INetworkApplicationBuilder AddPacket(string assemblyPath, bool requirePacketAttribute = false)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
+
+        _state.PacketAssemblyPaths.Add(new PacketAssemblyPathDescriptor(assemblyPath, requirePacketAttribute));
+        return this;
+    }
+
+    /// <inheritdoc />
     public INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false)
         => this.AddPacket(typeof(TMarker).Assembly, requirePacketAttribute);
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddPacketNamespace(string packetNamespace, bool recursive = true)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(packetNamespace);
+
+        _state.PacketNamespaces.Add(new PacketNamespaceDescriptor(packetNamespace, recursive));
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddPacketNamespace(string assemblyPath, string packetNamespace, bool recursive = true)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
+        ArgumentException.ThrowIfNullOrWhiteSpace(packetNamespace);
+
+        _state.PacketNamespaces.Add(new PacketNamespaceDescriptor(packetNamespace, recursive, assemblyPath));
+        return this;
+    }
 
     /// <inheritdoc />
     public INetworkApplicationBuilder AddHandlers(Assembly assembly)
@@ -302,24 +357,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             port,
             authen));
 
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
-    {
-        ArgumentNullException.ThrowIfNull(manager);
-        InstanceManager.Instance.Register<BufferPoolManager>(manager);
-        BufferLease.ByteArrayPool.Configure(manager);
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureCertificate(string certificatePath)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(certificatePath);
-        _state.IdentityCertificatePath = certificatePath;
         return this;
     }
 
@@ -549,12 +586,49 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(state);
 
+        if (state.PacketRegistryOverride is not null)
+        {
+            return state.PacketRegistryOverride;
+        }
+
         PacketRegistryFactory factory = new();
 
         for (int i = 0; i < state.PacketAssemblies.Count; i++)
         {
             PacketAssemblyDescriptor registration = state.PacketAssemblies[i];
             _ = factory.RegisterAllPackets(registration.Assembly, registration.RequirePacketAttribute);
+        }
+
+        for (int i = 0; i < state.PacketAssemblyPaths.Count; i++)
+        {
+            PacketAssemblyPathDescriptor registration = state.PacketAssemblyPaths[i];
+            _ = factory.RegisterPacketAssembly(registration.AssemblyPath, registration.RequirePacketAttribute);
+        }
+
+        bool includeCurrentDomain = false;
+        for (int i = 0; i < state.PacketNamespaces.Count; i++)
+        {
+            PacketNamespaceDescriptor registration = state.PacketNamespaces[i];
+            if (string.IsNullOrWhiteSpace(registration.AssemblyPath))
+            {
+                includeCurrentDomain = true;
+                continue;
+            }
+
+            _ = factory.IncludeAssembly(registration.AssemblyPath);
+        }
+
+        if (includeCurrentDomain)
+        {
+            _ = factory.IncludeCurrentDomain();
+        }
+
+        for (int i = 0; i < state.PacketNamespaces.Count; i++)
+        {
+            PacketNamespaceDescriptor registration = state.PacketNamespaces[i];
+            _ = registration.Recursive
+                ? factory.IncludeNamespaceRecursive(registration.PacketNamespace)
+                : factory.IncludeNamespace(registration.PacketNamespace);
         }
 
         foreach (Assembly assembly in state.HandlerAssemblies)

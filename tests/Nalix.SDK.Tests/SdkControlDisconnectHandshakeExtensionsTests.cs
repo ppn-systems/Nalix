@@ -19,6 +19,8 @@ using Nalix.Framework.Security.Asymmetric;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
+using Nalix.Framework.DataFrames;
+using System.Buffers.Binary;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -312,7 +314,13 @@ public sealed class SdkControlDisconnectHandshakeExtensionsTests
             if (response is not null)
             {
                 _catalog.NextPacket = response;
-                using BufferLease lease = BufferLease.CopyFrom([1, 2, 3]);
+                
+                // Create a buffer that satisfies the dispatcher's magic number check
+                byte[] data = new byte[PacketConstants.HeaderSize];
+                uint magic = PacketRegistryFactory.Compute(response.GetType());
+                BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+                
+                using BufferLease lease = BufferLease.CopyFrom(data);
                 OnMessageReceived?.Invoke(this, lease);
             }
 
