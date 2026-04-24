@@ -357,19 +357,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                     Report(context, DiagnosticDescriptors.NegativeSerializeOrder, member, member.Name, finalOrder.Value);
                 }
 
-                if (isExplicitLayout
-                    && isPacketBaseType
-                    && order.HasValue
-                    && order.Value < symbols.PacketHeaderRegionOffset)
-                {
-                    Report(
-                        context,
-                        DiagnosticDescriptors.PacketMemberOverlapsHeaderRegion,
-                        member,
-                        member.Name,
-                        order.Value,
-                        symbols.PacketHeaderRegionOffset);
-                }
 
             }
             else if (isExplicitLayout && !hasIgnore)
