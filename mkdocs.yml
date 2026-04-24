@@ -300,6 +300,8 @@ nav:
           - Session Store Options: api/network/options/session-store-options.md
           - Compression Options: api/network/options/compression-options.md
           - Token Bucket Options: api/network/options/token-bucket-options.md
+          - Concurrency Options: api/network/options/concurrency-options.md
+          - Directive Guard Options: api/network/options/directive-guard-options.md
       - Hosting:
         - Application: api/hosting/network-application.md
         - Hosting Options: api/hosting/hosting-options.md
