@@ -83,40 +83,58 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        IOperation? instance = invocation.Instance;
-        if (instance is not IInvocationOperation previousInvocation)
-        {
-            return;
-        }
-
-        string expectedMethodName = "WithMiddleware";
-        if (previousInvocation.TargetMethod.Name != expectedMethodName
-            || previousInvocation.Arguments.Length != 1)
-        {
-            return;
-        }
-
         ITypeSymbol? currentType = GetUnderlyingType(invocation.Arguments[0].Value);
-        ITypeSymbol? previousType = GetUnderlyingType(previousInvocation.Arguments[0].Value);
-        if (currentType is null || previousType is null)
+        if (currentType is null)
         {
             return;
         }
 
         int? currentOrder = GetMiddlewareOrder(currentType, symbols.MiddlewareOrderAttribute);
-        int? previousOrder = GetMiddlewareOrder(previousType, symbols.MiddlewareOrderAttribute);
-        if (currentOrder is null || previousOrder is null || currentOrder != previousOrder)
+        if (currentOrder is null)
         {
             return;
         }
 
-        Report(
-            context,
-            DiagnosticDescriptors.MiddlewareRegistrationDuplicateOrder,
-            invocation.Syntax.GetLocation(),
-            currentType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
-            currentOrder.Value,
-            previousType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+        // Collect all middleware orders in the same chain
+        HashSet<int> seenOrders = [];
+        IOperation? current = invocation.Instance;
+        while (current is not null)
+        {
+            if (current is IInvocationOperation prevInvocation)
+            {
+                if (prevInvocation.TargetMethod.Name == "WithMiddleware" && prevInvocation.Arguments.Length == 1)
+                {
+                    ITypeSymbol? prevType = GetUnderlyingType(prevInvocation.Arguments[0].Value);
+                    if (prevType is not null)
+                    {
+                        int? prevOrder = GetMiddlewareOrder(prevType, symbols.MiddlewareOrderAttribute);
+                        if (prevOrder.HasValue)
+                        {
+                            if (prevOrder.Value == currentOrder.Value)
+                            {
+                                Report(
+                                    context,
+                                    DiagnosticDescriptors.MiddlewareRegistrationDuplicateOrder,
+                                    invocation.Syntax.GetLocation(),
+                                    currentType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+                                    currentOrder.Value,
+                                    prevType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
+                                return;
+                            }
+                        }
+                    }
+                }
+                current = prevInvocation.Instance;
+            }
+            else if (current is IConversionOperation conversion)
+            {
+                current = conversion.Operand;
+            }
+            else
+            {
+                break;
+            }
+        }
     }
 
     private static void AnalyzeRequestOptionsInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
