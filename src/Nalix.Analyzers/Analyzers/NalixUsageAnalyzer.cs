@@ -307,7 +307,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         bool isExplicitLayout = IsExplicitSerializeLayout(serializePackable, symbols.SerializeLayoutType);
         bool isPacketBaseType = InheritsPacketBase(typeSymbol, symbols);
-        List<(ISymbol Member, int Order)> orderedMembers = [];
         List<(ISymbol Member, int Order)> serializeOrderedMembers = [];
 
         List<ISymbol> allMembers = [];
@@ -347,7 +346,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
             if (finalOrder.HasValue)
             {
-                orderedMembers.Add((member, finalOrder.Value));
                 if (order.HasValue)
                 {
                     serializeOrderedMembers.Add((member, order.Value));
@@ -376,7 +374,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        foreach (IGrouping<int, (ISymbol Member, int Order)> duplicateGroup in orderedMembers.GroupBy(static x => x.Order).Where(static g => g.Count() > 1))
+        foreach (IGrouping<int, (ISymbol Member, int Order)> duplicateGroup in serializeOrderedMembers.GroupBy(static x => x.Order).Where(static g => g.Count() > 1))
         {
             foreach ((ISymbol member, _) in duplicateGroup)
             {
