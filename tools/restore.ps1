@@ -36,6 +36,8 @@ Set-IfMissing "ProgramW6432" "C:\Program Files"
 Set-IfMissing "ProgramFiles(x86)" "C:\Program Files (x86)"
 Set-IfMissing "CommonProgramFiles" "C:\Program Files\Common Files"
 Set-IfMissing "CommonProgramFiles(x86)" "C:\Program Files (x86)\Common Files"
+Set-IfMissing "NUGET_COMMON_APPLICATION_DATA" $env:ProgramData
+Set-IfMissing "NUGET_MACHINE_WIDE_CONFIG_BASE_DIRECTORY" $env:ProgramData
 
 if ([string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
@@ -43,7 +45,16 @@ if ([string]::IsNullOrWhiteSpace($env:NUGET_PACKAGES)) {
 }
 
 if (-not $DotnetArgs -or $DotnetArgs.Count -eq 0) {
-    $DotnetArgs = @("restore")
+    $DotnetArgs = @("restore", "-m:1", "-p:RestoreDisableParallel=true")
+}
+elseif ($DotnetArgs.Count -gt 0 -and $DotnetArgs[0] -eq "restore") {
+    if (-not ($DotnetArgs -contains "-m:1")) {
+        $DotnetArgs += "-m:1"
+    }
+
+    if (-not ($DotnetArgs -contains "-p:RestoreDisableParallel=true")) {
+        $DotnetArgs += "-p:RestoreDisableParallel=true"
+    }
 }
 
 Write-Host "Using APPDATA=$env:APPDATA"
@@ -57,6 +68,8 @@ Write-Host "Using ProgramFiles(x86)=${env:ProgramFiles(x86)}"
 Write-Host "Using CommonProgramFiles=$env:CommonProgramFiles"
 Write-Host "Using CommonProgramFiles(x86)=${env:CommonProgramFiles(x86)}"
 Write-Host "Using NUGET_PACKAGES=$env:NUGET_PACKAGES"
+Write-Host "Using NUGET_COMMON_APPLICATION_DATA=$env:NUGET_COMMON_APPLICATION_DATA"
+Write-Host "Using NUGET_MACHINE_WIDE_CONFIG_BASE_DIRECTORY=$env:NUGET_MACHINE_WIDE_CONFIG_BASE_DIRECTORY"
 
 & dotnet @DotnetArgs
 exit $LASTEXITCODE

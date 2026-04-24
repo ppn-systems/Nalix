@@ -61,7 +61,7 @@ internal static class PacketAwaiter
             try { _ = tcs.TrySetCanceled(linkedCts.Token); } catch { }
         });
 
-        using IDisposable subscription = client.OnOnce<TPkt>(
+        IDisposable subscription = client.OnOnce<TPkt>(
             predicate: packet =>
             {
                 try
@@ -80,16 +80,17 @@ internal static class PacketAwaiter
             },
             disposeAfter: false);
 
-        IDisposable disconnectSub = client.SubscribeTemp<TPkt>(
-            onMessage: _ => { },
-            onDisconnected: ex =>
-            {
-                Exception error = new Common.Exceptions.NetworkException(
-                    $"Disconnected while waiting for {typeof(TPkt).Name}.",
-                    ex ?? new InvalidOperationException("The TCP session was disconnected."));
+        void DisconnectHandler(object? _, Exception ex)
+        {
+            Exception error = new Common.Exceptions.NetworkException(
+                $"Disconnected while waiting for {typeof(TPkt).Name}.",
+                ex ?? new InvalidOperationException("The TCP session was disconnected."));
 
-                try { _ = tcs.TrySetException(error); } catch { }
-            });
+            try { _ = tcs.TrySetException(error); } catch { }
+        }
+
+        client.OnDisconnected += DisconnectHandler;
+        IDisposable disconnectSub = new DelegateDisposable(() => client.OnDisconnected -= DisconnectHandler);
 
         using CompositeSubscription composite = client.Subscribe(subscription, disconnectSub);
 
