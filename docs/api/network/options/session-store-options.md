@@ -28,16 +28,17 @@ A dedicated page makes session-retention policy explicit and easier to review du
 `SessionStoreOptions` (`Nalix.Network.Options`) defines configuration for resumable-session storage policy.
 It is consumed by session-store implementations rather than packet dispatch or middleware components.
 
-## Properties
+## Properties and Validation
 
-| Property | Type | Default | Purpose |
-|---|---|---:|---|
-| `SessionTtl` | `TimeSpan` | `00:30:00` | Expiration window for inactive resumable sessions. |
-| `AutoSaveOnUnregister` | `bool` | `true` | Automatically persist sessions when a connection is unregistered. |
-| `MinAttributesForPersistence` | `int` | `4` | Min attribute count required to persist a session (prevents DDoS on empty sessions). |
+| Property | Type | Default | Validation | Purpose |
+|---|---|---:|---|---|
+| `SessionTtl` | `TimeSpan` | `00:30:00` | Required; must be greater than `TimeSpan.Zero`. | Expiration window for inactive resumable sessions. |
+| `AutoSaveOnUnregister` | `bool` | `true` | None. | Automatically persist sessions when a connection is unregistered. |
+| `MinAttributesForPersistence` | `int` | `4` | `0..int.MaxValue` | Min attribute count required to persist a session, reducing persistence of handshake-only/empty sessions. |
 
 ## Usage Notes
 
+- `Validate()` runs data-annotation validation and rejects non-positive `SessionTtl` values.
 - Longer `SessionTtl` improves reconnect tolerance for unstable client networks.
 - Shorter `SessionTtl` reduces retained resume state and narrows replay window duration.
 - For multi-node deployments, ensure distributed session storage uses the same effective TTL policy.
