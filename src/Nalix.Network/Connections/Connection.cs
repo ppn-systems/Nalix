@@ -315,6 +315,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
             this.Socket.Dispose();
 
+            _args.Dispose();
+
             if (this.UdpTransport != null)
             {
                 InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
@@ -384,6 +386,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 return _argsPool[i];
             }
         }
+
         return null;
     }
 
@@ -405,6 +408,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 return true;
             }
         }
+
         return false;
     }
 

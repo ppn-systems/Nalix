@@ -99,7 +99,9 @@ public abstract partial class UdpListenerBase : IListener
             int concurrency = Math.Max(1, s_options.MaxParallelUDP);
             for (int i = 0; i < concurrency; i++)
             {
+#pragma warning disable CA2000 // Ownership transfers to StartReceive/SAEA completion once queued to the ThreadPool.
                 PooledUdpReceiveEventArgs args = new();
+#pragma warning restore CA2000
                 args.Completed += this.OnReceiveCompleted;
 
                 // Offload start to ThreadPool to prevent blocking Activate if ReceiveFromAsync completes inline.

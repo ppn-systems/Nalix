@@ -93,8 +93,12 @@ internal sealed class TimingWheel : IActivatable
     private int _activeListeners;
     private long _tick;
     private int _disposed;
+#pragma warning disable CA2213 // Worker handle is cancelled/disposed via Interlocked.Exchange in Deactivate; analyzer does not track exchange-based cleanup.
     private IWorkerHandle? _worker;
+#pragma warning restore CA2213
+#pragma warning disable CA2213 // Cancellation source is cancelled/disposed via Interlocked.Exchange in Deactivate; analyzer does not track exchange-based cleanup.
     private CancellationTokenSource? _cts;
+#pragma warning restore CA2213
 
     #endregion Fields
 
@@ -253,10 +257,11 @@ internal sealed class TimingWheel : IActivatable
             return;
         }
 
-        if (_worker != null)
+        IWorkerHandle? worker = Interlocked.Exchange(ref _worker, null);
+        if (worker != null)
         {
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_worker.Id);
+                                    .CancelWorker(worker.Id);
         }
 
         try
@@ -295,7 +300,7 @@ internal sealed class TimingWheel : IActivatable
 
         try
         {
-            _worker?.Dispose();
+            worker?.Dispose();
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {

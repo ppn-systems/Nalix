@@ -29,9 +29,9 @@ internal sealed class FrameSender : IDisposable
     private readonly Func<Socket> _getSocket;
     private readonly Action<Exception> _onError;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
-    private const Int32 MaxTcpFrameLength = UInt16.MaxValue;
-    private const Int32 MaxNormalPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize;
-    private const Int32 MaxFragmentChunkPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize - FragmentHeader.WireSize;
+    private const int MaxTcpFrameLength = ushort.MaxValue;
+    private const int MaxNormalPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize;
+    private const int MaxFragmentChunkPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize - FragmentHeader.WireSize;
     private int _disposed;
 
     #endregion Fields

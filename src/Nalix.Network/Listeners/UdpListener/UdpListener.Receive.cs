@@ -251,15 +251,14 @@ public abstract partial class UdpListenerBase
         // FAST PATH — Lookup Connection via SessionToken (Snowflake).
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
-
-#pragma warning disable CA2000
-        if (!this.TryResolveConnection(_hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
+#pragma warning disable CA2000 // Borrowed from IConnectionHub; UDP receive path must not dispose hub-owned connections.
+        if (!this.TryResolveConnection(_hub, sessionToken, out Connection? connection) || connection is null || connection.IsDisposed)
+#pragma warning restore CA2000
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();
             return;
         }
-#pragma warning restore CA2000
 
         // --- 3. Endpoint pinning gate (SEC-30) ---
         if (connection.NetworkEndpoint is null ||
@@ -297,7 +296,7 @@ public abstract partial class UdpListenerBase
 
         // Strip the 7-byte Session Token and wrap the remaining payload into a new lease.
         // We take ownership of the underlying buffer from the original lease but only for the payload slice.
-        if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length))
+        if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length) || rawBuffer is null)
         {
             lease.Dispose();
             return;
@@ -306,11 +305,17 @@ public abstract partial class UdpListenerBase
         try
         {
             // Create a new lease for the payload (7 bytes offset)
-            BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer!, start + Snowflake.Size, length - Snowflake.Size);
+            BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer, start + Snowflake.Size, length - Snowflake.Size);
             incomingLease.IsReliable = false;
 
             // Optimize: Try local connection pool first, fallback to global s_pool.
-            ConnectionEventArgs args = connection?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
+            ConnectionEventArgs? args = connection.AcquireEventArgs();
+
+            if (args == null)
+            {
+                return;
+            }
+
             args.Initialize(incomingLease, connection);
 
             // Align with TCP: Offload to ThreadPool via AsyncCallback.
