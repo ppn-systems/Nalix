@@ -1,138 +1,240 @@
 # Middleware Pipeline
 
-The Nalix runtime supports high-performance packet middleware that executes around handler execution, allowing for cross-cutting concerns like security, throttling, and observability.
+Nalix uses `MiddlewarePipeline<TPacket>` to execute packet middleware around handler
+execution. The pipeline is optimized for high-throughput networking: middleware metadata
+is cached, execution snapshots are immutable, and runner contexts are pooled to avoid
+per-packet chain allocations.
 
-## Source mapping
+## Source Mapping
 
-- `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs`
-- `src/Nalix.Common/Middleware/IPacketMiddleware.cs`
+| Source | Responsibility |
+|---|---|
+| `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs` | Runtime pipeline registration, ordering, snapshots, pooled execution, inbound/outbound transition logic. |
+| `src/Nalix.Common/Middleware/IPacketMiddleware.cs` | Middleware invocation contract. |
+| `src/Nalix.Common/Middleware/MiddlewareOrderAttribute.cs` | Numeric middleware ordering metadata. |
+| `src/Nalix.Common/Middleware/MiddlewareStageAttribute.cs` | Stage metadata and outbound `AlwaysExecute` flag. |
+| `src/Nalix.Network.Pipeline/Inbound/PermissionMiddleware.cs` | Built-in fail-closed permission guard. |
+| `src/Nalix.Network.Pipeline/Inbound/RateLimitMiddleware.cs` | Built-in policy/global token-bucket throttling. |
+| `src/Nalix.Network.Pipeline/Inbound/ConcurrencyMiddleware.cs` | Built-in per-opcode concurrency guard. |
+| `src/Nalix.Network.Pipeline/Inbound/TimeoutMiddleware.cs` | Built-in timeout wrapper. |
 
-## Packet middleware
+## Middleware Contract
 
-Packet middleware works on `IPacketContext<TPacket>` after deserialization.
-The same middleware model applies to built-in packets and custom packet types.
-
-Use it for:
-
-- permissions
-- timeouts
-- rate limiting
-- concurrency limits
-- auditing
-
-Contract:
+Packet middleware implements:
 
 ```csharp
 ValueTask InvokeAsync(
     IPacketContext<TPacket> context,
-    Func<CancellationToken, ValueTask> next)
+    Func<CancellationToken, ValueTask> next);
 ```
 
-## Ordering
+The middleware receives the packet context and a `next` delegate. Calling `next(token)`
+continues to the next middleware or stage transition. Returning without calling `next`
+terminates the current pipeline path.
 
-Ordering is driven by:
+## Registration and Metadata
 
-- `[MiddlewareOrder]`
-- `[MiddlewareStage]`
+`Use(IPacketMiddleware<TPacket> middleware)`:
 
-The packet pipeline supports:
+1. rejects `null` middleware;
+2. prevents registering the same middleware instance twice;
+3. reads metadata from the middleware type;
+4. adds the entry to inbound, outbound, or both stage lists;
+5. rebuilds an immutable execution snapshot.
 
-- `Inbound`
-- `Outbound`
-- `Both`
+Metadata defaults are source-defined:
 
-## Built-in middleware
+| Metadata | Default when attribute is absent |
+|---|---|
+| `MiddlewareOrder` | `0` |
+| `MiddlewareStage` | `Inbound` |
+| `AlwaysExecute` | `false` |
 
-Common built-in packet middleware:
+Metadata is cached in a static `ConcurrentDictionary<Type, MiddlewareMetadata>`, so
+reflection is paid once per middleware type.
 
-- `PermissionMiddleware`
-- `RateLimitMiddleware`
-- `ConcurrencyMiddleware`
-- `TimeoutMiddleware`
+## Ordering Semantics
 
-`RateLimitMiddleware` uses handler-specific metadata when a packet has `[PacketRateLimit(...)]` and otherwise falls back to the global per-endpoint token bucket. That means reserved/control packets without an explicit attribute still go through ingress throttling.
+Pipeline lists are sorted when snapshots are rebuilt:
 
----
+| Stage list | Sort direction | Meaning |
+|---|---|---|
+| inbound | ascending `Order` | lower order runs earlier before the handler. |
+| outbound | descending `Order` | higher order runs earlier after the handler. |
+| outbound always | descending `Order` | same outbound direction, but may run even when normal outbound is skipped. |
 
-## Diving into Packet Headers
+Built-in inbound middleware currently declares:
 
-Middlewares often need to inspect packet headers for auditing, routing, or security. Since the `IPacketContext<TPacket>` exposes the `Packet` (which implements `IPacket`), you have zero-allocation access to the following fields:
+| Middleware | Stage | Order | Notes |
+|---|---|---:|---|
+| `PermissionMiddleware` | `Inbound` | `-50` | Runs early and fail-closes missing/insufficient permission metadata. |
+| `RateLimitMiddleware` | `Inbound` | `50` | Uses packet policy limiter when `[PacketRateLimit]` exists, otherwise global endpoint token bucket. |
+| `ConcurrencyMiddleware` | `Inbound` | `50` | Uses `[PacketConcurrencyLimit]`; no attribute means pass-through. |
+| `TimeoutMiddleware` | `Inbound` | `75` | Wraps downstream work when `[PacketTimeout]` has a positive timeout. |
 
-| Field | Type | Purpose |
-| :--- | :--- | :--- |
-| `OpCode` | `ushort` | Identifies the handler/message type. |
-| `SequenceId`| `ushort` | Used for request/reply correlation. |
-| `Flags` | `PacketFlags` | Metadata like `RELIABLE`, `SYSTEM`, or `COMPRESSED`. |
-| `Priority` | `PacketPriority` | Dispatcher hint (`NONE`, `LOW`, `MEDIUM`, `HIGH`, `URGENT`). |
-| `IsReliable` | `bool` | Indicates if the transport provides reliability (TCP). |
-| `Length` | `int` | Total wire size of the packet. |
-| `MagicNumber`| `uint` | Unique type identity hash. |
+> [!IMPORTANT]
+> `RateLimitMiddleware` and `ConcurrencyMiddleware` have the same order (`50`). The
+> runtime sort compares only `Order`; do not rely on a documented tie-breaker between
+> equal-order middleware. Assign distinct orders in custom pipelines when relative order
+> matters.
 
-### Example: Comprehensive Audit Middleware
+## Full Execution Flow
 
-```csharp
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
-
-public sealed class AuditMiddleware : IPacketMiddleware<IPacket>
-{
-    private readonly ILogger _logger;
-
-    public AuditMiddleware(ILogger logger) => _logger = logger;
-
-    public async ValueTask InvokeAsync(
-        IPacketContext<IPacket> context,
-        Func<CancellationToken, ValueTask> next)
-    {
-        var packet = context.Packet;
-        
-        // Log headers before execution
-        _logger.Info($@"[INBOUND] 
-            OpCode: 0x{packet.OpCode:X4} 
-            SequenceId: {packet.SequenceId} 
-            Priority: {packet.Priority} 
-            Size: {packet.Length} bytes");
-
-        // Continue to the next middleware or handler
-        await next(context.CancellationToken);
-        
-        // Post-execution logging (optional)
-        _logger.Debug($"Successfully processed 0x{packet.OpCode:X4}");
-    }
-}
+```mermaid
+flowchart TD
+    A["ExecuteAsync(context, handler, ct)"] --> B{"snapshot empty?"}
+    B -- yes --> H["handler(ct)"]
+    B -- no --> R["acquire pooled runner"]
+    R --> I["run inbound list"]
+    I --> X{"middleware calls next?"}
+    X -- no --> F["return; later stages are not reached"]
+    X -- yes --> M["after inbound list"]
+    M --> C["create effective handler token"]
+    C --> D["execute handler"]
+    D --> OA["run outboundAlways list"]
+    OA --> S{"context.SkipOutbound or token canceled?"}
+    S -- yes --> Z["finish"]
+    S -- no --> O["run outbound list"]
+    O --> Z
+    Z --> P["reset and return runner"]
 ```
 
----
+The handler token is chosen by `CreateExecutionToken(inboundToken, rootToken, out token)`:
 
-## Mental model
+- if the inbound token cannot be canceled, the root execution token is used;
+- if the inbound token is cancelable and is the same as the root token, it is reused;
+- otherwise a linked token source is created and disposed after handler/outbound-always
+  execution.
+
+`OperationCanceledException` thrown by the handler is swallowed only when the effective
+handler token is canceled. Other non-fatal exceptions follow normal pipeline error
+handling.
+
+## Pooled Runner Lifecycle
+
+`ExecuteAsync` uses a local pool of 32 `PooledPipelineContext` runners before falling
+back to `ObjectPoolManager`.
+
+Fast path:
+
+1. acquire a local or global runner;
+2. initialize it with the snapshot, context, handler, and root token;
+3. run the first step;
+4. if the returned `ValueTask` completed successfully, synchronously observe completion;
+5. reset the runner and return it immediately.
+
+Async path:
+
+1. await the pending `ValueTask`;
+2. reset and return the runner in `finally`.
+
+This design avoids building nested closures for every packet. The runner owns a reusable
+`Func<CancellationToken, ValueTask>[]` step array that grows only when needed.
+
+## Error Handling
+
+`ConfigureErrorHandling(bool continueOnError, Action<Exception, Type>? errorHandler)`
+stores the desired behavior in the next snapshot.
+
+When `continueOnError` is false:
+
+- synchronous non-fatal middleware exceptions return a faulted `ValueTask`;
+- asynchronous middleware exceptions propagate to the caller.
+
+When `continueOnError` is true:
+
+- the optional error handler receives the exception and middleware type;
+- the pipeline calls `next(token)` and continues.
+
+The catch filters use `ExceptionClassifier.IsNonFatal`, so fatal runtime exceptions are
+not hidden by the pipeline.
+
+## Built-in Security and Throttling Behavior
+
+### `PermissionMiddleware`
+
+`PermissionMiddleware` is fail-closed:
+
+- it only allows the request when `context.Attributes.Permission` exists and the required
+  level is less than or equal to `context.Connection.Level`;
+- missing `[PacketPermission]` metadata is denied;
+- rejection sends `Directive(ControlType.FAIL, ProtocolReason.UNAUTHORIZED,
+  ProtocolAdvice.NONE)` with `arg2 = opcode`;
+- directive emission is rate-gated by `DirectiveGuard` using
+  `InboundDirectiveUnauthorizedLastSentAtMs`.
+
+### `RateLimitMiddleware`
+
+`RateLimitMiddleware` chooses the limiter by metadata:
+
+- `[PacketRateLimit]` present: call `PolicyRateLimiter.Evaluate(opcode, context)`;
+- absent: call the global `TokenBucketLimiter.Evaluate(connection.NetworkEndpoint)`.
+
+Denied requests send `Directive(ControlType.FAIL, ProtocolReason.RATE_LIMITED,
+ProtocolAdvice.RETRY)` with `IS_TRANSIENT`, `arg1 = RetryAfterMs`, and `arg2 = Credit`.
+Directive spam is rate-gated by `DirectiveGuard` using
+`InboundDirectiveRateLimitedLastSentAtMs`.
+
+If the limiter was disposed and throws `ObjectDisposedException`, the middleware logs a
+warning and denies fail-closed without sending a directive.
+
+### `ConcurrencyMiddleware`
+
+`ConcurrencyMiddleware` is opt-in per packet:
+
+- no `[PacketConcurrencyLimit]`: pass-through;
+- `Queue = true`: waits through `ConcurrencyGate.EnterAsync(...)`;
+- `Queue = false`: calls `TryEnter(...)` and rejects immediately if the lease is not
+  acquired.
+
+Acquired leases are disposed in `finally`. Rejection or `ConcurrencyFailureException`
+sends `FAIL / RATE_LIMITED / RETRY` with `IS_TRANSIENT` and `arg0 = opcode`, also gated
+by `DirectiveGuard`.
+
+### `TimeoutMiddleware`
+
+`TimeoutMiddleware` is opt-in per packet:
+
+- no `[PacketTimeout]` or `TimeoutMilliseconds <= 0`: pass-through;
+- positive timeout: creates a linked cancellation token source when the context token is
+  cancelable, otherwise creates an independent timeout token source;
+- calls downstream `next(token)` and catches only timeout-triggered
+  `OperationCanceledException`.
+
+Timeout rejection sends `Directive(ControlType.TIMEOUT, ProtocolReason.TIMEOUT,
+ProtocolAdvice.RETRY)` with `IS_TRANSIENT` and `arg0 = timeout / 100`, gated by
+`InboundDirectiveTimeoutLastSentAtMs`.
+
+## Mental Model
 
 ```text
-socket buffer
-  -> translate IBufferLease
-  -> deserialize packet
-  -> packet middleware
-  -> handler
+socket receive
+  -> frame parsing / decoding
+  -> packet context + attributes
+  -> inbound middleware, ascending order
+  -> handler with effective cancellation token
+  -> outboundAlways middleware, descending order
+  -> outbound middleware, descending order when not skipped
   -> response path
 ```
 
-## Basic usage
+## Authoring Guidance
 
-```csharp
-using Nalix.Runtime.Dispatching;
-using Nalix.Network.Hosting;
-
-options.WithMiddleware(new SampleAuditMiddleware());
-```
+- Use unique `MiddlewareOrder` values when relative order matters.
+- Keep security middleware at low order values so it rejects before expensive work.
+- Return without calling `next` only when the middleware intentionally terminates the
+  pipeline.
+- Prefer `ValueTask` fast paths when middleware usually completes synchronously.
+- Avoid capturing per-packet closures in hot middleware where possible.
+- Use `AlwaysExecute` only for outbound middleware; analyzers flag inbound usage because
+  the flag affects outbound execution only.
 
 ## Related APIs
 
-- [Connection Limiter](../../network/connection/connection-limiter.md)
+- [Permission Middleware](./permission-middleware.md)
 - [Concurrency Gate](./concurrency-gate.md)
 - [Policy Rate Limiter](./policy-rate-limiter.md)
 - [Token Bucket Limiter](./token-bucket-limiter.md)
+- [Timeout Middleware](./timeout-middleware.md)
 - [Packet Dispatch](../routing/packet-dispatch.md)
-- [Packet Metadata](../routing/packet-metadata.md)
+- [Packet Attributes](../routing/packet-attributes.md)
