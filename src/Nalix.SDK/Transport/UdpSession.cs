@@ -415,14 +415,18 @@ public class UdpSession : TransportSession
                     System.Threading.Channels.ChannelWriter<Func<Task>>? writer = _asyncQueue?.Writer;
                     if (asyncHandler is not null && writer is not null && syncHandler is not null)
                     {
-                        // Copy payload for async handler to prevent race with sync handler's implicit lifecycle.
-                        byte[] copy = datagram.Memory.ToArray();
+                        datagram.Retain();
                         if (!writer.TryWrite(async () =>
                         {
-                            try { await asyncHandler(copy).ConfigureAwait(false); }
+                            try { await asyncHandler(datagram.Memory).ConfigureAwait(false); }
                             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
+                            finally
+                            {
+                                datagram.Dispose();
+                            }
                         }))
                         {
+                            datagram.Dispose();
                             this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; dual-mode frame dropped."));
                         }
                     }

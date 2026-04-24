@@ -29,6 +29,9 @@ internal sealed class FrameSender : IDisposable
     private readonly Func<Socket> _getSocket;
     private readonly Action<Exception> _onError;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private const Int32 MaxTcpFrameLength = UInt16.MaxValue;
+    private const Int32 MaxNormalPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize;
+    private const Int32 MaxFragmentChunkPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize - FragmentHeader.WireSize;
     private int _disposed;
 
     #endregion Fields
@@ -87,6 +90,11 @@ internal sealed class FrameSender : IDisposable
             }
 
             int totalLen = TcpSession.HeaderSize + current.Length;
+            if (totalLen > MaxTcpFrameLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(lease), $"TCP frame length {totalLen} exceeds UInt16.MaxValue. Configure fragmentation MaxChunkSize <= {MaxNormalPayloadLength}.");
+            }
+
             byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
             try
             {
@@ -150,6 +158,11 @@ internal sealed class FrameSender : IDisposable
 
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = _fragmentOptions.MaxChunkSize;
+        if (chunkBodySize <= 0 || chunkBodySize > MaxFragmentChunkPayloadLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(_fragmentOptions.MaxChunkSize), $"Fragment MaxChunkSize must be between 1 and {MaxFragmentChunkPayloadLength} bytes for TCP framing.");
+        }
+
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
 
         byte[] headerSpan = new byte[FragmentHeader.WireSize];
@@ -164,6 +177,11 @@ internal sealed class FrameSender : IDisposable
             fragHeader.WriteTo(headerSpan);
 
             int totalFrameLen = TcpSession.HeaderSize + FragmentHeader.WireSize + chunkLen;
+            if (totalFrameLen > MaxTcpFrameLength)
+            {
+                throw new ArgumentOutOfRangeException(nameof(payload), $"Fragment frame length {totalFrameLen} exceeds UInt16.MaxValue.");
+            }
+
             byte[] frame = BufferLease.ByteArrayPool.Rent(totalFrameLen);
 
             try
