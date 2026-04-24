@@ -160,7 +160,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             if (pending.IsCompletedSuccessfully)
             {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                 pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
                 return;
             }
 

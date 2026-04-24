@@ -560,6 +560,7 @@ public sealed class PacketDispatchChannel
     public void Dispose()
     {
         this.Deactivate();
+        _dispatch.Dispose();
         _wakeSignal.Dispose();
         _linkedCts?.Dispose();
         _cts?.Dispose();

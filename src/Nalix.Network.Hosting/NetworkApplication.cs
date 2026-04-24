@@ -280,6 +280,7 @@ public sealed class NetworkApplication : IActivatableAsync
             }, _logger, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }
 
+        _gate.Dispose();
         GC.SuppressFinalize(this);
     }
 

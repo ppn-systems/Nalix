@@ -287,11 +287,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
             _ = _writer.TryComplete();
             _cts.Cancel();
 
-            if (_workerHandle != null)
-            {
-                InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                        .CancelWorker(_workerHandle.Id);
-            }
+            _workerHandle?.Dispose();
 
             _fileWriter.Flush();
             _fileWriter.Dispose();

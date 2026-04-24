@@ -128,13 +128,10 @@ internal sealed class ConsoleLoggerProvider : IDisposable
         _ = _writer.TryComplete();
         _cts.Cancel();
 
-        if (_workerHandle != null)
-        {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_workerHandle.Id);
-        }
+        _workerHandle?.Dispose();
 
         _cts.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     private async Task CONSUME_LOOP_ASYNC(IWorkerContext ctx, CancellationToken ct)
