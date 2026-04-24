@@ -76,7 +76,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     }
 
     /// <inheritdoc/>
-    public IPacketSender<TPacket> Sender
+    public IPacketSender Sender
     {
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         get;
@@ -128,7 +128,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     {
         _state = (int)PacketContextState.Pooled;
 
-        this.Sender = new PacketSender<TPacket>();
+        this.Sender = new PacketSender();
         this.Packet = default!;
         this.IsReliable = false;
         this.Connection = default!;

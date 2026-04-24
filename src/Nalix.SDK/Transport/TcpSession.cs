@@ -25,7 +25,6 @@ public class TcpSession : TransportSession
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private Socket? _socket;
     private CancellationTokenSource? _loopCts;
-    private Task? _readerTask;
     private int _disposed;
 
     #endregion Fields
@@ -116,7 +115,7 @@ public class TcpSession : TransportSession
             // Start background worker for reading frames
             _loopCts = new CancellationTokenSource();
 
-            _readerTask = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token), 
+            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
                 _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
         catch (Exception ex)
