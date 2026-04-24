@@ -4,6 +4,7 @@
 using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
+using Nalix.Framework.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;
@@ -100,6 +101,12 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         if (length == SerializerBounds.Null)
         {
             return null!;
+        }
+
+        if (length < 0 || length > SerializerBounds.MaxString)
+        {
+            throw new SerializationFailureException(
+                $"String array length out of range: {length}. Max allowed is {SerializerBounds.MaxString}.");
         }
 
         string[] result = new string[length];

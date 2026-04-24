@@ -90,6 +90,7 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     /// Gets or sets the maximum number of packets allowed per second from a single connection before it is considered abusive and disconnected.
     /// </summary>
     [IniComment("Maximum packets per second allowed from a single connection (SEC-55, default 128)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 10_000_000, ErrorMessage = "MaxPacketPerSecond must be between 1 and 10,000,000.")]
     public int MaxPacketPerSecond { get; set; } = 128;
 
     /// <summary>
