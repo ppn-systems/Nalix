@@ -20,13 +20,17 @@ A standardized structure supports quicker onboarding and lowers documentation re
 
 - `src/Nalix.Network/Options/TimingWheelOptions.cs`
 
-## Properties
+## Properties and Validation
 
-| Property | Meaning | Default |
-|---|---|---:|
-| `BucketCount` | Number of timing wheel buckets. | `512` |
-| `TickDuration` | Tick interval (ms). | `1000` |
-| `IdleTimeoutMs` | Idle timeout threshold (ms). | `60000` |
+| Property | Meaning | Default | Valid range |
+|---|---|---:|---|
+| `BucketCount` | Number of timing wheel buckets. Higher values reduce slot collisions at the cost of more buckets. | `512` | `1..int.MaxValue` |
+| `TickDuration` | Tick interval in milliseconds. Lower values improve precision but increase check frequency. | `1000` | `1..int.MaxValue` |
+| `IdleTimeoutMs` | TCP connection idle timeout threshold in milliseconds before auto-close. | `60000` | `1..int.MaxValue` |
+
+## Validation Notes
+
+`Validate()` uses `System.ComponentModel.DataAnnotations.Validator.ValidateObject(...)` and rejects values below `1` for every property.
 
 ## Related APIs
 
