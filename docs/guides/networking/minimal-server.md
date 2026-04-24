@@ -75,12 +75,20 @@ public sealed class SampleProtocol : Protocol
 ```csharp
 public sealed class SampleTcpListener : TcpListenerBase
 {
-    public SampleTcpListener(ushort port, IProtocol protocol) : base(port, protocol) { }
+    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
 }
 
-SampleTcpListener listener = new(57206, new SampleProtocol(dispatch));
+IConnectionHub hub = new ConnectionHub();
+SampleTcpListener listener = new(57206, new SampleProtocol(dispatch), hub);
 listener.Activate();
 ```
+
+!!! warning "Manual hub ownership"
+    Current `TcpListenerBase` constructors require an `IConnectionHub`. The hosting
+    builder creates and wires this dependency for you. In manual mode, create the
+    hub explicitly and dispose it when your server shuts down.
+
 
 The client uses the `Nalix.SDK` to connect and perform type-safe request/response operations:
 
