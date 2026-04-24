@@ -37,13 +37,6 @@ public static class PacketPool<TPacket> where TPacket : PacketBase<TPacket>, new
     public static PacketLease<TPacket> Rent() => new(s_pool.Get());
 
     /// <summary>
-    /// Rents a packet instance directly. 
-    /// The caller is responsible for calling <c>Dispose()</c> on the returned packet.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static TPacket Get() => s_pool.Get();
-
-    /// <summary>
     /// Preallocates instances for this packet type to reduce cold-start latency.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
