@@ -986,7 +986,7 @@ public sealed class ObjectPoolManager : IReportable
                     string stack = "N/A (CaptureStackTraces=false)";
                     if (!string.IsNullOrEmpty(sentinel.StackTrace))
                     {
-                        int firstLineEnd = sentinel.StackTrace.IndexOf('\n');
+                        int firstLineEnd = sentinel.StackTrace.IndexOf('\n', StringComparison.Ordinal);
                         stack = firstLineEnd > 0 ? sentinel.StackTrace[..firstLineEnd].Trim() : sentinel.StackTrace;
                     }
 
