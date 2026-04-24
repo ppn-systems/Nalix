@@ -12,6 +12,7 @@ flowchart LR
         NSO[NetworkSocketOptions]
         PO[PoolingOptions]
         CLO[ConnectionLimitOptions]
+        DGO[DatagramGuardOptions]
         NCO[NetworkCallbackOptions]
         CHO[ConnectionHubOptions]
         TWO[TimingWheelOptions]
@@ -21,6 +22,7 @@ flowchart LR
     subgraph Runtime[Runtime Components]
         SC[SocketConnection]
         CG[ConnectionGuard]
+        DG[DatagramGuard]
         AC[AsyncCallback]
         Hub[ConnectionHub]
         TW[TimingWheel]
@@ -32,6 +34,7 @@ flowchart LR
     PO --> AC
     
     CLO --> CG
+    DGO --> DG
     NCO --> AC
     
     CHO --> Hub
@@ -47,7 +50,8 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 |---|---|---|---|
 | `NetworkSocketOptions` | `Nalix.Network` | Low-level OS socket settings. | Throughput / Latency |
 | `PoolingOptions` | `Nalix.Network` | Memory and object pool limits. | GC Pressure |
-| `ConnectionLimitOptions` | `Nalix.Network` | Anti-DDoS and per-IP caps. | Security |
+| `ConnectionLimitOptions` | `Nalix.Network` | Anti-DDoS, per-IP caps, UDP datagram size, and replay window. | Security |
+| `DatagramGuardOptions` | `Nalix.Network` | Bounded UDP source-window tracking. | Security / Memory |
 | `ConnectionHubOptions` | `Nalix.Network` | Hub sharding and total capacity. | Concurrency |
 | `TimingWheelOptions` | `Nalix.Network` | Idle cleanup granularity. | CPU Overhead |
 | `NetworkCallbackOptions` | `Nalix.Network` | ThreadPool dispatch pressure. | Stability |
