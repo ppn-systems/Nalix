@@ -620,20 +620,54 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     _socket.Shutdown(SocketShutdown.Both);
                 }
             }
-            catch { /* ignore */ }
+            catch (ObjectDisposedException ex)
+            {
+                _ = ex.HResult;
+#if DEBUG
+                _logger?.Trace(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                    $"socket-shutdown-ignored disposed ep={_endpointString} ex={ex.Message}");
+#endif
+            }
+            catch (SocketException ex) when (IS_BENIGN_DISCONNECT(ex))
+            {
+#if DEBUG
+                _logger?.Trace(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                    $"socket-shutdown-benign ep={_endpointString} code={ex.SocketErrorCode}");
+#endif
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warn(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                    $"socket-shutdown-failed ep={_endpointString}", ex);
+            }
 
-            try { _socket.Close(); } catch { /* ignore */ }
+            try
+            {
+                _socket.Close();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                _ = ex.HResult;
+#if DEBUG
+                _logger?.Trace(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                    $"socket-close-ignored disposed ep={_endpointString} ex={ex.Message}");
+#endif
+            }
+            catch (Exception ex)
+            {
+                _logger?.Warn(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                    $"socket-close-failed ep={_endpointString}", ex);
+            }
 
-            Task? receiveLoopTask = _receiveLoopTask;
+            Task? receiveLoopTask = Interlocked.Exchange(ref _receiveLoopTask, null);
             if (receiveLoopTask is not null)
             {
-                _receiveLoopTask = null;
-
-                // Wait for the loop to exit. Since we closed the socket above, 
-                // the loop should exit almost immediately. This ensures that 
-                // any pending AWAIT_RECEIVE has finished and released its 
-                // references to this connection.
-                try { receiveLoopTask.GetAwaiter().GetResult(); } catch { /* ignore */ }
+                this.OBSERVE_RECEIVE_LOOP_SHUTDOWN(receiveLoopTask);
             }
 
             // 3. Return the pooled receive context only after the socket can no
@@ -695,7 +729,45 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     {
         try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
         catch (ObjectDisposedException) { return "<disposed>"; }
-        catch { return "<unknown>"; }
+        catch (Exception ex)
+        {
+            _ = ex.HResult;
+#if DEBUG
+            Debug.WriteLine($"[SocketConnection] FORMAT_ENDPOINT failed: {ex}");
+#endif
+            return "<unknown>";
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void OBSERVE_RECEIVE_LOOP_SHUTDOWN(Task receiveLoopTask)
+    {
+        if (receiveLoopTask.IsCompleted)
+        {
+            if (receiveLoopTask.Exception?.GetBaseException() is Exception ex && !IS_BENIGN_DISCONNECT(ex))
+            {
+                _logger?.Warn(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                    $"receive-loop-faulted-during-dispose ep={_endpointString}", ex);
+            }
+            return;
+        }
+
+        _ = receiveLoopTask.ContinueWith(static (task, state) =>
+        {
+            if (state is not SocketConnection self)
+            {
+                return;
+            }
+
+            Exception? ex = task.Exception?.GetBaseException();
+            if (ex is not null && !IS_BENIGN_DISCONNECT(ex))
+            {
+                self._logger?.Warn(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                    $"receive-loop-faulted-after-dispose ep={self._endpointString}", ex);
+            }
+        }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
     [DebuggerStepThrough]

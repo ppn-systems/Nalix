@@ -74,15 +74,52 @@ public abstract partial class UdpListenerBase
                 this.HandleReceive(args);
             }
         }
-        catch (ObjectDisposedException) { }
+        catch (ObjectDisposedException ex) when (Volatile.Read(ref _isDisposed) != 0 || _cancellationToken.IsCancellationRequested)
+        {
+            s_logger?.Debug(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] " +
+                $"disposed-or-cancelled port={_port} reason={ex.GetType().Name}");
+        }
+        catch (ObjectDisposedException ex)
+        {
+            _ = Interlocked.Increment(ref _recvErrors);
+            s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}", ex);
+        }
         catch (Exception ex) when (!_cancellationToken.IsCancellationRequested)
         {
             _ = Interlocked.Increment(ref _recvErrors);
             s_logger?.Error($"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}", ex);
 
             // Brief delay to prevent tight error loops on synchronous failure.
-            _ = this.RetryStartReceiveAsync(args, _cancellationToken);
+            this.ScheduleRetryStartReceive(args, _cancellationToken);
         }
+    }
+
+    [DebuggerStepThrough]
+    private void ScheduleRetryStartReceive(PooledUdpReceiveEventArgs args, CancellationToken cancellationToken)
+    {
+        Task retryTask = this.RetryStartReceiveAsync(args, cancellationToken);
+        if (retryTask.IsCompletedSuccessfully)
+        {
+            return;
+        }
+
+        _ = retryTask.ContinueWith(static (task, state) =>
+        {
+            if (state is not UdpListenerBase self)
+            {
+                return;
+            }
+
+            Exception? error = task.Exception?.GetBaseException();
+            if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !self._cancellationToken.IsCancellationRequested)
+            {
+                _ = Interlocked.Increment(ref self._recvErrors);
+                s_logger?.Error(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(RetryStartReceiveAsync)}] retry-failed port={self._port}",
+                    error);
+            }
+        }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
     [DebuggerStepThrough]

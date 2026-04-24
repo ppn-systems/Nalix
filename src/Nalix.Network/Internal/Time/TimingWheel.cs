@@ -259,9 +259,50 @@ internal sealed class TimingWheel : IActivatable
                                     .CancelWorker(_worker.Id);
         }
 
-        try { cts.Cancel(); } catch { }
-        try { cts.Dispose(); } catch { }
-        try { _worker?.Dispose(); } catch { }
+        try
+        {
+            cts.Cancel();
+        }
+        catch (ObjectDisposedException ex)
+        {
+            s_logger?.Debug(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-cancel-ignored reason={ex.GetType().Name}");
+        }
+        catch (Exception ex)
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-cancel-failed", ex);
+        }
+
+        try
+        {
+            cts.Dispose();
+        }
+        catch (ObjectDisposedException ex)
+        {
+            s_logger?.Debug(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-dispose-ignored reason={ex.GetType().Name}");
+        }
+        catch (Exception ex)
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"cts-dispose-failed", ex);
+        }
+
+        try
+        {
+            _worker?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
+                $"worker-dispose-failed", ex);
+        }
 
         this.DRAIN_AND_RELEASE_ALL_BUCKETS();
 

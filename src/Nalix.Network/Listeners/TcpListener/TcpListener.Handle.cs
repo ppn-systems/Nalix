@@ -840,7 +840,18 @@ public abstract partial class TcpListenerBase
             {
                 remote = _listener?.LocalEndPoint?.ToString() ?? "<null>";
             }
-            catch { }
+            catch (ObjectDisposedException ode)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
+                    $"listener-endpoint-disposed port={_port} reason={ode.GetType().Name}");
+            }
+            catch (Exception lookupEx)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
+                    $"listener-endpoint-lookup-failed port={_port}", lookupEx);
+            }
             throw new NetworkException($"TryAccept failed. Listener={remote}", ex);
         }
         finally

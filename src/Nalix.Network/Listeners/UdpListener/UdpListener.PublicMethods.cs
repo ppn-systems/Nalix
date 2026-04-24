@@ -53,9 +53,14 @@ public abstract partial class UdpListenerBase : IListener
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
-        // Acquire the mutex with CancellationToken.None so the state transition
-        // finishes completely even if the caller's token is already canceled.
-        _lock.Wait(CancellationToken.None);
+        // Avoid blocking lifecycle calls behind an already-running transition.
+        if (!_lock.Wait(0, CancellationToken.None))
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
+                $"activate-skipped lock-busy port={_port}");
+            return;
+        }
 
         try
         {
@@ -175,14 +180,40 @@ public abstract partial class UdpListenerBase : IListener
 
         try
         {
-            try { cts?.Cancel(); } catch { }
+            try
+            {
+                cts?.Cancel();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-failed port={_port}", ex);
+            }
 
             try
             {
                 _socket?.Close();
                 _socket?.Dispose();
             }
-            catch { }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"socket-close-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"socket-close-failed port={_port}", ex);
+            }
 
             _socket = null;
 
@@ -202,7 +233,22 @@ public abstract partial class UdpListenerBase : IListener
         }
         finally
         {
-            try { cts?.Dispose(); } catch { }
+            try
+            {
+                cts?.Dispose();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-failed port={_port}", ex);
+            }
 
             _cancellationToken = default;
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);

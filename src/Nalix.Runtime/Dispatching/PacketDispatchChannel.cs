@@ -182,13 +182,29 @@ public sealed class PacketDispatchChannel
             int wakeCount = Math.Max(_dispatchLoops, 1);
             _ = _wakeSignal.Release(wakeCount);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] deactivate-error", ex);
         }
         finally
         {
-            try { linkedCts?.Dispose(); } catch { }
-            try { localCts?.Dispose(); } catch { }
+            try
+            {
+                linkedCts?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                this.Logging?.Warn($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] linked-cts-dispose-failed", ex);
+            }
+
+            try
+            {
+                localCts?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                this.Logging?.Warn($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] local-cts-dispose-failed", ex);
+            }
         }
     }
 

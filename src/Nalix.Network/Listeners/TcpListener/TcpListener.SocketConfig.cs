@@ -74,8 +74,33 @@ public abstract partial class TcpListenerBase
                 // WHY not rethrow: Failover automatically is better than crashing the server.
                 s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
 
-                try { sock?.Close(); } catch { }
-                try { sock?.Dispose(); } catch { }
+                try
+                {
+                    sock?.Close();
+                }
+                catch (ObjectDisposedException closeEx)
+                {
+                    s_logger?.Debug(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
+                        $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
+                }
+                catch (Exception closeEx)
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
+                        $"ipv6-fallback-close-failed", closeEx);
+                }
+
+                try
+                {
+                    sock?.Dispose();
+                }
+                catch (Exception disposeEx)
+                {
+                    s_logger?.Warn(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
+                        $"ipv6-fallback-dispose-failed", disposeEx);
+                }
 
                 sock = null;
             }

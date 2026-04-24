@@ -158,7 +158,18 @@ public abstract partial class UdpListenerBase
                 _cts?.Cancel();
                 _cts?.Dispose();
             }
-            catch { }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"cts-dispose-failed port={_port}", ex);
+            }
 
             _cts = null;
             _cancellationToken = default;
@@ -168,7 +179,18 @@ public abstract partial class UdpListenerBase
                 _socket?.Close();
                 _socket?.Dispose();
             }
-            catch { }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                    $"socket-dispose-failed port={_port}", ex);
+            }
 
             _socket = null;
             _lock.Dispose();

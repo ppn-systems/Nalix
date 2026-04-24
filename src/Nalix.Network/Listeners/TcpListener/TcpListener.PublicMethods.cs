@@ -54,11 +54,14 @@ public abstract partial class TcpListenerBase
             s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
         }
 
-        // Acquire the mutex with CancellationToken.None.
-        // Activate() must be allowed to finish its state transition even if the
-        // caller's token is already canceled; otherwise we could exit after
-        // partially initializing the listener and leave it in an inconsistent state.
-        _lock.Wait(CancellationToken.None);
+        // Avoid blocking lifecycle transitions behind a concurrent caller.
+        if (!_lock.Wait(0, CancellationToken.None))
+        {
+            s_logger?.Warn(
+                $"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] " +
+                $"activate-skipped lock-busy port={_port}");
+            return;
+        }
 
         CancellationToken linkedToken = default;
 
@@ -207,9 +210,56 @@ public abstract partial class TcpListenerBase
         CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
         try
         {
-            try { _cancelReg.Dispose(); } catch { }
-            try { cts?.Cancel(); } catch { }
-            try { _listener?.Close(); } catch { }
+            try
+            {
+                _cancelReg.Dispose();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cancel-reg-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cancel-reg-dispose-failed port={_port}", ex);
+            }
+
+            try
+            {
+                cts?.Cancel();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-cancel-failed port={_port}", ex);
+            }
+
+            try
+            {
+                _listener?.Close();
+            }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"listener-close-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"listener-close-failed port={_port}", ex);
+            }
 
             _listener = null;
 
@@ -232,7 +282,18 @@ public abstract partial class TcpListenerBase
             {
                 cts?.Dispose();
             }
-            catch { }
+            catch (ObjectDisposedException ex)
+            {
+                s_logger?.Debug(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+            }
+            catch (Exception ex)
+            {
+                s_logger?.Warn(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
+                    $"cts-dispose-failed port={_port}", ex);
+            }
 
             _cts = null;
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);

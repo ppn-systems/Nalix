@@ -304,8 +304,18 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
                     // (suspended forever) because it's rooted by this context.
                     if (Interlocked.Exchange(ref _consumerAwaitPending, 0) != 0)
                     {
-                        try { _receiveSource.SetException(NetworkErrors.PooledContextDisposed); }
-                        catch { /* ignore — might have raced with completion */ }
+                        try
+                        {
+                            _receiveSource.SetException(NetworkErrors.PooledContextDisposed);
+                        }
+                        catch (Exception ex)
+                        {
+                            _ = ex.HResult;
+#if DEBUG
+                            Debug.WriteLine(
+                                $"[PooledSocketReceiveContext] SetException race while resetting context={RuntimeHelpers.GetHashCode(this)} ex={ex}");
+#endif
+                        }
                     }
                     break;
                 }
