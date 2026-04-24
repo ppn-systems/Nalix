@@ -20,19 +20,21 @@ Consistent page shape helps operators quickly compare memory/throughput tuning k
 
 - `src/Nalix.Network/Options/PoolingOptions.cs`
 
-## Pool Groups
+## Pool Groups (Current Defaults)
 
-- Accept context pool (`AcceptContextCapacity`, `AcceptContextPreallocate`)
-- Socket async event args pool (`SocketArgsCapacity`, `SocketArgsPreallocate`)
-- Receive context pool (`ReceiveContextCapacity`, `ReceiveContextPreallocate`)
-- Timing wheel timeout task pool (`TimeoutTaskCapacity`, `TimeoutTaskPreallocate`)
-- Connect event context pool (`ConnectEventContextCapacity`, `ConnectEventContextPreallocate`)
-- Packet context pool (`PacketContextCapacity`, `PacketContextPreallocate` — default increased to 32)
+| Pool group | Capacity default | Preallocate default | Runtime owner |
+|---|---:|---:|---|
+| Accept context | `4096` | `20` | One context per in-flight TCP accept operation. |
+| Socket async event args | `4096` | `32` | Shared by accept and receive paths. |
+| Receive context | `4096` | `32` | One context per active TCP connection. |
+| Timing wheel timeout task | `8192` | `64` | One timeout task per active timing-wheel registration. |
+| Connect event context | `4096` | `32` | Queued connection callback dispatch wrappers. |
 
 ## Validation Notes
 
-- Range validation applies to each value.
-- Every `Preallocate` value must be <= corresponding `Capacity`.
+- Each capacity is validated in the range `1..1_000_000`.
+- Each preallocate value is validated in the range `0..1_000_000`.
+- Every `Preallocate` value must be `<=` its corresponding `Capacity`.
 
 ## Best Practices
 
