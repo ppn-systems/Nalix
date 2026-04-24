@@ -45,9 +45,6 @@ public abstract partial class Protocol
     public void Dispose()
     {
         this.Dispose(true);
-
-        s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
-
         GC.SuppressFinalize(this);
     }
 
@@ -62,6 +59,8 @@ public abstract partial class Protocol
         {
             return;
         }
+
+        s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
 
         // Derived protocols can release managed resources when disposing == true.
     }

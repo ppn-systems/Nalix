@@ -351,7 +351,7 @@ internal static class AsyncCallback
         {
             return args.Connection;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             return null;
         }
@@ -369,7 +369,7 @@ internal static class AsyncCallback
         {
             return args.NetworkEndpoint;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             return null;
         }
@@ -425,7 +425,7 @@ internal static class AsyncCallback
         {
             w.Callback?.Invoke(w.Sender, args);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             LOG_THROTTLED_ERROR_SAFE(args, "async.callback_error", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
         }

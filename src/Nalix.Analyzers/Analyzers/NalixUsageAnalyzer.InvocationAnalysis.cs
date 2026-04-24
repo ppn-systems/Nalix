@@ -95,8 +95,6 @@ public sealed partial class NalixUsageAnalyzer
             return;
         }
 
-        // Collect all middleware orders in the same chain
-        HashSet<int> seenOrders = [];
         IOperation? current = invocation.Instance;
         while (current is not null)
         {

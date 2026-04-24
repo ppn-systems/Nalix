@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
 using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Security.Internal;
 using Nalix.Framework.Security.Primitives;
@@ -120,7 +121,14 @@ public static class Salsa20Poly1305
             // Use only the written portion of dstCiphertext for MAC
             BUILD_TRANSCRIPT_AND_FINALIZE(poly, aad, dstCiphertext[..written], tag);
 
-            try { poly.Clear(); } catch { } // best effort to clear any internal state if Clear throws (e.g. if already cleared)
+            try
+            {
+                poly.Clear();
+            }
+            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                Debug.WriteLine($"[Salsa20Poly1305] Poly1305.Clear failed: {ex}");
+            }
 
             return written;
         }

@@ -102,6 +102,12 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
             return null!;
         }
 
+        if (length < 0 || length > SerializerBounds.MaxString)
+        {
+            throw new SerializationFailureException(
+                $"String array length out of range: {length}. Max allowed is {SerializerBounds.MaxString}.");
+        }
+
         string[] result = new string[length];
 
         for (int i = 0; i < length; i++)

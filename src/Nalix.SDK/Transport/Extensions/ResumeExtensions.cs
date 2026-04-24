@@ -25,7 +25,7 @@ public static class ResumeExtensions
     /// <param name="session">The connected TCP session to resume.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns>The <see cref="ProtocolReason"/> reported by the server. <see cref="ProtocolReason.NONE"/> indicates success.</returns>
-    public static async Task<ProtocolReason> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
+    public static async ValueTask<ProtocolReason> ResumeSessionAsync(this TcpSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
 
@@ -39,7 +39,7 @@ public static class ResumeExtensions
             return ProtocolReason.SESSION_NOT_FOUND;
         }
 
-        SessionResume request = new();
+        using SessionResume request = new();
         request.Initialize(SessionResumeStage.REQUEST, session.Options.SessionToken);
 
         // SEC-16: Compute proof-of-possession using HMAC-Keccak256(Secret, SessionToken).
@@ -102,7 +102,7 @@ public static class ResumeExtensions
     /// <param name="port">The optional port override.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns><see langword="true"/> when resume succeeded; <see langword="false"/> when a fresh handshake was used.</returns>
-    public static async Task<bool> ConnectWithResumeAsync(
+    public static async ValueTask<bool> ConnectWithResumeAsync(
         this TcpSession session,
         string? host = null,
         ushort? port = null,

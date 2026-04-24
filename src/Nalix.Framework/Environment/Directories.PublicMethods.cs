@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace Nalix.Framework.Environment;
@@ -102,10 +103,16 @@ public static partial class Directories
                         deleted++;
                     }
                 }
-                catch { }
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                {
+                    Debug.WriteLine($"[Directories] DeleteOldFiles skipped '{filePath}': {ex}");
+                }
             }
         }
-        catch { }
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            Debug.WriteLine($"[Directories] DeleteOldFiles failed for '{directoryPath}': {ex}");
+        }
 
         return deleted;
     }

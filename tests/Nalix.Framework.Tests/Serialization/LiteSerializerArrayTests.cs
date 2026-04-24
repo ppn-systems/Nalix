@@ -1,5 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
+using System;
+using Nalix.Common.Exceptions;
 using Nalix.Framework.Serialization;
 using Xunit;
 
@@ -35,5 +37,16 @@ public sealed class LiteSerializerArrayTests
         _ = LiteSerializer.Deserialize(buffer, ref output);
 
         Assert.Null(output);
+    }
+
+    [Theory]
+    [InlineData(-2)]
+    [InlineData(int.MaxValue)]
+    public void Deserialize_ReferenceArray_InvalidLength_ThrowsSerializationFailureException(int length)
+    {
+        byte[] buffer = BitConverter.GetBytes(length);
+        object[]? output = null;
+
+        _ = Assert.ThrowsAny<SerializationFailureException>(() => LiteSerializer.Deserialize(buffer, ref output));
     }
 }
