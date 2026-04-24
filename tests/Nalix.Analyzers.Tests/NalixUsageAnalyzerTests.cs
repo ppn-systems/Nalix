@@ -984,7 +984,7 @@ public sealed class ExplicitPacket
     [SerializeOrder(1)]
     public int A { get; set; }
 
-    [SerializeOrder(20)]
+    [SerializeOrder(200)]
     public int B { get; set; }
 }
 """;

@@ -19,7 +19,7 @@ namespace Nalix.Analyzers.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 {
-    private const int UnusuallyLargeSerializeOrderGapThreshold = 16;
+    private const int UnusuallyLargeSerializeOrderGapThreshold = 128;
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         [
@@ -94,7 +94,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 return;
             }
 
-            ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes = new();
+            ConcurrentDictionary<string, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes = new();
             ConcurrentDictionary<string, INamedTypeSymbol> controllerNames = new(StringComparer.OrdinalIgnoreCase);
 
             startContext.RegisterSymbolAction(
@@ -122,7 +122,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeNamedType(
         SymbolAnalysisContext context,
         SymbolSet symbols,
-        ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes,
+        ConcurrentDictionary<string, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes,
         ConcurrentDictionary<string, INamedTypeSymbol> controllerNames)
     {
         INamedTypeSymbol typeSymbol = (INamedTypeSymbol)context.Symbol;
@@ -310,14 +310,15 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         List<(ISymbol Member, int Order)> orderedMembers = [];
         List<(ISymbol Member, int Order)> serializeOrderedMembers = [];
 
-        foreach (ISymbol member in typeSymbol.GetMembers())
+        List<ISymbol> allMembers = [];
+        for (INamedTypeSymbol? current = typeSymbol; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
         {
-            if (member is not IPropertySymbol and not IFieldSymbol)
-            {
-                continue;
-            }
+            allMembers.AddRange(current.GetMembers());
+        }
 
-            if (member.IsImplicitlyDeclared || member.IsStatic)
+        foreach (ISymbol member in allMembers)
+        {
+            if (member.Kind is not (SymbolKind.Property or SymbolKind.Field) || member.IsImplicitlyDeclared || member.IsStatic)
             {
                 continue;
             }
@@ -564,11 +565,14 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         SymbolAnalysisContext context,
         INamedTypeSymbol typeSymbol,
         SymbolSet symbols,
-        ConcurrentDictionary<ushort, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes,
+        ConcurrentDictionary<string, (IMethodSymbol Method, INamedTypeSymbol Controller)> globalOpcodes,
         ConcurrentDictionary<string, INamedTypeSymbol> controllerNames)
     {
+        string ns = typeSymbol.ContainingNamespace.ToDisplayString();
         string controllerName = GetPacketControllerName(typeSymbol, symbols.ControllerAttribute) ?? typeSymbol.Name;
-        INamedTypeSymbol existing = controllerNames.GetOrAdd(controllerName, typeSymbol);
+        string controllerKey = $"{ns}.{controllerName}";
+
+        INamedTypeSymbol existing = controllerNames.GetOrAdd(controllerKey, typeSymbol);
         if (!SymbolEqualityComparer.Default.Equals(existing, typeSymbol))
         {
             Report(
@@ -628,7 +632,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                     Report(context, DiagnosticDescriptors.ReservedOpCodeRange, methodSymbol, methodSymbol.Name, opcode.Value);
                 }
 
-                var existingOpcode = globalOpcodes.GetOrAdd(opcode.Value, (methodSymbol, typeSymbol));
+                string opcodeKey = $"{ns}.{opcode.Value}";
+                var existingOpcode = globalOpcodes.GetOrAdd(opcodeKey, (methodSymbol, typeSymbol));
                 if (!SymbolEqualityComparer.Default.Equals(existingOpcode.Controller, typeSymbol))
                 {
                     Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, existingOpcode.Method.Name, existingOpcode.Controller.Name);
@@ -1510,10 +1515,12 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 string name = p.Name;
                 // Heuristic: check if the lease is disposed, used in a using block, 
                 // passed to a next delegate, or returned in any form.
+                // Also consider passing to a constructor as 'potentially owned' by the new object.
                 bool isDisposed = code.Contains($"{name}.Dispose()")
                                 || code.Contains($"using (var {name}")
                                 || code.Contains($"using var {name}")
-                                || Regex.IsMatch(code, $@"\b(next|nextHandler|ExecuteAsync)\s*\([^)]*\b{name}\b")
+                                || code.Contains($"new ") && code.Contains(name) // Passed to constructor
+                                || Regex.IsMatch(code, $@"\b(next|nextHandler|ExecuteAsync|InvokeAsync|SendAsync|ReceiveAsync|WriteAsync|ReadAsync)\s*\([^)]*\b{name}\b")
                                 || Regex.IsMatch(code, $@"return\s+[^;]*\b{name}\b")
                                 || Regex.IsMatch(code, $@"=> \s*[^;]*\b{name}\b");
 
