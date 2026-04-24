@@ -168,6 +168,39 @@ public sealed class PacketRegistryFactoryNamespaceTests
         Assert.True(registry.IsRegistered<FactoryScan.FactoryScanAttributedPacket>());
         Assert.True(registry.IsRegistered<FactoryScan.Child.FactoryScanChildPacket>());
     }
+
+    [Fact]
+    public void LoadFromAssemblyPathWhenRequireAttributeIsTrueIncludesOnlyAttributedPackets()
+    {
+        PacketRegistry registry = PacketRegistry.LoadFromAssemblyPath(s_testAssembly.Location, requirePacketAttribute: true);
+
+        Assert.False(registry.IsRegistered<FactoryScan.FactoryScanPacket>());
+        Assert.False(registry.IsRegistered<FactoryScan.Child.FactoryScanChildPacket>());
+        Assert.True(registry.IsRegistered<FactoryScan.FactoryScanAttributedPacket>());
+    }
+
+    [Fact]
+    public void LoadFromNamespaceWhenUsingCurrentDomainIncludesRootAndChildNamespacePackets()
+    {
+        PacketRegistry registry = PacketRegistry.LoadFromNamespace(packetNamespace: RootNamespace, recursive: true);
+
+        Assert.True(registry.IsRegistered<FactoryScan.FactoryScanPacket>());
+        Assert.True(registry.IsRegistered<FactoryScan.FactoryScanAttributedPacket>());
+        Assert.True(registry.IsRegistered<FactoryScan.Child.FactoryScanChildPacket>());
+    }
+
+    [Fact]
+    public void LoadFromNamespaceWhenAssemblyPathProvidedIncludesOnlyRequestedNamespace()
+    {
+        PacketRegistry registry = PacketRegistry.LoadFromNamespace(
+            assemblyPath: s_testAssembly.Location,
+            packetNamespace: RootNamespace,
+            recursive: false);
+
+        Assert.True(registry.IsRegistered<FactoryScan.FactoryScanPacket>());
+        Assert.True(registry.IsRegistered<FactoryScan.FactoryScanAttributedPacket>());
+        Assert.False(registry.IsRegistered<FactoryScan.Child.FactoryScanChildPacket>());
+    }
 }
 }
 

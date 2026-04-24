@@ -87,6 +87,62 @@ public sealed class PacketRegistry : IPacketRegistry
 
     #region Public API
 
+    /// <summary>
+    /// Builds a packet registry by scanning currently loaded assemblies and matching
+    /// packet types by namespace.
+    /// </summary>
+    /// <param name="packetNamespace">Namespace to match.</param>
+    /// <param name="recursive">
+    /// When <see langword="true"/>, includes child namespaces recursively.
+    /// </param>
+    public static PacketRegistry LoadFromNamespace(string packetNamespace, bool recursive = true)
+    {
+        PacketRegistryFactory factory = new();
+        _ = factory.IncludeCurrentDomain();
+
+        _ = recursive
+            ? factory.IncludeNamespaceRecursive(packetNamespace)
+            : factory.IncludeNamespace(packetNamespace);
+
+        return factory.CreateCatalog();
+    }
+
+    /// <summary>
+    /// Builds a packet registry from one packet assembly (.dll) path.
+    /// </summary>
+    /// <param name="assemblyPath">Absolute or relative path to a packet assembly.</param>
+    /// <param name="requirePacketAttribute">
+    /// When <see langword="true"/>, only packet types decorated with
+    /// <see cref="PacketAttribute"/> are registered.
+    /// </param>
+    public static PacketRegistry LoadFromAssemblyPath(string assemblyPath, bool requirePacketAttribute = false)
+    {
+        PacketRegistryFactory factory = new();
+        _ = factory.RegisterPacketAssembly(assemblyPath, requirePacketAttribute);
+        return factory.CreateCatalog();
+    }
+
+    /// <summary>
+    /// Builds a packet registry by loading one assembly path and filtering packet
+    /// types by namespace within that assembly.
+    /// </summary>
+    /// <param name="assemblyPath">Absolute or relative path to a packet assembly.</param>
+    /// <param name="packetNamespace">Namespace to match within the loaded assembly.</param>
+    /// <param name="recursive">
+    /// When <see langword="true"/>, includes child namespaces recursively.
+    /// </param>
+    public static PacketRegistry LoadFromNamespace(string assemblyPath, string packetNamespace, bool recursive = true)
+    {
+        PacketRegistryFactory factory = new();
+        _ = factory.IncludeAssembly(assemblyPath);
+
+        _ = recursive
+            ? factory.IncludeNamespaceRecursive(packetNamespace)
+            : factory.IncludeNamespace(packetNamespace);
+
+        return factory.CreateCatalog();
+    }
+
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsKnownMagic(uint magic) => _deserializers.ContainsKey(magic);

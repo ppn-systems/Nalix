@@ -39,8 +39,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     internal NetworkApplicationBuilder(HostingBuilderContext state)
     {
         _state = state ?? throw new ArgumentNullException(nameof(state));
-        _ = this.AddHandler<HandshakeHandlers>()
-                .AddHandler<SessionHandlers>()
+        _ = this.AddHandler<SessionHandlers>()
+                .AddHandler<HandshakeHandlers>()
                 .AddHandler<SystemControlHandlers>();
     }
 
