@@ -162,18 +162,23 @@ public sealed class SessionHandlers
     /// <param name="reason">The failure reason to report.</param>
     private static async ValueTask HandleFailureAsync(IConnection connection, ProtocolReason reason)
     {
+        IConnection.ITransport? tcp = connection.TCP;
+
         using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
             sessionToken: default,
             reason: reason,
-            flags: PacketFlags.SYSTEM | (connection.TCP != null ? PacketFlags.RELIABLE : PacketFlags.UNRELIABLE));
+            flags: PacketFlags.SYSTEM | (tcp is not null ? PacketFlags.RELIABLE : PacketFlags.UNRELIABLE));
 
         try
         {
-            await connection.TCP!.SendAsync(ack)
-                                 .ConfigureAwait(false);
+            if (tcp is not null)
+            {
+                await tcp.SendAsync(ack)
+                         .ConfigureAwait(false);
+            }
         }
         finally
         {
