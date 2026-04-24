@@ -155,7 +155,15 @@ internal sealed class FileWriter : IDisposable
             {
                 _provider.Options.HandleFileError?.Invoke(
                     new FileError(ex, _currentPath ?? "<unknown>"));
-                try { this.CLOSE_LOG_FILE_LOCKED(); } catch { /* ignore */ }
+                try
+                {
+                    this.CLOSE_LOG_FILE_LOCKED();
+                }
+                catch (Exception closeEx)
+                {
+                    _provider.Options.HandleFileError?.Invoke(
+                        new FileError(closeEx, _currentPath ?? "<unknown>"));
+                }
             }
         }
     }
@@ -167,7 +175,11 @@ internal sealed class FileWriter : IDisposable
         lock (_fileLock)
         {
             try { _writer?.Flush(); }
-            catch { /* ignore */ }
+            catch (Exception ex)
+            {
+                _provider.Options.HandleFileError?.Invoke(
+                    new FileError(ex, _currentPath ?? "<unknown>"));
+            }
         }
     }
 
@@ -192,9 +204,35 @@ internal sealed class FileWriter : IDisposable
 
     private void CLOSE_LOG_FILE_LOCKED()
     {
-        try { _writer?.Flush(); } catch { /* ignore */ }
-        try { _writer?.Dispose(); } catch { /* ignore */ }
-        try { _stream?.Dispose(); } catch { /* ignore */ }
+        try
+        {
+            _writer?.Flush();
+        }
+        catch (Exception ex)
+        {
+            _provider.Options.HandleFileError?.Invoke(
+                new FileError(ex, _currentPath ?? "<unknown>"));
+        }
+
+        try
+        {
+            _writer?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _provider.Options.HandleFileError?.Invoke(
+                new FileError(ex, _currentPath ?? "<unknown>"));
+        }
+
+        try
+        {
+            _stream?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _provider.Options.HandleFileError?.Invoke(
+                new FileError(ex, _currentPath ?? "<unknown>"));
+        }
 
         _writer = null;
         _stream = null;

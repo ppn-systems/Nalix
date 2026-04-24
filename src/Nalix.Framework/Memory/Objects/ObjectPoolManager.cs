@@ -641,29 +641,26 @@ public sealed class ObjectPoolManager : IReportable
     /// <param name="percentage">The percentage of items to trim from each pool.</param>
     /// <param name="cancellationToken">The token used to cancel the background loop.</param>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is negative or not supported by <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</exception>
-    public Task ScheduleRegularTrimming(TimeSpan interval, int percentage = 50, CancellationToken cancellationToken = default)
+    public async Task ScheduleRegularTrimming(TimeSpan interval, int percentage = 50, CancellationToken cancellationToken = default)
     {
-        return Task.Run(async () =>
+        while (!cancellationToken.IsCancellationRequested)
         {
-            while (!cancellationToken.IsCancellationRequested)
+            try
             {
-                try
-                {
-                    await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
-                    _ = this.TrimAllPools(percentage);
-                    _ = this.PerformHealthCheck();
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                            .Error($"[SH.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error", ex);
-                }
+                await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
+                _ = this.TrimAllPools(percentage);
+                _ = this.PerformHealthCheck();
             }
-        }, cancellationToken);
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                        .Error($"[SH.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error", ex);
+            }
+        }
     }
 
     /// <summary>

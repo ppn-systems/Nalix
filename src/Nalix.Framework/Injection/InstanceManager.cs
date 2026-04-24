@@ -1025,7 +1025,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                     {
                         lostDisp.Dispose();
                     }
-                    catch (ObjectDisposedException) { /* benign */ }
+                    catch (ObjectDisposedException odex)
+                    {
+                        this.EmitLog(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] temp-instance-already-disposed type={type.Name}", odex);
+                    }
                     catch (Exception dex)
                     {
                         this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] dispose-fail temp type={type.Name}", dex);
@@ -1196,4 +1199,3 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
     #endregion Slow Paths & Activators
 }
-

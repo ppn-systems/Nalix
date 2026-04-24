@@ -230,8 +230,34 @@ public partial class TaskManager
                 try
                 {
                     Thread.CurrentThread.Priority = osPriority;
-                    this.EXECUTE_WORKER_ASYNC(st, gate, cts).GetAwaiter().GetResult();
-                    _ = tcs.TrySetResult();
+                    Task execution = this.EXECUTE_WORKER_ASYNC(st, gate, cts);
+                    if (execution.IsCompletedSuccessfully)
+                    {
+                        _ = tcs.TrySetResult();
+                        return;
+                    }
+
+                    _ = execution.ContinueWith(static (task, state) =>
+                    {
+                        if (state is not TaskCompletionSource source)
+                        {
+                            return;
+                        }
+
+                        if (task.IsCanceled)
+                        {
+                            _ = source.TrySetCanceled();
+                            return;
+                        }
+
+                        if (task.Exception?.GetBaseException() is Exception ex)
+                        {
+                            _ = source.TrySetException(ex);
+                            return;
+                        }
+
+                        _ = source.TrySetResult();
+                    }, tcs, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                 }
                 catch (Exception ex)
                 {
@@ -248,7 +274,7 @@ public partial class TaskManager
         }
         else
         {
-            st.Task = Task.Run(async () => await this.EXECUTE_WORKER_ASYNC(st, gate, cts).ConfigureAwait(false));
+            st.Task = this.EXECUTE_WORKER_ASYNC(st, gate, cts);
             this.TRACE($"[FW.{nameof(TaskManager)}] worker-start id={id} name={name} group={group} priority={options.Priority} tag={options.Tag ?? "-"}");
         }
     }
@@ -618,7 +644,14 @@ public partial class TaskManager
         {
             await Task.Delay(delayMs, ct).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+        }
+        catch (OperationCanceledException ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[FW.{nameof(TaskManager)}:{nameof(RECURRING_BACKOFF_ASYNC)}] backoff-cancelled msg={ex.Message}");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

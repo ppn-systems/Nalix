@@ -201,7 +201,7 @@ public sealed partial class TaskManager : ITaskManager
         _workerDispatcherCts = new();
         _currentConcurrencyLimit = _options.MaxWorkers;
         _globalConcurrencyGate = new SemaphoreSlim(_currentConcurrencyLimit, _options.MaxWorkers);
-        _workerDispatcherTask = Task.Run(() => this.WORKER_DISPATCH_LOOP_ASYNC(_workerDispatcherCts.Token));
+        _workerDispatcherTask = this.WORKER_DISPATCH_LOOP_ASYNC(_workerDispatcherCts.Token);
 
         _cleanupTimer = new Timer(static s =>
         {
@@ -305,7 +305,7 @@ public sealed partial class TaskManager : ITaskManager
             throw new InternalErrorException($"[{nameof(TaskManager)}] duplicate recurring name: {name}");
         }
 
-        st.Task = Task.Run(() => this.RECURRING_LOOP_ASYNC(st, work), cts.Token);
+        st.Task = this.RECURRING_LOOP_ASYNC(st, work);
 
         this.TRACE($"[FW.{nameof(TaskManager)}:{nameof(ScheduleRecurring)}] start-recurring name={name} iv={interval.TotalMilliseconds:F0}ms nonReentrant={options.NonReentrant} tag={options.Tag ?? "-"}");
         return st;
@@ -583,7 +583,11 @@ public sealed partial class TaskManager : ITaskManager
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
-        catch { /* best effort, ignore any exceptions from diagnostics */ }
+        catch (Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[FW.{nameof(TaskManager)}:{nameof(GenerateReport)}] memory-diagnostics-failed msg={ex.Message}");
+        }
 
         try
         {
@@ -600,7 +604,11 @@ public sealed partial class TaskManager : ITaskManager
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Debug($"[FW.{nameof(TaskManager)}:{nameof(GenerateReport)}] process-health-diagnostics-failed msg={ex.Message}");
+        }
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
         _ = sb.AppendLine("Monitoring Statistics:");
@@ -952,7 +960,26 @@ public sealed partial class TaskManager : ITaskManager
         {
             _workerDispatcherCts.Cancel();
             _ = _pendingWorkersSignal.Release();
-            _ = _workerDispatcherTask.Wait(TimeSpan.FromSeconds(2));
+
+            if (_workerDispatcherTask.IsCompleted)
+            {
+                if (_workerDispatcherTask.Exception?.GetBaseException() is Exception ex)
+                {
+                    InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                            .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-faulted msg={ex.Message}");
+                }
+            }
+            else
+            {
+                _ = _workerDispatcherTask.ContinueWith(static (task) =>
+                {
+                    if (task.Exception?.GetBaseException() is Exception bgEx)
+                    {
+                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                                .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-faulted-after-dispose msg={bgEx.Message}");
+                    }
+                }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
         }
         catch (Exception ex)
         {
