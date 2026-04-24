@@ -23,6 +23,7 @@ namespace Nalix.SDK.Transport.Internal;
 internal sealed class FrameReader : IDisposable
 {
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
+    private static readonly SocketException s_frameSizeExceeded = new((int)SocketError.MessageSize);
 
     private readonly TransportOptions _options;
     private readonly Func<Socket> _getSocket;
@@ -75,9 +76,9 @@ internal sealed class FrameReader : IDisposable
                         await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
 
                         ushort totalLen = BinaryPrimitives.ReadUInt16LittleEndian(headerMemory.Span);
-                        if (totalLen < TcpSession.HeaderSize)
+                        if ((uint)totalLen < TcpSession.HeaderSize || totalLen > _options.BufferSize)
                         {
-                            throw new SocketException((int)SocketError.ProtocolNotSupported);
+                            throw s_frameSizeExceeded;
                         }
 
                         int payloadLen = totalLen - TcpSession.HeaderSize;
@@ -103,7 +104,15 @@ internal sealed class FrameReader : IDisposable
 
                             this.PROCESS_NORMAL_FRAME(lease);
                         }
-                        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { if (rented != null) { BufferLease.ByteArrayPool.Return(rented); } throw; }
+                        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            if (rented != null)
+                            {
+                                BufferLease.ByteArrayPool.Return(rented);
+                            }
+
+                            throw;
+                        }
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
