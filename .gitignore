@@ -57,3 +57,4 @@ site/
 .dotnethome/
 scratch/
 **/build/
+.nuget/
