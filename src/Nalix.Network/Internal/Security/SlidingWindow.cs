@@ -18,9 +18,12 @@ namespace Nalix.Network.Internal.Security;
 /// </summary>
 internal sealed class SlidingWindow
 {
+    private const int SequenceHalfRange = (ushort.MaxValue + 1) / 2;
+
     private readonly int _windowSize;
     private readonly int _arraySize;
-    private long _maxSeen;
+    private ushort _maxSeen;
+    private bool _isInitialized;
     private readonly long[] _bitmap;
     private SpinLock _spinLock;
 
@@ -31,7 +34,7 @@ internal sealed class SlidingWindow
     public SlidingWindow(int windowSize = 1024)
     {
         _windowSize = windowSize;
-        _arraySize = windowSize / 64;
+        _arraySize = (windowSize + 63) / 64;
         _bitmap = new long[_arraySize];
     }
 
@@ -47,13 +50,23 @@ internal sealed class SlidingWindow
         try
         {
             _spinLock.Enter(ref lockTaken);
-            long s = seq;
-            long currentMax = _maxSeen;
+            if (!_isInitialized)
+            {
+                _isInitialized = true;
+                _maxSeen = seq;
+                this.MARK_BIT(0);
+                return true;
+            }
 
-            if (s > currentMax)
+            ushort currentMax = _maxSeen;
+            int forward = unchecked((ushort)(seq - currentMax));
+
+            // 16-bit modular comparison:
+            // forward in (0, 32768) means seq is newer than currentMax, including wrap-around (65535 -> 0).
+            if (forward != 0 && forward < SequenceHalfRange)
             {
                 // Advance window
-                long shift = s - currentMax;
+                long shift = forward;
                 if (shift >= _windowSize)
                 {
                     Array.Clear(_bitmap);
@@ -62,12 +75,12 @@ internal sealed class SlidingWindow
                 {
                     this.SHIFT_BITMAP(shift);
                 }
-                _maxSeen = s;
+                _maxSeen = seq;
                 this.MARK_BIT(0);
                 return true;
             }
 
-            long diff = currentMax - s;
+            int diff = unchecked((ushort)(currentMax - seq));
             if (diff >= _windowSize)
             {
                 return false; // Too old
