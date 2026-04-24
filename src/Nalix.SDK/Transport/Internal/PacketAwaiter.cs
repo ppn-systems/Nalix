@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.SDK.Transport.Extensions;
 
 #if DEBUG
@@ -68,7 +68,7 @@ internal static class PacketAwaiter
                 {
                     return predicate(packet);
                 }
-                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = tcs.TrySetException(ex);
                     return false;
@@ -82,7 +82,7 @@ internal static class PacketAwaiter
 
         void DisconnectHandler(object? _, Exception ex)
         {
-            Exception error = new Common.Exceptions.NetworkException(
+            Exception error = new Abstractions.Exceptions.NetworkException(
                 $"Disconnected while waiting for {typeof(TPkt).Name}.",
                 ex ?? new InvalidOperationException("The TCP session was disconnected."));
 
@@ -102,11 +102,11 @@ internal static class PacketAwaiter
         {
             throw new TimeoutException($"No {typeof(TPkt).Name} received within {timeoutMs} ms (send phase).");
         }
-        catch (Exception sendEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(sendEx))
+        catch (Exception sendEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(sendEx))
         {
             if (sendEx is InvalidOperationException)
             {
-                Exception wrapped = new Common.Exceptions.NetworkException(
+                Exception wrapped = new Abstractions.Exceptions.NetworkException(
                     $"Disconnected while sending {typeof(TPkt).Name}.", sendEx);
 
                 _ = tcs.TrySetException(wrapped);

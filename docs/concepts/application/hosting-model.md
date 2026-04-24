@@ -11,7 +11,7 @@ At the heart of the hosting model is the `NetworkApplication`. It is the entry p
 You configure your application using the `NetworkApplicationBuilder`. This allows for a fluent, easy-to-read setup process:
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Middleware;
 
@@ -57,6 +57,6 @@ While you can use the low-level `Nalix.Network` APIs directly, the Hosting model
 
 ## Related Topics
 
-- [Instance Manager](../../api/framework/runtime/instance-manager.md)
+- [Instance Manager](../../api/framework/instance-manager.md)
 - [Middleware Pipeline](../runtime/middleware-pipeline.md)
 - [Server Setup Guide](../../guides/getting-started/server-blueprint.md)

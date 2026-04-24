@@ -4,13 +4,8 @@
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
-
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Runtime.Internal.Results.Memory;
 
@@ -36,3 +31,4 @@ internal sealed class ReadOnlyMemoryReturnHandler<TPacket> : IReturnHandler<TPac
         }
     }
 }
+

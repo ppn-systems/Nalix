@@ -4,7 +4,7 @@
 
 ## Source Mapping
 
-- `src/Nalix.Common/Networking/IConnection.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.cs`
 - `src/Nalix.Network/Connections/Connection.cs`
 
 ## Why This Type Exists
@@ -86,6 +86,6 @@ Every connection instance maintains a `SlidingWindow` (UdpReplayWindow) to track
 ## Related Information Paths
 
 - [Socket Connection](../socket-connection.md)
-- [Snowflake Identifiers](../../framework/runtime/snowflake.md)
+- [Snowflake Identifiers](../../framework/snowflake.md)
 - [Session Store](../session-store.md)
 - [Security Architecture](../../../concepts/security/security-architecture.md)

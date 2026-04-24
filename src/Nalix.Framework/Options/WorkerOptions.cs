@@ -3,8 +3,8 @@
 
 using System;
 using System.Threading;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Identity;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Identity;
 
 namespace Nalix.Framework.Options;
 

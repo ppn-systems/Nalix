@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Nalix.Framework.Memory.Pools;
 
 #if DEBUG

@@ -1,4 +1,4 @@
-using Nalix.Common.Networking.Protocols;
+using Nalix.Abstractions.Networking.Protocols;
 
 namespace Nalix.SDK.Extensions;
 

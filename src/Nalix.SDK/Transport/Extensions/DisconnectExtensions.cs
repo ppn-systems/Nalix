@@ -4,7 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Abstractions.Networking.Protocols;
 
 namespace Nalix.SDK.Transport.Extensions;
 
@@ -54,7 +54,7 @@ public static class DisconnectExtensions
             {
                 // Best-effort graceful shutdown: session may no longer be in a sendable state.
             }
-            catch (Nalix.Common.Exceptions.NetworkException)
+            catch (Nalix.Abstractions.Exceptions.NetworkException)
             {
                 // Best-effort graceful shutdown: transport may already be disconnected.
             }

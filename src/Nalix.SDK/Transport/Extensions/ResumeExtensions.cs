@@ -2,13 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Primitives;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Security.Hashing;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Security.Hashing;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 
@@ -46,7 +47,7 @@ public static class ResumeExtensions
         // This proves to the server that we own the session secret.
         Span<byte> proofBytes = stackalloc byte[32];
         Span<byte> tokenBytes = stackalloc byte[8];
-        _ = session.Options.SessionToken.TryWriteBytes(tokenBytes);
+        BinaryPrimitives.WriteUInt64LittleEndian(tokenBytes, session.Options.SessionToken);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
         HmacKeccak256.Compute(session.Options.Secret.AsSpan(), tokenBytes, proofBytes);
@@ -159,5 +160,5 @@ public static class ResumeExtensions
     /// </summary>
     /// <param name="options">The transport options to inspect.</param>
     /// <returns><see langword="true"/> when the session has a token and secret.</returns>
-    private static bool HasResumeState(TransportOptions options) => !options.SessionToken.IsEmpty && !options.Secret.IsZero;
+    private static bool HasResumeState(TransportOptions options) => !(options.SessionToken == 0) && !options.Secret.IsZero;
 }

@@ -4,19 +4,19 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Security.Hashing;
-using Nalix.Network.Hosting;
+using Nalix.Codec.Security.Hashing;
+using Nalix.Hosting;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Handlers;
 using Nalix.SDK.Options;
@@ -41,7 +41,7 @@ public sealed class ResumeExtensionsTests : IDisposable
     public async Task ResumeSessionAsync_Successful_ReturnsNone()
     {
         int port = TestUtils.GetFreePort();
-        Snowflake token = Snowflake.NewId(SnowflakeType.Session);
+        ulong token = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         byte[] secretBytes = new byte[32];
         secretBytes[0] = 0xAA;
         Bytes32 secret = new(secretBytes);
@@ -63,7 +63,7 @@ public sealed class ResumeExtensionsTests : IDisposable
             // Create a fake connection object to represent the "previous" connection
             SessionSnapshot snapshot = new()
             {
-                SessionToken = token.ToUInt64(),
+                SessionToken = token,
                 Secret = secret,
                 Algorithm = CipherSuiteType.Chacha20Poly1305,
                 ExpiresAtUnixMilliseconds = long.MaxValue
@@ -100,7 +100,7 @@ public sealed class ResumeExtensionsTests : IDisposable
     public async Task ResumeSessionAsync_InvalidProof_ReturnsTokenRevoked()
     {
         int port = TestUtils.GetFreePort();
-        Snowflake token = Snowflake.NewId(SnowflakeType.Session);
+        ulong token = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         
         byte[] serverSecretBytes = new byte[32];
         serverSecretBytes[0] = 0xAA;
@@ -124,7 +124,7 @@ public sealed class ResumeExtensionsTests : IDisposable
             IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
             SessionSnapshot snapshot = new()
             {
-                SessionToken = token.ToUInt64(),
+                SessionToken = token,
                 Secret = serverSecret,
                 ExpiresAtUnixMilliseconds = long.MaxValue
             };
@@ -160,7 +160,7 @@ public sealed class ResumeExtensionsTests : IDisposable
     public async Task ResumeSessionAsync_ExpiredSession_ReturnsSessionExpired()
     {
         int port = TestUtils.GetFreePort();
-        Snowflake token = Snowflake.NewId(SnowflakeType.Session);
+        ulong token = Snowflake.NewId(SnowflakeType.Session).ToUInt64();
         byte[] secretBytes = new byte[32];
         secretBytes[0] = 0xCC;
         Bytes32 secret = new(secretBytes);
@@ -192,7 +192,7 @@ public sealed class ResumeExtensionsTests : IDisposable
 
             Console.WriteLine($"[TEST] Token: {token}");
             Console.WriteLine($"[TEST] Secret Zero: {secret.IsZero}");
-            Console.WriteLine($"[TEST] Options Token Empty: {session.Options.SessionToken.IsEmpty}");
+            Console.WriteLine($"[TEST] Options Token Empty: {session.Options.SessionToken == 0}");
             Console.WriteLine($"[TEST] Options Secret Zero: {session.Options.Secret.IsZero}");
 
             await session.ConnectAsync("127.0.0.1", (ushort)port);
@@ -211,4 +211,19 @@ public sealed class ResumeExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

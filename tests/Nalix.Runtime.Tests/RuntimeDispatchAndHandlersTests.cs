@@ -1,13 +1,13 @@
-using Nalix.Common.Networking.Protocols;
+using Nalix.Abstractions.Networking.Protocols;
 using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Threading.Tasks;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Security;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Extensions;
@@ -32,9 +32,9 @@ public sealed class RuntimeDispatchAndHandlersTests
         }
 
         string tempPath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), tempFolderName);
-        Nalix.Framework.Environment.Directories.SetBasePathOverride(tempPath);
+        Nalix.Environment.IO.Directories.SetBasePathOverride(tempPath);
 
-        string configDir = Nalix.Framework.Environment.Directories.ConfigurationDirectory;
+        string configDir = Nalix.Environment.IO.Directories.ConfigurationDirectory;
         System.IO.Directory.CreateDirectory(configDir);
 
         string certPath = System.IO.Path.Combine(configDir, "certificate.private");
@@ -185,4 +185,17 @@ public sealed class RuntimeDispatchAndHandlersTests
         public int Serialize(Span<byte> buffer) => 0;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 

@@ -3,7 +3,7 @@
 
 using System;
 using System.Threading;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Framework.Security.Aead;
+using Nalix.Codec.Security.Aead;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -65,3 +65,16 @@ public sealed class ChaCha20Poly1305Tests
         Assert.True(result < 0, "Span-based Decrypt should return a negative value on authentication failure.");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -15,7 +15,7 @@ public sealed class ConfigurationAnalyzerTests
         const string source = """
 namespace Demo;
 using System.Collections.Generic;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
@@ -26,11 +26,11 @@ public sealed class DemoOptions : ConfigurationLoader
         const string fixedSource = """
 namespace Demo;
 using System.Collections.Generic;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
-    [Nalix.Common.Abstractions.ConfiguredIgnore]
+    [Nalix.Abstractions.ConfigurationIgnore]
     public List<int> Values { get; set; } = [];
 }
 """;
@@ -40,8 +40,8 @@ public sealed class DemoOptions : ConfigurationLoader
             fixedSource,
             "NALIX023",
             actionIndex: 0,
-            expectedTitle: "Add [ConfiguredIgnore]",
-            expectedEquivalenceKey: "Nalix.Configuration.ConfiguredIgnore.Add");
+            expectedTitle: "Add [ConfigurationIgnore]",
+            expectedEquivalenceKey: "Nalix.Configuration.ConfigurationIgnore.Add");
     }
 
     [Fact]
@@ -50,7 +50,7 @@ public sealed class DemoOptions : ConfigurationLoader
         const string source = """
 namespace Demo;
 using System;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public enum Mode
 {
@@ -73,17 +73,17 @@ public sealed class DemoOptions : ConfigurationLoader
     }
 
     [Fact]
-    public async Task UnsupportedConfigurationProperty_WithConfiguredIgnore_IsSilent()
+    public async Task UnsupportedConfigurationProperty_WithConfigurationIgnore_IsSilent()
     {
         const string source = """
 namespace Demo;
 using System.Collections.Generic;
-using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Abstractions;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
-    [ConfiguredIgnore]
+    [ConfigurationIgnore]
     public List<int> Values { get; set; } = [];
 }
 """;
@@ -96,7 +96,7 @@ public sealed class DemoOptions : ConfigurationLoader
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
@@ -112,11 +112,11 @@ public sealed class DemoOptions : ConfigurationLoader
     }
 
     [Fact]
-    public async Task GetterOnlyProperty_CanAddConfiguredIgnoreFix()
+    public async Task GetterOnlyProperty_CanAddConfigurationIgnoreFix()
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
@@ -126,11 +126,11 @@ public sealed class DemoOptions : ConfigurationLoader
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
-    [Nalix.Common.Abstractions.ConfiguredIgnore]
+    [Nalix.Abstractions.ConfigurationIgnore]
     public int ReadOnlyPort { get; }
 }
 """;
@@ -140,8 +140,8 @@ public sealed class DemoOptions : ConfigurationLoader
             fixedSource,
             "NALIX024",
             actionIndex: 0,
-            expectedTitle: "Add [ConfiguredIgnore]",
-            expectedEquivalenceKey: "Nalix.Configuration.ConfiguredIgnore.Add");
+            expectedTitle: "Add [ConfigurationIgnore]",
+            expectedEquivalenceKey: "Nalix.Configuration.ConfigurationIgnore.Add");
     }
 
     [Fact]
@@ -149,7 +149,7 @@ public sealed class DemoOptions : ConfigurationLoader
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
@@ -159,7 +159,7 @@ public sealed class DemoOptions : ConfigurationLoader
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
@@ -181,7 +181,7 @@ public sealed class DemoOptions : ConfigurationLoader
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
@@ -191,7 +191,7 @@ public sealed class DemoOptions : ConfigurationLoader
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
@@ -208,3 +208,16 @@ public sealed class DemoOptions : ConfigurationLoader
             expectedEquivalenceKey: "Nalix.Configuration.Setter.MakePublic");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using System.Threading;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
@@ -58,3 +58,16 @@ public sealed class ClockSynchronizationTests
         Assert.Equal(0, Clock.CurrentErrorEstimateMs(), 6);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

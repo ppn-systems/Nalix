@@ -4,13 +4,8 @@
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
-
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Runtime.Internal.Results;
 
@@ -21,3 +16,4 @@ internal sealed class UnsupportedReturnHandler<TPacket>(Type returnType) : IRetu
     /// <inheritdoc/>
     public ValueTask HandleAsync(object? result, PacketContext<TPacket> context) => throw new InvalidOperationException($"Unsupported return type: type={returnType.FullName}.");
 }
+

@@ -92,7 +92,7 @@ graph TD
         Session["TransportSession / TcpSession"]
     end
 
-    subgraph Server ["Nalix.Network.Hosting"]
+    subgraph Server ["Nalix.Hosting"]
         Builder["NetworkApplicationBuilder"]
         Host["NetworkApplication"]
     end
@@ -102,7 +102,7 @@ graph TD
         Middleware["Middleware Pipeline"]
     end
 
-    subgraph Base ["Nalix.Common / Framework"]
+    subgraph Base ["Nalix.Abstractions / Framework"]
         Registry["PacketRegistry"]
         Pool["BufferPoolManager"]
         Crypto["PacketCipher / PacketCompression"]
@@ -155,8 +155,8 @@ Choose the path that matches your role.
 | [**Nalix.Runtime**](./packages/nalix-runtime.md) | Packet dispatch, middleware execution, handler compilation, and session resume |
 | [**Nalix.SDK**](./packages/nalix-sdk.md) | Client-side transport sessions, request/response helpers, and handshake flows |
 | [**Nalix.Framework**](./packages/nalix-framework.md) | Configuration, service registry, serialization, packet registry, pooling, compression, and identifiers |
-| [**Nalix.Network.Hosting**](./packages/nalix-network-hosting.md) | Fluent builder and application lifecycle for server bootstrap |
-| [**Nalix.Common**](./packages/nalix-common.md) | Shared contracts, packet attributes, middleware primitives, and connection abstractions |
+| [**Nalix.Hosting**](./packages/nalix-hosting.md) | Fluent builder and application lifecycle for server bootstrap |
+| [**Nalix.Abstractions**](./packages/nalix-abstractions.md) | Shared contracts, packet attributes, middleware primitives, and connection abstractions |
 
 For the full package map, see [Packages Overview](./packages/index.md).
 

@@ -7,8 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Net;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Networking;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Serialization;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]

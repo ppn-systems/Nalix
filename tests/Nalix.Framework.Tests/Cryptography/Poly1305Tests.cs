@@ -3,7 +3,7 @@
 
 using System;
 using System.Text;
-using Nalix.Framework.Security.Hashing;
+using Nalix.Codec.Security.Hashing;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -128,3 +128,16 @@ public sealed class Poly1305Tests
         _ = Assert.Throws<ObjectDisposedException>(() => poly.FinalizeTag(output));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,3 +1,4 @@
+using Nalix.Abstractions.Serialization;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
@@ -14,7 +15,7 @@ public sealed class SerializationAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class Example
@@ -29,7 +30,7 @@ public sealed class Example
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class Example
@@ -53,7 +54,7 @@ public sealed class Example
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class Example
@@ -64,7 +65,7 @@ public sealed class Example
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 [SerializePackable(SerializeLayout.Explicit)]
 public sealed class Example
@@ -80,3 +81,17 @@ public sealed class Example
             "NALIX013");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

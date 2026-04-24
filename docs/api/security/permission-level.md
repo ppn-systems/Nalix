@@ -1,10 +1,10 @@
-# Permission Levels
+﻿# Permission Levels
 
 `PermissionLevel` defines the coarse-grained authority levels used throughout the Nalix ecosystem for access control.
 
 ## Source mapping
 
-- `src/Nalix.Common/Security/PermissionLevel.cs`
+- `src/Nalix.Abstractions/Security/PermissionLevel.cs`
 
 ## Enum Definition
 
@@ -34,6 +34,6 @@ public void ResetServer(PacketContext<Control> context)
 
 ## Related APIs
 
-- [Packet Attributes](../runtime/routing/packet-attributes.md)
+- [Packet Attributes](../abstractions/packet-attributes.md)
 - [Permission Middleware](../runtime/middleware/permission-middleware.md)
-- [Connection Contracts](../common/connection-contracts.md)
+- [Connection Contracts](../abstractions/connection-contracts.md)

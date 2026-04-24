@@ -3,9 +3,9 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 
 namespace Nalix.Runtime.Dispatching;
 

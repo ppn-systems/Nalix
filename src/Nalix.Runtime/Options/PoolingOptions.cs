@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel.DataAnnotations;
-using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Abstractions;
+using Nalix.Environment.Configuration.Binding;
 using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Runtime.Options;

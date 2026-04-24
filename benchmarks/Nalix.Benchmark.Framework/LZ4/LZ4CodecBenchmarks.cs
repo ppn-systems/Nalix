@@ -3,7 +3,7 @@ using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.LZ4;
 using Nalix.Framework.LZ4.Encoders;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Codec.Memory;
 
 namespace Nalix.Benchmark.Framework.LZ4;
 

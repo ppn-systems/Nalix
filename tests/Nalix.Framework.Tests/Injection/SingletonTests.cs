@@ -181,3 +181,16 @@ public sealed class SingletonTests : IDisposable
         private NoDefaultCtorSingleton(int _) { }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

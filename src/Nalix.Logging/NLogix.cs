@@ -7,7 +7,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
 

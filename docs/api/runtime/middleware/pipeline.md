@@ -1,4 +1,4 @@
-# Middleware Pipeline
+﻿# Middleware Pipeline
 
 Nalix uses `MiddlewarePipeline<TPacket>` to execute packet middleware around handler
 execution. The pipeline is optimized for high-throughput networking: middleware metadata
@@ -10,9 +10,9 @@ per-packet chain allocations.
 | Source | Responsibility |
 | --- | --- |
 | `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs` | Runtime pipeline registration, ordering, snapshots, pooled execution, inbound/outbound transition logic. |
-| `src/Nalix.Common/Middleware/IPacketMiddleware.cs` | Middleware invocation contract. |
-| `src/Nalix.Common/Middleware/MiddlewareOrderAttribute.cs` | Numeric middleware ordering metadata. |
-| `src/Nalix.Common/Middleware/MiddlewareStageAttribute.cs` | Stage metadata and outbound `AlwaysExecute` flag. |
+| `src/Nalix.Abstractions/Middleware/IPacketMiddleware.cs` | Middleware invocation contract. |
+| `src/Nalix.Abstractions/Middleware/MiddlewareOrderAttribute.cs` | Numeric middleware ordering metadata. |
+| `src/Nalix.Abstractions/Middleware/MiddlewareStageAttribute.cs` | Stage metadata and outbound `AlwaysExecute` flag. |
 | `src/Nalix.Runtime/Middleware/Standard/PermissionMiddleware.cs` | Built-in fail-closed permission guard. |
 | `src/Nalix.Runtime/Middleware/Standard/RateLimitMiddleware.cs` | Built-in policy/global token-bucket throttling. |
 | `src/Nalix.Runtime/Middleware/Standard/ConcurrencyMiddleware.cs` | Built-in per-opcode concurrency guard. |
@@ -237,4 +237,4 @@ socket receive
 - [Token Bucket Limiter](./token-bucket-limiter.md)
 - [Timeout Middleware](./timeout-middleware.md)
 - [Packet Dispatch](../routing/packet-dispatch.md)
-- [Packet Attributes](../routing/packet-attributes.md)
+- [Packet Attributes](../../abstractions/packet-attributes.md)

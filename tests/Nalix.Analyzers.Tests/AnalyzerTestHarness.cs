@@ -17,3 +17,16 @@ internal static class AnalyzerTestHarness
         where TCodeFix : CodeFixProvider, new()
         => Verifier<TCodeFix>.VerifyCodeFixAsync(source, expectedFixedSource, diagnosticId, actionIndex);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

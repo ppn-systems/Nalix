@@ -6,13 +6,14 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.Configuration;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.Memory;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -187,7 +188,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// This bypasses the socket receive loop but still triggers AsyncCallback
     /// and respects the per-connection throttle.
     /// </summary>
-    internal void InjectIncoming(Nalix.Framework.Memory.Buffers.BufferLease lease)
+    internal void InjectIncoming(BufferLease lease)
     {
         this.Socket.IncrementPendingCallbacks();
         ConnectionEventArgs args = this.AcquireEventArgs() ?? new ConnectionEventArgs(this);

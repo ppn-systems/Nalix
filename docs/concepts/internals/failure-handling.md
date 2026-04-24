@@ -66,6 +66,6 @@ Regardless of whether a request succeeds or fails, Nalix guarantees consistent r
 
 ## Related Source Code
 
-- [IConnectionErrorTracked.cs](file:///e:/Cs/Nalix/src/Nalix.Common/Networking/IConnectionErrorTracked.cs) — The `ErrorCount` contract.
+- [IConnectionErrorTracked.cs](file:///e:/Cs/Nalix/src/Nalix.Abstractions/Networking/IConnectionErrorTracked.cs) — The `ErrorCount` contract.
 - [PacketDispatchChannel.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs) — Try-catch blocks in `ProcessOneAsync`.
 - [PacketDispatcherBase.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs) — Try-catch around handler execution.

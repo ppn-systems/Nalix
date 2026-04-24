@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Pooling;
@@ -145,7 +145,7 @@ public abstract partial class UdpListenerBase : IListener
                     $"bind-fail port={_port}");
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
@@ -219,7 +219,7 @@ public abstract partial class UdpListenerBase : IListener
                         $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {
@@ -243,7 +243,7 @@ public abstract partial class UdpListenerBase : IListener
                         $"socket-close-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {
@@ -266,7 +266,7 @@ public abstract partial class UdpListenerBase : IListener
                     $"stopped port={_port}");
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
@@ -290,7 +290,7 @@ public abstract partial class UdpListenerBase : IListener
                         $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {
@@ -313,7 +313,7 @@ public abstract partial class UdpListenerBase : IListener
                         $"rate-limiter-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {

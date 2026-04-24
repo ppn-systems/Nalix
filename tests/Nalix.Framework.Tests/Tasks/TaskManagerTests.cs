@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Identity;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Identity;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Xunit;
@@ -767,3 +767,16 @@ public sealed class TaskManagerTests : IDisposable
 
     private TaskManager CreateManager(TaskManagerOptions? options = null) => _host.CreateManager(options);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

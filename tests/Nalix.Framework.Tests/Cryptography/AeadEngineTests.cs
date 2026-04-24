@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Security;
-using Nalix.Framework.Security;
-using Nalix.Framework.Security.Aead;
-using Nalix.Framework.Security.Engine;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.Security;
+using Nalix.Codec.Security.Aead;
+using Nalix.Codec.Security.Engine;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -623,3 +623,16 @@ public sealed class AeadEngineTests
         Assert.Equal(100, decWritten);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

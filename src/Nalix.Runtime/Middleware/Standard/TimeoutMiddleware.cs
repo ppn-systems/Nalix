@@ -4,13 +4,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.DataFrames.Pooling;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Runtime.Internal.RateLimiting;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Middleware.Standard;
 

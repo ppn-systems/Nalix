@@ -5,15 +5,15 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.DataFrames.Pooling;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Middleware.Standard;
 
@@ -83,7 +83,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
 
             await context.Sender.SendAsync(directive).ConfigureAwait(false);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             context.Connection.ThrottledError(_logger, "middleware.permission.send_error", $"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
         }

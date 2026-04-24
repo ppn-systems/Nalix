@@ -1,3 +1,4 @@
+using Nalix.Codec.Extensions;
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
@@ -6,8 +7,8 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Extensions;
 using Xunit;
 
@@ -335,3 +336,17 @@ public sealed class ExtensionsCoverageTests
             new System.Collections.Generic.Dictionary<string, object>();
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

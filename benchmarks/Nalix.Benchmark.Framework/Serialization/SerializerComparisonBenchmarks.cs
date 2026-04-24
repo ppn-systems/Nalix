@@ -3,7 +3,7 @@ using BenchmarkDotNet.Attributes;
 using MessagePack;
 using MessagePack.Resolvers;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Framework.Serialization;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Benchmark.Framework.Serialization;
 

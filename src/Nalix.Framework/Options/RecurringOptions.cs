@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Concurrency;
+using Nalix.Abstractions.Concurrency;
 
 namespace Nalix.Framework.Options;
 

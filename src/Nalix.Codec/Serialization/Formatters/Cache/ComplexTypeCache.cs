@@ -1,0 +1,32 @@
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using Nalix.Codec.Serialization;
+
+namespace Nalix.Codec.Serialization.Formatters.Cache;
+
+/// <summary>
+/// Provides a static cache for storing and retrieving formatters for specific types.
+/// </summary>
+/// <typeparam name="T">The type for which the formatter is stored.</typeparam>
+[System.Diagnostics.DebuggerStepThrough]
+internal sealed class ComplexTypeCache<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
+{
+    /// <summary>
+    /// The cached formatter instance for the specified type <typeparamref name="T"/>.
+    /// </summary>
+    public static IFormatter<T> Class = null!;
+
+    /// <summary>
+    /// The cached formatter instance for the specified type <typeparamref name="T"/>.
+    /// </summary>
+    public static IFormatter<T> Struct = null!;
+}

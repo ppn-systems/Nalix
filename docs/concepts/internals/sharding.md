@@ -75,7 +75,7 @@ You can tune the parallelism of your application by adjusting the number of shar
 | `MaxDrainPerWakeMultiplier` | `8` | Multiplier applied to `DispatchLoopCount` for automatic batching. |
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 var builder = NetworkApplication.CreateBuilder();
 
@@ -104,8 +104,8 @@ While a shard processes packets sequentially, it is **Priority-Aware**. Each sha
 A custom `Protocol` can influence which queue a packet lands in by setting the **Priority Byte** in the Nalix header before hand-off:
 
 ```csharp
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Memory.Buffers;
 
 public override void ProcessMessage(object sender, IConnectEventArgs args)
@@ -140,7 +140,7 @@ To implement custom sharding logic (e.g., User-based affinity or Room-based affi
 If a player logs in from multiple devices (e.g., Phone and Tablet), and you need to ensure their state is updated sequentially across all devices to avoid race conditions in your database or game logic.
 
 ```csharp
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Memory.Buffers;
 
 // A minimal proxy that the dispatcher uses as a Shard Key
@@ -193,8 +193,8 @@ A robust production setup must handle dispatch failures and per-packet exception
 Register a global observer to capture exceptions that escape handler logic before they trigger a protocol-level failure:
 
 ```csharp
-using Nalix.Network.Hosting;
-using Nalix.Common.Networking.Packets;
+using Nalix.Hosting;
+using Nalix.Abstractions.Networking.Packets;
 
 builder.ConfigureDispatch(options =>
 {

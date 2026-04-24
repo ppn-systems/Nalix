@@ -5,6 +5,8 @@ using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Configuration.Binding;
 
+using Nalix.Environment.Configuration;
+using Nalix.Environment.Configuration.Binding;
 namespace Nalix.Benchmark.Framework.Configuration;
 
 public sealed class BenchConfigA : ConfigurationLoader { }

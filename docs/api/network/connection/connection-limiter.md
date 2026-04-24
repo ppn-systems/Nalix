@@ -1,10 +1,10 @@
-# Connection Limiter
+﻿# Connection Limiter
 
 The `ConnectionGuard` (documented here as the Connection Limiter) is a high-performance security component that gatekeeps incoming connections. It mitigates Denial of Service (DoS) attacks and resource exhaustion by enforcing per-IP and global connection limits.
 
 ## Source Mapping
 
-- `src/Nalix.Network/Connections/Connection.Guard.cs`
+- `src/Nalix.Network/RateLimiting/Connection.Guard.cs`
 - `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
 
 ## Why This Type Exists

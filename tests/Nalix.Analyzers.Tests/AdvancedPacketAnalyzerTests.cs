@@ -14,7 +14,7 @@ public sealed class AdvancedPacketAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public abstract class AbstractPacket : PacketBase<AbstractPacket>
 {
@@ -35,3 +35,16 @@ public sealed class Example
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

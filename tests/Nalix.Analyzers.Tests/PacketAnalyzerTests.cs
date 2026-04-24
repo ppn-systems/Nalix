@@ -14,7 +14,7 @@ public sealed class PacketAnalyzerTests
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 public sealed class MissingSpanPacket : IPacket
 {
@@ -32,7 +32,7 @@ public sealed class MissingSpanPacket : IPacket
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class InheritedSpanPacket : PacketBase<InheritedSpanPacket>
 {
@@ -73,7 +73,7 @@ public static class LiteSerializerLike
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class MyPacket : PacketBase<MyPacket>
 {
@@ -85,7 +85,7 @@ public sealed class MyPacket : PacketBase<MyPacket>
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class MyPacket : PacketBase<MyPacket>
 {
@@ -110,7 +110,7 @@ public sealed class MyPacket : PacketBase<MyPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<OtherPacket>
 {
@@ -123,7 +123,7 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<WrongPacket>
 {
@@ -148,8 +148,8 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<OtherPacket>
 {
@@ -164,8 +164,8 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
 public sealed class WrongPacket : PacketBase<WrongPacket>, IPacketDeserializer<WrongPacket>
 {
@@ -188,3 +188,16 @@ public sealed class OtherPacket : PacketBase<OtherPacket>
     }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

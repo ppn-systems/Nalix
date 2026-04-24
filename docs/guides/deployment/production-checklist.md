@@ -198,4 +198,4 @@ await listener.Deactivate(ct);
 
 - [Server Blueprint](../getting-started/server-blueprint.md)
 - [Troubleshooting Guide](./troubleshooting.md)
-- [Network Options API](../../api/network/options/options.md)
+- [Network Options API](../../api/options/network/options.md)

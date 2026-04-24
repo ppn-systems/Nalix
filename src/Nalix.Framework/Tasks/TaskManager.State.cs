@@ -7,8 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Identity;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Identity;
 
 namespace Nalix.Framework.Tasks;
 

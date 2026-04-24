@@ -1,4 +1,4 @@
-# Protocol String Extensions
+﻿# Protocol String Extensions
 
 `ProtocolStringExtensions` converts low-level protocol and network enums into human-readable strings. These are designed for display in client UIs, toast notifications, and human-oriented logs.
 
@@ -50,4 +50,4 @@ ShowToast($"{userReason} {userAdvice}");
 
 - [SDK Overview](./index.md)
 - [Handshake Extensions](./handshake-extensions.md)
-- [Control Type Enum](../common/protocols/control-type.md)
+- [Control Type Enum](../abstractions/protocols/control-type.md)

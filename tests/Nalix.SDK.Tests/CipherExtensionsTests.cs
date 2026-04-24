@@ -1,17 +1,17 @@
 #if DEBUG
 using System;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames;
-using Nalix.Network.Hosting;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames;
+using Nalix.Hosting;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.Framework.Injection;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.DataFrames.Pooling;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Runtime.Pooling;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -24,7 +24,7 @@ public sealed class CipherExtensionsTests : IDisposable
     public CipherExtensionsTests()
     {
         _registry = new PacketRegistryFactory()
-            .IncludeNamespace("Nalix.Framework.DataFrames.SignalFrames")
+            .IncludeNamespace("Nalix.Codec.DataFrames.SignalFrames")
             .CreateCatalog();
         TestUtils.SetupCertificate();
     }
@@ -78,3 +78,18 @@ public sealed class CipherExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

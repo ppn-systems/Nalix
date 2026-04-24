@@ -1,3 +1,4 @@
+using Nalix.Codec.Memory;
 
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -178,3 +179,17 @@ public sealed partial class MemoryTests
     }
 #endif
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

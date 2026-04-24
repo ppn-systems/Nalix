@@ -2,11 +2,11 @@
 using System;
 using System.Net;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Network.Hosting;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Hosting;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -22,7 +22,7 @@ public sealed class RequestIntegrationTests : IDisposable
     public RequestIntegrationTests()
     {
         _registry = new PacketRegistryFactory()
-            .IncludeNamespace("Nalix.Framework.DataFrames.SignalFrames")
+            .IncludeNamespace("Nalix.Codec.DataFrames.SignalFrames")
             .CreateCatalog();
         TestUtils.SetupCertificate();
     }
@@ -109,3 +109,18 @@ public sealed class RequestIntegrationTests : IDisposable
     public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
