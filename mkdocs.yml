@@ -293,6 +293,7 @@ nav:
           - Network Socket: api/network/options/network-socket-options.md
           - Connection Limit: api/network/options/connection-limit-options.md
           - Connection Hub Options: api/network/options/connection-hub-options.md
+          - Datagram Guard Options: api/network/options/datagram-guard-options.md
           - Timing Wheel Options: api/network/options/timing-wheel-options.md
           - Pooling Options: api/network/options/pooling-options.md
           - Network Callback Options: api/network/options/network-callback-options.md
