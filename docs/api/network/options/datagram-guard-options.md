@@ -7,7 +7,7 @@ It limits how many IPv4 and IPv6 source windows can be retained and controls sta
 
 - `src/Nalix.Network/Options/DatagramGuardOptions.cs`
 
-## Core Properties (Current Defaults)
+## Properties and Validation
 
 | Property | Type | Default | Validation | Purpose |
 |---|---|---:|---|---|
