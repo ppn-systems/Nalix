@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Frozen;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Networking.Packets;
