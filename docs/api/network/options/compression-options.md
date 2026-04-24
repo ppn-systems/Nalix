@@ -20,14 +20,16 @@ Consistency improves readability and keeps cross-package option docs comparable.
 
 - `src/Nalix.Framework/Options/CompressionOptions.cs`
 
-## Properties
+## Properties and Validation
 
-- `Enabled`
-- `MinSizeToCompress`
+| Property | Type | Default | Validation | Runtime effect |
+|---|---|---:|---|---|
+| `Enabled` | `bool` | `true` | None. | Enables or disables compression globally. |
+| `MinSizeToCompress` | `int` | `1024` | `0..int.MaxValue` | Minimum payload size, in bytes, before compression is attempted. |
 
 ## Why This Matters
 
-Compression should only run on payload sizes where it is likely to produce net benefit.
+Compression should only run on payload sizes where it is likely to produce net benefit. The source default of `1024` bytes avoids spending CPU on very small payloads that may grow after compression headers and framing overhead are included.
 
 ## Related APIs
 
