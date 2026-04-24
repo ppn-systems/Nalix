@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
@@ -89,6 +90,49 @@ public sealed class PacketRegistryFactoryNamespaceTests
     {
         PacketRegistryFactory factory = new();
         _ = factory.RegisterAllPackets(s_testAssembly, requireAttribute: true);
+
+        PacketRegistry registry = factory.CreateCatalog();
+
+        Assert.False(registry.IsRegistered<FactoryScan.FactoryScanPacket>());
+        Assert.False(registry.IsRegistered<FactoryScan.Child.FactoryScanChildPacket>());
+        Assert.True(registry.IsRegistered<FactoryScan.FactoryScanAttributedPacket>());
+    }
+
+    [Fact]
+    public void RegisterCurrentDomainPacketsWhenRequireAttributeIsTrueIncludesAttributedPacketsFromLoadedAssemblies()
+    {
+        PacketRegistryFactory factory = new();
+        _ = factory.RegisterCurrentDomainPackets(requireAttribute: true);
+
+        PacketRegistry registry = factory.CreateCatalog();
+
+        Assert.True(registry.IsRegistered<FactoryScan.FactoryScanAttributedPacket>());
+        Assert.False(registry.IsRegistered<FactoryScan.FactoryScanPacket>());
+    }
+
+    [Fact]
+    public void RegisterPacketAssemblyWhenPathIsWhitespaceThrowsArgumentException()
+    {
+        PacketRegistryFactory factory = new();
+
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => factory.RegisterPacketAssembly(" "));
+
+        Assert.Equal("assemblyPath", ex.ParamName);
+    }
+
+    [Fact]
+    public void RegisterPacketAssemblyWhenPathDoesNotExistThrowsFileNotFoundException()
+    {
+        PacketRegistryFactory factory = new();
+
+        _ = Assert.Throws<FileNotFoundException>(() => factory.RegisterPacketAssembly(@"Z:\this\path\does-not-exist\ghost.dll"));
+    }
+
+    [Fact]
+    public void RegisterPacketAssemblyWhenRequireAttributeIsTrueIncludesOnlyAttributedPackets()
+    {
+        PacketRegistryFactory factory = new();
+        _ = factory.RegisterPacketAssembly(s_testAssembly.Location, requireAttribute: true);
 
         PacketRegistry registry = factory.CreateCatalog();
 
