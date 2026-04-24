@@ -449,6 +449,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         {
             foreach ((Policy policy, _) in _limiters)
             {
+
+#pragma warning disable CA2000
                 if (_limiters.TryRemove(policy, out Entry? removed) && removed is not null)
                 {
                     try
@@ -463,6 +465,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                             $"disposal-error policy={policy}", ex);
                     }
                 }
+#pragma warning restore CA2000
+
             }
 
             if (!_limiters.IsEmpty)
@@ -799,11 +803,15 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         foreach ((Policy policy, Entry entry) in _limiters)
         {
+
+#pragma warning disable CA2000
             if (entry.IsStale(nowTicks, PolicyTtlSeconds) && _limiters.TryRemove(policy, out Entry? removed) && removed is not null)
             {
                 removed.Dispose();
                 evictedCount++;
             }
+#pragma warning restore CA2000
+
         }
 
         if (evictedCount > 0)

@@ -373,7 +373,9 @@ public abstract partial class TcpListenerBase
                 PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context
                     ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
 
+#pragma warning disable CA2000
                 connection = this.ProcessAcceptedSocket(socket, context);
+#pragma warning restore CA2000
 
                 // Process the connection
                 this.DISPATCH_CONNECTION(connection);
@@ -904,6 +906,7 @@ public abstract partial class TcpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [return: NotNullIfNotNull(nameof(socket))]
     private IConnection ProcessAcceptedSocket(Socket socket, PooledAcceptContext context)
     {
         // Validate and limit checks occur BEFORE ownership transfer.

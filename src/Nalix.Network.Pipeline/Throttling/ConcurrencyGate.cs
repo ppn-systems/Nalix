@@ -870,6 +870,8 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                     continue;
                 }
 
+
+#pragma warning disable CA2000
                 // Remove before disposal to prevent new usage
                 if (_table.TryRemove(opcode, out Entry? removedEntry)
                     && removedEntry is not null)
@@ -878,6 +880,8 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
                     removed++;
                     _ = Interlocked.Increment(ref _totalCleanedEntries);
                 }
+#pragma warning restore CA2000
+
             }
 
             if (removed > 0)

@@ -409,12 +409,15 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
         if (!state.IsActive)
         {
+
+#pragma warning disable CA2000
             if (state.TryDequeue(priority, out IBufferLease? rolledBack))
             {
                 rolledBack.Dispose();
                 _ = state.OnDequeued(priority);
                 DecrementNonNegative(ref _packetCount.Value);
             }
+#pragma warning restore CA2000
 
             return false;
         }
@@ -512,10 +515,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                 continue;
             }
 
+#pragma warning disable CA2000
             if (!state.TryDequeue(p, out IBufferLease? evicted))
             {
                 continue;
             }
+#pragma warning restore CA2000
 
             evicted.Dispose();
             _ = state.OnDequeued(p);
@@ -1109,12 +1114,14 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         {
             int drained = 0;
 
+#pragma warning disable CA2000
             while (this.TryDequeueAny(out IBufferLease? lease, out int priority))
             {
                 lease.Dispose();
                 _ = this.OnDequeued(priority);
                 drained++;
             }
+#pragma warning restore CA2000
 
             // After draining, force every counter and bit back to a clean idle
             // state so a later reuse starts from known-zero bookkeeping.

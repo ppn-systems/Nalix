@@ -224,7 +224,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
         // Route close through the bridge so the same high-priority callback path
         // is used everywhere.
+
+#pragma warning disable CA2000
         this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
+#pragma warning restore CA2000
 
 #if DEBUG
         _logger?.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");

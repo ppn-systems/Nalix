@@ -252,12 +252,14 @@ public abstract partial class UdpListenerBase
         // ================================================================
         ReadOnlySpan<byte> sessionToken = buffer[..SessionTokenSize];
 
+#pragma warning disable CA2000
         if (!this.TryResolveConnection(_hub, sessionToken, out Connection? connection) || connection == null || connection.IsDisposed)
         {
             _ = Interlocked.Increment(ref _dropUnknown);
             lease.Dispose();
             return;
         }
+#pragma warning restore CA2000
 
         // --- 3. Endpoint pinning gate (SEC-30) ---
         if (connection.NetworkEndpoint is null ||

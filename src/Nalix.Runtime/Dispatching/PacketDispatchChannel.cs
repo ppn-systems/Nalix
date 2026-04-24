@@ -368,6 +368,8 @@ public sealed class PacketDispatchChannel
             while (Volatile.Read(ref _running) == 1 && !ct.IsCancellationRequested)
             {
                 int processed = 0;
+
+#pragma warning disable CA2000
                 while (processed < _maxDrainPerWake &&
                        _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
                 {
@@ -376,6 +378,7 @@ public sealed class PacketDispatchChannel
                     await this.ExecutePacketAsync(connection, lease, ct).ConfigureAwait(false);
                     processed++;
                 }
+#pragma warning restore CA2000
 
                 if (processed > 0)
                 {

@@ -4,7 +4,6 @@
 using System;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Serialization.Formatters.Primitives;

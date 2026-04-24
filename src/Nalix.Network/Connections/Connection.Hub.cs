@@ -736,6 +736,7 @@ public sealed class ConnectionHub : IConnectionHub
         UInt56 connectionKey = connection.ID.ToUInt56();
         ConcurrentDictionary<UInt56, IConnection> shard = this.GetShard(connectionKey);
 
+#pragma warning disable CA2000
         if (!shard.TryRemove(connectionKey, out IConnection? existing))
         {
             if (_logger?.IsEnabled(LogLevel.Debug) == true)
@@ -746,6 +747,7 @@ public sealed class ConnectionHub : IConnectionHub
 
             return false;
         }
+#pragma warning restore CA2000
 
         bool measureLatency = _options.IsEnableLatency && _logger?.IsEnabled(LogLevel.Information) == true;
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
@@ -882,10 +884,12 @@ public sealed class ConnectionHub : IConnectionHub
                 continue;
             }
 
+#pragma warning disable CA2000
             if (!shard.TryRemove(oldestId, out IConnection? evictedConnection) || evictedConnection is null)
             {
                 continue;
             }
+#pragma warning restore CA2000
 
             evictedConnection.OnCloseEvent -= this.OnClientDisconnected;
             _ = Interlocked.Decrement(ref _count);

@@ -29,7 +29,7 @@ namespace Nalix.Framework.Injection;
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLogging<InstanceManager>, IDisposable, IReportable
+public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLogging<InstanceManager>, IReportable
 {
     #region Fields
 
