@@ -38,11 +38,10 @@ graph LR
     end
 
     subgraph Activation ["Phase 3: Activation"]
-        Prep --> Run["ActivateAsync()"]
-        Run --> Infra["Infrastructure"]
-        Infra --> Registry["Build Registry"]
-        Registry --> Dispatch["Initialize Dispatch"]
-        Dispatch --> Listeners["Start Listeners"]
+        Prep --> Services["Register logger, options, registry, hub, buffers, identity"]
+        Services --> Dispatch["Create and activate packet dispatch"]
+        Dispatch --> Listeners["Create and start TCP/UDP listeners"]
+        Listeners --> Hosted["Activate hosted services"]
     end
 ```
 
@@ -60,12 +59,12 @@ The hosted pipeline remains generic-friendly, so the same builder flow works for
 
 ### Lifecycle methods
 
-- `ActivateAsync(...)`: Starts the application. It initializes the packet registry, activates the dispatcher, and starts all registered TCP and UDP listeners.
+- `ActivateAsync(...)`: Starts the application. It runs builder preparation callbacks, creates and activates packet dispatch, creates all registered listeners, starts them, then activates hosted services.
 !!! note
     Middleware in context is registered globally but executed in the sharded dispatch loop. Ensure your custom middleware is thread-safe or uses localized state.
-- `RunAsync(...)`: Activates the application and waits indefinitely until cancellation is requested, then deactivates it.
-- `DeactivateAsync(...)`: Gracefully stops all listeners and disposes of protocols and the dispatcher.
-- `Dispose()`: Synchronous cleanup that calls `DeactivateAsync`.
+- `RunAsync(...)`: Calls `ActivateAsync(...)`, waits until cancellation, then calls `DeactivateAsync(CancellationToken.None)` in a `finally` block.
+- `DeactivateAsync(...)`: Stops and disposes listeners in reverse order, disposes protocols in reverse order, deactivates hosted services in reverse order, and deactivates the packet dispatcher.
+- `Dispose()`: Starts `DeactivateAsync(CancellationToken.None)`, logs deferred failures, disposes the lifecycle gate, and suppresses finalization.
 
 ## `INetworkApplicationBuilder`
 
@@ -105,12 +104,18 @@ The builder uses a fluent API to configure the host before it is built.
 
 ### Server Bindings
 
-- `AddTcp<TProtocol>()`: Registers a TCP server for the specified protocol.
+- `AddTcp<TProtocol>()`: Registers a TCP server for the specified protocol using the configured `NetworkSocketOptions.Port`.
 - `AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a TCP server with a custom protocol factory.
-- `AddUdp<TProtocol>()`: Registers a UDP server for the specified protocol.
+- `AddTcp<TProtocol>(ushort port)`: Registers a TCP server for an explicit port, overriding the socket option for that binding.
+- `AddTcp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)`: Registers an explicit-port TCP server with a custom protocol factory.
+- `AddUdp<TProtocol>()`: Registers a UDP server for the specified protocol using the configured `NetworkSocketOptions.Port`.
 - `AddUdp<TProtocol>(Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with a custom authentication predicate.
 - `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a UDP server with a custom protocol factory.
 - `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with both a custom factory and an authentication predicate.
+- `AddUdp<TProtocol>(ushort port)`: Registers a UDP server for an explicit port.
+- `AddUdp<TProtocol>(ushort port, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers an explicit-port UDP server with an authentication predicate.
+- `AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)`: Registers an explicit-port UDP server with a custom protocol factory.
+- `AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers an explicit-port UDP server with both a custom factory and authentication predicate.
 
 ## Basic usage
 
