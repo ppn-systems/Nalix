@@ -115,7 +115,7 @@ public abstract class SingletonBase<T> : IDisposable where T : class
         {
             return s_ctor();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             throw new InternalErrorException(
                 $"Failed to create singleton instance of type {typeof(T).FullName}. " +

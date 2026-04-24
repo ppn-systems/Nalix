@@ -152,7 +152,6 @@ public sealed class PacketDispatchChannel
     /// <param name="cancellationToken">Unused optional token for compatibility.</param>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
     public void Deactivate(CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref _running, 0) == 0)
@@ -182,7 +181,7 @@ public sealed class PacketDispatchChannel
             int wakeCount = Math.Max(_dispatchLoops, 1);
             _ = _wakeSignal.Release(wakeCount);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] deactivate-error", ex);
         }
@@ -192,7 +191,7 @@ public sealed class PacketDispatchChannel
             {
                 linkedCts?.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.Logging?.Warn($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] linked-cts-dispose-failed", ex);
             }
@@ -201,7 +200,7 @@ public sealed class PacketDispatchChannel
             {
                 localCts?.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.Logging?.Warn($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] local-cts-dispose-failed", ex);
             }
@@ -433,7 +432,7 @@ public sealed class PacketDispatchChannel
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:DispatchWorkerLoopAsync] fatal-loop-error index={index}", ex);
         }
@@ -483,7 +482,7 @@ public sealed class PacketDispatchChannel
         {
             // External cancellation during sync execution
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
             this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
@@ -511,7 +510,7 @@ public sealed class PacketDispatchChannel
         {
             // Async cancellation
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
             owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);

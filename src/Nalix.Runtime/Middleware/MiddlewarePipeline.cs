@@ -506,7 +506,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
                 return AwaitWithContinueAsync(this, pending, entry, next, token);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (!_continueOnError)
                 {
@@ -595,7 +595,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             {
                 await pending.ConfigureAwait(false);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 runner._errorHandler?.Invoke(ex, entry.Middleware.GetType());
                 await next(token).ConfigureAwait(false);

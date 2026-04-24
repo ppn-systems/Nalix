@@ -77,7 +77,7 @@ public static partial class NLogixFx
 
             return s;
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             return "-";
         }

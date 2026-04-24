@@ -364,7 +364,7 @@ public sealed class ConnectionHub : IConnectionHub
                     conn.Disconnect("Force disconnected by IP.");
                     closedCount++;
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     conn.ThrottledError(
                         _logger,
@@ -408,7 +408,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 connection.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 connection.ThrottledError(
                     _logger,
@@ -763,7 +763,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             removedConnection.Dispose();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] dispose-error id={removedConnection.ID}");
         }
@@ -904,7 +904,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 evictedConnection.Disconnect("evicted to make room for new connection");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _logger?.Error(
                     $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evict-disconnect-failed id={evictedConnection.ID}",
@@ -949,7 +949,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             incomingConnection.Disconnect("connection limit reached");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error(
                 $"[NW.{nameof(ConnectionHub)}:{nameof(RejectIncomingConnection)}] reject-disconnect-failed id={incomingConnection.ID}",
@@ -1036,7 +1036,7 @@ public sealed class ConnectionHub : IConnectionHub
                         taskCount++;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     _logger?.Error(
                         $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={connection.ID}", ex);
@@ -1059,7 +1059,7 @@ public sealed class ConnectionHub : IConnectionHub
                     _logger.Info($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
                 }
             }
-            catch
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.LogBroadcastFailures(tasks, owners, taskCount, operationName);
             }
@@ -1134,7 +1134,7 @@ public sealed class ConnectionHub : IConnectionHub
                         taskCount++;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     _logger?.Error(
                         $"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastBatchedAsync)}] send-failure id={connection.ID}",
@@ -1187,7 +1187,7 @@ public sealed class ConnectionHub : IConnectionHub
                 _logger.Info($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
             }
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.LogBroadcastFailures(tasks, owners, taskCount, operationName);
         }
@@ -1253,7 +1253,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 storeTask = _sessionStore.StoreAsync(session);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 session.Return();
                 logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
@@ -1278,7 +1278,7 @@ public sealed class ConnectionHub : IConnectionHub
                 logger.Debug($"[NW.{nameof(ConnectionHub)}] auto-persist queued id={id} attributes={attributeCount}");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-prepare-error id={connection.ID}");
         }
@@ -1292,7 +1292,7 @@ public sealed class ConnectionHub : IConnectionHub
             await storeTask.ConfigureAwait(false);
             stored = true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
         }

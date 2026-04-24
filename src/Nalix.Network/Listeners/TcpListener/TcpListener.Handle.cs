@@ -50,7 +50,7 @@ public abstract partial class TcpListenerBase
                     $"new={connection.NetworkEndpoint}");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Error(
                 ex,
@@ -108,7 +108,7 @@ public abstract partial class TcpListenerBase
             FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
             _protocol.ProcessMessage(sender, args);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
@@ -257,7 +257,7 @@ public abstract partial class TcpListenerBase
 
             return connection;
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.Dispose();
             throw;
@@ -285,7 +285,7 @@ public abstract partial class TcpListenerBase
             // socket? -> null-conditional: does not throw NullReferenceException if null.
             socket?.Close();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
             {
@@ -404,7 +404,7 @@ public abstract partial class TcpListenerBase
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.Metrics.RECORD_ERROR();
                 s_logger?.Error(
@@ -833,7 +833,7 @@ public abstract partial class TcpListenerBase
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             string remote = "unknown";
             try
@@ -846,7 +846,7 @@ public abstract partial class TcpListenerBase
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
                     $"listener-endpoint-disposed port={_port} reason={ode.GetType().Name}");
             }
-            catch (Exception lookupEx)
+            catch (Exception lookupEx) when (ExceptionClassifier.IsNonFatal(lookupEx))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +

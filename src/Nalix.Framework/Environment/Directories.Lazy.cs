@@ -85,7 +85,7 @@ public static partial class Directories
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] container detection failed: {ex}");
         }

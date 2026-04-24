@@ -553,7 +553,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
         {
             return getMethod.CreateDelegate<Func<TSelf, TValue>>();
         }
-        catch (Exception)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Fallback for edge signatures where relaxed delegate binding cannot be created.
             return instance => (TValue)meta.GetValue(instance)!;

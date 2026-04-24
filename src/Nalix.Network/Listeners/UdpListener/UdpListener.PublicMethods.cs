@@ -125,7 +125,7 @@ public abstract partial class UdpListenerBase : IListener
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"bind-fail port={_port}", ex);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
@@ -190,7 +190,7 @@ public abstract partial class UdpListenerBase : IListener
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
@@ -208,7 +208,7 @@ public abstract partial class UdpListenerBase : IListener
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"socket-close-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
@@ -225,7 +225,7 @@ public abstract partial class UdpListenerBase : IListener
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                 $"stopped port={_port}");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Error(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
@@ -243,7 +243,7 @@ public abstract partial class UdpListenerBase : IListener
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +

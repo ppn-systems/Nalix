@@ -103,13 +103,13 @@ public static partial class Directories
                         deleted++;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     Debug.WriteLine($"[Directories] DeleteOldFiles skipped '{filePath}': {ex}");
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] DeleteOldFiles failed for '{directoryPath}': {ex}");
         }

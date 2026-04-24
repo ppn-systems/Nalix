@@ -93,7 +93,7 @@ public partial class TaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}] cleanup-cts-dispose-error id={st.Id} msg={ex.Message}");
@@ -173,7 +173,7 @@ public partial class TaskManager
 
                     this.START_WORKER_EXECUTION(worker);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = _globalConcurrencyGate.Release();
 
@@ -192,7 +192,7 @@ public partial class TaskManager
             {
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[FW.{nameof(TaskManager)}] worker-dispatch-loop-error msg={ex.Message}");
@@ -259,7 +259,7 @@ public partial class TaskManager
                         _ = source.TrySetResult();
                     }, tcs, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = tcs.TrySetException(ex);
                 }
@@ -313,7 +313,7 @@ public partial class TaskManager
                         {
                             cts.Dispose();
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Warn($"[FW.{nameof(TaskManager)}] cts-dispose-error-reject id={id} msg={ex.Message}");
@@ -370,7 +370,7 @@ public partial class TaskManager
         {
             wasCancelled = true;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             failure = ex;
             _ = Interlocked.Increment(ref _workerErrorCount);
@@ -400,7 +400,7 @@ public partial class TaskManager
                     concreteOptions?.OnFailed?.Invoke(st, failure);
                 }
             }
-            catch (Exception cbex)
+            catch (Exception cbex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(cbex))
             {
                 _ = Interlocked.Increment(ref _workerErrorCount);
 
@@ -414,7 +414,7 @@ public partial class TaskManager
                 {
                     _ = gate.SemaphoreSlim.Release();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = Interlocked.Increment(ref _workerErrorCount);
 
@@ -572,7 +572,7 @@ public partial class TaskManager
 
                     await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s.MarkFailure();
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -595,7 +595,7 @@ public partial class TaskManager
                         {
                             _ = s.Gate.Release();
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Warn($"[FW.{nameof(TaskManager)}:Internal] gate-release-error name={s.Name} msg={ex.Message}");
@@ -605,7 +605,7 @@ public partial class TaskManager
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s.MarkFailure();
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
@@ -670,7 +670,7 @@ public partial class TaskManager
             {
                 st.Cts.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[FW.{nameof(TaskManager)}] retain-cts-dispose-error id={st.Id} msg={ex.Message}");
@@ -700,7 +700,7 @@ public partial class TaskManager
                 gate.SemaphoreSlim.Dispose();
                 this.TRACE($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={group}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[FW.{nameof(TaskManager)}] gate-dispose-error-retain group={group} msg={ex.Message}");
@@ -772,7 +772,7 @@ public partial class TaskManager
                 await Task.Delay(options.ObservingInterval, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[FW.{nameof(TaskManager)}:Internal] dynamic-adjustment-error ex={ex.Message}");
@@ -902,7 +902,7 @@ public partial class TaskManager
 
             this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             // Revert on error
             _currentConcurrencyLimit = previousLimit;

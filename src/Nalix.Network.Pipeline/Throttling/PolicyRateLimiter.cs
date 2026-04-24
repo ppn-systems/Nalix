@@ -177,7 +177,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             }
 
             _ = ThreadPool.UnsafeQueueUserWorkItem(
-                static (Entry state) => state.WAIT_FOR_IDLE_AND_DISPOSE(),
+                static state => state.WAIT_FOR_IDLE_AND_DISPOSE(),
                 this,
                 preferLocal: false);
         }
@@ -214,7 +214,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             {
                 this.Limiter.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 _logger?.Error($"[NW.{nameof(PolicyRateLimiter)}:Entry] disposal-error", ex);
             }
@@ -456,7 +456,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                         removed.Dispose();
                         disposedCount++;
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                     {
                         _logger?.Error(
                             $"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] " +
@@ -467,7 +467,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
             if (!_limiters.IsEmpty)
             {
-                Thread.Yield();
+                _ = Thread.Yield();
             }
         }
 

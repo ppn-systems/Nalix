@@ -100,7 +100,7 @@ internal sealed class FrameSender : IDisposable
                 BufferLease.ByteArrayPool.Return(frame);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
             return false;

@@ -212,7 +212,7 @@ public sealed class BufferOptions : ConfigurationLoader
                     $"Sum of buffer allocation ratios exceeds 1.0 ({totalRatio}).");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             throw new ValidationException(
                 $"Invalid BufferAllocations: {ex.Message}");

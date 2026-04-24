@@ -332,7 +332,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Error($"[FW.{nameof(TaskManager)}:{nameof(RunOnceAsync)}] run-once-error name={name} msg={ex.Message}");
@@ -381,7 +381,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 st.Cts.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelWorker)}] cts-dispose-error id={id} msg={ex.Message}");
@@ -435,13 +435,13 @@ public sealed partial class TaskManager : ITaskManager
             _ = t.ContinueWith(_ =>
             {
                 try { st.CancellationTokenSource.Dispose(); }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error name={name} msg={ex.Message}");
                 }
                 try { st.Gate.Dispose(); }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error name={name} msg={ex.Message}");
@@ -458,7 +458,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 st.CancellationTokenSource.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] cts-dispose-error-sync name={name} msg={ex.Message}");
@@ -467,7 +467,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 st.Gate.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[FW.{nameof(TaskManager)}:{nameof(CancelRecurring)}] gate-dispose-error-sync name={name} msg={ex.Message}");
@@ -583,7 +583,7 @@ public sealed partial class TaskManager : ITaskManager
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[FW.{nameof(TaskManager)}:{nameof(GenerateReport)}] memory-diagnostics-failed msg={ex.Message}");
@@ -604,7 +604,7 @@ public sealed partial class TaskManager : ITaskManager
             _ = sb.AppendLine("---------------------------------------------------------------------");
             _ = sb.AppendLine();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Debug($"[FW.{nameof(TaskManager)}:{nameof(GenerateReport)}] process-health-diagnostics-failed msg={ex.Message}");
@@ -808,7 +808,7 @@ public sealed partial class TaskManager : ITaskManager
                 ["StartTimeUtc"] = proc.StartTime.ToUniversalTime()
             };
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Ignore diagnostics failure
         }
@@ -981,7 +981,7 @@ public sealed partial class TaskManager : ITaskManager
                 }, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-stop-error msg={ex.Message}");
@@ -991,7 +991,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             _ = _cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] cleanup-timer-stop-error msg={ex.Message}");
@@ -1001,7 +1001,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             _cleanupTimer?.Dispose();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] cleanup-timer-dispose-error msg={ex.Message}");
@@ -1018,13 +1018,13 @@ public sealed partial class TaskManager : ITaskManager
                 _ = t.ContinueWith(_ =>
                     {
                         try { st.CancellationTokenSource.Dispose(); }
-                        catch (Exception ex)
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-cts-dispose-error name={st.Name} msg={ex.Message}");
                         }
                         try { st.Gate.Dispose(); }
-                        catch (Exception ex)
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-gate-dispose-error name={st.Name} msg={ex.Message}");
@@ -1041,7 +1041,7 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.CancellationTokenSource.Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-cts-dispose-error-sync name={st.Name} msg={ex.Message}");
@@ -1050,7 +1050,7 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.Gate.Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] recurring-gate-dispose-error-sync name={st.Name} msg={ex.Message}");
@@ -1070,7 +1070,7 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error id={st.Id} msg={ex.Message}");
@@ -1084,7 +1084,7 @@ public sealed partial class TaskManager : ITaskManager
                     {
                         st.Cts.Dispose();
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error-async id={st.Id} msg={ex.Message}");
@@ -1099,7 +1099,7 @@ public sealed partial class TaskManager : ITaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                             .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-cts-dispose-error-notask id={st.Id} msg={ex.Message}");
@@ -1115,7 +1115,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 g.Value.SemaphoreSlim.Dispose();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] gate-dispose-error group={g.Key} msg={ex.Message}");
@@ -1128,7 +1128,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             _pendingWorkersSignal.Dispose();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] pending-signal-dispose-error msg={ex.Message}");
@@ -1138,7 +1138,7 @@ public sealed partial class TaskManager : ITaskManager
         {
             _workerDispatcherCts.Dispose();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] worker-dispatcher-cts-dispose-error msg={ex.Message}");

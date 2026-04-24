@@ -946,7 +946,7 @@ internal sealed class IniConfig : IDisposable
             _valueCache[cacheKey] = boxed;
             return boxed;
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             return null;
         }
@@ -1151,7 +1151,7 @@ internal sealed class IniConfig : IDisposable
             // Re-throw IO exceptions as-is
             throw;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             throw new IOException($"Error reading configuration file: {_path}", ex);
         }
@@ -1443,7 +1443,7 @@ internal sealed class IniConfig : IDisposable
                     {
                         File.Delete(tempFileName);
                     }
-                    catch
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         // Ignore cleanup errors
                     }

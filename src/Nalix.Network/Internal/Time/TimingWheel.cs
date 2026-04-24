@@ -269,7 +269,7 @@ internal sealed class TimingWheel : IActivatable
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
                 $"cts-cancel-ignored reason={ex.GetType().Name}");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Warn(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
@@ -286,7 +286,7 @@ internal sealed class TimingWheel : IActivatable
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
                 $"cts-dispose-ignored reason={ex.GetType().Name}");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Warn(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
@@ -297,7 +297,7 @@ internal sealed class TimingWheel : IActivatable
         {
             _worker?.Dispose();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Warn(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
@@ -375,7 +375,7 @@ internal sealed class TimingWheel : IActivatable
                 conn._timeoutTask = task;
             }
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (task is not null && !queued)
             {
@@ -534,7 +534,7 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 task.Conn.Close(force: true);
                             }
-                            catch (Exception ex)
+                            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                             {
                                 s_logger?.Error(
                                     $"[NW.{nameof(TimingWheel)}] close-error " +
@@ -577,7 +577,7 @@ internal sealed class TimingWheel : IActivatable
         {
             // Expected on shutdown
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
         }

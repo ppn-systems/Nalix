@@ -323,7 +323,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
         }

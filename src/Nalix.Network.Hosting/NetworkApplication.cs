@@ -143,7 +143,7 @@ public sealed class NetworkApplication : IActivatableAsync
             {
                 InstanceManager.Instance.Register<IPacketDispatch>(_packetDispatch);
             }
-            catch
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
             }
 
@@ -199,7 +199,7 @@ public sealed class NetworkApplication : IActivatableAsync
                     _listeners[i].Deactivate(cancellationToken);
                     _listeners[i].Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_stopListenerFailedMessage(_logger, ex);
                 }
@@ -213,7 +213,7 @@ public sealed class NetworkApplication : IActivatableAsync
                 {
                     _protocols[i].Dispose();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_disposeProtocolFailedMessage(_logger, ex);
                 }
@@ -227,7 +227,7 @@ public sealed class NetworkApplication : IActivatableAsync
                 {
                     await _hostedServices[i].DeactivateAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     _logger.Warn("Failed to stop hosted service cleanly. {Ex}", ex);
                 }
@@ -237,7 +237,7 @@ public sealed class NetworkApplication : IActivatableAsync
             {
                 _packetDispatch?.Deactivate(cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_stopDispatcherFailedMessage(_logger, ex);
             }
@@ -284,4 +284,5 @@ public sealed class NetworkApplication : IActivatableAsync
     }
 
     #endregion APIs
+
 }

@@ -322,7 +322,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                     {
                                         h(ts);
                                     }
-                                    catch (Exception ex)
+                                    catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                                     {
                                         s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
                                     }
@@ -334,7 +334,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                 {
                                     handler(timestamp);
                                 }
-                                catch (Exception ex)
+                                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                                 {
                                     s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] handler-error", ex);
                                 }
@@ -359,7 +359,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     // Expected during shutdown
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Error($"[NW.{nameof(TimeSynchronizer)}] loop-error", ex);
                 }

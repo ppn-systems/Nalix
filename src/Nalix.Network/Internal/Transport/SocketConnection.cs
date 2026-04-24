@@ -377,7 +377,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     $"cancelled ep={_sender?.NetworkEndpoint.Address}");
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
@@ -637,7 +637,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     $"socket-shutdown-benign ep={_endpointString} code={ex.SocketErrorCode}");
 #endif
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _logger?.Warn(
                     $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
@@ -657,7 +657,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     $"socket-close-ignored disposed ep={_endpointString} ex={ex.Message}");
 #endif
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _logger?.Warn(
                     $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
@@ -729,7 +729,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     {
         try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
         catch (ObjectDisposedException) { return "<disposed>"; }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _ = ex.HResult;
 #if DEBUG

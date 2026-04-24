@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
@@ -175,7 +174,7 @@ public abstract partial class TcpListenerBase : IListener
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"cts-cancel-ignored port={self._port} reason={ex.GetType().Name}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
@@ -193,7 +192,7 @@ public abstract partial class TcpListenerBase : IListener
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"listener-close-ignored port={self._port} reason={ex.GetType().Name}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
@@ -206,7 +205,7 @@ public abstract partial class TcpListenerBase : IListener
                     _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                                 .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{self._port}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
@@ -219,7 +218,7 @@ public abstract partial class TcpListenerBase : IListener
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                     $"stopped port={self._port}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Error(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
@@ -237,7 +236,7 @@ public abstract partial class TcpListenerBase : IListener
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"cts-dispose-ignored port={self._port} reason={ex.GetType().Name}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
@@ -265,7 +264,7 @@ public abstract partial class TcpListenerBase : IListener
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                             $"lock-release-ignored port={self._port} reason={nameof(ObjectDisposedException)} ex={ex.Message}");
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                     {
                         s_logger?.Error(
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
@@ -326,7 +325,7 @@ public abstract partial class TcpListenerBase : IListener
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cancel-reg-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
@@ -343,7 +342,7 @@ public abstract partial class TcpListenerBase : IListener
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
@@ -360,7 +359,7 @@ public abstract partial class TcpListenerBase : IListener
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
@@ -380,7 +379,7 @@ public abstract partial class TcpListenerBase : IListener
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"listener-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
@@ -391,7 +390,7 @@ public abstract partial class TcpListenerBase : IListener
                     _listener = null;
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Error(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +

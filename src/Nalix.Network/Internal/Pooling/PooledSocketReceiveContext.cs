@@ -233,7 +233,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
         {
             pending = socket.ReceiveAsync(args);
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // socket.ReceiveAsync threw synchronously (e.g. disposed socket).
             this.EndOperation();
@@ -308,7 +308,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
                         {
                             _receiveSource.SetException(NetworkErrors.PooledContextDisposed);
                         }
-                        catch (Exception ex)
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             _ = ex.HResult;
 #if DEBUG

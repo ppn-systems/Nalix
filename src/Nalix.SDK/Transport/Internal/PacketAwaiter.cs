@@ -68,7 +68,7 @@ internal static class PacketAwaiter
                 {
                     return predicate(packet);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = tcs.TrySetException(ex);
                     return false;
@@ -98,7 +98,7 @@ internal static class PacketAwaiter
         {
             await sendAsync(linkedCts.Token).ConfigureAwait(false);
         }
-        catch (Exception sendEx)
+        catch (Exception sendEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(sendEx))
         {
             if (sendEx is InvalidOperationException)
             {

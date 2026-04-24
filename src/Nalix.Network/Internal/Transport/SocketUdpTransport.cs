@@ -267,7 +267,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             }
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             throw NetworkErrors.UdpSendFailed;
         }

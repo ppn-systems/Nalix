@@ -655,7 +655,7 @@ public sealed class ObjectPoolManager : IReportable
             {
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Error($"[SH.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error", ex);

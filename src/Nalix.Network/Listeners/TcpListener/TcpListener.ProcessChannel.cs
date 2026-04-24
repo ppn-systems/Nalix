@@ -225,7 +225,7 @@ public abstract partial class TcpListenerBase
             // - Dedicated worker thread BelowNormal -> does not compete with I/O callbacks.
             this.ProcessConnection(connection);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             this.Metrics.RECORD_ERROR();
 

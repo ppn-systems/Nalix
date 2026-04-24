@@ -137,7 +137,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         AnalyzeConfigurationType(context, typeSymbol, symbols);
         AnalyzeMetadataProviderType(context, typeSymbol, symbols);
         AnalyzeMiddlewareType(context, typeSymbol, symbols);
- 
+
         if (HasAttribute(typeSymbol, symbols.ControllerAttribute))
         {
             AnalyzeControllerType(context, typeSymbol, symbols, globalOpcodes, controllerNames);
@@ -631,10 +631,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 }
 
                 string opcodeKey = $"{ns}.{opcode.Value}";
-                var existingOpcode = globalOpcodes.GetOrAdd(opcodeKey, (methodSymbol, typeSymbol));
-                if (!SymbolEqualityComparer.Default.Equals(existingOpcode.Controller, typeSymbol))
+                (IMethodSymbol Method, INamedTypeSymbol Controller) = globalOpcodes.GetOrAdd(opcodeKey, (methodSymbol, typeSymbol));
+                if (!SymbolEqualityComparer.Default.Equals(Controller, typeSymbol))
                 {
-                    Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, existingOpcode.Method.Name, existingOpcode.Controller.Name);
+                    Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, Method.Name, Controller.Name);
                 }
 
                 if (!HasSupportedParameterSignature(methodSymbol, symbols))
@@ -1517,7 +1517,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 bool isDisposed = code.Contains($"{name}.Dispose()")
                                 || code.Contains($"using (var {name}")
                                 || code.Contains($"using var {name}")
-                                || code.Contains($"new ") && code.Contains(name) // Passed to constructor
+                                || (code.Contains($"new ") && code.Contains(name)) // Passed to constructor
                                 || Regex.IsMatch(code, $@"\b(next|nextHandler|ExecuteAsync|InvokeAsync|SendAsync|ReceiveAsync|WriteAsync|ReadAsync)\s*\([^)]*\b{name}\b")
                                 || Regex.IsMatch(code, $@"return\s+[^;]*\b{name}\b")
                                 || Regex.IsMatch(code, $@"=> \s*[^;]*\b{name}\b");

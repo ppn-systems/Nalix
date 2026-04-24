@@ -128,7 +128,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 await this.HandleDispatchExceptionAsync(descriptor, context, ex)
                           .ConfigureAwait(false);

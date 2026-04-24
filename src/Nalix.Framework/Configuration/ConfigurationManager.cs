@@ -212,7 +212,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     {
                         _iniFile.Value.Flush();
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                                 .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] old-config-flush-failed msg={ex.Message}");
@@ -248,7 +248,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                         pathToWatch = normalizedPath;
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         // Roll back state — do NOT call SETUP_FILE_WATCHER inside the write lock.
                         _configFilePath = oldPath;
@@ -427,7 +427,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                 this.LastReloadTime = DateTime.UtcNow;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 reloadException = ex;
             }
@@ -540,7 +540,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
             }
-            catch (Exception)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 throw;
             }
@@ -562,7 +562,7 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             {
                 _iniFile.Value.Flush();
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                         .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(DisposeManaged)}] flush-failed msg={ex.Message}");

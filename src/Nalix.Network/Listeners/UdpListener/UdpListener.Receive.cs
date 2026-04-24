@@ -21,7 +21,6 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Transport;
-using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -309,7 +308,7 @@ public abstract partial class UdpListenerBase
             incomingLease.IsReliable = false;
 
             // Optimize: Try local connection pool first, fallback to global s_pool.
-            ConnectionEventArgs args = (connection as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
+            ConnectionEventArgs args = connection?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
             args.Initialize(incomingLease, connection);
 
             // Align with TCP: Offload to ThreadPool via AsyncCallback.
@@ -446,7 +445,7 @@ public abstract partial class UdpListenerBase
 
             _protocol.ProcessMessage(sender, args);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {

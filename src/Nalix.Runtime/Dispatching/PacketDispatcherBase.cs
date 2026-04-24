@@ -118,7 +118,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 {
                     pending.GetAwaiter().GetResult();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (ex is not SerializationFailureException)
                     {
@@ -137,7 +137,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 {
                     await operation.ConfigureAwait(false);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     owner.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={opCode}", ex);
                 }

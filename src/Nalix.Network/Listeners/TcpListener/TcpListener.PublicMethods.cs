@@ -102,7 +102,7 @@ public abstract partial class TcpListenerBase
                 Socket? listener = _listener;
                 needInit = listener is null || !listener.IsBound || listener.SafeHandle.IsInvalid;
             }
-            catch
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 needInit = true;
             }
@@ -159,7 +159,7 @@ public abstract partial class TcpListenerBase
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             s_logger?.Critical($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
 
@@ -220,7 +220,7 @@ public abstract partial class TcpListenerBase
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cancel-reg-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
@@ -237,7 +237,7 @@ public abstract partial class TcpListenerBase
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
@@ -254,7 +254,7 @@ public abstract partial class TcpListenerBase
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"listener-close-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
@@ -288,7 +288,7 @@ public abstract partial class TcpListenerBase
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +

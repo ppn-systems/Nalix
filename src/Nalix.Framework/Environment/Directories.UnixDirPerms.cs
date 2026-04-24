@@ -90,7 +90,7 @@ public static partial class Directories
                 RAISE_DIRECTORY_CREATED(path);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             string msg =
                 "Failed to create directory: " + path + ". ERROR: " + ex.Message +
@@ -187,7 +187,7 @@ public static partial class Directories
                 _ = SET_UNIX_FILE_MODE_COMPAT(path, mode);
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] HARDEN_PERMISSIONS failed for '{path}': {ex}");
         }
@@ -214,7 +214,7 @@ public static partial class Directories
             {
                 ((Action<string>)invocationList[i]).Invoke(path);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Debug.WriteLine($"[Directories] DirectoryCreated handler failed for '{path}': {ex}");
             }
@@ -277,7 +277,7 @@ public static partial class Directories
                 return ACCESS(path, 2) == 0;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] HAS_WRITE_ACCESS failed for '{path}': {ex}");
             return false;
@@ -336,7 +336,7 @@ public static partial class Directories
                 return true;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] SetUnixFileMode reflection path failed for '{path}': {ex}");
         }
@@ -352,7 +352,7 @@ public static partial class Directories
                 return rc == 0;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] chmod fallback failed for '{path}': {ex}");
         }

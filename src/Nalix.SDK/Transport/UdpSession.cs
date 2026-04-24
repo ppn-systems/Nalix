@@ -158,7 +158,7 @@ public class UdpSession : TransportSession
             this.ObserveBackgroundTask(receiveLoopTask, nameof(ReceiveLoopAsync));
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.OnError?.Invoke(this, ex);
             await this.DisconnectAsync().ConfigureAwait(false);
@@ -350,7 +350,7 @@ public class UdpSession : TransportSession
             _ = await _socket.SendAsync(data, SocketFlags.None, ct).ConfigureAwait(false);
         }
         catch (OperationCanceledException) { throw; }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.OnError?.Invoke(this, ex);
             _ = this.DisconnectAsync();
@@ -381,7 +381,7 @@ public class UdpSession : TransportSession
                 BufferLease.ByteArrayPool.Return(rawBuffer);
                 break;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 BufferLease.ByteArrayPool.Return(rawBuffer);
                 if (!ct.IsCancellationRequested)
@@ -420,7 +420,7 @@ public class UdpSession : TransportSession
                         if (!writer.TryWrite(async () =>
                         {
                             try { await asyncHandler(copy).ConfigureAwait(false); }
-                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
                         }))
                         {
                             this.OnError?.Invoke(this, new NetworkException("Async handler queue saturated; dual-mode frame dropped."));
@@ -432,7 +432,7 @@ public class UdpSession : TransportSession
                         if (!writer.TryWrite(async () =>
                         {
                             try { await asyncHandler(datagram.Memory).ConfigureAwait(false); }
-                            catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
                             finally
                             {
                                 datagram.Dispose();
@@ -450,7 +450,7 @@ public class UdpSession : TransportSession
                     datagram.Dispose();
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (!ct.IsCancellationRequested)
                 {
@@ -491,7 +491,7 @@ public class UdpSession : TransportSession
                 while (reader.TryRead(out Func<Task>? work))
                 {
                     try { await work().ConfigureAwait(false); }
-                    catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
                 }
             }
         }
@@ -502,7 +502,7 @@ public class UdpSession : TransportSession
         {
             this.OnError?.Invoke(this, ex);
         }
-        catch (Exception ex) { this.OnError?.Invoke(this, ex); }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.OnError?.Invoke(this, ex); }
         finally
         {
             while (reader.TryRead(out Func<Task>? work))
@@ -512,7 +512,7 @@ public class UdpSession : TransportSession
                 {
                     task = work();
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     this.OnError?.Invoke(this, ex);
                     continue;

@@ -103,7 +103,7 @@ internal sealed class FrameReader : IDisposable
 
                             this.PROCESS_NORMAL_FRAME(lease);
                         }
-                        catch { if (rented != null) { BufferLease.ByteArrayPool.Return(rented); } throw; }
+                        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { if (rented != null) { BufferLease.ByteArrayPool.Return(rented); } throw; }
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
@@ -118,7 +118,7 @@ internal sealed class FrameReader : IDisposable
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception ex)
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _onError(ex);
         }

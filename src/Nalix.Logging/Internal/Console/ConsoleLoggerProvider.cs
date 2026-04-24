@@ -239,7 +239,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
             System.Console.Write(sb);
             _ = Interlocked.Add(ref _writtenCount, batch.Count);
         }
-        catch
+        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Add(ref _droppedCount, batch.Count);
         }

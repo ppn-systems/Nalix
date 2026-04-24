@@ -118,7 +118,7 @@ public class TcpSession : TransportSession
             _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
                 _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             await this.DisconnectInternalAsync().ConfigureAwait(false);
             this.OnError?.Invoke(this, ex);
@@ -273,7 +273,7 @@ public class TcpSession : TransportSession
                 {
                     dispatchTask = asyncHandler(lease.Memory);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     lease.Dispose();
                     this.OnError?.Invoke(this, ex);
@@ -306,11 +306,11 @@ public class TcpSession : TransportSession
                         {
                             retained.Dispose();
                         }
-                    }, Tuple.Create(this, (IBufferLease)lease), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+                    }, Tuple.Create(this, lease), CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.OnError?.Invoke(this, ex);
         }

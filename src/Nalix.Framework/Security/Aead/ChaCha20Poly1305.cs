@@ -139,7 +139,7 @@ public static class ChaCha20Poly1305
             {
                 poly.Clear();
             }
-            catch (System.Exception ex)
+            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Debug.WriteLine($"[ChaCha20Poly1305] Poly1305.Clear failed: {ex}");
             }
@@ -148,7 +148,7 @@ public static class ChaCha20Poly1305
             {
                 chacha0.Clear();
             }
-            catch (System.Exception ex)
+            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Debug.WriteLine($"[ChaCha20Poly1305] ChaCha0.Clear failed: {ex}");
             }
@@ -157,7 +157,7 @@ public static class ChaCha20Poly1305
             {
                 chacha1.Clear();
             }
-            catch (System.Exception ex)
+            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Debug.WriteLine($"[ChaCha20Poly1305] ChaCha1.Clear failed: {ex}");
             }

@@ -190,7 +190,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
                     s_processMutexOwner = createdNew;
                 }
-                catch
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_processMutexOwner = false;
                 }
@@ -304,7 +304,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                 {
                     PUBLISH_TO_INTERFACE_SLOT(itf, instance);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     this.EmitLog(LogLevel.Warning,
                         $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] publish-slot-fail iface={itf.Name}", ex);
@@ -387,7 +387,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                 // Previously disposed: benign. Log as Trace to reduce noise.
                 this.EmitLog(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-already {context}", odex);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // Unexpected disposal error: keep Error level.
                 this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Register)}] dispose-fail {context} ex={ex.Message}", ex);
@@ -559,7 +559,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                 {
                     this.EmitLog(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-already type={type.Name}", odex);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-fail type={type.Name} ex={ex.Message}", ex);
                 }
@@ -593,7 +593,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                     {
                         this.EmitLog(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-already signature type={type.Name}", odex);
                     }
-                    catch (Exception ex)
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
                         this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(RemoveInstance)}] dispose-fail signature type={type.Name} ex={ex.Message}", ex);
                     }
@@ -685,7 +685,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                 {
                     this.EmitLog(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-already", odex);
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] dispose-fail ex={ex.Message}", ex);
                 }
@@ -819,7 +819,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             {
                 this.EmitLog(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] dispose-already", odex);
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] dispose-fail", ex);
             }
@@ -831,7 +831,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
         if (s_processMutexOwner && s_processMutex != null)
         {
             try { s_processMutex.ReleaseMutex(); }
-            catch (Exception ex) { this.EmitLog(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { this.EmitLog(LogLevel.Warning, $"[FW.{nameof(InstanceManager)}:{nameof(DisposeManaged)}] mutex-release-fail", ex); }
             s_processMutex.Dispose();
             s_processMutex = null;
         }
@@ -899,7 +899,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                 {
                     // benign
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     this.EmitLog(LogLevel.Error,
                         $"[FW.{nameof(InstanceManager)}:{nameof(CREATE_OR_GET_SIGNATURE_INSTANCE)}] dispose-fail temp-instance type={type.Name} ex={ex.Message}", ex);
@@ -949,7 +949,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             FieldInfo fld = gslot.GetField("Value", BindingFlags.Public | BindingFlags.Static)!;
             fld.SetValue(null, instance);
         }
-        catch (Exception)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Non-fatal: reflection may fail in trimmed / restricted environments.
             _ = Instance; // attempt safe access if possible
@@ -991,7 +991,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             FieldInfo fld = gslot.GetField("Value", BindingFlags.Public | BindingFlags.Static)!;
             fld.SetValue(null, null);
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // ignore: best-effort clearing of generic slot
         }
@@ -1029,7 +1029,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                     {
                         this.EmitLog(LogLevel.Trace, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] temp-instance-already-disposed type={type.Name}", odex);
                     }
-                    catch (Exception dex)
+                    catch (Exception dex) when (ExceptionClassifier.IsNonFatal(dex))
                     {
                         this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] dispose-fail temp type={type.Name}", dex);
                     }
@@ -1047,7 +1047,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
             return instance;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.EmitLog(LogLevel.Error, $"[FW.{nameof(InstanceManager)}:{nameof(GET_OR_CREATE_INSTANCE_SLOW)}] create-fail type={type.Name}", ex);
 

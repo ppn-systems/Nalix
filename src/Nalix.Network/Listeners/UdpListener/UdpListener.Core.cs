@@ -164,7 +164,7 @@ public abstract partial class UdpListenerBase
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                     $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
@@ -185,7 +185,7 @@ public abstract partial class UdpListenerBase
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                     $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 s_logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +

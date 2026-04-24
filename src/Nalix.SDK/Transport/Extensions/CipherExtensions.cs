@@ -68,7 +68,7 @@ public static class CipherExtensions
                 },
                 ct: ct).ConfigureAwait(false);
         }
-        catch
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             RestoreCipher(session, previousCipher);
             throw;
