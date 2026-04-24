@@ -23,25 +23,37 @@ Accurate defaults are critical for production rollout and troubleshooting.
 
 | Property | Meaning | Default |
 |---|---|---:|
-| `Port` | Listen port. | `57206` |
-| `Backlog` | Pending accept queue length. | `512` |
-| `EnableTimeout` | Enable idle-timeout subsystem integration. | `true` |
-| `EnableIPv6` | Use IPv6 socket family. | `false` |
-| `NoDelay` | Disable Nagle algorithm. | `true` |
-| `MaxParallel` | Parallel accept workers. | `5` |
-| `BufferSize` | Socket buffer size in bytes. | `1500` |
-| `KeepAlive` | TCP keepalive behavior. | `true` |
-| `ReuseAddress` | Address reuse behavior. | `true` |
-| `MaxGroupConcurrency` | Worker group concurrency cap. | `8` |
-| `DualMode` | IPv4+IPv6 dual mode. | `true` |
-| `ProcessChannelCapacity` | Accepted-connection process queue size. | `256` |
+| `Port` | TCP/UDP listen port used when a listener is created without an explicit port. | `57206` |
+| `Backlog` | TCP pending accept queue length. | `512` |
+| `EnableTimeout` | Enables idle-timeout registration with the shared `TimingWheel`. | `true` |
+| `EnableIPv6` | Uses IPv6 sockets instead of IPv4 sockets. | `false` |
+| `NoDelay` | Disables Nagle's algorithm on TCP sockets for lower latency. | `true` |
+| `MaxParallel` | Number of TCP accept workers. | `5` |
+| `MaxParallelUDP` | Number of UDP receive workers. | `2` |
+| `BufferSize` | Send/receive socket buffer size in bytes. | `65536` |
+| `KeepAlive` | Enables TCP keep-alive probes. | `true` |
+| `ReuseAddress` | Allows address reuse for listener sockets. | `true` |
+| `MaxGroupConcurrency` | Socket operation group concurrency cap. | `8` |
+| `DualMode` | Enables IPv4+IPv6 dual mode when IPv6 sockets are used. | `true` |
+| `ProcessChannelCapacity` | Accepted TCP connections that may queue before protocol acceptance. | `256` |
+
+## Validation
+
+`Validate()` uses data-annotation validation from the source type:
+
+- `Port`: `1..65535`
+- `Backlog`: `1..65535`
+- `MaxParallel`: `1..1024`
+- `MaxParallelUDP`: `1..1024`
+- `BufferSize`: `2048..10_485_760`
+- `MaxGroupConcurrency`: `1..1024`
+- `ProcessChannelCapacity`: at least `1`
 
 ## Best Practices
 
 - Validate options before listener activation.
-- Tune `MaxParallel`, `ProcessChannelCapacity`, and connection limits together.
-- Keep `MaxUdpDatagramSize` below fragmentation-prone values for your network profile.
-- Keep `UdpReplayWindowSize` high enough for your real packet reordering profile.
+- Tune `MaxParallel`, `MaxParallelUDP`, `ProcessChannelCapacity`, and connection limits together.
+- Keep `BufferSize` large enough for expected TCP and UDP traffic but within the validated 10 MiB ceiling.
 
 ## Related APIs
 
