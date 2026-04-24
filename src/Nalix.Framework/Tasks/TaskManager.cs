@@ -258,9 +258,11 @@ public sealed partial class TaskManager : ITaskManager
         options ??= new WorkerOptions();
 
         ISnowflake id = Snowflake.NewId(options.IdType, options.MachineId);
+#pragma warning disable CA2000 // Ownership is transferred to WorkerState and disposed during worker cleanup/manager teardown.
         CancellationTokenSource cts = options.CancellationToken.CanBeCanceled
             ? CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken)
             : new CancellationTokenSource();
+#pragma warning restore CA2000
 
         WorkerState st = new(id, name, group, options, cts, work);
 
@@ -296,8 +298,10 @@ public sealed partial class TaskManager : ITaskManager
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(interval, TimeSpan.Zero);
 
         options ??= new RecurringOptions();
+#pragma warning disable CA2000 // Ownership is transferred to RecurringState and disposed after its loop stops.
         CancellationTokenSource cts = new();
         RecurringState st = new(name, interval, options, cts);
+#pragma warning restore CA2000
 
         if (!_recurring.TryAdd(name, st))
         {
@@ -422,7 +426,9 @@ public sealed partial class TaskManager : ITaskManager
     {
         ArgumentNullException.ThrowIfNull(name, nameof(name));
 
+#pragma warning disable CA2000 // RecurringState is disposed asynchronously after its running task observes cancellation.
         if (!_recurring.TryRemove(name, out RecurringState? st))
+#pragma warning restore CA2000
         {
             return;
         }
@@ -1132,6 +1138,16 @@ public sealed partial class TaskManager : ITaskManager
         {
             InstanceManager.Instance.GetExistingInstance<ILogger>()?
                                     .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] pending-signal-dispose-error msg={ex.Message}");
+        }
+
+        try
+        {
+            _globalConcurrencyGate.Dispose();
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            InstanceManager.Instance.GetExistingInstance<ILogger>()?
+                                    .Warn($"[FW.{nameof(TaskManager)}:{nameof(Dispose)}] global-gate-dispose-error msg={ex.Message}");
         }
 
         try

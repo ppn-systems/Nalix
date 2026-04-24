@@ -88,13 +88,22 @@ public abstract class SingletonBase<T> : IDisposable where T : class
     /// <inheritdoc />
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        this.Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Releases resources held by the singleton instance.
+    /// </summary>
+    /// <param name="disposing"><see langword="true"/> when called from <see cref="Dispose()"/>.</param>
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing || Interlocked.Exchange(ref _disposed, 1) != 0)
         {
             return;
         }
 
         this.DisposeManaged();
-        GC.SuppressFinalize(this);
     }
 
     /// <summary>

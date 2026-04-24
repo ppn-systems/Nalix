@@ -302,6 +302,22 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Dispose()
     {
+        this.Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Returns rented packets to their pool once; non-rented packet instances are left alone.
+    /// </summary>
+    /// <param name="disposing"><see langword="true"/> when called from <see cref="Dispose()"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    protected virtual void Dispose(bool disposing)
+    {
+        if (!disposing)
+        {
+            return;
+        }
+
         // Atomically check and clear the rented flag to ensure we only return to pool once.
         if (Interlocked.Exchange(ref _isRented, 0) == 1)
         {
@@ -312,8 +328,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
             InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Return((TSelf)this);
         }
-
-        GC.SuppressFinalize(this);
     }
 
     #endregion APIs

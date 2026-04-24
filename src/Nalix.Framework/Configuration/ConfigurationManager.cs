@@ -38,6 +38,8 @@ namespace Nalix.Framework.Configuration;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_configContainerDict.Count}")]
+[SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
+Justification = "ConfigurationManager releases _configLock, _reloadGate, and _configFileWatcher in DisposeManaged inherited from SingletonBase.")]
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
