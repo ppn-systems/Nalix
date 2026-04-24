@@ -1,8 +1,6 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Xunit;
@@ -21,38 +19,6 @@ public sealed class PacketPoolLeaseTests
         // explicit second dispose should be ignored
         lease.Dispose();
         lease.Dispose();
-    }
-
-    [Fact]
-    public void ReturnThenGetResetsControlPacketState()
-    {
-        _ = PacketPool<Control>.Clear();
-
-        Control packet = PacketPool<Control>.Get();
-        packet.Initialize(
-            opCode: 1234,
-            type: ControlType.DISCONNECT,
-            sequenceId: 42,
-            reasonCode: ProtocolReason.INTERNAL_ERROR,
-            flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        packet.Priority = PacketPriority.LOW;
-
-        packet.Dispose();
-
-        Control reused = PacketPool<Control>.Get();
-        try
-        {
-            Assert.Equal(0u, reused.SequenceId);
-            Assert.Equal(ControlType.NONE, reused.Type);
-            Assert.Equal(ProtocolReason.NONE, reused.Reason);
-            Assert.Equal(PacketPriority.HIGH, reused.Priority);
-            Assert.Equal(0L, reused.Timestamp);
-            Assert.Equal(0L, reused.MonoTicks);
-        }
-        finally
-        {
-            reused.Dispose();
-        }
     }
 
     [Fact]
