@@ -4,6 +4,8 @@
 using System;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
+using Nalix.Framework.Configuration;
+using Nalix.Network.Pipeline.Options;
 
 namespace Nalix.Network.Pipeline.Internal;
 
@@ -13,26 +15,28 @@ namespace Nalix.Network.Pipeline.Internal;
 /// </summary>
 internal static class DirectiveGuard
 {
-    /// <summary>
-    /// Default minimum interval between repeated directives of the same kind.
-    /// </summary>
-    private const int DefaultCooldownMs = 200;
+    private static readonly DirectiveGuardOptions s_options = ConfigurationManager.Instance.Get<DirectiveGuardOptions>();
+
+    static DirectiveGuard() => s_options.Validate();
 
     /// <summary>
     /// Attempts to acquire permission to send a directive for the provided attribute key.
     /// </summary>
     /// <param name="connection">Target connection.</param>
     /// <param name="lastSentAtAttributeKey">Attribute key that stores the last send timestamp.</param>
-    /// <param name="cooldownMs">Cooldown window in milliseconds.</param>
+    /// <param name="cooldownMs">
+    /// Optional cooldown window in milliseconds. If null, <see cref="DirectiveGuardOptions.DefaultCooldownMs"/> is used.
+    /// </param>
     /// <returns>
     /// <c>true</c> if sending is allowed now; otherwise <c>false</c> when suppressed by cooldown.
     /// </returns>
-    public static bool TryAcquire(IConnection connection, string lastSentAtAttributeKey, int cooldownMs = DefaultCooldownMs)
+    public static bool TryAcquire(IConnection connection, string lastSentAtAttributeKey, int? cooldownMs = null)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(lastSentAtAttributeKey);
 
-        if (cooldownMs <= 0)
+        int resolvedCooldownMs = cooldownMs ?? s_options.DefaultCooldownMs;
+        if (resolvedCooldownMs <= 0)
         {
             return true;
         }
@@ -45,7 +49,7 @@ internal static class DirectiveGuard
             long nowMs = Environment.TickCount64;
             if (attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed) &&
                 boxed is long lastSentAtMs &&
-                unchecked(nowMs - lastSentAtMs) < cooldownMs)
+                unchecked(nowMs - lastSentAtMs) < resolvedCooldownMs)
             {
                 return false;
             }
@@ -76,4 +80,3 @@ internal static class DirectiveGuard
         return created;
     }
 }
-
