@@ -330,9 +330,15 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             this.LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
 
             int currentConns;
-            lock (entry)
+            bool lockTaken = false;
+            try
             {
+                entry.SpinLock.Enter(ref lockTaken);
                 currentConns = entry.Info.CurrentConnections;
+            }
+            finally
+            {
+                if (lockTaken) entry.SpinLock.Exit();
             }
 
             return new ConnectionAllowResult { Allowed = false, CurrentConnections = currentConns };
@@ -342,8 +348,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         bool shouldForceClose = false;
         ConnectionAllowResult result;
 
-        lock (entry)
+        bool spinLockTaken = false;
+        try
         {
+            entry.SpinLock.Enter(ref spinLockTaken);
             this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
             if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
@@ -352,15 +360,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
 
                 this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
-
-                // WHY: Don't call ScheduleWorker() inside the lock.
-                //
-                // Old code calls ScheduleWorker() directly in the lock (entry).
-                // ScheduleWorker can:
-                // 1. Acquire the TaskManager's internal lock -> lock ordering is not guaranteed -> potential deadlock.
-                // 2. Block for a short time (a few µs) when TaskManager contends -> keep the entry lock longer than necessary.
-                //
-                // The lock only does one thing: update the state(BannedUntilTicks + log).
                 shouldForceClose = true;
 
                 _logger?.Warn($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
@@ -386,7 +385,11 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
                 result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
             }
-        } // lock released before scheduling
+        }
+        finally
+        {
+            if (spinLockTaken) entry.SpinLock.Exit();
+        }
 
         // WHY: Schedule ForceClose AFTER exiting the lock.
         // ForceClose needs to close all connections to this IP — possibly locking ConnectionHub.
@@ -468,8 +471,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             return false;
         }
 
-        lock (entry)
+        bool lockTaken = false;
+        try
         {
+            entry.SpinLock.Enter(ref lockTaken);
             // Decrement with underflow protection
             int newCount = Math.Max(0, entry.Info.CurrentConnections - 1);
 
@@ -492,6 +497,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     _logger?.Debug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
                 }
             }
+        }
+        finally
+        {
+            if (lockTaken) entry.SpinLock.Exit();
         }
 
         return true;
@@ -623,9 +632,15 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
         {
             ConnectionLimitInfo info;
-            lock (kvp.Value)
+            bool lockTaken = false;
+            try
             {
+                kvp.Value.SpinLock.Enter(ref lockTaken);
                 info = kvp.Value.Info;
+            }
+            finally
+            {
+                if (lockTaken) kvp.Value.SpinLock.Exit();
             }
             snapshot.Add(new KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>(kvp.Key, info));
         }
@@ -777,10 +792,16 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     break;
                 }
 
-                bool shouldRemove;
-                lock (kvp.Value)
+                bool lockTaken = false;
+                
+                try
                 {
+                    kvp.Value.SpinLock.Enter(ref lockTaken);
                     shouldRemove = SHOULD_REMOVE_ENTRY(kvp.Value, cutoff);
+                }
+                finally
+                {
+                    if (lockTaken) kvp.Value.SpinLock.Exit();
                 }
 
                 if (shouldRemove)
@@ -795,10 +816,16 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 if (_map.TryRemove(key, out ConnectionLimitEntry? removedEntry) && removedEntry is not null)
                 {
                     // Dispose resources
-                    lock (removedEntry)
-                    {
-                        removedEntry.RecentConnectionTimestamps.Clear();
-                    }
+                bool lockTaken = false;
+                try
+                {
+                    removedEntry.SpinLock.Enter(ref lockTaken);
+                    removedEntry.RecentConnectionTimestamps.Clear();
+                }
+                finally
+                {
+                    if (lockTaken) removedEntry.SpinLock.Exit();
+                }
 
                     removed++;
                     _ = Interlocked.Increment(ref _totalCleanedEntries);
@@ -975,9 +1002,14 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         public long SuppressedClosedCount;
 
         /// <summary>
-        /// Mutable connection info. Access only inside <c>lock(this)</c>.
+        /// Mutable connection info. Access only inside <c>SpinLock</c>.
         /// </summary>
         public ConnectionLimitInfo Info;
+
+        /// <summary>
+        /// SpinLock for micro-operations. Faster than Monitor.
+        /// </summary>
+        public SpinLock SpinLock = new(false);
 
         /// <summary>
         /// Sliding-window timestamps for rate limiting.
