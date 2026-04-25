@@ -130,6 +130,23 @@ public readonly struct UInt56 :
     static UInt56 INumberBase<UInt56>.Zero => Zero;
 
     #endregion Constants and static fields
+    
+    #region Properties
+    
+    /// <summary>
+    /// Gets a value indicating whether the current value is zero.
+    /// </summary>
+    /// <remarks>
+    /// Checks all three fields directly without unpacking to <see cref="ulong"/>,
+    /// making this faster than <c>ToUInt64() == 0</c>.
+    /// </remarks>
+    public bool IsZero
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _lo == 0u && _mid == 0 && _hi == 0;
+    }
+    
+    #endregion Properties
 
     #region IMinMaxValue<T> Implementation
 
@@ -532,11 +549,12 @@ public readonly struct UInt56 :
 
     /// <inheritdoc />
     /// <remarks>
-    /// Combines all three storage fields using <see cref="HashCode.Combine{T1,T2,T3}"/>
-    /// to produce a well-distributed hash code without unpacking to <see cref="ulong"/>.
+    /// Optimized bit-mixing for 56-bit values. This is significantly faster than
+    /// <see cref="HashCode.Combine"/> while maintaining excellent distribution
+    /// for identity-like values (e.g., Snowflake IDs).
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() => HashCode.Combine(_lo, _mid, _hi);
+    public override int GetHashCode() => (int)_lo ^ (_mid | (_hi << 16));
 
     /// <inheritdoc />
     public int CompareTo(UInt56 other) => this.ToUInt64().CompareTo(other.ToUInt64());
@@ -2171,6 +2189,7 @@ public readonly struct UInt56 :
     /// faster than a comparison against <see cref="MaxValue"/> because it avoids a branch
     /// on most architectures when the value is in range.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void CheckOverflow(ulong raw)
     {
         if ((raw & ~MaxValue) != 0UL)
