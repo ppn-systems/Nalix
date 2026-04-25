@@ -75,11 +75,9 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
     #region Private Types
 
-    /// <summary>Per-endpoint mutable state; guarded by its <see cref="Gate"/>.</summary>
+    /// <summary>Per-endpoint mutable state; optimized with SpinLock for micro-operations.</summary>
     private sealed class EndpointState
     {
-        public readonly object Gate = new();
-
         public long LastSeenSw;
         public long MicroBalance;
         public int SoftViolations;
@@ -87,6 +85,8 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         public long AccumulatedMicro;
         public long LastRefillSwTicks;
         public long HardBlockedUntilSw;
+
+        public SpinLock SpinLock = new(false);
     }
 
     /// <summary>A shard contains a dictionary of endpoint states.</summary>
@@ -274,11 +274,17 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             {
                 EndpointState state = kv.Value;
                 long micro, blockedUntil;
-                lock (state.Gate)
+                bool lockTaken = false;
+
+                try
                 {
+                    state.SpinLock.Enter(ref lockTaken);
                     micro = state.MicroBalance;
                     blockedUntil = state.HardBlockedUntilSw;
                 }
+                finally
+                {
+                    if (lockTaken) { state.SpinLock.Exit(); } }
 
                 bool isBlocked = blockedUntil > now;
                 ushort credit = CALCULATE_REMAINING_CREDIT(micro, _options.TokenScale);
@@ -488,8 +494,10 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private RateLimitDecision EVALUATE_RATE_LIMIT(INetworkEndpoint key, EndpointState state, long now)
     {
-        lock (state.Gate)
+        bool lockTaken = false;
+        try
         {
+            state.SpinLock.Enter(ref lockTaken);
             state.LastSeenSw = now;
 
             // Check hard lockout first
@@ -509,6 +517,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
             // Not enough tokens - handle violation
             return this.HANDLE_INSUFFICIENT_TOKENS(key, state, now);
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                state.SpinLock.Exit();
+            }
         }
     }
 
@@ -889,9 +904,19 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
                 // Count hard-blocked during collection
                 bool isBlocked;
-                lock (kv.Value.Gate)
+                bool lockTaken = false;
+
+                try
                 {
+                    kv.Value.SpinLock.Enter(ref lockTaken);
                     isBlocked = kv.Value.HardBlockedUntilSw > now;
+                }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        kv.Value.SpinLock.Exit();
+                    }
                 }
 
                 if (isBlocked)
@@ -929,10 +954,20 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         for (int i = 0; i < count; i++)
         {
             EndpointState state = snapshot[i].Value;
-            lock (state.Gate)
+            bool lockTaken = false;
+
+            try
             {
+                state.SpinLock.Enter(ref lockTaken);
                 blockedValues[i] = state.HardBlockedUntilSw > now;
                 microValues[i] = state.MicroBalance;
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    state.SpinLock.Exit();
+                }
             }
         }
 
@@ -1100,10 +1135,19 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     {
         long micro, blockedUntil;
 
-        lock (state.Gate)
+        bool lockTaken = false;
+        try
         {
+            state.SpinLock.Enter(ref lockTaken);
             micro = state.MicroBalance;
             blockedUntil = state.HardBlockedUntilSw;
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                state.SpinLock.Exit();
+            }
         }
 
         bool isBlocked = blockedUntil > now;
@@ -1265,9 +1309,18 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             return false;
         }
 
-        lock (state.Gate)
+        bool lockTaken = false;
+        try
         {
+            state.SpinLock.Enter(ref lockTaken);
             shouldRemove = (now - state.LastSeenSw) > staleTicks;
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                state.SpinLock.Exit();
+            }
         }
 
         if (!shouldRemove)
@@ -1363,10 +1416,21 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in shard.Map)
             {
                 long lastSeen;
-                lock (kv.Value.Gate)
+                bool lockTaken = false;
+
+                try
                 {
+                    kv.Value.SpinLock.Enter(ref lockTaken);
                     lastSeen = kv.Value.LastSeenSw;
                 }
+                finally
+                {
+                    if (lockTaken)
+                    {
+                        kv.Value.SpinLock.Exit();
+                    }
+                }
+
                 candidates.Add((kv.Key, lastSeen));
             }
         }
