@@ -21,8 +21,8 @@ using Nalix.Network.RateLimiting;
 
 namespace Nalix.Network.Listeners.Tcp;
 
-[DebuggerNonUserCode]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 public abstract partial class TcpListenerBase : IListener
 {
     #region Fields
