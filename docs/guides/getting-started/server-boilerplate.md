@@ -36,6 +36,8 @@ using var app = NetworkApplication.CreateBuilder()
     {
         opt.IdleTimeoutMs = 60_000; // 60 second idle timeout
     })
+    // 2.5. Configure Zero-Allocation Buffer Pooling
+    .ConfigureBufferPoolManager(new BufferPoolManager(NLogix.Host.Instance))
     // Add your packet contracts
     .AddPacket<MyPingPacket>()
     // Register your logic controllers
