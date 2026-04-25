@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
@@ -62,7 +63,10 @@ internal static class DirectiveGuard
         }
         finally
         {
-            if (lockTaken) state.SpinLock.Exit();
+            if (lockTaken)
+            {
+                state.SpinLock.Exit();
+            }
         }
     }
 
