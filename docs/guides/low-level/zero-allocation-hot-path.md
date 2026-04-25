@@ -67,7 +67,47 @@ public sealed class HighFreqUpdate : PacketBase<HighFreqUpdate>
 
 ---
 
-## 2. Compiled Handler Execution
+## 2. Setup & Compilation
+
+To achieve zero-allocation performance, Nalix must "bake" your handlers and packet lookups during the application startup phase. This is handled automatically by the `NetworkApplicationBuilder`.
+
+### The Registration Flow
+
+When you call `AddHandlers` or `AddPacket`, the framework performs two critical operations:
+
+1.  **Frozen Registry Creation**: Scans for packet magic numbers and builds an immutable `FrozenDictionary` for $O(1)$ branch-prediction-friendly lookups.
+2.  **Handler Compilation**: Uses expression trees to compile your controller methods into optimized static delegates, eliminating reflection overhead.
+
+```csharp
+using Nalix.Network.Hosting;
+
+var app = NetworkApplication.CreateBuilder()
+    // 1. Register Packet Contracts (triggers Frozen Registry creation)
+    .AddPacket<PositionUpdatePacket>()
+    
+    // 2. Register Logic Handlers (triggers PacketHandlerCompiler)
+    .AddHandlers<GameController>()
+    
+    .Build(); // Lookups are frozen and handlers compiled here
+```
+
+### Manual Configuration (Advanced)
+
+If you are not using the Hosting layer, you must manually populate the dispatch options:
+
+```csharp
+var options = new PacketDispatchOptions<IPacket>();
+
+// Manually trigger compilation for a controller
+options.WithHandler(() => new MyController());
+
+// The dispatch channel will now use these compiled handlers
+var channel = new PacketDispatchChannel(options);
+```
+
+---
+
+## 3. Compiled Handler Execution
 
 Nalix does not use reflection at runtime. When you call `.AddHandlers<T>()`, the `PacketHandlerCompiler` generates optimized IL via expression trees.
 
@@ -87,16 +127,43 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 
 ---
 
-## 3. The Pooling Pipeline
+## 4. The Pooling Pipeline
 
 ### Buffer Leasing
 
-Incoming data is always stored in a `BufferLease`.
+Incoming and outgoing data should always be managed using a `BufferLease` to avoid heap allocations.
 
 ```csharp
-// Shared memory pool access
-using var lease = bufferPool.Lease(1024);
+// Shared memory pool access via static Rent
+using var lease = BufferLease.Rent(1024);
+
 // Use lease.Span for zero-copy slicing
+// ... process data ...
+```
+
+!!! note "Lease Shell Pooling"
+    `BufferLease` instances are themselves pooled. Calling `BufferLease.Rent` retrieves a "shell" from a lock-free free-list, while the underlying `byte[]` is retrieved from the pinned slab pool. This makes the entire operation $O(1)$ and allocation-free.
+
+### Pattern: Constructing Outgoing Packets
+
+When sending a packet, do not use `new byte[]`. Instead, rent a lease, serialize into it, and send the memory slice.
+
+```csharp
+[PacketOpcode(0x5002)]
+public async ValueTask SendResponse(IPacketContext<MyPacket> context)
+{
+    var response = new MyResponse { Status = 200 };
+    
+    // Rent a buffer for the response
+    using var lease = BufferLease.Rent(response.Length);
+    
+    // Serialize directly into pooled memory
+    int written = response.Serialize(lease.SpanFull);
+    lease.CommitLength(written);
+    
+    // Send without extra copies or allocations
+    await context.Connection.TCP.SendAsync(lease.Memory);
+}
 ```
 
 ### Pattern: High-Performance Handler
@@ -124,7 +191,7 @@ public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 
 ---
 
-## 4. Zero-Allocation Error Handling
+## 5. Zero-Allocation Error Handling
 
 Exception handling can be expensive. In the hot path, Nalix provides mechanisms to track errors without triggering heap noise.
 
@@ -152,7 +219,7 @@ Every connection tracks its own error count. If a handler throws, Nalix calls `c
 
 ---
 
-## 5. SIMD-Optimized Primitives
+## 6. SIMD-Optimized Primitives
 
 Zero-allocation extends to cryptographic primitive checks. `byte[]` arrays allocate heap memory and require slow sequential comparisons. Nalix implements custom value types like `Bytes32` for strict 256-bit payloads (e.g., Session Secrets, ChaCha20 Keys, Handshake Tokens).
 
@@ -177,28 +244,103 @@ This enforces exactly 32 bytes on the Call Stack and ensures that core security 
 
 ---
 
-## 6. Operational Setup
+## 8. Fair Concurrency & Priority Management
 
-To enable this optimized path, ensure your hosting configuration is tuned for concurrency.
+To process thousands of concurrent connections without letting high-volume packet types (like movement updates) monopolize CPU resources, Nalix uses a sharded, priority-aware dispatch system.
+
+### Concurrent Processing across Multiple Cores
+
+Nalix maps connection traffic to worker loops based on the connection's identity. This ensures:
+1. **Thread Affinity**: All packets from a single connection are processed sequentially on the same core, preventing race conditions without using locks.
+2. **Parallelism**: Different connections are spread across all available CPU cores.
 
 ```csharp
-using System;
-using Nalix.Network.Hosting;
+builder.ConfigureDispatch(options => {
+    // Match shards to CPU cores (default: Environment.ProcessorCount)
+    options.WithDispatchLoopCount(Environment.ProcessorCount);
+    
+    // Increase the 'budget' of packets processed per core wake-up
+    options.MaxDrainPerWakeMultiplier = 12; 
+});
+```
 
-var app = NetworkApplication.CreateBuilder()
-    .AddHandlers<GameMarker>() // Triggers handler compilation
-    .ConfigureDispatch(options => {
-        // Match shards to CPU cores for maximum affinity
-        options.WithDispatchLoopCount(Environment.ProcessorCount);
-        // Increase per-wake drain budget for burst workloads
-        options.MaxDrainPerWakeMultiplier = 12;
-    })
-    .Build();
+### Preventing Resource Monopolization (Priority DRR)
+
+Nalix implements **Deficit Round Robin (DRR)** scheduling. If a client floods the server with low-priority packets, the dispatcher ensures that high-priority packets (like chat or items) are still processed within their guaranteed quota.
+
+#### Setting Packet Priority
+
+Define your packet priorities in the constructor or during creation:
+
+```csharp
+[Packet]
+public sealed class UrgentAlert : PacketBase<UrgentAlert>
+{
+    public UrgentAlert()
+    {
+        OpCode = 0x9001;
+        Priority = PacketPriority.URGENT; // Highest priority
+    }
+}
+```
+
+#### Tuning Priority Weights
+
+You can tune the relative "budget" given to each priority level in `dispatch.ini` or via code.
+
+```ini
+[DispatchOptions]
+# Weights for [NONE, LOW, MEDIUM, HIGH, URGENT]
+# Default "1,2,4,8,16" means URGENT is 16x more likely to be served than NONE.
+PriorityWeights = 1,1,2,5,20 
 ```
 
 ---
 
-## Verifying Zero-Allocations
+## 9. Production Error Handling Patterns
+
+In a high-performance hot path, traditional `try-catch` blocks in every handler are expensive and clutter logic. Nalix provides a centralized error handling infrastructure.
+
+### The Global Error Hook
+
+Register a global observer to track handler failures without heap allocations:
+
+```csharp
+builder.ConfigureDispatch(options =>
+{
+    options.WithErrorHandling((exception, opCode) => 
+    {
+        // 1. Log with context
+        Logger.Error($"OpCode 0x{opCode:X4} failed: {exception.Message}");
+        
+        // 2. Increment performance counters
+        Metrics.HandlerErrors.WithLabels(opCode.ToString()).Inc();
+    });
+});
+```
+
+### Fail-Fast & Connection Health
+
+Nalix automatically tracks the error count per connection. You can implement middleware to monitor this and disconnect unstable clients:
+
+```csharp
+public sealed class HealthGuardMiddleware : IPacketMiddleware<IPacket>
+{
+    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, PacketMiddlewareDelegate next)
+    {
+        if (context.Connection.ErrorCount > 10)
+        {
+            context.Connection.Disconnect("Protocol violation threshold exceeded.");
+            return;
+        }
+        await next(context);
+    }
+}
+```
+
+---
+
+## 10. Verifying Zero-Allocations
 
 ### Runtime Verification
 
@@ -221,7 +363,7 @@ Assert.Equal(0, allocated); // Should be exactly 0
 
 ---
 
-## Advanced Monitoring
+## 11. Advanced Monitoring
 
 To ensure the hot path remains stable in production, monitor these specific metrics:
 
@@ -247,6 +389,7 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 
 - [x] Use `struct` or pooled `class` for packets.
 - [x] Annotate controllers with `[PacketController]`.
+- [x] Configure `BufferPoolManager` in the Hosting Builder.
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Return `ValueTask` from handlers.
 - [x] Avoid `new`, `LINQ`, and closures inside handlers.
