@@ -792,51 +792,45 @@ public sealed class ConnectionHub : IConnectionHub
     {
         failure = RegisterResult.Success;
 
-        if (_maxConnections <= 0)
+        if (_maxConnections < 0)
         {
-            _ = Interlocked.Increment(ref _count);
+            Interlocked.Increment(ref _count);
             return true;
         }
 
-        SpinWait spinner = default;
-
-        while (true)
+        int current = Interlocked.Increment(ref _count);
+        if (current <= _maxConnections)
         {
-            if (_disposed)
-            {
-                failure = RegisterResult.Disposed;
-                return false;
-            }
+            return true;
+        }
 
-            int current = Volatile.Read(ref _count);
-            if (current < _maxConnections)
-            {
-                if (Interlocked.CompareExchange(ref _count, current + 1, current) == current)
+        // Over capacity, need to revert or evict
+        Interlocked.Decrement(ref _count);
+
+        if (_disposed)
+        {
+            failure = RegisterResult.Disposed;
+            return false;
+        }
+
+        switch (_options.DropPolicy)
+        {
+            case DropPolicy.DropOldest:
+                if (this.TryEvictOldestConnection(incomingConnection))
                 {
-                    return true;
+                    // Recursively try again after eviction
+                    return this.TryReserveCapacitySlot(incomingConnection, out failure);
                 }
 
-                continue;
-            }
+                this.RejectIncomingConnection(incomingConnection, "evict-oldest-no-candidate");
+                failure = RegisterResult.CapacityLimitReached;
+                return false;
 
-            switch (_options.DropPolicy)
-            {
-                case DropPolicy.DropOldest:
-                    if (this.TryEvictOldestConnection(incomingConnection))
-                    {
-                        continue;
-                    }
-
-                    this.RejectIncomingConnection(incomingConnection, "evict-oldest-no-candidate");
-                    failure = RegisterResult.CapacityLimitReached;
-                    return false;
-
-                case DropPolicy.Block:
+            case DropPolicy.Block:
+                SpinWait spinner = default;
+                while (true)
+                {
                     spinner.SpinOnce();
-                    if (spinner.Count > 12)
-                    {
-                        _ = Thread.Yield();
-                    }
 
                     // BUG-06: Prevent infinite spin by bounding the wait.
                     // After ~10K iterations we reject the connection instead of
@@ -848,23 +842,21 @@ public sealed class ConnectionHub : IConnectionHub
                         return false;
                     }
 
-                    continue;
+                    int c = Volatile.Read(ref _count);
+                    if (c < _maxConnections)
+                    {
+                        if (Interlocked.CompareExchange(ref _count, c + 1, c) == c)
+                        {
+                            return true;
+                        }
+                    }
+                }
 
-                case DropPolicy.DropNewest:
-                    this.RejectIncomingConnection(incomingConnection, "drop-newest");
-                    failure = RegisterResult.CapacityLimitReached;
-                    return false;
-
-                case DropPolicy.Coalesce:
-                    this.RejectIncomingConnection(incomingConnection, "coalesce-not-supported");
-                    failure = RegisterResult.CapacityLimitReached;
-                    return false;
-
-                default:
-                    this.RejectIncomingConnection(incomingConnection, "capacity-limit");
-                    failure = RegisterResult.CapacityLimitReached;
-                    return false;
-            }
+            case DropPolicy.DropNewest:
+            default:
+                this.RejectIncomingConnection(incomingConnection, "drop-newest");
+                failure = RegisterResult.CapacityLimitReached;
+                return false;
         }
     }
 
@@ -970,20 +962,19 @@ public sealed class ConnectionHub : IConnectionHub
         try
         {
             int index = 0;
-
-            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
+            foreach (var shard in _shards)
             {
-                foreach (IConnection connection in shard.Values)
+                foreach (var kvp in shard)
                 {
-                    if (index == buffer.Length)
+                    if (index >= buffer.Length)
                     {
-                        IConnection[] grown = s_connectionPool.Rent(buffer.Length << 1);
-                        Array.Copy(buffer, grown, index);
-                        s_connectionPool.Return(buffer, clearArray: true);
-                        buffer = grown;
+                        // Expand buffer if needed
+                        IConnection[] newBuffer = s_connectionPool.Rent(buffer.Length * 2);
+                        Array.Copy(buffer, newBuffer, buffer.Length);
+                        s_connectionPool.Return(buffer);
+                        buffer = newBuffer;
                     }
-
-                    buffer[index++] = connection;
+                    buffer[index++] = kvp.Value;
                 }
             }
 
