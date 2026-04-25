@@ -3,6 +3,7 @@
 Detailed performance metrics for Nalix data processing pipelines, including compression and framing logic.
 
 ## LZ4 Compression
+
 Native integration with buffer leases for zero-allocation compression and decompression.
 
 | Payload Size | Operation | Latency (Mean) | StdDev | Allocation |
@@ -13,12 +14,14 @@ Native integration with buffer leases for zero-allocation compression and decomp
 | **16 KB** | Decode (to Span) | **4.66 μs** | 59.0 ns | 0 B |
 
 ### Technical Excellence
+
 - **Zero-Allocation**: Unlike standard LZ4 wrappers that allocate `byte[]` arrays, Nalix operates directly on rentals from the `BufferPool`, achieving sub-microsecond latency without triggering the GC.
 - **Adaptive Dictionary**: The compressor automatically adjusts its internal dictionary size based on the input payload, ensuring optimal performance for both micro-packets (256B) and larger frames (16KB+).
 
 ---
 
 ## Framing & Transformation
+
 Core pipeline transformations for high-frequency real-time traffic.
 
 | Operation | Scenario | Latency (Mean) | StdDev | Allocation |
@@ -29,6 +32,7 @@ Core pipeline transformations for high-frequency real-time traffic.
 | **Sequential Assembly** | 4 Chunks | **107.27 ns** | 2.60 ns | 368 B |
 
 ### Why Nalix Data Processing?
+
 High-throughput data transformations in Nalix are optimized for CPU cache efficiency and zero heap pressure.
 
 - **Zero-Copy LZ4 Pipeline**: The `LZ4Codec` provides a span-based API that performs compression and decompression directly within pooled `BufferLease` memory. This eliminates intermediate allocations and ensures that data is only copied when necessary for transmission.

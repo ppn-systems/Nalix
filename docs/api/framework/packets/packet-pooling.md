@@ -19,7 +19,7 @@
 | `PacketLease<TPacket>` | `Value`, `Dispose()` |
 | `PacketPool<TPacket>` | `Rent`, `Get`, `Return`, `Prealloc`, `Clear` |
 
-## PacketLease<TPacket>
+## PacketLease<`TPacket`>
 
 `PacketLease<TPacket>` represents exclusive ownership of a pooled packet instance.
 
@@ -33,7 +33,7 @@ That makes it a good fit when you want a short-lived packet object without manua
 - the packet is returned when the lease is disposed
 - use `using` or `using var` so the pool release happens even if later code throws
 
-## PacketPool<TPacket>
+## PacketPool<`TPacket`>
 
 `PacketPool<TPacket>` is the static pool API for a specific packet type.
 
@@ -83,7 +83,7 @@ finally
 ## When to use which
 
 | Need | Start with |
-|---|---|
+| --- | --- |
 | Automatic return to the pool | `PacketLease<TPacket>` |
 | Raw packet ownership | `PacketPool<TPacket>.Get()` |
 | Startup warm-up | `PacketPool<TPacket>.Prealloc(...)` |

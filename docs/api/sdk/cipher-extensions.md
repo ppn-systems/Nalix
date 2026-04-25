@@ -6,6 +6,24 @@
 
 - `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
 
+## Implementation Flow
+
+```mermaid
+sequenceDiagram
+    participant App as Client App
+    participant T as TcpSession
+    participant Server as Server Runtime
+
+    App->>T: UpdateCipherAsync(cipherSuite, timeoutMs, ct)
+    T->>T: capture previous Options.Algorithm
+    T->>T: allocate sequence id
+    T->>Server: send CIPHER_UPDATE with cipher in Reason field
+    T->>T: set Options.Algorithm = cipherSuite
+    Server-->>T: CIPHER_UPDATE_ACK with matching sequence id
+    T-->>App: complete successfully
+    Note over T: On non-fatal failure, RestoreCipher(previousCipher)
+```
+
 ## Role and Design
 
 This helper is meant for sessions that need to rotate or negotiate a new cipher without rebuilding the connection.
@@ -17,7 +35,7 @@ This helper is meant for sessions that need to rotate or negotiate a new cipher 
 ## API Reference
 
 | Method | Description |
-|---|---|
+| --- | --- |
 | `UpdateCipherAsync` | Switches the active cipher suite for an already connected `TcpSession`. |
 
 ## Basic usage

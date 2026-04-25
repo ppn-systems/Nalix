@@ -11,6 +11,7 @@ This page covers the built-in packet types that Nalix ships out of the box.
 
 - `Control`
 - `Handshake`
+
 ## Control
 
 `Control` is the built-in frame for protocol control traffic such as ping/pong and related signaling.
@@ -27,7 +28,6 @@ Important public members:
 - `Initialize(ControlType, ...)`
 - `Initialize(opCode, ControlType, ...)`
 - `ResetForPool()`
-
 
 ## Handshake
 
@@ -53,7 +53,6 @@ Important public members:
 - `UpdateTranscriptHash(...)`
 - `ResetForPool()`
 - `DynamicSize`
-
 
 ## Packet pooling
 

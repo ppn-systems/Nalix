@@ -37,7 +37,7 @@ NLogix logger = new(cfg =>
 ## Core Components
 
 | Component | Purpose |
-|---|---|
+| --- | --- |
 | `NLogix` | Logger implementation with batched asynchronous output |
 | `NLogix.Host` | Singleton host accessor for the default logger instance |
 | `NLogixOptions` | Configuration for minimum level, timestamps, and metadata |
@@ -71,7 +71,7 @@ NLogix logger = new(cfg =>
 ## Log Level Guidance
 
 | Level | Use for |
-|---|---|
+| --- | --- |
 | `Trace` | Internal framework diagnostics (packet registry binding, dispatch trace) |
 | `Debug` | Application debugging (handler entry/exit, middleware decisions) |
 | `Information` | Operational events (server started, connection accepted) |

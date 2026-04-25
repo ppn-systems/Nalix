@@ -79,20 +79,58 @@ Control reply = await client.RequestAsync<Control>(
 
 The request helpers subscribe before sending, so they avoid the usual response race.
 
-## Transport options
+## Client Bootstrap
+
+`Bootstrap.AutoInitialize()` is a module initializer, so loading `Nalix.SDK` calls `Bootstrap.Initialize()` automatically.
+
+Source-verified bootstrap behavior:
+
+1. Switches the active configuration file to `client.ini` under `Directories.ConfigurationDirectory`.
+2. Sets `PacketOptions.EnablePooling = false` for client-side defaults.
+3. Loads `TransportOptions` so a client template exists in `client.ini`.
+4. Calls `ConfigurationManager.Instance.Flush()` to persist those defaults.
+
+Call `Bootstrap.Initialize()` manually only when you need to force the same setup after custom configuration initialization.
+
+## Transport Options
 
 `TransportOptions` belongs to `Nalix.SDK`, even though it is commonly loaded through `ConfigurationManager`.
 
-It controls:
+| Property | Default | Validation / source note |
+|---|---:|---|
+| `Address` | `"127.0.0.1"` | Required. |
+| `Port` | `57206` | `1..65535`. |
+| `ConnectTimeoutMillis` | `5000` | `0..Int32.MaxValue`; `0` means no timeout. |
+| `ReconnectEnabled` | `true` | Boolean toggle. |
+| `ReconnectMaxAttempts` | `0` | `0..Int32.MaxValue`; `0` means unlimited attempts. |
+| `ReconnectBaseDelayMillis` | `500` | `0..30000`. |
+| `ReconnectMaxDelayMillis` | `30000` | `0..30000`. |
+| `KeepAliveIntervalMillis` | `20000` | `0..Int32.MaxValue`; `0` disables heartbeats. |
+| `NoDelay` | `true` | Controls TCP_NODELAY. |
+| `BufferSize` | `65536` | `2048..1048576` bytes. |
+| `Algorithm` | `Chacha20Poly1305` | Cipher suite selection. |
+| `CompressionEnabled` | `true` | Outbound compression toggle. |
+| `CompressionThreshold` | `512` | Compression trigger size in bytes. |
+| `EncryptionEnabled` | `true` | Packet encryption toggle. |
+| `AsyncQueueCapacity` | `1024` | `1..65536`. |
+| `MaxUdpDatagramSize` | `1400` | `64..65507`; includes the 7-byte token/header. |
+| `ServerPublicKey` | `null` | Optional pinned X25519 public key string. |
+| `ResumeEnabled` | `true` | Attempts resume before a fresh handshake. |
+| `ResumeTimeoutMillis` | `3000` | `100..Int32.MaxValue`. |
+| `ResumeFallbackToHandshake` | `true` | Falls back to handshake when resume fails. |
+| `TimeSyncEnabled` | `true` | Allows `SyncTimeAsync` to update the internal global clock. |
 
-- address and port
-- connect timeout
-- reconnect policy
-- keep-alive interval
-- socket tuning
-- max packet size
-- compression and encryption settings
-- **ServerPublicKey**: Pinned X25519 Public Key for MitM protection (Mandatory for handshakes)
+`Secret` and `SessionToken` are marked `[ConfiguredIgnore]`, so they are runtime state rather than persisted INI values.
+
+## Request Options
+
+| Property | Default | Validation / source note |
+|---|---:|---|
+| `TimeoutMs` | `5000` | Must be `>= 0`; `0` waits indefinitely. |
+| `RetryCount` | `0` | Must be `>= 0`; retries occur only after `TimeoutException`. |
+| `Encrypt` | `false` | Requires the active session to be `TcpSession`. |
+
+Each retry receives its own `TimeoutMs` window. Fatal connection or send errors propagate immediately and are not retried.
 
 ## Key API pages
 

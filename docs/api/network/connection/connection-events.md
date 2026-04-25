@@ -45,7 +45,9 @@ sequenceDiagram
 ## Internal Responsibilities (Source-Verified)
 
 ### 1. Dual-Lane Dispatching
+
 Nalix separates callbacks into two distinct lanes to maintain system stability under load:
+
 - **Normal Priority**: Handles `OnProcess` and `OnPostProcess` packet events. These are subject to both global caps and per-IP fairness limits.
 - **High Priority**: Handles `OnClose` and `Disconnect` events. These **bypass all backpressure limits**, ensuring that even during a heavy DDoS attack, the system can always release connection resources.
 
@@ -53,7 +55,9 @@ Nalix separates callbacks into two distinct lanes to maintain system stability u
     If the global `MaxPendingNormalCallbacks` limit is reached, Nalix will drop incoming normal-priority callbacks and log a warning. This prevents a "Callback Explosion" from crashing the server process.
 
 ### 2. Zero-Allocation Pooling
-Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recyclables. 
+
+Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recyclables.
+
 - **Two-Level Pooling**: `ConnectionEventArgs` are first attempted to be returned to a high-speed **local pool** on the `Connection` instance itself to minimize global lock contention. If the local pool is full, they fallback to the `ObjectPoolManager`.
 - They are rented before being sent to the `ThreadPool`.
 - They are strictly returned to the pool in a `finally` block after the user handler completes (or if the callback is throttled/dropped).
@@ -62,14 +66,16 @@ Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recy
     Because `ConnectionEventArgs` is pooled, **you must not cache or store references to it** outside the scope of the event handler. Any data you need for long-term use should be copied into your own state objects.
 
 ### 3. Buffer Lease Reclamation
+
 The `ConnectionEventArgs` carries a `BufferLease`.
-- For `OnProcess` events, the lease is automatically managed. 
+
+- For `OnProcess` events, the lease is automatically managed.
 - Once the callback completes throughout the entire pipeline (Normal lane), the dispatcher calls `connection.ReleasePendingPacket()`, which decrements the connection's "pending callback" counter and signals the transport layer that the next packet can be processed.
 
 ## Event Summary
 
 | Event | Lane | Subjects | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `OnProcessEvent` | Normal | Packets | Logic for initial packet handling and decoding. |
 | `OnPostProcessEvent` | Normal | Cleanup | Non-critical follow-up logic after processing. |
 | `OnCloseEvent` | **High** | Lifecycle | Disconnect and resource cleanup logic. |

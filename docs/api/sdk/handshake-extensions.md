@@ -7,6 +7,29 @@ For reconnect flows, see [`ResumeExtensions`](./resume-extensions.md).
 
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
 
+## Implementation Flow
+
+```mermaid
+sequenceDiagram
+    participant App as Client App
+    participant S as TransportSession
+    participant Server as Server Runtime
+
+    App->>S: HandshakeAsync(ct)
+    S->>S: require IsConnected
+    S->>S: generate X25519 key pair + client nonce
+    S->>Server: CLIENT_HELLO via RequestAsync<Handshake>()
+    Server-->>S: SERVER_HELLO or ERROR
+    S->>S: Validate SERVER_HELLO
+    S->>S: require Options.ServerPublicKey
+    S->>S: derive EE + static shared secrets
+    S->>S: verify server proof
+    S->>Server: CLIENT_FINISH via RequestAsync<Handshake>()
+    Server-->>S: SERVER_FINISH or ERROR
+    S->>S: Validate SERVER_FINISH + proof
+    S->>S: set Secret, Algorithm, EncryptionEnabled, SessionToken
+```
+
 ## Role and Design
 
 This helper performs the full client-side handshake sequence after a transport is connected.
@@ -18,7 +41,7 @@ This helper performs the full client-side handshake sequence after a transport i
 ## API Reference
 
 | Method | Description |
-|---|---|
+| --- | --- |
 | `HandshakeAsync` | Performs the client-side X25519 handshake on a connected `TransportSession`. |
 
 ## Basic usage

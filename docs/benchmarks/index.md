@@ -29,13 +29,15 @@ Explore detailed metrics by subsystem:
 
 Beyond micro-benchmarks, Nalix includes a high-concurrency stress testing tool located in `tools/Nalix.Bench`. This tool is used to validate system stability under localized "worst-case" scenarios.
 
-### Features:
+### Features
+
 - **High Precision**: Measures Round-Trip Time (RTT) with nanosecond precision.
 - **Statistical Tail Latency**: Reports P50, P90, P99, and **P99.99** to identify jitter.
 - **Concurrent Load**: Simulations with thousands of sessions and millions of operations.
 - **Zero-Allocation Validation**: Monitoring Gen 0/1/2 GC counts during the test.
 
 Usage:
+
 ```bash
 # Ping-Pong Latency Test (1000 sessions, 100k pings)
 ./tools/benchmarks.cmd --mode ping --sessions 1000 --count 100000

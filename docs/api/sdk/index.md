@@ -2,10 +2,14 @@
 
 `Nalix.SDK` is the client transport package for Nalix. It provides session lifecycle APIs (`TransportSession`, `TcpSession`, `UdpSession`), request/response helpers, handshake and resume extensions, and subscription helpers.
 
+!!! important "Client-side package"
+    `Nalix.SDK` is for client applications only. Server projects should not create `TcpSession`, `UdpSession`, or SDK extension helpers. Server-side code should use `Nalix.Network`, `Nalix.Network.Hosting`, and `Nalix.Runtime` listener/runtime APIs instead.
+
 ## Source Mapping
 
 - `src/Nalix.SDK/Transport`
 - `src/Nalix.SDK/Transport/Extensions`
+- `src/Nalix.SDK/Extensions`
 - `src/Nalix.SDK/Options`
 - `src/Nalix.SDK/InlineDispatcher.cs`
 - `src/Nalix.SDK/IThreadDispatcher.cs`
@@ -16,30 +20,33 @@ Client concerns differ from server runtime concerns. `Nalix.SDK` gives applicati
 
 ## Core API Areas
 
-### Session Types
+### High-level APIs
 
-- [TransportSession](./transport-session.md): abstract base contract.
+Use these pages when writing application/client code:
+
 - [TcpSession](./tcp-session.md): stream transport over TCP.
 - [UdpSession](./udp-session.md): datagram transport over UDP.
-
-### Extensions
-
 - [Handshake Extensions](./handshake-extensions.md): `HandshakeAsync` for secure session setup.
 - [Resume Extensions](./resume-extensions.md): session resume flow.
-- [Session Extensions](./tcp-session-extensions.md): control/request/session helpers.
-- [Cipher Extensions](./cipher-extensions.md): cipher update helpers.
-- [Protocol String Extensions](./protocol-string-extensions.md): protocol-to-string helpers.
+- [Session Extensions](./tcp-session-extensions.md): aggregate entry point for request, control, cipher, and subscription helpers.
+- [Cipher Extensions](./cipher-extensions.md): live cipher update helpers.
+- [Control Utilities](./control-utilities.md): `PingAsync`, `DisconnectGracefullyAsync`, and `SyncTimeAsync` convenience helpers.
+- [Session Diagnostics](./diagnostics.md): session diagnostics and observable runtime state.
 - [Subscriptions](./subscriptions.md): typed packet subscription APIs.
+
+### Low-level primitives
+
+Use these pages when working on SDK internals, custom transports, or protocol tooling:
+
+- [Thread Dispatching](./thread-dispatching.md): `IThreadDispatcher` and `InlineDispatcher`.
+- [Frame Reader and Sender](./frame-reader-and-sender.md): TCP frame parsing, send serialization, and fragmentation internals.
+- [TransportSession](./transport-session.md): abstract base contract behind concrete sessions.
+- [Protocol String Extensions](./protocol-string-extensions.md): protocol-to-string helpers from `src/Nalix.SDK/Extensions`.
 
 ### Options
 
 - [TransportOptions](./options/transport-options.md)
 - [RequestOptions](./options/request-options.md)
-
-### Dispatch Integration
-
-- [Thread Dispatching](./thread-dispatching.md): `IThreadDispatcher` and `InlineDispatcher`.
-- [Frame Reader and Sender](./frame-reader-and-sender.md): frame I/O internals exposed by SDK docs.
 
 ## Mental Model
 

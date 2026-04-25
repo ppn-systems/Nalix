@@ -22,19 +22,25 @@ When `UdpListenerBase` receives a datagram, it expects the first 7 bytes to be t
 In source, the listener validates:
 
 - the datagram is at least 7 bytes long
-- the packet explicitly identifies itself as UDP
+- the payload is at least the 10-byte Nalix packet header
+- the packet flags include `PacketFlags.UNRELIABLE`
 - the token resolves to a connection in `ConnectionHub`
-- your overridden `IsAuthenticated(...)` also returns `true`
+- the remote endpoint still matches the connection's pinned endpoint
+- the UDP replay window accepts the packet sequence
+- your overridden `IsAuthenticated(...)` or hosting predicate returns `true`
 
 ## High-level flow
 
 ```mermaid
 flowchart LR
-    A["UDP datagram received"] --> B["Read 7-byte session token prefix"]
-    B --> C["Find connection in ConnectionHub"]
-    C --> D["Check UDP marker in packet header"]
-    D --> E["Call IsAuthenticated(...)"]
-    E --> F["Inject payload into connection"]
+    A["UDP datagram received"] --> B["Rate-limit remote IP"]
+    B --> C["Read 7-byte session token prefix"]
+    C --> D["Validate payload header and UDP flag"]
+    D --> E["Find connection in ConnectionHub"]
+    E --> F["Verify pinned endpoint"]
+    F --> G["Check replay window"]
+    G --> H["Call IsAuthenticated(...) or predicate"]
+    H --> I["Bind UDP transport and inject payload"]
 ```
 
 ## Server shape
@@ -58,9 +64,13 @@ public sealed class SampleUdpListener : UdpListenerBase
 ```
 
 !!! tip "Preferred Modern Pattern"
-    Instead of subclassing `UdpListenerBase`, use the hosting predicate:
+    Instead of subclassing `UdpListenerBase`, use the hosting predicate before
+    calling `Build()`:
     ```csharp
-    app.AddUdp<MyProtocol>((conn, ep, data) => conn.Level >= PermissionLevel.USER);
+    using var app = NetworkApplication.CreateBuilder()
+        .AddUdp<MyProtocol>((conn, ep, data) =>
+            conn.Level >= PermissionLevel.USER)
+        .Build();
     ```
 
 ### 2. Keep TCP and UDP tied to the same session

@@ -9,6 +9,7 @@
 ## Why This Type Exists
 
 Maintaining a consistent "Server Time" cadence is critical for deterministic real-time systems. `TimeSynchronizer` provides:
+
 - **Fixed Cadence**: Built-in support for ~16ms (~60 FPS) ticks using high-precision timers.
 - **Worker Isolation**: Runs in a managed background worker to prevent application logic from drifting the server's master clock.
 - **Drift Detection**: Automatically identifies and logs "Tick Overruns" if a handler blocks the synchronization line for too long.
@@ -53,9 +54,11 @@ flowchart TD
 ## Internal Responsibilities (Source-Verified)
 
 ### 1. High-Precision Timing
+
 The synchronizer utilizes the .NET `PeriodicTimer`, which is more efficient than `Task.Delay` for long-running loops. It defaults to a **16ms period** (equivalent to 62.5 ticks per second), providing a smooth baseline for real-time networking.
 
 ### 2. Execution Modes (FireAndForget)
+
 You can control how handlers are executed via the `FireAndForget` property:
 
 - **FireAndForget = false (Default)**: Handlers run directly on the synchronization thread. This provides the lowest possible latency but risk "Tick Overruns" if the handler logic is heavy.
@@ -65,6 +68,7 @@ You can control how handlers are executed via the `FireAndForget` property:
     If your `TimeSynchronized` handlers perform any I/O or heavy calculations, enable `FireAndForget = true` to prevent degrading the server's heartbeat stability.
 
 ### 3. Stability Monitoring
+
 If a tick takes longer than **150% of the allocated period** to complete, the synchronizer emits a warning:
 `[NW.TimeSynchronizer] tick overrun elapsed=Xms period=Yms`
 This is a critical diagnostic for identifying identifying bottlenecks in the real-time hot path.

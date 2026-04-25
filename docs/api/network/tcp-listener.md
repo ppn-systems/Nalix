@@ -64,19 +64,25 @@ flowchart TD
 ## 2. Low-Level Mechanics
 
 ### 2.1. Zero-Allocation Accept Pipeline
+
 Instead of `await socket.AcceptAsync()`, Nalix employs **Pooled `SocketAsyncEventArgs`**. When the listener activates, it pre-binds `MaxParallel` accept workers. Each worker operates continuously in a tight loop:
+
 - When a connection arrives, the SAEA callback triggers synchronously or asynchronously.
 - The thread context immediately verifies system limits before accepting.
 - Once accepted, the worker instantly requests another connection without returning to the task scheduler, preserving thread-pool continuity.
 
 ### 2.2. Admission Control (`ConnectionGuard`)
+
 Before a `Socket` is promoted to a `Connection` object, it traverses the `ConnectionGuard`.
+
 - **IP Rate Limiting**: Drops rapid reconnects from identical IPs to prevent SYN/Connection flooding.
 - **Global connection limits**: Enforces an absolute ceiling on active `ConnectionHub` entries. The Listener explicitly registers every accepted connection into the `ConnectionHub` immediately after initialization.
 - Dropped sockets at this phase incur **zero object allocation** (garbage collector is untouched).
 
 ### 2.3. The Process Channel & Inbound Pipeline
+
 To prevent "Slowloris" or blocking socket reading from exhausting the worker threads, `TcpListenerBase` hands off connected sockets to an asynchronous `BoundedChannel`.
+
 - Incoming connections are pushed to the channel.
 - If the channel is full (Application is saturated), backpressure is naturally applied to network ingestion.
 - Background worker tasks (`TaskCreationOptions.LongRunning`) continuously pull from this channel and initiate the asynchronous frame-reading loops (`BeginReceive`).
@@ -85,22 +91,25 @@ To prevent "Slowloris" or blocking socket reading from exhausting the worker thr
 ## 3. Public API Surface
 
 | Method | Description |
-|---|---|
+| :---: | :---: |
 | `Constructor(..., IConnectionHub)` | Requires an explicit `IConnectionHub` instance for centralized connection management. |
 | `Activate()` | Binds the socket, begins listening, and spins up parallel accept loop workers. |
 | `Deactivate()` | Gracefully stops accepting new connections but allows existing connections to drain. |
 | `Dispose()` | Actively terminates the listening socket and all pending accept args. |
 
 ### Private Members (Framework Internal)
+
 - `ProcessFrame(object? sender, IConnectEventArgs args)`: The central bridge that runs the transformation pipeline before protocol dispatch.
 
 ### Diagnostic Properties
+
 - `Metrics`: Exposes counters for `TotalConnectionsAccepted`, `DroppedConnections`, and `CurrentBacklog`.
 - `GenerateReport()`: Creates a diagnostic summary string of the transport's real-time health.
 
 ## 4. Tuning for Production
 
 To optimize TCP Listener behavior at the OS level, Nalix dynamically sets the following flags (if supported):
+
 - `DontFragment = true`: Optimizes MTU path discovery.
 - `NoDelay = true`: Disables Nagle's Algorithm for real-time responsiveness.
 - `KeepAlive = true`: Configured closely to the system routing table to prune severed connections at the OS level before they hit the application layer.
