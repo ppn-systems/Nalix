@@ -9,12 +9,13 @@ The following diagram illustrates how raw byte arrays are managed through the `B
 ```mermaid
 sequenceDiagram
     participant App as Application Code
-    participant Lease as IBufferLease
+    participant Lease as BufferLease
     participant Manager as BufferPoolManager
     participant SlabPool as SlabPoolManager
     participant OS as Pinned Object Heap (POH)
 
-    App->>Manager: Rent(size)
+    App->>Lease: Rent(capacity)
+    Lease->>Manager: Rent(capacity)
     Manager->>SlabPool: TryRentArray(size)
     Note over SlabPool: O(1) Fast Map Lookup (0-4KB)
     SlabPool->>SlabPool: Best-fit lookup in SlabBucket
@@ -27,11 +28,9 @@ sequenceDiagram
         SlabPool-->>Manager: Return byte[]
     end
 
-    Manager-->>App: Return byte[]
-    App->>Lease: Rent(capacity)
-    Note over Lease: Wraps byte[] with shell
+    Manager-->>Lease: Return byte[]
+    Lease-->>App: Return IBufferLease (Shell)
     
-    rect rgb(240, 240, 240)
     Note over App, Lease: Business Logic (Span/Memory)
     end
 
@@ -104,6 +103,33 @@ The manager includes a background job that monitors pool utilization. It uses a 
 - **`Rent(size)`**: The primary API, returning a standalone `byte[]`. Optimized for maximum speed and simplicity. All buffers have a zero offset.
 
 The API is backed by the high-performance **SlabBucket** infrastructure and benefits from the same O(1) optimizations.
+
+## Constructing Outgoing Packets with BufferLease
+
+To construct an outgoing packet with zero allocations, use the `BufferLease.Rent` pattern. This ensures that the underlying memory is rented from the pinned slab pool and returned efficiently.
+
+```csharp
+// 1. Rent a pooled buffer lease of the required size
+using var lease = BufferLease.Rent(packet.Length);
+
+// 2. Write data directly into the SpanFull (the entire rented capacity)
+int written = packet.Serialize(lease.SpanFull);
+
+// 3. Commit the actual written length to the lease
+lease.CommitLength(written);
+
+// 4. Dispatch the lease memory
+// The framework takes ownership of the data until it is written to the socket.
+await session.SendAsync(lease.Memory);
+
+// The 'using' block ensures 'lease' is returned to the pool even if an error occurs.
+```
+
+### Allocation Efficiency
+
+- **Buffer Pool**: The byte array comes from the `BufferPoolManager` (pinned memory).
+- **Shell Pool**: The `BufferLease` object itself is rented from a thread-local free-list.
+- **Value Types**: `lease.Memory` is a `ReadOnlyMemory<byte>` (value type), avoiding boxing.
 
 ## BufferOptions
 
