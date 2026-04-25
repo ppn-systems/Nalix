@@ -66,7 +66,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
 
     /// <inheritdoc/>
     [SerializeIgnore]
-    public static int Size =>
+    public static int Size { get; } =
         PacketConstants.HeaderSize +
         sizeof(HandshakeStage) +    // Stage
         sizeof(ProtocolReason) +    // Reason

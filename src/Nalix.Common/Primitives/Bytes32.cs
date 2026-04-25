@@ -157,7 +157,8 @@ public readonly struct Bytes32 : IEquatable<Bytes32>
             if (Avx2.IsSupported)
             {
                 Vector256<byte> v = Unsafe.ReadUnaligned<Vector256<byte>>(ref a);
-                return Avx.TestZ(v, v);
+                // Vector256.EqualsAll is available in .NET 7+ and is safer than Avx.TestZ for bytes
+                return Vector256.EqualsAll(v, Vector256<byte>.Zero);
             }
 
             if (Sse41.IsSupported)

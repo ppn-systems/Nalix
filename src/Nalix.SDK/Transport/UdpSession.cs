@@ -263,7 +263,7 @@ public class UdpSession : TransportSession
         IBufferLease src = BufferLease.Rent(packetLength);
         try
         {
-            int written = packet.Serialize(src.Span);
+            int written = packet.Serialize(src.SpanFull);
             src.CommitLength(written);
 
             // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
