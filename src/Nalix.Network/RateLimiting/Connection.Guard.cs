@@ -373,6 +373,15 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     CurrentConnections = entry.Info.CurrentConnections
                 };
             }
+            else if (entry.Info.CurrentConnections >= _maxPerEndpoint)
+            {
+                // Concurrent connection limit reached for this IP
+                result = new ConnectionAllowResult
+                {
+                    Allowed = false,
+                    CurrentConnections = entry.Info.CurrentConnections
+                };
+            }
             else
             {
                 int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
