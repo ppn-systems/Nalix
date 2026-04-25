@@ -13,7 +13,7 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Framework.Time;
 
-namespace Nalix.Runtime.Pipeline.Timekeeping;
+namespace Nalix.Runtime.Timekeeping;
 
 /// <summary>
 /// Emits periodic time synchronization ticks at a target cadence (~16 ms, ~60 Hz).

@@ -12,10 +12,10 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
-using Nalix.Runtime.Pipeline.Internal;
-using Nalix.Runtime.Pipeline.Throttling;
+using Nalix.Runtime.Middleware.Internal;
+using Nalix.Runtime.Throttling;
 
-namespace Nalix.Runtime.Pipeline.Inbound;
+namespace Nalix.Runtime.Middleware.Standard;
 
 /// <summary>
 /// Middleware that enforces concurrency limits on incoming packets.
