@@ -46,6 +46,12 @@ public abstract partial class Protocol : IProtocol
 
         try
         {
+            /*
+             * [Post-Processing Lifecycle]
+             * 1. Invoke the derived protocol's post-processing hook.
+             * 2. Increment global message metrics.
+             * 3. Handle connection teardown if KeepConnectionOpen is false.
+             */
             this.OnPostProcess(args);
             _ = Interlocked.Increment(ref _totalMessages);
 

@@ -122,7 +122,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
                 return s_fixedSize;
             }
 
-            // Fast path: no dynamic getters -> fixed size.
+            // Fast path: no dynamic getters -> static size only.
             Func<TSelf, int>[] getters = s_cache.SizeGetters;
             if (getters.Length == 0)
             {

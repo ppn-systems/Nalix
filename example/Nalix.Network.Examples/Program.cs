@@ -22,6 +22,8 @@ internal class Program
 {
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "<Pending>")]
     private static async Task Main(string[] args)
     {
         // Turn off noisy logs for peak performance testing.
@@ -49,7 +51,7 @@ internal class Program
             })
             .Configure<ConnectionLimitOptions>(options =>
             {
-                options.MaxPacketPerSecond = int.MaxValue;
+                options.MaxPacketPerSecond = 1_000_000;
                 options.MaxConnectionsPerIpAddress = 10_000;
                 options.MaxConnectionsPerWindow = 10_000_000;
             })

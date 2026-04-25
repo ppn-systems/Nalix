@@ -11,7 +11,7 @@ using System.Threading;
 using Nalix.Common.Exceptions;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
