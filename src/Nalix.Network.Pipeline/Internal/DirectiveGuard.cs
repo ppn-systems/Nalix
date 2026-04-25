@@ -42,14 +42,17 @@ internal static class DirectiveGuard
         }
 
         IObjectMap<string, object> attributes = connection.Attributes;
-        object syncRoot = GET_OR_CREATE_SYNC_ROOT(attributes);
+        GuardState state = GET_OR_CREATE_STATE(attributes);
 
-        lock (syncRoot)
+        bool lockTaken = false;
+        try
         {
+            state.SpinLock.Enter(ref lockTaken);
             long nowMs = Environment.TickCount64;
-            if (attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed) &&
-                boxed is long lastSentAtMs &&
-                unchecked(nowMs - lastSentAtMs) < resolvedCooldownMs)
+
+            if (attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed)
+                && boxed is long lastSentAtMs
+                && unchecked(nowMs - lastSentAtMs) < resolvedCooldownMs)
             {
                 return false;
             }
@@ -57,21 +60,30 @@ internal static class DirectiveGuard
             attributes[lastSentAtAttributeKey] = nowMs;
             return true;
         }
+        finally
+        {
+            if (lockTaken) state.SpinLock.Exit();
+        }
     }
 
-    private static object GET_OR_CREATE_SYNC_ROOT(IObjectMap<string, object> attributes)
+    private sealed class GuardState
+    {
+        public SpinLock SpinLock = new(false);
+    }
+
+    private static GuardState GET_OR_CREATE_STATE(IObjectMap<string, object> attributes)
     {
         if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardSyncRoot, out object? existing) &&
-            existing is object syncRoot)
+            existing is GuardState state)
         {
-            return syncRoot;
+            return state;
         }
 
-        object created = new();
+        GuardState created = new();
         attributes.Add(ConnectionAttributes.InboundDirectiveGuardSyncRoot, created);
 
         if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardSyncRoot, out existing) &&
-            existing is object resolved)
+            existing is GuardState resolved)
         {
             return resolved;
         }
