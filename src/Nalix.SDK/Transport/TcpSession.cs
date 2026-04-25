@@ -219,9 +219,10 @@ public class TcpSession : TransportSession
 
         packet.Flags = (packet.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
 
-        using BufferLease lease = BufferLease.Rent(packet.Length);
+        BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));
         bool sent = await _sender.SendAsync(lease, encrypt, ct).ConfigureAwait(false);
+
         if (!sent)
         {
             throw new NetworkException("Failed to send TCP packet: the frame was not delivered to the socket.");

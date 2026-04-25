@@ -132,7 +132,7 @@ Nalix is composed of several modular packages — install only what you need.
 | :--- | :--- |
 | **[Nalix.Common](src/Nalix.Common)** | Base abstractions, enums, and shared contracts for the Nalix ecosystem. |
 | **[Nalix.Framework](src/Nalix.Framework)** | High-performance core: cryptography, identity, DI, serialization, and task orchestration. |
-| **[Nalix.Runtime](src/Nalix.Runtime)** | Packet dispatching, middleware pipelines, and handler compilation. |
+| **[Nalix.Runtime](src/Nalix.Runtime)** | Packet dispatching, middleware pipelines, protection primitives, and throttling. |
 
 ### 📡 Networking & Hosting
 
@@ -140,7 +140,6 @@ Nalix is composed of several modular packages — install only what you need.
 | :--- | :--- |
 | **[Nalix.Network](src/Nalix.Network)** | High-performance TCP/UDP transport, connection management, and session persistence. |
 | **[Nalix.Network.Hosting](src/Nalix.Network.Hosting)** | Microsoft-style host and builder APIs for quick bootstrapping. |
-| **[Nalix.Network.Pipeline](src/Nalix.Network.Pipeline)** | Reusable middleware: rate limiting, traffic shaping, and time-keeping primitives. |
 
 ### 🛠️ Utilities & Tooling
 

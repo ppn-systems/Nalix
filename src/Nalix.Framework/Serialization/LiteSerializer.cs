@@ -61,6 +61,11 @@ public static class LiteSerializer
     public static byte[] Serialize<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
+        /*
+         * [Fast Path: Unmanaged Types]
+         * If the type is unmanaged (blittable), we can simply write its bytes 
+         * directly into a fresh buffer. No formatter is needed.
+         */
         if (TypeMetadata.IsUnmanaged<T>())
         {
             byte[] array = GC.AllocateUninitializedArray<byte>(TypeMetadata.SizeOf<T>());
@@ -74,6 +79,12 @@ public static class LiteSerializer
 
         if (kind is TypeKind.UnmanagedSZArray)
         {
+            /*
+             * [Optimization: Unmanaged Arrays]
+             * For arrays of unmanaged types (e.g. byte[], int[]), we write:
+             * [4-byte length][Bulk data copy]
+             * This avoids per-element overhead and uses bulk Memory Copy.
+             */
             if (value is null)
             {
                 return SerializerBounds.NullArrayMarker.ToArray();
@@ -780,6 +791,12 @@ public static class LiteSerializer
     private static IFormatter<T> ResolveRootFormatter<
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(in T value)
     {
+        /*
+         * [Formatter Resolution]
+         * We use a static generic cache (RootFormatterCache<T>) to resolve 
+         * formatters. This eliminates dictionary lookups on every 
+         * serialization call.
+         */
         if (RootFormatterCache<T>.ThrowsOnNull && value is null)
         {
             throw new SerializationFailureException(

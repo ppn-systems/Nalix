@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -15,7 +15,6 @@
 		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Network.Hosting\Nalix.Network.Hosting.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Network.Pipeline\Nalix.Network.Pipeline.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
 	</ItemGroup>

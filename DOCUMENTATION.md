@@ -16,7 +16,7 @@ Base libraries providing the shared contracts and runtime infrastructure.
 | :--- | :--- | :---: |
 | **Nalix.Common** | Shared contracts: packet/connection abstractions, protocol enums, and primitives. | [Read →](./docs/packages/nalix-common.md) |
 | **Nalix.Framework** | Core utilities: cryptography, identity, DI, serialization, and task orchestration. | [Read →](./docs/packages/nalix-framework.md) |
-| **Nalix.Runtime** | Execution core: packet dispatching, middleware pipelines, and handler compilation. | [Read →](./docs/packages/nalix-runtime.md) |
+| **Nalix.Runtime** | Execution core: packet dispatching, middleware pipelines, protection primitives, and throttling. | [Read →](./docs/packages/nalix-runtime.md) |
 
 ### 📡 Networking
 
@@ -26,7 +26,6 @@ High-performance transport and application hosting layers.
 | :--- | :--- | :---: |
 | **Nalix.Network** | Transport runtime: TCP/UDP listeners, connection management, and session persistence. | [Read →](./docs/packages/nalix-network.md) |
 | **Nalix.Network.Hosting** | Fluent bootstrap: Microsoft-style host/builder APIs and managed lifecycle. | [Read →](./docs/packages/nalix-network-hosting.md) |
-| **Nalix.Network.Pipeline** | Middleware suite: rate limiting, traffic shaping, and time synchronization. | [Read →](./docs/packages/nalix-network-pipeline.md) |
 
 ### 🛠️ Utilities & Tooling
 
