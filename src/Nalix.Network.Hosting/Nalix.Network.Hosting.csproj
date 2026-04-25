@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -7,6 +7,13 @@
 		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="Nalix.Network.Tests" />
+	</ItemGroup>
+
+	<PropertyGroup>
 
 		<Description><![CDATA[
 Nalix.Network.Hosting provides Microsoft-style host and builder APIs for Nalix.Network. It wires packet registry discovery, packet dispatch, configuration application, and TCP listener lifecycle into a familiar builder/build/start workflow for quickly bootstrapping Nalix-based servers.
