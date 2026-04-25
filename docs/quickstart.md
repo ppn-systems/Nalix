@@ -11,10 +11,10 @@ This guide walks you through building a complete **Ping/Pong service** using Nal
 
 ## 🗺️ Roadmap
 
-1.  **Define Packets**: Create shared data contracts.
-2.  **Identity Setup**: Generate server security keys.
-3.  **Server Setup**: Route packets to a handler.
-4.  **Client Connectivity**: Send requests and await replies.
+1. **Define Packets**: Create shared data contracts.
+2. **Identity Setup**: Generate server security keys.
+3. **Server Setup**: Route packets to a handler.
+4. **Client Connectivity**: Send requests and await replies.
 
 ---
 

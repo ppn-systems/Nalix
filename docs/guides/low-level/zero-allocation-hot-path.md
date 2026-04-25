@@ -1,12 +1,12 @@
 # Zero-Allocation Hot Path
 
 !!! warning "Advanced Topic"
-    This page describes extreme performance optimizations and bare-metal memory lifecycles. If you are just getting started, please see the [Quickstart](../../quickstart.md).
+    This page describes extreme performance optimizations and bare-metal memory lifecycles. If you are just getting started, please see the [Quickstart](../quickstart.md).
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Expert
     - :fontawesome-solid-clock: **Time**: 20 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Architecture](../concepts/architecture.md)
 
 To support thousands of concurrent connections with sub-millisecond latency, Nalix implements a "Zero-Allocation Hot Path." This means that during peak traffic, the core networking loop executes without triggering any managed heap allocations.
 
@@ -17,18 +17,18 @@ The following diagram illustrates how a raw network buffer is transformed into a
 ```mermaid
 sequenceDiagram
     participant OS as Network Stack
-    participant LP as Slab Pool (SlabPoolManager)
-    participant DC as Dispatch Loop (OS Thread)
+    participant LP as Local Pool (BufferPoolManager)
+    participant DC as Dispatch Channel (Sharded)
     participant FR as Frozen Registry (O(1))
     participant CH as Compiled Handler (Expression Trees)
     participant CP as Context Pool (ObjectPoolManager)
 
     OS->>LP: Receive raw bytes
-    LP-->>OS: Return IBufferLease (Slab Segment)
+    LP-->>OS: Return IBufferLease (Pooled)
     OS->>DC: Push(Lease)
-    DC->>DC: Affinity to Dedicated CPU Core
+    DC->>DC: Hash Connection to Shard
     DC->>FR: TryDeserialize(Lease.Span)
-    FR-->>DC: IPacket (Pooled Deserialization)
+    FR-->>DC: IPacket (Flyweight/Pooled)
     DC->>CP: Get<PacketContext<T>>()
     CP-->>DC: Context instance (Reset)
     DC->>CH: Invoke Compiled Delegate
@@ -89,16 +89,14 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 
 ## 3. The Pooling Pipeline
 
-### Buffer Leasing (Standalone Slabs)
+### Buffer Leasing
 
-Incoming data is always stored in a `BufferLease` backed by standalone pinned `byte[]` arrays allocated on the **Pinned Object Heap (POH)**. This eliminates slicing overhead and ensures zero-offset access for all frames.
-
-To further eliminate overhead, `BufferLease` instances (shells) are themselves pooled using a lock-free free-list with an **O(1) atomic counter**.
+Incoming data is always stored in a `BufferLease`.
 
 ```csharp
-// Optimized buffer rental
-byte[] buffer = bufferPool.Rent(1024);
-// Always starts at index 0
+// Shared memory pool access
+using var lease = bufferPool.Lease(1024);
+// Use lease.Span for zero-copy slicing
 ```
 
 ### Pattern: High-Performance Handler
@@ -129,14 +127,6 @@ public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 ## 4. Zero-Allocation Error Handling
 
 Exception handling can be expensive. In the hot path, Nalix provides mechanisms to track errors without triggering heap noise.
-
-### Zero-Allocation Exception Caching
-
-Standard exceptions are expensive due to stack trace generation. Nalix uses a **Cached Exception Pattern** via the `NetworkErrors` class for common transport failures (e.g., `ConnectionReset`, `SendFailed`, `MessageTooLarge`, `UdpPayloadTooLarge`, `UdpPartialSend`, `UdpSendFailed`).
-
-- **Static Instances**: Common exceptions are pre-instantiated as static readonly fields.
-- **Overridden StackTrace**: These cached exceptions override the `StackTrace` property to return a static string, bypassing the expensive stack crawl entirely.
-- **Socket Error Mapping**: `NetworkErrors.GetSocketError(SocketError)` returns a cached `SocketException` for standard OS errors, ensuring that even low-level networking failures don't trigger allocations.
 
 ### Global Error Hook
 
@@ -229,25 +219,6 @@ long allocated = endingBytes - startingBytes;
 Assert.Equal(0, allocated); // Should be exactly 0
 ```
 
-### Micro-benchmarking with BenchmarkDotNet
-
-Use `MemoryDiagnoser` to verify that your handlers are truly "green" (0 B allocated).
-
-```csharp
-using BenchmarkDotNet.Attributes;
-using Nalix.Common.Networking.Packets;
-
-[MemoryDiagnoser]
-public class ProtocolBenchmarks
-{
-    [Benchmark]
-    public async ValueTask HandlePacket()
-    {
-        await _dispatch.ExecutePacketHandlerAsync(_testPacket, _mockConnection);
-    }
-}
-```
-
 ---
 
 ## Advanced Monitoring
@@ -275,7 +246,6 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 ## Summary Checklist
 
 - [x] Use `struct` or pooled `class` for packets.
-- [x] Use `IPacketContext<T>` to leverage frame-level pooling.
 - [x] Annotate controllers with `[PacketController]`.
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Return `ValueTask` from handlers.

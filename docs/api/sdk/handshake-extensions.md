@@ -41,7 +41,7 @@ This helper performs the full client-side handshake sequence after a transport i
 ## API Reference
 
 | Method | Description |
-|---|---|
+| --- | --- |
 | `HandshakeAsync` | Performs the client-side X25519 handshake on a connected `TransportSession`. |
 
 ## Basic usage

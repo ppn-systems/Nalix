@@ -8,8 +8,8 @@
     - :fontawesome-solid-clock: **Time**: 15 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Architecture](../fundamentals/architecture.md)
 
-Nalix uses a shard-aware dispatch architecture to scale packet processing across multiple CPU cores while maintaining strict delivery order for individual connections. 
-    
+Nalix uses a shard-aware dispatch architecture to scale packet processing across multiple CPU cores while maintaining strict delivery order for individual connections.
+
 !!! note "Server-Side Backbone"
     The sharding and dispatch system is part of the `Nalix.Runtime` layer, which serves as the high-performance backbone for Nalix-based servers. While the SDK handles transport and framing, the Runtime orchestration ensures that server-side handlers can scale across many cores without data races or sequential consistency issues.
 
@@ -18,11 +18,12 @@ Nalix uses a shard-aware dispatch architecture to scale packet processing across
 
 A core challenge in high-performance networking is maintaining the order of packets within a session (e.g., TCP stream or UDP session) while scaling workers. Nalix solves this using **Hashed Connection Affinity**.
 
-### How it works:
-1.  When a packet arrives, the `PacketDispatchChannel` identifies the source `IConnection`.
-2.  The connection is mapped to a specific internal **shard queue** based on its hash.
-3.  Each shard is exclusively processed by one of the configured **Worker Loops** at any given time.
-4.  This ensures that packets from Connection A never "leapfrog" each other, even if the server has 64 cores.
+### How it works
+
+1. When a packet arrives, the `PacketDispatchChannel` identifies the source `IConnection`.
+2. The connection is mapped to a specific internal **shard queue** based on its hash.
+3. Each shard is exclusively processed by one of the configured **Worker Loops** at any given time.
+4. This ensures that packets from Connection A never "leapfrog" each other, even if the server has 64 cores.
 
 ```mermaid
 graph TD
@@ -67,7 +68,7 @@ You can tune the parallelism of your application by adjusting the number of shar
 ### Production Optimization Checklist
 
 | Option | Default | Tuning Strategy |
-|---|---|---|
+| --- | --- | --- |
 | `DispatchLoopCount` | `null` (auto) | Set explicitly for deterministic loop count, or keep auto mode. |
 | `MinDispatchLoops` / `MaxDispatchLoops` | `1` / `64` | Clamp auto loop selection based on host capacity. |
 | `MaxDrainPerWake` | `2,048` | Max packets a worker processes before yielding. Higher values improve cache locality. |
@@ -130,11 +131,12 @@ To implement custom sharding logic (e.g., User-based affinity or Room-based affi
 
 #### How to implement a Shard Proxy:
 
-1.  **Define a Shared Instance**: Create a single instance of an object that represents your shard (e.g., a `UserContext` or `RoomContext`).
-2.  **Pass the Proxy to Dispatch**: Instead of passing the raw physical connection to `_dispatch.HandlePacket`, pass the shared proxy instance.
-3.  **Sequential Guarantee**: Because both physical connections share the same proxy instance, they share the same internal `ConnectionState` in the dispatcher, guaranteeing they are never processed in parallel.
+1. **Define a Shared Instance**: Create a single instance of an object that represents your shard (e.g., a `UserContext` or `RoomContext`).
+2. **Pass the Proxy to Dispatch**: Instead of passing the raw physical connection to `_dispatch.HandlePacket`, pass the shared proxy instance.
+3. **Sequential Guarantee**: Because both physical connections share the same proxy instance, they share the same internal `ConnectionState` in the dispatcher, guaranteeing they are never processed in parallel.
 
 #### Production Scenario: User-Based Affinity
+
 If a player logs in from multiple devices (e.g., Phone and Tablet), and you need to ensure their state is updated sequentially across all devices to avoid race conditions in your database or game logic.
 
 ```csharp
@@ -187,6 +189,7 @@ public void RouteToUserShard(IConnection rawConnection, IBufferLease packet)
 A robust production setup must handle dispatch failures and per-packet exceptions gracefully.
 
 ### Global Error Hook
+
 Register a global observer to capture exceptions that escape handler logic before they trigger a protocol-level failure:
 
 ```csharp
@@ -203,6 +206,7 @@ builder.ConfigureDispatch(options =>
 ```
 
 ### Backpressure with DispatchOptions + DropPolicy
+
 Per-connection queue backpressure is controlled by `DispatchOptions` (`MaxPerConnectionQueue` + `DropPolicy`):
 
 - **DropNewest**: Rejects the incoming packet. Safest for real-time latency.
@@ -225,6 +229,7 @@ Console.WriteLine(report);
 ```
 
 The report provides:
+
 - **Total Packets**: Total load across all shards.
 - **Ready Connections**: Connections waiting for a worker to pick them up.
 - **Top Connections**: Connections with the most pending work in their shard queue.

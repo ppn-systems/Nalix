@@ -9,12 +9,13 @@
 ## Properties
 
 | Property | Type | Default | Purpose |
-|---|---|---:|---|
+| --- | --- | ---: | --- |
 | `EnablePooling` | `bool` | `true` | Enables object pooling for all packets using `PacketBase`. |
 
 ## Why Pooling Matters
 
 Packet pooling is a core pillar of the Nalix **Zero-Allocation Hot Path**. When enabled:
+
 - Packets are rented from the `ObjectPoolManager` during deserialization.
 - Packets must be explicitly disposed (via `using` or manual `.Dispose()`) to return to the pool.
 - Gen 0/1/2 GC churn is eliminated for messaging traffic.

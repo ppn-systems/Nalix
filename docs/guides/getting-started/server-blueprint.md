@@ -54,6 +54,7 @@ Consistency is key for maintainability. We recommend the following layout for a 
 ## 🚀 The Blueprint Steps
 
 ### 1. Configuration & Validation
+
 Load and validate focused network options before starting the runtime. Fail-fast is better than a runtime error in a worker loop.
 
 ```csharp
@@ -68,6 +69,7 @@ connectionLimits.Validate();
 ```
 
 ### 2. Registry Initialization
+
 The `InstanceManager` serves as the runtime core for shared infrastructure.
 
 ```csharp
@@ -81,6 +83,7 @@ InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 ```
 
 ### 3. Dispatch & Middleware Setup
+
 Define your application pipeline in a centralized location.
 
 ```csharp
@@ -99,6 +102,7 @@ PacketDispatchChannel dispatch = new(options =>
     Keep all `WithMiddleware` and `WithHandler` calls in a single bootstrap class. Spreading these across the codebase makes startup order nearly impossible to debug.
 
 ### 4. Protocol Implementation
+
 Keep your protocol thin. It should strictly act as the bridge between raw frames and clean messages.
 
 ```csharp
@@ -124,11 +128,11 @@ public sealed class ServerProtocol : Protocol
 Managing the **Activation** and **Shutdown** order is critical for preventing connection "dangling."
 
 | phase | Action | Detail |
-|---|---|---|
+| --- | --- | --- |
 | **Startup** | `dispatch.Activate()` | Warm up worker pools and middleware. |
 | **Startup** | `listener.Activate()` | Open the socket and begin accepting. |
-| **Shutdown**| `listener.Deactivate()`| Stop accepting; finish current frames. |
-| **Shutdown**| `dispatch.Dispose()` | Cleanly terminate workers and middleware. |
+| **Shutdown** | `listener.Deactivate()` | Stop accepting; finish current frames. |
+| **Shutdown** | `dispatch.Dispose()` | Cleanly terminate workers and middleware. |
 
 ---
 
@@ -150,4 +154,3 @@ A production-ready blueprint always includes a way to query the internal health.
 - [Production Checklist](../deployment/production-checklist.md) { .md-button }
 - [Custom Middleware](../extensibility/custom-middleware.md) { .md-button }
 - [TCP Request/Response](../networking/tcp-patterns.md) { .md-button }
-

@@ -40,10 +40,11 @@ The primary role of these extensions is to orchestrate the `SESSION_SIGNAL` flow
 ## 2. API Reference
 
 ### TCP Resumption
+
 These methods are primary extension points for `TcpSession`.
 
 | Method | Returns | Description |
-|---|---|---|
+| --- | --- | --- |
 | `ResumeSessionAsync` | `Task<ProtocolReason>` | Explicitly attempts to resume the session on a connected transport. `ProtocolReason.NONE` means success. |
 | `ConnectWithResumeAsync` | `Task<bool>` | Connects the transport, attempts resume, and falls back to a handshake when allowed. |
 
@@ -52,6 +53,7 @@ These methods are primary extension points for `TcpSession`.
 ## 3. Usage Patterns
 
 ### Standard Reconnection Flow
+
 The most common pattern is to use `ConnectWithResumeAsync`, which handles the entire lifecycle of connecting and re-securing the session.
 
 ```csharp
@@ -72,6 +74,7 @@ if (resumed)
 ```
 
 ### Manual Control
+
 For granular control over the connection lifecycle, you can use `ResumeSessionAsync` directly after a manual `ConnectAsync`.
 
 ```csharp
@@ -102,6 +105,7 @@ if (!session.Options.SessionToken.IsEmpty && session.Options.Secret.Length > 0)
 ---
 
 ## Related APIs
+
 - [Session Resumption Protocol](../security/session-resume.md)
 - [Handshake Extensions](./handshake-extensions.md)
 - [Transport Options](./options/transport-options.md)

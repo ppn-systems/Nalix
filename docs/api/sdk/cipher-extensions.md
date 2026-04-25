@@ -35,7 +35,7 @@ This helper is meant for sessions that need to rotate or negotiate a new cipher 
 ## API Reference
 
 | Method | Description |
-|---|---|
+| --- | --- |
 | `UpdateCipherAsync` | Switches the active cipher suite for an already connected `TcpSession`. |
 
 ## Basic usage

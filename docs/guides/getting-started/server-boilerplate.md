@@ -150,7 +150,6 @@ dispatch.Dispose();
     `IConnectionHub`. The Hosting builder creates the concrete internal listener
     and hub automatically; manual composition must provide both explicitly.
 
-
 ---
 
 ## Best Practices Checklist

@@ -28,7 +28,7 @@ This helps controller authors choose predictable return styles while keeping dis
 ## Supported Shapes
 
 | Return type shape | Runtime behavior |
-|---|---|
+| --- | --- |
 | `void` | No payload is sent. |
 | `Task` / `ValueTask` | Await completion, no payload is sent. |
 | `TPacket` (or any `IPacket`) | Sent as packet response through runtime sender flow. |

@@ -6,9 +6,9 @@
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](./connecting-clients.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](client-session-connect.md)
 
-The primary `./connecting-clients.md` guide focuses on high-level workflows like strongly-typed packet subscriptions and automatic connection wrappers. However, for maximum pipeline control, custom proxy applications, or extreme hot-path optimization, developers can interact with the lowest-level APIs inside a `TransportSession`.
+The primary `client-session-connect.md` guide focuses on high-level workflows like strongly-typed packet subscriptions and automatic connection wrappers. However, for maximum pipeline control, custom proxy applications, or extreme hot-path optimization, developers can interact with the lowest-level APIs inside a `TransportSession`.
 
 ## 1. Raw Message Hooks (Zero-Allocation Paths)
 
@@ -113,6 +113,6 @@ await session.SendAsync(new HandshakePacket(), encrypt: false);
 
 ## Related Information Paths
 
-- [High-Level Client Initialization](./connecting-clients.md)
-- [Zero Allocation Path](../../concepts/internals/zero-allocation.md)
-- [Transport Session Overviews](../../api/sdk/transport-session.md)
+- [High-Level Client Initialization](client-session-connect.md)
+- [Zero Allocation Hot Paths](zero-allocation-hot-path.md)
+- [Transport Session Overviews](../api/sdk/transport-session.md)

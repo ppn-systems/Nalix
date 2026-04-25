@@ -30,6 +30,7 @@ stateDiagram-v2
 While `TransportSession.OnMessageReceived` provides raw access to byte buffers, application logic usually prefers working with strongly-typed `IPacket` instances.
 
 The subscription helpers provide:
+
 - **Type Safety**: `On<TPacket>()` ignores packets of other types and only invokes your handler when the payload matches.
 - **Strict Debugging**: `OnExact<TPacket>()` reports unexpected packets without crashing the receive loop.
 - **Lease Ownership**: The helper owns the `IBufferLease`. It ensures the lease is disposed even if your handler throws an exception.
@@ -38,7 +39,7 @@ The subscription helpers provide:
 ## API Reference
 
 | Method | Description |
-|---|---|
+| --- | --- |
 | `On<TPacket>` | Subscribes to a packet type and ignores non-matching packets. |
 | `OnExact<TPacket>` | Strict subscription that logs unexpected packet types without stopping the receive loop. |
 | `OnOnce<TPacket>` | Fires exactly once for the first matching packet, then auto-unsubscribes. |
@@ -48,6 +49,7 @@ The subscription helpers provide:
 ## Basic usage
 
 ### Strongly-Typed Handler
+
 ```csharp
 using var sub = client.On<ChatPacket>(chat => 
 {
@@ -56,6 +58,7 @@ using var sub = client.On<ChatPacket>(chat =>
 ```
 
 ### Strict Typed Handler
+
 ```csharp
 using var sub = client.OnExact<ChatPacket>(chat =>
 {
@@ -64,6 +67,7 @@ using var sub = client.OnExact<ChatPacket>(chat =>
 ```
 
 ### One-Shot with Predicate
+
 ```csharp
 using var once = client.OnOnce<Control>(
     predicate: c => c.Type == ControlType.PONG,
@@ -72,6 +76,7 @@ using var once = client.OnOnce<Control>(
 ```
 
 ### Composite Subscriptions
+
 Use `CompositeSubscription` when you have multiple related event listeners that should be torn down together (e.g., when a UI view is closed).
 
 ```csharp

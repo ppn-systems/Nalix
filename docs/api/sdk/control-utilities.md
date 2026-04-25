@@ -15,7 +15,7 @@ This is a high-level convenience page for client application code. These helpers
 ## Capability summary
 
 | Extension | Method | Control type | Main behavior |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `PingExtensions` | `PingAsync` | `PING` -> `PONG` | Measures round-trip time using monotonic ticks. |
 | `DisconnectExtensions` | `DisconnectGracefullyAsync` | `DISCONNECT` | Best-effort graceful shutdown notification, then optional local close. |
 | `TimeSyncExtensions` | `SyncTimeAsync` | `TIMESYNCREQUEST` -> `TIMESYNCRESPONSE` | Measures RTT and optionally adjusts the local framework clock. |
@@ -88,7 +88,7 @@ public static ValueTask<(double RttMs, double AdjustedMs)> SyncTimeAsync(
 The method returns:
 
 | Value | Meaning |
-|---|---|
+| --- | --- |
 | `RttMs` | Measured round-trip time in milliseconds. |
 | `AdjustedMs` | Clock adjustment applied by `Clock.SynchronizeUnixMilliseconds`; `0` when session time sync is disabled. |
 

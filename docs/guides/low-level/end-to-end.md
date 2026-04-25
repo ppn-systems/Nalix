@@ -1,14 +1,13 @@
-# Minimal Server Guide
+# Minimal Server (No Hosting)
 
 !!! danger "Low-Level Implementation"
-    This guide demonstrates how to manually wire the Nalix runtime **without** the `NetworkApplication` hosting builder. This is considered an advanced topic and is only recommended for specialized transport libraries or low-level performance tuning. 
-
-    For 99% of applications, use the [Hosting Builder](../../quickstart.md) or [Server Boilerplate](../getting-started/server-boilerplate.md).
+    This guide demonstrates how to manually wire the Nalix runtime **without** the `NetworkApplication` hosting builder. This is considered an advanced topic and is only recommended for specialized transport libraries or low-level performance tuning.
+    For 99% of applications, use the [Hosting Builder](../quickstart.md) or [Server Boilerplate](./server-boilerplate.md).
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 10–15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
 
 The steps are:
 
@@ -75,20 +74,12 @@ public sealed class SampleProtocol : Protocol
 ```csharp
 public sealed class SampleTcpListener : TcpListenerBase
 {
-    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
-        : base(port, protocol, hub) { }
+    public SampleTcpListener(ushort port, IProtocol protocol) : base(port, protocol) { }
 }
 
-IConnectionHub hub = new ConnectionHub();
-SampleTcpListener listener = new(57206, new SampleProtocol(dispatch), hub);
+SampleTcpListener listener = new(57206, new SampleProtocol(dispatch));
 listener.Activate();
 ```
-
-!!! warning "Manual hub ownership"
-    Current `TcpListenerBase` constructors require an `IConnectionHub`. The hosting
-    builder creates and wires this dependency for you. In manual mode, create the
-    hub explicitly and dispose it when your server shuts down.
-
 
 The client uses the `Nalix.SDK` to connect and perform type-safe request/response operations:
 
@@ -137,7 +128,7 @@ The same end-to-end structure works with a custom packet type if you replace `Co
 
 ## Recommended Next Pages
 
-- [TCP Patterns Guide](./tcp-patterns.md)
-- [Custom Middleware Guide](../extensibility/custom-middleware.md)
-- [Packet Dispatch API](../../api/runtime/routing/packet-dispatch.md)
-- [Quickstart Guide](../../quickstart.md)
+- [TCP Request/Response](./tcp-request-response.md) — Detailed TCP pattern guide
+- [Custom Middleware](./custom-middleware-end-to-end.md) — Build middleware from scratch
+- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [Quickstart](../quickstart.md) — The hosted-builder approach

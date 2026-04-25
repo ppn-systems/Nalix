@@ -27,12 +27,14 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Glossary**](./concepts/glossary.md) — Terminology definitions.
 
 ### 🎓 Advanced Reliability & Internals
+
 - [**Reliability Model**](./concepts/internals/reliability.md) — The production confidence layer.
 - [**System Guarantees**](./concepts/internals/guarantees-and-invariants.md) — Ordering and Concurrency contracts.
 - [**Failure Handling**](./concepts/internals/failure-handling.md) — Resilience and observable behavior.
 - [**Design Tradeoffs**](./concepts/internals/design-tradeoffs.md) — Performance vs. Convenience.
 
 ### Advanced Concepts
+
 - [**Buffer Management**](./api/framework/memory/buffer-management.md) — Pooled allocation strategies.
 - [**Object Pooling**](./api/framework/memory/object-pooling.md) — Object recycling strategies.
 - [**Sharding & Concurrency**](./concepts/internals/sharding.md) — Scaling and worker affinity.
@@ -46,6 +48,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Guides Overview**](./guides/index.md) — Navigating the available guides.
 
 ### Build a Server
+
 - [**Server Boilerplate**](./guides/getting-started/server-boilerplate.md) — Production-ready starting point.
 - [**Implement Packet Handlers**](./guides/application/packet-handlers.md) — Defining and routing message logic.
 - [**Minimal Server Guide**](./guides/networking/minimal-server.md) — Feature walkthrough.
@@ -54,17 +57,20 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Server Blueprint**](./guides/getting-started/server-blueprint.md) — Enterprise structure.
 
 ### Extend Behavior
+
 - [**Middleware Usage Guide**](./guides/application/middleware-usage.md) — Adding standard policies.
 - [**Custom Middleware**](./guides/extensibility/custom-middleware.md) — Building your own logic.
 - [**Custom Metadata Provider**](./guides/extensibility/metadata-providers.md) — Attribute-driven logic.
 
 ### Networking Patterns
+
 - [**Client Session Guide**](./guides/networking/connecting-clients.md) — SDK client session bootstrap.
 - [**TCP Patterns Guide**](./guides/networking/tcp-patterns.md) — Ordered communication.
 - [**UDP Server**](./guides/networking/udp-server.md) — Low-latency datagrams.
 - [**UDP Security Guide**](./guides/networking/udp-security.md) — Secure session bootstrap.
 
 ### Operations & Debugging
+
 - [**Production Checklist**](./guides/deployment/production-checklist.md) — Pre-deployment audit.
 - [**Troubleshooting**](./guides/deployment/troubleshooting.md) — Diagnostic strategies.
 
@@ -89,11 +95,13 @@ This page provides a comprehensive index of all documentation available for the 
 - [**API Overview**](./api/index.md) — Landing page for API docs.
 
 ### Analyzers
+
 - [**Analyzers Home**](./api/analyzers/index.md)
 - [**Diagnostic Codes**](./api/analyzers/diagnostic-codes.md)
 - [**Code Fixes**](./api/analyzers/code-fixes.md)
 
 ### Common & Contracts
+
 - [**Control Types**](./api/common/protocols/control-type.md)
 - [**Diagnostics**](./api/common/diagnostics-contracts.md)
 - [**Packets**](./api/common/packet-contracts.md)
@@ -102,6 +110,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Concurrency**](./api/common/concurrency-contracts.md)
 
 ### Framework Internals
+
 - [**Directories**](./api/framework/environment/directories.md)
 - [**Configuration**](./api/framework/runtime/configuration.md)
 - [**Instance Manager (DI)**](./api/framework/runtime/instance-manager.md)
@@ -126,6 +135,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Typed Object Pools**](./api/framework/memory/typed-object-pools.md)
 
 ### Security & Crypto
+
 - [**Cryptography**](./api/security/cryptography.md)
 - [**Hashing & MAC**](./api/security/hashing-and-mac.md)
 - [**AEAD**](./api/security/aead-and-envelope.md)
@@ -134,6 +144,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Permissions**](./api/security/permission-level.md)
 
 ### Runtime Dispatch
+
 - [**Runtime Home**](./api/runtime/index.md)
 - [**Routing Home**](./api/runtime/routing/index.md)
 - [**Handlers**](./api/runtime/handlers/index.md)
@@ -146,6 +157,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Rate Limiters**](./api/runtime/middleware/token-bucket-limiter.md)
 
 ### Network Transport
+
 - [**Network Home**](./api/network/index.md)
 - [**Protocols**](./api/network/protocol.md)
 - [**TCP Listener**](./api/network/tcp-listener.md)
@@ -156,6 +168,7 @@ This page provides a comprehensive index of all documentation available for the 
 - [**Options**](./api/network/options/options.md)
 
 ### SDK (Client)
+
 - [**SDK Home**](./api/sdk/index.md)
 - [**TCP Sessions**](./api/sdk/tcp-session.md)
 - [**UDP Sessions**](./api/sdk/udp-session.md)

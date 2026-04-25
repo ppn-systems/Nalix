@@ -9,7 +9,7 @@
 ## Properties
 
 | Property | Meaning | Default | Validation |
-|---|---|---:|---|
+| --- | --- | ---: | --- |
 | `MaxPerConnectionQueue` | Max queued items for one connection. `0` means unlimited and is not recommended for production. | `4096` | `0..1,048,576` |
 | `DropPolicy` | What to do when the queue is full. | `DropNewest` | Must be a valid `DropPolicy` enum value. |
 | `BlockTimeout` | Wait budget when `DropPolicy` is `Block`. | `1000 ms` | `TimeSpan` value; keep bounded in production. |

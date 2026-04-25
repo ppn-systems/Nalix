@@ -50,8 +50,9 @@ sequenceDiagram
 ## Public API
 
 ### Events
+
 | Member | Description |
-|---|---|
+| --- | --- |
 | `OnConnected` | Raised when the socket connection is successfully established. |
 | `OnDisconnected` | Raised when the connection is closed or lost. |
 | `OnMessageReceived` | Synchronous event providing an `IBufferLease` for each frame. |
@@ -59,8 +60,9 @@ sequenceDiagram
 | `OnError` | Reports general transport or protocol errors. |
 
 ### Methods
+
 | Member | Description |
-|---|---|
+| --- | --- |
 | `ConnectAsync(...)` | Establishes a connection to the primary or override destination. |
 | `DisconnectAsync()` | Gracefully shuts down the connection. |
 | `SendAsync(IPacket)` | Serializes and sends a packet with standard framing. |

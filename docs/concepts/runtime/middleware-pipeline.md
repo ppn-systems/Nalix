@@ -42,7 +42,7 @@ If `MiddlewareOrderAttribute` is absent, the order defaults to `0`. If
 `MiddlewareStageAttribute` is absent, the stage defaults to `Inbound`.
 
 | Stage bucket | Source behavior |
-|---|---|
+| --- | --- |
 | Inbound | Sorted by `MiddlewareOrder` ascending. |
 | Outbound | Sorted by `MiddlewareOrder` descending. |
 | Outbound with `AlwaysExecute=true` | Stored in a separate outbound-always bucket, sorted descending, and executed after the handler even when normal outbound is skipped. |
@@ -55,7 +55,6 @@ flowchart LR
     A1 --> O1["Outbound high order"]
     O1 --> O2["Outbound low order"]
 ```
-
 
 Registration example:
 

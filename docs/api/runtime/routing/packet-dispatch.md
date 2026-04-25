@@ -45,7 +45,7 @@ This means the transport may dispose its own reference immediately after calling
 The number of loops is resolved as follows:
 
 | Case | Source behavior |
-|---|---|
+| --- | --- |
 | `Options.DispatchLoopCount` is set | Use the explicit value. |
 | `Options.DispatchLoopCount` is `null` | Use `Math.Clamp(Environment.ProcessorCount, MinDispatchLoops, MaxDispatchLoops)`. |
 
@@ -76,7 +76,7 @@ Default option values make this clamp resolve within `64..2048` with multiplier 
 It maintains per-connection state and priority-ready queues.
 
 | Concern | Source behavior |
-|---|---|
+| --- | --- |
 | Priority classification | Reads the priority byte at `PacketHeaderOffset.Priority`; invalid or short buffers use `PacketPriority.NONE`. |
 | Priority selection | Uses weighted round-robin budgets, scanning from `PacketPriority.URGENT` down to `PacketPriority.NONE`. |
 | Default priority weights | If `DispatchOptions.PriorityWeights` is absent or short, each missing weight uses `1 << priorityIndex`. |
@@ -100,7 +100,7 @@ When a worker pulls a lease:
 `GenerateReport()` and `GetReportData()` expose the current runtime snapshot:
 
 | Field | Meaning |
-|---|---|
+| --- | --- |
 | `Running` | Whether workers are currently active. |
 | `DispatchLoops` | Number of scheduled dispatch worker loops. |
 | `WakeSignals` | Number of calls that released wake signals. |

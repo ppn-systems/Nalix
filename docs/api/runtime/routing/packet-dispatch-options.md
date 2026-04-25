@@ -16,7 +16,7 @@
 ## Public properties
 
 | Property | Meaning | Default |
-|---|---|---:|
+| --- | --- | ---: |
 | `Logging` | Optional logger used by dispatch setup/execution logs. | `null` |
 | `DispatchLoopCount` | Explicit worker-loop count. `null` means auto-select during `Activate()`. | `null` |
 | `MaxDrainPerWakeMultiplier` | Multiplier used to compute per-wake drain budget. | `8` |
@@ -29,7 +29,7 @@
 ## Fluent configuration methods
 
 | Method | Behavior |
-|---|---|
+| --- | --- |
 | `WithLogging(ILogger logger)` | Attaches logger used by dispatch diagnostics. |
 | `WithErrorHandling(Action<Exception, ushort> errorHandler)` | Registers global dispatch error callback. |
 | `WithMiddleware(IPacketMiddleware<TPacket> middleware)` | Adds packet middleware to handler pipeline. Throws on `null`. |
