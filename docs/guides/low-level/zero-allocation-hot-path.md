@@ -274,6 +274,7 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 
 - [x] Use `struct` or pooled `class` for packets.
 - [x] Annotate controllers with `[PacketController]`.
+- [x] Configure `BufferPoolManager` in the Hosting Builder.
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
 - [x] Return `ValueTask` from handlers.
 - [x] Avoid `new`, `LINQ`, and closures inside handlers.
