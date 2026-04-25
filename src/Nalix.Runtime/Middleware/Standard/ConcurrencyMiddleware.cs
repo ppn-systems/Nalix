@@ -12,7 +12,7 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
-using Nalix.Runtime.Middleware.Internal;
+using Nalix.Runtime.Internal.RateLimiting;
 using Nalix.Runtime.Throttling;
 
 namespace Nalix.Runtime.Middleware.Standard;

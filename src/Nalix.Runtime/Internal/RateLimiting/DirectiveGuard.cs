@@ -8,7 +8,7 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
 using Nalix.Runtime.Options;
 
-namespace Nalix.Runtime.Middleware.Internal;
+namespace Nalix.Runtime.Internal.RateLimiting;
 
 /// <summary>
 /// Connection-scoped anti-spam guard for inbound directive responses.

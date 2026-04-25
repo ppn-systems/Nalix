@@ -10,7 +10,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Runtime.Middleware.Internal;
+using Nalix.Runtime.Internal.RateLimiting;
 
 namespace Nalix.Runtime.Middleware.Standard;
 
