@@ -169,4 +169,4 @@ runtime dumps show both operational counters and cleanup policy.
 
 - [Network Options](./options.md)
 - [Token Bucket Options](./token-bucket-options.md)
-- [Runtime Middleware Pipeline](../../runtime/middleware-pipeline.md)
+- [Runtime Middleware Pipeline](../../runtime/middleware/pipeline.md)
