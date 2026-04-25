@@ -91,12 +91,39 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 
 ### Buffer Leasing
 
-Incoming data is always stored in a `BufferLease`.
+Incoming and outgoing data should always be managed using a `BufferLease` to avoid heap allocations.
 
 ```csharp
-// Shared memory pool access
-using var lease = bufferPool.Lease(1024);
+// Shared memory pool access via static Rent
+using var lease = BufferLease.Rent(1024);
+
 // Use lease.Span for zero-copy slicing
+// ... process data ...
+```
+
+!!! note "Lease Shell Pooling"
+    `BufferLease` instances are themselves pooled. Calling `BufferLease.Rent` retrieves a "shell" from a lock-free free-list, while the underlying `byte[]` is retrieved from the pinned slab pool. This makes the entire operation $O(1)$ and allocation-free.
+
+### Pattern: Constructing Outgoing Packets
+
+When sending a packet, do not use `new byte[]`. Instead, rent a lease, serialize into it, and send the memory slice.
+
+```csharp
+[PacketOpcode(0x5002)]
+public async ValueTask SendResponse(IPacketContext<MyPacket> context)
+{
+    var response = new MyResponse { Status = 200 };
+    
+    // Rent a buffer for the response
+    using var lease = BufferLease.Rent(response.Length);
+    
+    // Serialize directly into pooled memory
+    int written = response.Serialize(lease.SpanFull);
+    lease.CommitLength(written);
+    
+    // Send without extra copies or allocations
+    await context.Connection.TCP.SendAsync(lease.Memory);
+}
 ```
 
 ### Pattern: High-Performance Handler
