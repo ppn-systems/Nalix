@@ -229,7 +229,7 @@ public sealed class SdkRequestAndTransportExtensionsTests
 
         public void EnqueueNextPacket(IPacket packet) => _catalog.Enqueue(packet);
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
         }
     }

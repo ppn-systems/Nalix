@@ -1,3 +1,5 @@
+# Handshake
+
 Nalix implements a high-performance **Static-Ephemeral DH (Noise Protocol inspired)** handshake protocol based on **X25519** and **Keccak-256**. This protocol provides robust **Server Identity Authentication** and protections against Man-in-the-Middle (MitM) attacks while maintaining 100% zero-allocation performance and fixed-size packet overhead.
 
 ## Source Mapping
@@ -12,7 +14,7 @@ Nalix implements a high-performance **Static-Ephemeral DH (Noise Protocol inspir
 The handshake consists of 4 stages managed by the `Handshake` packet and `HandshakeHandlers`.
 
 | Stage | Description | Key Payload |
-|---|---|---|
+| --- | --- | --- |
 | **CLIENT_HELLO** | Client initiates and sends its ephemeral public key. | `PublicKey`, `Nonce` |
 | **SERVER_HELLO** | Server responds with its key, a challenge, identity proof, and transcript hash. | `PublicKey`, `Nonce`, `Proof`, `TranscriptHash` |
 | **CLIENT_FINISH** | Client verifies server identity and sends its final proof. | `Proof`, `TranscriptHash` |
@@ -25,10 +27,11 @@ The handshake consists of 4 stages managed by the `Handshake` packet and `Handsh
 Nalix uses a labeled digest construction to derive proofs and session keys. This prevents cross-protocol attacks and ensures that the handshake state is tied to the specific "nalix-handshake" domain.
 
 ### Hashing Strategy (`HandshakeX25519`)
+
 All digests are computed using **Keccak-256** over length-prefixed segments. The protocol uses a **Master Secret** derived from both ephemeral-ephemeral (EE) and static-ephemeral (SE) shared secrets for identity verification.
 
 | Purpose | Label | Components |
-|---|---|---|
+| --- | --- | --- |
 | **Master Secret** | `nalix-handshake/master-secret` | `SharedSecret_EE`, `SharedSecret_SE` |
 | **Server Proof** | `nalix-handshake/server-proof` | `MasterSecret`, `TranscriptHash` |
 | **Client Proof** | `nalix-handshake/client-proof` | `MasterSecret`, `TranscriptHash` |
@@ -42,13 +45,16 @@ All digests are computed using **Keccak-256** over length-prefixed segments. The
 The server-side state machine is implemented in `HandshakeHandlers`. It tracks the handshake state using the connection's `Attributes` during the negotiation phase.
 
 ### Cryptographic Methods (`HandshakeX25519`)
+
 - `ComputeServerProof`: Generates the proof for `SERVER_HELLO`.
 - `ComputeClientProof`: Generates the proof for `CLIENT_FINISH`.
 - `ComputeServerFinishProof`: Generates the final acknowledgement proof for `SERVER_FINISH`.
 - `DeriveSessionKey`: Derives the 32-byte session key from the shared secret and transcript.
 
 ### Handling Logic
+
 Upon `CLIENT_FINISH` verification, the handler:
+
 1. Derives the 32-byte session key.
 2. Sets `connection.Secret` and `connection.Algorithm` (ChaCha20Poly1305).
 3. Marks the connection as established via `connection.Attributes["nalix.handshake.established"]`.
@@ -90,6 +96,7 @@ await session.SendAsync(new SecurePacket());
 ---
 
 ## Related Topics
+
 - [AEAD & Envelope Encryption](./aead-and-envelope.md)
 - [X25519 Primitives](./cryptography.md)
 - [Snowflake Identifiers](../framework/runtime/snowflake.md)

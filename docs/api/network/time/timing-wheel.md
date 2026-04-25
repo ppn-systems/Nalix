@@ -9,6 +9,7 @@
 ## Why This Type Exists
 
 In a large-scale server, using a separate `System.Timers.Timer` or `CancellationTokenSource` per connection is extremely expensive. `TimingWheel` addresses this by:
+
 - **Hashed Buckets**: Grouping thousands of connections into a fixed number of "buckets" based on their expiration time.
 - **Single Background Loop**: Using one dedicated worker to periodically "tick" and process only the connections in the current bucket.
 - **Zero-Allocation Execution**: Recycling `TimeoutTask` objects through an object pool and using version-based checks to handle rescheduling without complex queue removals.
@@ -61,18 +62,23 @@ flowchart TD
 ## Key Mechanisms (Source-Verified)
 
 ### 1. Version-Based Lazy Removal
+
 Unlike traditional timers that require O(n) or O(log n) removal from a queue, Nalix uses a **Lazy Removal** strategy:
+
 - When a connection sends data, its "expected version" is incremented in a `ConcurrentDictionary`.
 - The old task remains in its original bucket.
 - When the `RUN_LOOP` eventually hits that bucket, it compares the task's version with the "live" version. If they don't match, the task is discarded and returned to the pool instantly.
 
 ### 2. Rounds Handling
+
 If a requested timeout exceeds the total duration of one full wheel rotation (`WheelSize * TickMs`), the task is assigned a `Rounds` count.
+
 - The task sits in the calculated bucket.
 - Each time the pointer passes that bucket, `Rounds` is decremented.
 - The task only fires (or checks for idle state) when `Rounds == 0`.
 
 ### 3. Catch-up Logic
+
 Total system load can sometimes delay the background loop. `TimingWheel` uses `PeriodicTimer` combined with high-precision monotonic timestamps (`Clock.MonoTicksNow`) to detect slipped ticks and "catch up" by processing missed buckets in a tight loop, ensuring no timeouts are permanently delayed.
 
 ## Public APIs
@@ -87,7 +93,7 @@ Total system load can sometimes delay the background loop. `TimingWheel` uses `P
 The behavior of the wheel is controlled via `TimingWheelOptions`:
 
 | Option | Description | Typical Value |
-|---|---|---|
+| :---: | :---: | :---: |
 | `TickDuration` | Frequency of wheel ticks (precision). | 20-100 ms |
 | `BucketCount` | Total number of buckets in the wheel. | 512-4096 |
 | `IdleTimeoutMs` | The threshold for closing idle connections. | 30,000-60,000 ms |

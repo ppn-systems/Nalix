@@ -10,6 +10,7 @@
 ## Why This Type Exists
 
 As a stateful server scales, managing the lifecycle of tens of thousands of concurrent connections becomes a performance bottleneck. `ConnectionHub` solves this by:
+
 - **Shard-Aware Storage**: Fragmenting the connection pool into multiple internal dictionaries to eliminate lock contention during high-concurrency registration and removal.
 - **Atomic Admission Control**: Enforcing global connection limits with configurable drop policies (Drop Oldest vs. Drop Newest).
 - **Session Integration**: Acting as the gateway to the `ISessionStore` for resuming cryptographic states.
@@ -44,23 +45,31 @@ flowchart TD
 ## Internal Responsibilities (Source-Verified)
 
 ### 1. Dictionary Fragmentation (Sharding)
-The hub splits connections across `ShardCount` internal dictionaries (standard is `ProcessorCount`). 
+
+The hub splits connections across `ShardCount` internal dictionaries (standard is `ProcessorCount`).
+
 - **Hash Spreading**: The `UInt56` Connection ID is hashed to determine which shard owns it.
 - **Concurrency**: This allows multiple CPU cores to register or unregister connections independently without waiting for a global lock on the entire hub.
 
 ### 2. Admission and Eviction
+
 When `MaxConnections` is enabled:
+
 - **DropNewest**: The default behavior. Rejects new handshakes when the server is full.
 - **DropOldest**: If the hub is full, it identifies the oldest **Anonymous** (not yet authenticated) connection from an internal `ConcurrentQueue` and forcibly evicts it to make room for the new arrival.
 
 ### 3. Resilience & Session Persistence
+
 To protect the server from memory exhaustion and ensure reliable state recovery:
+
 - **Auto-Persist on Unregister**: When a connection is closed or unregistered, the Hub automatically attempts to save its cryptographic state to the `ISessionStore`.
 - **DDoS Protection**: Persistence only occurs if the connection meets a minimum complexity threshold (`MinAttributesForPersistence`). This prevents attackers from filling the session store with millions of empty, "dead" sessions from incomplete handshakes.
 - **Fire-and-Forget Storage**: The storage operation is offloaded to the `ThreadPool` to ensure that unregistering a connection remains a low-latency operation.
 
 ### 4. Batched Broadcasting
+
 Broadcasting to large numbers of clients is performed using `CaptureConnectionSnapshot()`, which rents an array from `ArrayPool<IConnection>` to avoid GC pressure.
+
 - **Parallel Dispatch**: Broadcasts can be batched to interleave I/O operations and maintain responsive network processing for non-participating clients.
 
 ## Public APIs

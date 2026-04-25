@@ -31,8 +31,8 @@ dotnet run --project Nalix.Certificate.csproj
 
 By default, the tool saves two files to your application's identity directory:
 
-1.  **`certificate.private`**: Contains the private key. **KEEP THIS SECRET.**
-2.  **`certificate.public`**: Contains the public key hash. This is used for server identity validation.
+1. **`certificate.private`**: Contains the private key. **KEEP THIS SECRET.**
+2. **`certificate.public`**: Contains the public key hash. This is used for server identity validation.
 
 !!! tip "Standard Paths (Framework Directories API)"
     Nalix uses a standardized path resolution strategy based on the `Directories` API:
@@ -52,7 +52,7 @@ dotnet run --project Nalix.Certificate.csproj -- --force
 ## 🛡️ Security Specifications
 
 | Feature | Specification |
-|:---|:---|
+| :--- | :--- |
 | **Algorithm** | X25519 (Curve25519) |
 | **Key Length** | 32 bytes (256 bits) |
 | **Entropy** | High (System-provided Cryptographic RNG) |

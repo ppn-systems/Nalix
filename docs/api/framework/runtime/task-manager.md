@@ -31,12 +31,15 @@ flowchart TD
 The `TaskManager` manages three layers of execution control:
 
 ### 1. Global Concurrency Gate
+
 Controlled by `TaskManagerOptions.MaxWorkers`. This is a global semaphore that limits the total number of parallel workers running across the entire application.
 
 ### 2. Group-Level Gates
+
 Each worker can belong to a named `Group`. You can configure per-group capacity limits to ensure a specific workload (e.g., "database-sync") doesn't starve other critical tasks (e.g., "network-heartbeats").
 
 ### 3. Priority Dispatching
+
 Workers with higher `WorkerPriority` values are automatically moved to the front of the queue by the internal `PriorityQueue`. This ensures that high-priority system maintenance tasks execute before low-priority analytical tasks.
 
 ## Workers vs. Recurring Tasks
@@ -51,13 +54,17 @@ Workers with higher `WorkerPriority` values are automatically moved to the front
 ## Operational APIs
 
 ### `ScheduleWorker`
+
 Adds a one-time task to the system. Returns an `IWorkerHandle` for tracking progress or cancellation.
 
 ### `ScheduleRecurring`
+
 Starts a background loop. You can monitor the `LastRunUtc` and `ConsecutiveFailures` through the returned `IRecurringHandle`.
 
 ### `GenerateReport()`
+
 Produces a comprehensive diagnostic report (text-based) detailing:
+
 - **Throughput**: Workers and recurring tasks processed per second (TPS).
 - **Latency**: Approximate P95 and P99 execution percentiles based on internal histogram buckets.
 - **Congestion**: `AverageWorkerWaitTime` and `PeakRunningWorkers` to identify queue pressure and resource saturation.

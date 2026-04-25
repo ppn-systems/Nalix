@@ -1,62 +1,80 @@
 # Nalix.Analyzers
 
-`Nalix.Analyzers` provides Roslyn diagnostics that help catch invalid packet, serialization, middleware, configuration, and SDK usage at compile time.
+`Nalix.Analyzers` provides Roslyn diagnostics that catch invalid packet,
+serialization, middleware, configuration, SDK, hosting, and pooled-resource usage
+at compile time.
 
-## Workflow
+The source of truth for diagnostic metadata is
+`src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`.
+
+## Source Mapping
+
+- `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`
+- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.cs`
+- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.InvocationAnalysis.cs`
+- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.SymbolSet.cs`
+- `src/Nalix.Analyzers.CodeFixes/*.cs`
+
+## Analyzer Workflow
 
 ```mermaid
-graph LR
-    A[Code Authoring] --> B[Roslyn Analyzer]
-    B -->|Violation| C[Diagnostic List]
-    B -->|QuickFix| D[Code Fix Provider]
-    D --> E[Correction Applied]
-    C --> F{Developer Decision}
-    F -->|Fix manually| A
-    F -->|Suppress| A
+flowchart LR
+    A["Developer writes Nalix code"] --> B["NalixUsageAnalyzer"]
+    B --> C{"Pattern violation?"}
+    C -->|No| D["No diagnostic"]
+    C -->|Yes| E["NALIX diagnostic"]
+    E --> F{"Code fix available?"}
+    F -->|Yes| G["Apply narrow Roslyn fix"]
+    F -->|No| H["Fix design manually"]
+    G --> A
+    H --> A
 ```
 
-## Source mapping
+## Diagnostic Surface
 
-- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.cs`
-- `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`
+The current descriptor set covers `NALIX001` through `NALIX058`, with `NALIX049`
+intentionally unused in the current source snapshot.
 
-## Role and Design
+| Area | Codes | Purpose |
+| --- | --- | --- |
+| Controller dispatch and packet registration | `NALIX001`-`NALIX012`, `NALIX017`-`NALIX018`, `NALIX035`-`NALIX036`, `NALIX047`-`NALIX048`, `NALIX050`, `NALIX052`, `NALIX054`-`NALIX056`, `NALIX058` | Validates controller attributes, handler signatures, opcode uniqueness, dispatch-loop range, packet deserializer shape, and middleware registration inputs. |
+| Middleware and routing metadata | `NALIX006`-`NALIX007`, `NALIX019`, `NALIX025`-`NALIX026`, `NALIX030`-`NALIX033`, `NALIX038` | Keeps middleware registration, ordering, metadata providers, and opcode documentation consistent. |
+| Serialization layout | `NALIX013`-`NALIX016`, `NALIX021`-`NALIX022`, `NALIX034`, `NALIX046`, `NALIX051` | Validates explicit layout, `SerializeOrder`, header conflicts, dynamic members, and fixed-size contracts. |
+| Configuration, SDK, hosting, and lifecycle | `NALIX020`, `NALIX023`-`NALIX024`, `NALIX027`-`NALIX029`, `NALIX037`, `NALIX039`-`NALIX045`, `NALIX053`, `NALIX057` | Catches config binding issues, request-option pitfalls, hot-path allocations, buffer lease leaks, hosting omissions, and pooling lifecycle mistakes. |
 
-The Nalix analyzer suite is the first line of defense for the framework's strict performance and safety requirements. It ensures that complex features like zero-copy serialization and high-concurrency dispatch are implemented correctly before a single byte of traffic is sent.
+For the complete source-synchronized list, see
+[Diagnostic Codes](./diagnostic-codes.md).
 
-- **Non-Invasive**: Runs in the background as you type in IDEs (VS, Rider, VS Code).
-- **Instructional**: Diagnostics include detailed explanations of *why* a pattern is preferred.
-- **Automated**: Integrated with `Nalix.Analyzers.CodeFixes` for one-click resolution of common issues.
+## Code Fix Coverage
 
-## Diagnostic Summary
+`Nalix.Analyzers.CodeFixes` intentionally provides small, targeted fixes rather
+than broad rewrites. Current providers cover these workflows:
 
-### Serialization & Layout
-| ID | Title | Summary |
-|---|---|---|
-| `NALIX013` | Missing `SerializeOrder` | Layout is explicit but member has no order. |
-| `NALIX014` | Duplicate `SerializeOrder` | Two members share the same order index. |
-| `NALIX015` | Attribute Conflict | Member has both `SerializeIgnore` and `SerializeOrder`. |
-| `NALIX022` | Header Overlap | Member order overlaps reserved header region. |
-| `NALIX034` | Header Conflict | Member has both `SerializeHeader` and `SerializeOrder`. |
+| Workflow | Representative providers |
+| --- | --- |
+| Packet/controller shape | `PacketControllerCodeFixProvider`, `PacketOpcodeCodeFixProvider`, `PacketDeserializeCodeFixProvider`, `PacketRegistryDeserializerCodeFixProvider`, `PacketSelfTypeCodeFixProvider`, `GenericPacketHandlerCodeFixProvider` |
+| Serialization attributes | `SerializeOrderMissingCodeFixProvider`, `DuplicateSerializeOrderCodeFixProvider`, `SerializationConflictCodeFixProvider` |
+| Middleware and dispatch setup | `MiddlewareCodeFixProvider`, `NullMiddlewareCodeFixProvider`, `DispatchLoopCountCodeFixProvider` |
+| Configuration and SDK options | `ConfigurationIgnoreCodeFixProvider`, `RequestOptionsConsistencyCodeFixProvider` |
+| Lifecycle and cleanup | `ResetForPoolCodeFixProvider`, `RedundantPacketCastCodeFixProvider` |
 
-### Dispatch & Routing
-| ID | Title | Summary |
-|---|---|---|
-| `NALIX001` | Duplicate Opcode | Two handlers in a controller share an opcode. |
-| `NALIX035` | Reserved Opcode | Opcode is in the system range (0x00 - 0xFF). |
-| `NALIX036` | Global Duplicate | Opcode is duplicated across different controllers. |
-| `NALIX038` | Doc Mismatch | XML summary opcode differs from attribute value. |
+Not every diagnostic has a code fix. Some diagnostics require a design decision,
+such as choosing the correct handler signature, opcode allocation, or ownership
+boundary for an `IBufferLease`.
 
-### Performance & Safety
-| ID | Title | Summary |
-|---|---|---|
-| `NALIX037` | Hot Path Allocation | Allocation (`new`) detected in a high-frequency method. |
-| `NALIX039` | `IBufferLease` Leak | Pooled lease may not be disposed on all paths. |
-| `NALIX040` | Missing Pool Config | Host built without `ConfigureBufferPoolManager`. |
+## Practical Guidance
+
+- Treat warning diagnostics as compile-time protection for runtime dispatch,
+  serialization, and resource-safety invariants.
+- Treat info diagnostics as low-risk improvements unless your project policy
+  elevates analyzer severity.
+- Prefer fixing the underlying Nalix pattern over suppressing diagnostics.
+- When applying code fixes, review the result; providers make the smallest safe
+  local correction and do not redesign surrounding architecture.
 
 ## Related APIs
 
-- [Full Diagnostic Codes](./diagnostic-codes.md)
+- [Diagnostic Codes](./diagnostic-codes.md)
 - [Code Fixes Reference](./code-fixes.md)
 - [Network Application Builder](../hosting/network-application.md)
 - [Serialization Basics](../framework/serialization/serialization-basics.md)
