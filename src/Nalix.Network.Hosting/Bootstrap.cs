@@ -36,14 +36,6 @@ public static partial class Bootstrap
         s_serverGC = System.Runtime.GCSettings.IsServerGC ? "Server GC" : "Workstation GC";
     }
 
-    /// <summary>
-    /// Automatically configures server-side defaults when the Hosting assembly is loaded.
-    /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage",
-        "CA2255:The 'ModuleInitializer' attribute should not be used in libraries", Justification = "Architectural requirement to auto-configure server defaults")]
-    [ModuleInitializer]
-    internal static void AutoInitialize() => Initialize();
-
     private static void OnProcessExit(object? sender, EventArgs e)
     {
         lock (s_lock)
@@ -72,7 +64,10 @@ public static partial class Bootstrap
     /// Initializes the Nalix Hosting environment with server-optimized settings.
     /// This is called automatically by the module initializer, but can be called manually if needed.
     /// </summary>
-    public static void Initialize()
+    [ModuleInitializer]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage",
+        "CA2255:The 'ModuleInitializer' attribute should not be used in libraries", Justification = "Architectural requirement to auto-configure server defaults")]
+    internal static void Initialize()
     {
         // Server typically uses server.ini to avoid conflicts with client.ini in dual-deployment scenarios
         ConfigurationManager.Instance.SetConfigFilePath(Path.Combine(Directories.ConfigurationDirectory, "server.ini"));
@@ -123,7 +118,7 @@ public static partial class Bootstrap
         // 3.2. Global exception handling for production stability
         if (hostingOptions.EnableGlobalExceptionHandling)
         {
-            RegisterGlobalExceptionHandlers();
+            REGISTER_GLOBAL_EXCEPTION_HANDLERS();
         }
 
         // 3.3. High-precision timer for low-latency networking
@@ -183,7 +178,7 @@ public static partial class Bootstrap
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
-    private static void RegisterGlobalExceptionHandlers()
+    private static void REGISTER_GLOBAL_EXCEPTION_HANDLERS()
     {
         AppDomain.CurrentDomain.UnhandledException += static (s, e) =>
         {
