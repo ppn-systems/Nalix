@@ -2,12 +2,12 @@
 
 !!! danger "Low-Level Implementation"
     This guide demonstrates how to manually wire the Nalix runtime **without** the `NetworkApplication` hosting builder. This is considered an advanced topic and is only recommended for specialized transport libraries or low-level performance tuning.
-    For 99% of applications, use the [Hosting Builder](../quickstart.md) or [Server Boilerplate](./server-boilerplate.md).
+    For 99% of applications, use the [Hosting Builder](../../quickstart.md) or [Server Boilerplate](../networking/minimal-server.md).
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Advanced
     - :fontawesome-solid-clock: **Time**: 10–15 minutes
-    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../quickstart.md)
+    - :fontawesome-solid-book: **Prerequisites**: [Quickstart](../../quickstart.md)
 
 The steps are:
 
@@ -128,7 +128,7 @@ The same end-to-end structure works with a custom packet type if you replace `Co
 
 ## Recommended Next Pages
 
-- [TCP Request/Response](./tcp-request-response.md) — Detailed TCP pattern guide
-- [Custom Middleware](./custom-middleware-end-to-end.md) — Build middleware from scratch
-- [Packet Dispatch](../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
-- [Quickstart](../quickstart.md) — The hosted-builder approach
+- [TCP Request/Response](../networking/tcp-patterns.md) — Detailed TCP pattern guide
+- [Custom Middleware](../extensibility/custom-middleware.md) — Build middleware from scratch
+- [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md) — Dispatch API reference
+- [Quickstart](../../quickstart.md) — The hosted-builder approach
