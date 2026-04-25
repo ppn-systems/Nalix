@@ -497,25 +497,33 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         bool lockTaken = false;
         try
         {
+            /*
+             * HIGH-PRECISION TOKEN BUCKET (NANOSECOND RESOLUTION):
+             * Instead of storing whole tokens, we store 'MicroTokens' (MicroBalance).
+             * One whole token = TokenScale (e.g., 1,000,000).
+             * 
+             * This allows us to track fractions of tokens without floating point math,
+             * and provides extremely smooth throttling even at very high rates (100k+ req/sec).
+             */
             state.SpinLock.Enter(ref lockTaken);
             state.LastSeenSw = now;
 
-            // Check hard lockout first
+            // Step 1: Check hard lockout first (set when users repeatedly exceed soft limits)
             if (this.IS_HARD_BLOCKED(state, now, out RateLimitDecision blockedDecision))
             {
                 return blockedDecision;
             }
 
-            // Refill tokens based on elapsed time
+            // Step 2: Refill tokens based on nanoseconds elapsed since last packet from this IP
             this.REFILL_TOKENS(now, state);
 
-            // Try to consume 1 token
+            // Step 3: Check if we have at least one whole token (TokenScale units)
             if (this.CAN_CONSUME_TOKEN(state))
             {
                 return this.CONSUME_TOKEN_AN_DCREATE_DECISION(state);
             }
 
-            // Not enough tokens - handle violation
+            // Step 4: No tokens left - apply penalty or block
             return this.HANDLE_INSUFFICIENT_TOKENS(key, state, now);
         }
         finally

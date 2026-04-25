@@ -20,12 +20,13 @@ internal sealed class SlidingWindow
 {
     private const int SequenceHalfRange = (ushort.MaxValue + 1) / 2;
 
-    private readonly int _windowSize;
-    private readonly int _arraySize;
-    private ushort _maxSeen;
-    private bool _isInitialized;
     private readonly long[] _bitmap;
+    private readonly int _arraySize;
+    private readonly int _windowSize;
+
+    private ushort _maxSeen;
     private SpinLock _spinLock;
+    private bool _isInitialized;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SlidingWindow"/> class.
@@ -35,6 +36,7 @@ internal sealed class SlidingWindow
     {
         _windowSize = windowSize;
         _arraySize = (windowSize + 63) / 64;
+
         _bitmap = new long[_arraySize];
     }
 
@@ -47,6 +49,7 @@ internal sealed class SlidingWindow
     public bool TryCheck(ushort seq)
     {
         bool lockTaken = false;
+
         try
         {
             _spinLock.Enter(ref lockTaken);

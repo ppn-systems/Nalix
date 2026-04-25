@@ -271,12 +271,21 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     public byte[] Rent(int minimumLength = 256)
     {
 
-        // Fast path: common sizes served directly from slab buckets.
+        /*
+         * [Fast Path 1: Direct Bucket Match]
+         * We first try to rent directly from a slab bucket that exactly matches 
+         * or is suitable for the requested size.
+         */
         if (_slabPool.TryRent(minimumLength, out byte[]? array))
         {
             goto ReturnArray;
         }
 
+        /*
+         * [Fast Path 2: Cached Suitable Size]
+         * If a direct match fails, we check our cache to see if we've already 
+         * calculated a suitable larger bucket for this specific requested size.
+         */
         if (_suitablePoolSizeCache.TryGetValue(minimumLength, out int cachedPoolSize))
         {
             if (_slabPool.TryRent(cachedPoolSize, out array))
@@ -632,6 +641,12 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void TRIM_EXCESS_BUFFERS(object? _)
     {
+        /*
+         * [Memory Trimming Lifecycle]
+         * 1. Increment cycle count and determine if this is a 'deep trim' cycle.
+         * 2. Compute the current memory budget based on GC state and hard limits.
+         * 3. Iterate through all buckets and apply conservative shrinking.
+         */
         int cycle = Interlocked.Increment(ref _trimCycleCount);
         bool deepTrim = this.SHOULD_RUN_DEEP_TRIM(cycle);
 
@@ -671,7 +686,15 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private (long TargetBudget, long CurrentUsage, bool OverBudget) COMPUTE_MEMORY_BUDGET()
     {
-        // Cache memory budget for 10 seconds to avoid repeated computation
+        /*
+         * [Memory Budget Calculation]
+         * We calculate the budget by taking the MIN of:
+         * a) (Total System Memory * Configured Percentage)
+         * b) Configured Hard Cap (MaxMemoryBytes)
+         *
+         * This allows the pool to be "environment-aware" and shrink when 
+         * system memory pressure is high.
+         */
         long now = System.Environment.TickCount64;
         const long CacheDurationMs = 10_000;
 
@@ -739,6 +762,14 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private int CALCULATE_SAFE_SHRINK_STEP(in BufferPoolState info, int cycle)
     {
+        /*
+         * [Safe Shrink Step Calculation]
+         * We apply 4 layers of safety before shrinking a pool:
+         * 1. Target Size: Based on the configured allocation ratio.
+         * 2. Retention Floor: Never shrink below initial capacity or a % of current size.
+         * 3. Liveness: Only trim buffers that are currently free.
+         * 4. Damping: Cap the shrink amount per cycle to avoid oscillations.
+         */
         if (info.TotalBuffers <= 0)
         {
             return 0;

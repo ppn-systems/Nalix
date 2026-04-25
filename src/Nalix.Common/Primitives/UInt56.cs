@@ -554,7 +554,12 @@ public readonly struct UInt56 :
     /// for identity-like values (e.g., Snowflake IDs).
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() => (int)_lo ^ (_mid | (_hi << 16));
+    public override int GetHashCode()
+    {
+        // XOR the lower 32 bits with the upper 24 bits (re-aligned) to ensure 
+        // high entropy from all parts of the 56-bit value with minimal CPU cycles.
+        return (int)_lo ^ (_mid | (_hi << 16));
+    }
 
     /// <inheritdoc />
     public int CompareTo(UInt56 other) => this.ToUInt64().CompareTo(other.ToUInt64());

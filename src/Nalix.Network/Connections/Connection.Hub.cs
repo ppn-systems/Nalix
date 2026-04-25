@@ -122,6 +122,13 @@ public sealed class ConnectionHub : IConnectionHub
         _sessionStore = sessionStore ?? new InMemorySessionStore();
         _sessionOptions = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
+        /*
+         * [Sharding Logic]
+         * We shard the connections across multiple ConcurrentDictionaries.
+         * This significantly reduces contention on the internal dictionary 
+         * locks when many connections are being registered/unregistered 
+         * simultaneously on a high-core machine.
+         */
         _maxConnections = _options.MaxConnections;
         _shardCount = Math.Max(1, _options.ShardCount);
         _isPowerOfTwoShardCount = (_shardCount & (_shardCount - 1)) == 0;
@@ -269,6 +276,12 @@ public sealed class ConnectionHub : IConnectionHub
             return;
         }
 
+        /*
+         * [Broadcast Logic]
+         * To broadcast a message, we first capture a stable snapshot of all 
+         * active connections. This ensures that we don't hold the dictionary 
+         * locks while performing I/O.
+         */
         IConnection[] connections = this.CaptureConnectionSnapshot();
         if (connections.Length == 0)
         {
@@ -652,6 +665,11 @@ public sealed class ConnectionHub : IConnectionHub
 
     #region Private Methods
 
+    /*
+     * [Shard Index Calculation]
+     * If shard count is power-of-two, we use bitwise AND (extremely fast).
+     * Otherwise, we fallback to modulo operator.
+     */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int GetShardIndex(UInt56 id)
     {
@@ -798,13 +816,22 @@ public sealed class ConnectionHub : IConnectionHub
             return true;
         }
 
+        /* 
+         * ARCHITECTURAL DESIGN: LOCK-FREE CAPACITY RESERVATION
+         * We use an optimistic reservation pattern here to avoid a global lock on the hub.
+         * 1. Atomically increment the total connection count.
+         * 2. If we are within limits, the slot is ours.
+         * 3. If we exceed the limit, we decrement it back (rollback) and enter the more expensive
+         *    eviction or blocking logic. This ensures that 99.9% of connection attempts (when 
+         *    below capacity) complete without ever touching a Mutex or SpinLock.
+         */
         int current = Interlocked.Increment(ref _count);
         if (current <= _maxConnections)
         {
             return true;
         }
 
-        // Over capacity, need to revert or evict
+        // Over capacity, need to revert the counter or attempt eviction of anonymous clients
         _ = Interlocked.Decrement(ref _count);
 
         if (_disposed)
@@ -827,14 +854,19 @@ public sealed class ConnectionHub : IConnectionHub
                 return false;
 
             case DropPolicy.Block:
+                /*
+                 * ANTI-SPIN PROTECTION:
+                 * While blocking is requested, we must not burn CPU indefinitely if the server
+                 * is genuinely saturated. We use a SpinWait that starts with thread-yielding
+                 * and eventually transitions to Sleep(0)/Sleep(1) to play nice with the OS scheduler.
+                 */
                 SpinWait spinner = default;
                 while (true)
                 {
                     spinner.SpinOnce();
 
-                    // BUG-06: Prevent infinite spin by bounding the wait.
-                    // After ~10K iterations we reject the connection instead of
-                    // burning CPU indefinitely when the server is at capacity.
+                    // Prevent infinite spin. If we've waited too long, we treat it as a timeout
+                    // to prevent a "deadlock" state where all acceptor threads are spinning.
                     if (spinner.Count > 10_000)
                     {
                         this.RejectIncomingConnection(incomingConnection, "block-timeout");
@@ -842,6 +874,7 @@ public sealed class ConnectionHub : IConnectionHub
                         return false;
                     }
 
+                    // CAS loop to safely re-claim a slot if one becomes free
                     int c = Volatile.Read(ref _count);
                     if (c < _maxConnections)
                     {
@@ -851,7 +884,7 @@ public sealed class ConnectionHub : IConnectionHub
                         }
                     }
                 }
-
+                
             case DropPolicy.Coalesce:
             case DropPolicy.DropNewest:
             default:
