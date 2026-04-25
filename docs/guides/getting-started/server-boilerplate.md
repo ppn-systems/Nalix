@@ -30,6 +30,11 @@ using var app = NetworkApplication.CreateBuilder()
     {
         opt.Port = socketOpts.Port;
         opt.Backlog = 1024;
+        opt.EnableTimeout = true; // Enabled by default
+    })
+    .Configure<TimingWheelOptions>(opt => 
+    {
+        opt.IdleTimeoutMs = 60_000; // 60 second idle timeout
     })
     // Add your packet contracts
     .AddPacket<MyPingPacket>()
