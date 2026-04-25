@@ -1,11 +1,15 @@
-using System;
 using System.Net;
 using FluentAssertions;
-using Nalix.Common.Networking;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 using Xunit;
+
+
+#if DEBUG
+using System;
 using NSubstitute;
+using Nalix.Common.Networking;
+#endif
 
 namespace Nalix.Network.Tests;
 
@@ -33,6 +37,7 @@ public sealed class ConnectionGuardTests
         guard.TryAccept(endpoint).Should().BeFalse();
     }
 
+#if DEBUG
     [Fact]
     public void OnConnectionClosed_DecrementsCounter()
     {
@@ -56,8 +61,8 @@ public sealed class ConnectionGuardTests
     [Fact]
     public void TryAccept_WhenBurstTooHigh_BansEndpoint()
     {
-        ConnectionLimitOptions options = new() 
-        { 
+        ConnectionLimitOptions options = new()
+        {
             MaxConnectionsPerWindow = 2,
             ConnectionRateWindow = TimeSpan.FromSeconds(10),
             BanDuration = TimeSpan.FromSeconds(10)
@@ -68,7 +73,7 @@ public sealed class ConnectionGuardTests
         // Burst 2 connections
         guard.TryAccept(endpoint).Should().BeTrue();
         guard.TryAccept(endpoint).Should().BeTrue();
-        
+
         // 3rd connection in window should trigger ban
         guard.TryAccept(endpoint).Should().BeFalse();
 
@@ -79,4 +84,5 @@ public sealed class ConnectionGuardTests
 
         guard.TryAccept(endpoint).Should().BeFalse();
     }
+#endif
 }

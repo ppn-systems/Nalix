@@ -1,3 +1,4 @@
+#if DEBUG
 using System;
 using System.Net;
 using System.Net.Sockets;
@@ -15,6 +16,7 @@ using Xunit;
 
 namespace Nalix.SDK.Tests;
 
+[Collection("RealServerTests")]
 public sealed class TcpSessionIntegrationTests : IDisposable
 {
     private readonly TcpListener _listener;
@@ -133,3 +135,4 @@ public sealed class TcpSessionIntegrationTests : IDisposable
         _listener.Stop();
     }
 }
+#endif

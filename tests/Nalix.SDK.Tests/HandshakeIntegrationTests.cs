@@ -23,6 +23,7 @@ using Xunit;
 
 namespace Nalix.SDK.Tests;
 
+[Collection("RealServerTests")]
 public sealed class HandshakeIntegrationTests : IDisposable
 {
     private readonly TcpListener _listener;
@@ -42,23 +43,23 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         // 1. Setup Server Static Key
         X25519.X25519KeyPair serverStaticKey = X25519.GenerateKeyPair();
-        
-        using TcpSession session = new(new TransportOptions 
-        { 
+
+        using TcpSession session = new(new TransportOptions
+        {
             EncryptionEnabled = false,
             ServerPublicKey = serverStaticKey.PublicKey.ToString()
         }, _registry);
-        
+
         // 2. Start "Server" in background
         Task serverTask = RunMockHandshakeServerAsync(serverStaticKey);
 
         try
         {
             await session.ConnectAsync("127.0.0.1", (ushort)_port);
-            
+
             // 3. Perform Handshake
             await session.HandshakeAsync(ct: new CancellationTokenSource(2000).Token);
-            
+
             // 4. Verify Session State
             Assert.True(session.Options.EncryptionEnabled);
             Assert.NotEqual(Bytes32.Zero, session.Options.Secret);
@@ -80,25 +81,25 @@ public sealed class HandshakeIntegrationTests : IDisposable
         Csprng.Fill(secretBytes);
         Bytes32 sharedSecret = new(secretBytes);
         Snowflake token = Snowflake.NewId(SnowflakeType.Session);
-        
-        using TcpSession session = new(new TransportOptions 
-        { 
+
+        using TcpSession session = new(new TransportOptions
+        {
             EncryptionEnabled = false,
             ServerPublicKey = serverStaticKey.PublicKey.ToString(),
             Secret = sharedSecret,
             SessionToken = token
         }, _registry);
-        
+
         // 2. Start "Server" in background
         Task serverTask = RunMockHandshakeServerAsync(serverStaticKey, sharedSecret, token);
 
         try
         {
             await session.ConnectAsync("127.0.0.1", (ushort)_port);
-            
+
             // 3. Perform Resume
             ProtocolReason result = await session.ResumeSessionAsync(ct: new CancellationTokenSource(2000).Token);
-            
+
             // 4. Verify Result
             Assert.Equal(ProtocolReason.NONE, result);
             Assert.True(session.Options.EncryptionEnabled);
@@ -115,14 +116,14 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         // 1. Setup Server Static Key
         X25519.X25519KeyPair serverStaticKey = X25519.GenerateKeyPair();
-        
-        using TcpSession session = new(new TransportOptions 
-        { 
+
+        using TcpSession session = new(new TransportOptions
+        {
             EncryptionEnabled = false,
             ServerPublicKey = serverStaticKey.PublicKey.ToString(),
             ResumeEnabled = true
         }, _registry);
-        
+
         Bytes32 secret;
         Snowflake token;
 
@@ -131,11 +132,11 @@ public sealed class HandshakeIntegrationTests : IDisposable
             // 2. Perform Handshake first
             Task serverTask1 = RunMockHandshakeServerAsync(serverStaticKey);
             await session.ConnectWithResumeAsync("127.0.0.1", (ushort)_port);
-            
+
             Assert.NotEqual(Snowflake.Empty, session.Options.SessionToken);
             secret = session.Options.Secret;
             token = session.Options.SessionToken;
-            
+
             await session.DisconnectAsync();
             await serverTask1;
         }
@@ -146,7 +147,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         try
         {
             bool resumed = await session.ConnectWithResumeAsync("127.0.0.1", (ushort)_port);
-            
+
             Assert.True(resumed);
             Assert.Equal(token, session.Options.SessionToken);
             Assert.True(session.Options.EncryptionEnabled);
@@ -177,7 +178,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
                 received = await serverSocket.ReceiveAsync(lengthBuffer, SocketFlags.None);
             }
             catch (SocketException) { break; }
-            
+
             if (received <= 0) break;
             if (received != 2) break;
 
@@ -196,12 +197,12 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
                 Bytes32 sharedSecretEE = X25519.Agreement(serverEphemeralKey.PrivateKey, clientHello.PublicKey);
                 Bytes32 sharedSecretES = X25519.Agreement(staticKey.PrivateKey, clientHello.PublicKey);
-                
+
                 Bytes32 masterSecret = HandshakeX25519.ComputeMasterSecret(sharedSecretEE, sharedSecretES);
                 Bytes32 transcriptHash = HandshakeX25519.ComputeTranscriptHash(
                     clientHello.PublicKey, clientHello.Nonce,
                     serverEphemeralKey.PublicKey, serverNonce);
-                
+
                 Bytes32 serverProof = HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash);
 
                 using Handshake serverHello = new(HandshakeStage.SERVER_HELLO, serverEphemeralKey.PublicKey, serverNonce, serverProof);
@@ -210,7 +211,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
                 // Receive Finish
                 Handshake clientFinish = await ReceivePacketAsync<Handshake>(serverSocket);
-                
+
                 Bytes32 finishProof = HandshakeX25519.ComputeServerFinishProof(masterSecret, transcriptHash);
                 using Handshake serverFinish = new(HandshakeStage.SERVER_FINISH, Bytes32.Zero, Bytes32.Zero, finishProof);
                 serverFinish.TranscriptHash = transcriptHash;

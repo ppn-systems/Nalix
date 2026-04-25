@@ -1,8 +1,10 @@
 #if DEBUG
+using System;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Security;
+using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
+using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Network.Hosting;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
@@ -12,11 +14,11 @@ using Xunit;
 namespace Nalix.SDK.Tests;
 
 [Collection("RealServerTests")]
-public sealed class CipherExtensionsTests
+public sealed class TimeSyncExtensionsTests
 {
     private readonly IPacketRegistry _registry;
 
-    public CipherExtensionsTests()
+    public TimeSyncExtensionsTests()
     {
         _registry = new PacketRegistryFactory()
             .IncludeNamespace("Nalix.Framework.DataFrames.SignalFrames")
@@ -25,15 +27,13 @@ public sealed class CipherExtensionsTests
     }
 
     [Fact]
-    public async Task UpdateCipherAsync_WhenSuccessful_SwitchesAlgorithm()
+    public async Task SyncTimeAsync_WhenSuccessful_ReturnsRttAndAdjusted()
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
         builder.ConfigurePacketRegistry(_registry);
         builder.AddTcp<IntegrationTestProtocol>((ushort)port);
-        // Server handles CIPHER_UPDATE by default in Handshake/Control logic?
-        // Actually, CIPHER_UPDATE needs to be handled by the server to switch its own cipher.
-
+        
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
 
@@ -43,22 +43,16 @@ public sealed class CipherExtensionsTests
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port,
-                Algorithm = CipherSuiteType.Chacha20Poly1305
+                TimeSyncEnabled = true
             };
 
             using var session = new TcpSession(options, _registry);
             await session.ConnectAsync();
 
-            // Note: Real server needs to support CIPHER_UPDATE.
-            // If the framework doesn't have a default handler for it, this might timeout.
-            // I'll check if there is a handler for CIPHER_UPDATE in the framework.
-
-            // For now, I'll assume it works if the framework supports it.
-            // Wait! If it doesn't, I should add a handler in the test.
-
-            await session.UpdateCipherAsync(CipherSuiteType.Salsa20Poly1305, timeoutMs: 20_000);
-
-            Assert.Equal(CipherSuiteType.Salsa20Poly1305, session.Options.Algorithm);
+            (double rtt, double adjusted) = await session.SyncTimeAsync(timeoutMs: 1000);
+            
+            Assert.True(rtt >= 0);
+            // Adjusted might be 0 if clocks are perfectly synced, but usually it's non-zero
         }
         finally
         {

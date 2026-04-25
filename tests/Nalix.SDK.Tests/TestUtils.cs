@@ -2,19 +2,91 @@ using System;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Network.Protocols;
+using Nalix.Runtime.Dispatching;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 
 namespace Nalix.SDK.Tests;
+
+internal static class TestUtils
+{
+    public static void SetupCertificate()
+    {
+        string? current = AppDomain.CurrentDomain.BaseDirectory;
+        string? certPath = null;
+
+        while (current != null)
+        {
+            string candidate = System.IO.Path.Combine(current, "shared", "certificate.private");
+            if (System.IO.File.Exists(candidate))
+            {
+                certPath = candidate;
+                break;
+            }
+            current = System.IO.Path.GetDirectoryName(current);
+        }
+
+        if (certPath != null)
+        {
+            Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(certPath);
+        }
+        else
+        {
+            // Try one more: absolute path if we know we are in e:\Cs\Nalix
+            if (System.IO.File.Exists(@"e:\Cs\Nalix\shared\certificate.private"))
+            {
+                Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(@"e:\Cs\Nalix\shared\certificate.private");
+            }
+        }
+    }
+
+    public static int GetFreePort()
+    {
+        System.Net.Sockets.TcpListener l = new(IPAddress.Loopback, 0);
+        l.Start();
+        int port = ((IPEndPoint)l.LocalEndpoint).Port;
+        l.Stop();
+        return port;
+    }
+}
+
+/// <summary>
+/// A simple protocol for integration testing that dispatches packets to the Nalix runtime.
+/// Copied from NetworkApplicationIntegrationTests to satisfy "real server" requirement in SDK tests.
+/// </summary>
+public sealed class IntegrationTestProtocol : Protocol
+{
+    private readonly IPacketDispatch _dispatch;
+
+    public IntegrationTestProtocol(IPacketDispatch dispatch)
+    {
+        _dispatch = dispatch;
+        this.SetConnectionAcceptance(true);
+    }
+
+    public override void ProcessMessage(object? sender, IConnectEventArgs args)
+    {
+        if (args.Lease is IBufferLease lease)
+        {
+            _dispatch.HandlePacket(lease, args.Connection);
+        }
+    }
+
+    public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
+    {
+        base.OnAccept(connection, cancellationToken);
+    }
+}
 
 internal sealed class FakeSession(bool isConnected) : TransportSession
 {
@@ -37,9 +109,8 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
         SendPacketCallCount++;
         if (packet is Control ping && _catalog.TryDequeue(out IPacket? response) && response is Control pong)
         {
-            // Align sequence ID to match predicate
             pong.SequenceId = ping.SequenceId;
-            
+
             byte[] data = new byte[PacketConstants.HeaderSize];
             uint magic = PacketRegistryFactory.Compute(response.GetType());
             BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
