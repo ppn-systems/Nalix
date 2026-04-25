@@ -20,6 +20,7 @@ stateDiagram-v2
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
+- `src/Nalix.SDK/Extensions/SubscriptionExtensions.cs`
 
 ## Role and Design
 

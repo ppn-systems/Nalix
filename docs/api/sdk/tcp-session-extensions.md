@@ -2,6 +2,8 @@
 
 The `Nalix.SDK.Transport.Extensions` namespace provides high-level abstractions for managing control flows, cipher updates, and event subscriptions. These helpers turn raw transport sessions into a rich, packet-oriented client runtime.
 
+This page is the high-level application entry point. If you need lower-level implementation details, use [Frame Reader and Sender](./frame-reader-and-sender.md), [Transport Session](./transport-session.md), and [Thread Dispatching](./thread-dispatching.md).
+
 ## Capability Map
 
 ```mermaid
@@ -28,6 +30,7 @@ graph TD
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
+- `src/Nalix.SDK/Extensions/SubscriptionExtensions.cs`
 
 ## Core Modules
 
@@ -103,4 +106,5 @@ using var sub = client.On<NoticePacket>(notice =>
 - [Handshake Extensions](./handshake-extensions.md)
 - [Request Options](./options/request-options.md)
 - [Cipher Updates](./cipher-extensions.md)
+- [Control Utilities](./control-utilities.md)
 - [Control Type Enum](../common/protocols/control-type.md)

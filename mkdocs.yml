@@ -307,18 +307,21 @@ nav:
         - Hosting Options: api/hosting/hosting-options.md
       - SDK:
         - Overview: api/sdk/index.md
-        - TCP Session: api/sdk/tcp-session.md
-        - UDP Session: api/sdk/udp-session.md
-        - Handshake Extensions: api/sdk/handshake-extensions.md
-        - Resume Extensions: api/sdk/resume-extensions.md
-        - Session Extensions: api/sdk/tcp-session-extensions.md
-        - Cipher Updates: api/sdk/cipher-extensions.md
-        - Session Diagnostics: api/sdk/diagnostics.md
-        - Session Subscriptions: api/sdk/subscriptions.md
-        - Thread Dispatching: api/sdk/thread-dispatching.md
-        - Frame Reader and Sender: api/sdk/frame-reader-and-sender.md
-        - Transport Session: api/sdk/transport-session.md
-        - Protocol String Extensions: api/sdk/protocol-string-extensions.md
+        - High-level APIs:
+          - TCP Session: api/sdk/tcp-session.md
+          - UDP Session: api/sdk/udp-session.md
+          - Handshake Extensions: api/sdk/handshake-extensions.md
+          - Resume Extensions: api/sdk/resume-extensions.md
+          - Session Extensions: api/sdk/tcp-session-extensions.md
+          - Cipher Updates: api/sdk/cipher-extensions.md
+          - Control Utilities: api/sdk/control-utilities.md
+          - Session Diagnostics: api/sdk/diagnostics.md
+          - Session Subscriptions: api/sdk/subscriptions.md
+        - Low-level Primitives:
+          - Thread Dispatching: api/sdk/thread-dispatching.md
+          - Frame Reader and Sender: api/sdk/frame-reader-and-sender.md
+          - Transport Session: api/sdk/transport-session.md
+          - Protocol String Extensions: api/sdk/protocol-string-extensions.md
         - Options:
           - Transport Options: api/sdk/options/transport-options.md
           - Request Options: api/sdk/options/request-options.md
