@@ -338,7 +338,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
             finally
             {
-                if (lockTaken) entry.SpinLock.Exit();
+                if (lockTaken)
+                {
+                    entry.SpinLock.Exit();
+                }
             }
 
             return new ConnectionAllowResult { Allowed = false, CurrentConnections = currentConns };
@@ -388,7 +391,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
         finally
         {
-            if (spinLockTaken) entry.SpinLock.Exit();
+            if (spinLockTaken)
+            {
+                entry.SpinLock.Exit();
+            }
         }
 
         // WHY: Schedule ForceClose AFTER exiting the lock.
@@ -500,7 +506,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
         finally
         {
-            if (lockTaken) entry.SpinLock.Exit();
+            if (lockTaken)
+            {
+                entry.SpinLock.Exit();
+            }
         }
 
         return true;
@@ -640,7 +649,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
             finally
             {
-                if (lockTaken) kvp.Value.SpinLock.Exit();
+                if (lockTaken)
+                {
+                    kvp.Value.SpinLock.Exit();
+                }
             }
             snapshot.Add(new KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>(kvp.Key, info));
         }
@@ -793,7 +805,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 }
 
                 bool lockTaken = false;
-                
+                bool shouldRemove = false;
+
                 try
                 {
                     kvp.Value.SpinLock.Enter(ref lockTaken);
@@ -801,7 +814,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 }
                 finally
                 {
-                    if (lockTaken) kvp.Value.SpinLock.Exit();
+                    if (lockTaken)
+                    {
+                        kvp.Value.SpinLock.Exit();
+                    }
                 }
 
                 if (shouldRemove)
@@ -816,16 +832,19 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 if (_map.TryRemove(key, out ConnectionLimitEntry? removedEntry) && removedEntry is not null)
                 {
                     // Dispose resources
-                bool lockTaken = false;
-                try
-                {
-                    removedEntry.SpinLock.Enter(ref lockTaken);
-                    removedEntry.RecentConnectionTimestamps.Clear();
-                }
-                finally
-                {
-                    if (lockTaken) removedEntry.SpinLock.Exit();
-                }
+                    bool lockTaken = false;
+                    try
+                    {
+                        removedEntry.SpinLock.Enter(ref lockTaken);
+                        removedEntry.RecentConnectionTimestamps.Clear();
+                    }
+                    finally
+                    {
+                        if (lockTaken)
+                        {
+                            removedEntry.SpinLock.Exit();
+                        }
+                    }
 
                     removed++;
                     _ = Interlocked.Increment(ref _totalCleanedEntries);
