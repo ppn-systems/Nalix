@@ -244,28 +244,103 @@ This enforces exactly 32 bytes on the Call Stack and ensures that core security 
 
 ---
 
-## 7. Operational Setup
+## 8. Fair Concurrency & Priority Management
 
-To enable this optimized path, ensure your hosting configuration is tuned for concurrency.
+To process thousands of concurrent connections without letting high-volume packet types (like movement updates) monopolize CPU resources, Nalix uses a sharded, priority-aware dispatch system.
+
+### Concurrent Processing across Multiple Cores
+
+Nalix maps connection traffic to worker loops based on the connection's identity. This ensures:
+1. **Thread Affinity**: All packets from a single connection are processed sequentially on the same core, preventing race conditions without using locks.
+2. **Parallelism**: Different connections are spread across all available CPU cores.
 
 ```csharp
-using System;
-using Nalix.Network.Hosting;
+builder.ConfigureDispatch(options => {
+    // Match shards to CPU cores (default: Environment.ProcessorCount)
+    options.WithDispatchLoopCount(Environment.ProcessorCount);
+    
+    // Increase the 'budget' of packets processed per core wake-up
+    options.MaxDrainPerWakeMultiplier = 12; 
+});
+```
 
-var app = NetworkApplication.CreateBuilder()
-    .AddHandlers<GameMarker>() // Triggers handler compilation
-    .ConfigureDispatch(options => {
-        // Match shards to CPU cores for maximum affinity
-        options.WithDispatchLoopCount(Environment.ProcessorCount);
-        // Increase per-wake drain budget for burst workloads
-        options.MaxDrainPerWakeMultiplier = 12;
-    })
-    .Build();
+### Preventing Resource Monopolization (Priority DRR)
+
+Nalix implements **Deficit Round Robin (DRR)** scheduling. If a client floods the server with low-priority packets, the dispatcher ensures that high-priority packets (like chat or items) are still processed within their guaranteed quota.
+
+#### Setting Packet Priority
+
+Define your packet priorities in the constructor or during creation:
+
+```csharp
+[Packet]
+public sealed class UrgentAlert : PacketBase<UrgentAlert>
+{
+    public UrgentAlert()
+    {
+        OpCode = 0x9001;
+        Priority = PacketPriority.URGENT; // Highest priority
+    }
+}
+```
+
+#### Tuning Priority Weights
+
+You can tune the relative "budget" given to each priority level in `dispatch.ini` or via code.
+
+```ini
+[DispatchOptions]
+# Weights for [NONE, LOW, MEDIUM, HIGH, URGENT]
+# Default "1,2,4,8,16" means URGENT is 16x more likely to be served than NONE.
+PriorityWeights = 1,1,2,5,20 
 ```
 
 ---
 
-## Verifying Zero-Allocations
+## 9. Production Error Handling Patterns
+
+In a high-performance hot path, traditional `try-catch` blocks in every handler are expensive and clutter logic. Nalix provides a centralized error handling infrastructure.
+
+### The Global Error Hook
+
+Register a global observer to track handler failures without heap allocations:
+
+```csharp
+builder.ConfigureDispatch(options =>
+{
+    options.WithErrorHandling((exception, opCode) => 
+    {
+        // 1. Log with context
+        Logger.Error($"OpCode 0x{opCode:X4} failed: {exception.Message}");
+        
+        // 2. Increment performance counters
+        Metrics.HandlerErrors.WithLabels(opCode.ToString()).Inc();
+    });
+});
+```
+
+### Fail-Fast & Connection Health
+
+Nalix automatically tracks the error count per connection. You can implement middleware to monitor this and disconnect unstable clients:
+
+```csharp
+public sealed class HealthGuardMiddleware : IPacketMiddleware<IPacket>
+{
+    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, PacketMiddlewareDelegate next)
+    {
+        if (context.Connection.ErrorCount > 10)
+        {
+            context.Connection.Disconnect("Protocol violation threshold exceeded.");
+            return;
+        }
+        await next(context);
+    }
+}
+```
+
+---
+
+## 10. Verifying Zero-Allocations
 
 ### Runtime Verification
 
@@ -288,7 +363,7 @@ Assert.Equal(0, allocated); // Should be exactly 0
 
 ---
 
-## Advanced Monitoring
+## 11. Advanced Monitoring
 
 To ensure the hot path remains stable in production, monitor these specific metrics:
 
