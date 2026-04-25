@@ -14,9 +14,9 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Framework.Configuration;
-using Nalix.Network.Pipeline.Options;
+using Nalix.Runtime.Pipeline.Options;
 
-namespace Nalix.Network.Pipeline.Throttling;
+namespace Nalix.Runtime.Pipeline.Throttling;
 
 /// <summary>
 /// Provides a policy-based rate limiting mechanism using token bucket algorithms.

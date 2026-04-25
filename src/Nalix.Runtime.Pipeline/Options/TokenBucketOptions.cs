@@ -4,7 +4,7 @@
 using Nalix.Common.Abstractions;
 using Nalix.Framework.Configuration.Binding;
 
-namespace Nalix.Network.Pipeline.Options;
+namespace Nalix.Runtime.Pipeline.Options;
 
 /// <summary>
 /// Provides configuration options for a high-performance token-bucket rate limiter.

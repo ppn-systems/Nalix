@@ -6,9 +6,9 @@ using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
-using Nalix.Network.Pipeline.Options;
+using Nalix.Runtime.Pipeline.Options;
 
-namespace Nalix.Network.Pipeline.Internal;
+namespace Nalix.Runtime.Pipeline.Internal;
 
 /// <summary>
 /// Connection-scoped anti-spam guard for inbound directive responses.

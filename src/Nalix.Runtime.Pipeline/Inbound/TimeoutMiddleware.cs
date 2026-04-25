@@ -10,9 +10,9 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Network.Pipeline.Internal;
+using Nalix.Runtime.Pipeline.Internal;
 
-namespace Nalix.Network.Pipeline.Inbound;
+namespace Nalix.Runtime.Pipeline.Inbound;
 
 /// <summary>
 /// Middleware that enforces a timeout for packet processing. If the next middleware or handler does not complete within the specified timeout,

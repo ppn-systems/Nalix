@@ -18,9 +18,9 @@ using Nalix.Framework.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Pipeline.Options;
+using Nalix.Runtime.Pipeline.Options;
 
-namespace Nalix.Network.Pipeline.Throttling;
+namespace Nalix.Runtime.Pipeline.Throttling;
 
 /// <summary>
 /// High-performance per-opcode concurrency limiter with optional FIFO queuing.

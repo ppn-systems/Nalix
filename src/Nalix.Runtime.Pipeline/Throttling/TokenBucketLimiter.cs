@@ -19,9 +19,9 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Pipeline.Options;
+using Nalix.Runtime.Pipeline.Options;
 
-namespace Nalix.Network.Pipeline.Throttling;
+namespace Nalix.Runtime.Pipeline.Throttling;
 
 /// <summary>
 /// High-performance token-bucket based rate limiter with per-endpoint state,

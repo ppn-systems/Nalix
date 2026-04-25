@@ -12,10 +12,10 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
-using Nalix.Network.Pipeline.Internal;
+using Nalix.Runtime.Pipeline.Internal;
 
 
-namespace Nalix.Network.Pipeline.Inbound;
+namespace Nalix.Runtime.Pipeline.Inbound;
 
 /// <summary>
 /// Middleware that checks the permission level of the current connection
