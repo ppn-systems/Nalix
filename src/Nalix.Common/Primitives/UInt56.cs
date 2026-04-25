@@ -184,6 +184,12 @@ public readonly struct UInt56 :
     /// <see cref="ulong"/> value that is within [0, <see cref="MaxValue"/>] is safe.
     /// </para>
     /// </remarks>
+    /*
+     * [The Trusted Constructor]
+     * This is the fastest way to create a UInt56. It bypasses all validation 
+     * and assumes the caller has already decomposed the value correctly.
+     * Ideal for hot-path arithmetic repacking.
+     */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private UInt56(uint lo, ushort mid, byte hi)
     {
@@ -273,6 +279,12 @@ public readonly struct UInt56 :
     /// directly on the three fields for maximum performance.
     /// </para>
     /// </remarks>
+    /*
+     * [The Unpack Hot-Path]
+     * This is used by every arithmetic operator. It reconstructs the 64-bit 
+     * value from the 3 fields using shifts and ORs.
+     * Reconstructed as: lo | (mid << 32) | (hi << 48)
+     */
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong ToUInt64() => _lo | ((ulong)_mid << 32) | ((ulong)_hi << 48);
@@ -423,6 +435,11 @@ public readonly struct UInt56 :
     /// Console.WriteLine($"0x{value:X}"); // Output: 0x1122334455FF
     /// </code>
     /// </example>
+    /*
+     * [Binary Serialization: Little Endian]
+     * Writes/Reads exactly 7 bytes.
+     * [lo_0, lo_1, lo_2, lo_3, mid_0, mid_1, hi_0]
+     */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static UInt56 ReadBytesLittleEndian(ReadOnlySpan<byte> source)
     {

@@ -407,6 +407,13 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool TryEnter(ushort opcode, PacketConcurrencyLimitAttribute attr, out Lease lease)
     {
+        /*
+         * [Concurrency Check Workflow]
+         * 1. Check if the global circuit breaker is open (fail fast).
+         * 2. Resolve/Create the entry for this specific opcode.
+         * 3. Acquire a reference (TryAcquire) to prevent entry disposal.
+         * 4. Attempt immediate entry into the semaphore.
+         */
         if (this.IS_CIRCUIT_OPEN())
         {
             _ = Interlocked.Increment(ref _circuitBreakerTrips);
@@ -727,6 +734,13 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     /// </summary>
     private bool IS_CIRCUIT_OPEN()
     {
+        /*
+         * [Circuit Breaker Logic]
+         * If the rejection rate (rejected / total) exceeds the threshold 
+         * over a minimum sample size, the circuit opens.
+         * While open, ALL requests are rejected immediately to allow the 
+         * system to recover. The circuit closes automatically after a timeout.
+         */
         // Check if already open
         if (Volatile.Read(ref _circuitBreakerOpen) == 1)
         {

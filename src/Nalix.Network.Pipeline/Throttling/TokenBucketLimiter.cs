@@ -202,6 +202,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public RateLimitDecision Evaluate(INetworkEndpoint key)
     {
+        /*
+         * [Decision Workflow]
+         * 1. Validate endpoint.
+         * 2. Select shard based on endpoint hash (to minimize lock contention).
+         * 3. Retrieve or create endpoint state.
+         * 4. Perform high-precision token bucket evaluation.
+         */
         if (_disposed)
         {
             return new RateLimitDecision
@@ -695,6 +702,13 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void REFILL_TOKENS(long now, EndpointState state)
     {
+        /*
+         * [High-Precision Refill]
+         * We compute tokens to add based on nanoseconds elapsed (Stopwatch ticks).
+         * To avoid precision loss during integer division, we store the 
+         * 'remainder' nanoseconds in state.AccumulatedMicro and add them 
+         * to the next refill cycle.
+         */
         long dt = now - state.LastRefillSwTicks;
 
         if (dt <= 0)
