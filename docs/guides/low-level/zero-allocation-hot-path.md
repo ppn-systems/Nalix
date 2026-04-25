@@ -67,7 +67,47 @@ public sealed class HighFreqUpdate : PacketBase<HighFreqUpdate>
 
 ---
 
-## 2. Compiled Handler Execution
+## 2. Setup & Compilation
+
+To achieve zero-allocation performance, Nalix must "bake" your handlers and packet lookups during the application startup phase. This is handled automatically by the `NetworkApplicationBuilder`.
+
+### The Registration Flow
+
+When you call `AddHandlers` or `AddPacket`, the framework performs two critical operations:
+
+1.  **Frozen Registry Creation**: Scans for packet magic numbers and builds an immutable `FrozenDictionary` for $O(1)$ branch-prediction-friendly lookups.
+2.  **Handler Compilation**: Uses expression trees to compile your controller methods into optimized static delegates, eliminating reflection overhead.
+
+```csharp
+using Nalix.Network.Hosting;
+
+var app = NetworkApplication.CreateBuilder()
+    // 1. Register Packet Contracts (triggers Frozen Registry creation)
+    .AddPacket<PositionUpdatePacket>()
+    
+    // 2. Register Logic Handlers (triggers PacketHandlerCompiler)
+    .AddHandlers<GameController>()
+    
+    .Build(); // Lookups are frozen and handlers compiled here
+```
+
+### Manual Configuration (Advanced)
+
+If you are not using the Hosting layer, you must manually populate the dispatch options:
+
+```csharp
+var options = new PacketDispatchOptions<IPacket>();
+
+// Manually trigger compilation for a controller
+options.WithHandler(() => new MyController());
+
+// The dispatch channel will now use these compiled handlers
+var channel = new PacketDispatchChannel(options);
+```
+
+---
+
+## 3. Compiled Handler Execution
 
 Nalix does not use reflection at runtime. When you call `.AddHandlers<T>()`, the `PacketHandlerCompiler` generates optimized IL via expression trees.
 
@@ -87,7 +127,7 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 
 ---
 
-## 3. The Pooling Pipeline
+## 4. The Pooling Pipeline
 
 ### Buffer Leasing
 
@@ -151,7 +191,7 @@ public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 
 ---
 
-## 4. Zero-Allocation Error Handling
+## 5. Zero-Allocation Error Handling
 
 Exception handling can be expensive. In the hot path, Nalix provides mechanisms to track errors without triggering heap noise.
 
@@ -179,7 +219,7 @@ Every connection tracks its own error count. If a handler throws, Nalix calls `c
 
 ---
 
-## 5. SIMD-Optimized Primitives
+## 6. SIMD-Optimized Primitives
 
 Zero-allocation extends to cryptographic primitive checks. `byte[]` arrays allocate heap memory and require slow sequential comparisons. Nalix implements custom value types like `Bytes32` for strict 256-bit payloads (e.g., Session Secrets, ChaCha20 Keys, Handshake Tokens).
 
@@ -204,7 +244,7 @@ This enforces exactly 32 bytes on the Call Stack and ensures that core security 
 
 ---
 
-## 6. Operational Setup
+## 7. Operational Setup
 
 To enable this optimized path, ensure your hosting configuration is tuned for concurrency.
 
