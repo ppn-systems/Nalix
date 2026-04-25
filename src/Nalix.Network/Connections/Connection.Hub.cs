@@ -794,7 +794,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (_maxConnections < 0)
         {
-            Interlocked.Increment(ref _count);
+            _ = Interlocked.Increment(ref _count);
             return true;
         }
 
@@ -805,7 +805,7 @@ public sealed class ConnectionHub : IConnectionHub
         }
 
         // Over capacity, need to revert or evict
-        Interlocked.Decrement(ref _count);
+        _ = Interlocked.Decrement(ref _count);
 
         if (_disposed)
         {
@@ -852,6 +852,7 @@ public sealed class ConnectionHub : IConnectionHub
                     }
                 }
 
+            case DropPolicy.Coalesce:
             case DropPolicy.DropNewest:
             default:
                 this.RejectIncomingConnection(incomingConnection, "drop-newest");
@@ -962,9 +963,9 @@ public sealed class ConnectionHub : IConnectionHub
         try
         {
             int index = 0;
-            foreach (var shard in _shards)
+            foreach (ConcurrentDictionary<UInt56, IConnection> shard in _shards)
             {
-                foreach (var kvp in shard)
+                foreach (KeyValuePair<UInt56, IConnection> kvp in shard)
                 {
                     if (index >= buffer.Length)
                     {
