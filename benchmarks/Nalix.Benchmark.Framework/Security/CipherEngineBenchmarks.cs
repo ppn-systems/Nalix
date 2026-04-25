@@ -2,7 +2,7 @@ using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Abstractions.Security;
-using Nalix.Framework.Security.Engine;
+using Nalix.Codec.Security.Engine;
 
 namespace Nalix.Benchmark.Framework.Security;
 

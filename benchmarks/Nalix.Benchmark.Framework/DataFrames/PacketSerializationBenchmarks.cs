@@ -3,7 +3,7 @@ using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Environment;
+using Nalix.Environment.Random;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
