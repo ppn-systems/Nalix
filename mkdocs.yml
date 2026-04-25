@@ -181,6 +181,7 @@ nav:
           - Session APIs: guides/low-level/low-level-session-apis.md
           - Zero-allocation: guides/low-level/zero-allocation-hot-path.md
           - BufferLease Utilization: guides/low-level/buffer-lease-utilization.md
+          - Buffer Pooling Configuration: guides/low-level/buffer-pooling-configuration.md
       - Advanced:
           - Dynamic Concurrency Adjustment: guides/advanced/dynamic-concurrency-adjustment.md
       - Tools:
