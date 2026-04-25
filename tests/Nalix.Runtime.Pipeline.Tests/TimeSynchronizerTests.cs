@@ -1,10 +1,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Runtime.Pipeline.Timekeeping;
+using Nalix.Runtime.Timekeeping;
 using Xunit;
 
-namespace Nalix.Runtime.Pipeline.Tests;
+namespace Nalix.Runtime.Tests;
 
 public sealed class TimeSynchronizerTests : IDisposable
 {

@@ -11,10 +11,11 @@ using FluentAssertions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Network.Connections;
-using Nalix.Runtime.Pipeline.Throttling;
+using Nalix.Runtime.Options;
+using Nalix.Runtime.Throttling;
 using Xunit;
 
-namespace Nalix.Runtime.Pipeline.Tests;
+namespace Nalix.Runtime.Tests;
 
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
 public sealed class PolicyRateLimiterTests

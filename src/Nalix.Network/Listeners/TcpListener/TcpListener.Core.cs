@@ -31,9 +31,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly SemaphoreSlim _lock;
     private readonly IProtocol _protocol;
     private readonly IConnectionHub _hub;
-#pragma warning disable CA2213 // Shared singleton from InstanceManager; listener does not own ConnectionGuard lifetime.
     private readonly ConnectionGuard _limiter;
-#pragma warning restore CA2213
     private readonly List<ISnowflake> _acceptWorkerIds;
 
     private int _state;

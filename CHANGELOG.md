@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Merged `Nalix.Network.Pipeline` into `Nalix.Runtime` in documentation to reflect codebase consolidation.
+- Updated all API references and guides to use consolidated `Nalix.Runtime` namespaces and source paths.
+
 ### Planned
 
 - WebSocket transport support.

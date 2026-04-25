@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using Nalix.Common.Networking;
 using Nalix.Network.Options;
-using Nalix.Runtime.Pipeline.Options;
-using Nalix.Runtime.Pipeline.Throttling;
+using Nalix.Runtime.Options;
+using Nalix.Runtime.Throttling;
 using Xunit;
 
 namespace Nalix.Network.Tests;

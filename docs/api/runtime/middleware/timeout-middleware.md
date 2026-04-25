@@ -7,7 +7,7 @@ rather than the caller's cancellation token, causes execution to stop.
 
 ## Source mapping
 
-- `src/Nalix.Network.Pipeline/Inbound/TimeoutMiddleware.cs`
+- `src/Nalix.Runtime/Middleware/Standard/TimeoutMiddleware.cs`
 - `src/Nalix.Common/Networking/Packets/PacketTimeoutAttribute.cs`
 
 ## Runtime role
