@@ -51,7 +51,7 @@ internal class Program
             })
             .Configure<ConnectionLimitOptions>(options =>
             {
-                options.MaxPacketPerSecond = int.MaxValue;
+                options.MaxPacketPerSecond = 1_000_000;
                 options.MaxConnectionsPerIpAddress = 10_000;
                 options.MaxConnectionsPerWindow = 10_000_000;
             })

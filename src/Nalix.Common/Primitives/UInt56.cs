@@ -550,7 +550,7 @@ public readonly struct UInt56 :
     /// <inheritdoc />
     /// <remarks>
     /// Optimized bit-mixing for 56-bit values. This is significantly faster than
-    /// <see cref="HashCode.Combine"/> while maintaining excellent distribution
+    /// <c>HashCode.Combine</c> while maintaining excellent distribution
     /// for identity-like values (e.g., Snowflake IDs).
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
