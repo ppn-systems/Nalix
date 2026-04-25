@@ -2,26 +2,25 @@
 
 The `Nalix.SDK.Transport.Extensions` namespace provides high-level abstractions for managing control flows, cipher updates, and event subscriptions. These helpers turn raw transport sessions into a rich, packet-oriented client runtime.
 
-This page is the high-level application entry point. If you need lower-level implementation details, use [Frame Reader and Sender](./frame-reader-and-sender.md), [Transport Session](./transport-session.md), and [Thread Dispatching](./thread-dispatching.md).
+This page is the high-level client application entry point. These extension helpers are not server-side runtime APIs. If you need lower-level implementation details, use [Frame Reader and Sender](./frame-reader-and-sender.md), [Transport Session](./transport-session.md), and [Thread Dispatching](./thread-dispatching.md).
 
 ## Capability Map
 
 ```mermaid
 graph TD
-    A[TransportSession / TcpSession] --> B[Control Helpers]
-    A --> D[Request/Response]
-    A --> E[Subscription System]
-    A --> F[Cipher Updates]
-    
-    B --> B1[NewControl Builder]
-    B --> B2[AwaitControlAsync]
-    
-    D --> D1[RequestAsync with Retry]
-    
-    E --> E1[On / OnOnce]
-    E --> E2[CompositeSubscription]
+    TS["TransportSession"] --> C["ControlExtensions.NewControl"]
+    TS --> R["RequestExtensions.RequestAsync<TResponse>"]
+    TS --> H["HandshakeExtensions.HandshakeAsync"]
 
-    F --> F1[Control Update]
+    TCP["TcpSession"] --> AC["ControlExtensions.AwaitControlAsync / SendControlAsync"]
+    TCP --> CU["CipherExtensions.UpdateCipherAsync"]
+    TCP --> SUB["TcpSessionSubscriptions.On / OnOnce"]
+    TCP --> RES["ResumeExtensions.ResumeSessionAsync / ConnectWithResumeAsync"]
+
+    R --> PA["PacketAwaiter: subscribe -> send -> await -> unsubscribe"]
+    R --> ENC{"RequestOptions.Encrypt?"}
+    ENC -- true --> TCPONLY["requires TcpSession"]
+    ENC -- false --> ANY["works on TransportSession"]
 ```
 
 ## Source mapping

@@ -47,7 +47,7 @@ flowchart LR
 Nalix uses a modular configuration system. Depending on the packages you have installed, different options become available.
 
 | Option type | Package | Primary Role | Tuning Impact |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `NetworkSocketOptions` | `Nalix.Network` | Low-level OS socket settings. | Throughput / Latency |
 | `PoolingOptions` | `Nalix.Network` | Memory and object pool limits. | GC Pressure |
 | `ConnectionLimitOptions` | `Nalix.Network` | Anti-DDoS, per-IP caps, UDP datagram size, and replay window. | Security |
@@ -65,12 +65,15 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 ## Internal Guidelines (Source-Verified)
 
 ### 1. Hub Sharding
+
 `ConnectionHubOptions.ShardCount` defaults to `max(1, Environment.ProcessorCount)` and must be at least `1`. It controls how many internal connection dictionary shards the hub uses to reduce contention during registration, lookup, broadcast, and disconnect operations.
 
 ### 2. Callback Backpressure
+
 `NetworkCallbackOptions.MaxPendingNormalCallbacks` acts as the server's circuit breaker. If Nalix cannot keep up with the incoming packet rate, it will drop callbacks rather than allowing the `ThreadPool` queue to grow indefinitely, preventing an "Out of Memory" event.
 
 ### 3. Startup Validation
+
 All Nalix options implement `Validate()`. The framework strongly recommends calling `options.Validate()` during your application's bootstrap phase to catch configuration errors (like negative timeouts or zero-capacity pools) before the network starts.
 
 !!! tip "Operational Recommendation"

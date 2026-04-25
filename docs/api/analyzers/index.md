@@ -36,7 +36,7 @@ The current descriptor set covers `NALIX001` through `NALIX058`, with `NALIX049`
 intentionally unused in the current source snapshot.
 
 | Area | Codes | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | Controller dispatch and packet registration | `NALIX001`-`NALIX012`, `NALIX017`-`NALIX018`, `NALIX035`-`NALIX036`, `NALIX047`-`NALIX048`, `NALIX050`, `NALIX052`, `NALIX054`-`NALIX056`, `NALIX058` | Validates controller attributes, handler signatures, opcode uniqueness, dispatch-loop range, packet deserializer shape, and middleware registration inputs. |
 | Middleware and routing metadata | `NALIX006`-`NALIX007`, `NALIX019`, `NALIX025`-`NALIX026`, `NALIX030`-`NALIX033`, `NALIX038` | Keeps middleware registration, ordering, metadata providers, and opcode documentation consistent. |
 | Serialization layout | `NALIX013`-`NALIX016`, `NALIX021`-`NALIX022`, `NALIX034`, `NALIX046`, `NALIX051` | Validates explicit layout, `SerializeOrder`, header conflicts, dynamic members, and fixed-size contracts. |
@@ -51,7 +51,7 @@ For the complete source-synchronized list, see
 than broad rewrites. Current providers cover these workflows:
 
 | Workflow | Representative providers |
-|---|---|
+| --- | --- |
 | Packet/controller shape | `PacketControllerCodeFixProvider`, `PacketOpcodeCodeFixProvider`, `PacketDeserializeCodeFixProvider`, `PacketRegistryDeserializerCodeFixProvider`, `PacketSelfTypeCodeFixProvider`, `GenericPacketHandlerCodeFixProvider` |
 | Serialization attributes | `SerializeOrderMissingCodeFixProvider`, `DuplicateSerializeOrderCodeFixProvider`, `SerializationConflictCodeFixProvider` |
 | Middleware and dispatch setup | `MiddlewareCodeFixProvider`, `NullMiddlewareCodeFixProvider`, `DispatchLoopCountCodeFixProvider` |

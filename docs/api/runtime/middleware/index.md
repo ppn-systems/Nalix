@@ -37,7 +37,7 @@ For the detailed runner lifecycle, ordering rules, and error semantics, see the
 ## Middleware stages
 
 | Stage | Triggered when | Common use cases |
-|---|---|---|
+| --- | --- | --- |
 | `Inbound` | Before the handler runs. | Permission checks, rate limits, concurrency gates, timeout wrappers. |
 | `OutboundAlways` | During the outbound-always pass, including failure cases. | Auditing, metrics, cleanup, transaction finalization. |
 | `Outbound` | After successful handler execution when outbound was not skipped. | Response transformation, compression, encryption updates. |
@@ -45,7 +45,7 @@ For the detailed runner lifecycle, ordering rules, and error semantics, see the
 ## Built-in runtime middleware
 
 | Middleware | Order | Stage | Runtime behavior |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | [Permission Middleware](./permission-middleware.md) | `-50` | Inbound | Enforces `[PacketPermission]` and rejects unauthorized packets with fail-closed directives. |
 | [Policy Rate Limiter](./policy-rate-limiter.md) | `50` | Inbound | Enforces attribute-driven per-opcode/per-address policy limits and global endpoint fallback limits. |
 | [Concurrency Gate](./concurrency-gate.md) | `50` | Inbound | Bounds simultaneous handler execution per opcode and optionally queues excess work. |

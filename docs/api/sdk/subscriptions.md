@@ -2,6 +2,9 @@
 
 The subscription system in `Nalix.SDK` provides a high-level, packet-oriented event model. It abstracts away the complexities of `IBufferLease` management, ensuring that memory is safely returned to the pool once your handler completes.
 
+!!! important "Client-side helper"
+    SDK subscriptions are client-side helpers for `TransportSession` instances. Server-side packet dispatch should use runtime handlers and middleware, not SDK subscription extensions.
+
 ## Subscription Lifecycle
 
 ```mermaid

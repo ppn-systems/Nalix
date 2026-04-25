@@ -16,7 +16,7 @@ responses such as `UNAUTHORIZED`, `RATE_LIMITED`, and `TIMEOUT`.
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime effect |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `DefaultCooldownMs` | `200` | `0..60000` | Minimum cooldown, in milliseconds, between repeated directives of the same category per connection. `0` disables suppression. |
 
 `Validate()` uses `System.ComponentModel.DataAnnotations.Range` and calls
@@ -61,7 +61,7 @@ flowchart LR
 The guard stores cooldown state in `connection.Attributes`:
 
 | Attribute | Purpose |
-|---|---|
+| --- | --- |
 | `ConnectionAttributes.InboundDirectiveGuardSyncRoot` | Per-connection lock object used to serialize updates to directive timestamps. |
 | Caller-provided `lastSentAtAttributeKey` | Stores the last sent timestamp as `long Environment.TickCount64`. |
 
@@ -72,7 +72,7 @@ that per-connection lock.
 ## Current Callers
 
 | Middleware | Suppressed directive category | Attribute key |
-|---|---|---|
+| --- | --- | --- |
 | `PermissionMiddleware` | Unauthorized response | `InboundDirectiveUnauthorizedLastSentAtMs` |
 | `RateLimitMiddleware` | Rate-limited response | `InboundDirectiveRateLimitedLastSentAtMs` |
 | `ConcurrencyMiddleware` | Rate-limited response for concurrency denial/failure | `InboundDirectiveRateLimitedLastSentAtMs` |

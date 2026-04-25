@@ -24,7 +24,7 @@ Initialization performs the following source-defined actions:
 ## Properties
 
 | Property | Type | Default | Purpose |
-|---|---|---:|---|
+| --- | --- | ---: | --- |
 | `DisableConsoleClear` | `bool` | `false` | If `true`, prevents the console from being cleared before the startup banner. Console clearing is also skipped when output is redirected. |
 | `DisableStartupBanner` | `bool` | `false` | If `true`, hides the Nalix banner and diagnostic info. |
 | `MinWorkerThreads` | `int` | `0` | Min worker threads (0 = system default). Recommended by the source comment: `processor count * 2`. |
@@ -35,16 +35,20 @@ Initialization performs the following source-defined actions:
 ## Production Stability
 
 ### Global Exception Handling
+
 When `EnableGlobalExceptionHandling` is true, Nalix registers handlers for:
+
 - `AppDomain.CurrentDomain.UnhandledException`: Logs critical failures and flushes configuration when the process is terminating.
 - `TaskScheduler.UnobservedTaskException`: Logs and marks the exception observed to prevent unobserved task escalation.
 
 ### ThreadPool Tuning
+
 For high-concurrency servers, setting `MinWorkerThreads` ensures that the .NET ThreadPool can respond immediately to burst traffic without waiting for its injection algorithm to scale up.
 
 `Bootstrap.Initialize()` preserves existing ThreadPool minimums for any value left at `0`. For example, setting only `MinWorkerThreads` keeps the current IOCP minimum.
 
 ### High-Precision Timer (Windows)
+
 Enabling `EnableHighPrecisionTimer` calls the Windows `timeBeginPeriod` API. This improves the resolution of `Task.Delay` and other timer-based operations, which is useful for low-latency network heartbeat and timeout logic.
 
 Nalix calls `timeEndPeriod(1)` during process exit only if high-precision timing was successfully enabled.
@@ -52,6 +56,7 @@ Nalix calls `timeEndPeriod(1)` during process exit only if high-precision timing
 ## Startup Diagnostics
 
 On startup, Nalix prints an initialization report including:
+
 - **Version**: Hosting assembly version.
 - **PID**: Process identifier.
 - **OS**: Operating system version string.

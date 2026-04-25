@@ -2,7 +2,7 @@
 
 `Nalix.SDK.Transport.Extensions` includes small convenience APIs for the most common session-level control flows. These helpers are thin wrappers over `Control` packets and `RequestAsync<TResponse>` so callers do not need to manually manage sequence ids, predicates, and control-frame construction.
 
-This is a high-level convenience page for application code. For manual `Control` construction and matching, see [Session Extensions](./tcp-session-extensions.md); for frame I/O internals, see [Frame Reader and Sender](./frame-reader-and-sender.md).
+This is a high-level convenience page for client application code. These helpers are not server APIs. For manual `Control` construction and matching, see [Session Extensions](./tcp-session-extensions.md); for frame I/O internals, see [Frame Reader and Sender](./frame-reader-and-sender.md).
 
 ## Source mapping
 

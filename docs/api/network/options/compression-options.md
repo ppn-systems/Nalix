@@ -13,7 +13,7 @@ how large a serialized payload must be before compression is attempted.
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime effect |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `Enabled` | `true` | None. | Allows outbound compression when the frame size threshold is met. |
 | `MinSizeToCompress` | `1024` | `0..int.MaxValue` | Minimum payload size, in bytes, before outbound compression is attempted. |
 
@@ -61,7 +61,7 @@ threshold applies to the payload portion rather than the full frame length.
 ## Transform Ordering
 
 | Direction | Source order | Notes |
-|---|---|---|
+| --- | --- | --- |
 | Outbound | Compress, then encrypt | Compression is attempted before encryption so encrypted data is not compressed. |
 | Inbound | Decrypt, then decompress | The pipeline re-reads frame flags after decryption before checking compression. |
 

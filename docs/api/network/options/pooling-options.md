@@ -17,7 +17,7 @@ registration.
 ## Defaults and Validation
 
 | Pool | Capacity property | Default | Preallocate property | Default | Validation |
-|---|---|---:|---|---:|---|
+| --- | --- | ---: | --- | ---: | --- |
 | Accept context | `AcceptContextCapacity` | `4096` | `AcceptContextPreallocate` | `20` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
 | Socket async event args | `SocketArgsCapacity` | `4096` | `SocketArgsPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
 | Receive context | `ReceiveContextCapacity` | `4096` | `ReceiveContextPreallocate` | `32` | Capacity `1..1_000_000`; preallocate `0..1_000_000`; preallocate must be `<=` capacity. |
@@ -83,13 +83,13 @@ and keeps it for the receive loop. The context wraps a reusable
 `TaskCompletionSource` allocations, while synchronous completions return through the
 `ValueTask<int>` fast path.
 
-> [!IMPORTANT]
-> The current source defines `ReceiveContextCapacity` and
-> `ReceiveContextPreallocate`, but no source path currently calls
-> `SetMaxCapacity<PooledSocketReceiveContext>(...)` or
-> `Prealloc<PooledSocketReceiveContext>(...)`. The receive context is still pooled
-> through `ObjectPoolManager`, but these two knobs are not wired to a runtime
-> initializer in the audited source.
+!!! important "Receive context capacity"
+    The current source defines `ReceiveContextCapacity` and
+    `ReceiveContextPreallocate`, but no source path currently calls
+    `SetMaxCapacity<PooledSocketReceiveContext>(...)` or
+    `Prealloc<PooledSocketReceiveContext>(...)`. The receive context is still pooled
+    through `ObjectPoolManager`, but these two knobs are not wired to a runtime
+    initializer in the audited source.
 
 ### Timeout Task Pool
 

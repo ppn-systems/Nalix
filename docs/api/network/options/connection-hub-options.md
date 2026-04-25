@@ -13,7 +13,7 @@ for `ConnectionHub`.
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime consumer |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `MaxConnections` | `-1` | `-1..int.MaxValue`; `0` rejected by `Validate()` | Global active-connection capacity in `TryReserveCapacitySlot(...)`. |
 | `DropPolicy` | `DropNewest` | Must be a `DropPolicy` enum value | Capacity handling strategy when `MaxConnections` is reached. |
 | `ParallelDisconnectDegree` | `-1` | `-1..int.MaxValue`; `0` rejected by `Validate()` | `ParallelOptions.MaxDegreeOfParallelism` in `CloseAllConnections(...)`. |

@@ -37,7 +37,7 @@ public async Task HandleUpload(PacketContext<UploadPacket> request)
 The attribute is declared for methods only:
 
 | Property | Meaning |
-|---|---|
+| --- | --- |
 | `Max` | Maximum simultaneous executions for the opcode. Must be greater than zero. |
 | `Queue` | When `true`, excess requests wait for a slot. When `false`, they fail fast. |
 | `QueueMax` | Maximum number of queued requests. Must not be negative. |
@@ -97,7 +97,7 @@ When `Queue` is `true`, `ConcurrencyMiddleware` calls
 The queue path rejects by throwing:
 
 | Exception | Runtime meaning |
-|---|---|
+| --- | --- |
 | `ConcurrencyFailureException` | Circuit breaker is open, entry is disposing, queue is full, or no-queue async entry was saturated. |
 | `TimeoutException` | Queued wait exceeded `WaitTimeoutSeconds`. |
 | `OperationCanceledException` | Caller cancellation token fired while waiting. |
@@ -130,10 +130,10 @@ contains:
 - last-used timestamp
 - disposal state
 
-> [!IMPORTANT]
-> Entry configuration is keyed by opcode. Once an opcode entry exists, later
-> requests for the same opcode reuse that entry instead of rebuilding it from a
-> different attribute shape.
+!!! important "Opcode-keyed configuration"
+    Entry configuration is keyed by opcode. Once an opcode entry exists, later
+    requests for the same opcode reuse that entry instead of rebuilding it from a
+    different attribute shape.
 
 ## Cleanup and circuit breaker
 

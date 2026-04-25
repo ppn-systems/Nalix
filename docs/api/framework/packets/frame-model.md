@@ -19,7 +19,7 @@ This page covers the core `Nalix.Framework.DataFrames` abstractions that sit und
 ## Public members at a glance
 
 | Type | Public members |
-|---|---|
+| --- | --- |
 | `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
 | `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)`, `Deserialize(ReadOnlySpan<byte>, ref TSelf)` |
 | `FrameTransformer` | low-level payload transform helpers and size calculations |
@@ -47,7 +47,7 @@ It also defines the common packet lifecycle methods:
 
 Use `FrameBase` when you want to understand the shared header layout or build infrastructure that only cares about `IPacket`-level metadata.
 
-## PacketBase<TSelf>
+## PacketBase<`TSelf`>
 
 `PacketBase<TSelf>` is the usual base class for real packet implementations.
 
@@ -132,7 +132,7 @@ int encryptedLength = destLease.Length;
 ## When to use which layer
 
 | Need | Start with |
-|---|---|
+| --- | --- |
 | Define a new packet type | `PacketBase<TSelf>` |
 | Inspect common packet header fields | `FrameBase` |
 | Encrypt or compress a full framed packet | `PacketCipher` / `PacketCompression` |

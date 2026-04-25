@@ -7,7 +7,7 @@ packets fail-closed when permission metadata is missing or insufficient.
 ## Source Mapping
 
 | Source | Responsibility |
-|---|---|
+| --- | --- |
 | `src/Nalix.Network.Pipeline/Inbound/PermissionMiddleware.cs` | Runtime permission enforcement and unauthorized directive emission. |
 | `src/Nalix.Common/Middleware/MiddlewareOrderAttribute.cs` | Declares middleware order metadata. |
 | `src/Nalix.Common/Middleware/MiddlewareStageAttribute.cs` | Declares middleware stage metadata. |
@@ -18,7 +18,7 @@ packets fail-closed when permission metadata is missing or insufficient.
 ## Runtime Metadata
 
 | Metadata | Value |
-|---|---:|
+| --- | ---: |
 | Stage | `MiddlewareStage.Inbound` |
 | Order | `-50` |
 | Packet type | `IPacket` |
@@ -40,9 +40,9 @@ Everything else is denied:
 - missing `[PacketPermission]` metadata;
 - a required permission level higher than the connection's current level.
 
-> [!IMPORTANT]
-> This is fail-closed behavior. A handler without permission metadata is not treated as
-> public by this middleware; it is rejected as unauthorized.
+!!! important "Fail-closed behavior"
+    This is fail-closed behavior. A handler without permission metadata is not treated as
+    public by this middleware; it is rejected as unauthorized.
 
 ## Permission Flow
 
@@ -67,7 +67,7 @@ On denial, the middleware rents a `Directive` from `PacketPool<Directive>` throu
 `PacketLease<Directive>` and initializes it as:
 
 | Field | Runtime value |
-|---|---|
+| --- | --- |
 | `ControlType` | `FAIL` |
 | `ProtocolReason` | `UNAUTHORIZED` |
 | `ProtocolAdvice` | `NONE` |

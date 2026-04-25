@@ -8,7 +8,7 @@ global endpoint limiter instead.
 ## Source Mapping
 
 | Source | Responsibility |
-|---|---|
+| --- | --- |
 | `src/Nalix.Network.Pipeline/Throttling/PolicyRateLimiter.cs` | Policy quantization, shared limiter lifecycle, diagnostics, cleanup, and disposal. |
 | `src/Nalix.Network.Pipeline/Inbound/RateLimitMiddleware.cs` | Chooses policy limiter vs. global token bucket and sends denial directives. |
 | `src/Nalix.Common/Networking/Packets/PacketRateLimitAttribute.cs` | Method-level rate-limit metadata. |
@@ -25,7 +25,7 @@ public sealed class PacketRateLimitAttribute(
 ```
 
 | Property | Meaning |
-|---|---|
+| --- | --- |
 | `RequestsPerSecond` | Requested steady-state rate. Values `<= 0` are treated as unlimited. |
 | `Burst` | Requested burst size. Values `<= 0` are invalid and become hard denials. |
 
@@ -45,17 +45,17 @@ else
 }
 ```
 
-> [!IMPORTANT]
-> `PolicyRateLimiter.Evaluate(...)` itself returns allowed when no rate-limit attribute is
-> present. In the default middleware path, however, packets without the attribute do not
-> call the policy limiter; they fall back to the global per-endpoint `TokenBucketLimiter`.
+!!! important "Rate-limit fallback"
+    `PolicyRateLimiter.Evaluate(...)` itself returns allowed when no rate-limit attribute is
+    present. In the default middleware path, however, packets without the attribute do not
+    call the policy limiter; they fall back to the global per-endpoint `TokenBucketLimiter`.
 
 ## Policy Quantization
 
 Requested policies are rounded up into predefined tiers before a limiter is chosen:
 
 | Dimension | Tiers |
-|---|---|
+| --- | --- |
 | RPS | `1`, `2`, `4`, `8`, `16`, `32`, `64`, `128` |
 | Burst | `1.0`, `2.0`, `4.0`, `8.0`, `16.0`, `32.0`, `64.0` |
 
@@ -65,7 +65,7 @@ at least `1.0` before a token bucket is created.
 Examples:
 
 | Attribute | Effective policy |
-|---|---|
+| --- | --- |
 | `[PacketRateLimit(1)]` | `(RPS: 1, Burst: 1.0)` |
 | `[PacketRateLimit(5, 2.5)]` | `(RPS: 8, Burst: 4.0)` |
 | `[PacketRateLimit(200, 100)]` | `(RPS: 128, Burst: 64.0)` |
@@ -89,7 +89,7 @@ When a quantized policy has no active entry, `PolicyRateLimiter` creates a
 `TokenBucketLimiter` with:
 
 | TokenBucketOptions field | Value source |
-|---|---|
+| --- | --- |
 | `CapacityTokens` | quantized burst cast to `int` |
 | `RefillTokensPerSecond` | quantized RPS |
 | `TokenScale` | global `TokenBucketOptions` defaults |
@@ -149,7 +149,7 @@ Missing `context.Connection?.NetworkEndpoint` is logged and denied as a soft thr
 `Evaluate` returns `TokenBucketLimiter.RateLimitDecision`:
 
 | Scenario | Allowed | Reason | RetryAfterMs | Credit |
-|---|---:|---|---:|---:|
+| --- | ---: | --- | ---: | ---: |
 | No attribute | `true` | `None` | `0` | `ushort.MaxValue` |
 | `RequestsPerSecond <= 0` | `true` | `None` | `0` | `ushort.MaxValue` |
 | `Burst <= 0` | `false` | `HardLockout` | `int.MaxValue` | `0` |

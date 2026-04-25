@@ -96,7 +96,6 @@ The builder uses a fluent API to configure the host before it is built.
 
 !!! note
     The builder automatically registers built-in `SessionHandlers`, `HandshakeHandlers`, and `SystemControlHandlers` in its constructor before user-defined handler discovery runs.
-
     `Configure<TOptions>(...)` applies delegates during host activation, not at the fluent call site. Use it for options that must be loaded into `ConfigurationManager` before dispatch and listeners start.
 
 ### Packet and Handler Discovery

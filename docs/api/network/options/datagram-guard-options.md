@@ -44,7 +44,7 @@ flowchart LR
 ## Defaults and Validation
 
 | Property | Default | Valid range | Source behavior |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `IPv4Windows` | `65_536` | `1..10_000_000` | Maximum number of IPv4 source windows tracked at once. |
 | `IPv6Windows` | `16_384` | `1..10_000_000` | Maximum number of IPv6 source windows tracked at once. |
 | `IPv4Capacity` | `1024` | `1..10_000_000` | Initial capacity hint for the IPv4 source map. |
@@ -67,7 +67,7 @@ Validation is implemented with `System.ComponentModel.DataAnnotations.Range` and
 The guard stores each source in a `WindowSlot` with a single packed `long`:
 
 | Packed field | Meaning |
-|---|---|
+| --- | --- |
 | high 32 bits | current second token from `Environment.TickCount64 / 1000` |
 | low 32 bits | packet count in that second |
 
@@ -77,7 +77,7 @@ preserving a precise one-second packet counter per source.
 ## IPv4 and IPv6 Tracking
 
 | Address family | Key type | Source note |
-|---|---|---|
+| --- | --- | --- |
 | IPv4 | `uint` from `IPAddress.Address` | Chosen to avoid `IPAddress` key allocations and hashing overhead. |
 | IPv6 | `string` from `IPAddress.ToString()` | Used as the less-common fallback path for UDP DDoS scenarios. |
 

@@ -2,6 +2,9 @@
 
 `TcpSession` is the core TCP client transport in `Nalix.SDK`. It handles the full lifecycle of a client connection, including reconnection logic, packet serialization, framed transport, and asynchronous message dispatching.
 
+!!! important "Client-side transport"
+    `TcpSession` is a client-side transport. Do not use it in server listener code. Server TCP connections are owned by `Nalix.Network` listener/connection types and processed through `Nalix.Runtime`.
+
 ## Lifecycle Flow
 
 ```mermaid
@@ -10,17 +13,22 @@ sequenceDiagram
     participant S as TcpSession
     participant R as FrameReader
     participant W as FrameSender
-    participant N as Network
-    
-    A->>S: ConnectAsync()
-    S->>N: Socket.Connect()
-    S->>R: Start ReceiveLoop
-    A->>S: SendAsync(packet)
-    S->>W: SendAsync(payload)
-    W->>N: Socket.Send()
-    N-->>R: Payload Received
-    R-->>S: Frame Decoded
-    S-->>A: OnMessageReceived / OnMessageAsync
+    participant N as TCP Socket
+
+    A->>S: ConnectAsync(host, port, ct)
+    S->>S: acquire connection lock
+    S->>N: Socket.ConnectAsync()
+    S-->>A: OnConnected
+    S->>R: start ReceiveLoopAsync on LongRunning task
+    A->>S: SendAsync(packet, encrypt, ct)
+    S->>S: mark packet RELIABLE + serialize to BufferLease
+    S->>W: FrameSender.SendAsync(lease, encrypt, ct)
+    W->>N: transform, frame, lock, Socket.SendAsync
+    N-->>R: length-prefixed frame bytes
+    R->>R: validate length, reassemble, ProcessInbound
+    R->>S: HandleReceiveMessage(IBufferLease)
+    S-->>A: OnMessageReceived sync event
+    S-->>A: OnMessageAsync with retained lease
 ```
 
 ## Source mapping

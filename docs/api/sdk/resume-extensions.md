@@ -8,6 +8,26 @@
 - `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`
 - `src/Nalix.SDK/Options/TransportOptions.cs`
 
+## Implementation Flow
+
+```mermaid
+flowchart TD
+    A["ConnectWithResumeAsync(host, port, ct)"] --> B["ConnectAsync(host, port, ct)"]
+    B --> C{"ResumeEnabled and has SessionToken + Secret?"}
+    C -- no --> H["HandshakeAsync(ct)"]
+    C -- yes --> R["ResumeSessionAsync(ct)"]
+    R --> S{"ProtocolReason.NONE?"}
+    S -- yes --> OK["return true - resumed"]
+    S -- no --> F{"ResumeFallbackToHandshake?"}
+    F -- no --> X["throw NetworkException"]
+    F -- yes --> D{"still connected?"}
+    D -- yes --> DC["DisconnectAsync()"]
+    D -- no --> RC["ConnectAsync(host, port, ct)"]
+    DC --> RC
+    RC --> H
+    H --> N["return false - fresh handshake"]
+```
+
 ## 1. Role and Design
 
 The primary role of these extensions is to orchestrate the `SESSION_SIGNAL` flow (REQUEST/RESPONSE) while abstracting the complexities of state restoration from the main application logic.

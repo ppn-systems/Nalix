@@ -8,7 +8,7 @@ setup.
 ## Source Mapping
 
 | Source | Runtime responsibility |
-|---|---|
+| --- | --- |
 | `src/Nalix.Network/Options/NetworkSocketOptions.cs` | Defines defaults, INI comments, and validation attributes. |
 | `src/Nalix.Network.Hosting/Bootstrap.cs` | Materializes `NetworkSocketOptions` during bootstrap. |
 | `src/Nalix.Network/Listeners/TcpListener/TcpListener.Core.cs` | Loads and validates the static TCP listener config. |
@@ -21,7 +21,7 @@ setup.
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime effect |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `Port` | `57206` | `1..65535`; setter rejects `0` | Default TCP/UDP listen port for constructors that do not pass an explicit port. |
 | `Backlog` | `512` | `1..65535` | Passed to TCP `Socket.Listen(backlog)`. |
 | `EnableTimeout` | `true` | none | Enables TCP idle-timeout registration/removal with the shared `TimingWheel`. |
@@ -42,9 +42,9 @@ construction. UDP listener static initialization currently validates its guard o
 but does not call `s_options.Validate()` directly; bootstrap materialization and TCP
 listener construction still validate the same source type when those paths are used.
 
-> [!NOTE]
-> The `ProcessChannelCapacity` INI comment says default `128`, but the source default is
-> `256`. Treat `256` as the source-of-truth runtime value.
+!!! note "Process channel capacity default"
+    The `ProcessChannelCapacity` INI comment says default `128`, but the source default is
+    `256`. Treat `256` as the source-of-truth runtime value.
 
 ## Construction and Ownership Flow
 
@@ -89,7 +89,7 @@ Accepted TCP client sockets are configured by `InitializeOptions(Socket)`:
 Keep-alive tuning attempts the cross-platform TCP options first:
 
 | Option | Value |
-|---|---:|
+| --- | ---: |
 | `TcpKeepAliveTime` | `3` seconds |
 | `TcpKeepAliveInterval` | `1` second |
 | `TcpKeepAliveRetryCount` | `3` probes |

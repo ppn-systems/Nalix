@@ -16,7 +16,7 @@ normal-callback throttles in `AsyncCallback`.
 ## Defaults and Validation
 
 | Property | Default | Valid range | Runtime effect |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `MaxPerConnectionPendingPackets` | `16` | `1..1024` | Layer 1 cap for receive-path packets queued for one connection but not yet processed. |
 | `MaxPerConnectionOpenFragmentStreams` | `4` | `1..256` | Layer 1 cap for concurrently open fragmented streams for one connection. |
 | `MaxPendingNormalCallbacks` | `10000` | `100..1000000` | Layer 2 global cap for normal-priority callbacks pending in `AsyncCallback`. |
@@ -142,12 +142,12 @@ back to `PooledConnectEventContext.Get()`, which uses `ObjectPoolManager`.
 `ConnectEventContextCapacity` / `ConnectEventContextPreallocate` into
 `ObjectPoolManager` for this fallback pool.
 
-> [!IMPORTANT]
-> `MaxPooledCallbackStates` is validated as part of `NetworkCallbackOptions`, but the
-> current source does not read it from `AsyncCallback`. The retained callback-state
-> capacity is presently controlled by `PoolingOptions.ConnectEventContextCapacity` and
-> `PoolingOptions.ConnectEventContextPreallocate`, plus each `Connection`'s fixed local
-> eight-slot context pool.
+!!! important "Callback-state capacity"
+    `MaxPooledCallbackStates` is validated as part of `NetworkCallbackOptions`, but the
+    current source does not read it from `AsyncCallback`. The retained callback-state
+    capacity is presently controlled by `PoolingOptions.ConnectEventContextCapacity` and
+    `PoolingOptions.ConnectEventContextPreallocate`, plus each `Connection`'s fixed local
+    eight-slot context pool.
 
 ## Local Connection Pools and Effective Concurrency
 

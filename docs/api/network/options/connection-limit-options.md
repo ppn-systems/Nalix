@@ -16,7 +16,7 @@ connection error cutoffs, and per-endpoint cleanup behavior used by
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime consumer |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `MaxConnectionsPerIpAddress` | `10` | `1..10_000` | `ConnectionGuard` concurrent slot limit per endpoint. |
 | `MaxConnectionsPerWindow` | `10` | `1..10_000_000` | `ConnectionGuard` rate-window admission check. |
 | `BanDuration` | `00:05:00` | `00:00:01..1.00:00:00` | Ban length after connection-attempt abuse. |

@@ -13,7 +13,7 @@ threshold.
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime effect |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `BucketCount` | `512` | `1..int.MaxValue` | Number of timing wheel buckets. Power-of-two values enable a bitmask fast path for bucket selection. |
 | `TickDuration` | `1000` | `1..int.MaxValue` | Tick interval, in milliseconds, used by the background `PeriodicTimer`. |
 | `IdleTimeoutMs` | `60000` | `1..int.MaxValue` | Idle threshold, in milliseconds, after which registered connections are force-closed. |

@@ -14,7 +14,7 @@ tracking caps, sharded storage, cleanup, and diagnostic report sizing.
 ## Defaults and Validation
 
 | Property | Default | Valid range | Runtime effect |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `CapacityTokens` | `12` | `1..int.MaxValue` | Maximum whole-token burst capacity for each endpoint. |
 | `RefillTokensPerSecond` | `6.0` | `0.001..double.MaxValue` | Sustained refill rate converted to fixed-point microtokens. |
 | `HardLockoutSeconds` | `0` | `0..int.MaxValue` | Stopwatch-tick duration for hard lockout after soft violations escalate. |
@@ -52,11 +52,11 @@ Each endpoint state stores balances in fixed-point microtokens. A request consum
 exactly `_options.TokenScale`; whole-token credit in responses and reports is computed
 by integer-dividing the microtoken balance by `TokenScale` and clamping to `ushort`.
 
-> [!IMPORTANT]
-> `Bootstrap.Initialize()` currently contains the `TokenBucketOptions` materialization
-> call as a commented line. In the current source, these options are loaded when a
-> `TokenBucketLimiter` instance is constructed, unless a caller passes options
-> explicitly.
+!!! important "Bootstrap materialization"
+    `Bootstrap.Initialize()` currently contains the `TokenBucketOptions` materialization
+    call as a commented line. In the current source, these options are loaded when a
+    `TokenBucketLimiter` instance is constructed, unless a caller passes options
+    explicitly.
 
 ## Endpoint Sharding
 
@@ -126,11 +126,11 @@ HardBlockedUntilSw = now + TO_TICKS(HardLockoutSeconds)
 escalation decision can still return `HardLockout`, but the next evaluation will not
 remain blocked because the stored deadline is not greater than the new `now` tick.
 
-> [!IMPORTANT]
-> `CooldownResetSec` is present in `TokenBucketOptions`, appears in the INI comment,
-> and is included in high-level policy intent, but the current `TokenBucketLimiter`
-> implementation does not read it. Soft violations reset by the soft violation window;
-> hard lockout expiry is controlled by `HardLockoutSeconds`.
+!!! important "Cooldown reset option"
+    `CooldownResetSec` is present in `TokenBucketOptions`, appears in the INI comment,
+    and is included in high-level policy intent, but the current `TokenBucketLimiter`
+    implementation does not read it. Soft violations reset by the soft violation window;
+    hard lockout expiry is controlled by `HardLockoutSeconds`.
 
 ## Endpoint Tracking Cap
 

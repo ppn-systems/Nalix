@@ -14,7 +14,7 @@ queuing, idle-entry cleanup, and circuit-breaker behavior.
 ## Defaults and Validation
 
 | Property | Default | Valid range | Runtime effect |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `CircuitBreakerThreshold` | `0.95` | `0.1..1.0` | Opens the gate when rejected attempts divided by total attempts is greater than this value. |
 | `CircuitBreakerMinSamples` | `1000` | `10..1000000` | Minimum acquired+rejected attempts required before the circuit breaker can open. |
 | `CircuitBreakerResetAfterSeconds` | `60` | `1..3600` | Duration to keep the circuit open before allowing it to close and reset counters. |
@@ -58,10 +58,10 @@ It then registers a recurring cleanup job with `TaskManager.ScheduleRecurring()`
 - jitter: `10` seconds;
 - execution timeout: `5` seconds.
 
-> [!IMPORTANT]
-> `Bootstrap.Initialize()` currently contains the `ConcurrencyOptions` materialization
-> call as a commented line. In the current source, these options are loaded when a
-> `ConcurrencyGate` instance is constructed, not during hosting bootstrap.
+!!! important "Bootstrap materialization"
+    `Bootstrap.Initialize()` currently contains the `ConcurrencyOptions` materialization
+    call as a commented line. In the current source, these options are loaded when a
+    `ConcurrencyGate` instance is constructed, not during hosting bootstrap.
 
 ## TryEnter Flow
 

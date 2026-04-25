@@ -14,7 +14,7 @@ persistence policy used when connections leave `ConnectionHub`.
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime consumer |
-|---|---:|---|---|
+| --- | ---: | --- | --- |
 | `SessionTtl` | `00:30:00` | Required and `> TimeSpan.Zero` | `SessionStoreBase.CreateSession(...)` sets `ExpiresAtUnixMilliseconds`. |
 | `AutoSaveOnUnregister` | `true` | None | `ConnectionHub.TryUnregisterCore(...)` gates automatic persistence. |
 | `MinAttributesForPersistence` | `4` | `0..int.MaxValue` | `ConnectionHub.TryPersistSession(...)` rejects low-value sessions. |

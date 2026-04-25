@@ -8,7 +8,7 @@ per-packet chain allocations.
 ## Source Mapping
 
 | Source | Responsibility |
-|---|---|
+| --- | --- |
 | `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs` | Runtime pipeline registration, ordering, snapshots, pooled execution, inbound/outbound transition logic. |
 | `src/Nalix.Common/Middleware/IPacketMiddleware.cs` | Middleware invocation contract. |
 | `src/Nalix.Common/Middleware/MiddlewareOrderAttribute.cs` | Numeric middleware ordering metadata. |
@@ -45,7 +45,7 @@ terminates the current pipeline path.
 Metadata defaults are source-defined:
 
 | Metadata | Default when attribute is absent |
-|---|---|
+| --- | --- |
 | `MiddlewareOrder` | `0` |
 | `MiddlewareStage` | `Inbound` |
 | `AlwaysExecute` | `false` |
@@ -58,7 +58,7 @@ reflection is paid once per middleware type.
 Pipeline lists are sorted when snapshots are rebuilt:
 
 | Stage list | Sort direction | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | inbound | ascending `Order` | lower order runs earlier before the handler. |
 | outbound | descending `Order` | higher order runs earlier after the handler. |
 | outbound always | descending `Order` | same outbound direction, but may run even when normal outbound is skipped. |
@@ -66,17 +66,17 @@ Pipeline lists are sorted when snapshots are rebuilt:
 Built-in inbound middleware currently declares:
 
 | Middleware | Stage | Order | Notes |
-|---|---|---:|---|
+| --- | --- | ---: | --- |
 | `PermissionMiddleware` | `Inbound` | `-50` | Runs early and fail-closes missing/insufficient permission metadata. |
 | `RateLimitMiddleware` | `Inbound` | `50` | Uses packet policy limiter when `[PacketRateLimit]` exists, otherwise global endpoint token bucket. |
 | `ConcurrencyMiddleware` | `Inbound` | `50` | Uses `[PacketConcurrencyLimit]`; no attribute means pass-through. |
 | `TimeoutMiddleware` | `Inbound` | `75` | Wraps downstream work when `[PacketTimeout]` has a positive timeout. |
 
-> [!IMPORTANT]
-> `RateLimitMiddleware` and `ConcurrencyMiddleware` have the same order (`50`). The
-> runtime sort compares only `Order`; do not rely on a documented tie-breaker between
-> equal-order middleware. Assign distinct orders in custom pipelines when relative order
-> matters.
+!!! important "Equal middleware order"
+    `RateLimitMiddleware` and `ConcurrencyMiddleware` have the same order (`50`). The
+    runtime sort compares only `Order`; do not rely on a documented tie-breaker between
+    equal-order middleware. Assign distinct orders in custom pipelines when relative order
+    matters.
 
 ## Full Execution Flow
 
