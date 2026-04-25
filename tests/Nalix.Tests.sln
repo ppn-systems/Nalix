@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Analyzers", "..\src\N
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Analyzers.CodeFixes", "..\src\Nalix.Analyzers.CodeFixes\Nalix.Analyzers.CodeFixes.csproj", "{6F034208-02C2-4DD5-913C-CF1D7B26E7AD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Pipeline.Tests", "Nalix.Network.Pipeline.Tests\Nalix.Network.Pipeline.Tests.csproj", "{4916B720-E752-44FD-AD74-79F41D589B61}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Runtime.Pipeline.Tests", "Nalix.Runtime.Pipeline.Tests\Nalix.Runtime.Pipeline.Tests.csproj", "{4916B720-E752-44FD-AD74-79F41D589B61}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Common", "..\src\Nalix.Common\Nalix.Common.csproj", "{A211E54A-0DDB-4179-A072-551CD090DA6B}"
 EndProject
@@ -21,7 +21,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Framework", "..\src\N
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network", "..\src\Nalix.Network\Nalix.Network.csproj", "{9A2197A7-5108-445B-8B54-4B46E525A7D3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Pipeline", "..\src\Nalix.Network.Pipeline\Nalix.Network.Pipeline.csproj", "{9AF6F544-FB57-432B-8CCF-C32B65B9F82D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Runtime.Pipeline", "..\src\Nalix.Runtime.Pipeline\Nalix.Runtime.Pipeline.csproj", "{9AF6F544-FB57-432B-8CCF-C32B65B9F82D}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Runtime.Tests", "Nalix.Runtime.Tests\Nalix.Runtime.Tests.csproj", "{D55E920A-8B56-43AD-A799-6E6154193427}"
 EndProject
@@ -30,6 +30,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.SDK.Tests", "Nalix.SDK.Tests\Nalix.SDK.Tests.csproj", "{6C159F34-B681-42FC-855D-24704328AD47}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.SDK", "..\src\Nalix.SDK\Nalix.SDK.csproj", "{9EAAE6B5-BCFA-43E4-A480-988FF8C72246}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Common.Tests", "Nalix.Common.Tests\Nalix.Common.Tests.csproj", "{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Logging.Tests", "Nalix.Logging.Tests\Nalix.Logging.Tests.csproj", "{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -209,6 +213,30 @@ Global
 		{9EAAE6B5-BCFA-43E4-A480-988FF8C72246}.Release|x64.Build.0 = Release|Any CPU
 		{9EAAE6B5-BCFA-43E4-A480-988FF8C72246}.Release|x86.ActiveCfg = Release|Any CPU
 		{9EAAE6B5-BCFA-43E4-A480-988FF8C72246}.Release|x86.Build.0 = Release|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Debug|x64.Build.0 = Debug|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Debug|x86.Build.0 = Debug|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Release|x64.ActiveCfg = Release|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Release|x64.Build.0 = Release|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Release|x86.ActiveCfg = Release|Any CPU
+		{F78D85D9-5E4A-48FC-8E28-8DFFF869165E}.Release|x86.Build.0 = Release|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Debug|x64.Build.0 = Debug|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Debug|x86.Build.0 = Debug|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Release|x64.ActiveCfg = Release|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Release|x64.Build.0 = Release|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Release|x86.ActiveCfg = Release|Any CPU
+		{61E7FB8E-49AA-439E-8EB1-7A79309AD81F}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

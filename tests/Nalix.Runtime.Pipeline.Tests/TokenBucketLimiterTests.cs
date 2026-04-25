@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nalix.Common.Networking;
-using Nalix.Network.Pipeline.Options;
-using Nalix.Network.Pipeline.Throttling;
+using Nalix.Runtime.Pipeline.Options;
+using Nalix.Runtime.Pipeline.Throttling;
 using Xunit;
 
-namespace Nalix.Network.Pipeline.Tests;
+namespace Nalix.Runtime.Pipeline.Tests;
 
 public sealed class TokenBucketLimiterTests
 {

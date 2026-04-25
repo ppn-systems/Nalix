@@ -1,9 +1,10 @@
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using Nalix.Runtime.Pipeline.Throttling;
 using Nalix.Framework.Environment;
 
-namespace Nalix.Network.Pipeline.Tests;
+namespace Nalix.Runtime.Pipeline.Tests;
 
 internal static class TestAssemblySetup
 {

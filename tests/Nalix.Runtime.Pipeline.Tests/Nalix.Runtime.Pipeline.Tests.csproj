@@ -12,7 +12,7 @@
     <ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
     <ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
     <ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
-    <ProjectReference Include="..\..\src\Nalix.Network.Pipeline\Nalix.Network.Pipeline.csproj" />
+    <ProjectReference Include="..\..\src\Nalix.Runtime.Pipeline\Nalix.Runtime.Pipeline.csproj" />
   </ItemGroup>
 
 </Project>
