@@ -26,19 +26,19 @@ public abstract partial class UdpListenerBase
     protected virtual void Initialize()
     {
         // Determine address family from configuration.
-        AddressFamily af = s_options.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
-        IPAddress bindAddress = s_options.EnableIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
+        AddressFamily af = _options.EnableIPv6 ? AddressFamily.InterNetworkV6 : AddressFamily.InterNetwork;
+        IPAddress bindAddress = _options.EnableIPv6 ? IPAddress.IPv6Any : IPAddress.Any;
 
         _socket = new Socket(af, SocketType.Dgram, ProtocolType.Udp);
 
         // IPv6 dual-mode allows the socket to accept both IPv4 and IPv6 datagrams
         // on a single binding when the OS supports it.
-        if (af == AddressFamily.InterNetworkV6 && s_options.DualMode)
+        if (af == AddressFamily.InterNetworkV6 && _options.DualMode)
         {
             try { _socket.DualMode = true; }
             catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
                     $"dualmode-not-applied port={_port} reason={ex.GetType().Name}");
             }
@@ -53,9 +53,9 @@ public abstract partial class UdpListenerBase
         // ReceiveFromAsync can populate it without an address-family mismatch.
         _anyEndPoint = new IPEndPoint(bindAddress, 0);
 
-        s_logger?.Debug(
+        _logger?.Debug(
             $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
-            $"init-ok port={_port} af={af} reuse={s_options.ReuseAddress} buf={s_options.BufferSize}");
+            $"init-ok port={_port} af={af} reuse={_options.ReuseAddress} buf={_options.BufferSize}");
     }
 
     /// <summary>
@@ -81,11 +81,11 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(socket, nameof(socket));
 
         socket.Blocking = false;
-        socket.ExclusiveAddressUse = !s_options.ReuseAddress;
-        socket.SendBufferSize = s_options.BufferSize;
-        socket.ReceiveBufferSize = s_options.BufferSize;
+        socket.ExclusiveAddressUse = !_options.ReuseAddress;
+        socket.SendBufferSize = _options.BufferSize;
+        socket.ReceiveBufferSize = _options.BufferSize;
 
-        if (s_options.ReuseAddress)
+        if (_options.ReuseAddress)
         {
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         }
@@ -122,7 +122,7 @@ public abstract partial class UdpListenerBase
             }
             catch (SocketException ex)
             {
-                s_logger?.Error(
+                _logger?.Error(
                     "Failed to set SIO_UDP_CONNRESET. " +
                     "UDP sockets on Windows may throw SocketException(ConnectionReset) when receiving datagrams from unreachable clients.", ex);
             }

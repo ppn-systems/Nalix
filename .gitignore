@@ -58,3 +58,4 @@ site/
 scratch/
 **/build/
 .nuget/
+compare_test/

@@ -54,12 +54,14 @@ public static class ResumeExtensions
 
         try
         {
+            Console.WriteLine($"[CLIENT] Sending Session Resume Request. Token: {session.Options.SessionToken}");
             SessionResume response = await PacketAwaiter.AwaitAsync<SessionResume>(
                 session,
                 predicate: packet => packet.Stage == SessionResumeStage.RESPONSE,
                 timeoutMs: session.Options.ResumeTimeoutMillis,
                 sendAsync: token => session.SendAsync(request, encrypt: false, token),
                 ct).ConfigureAwait(false);
+            Console.WriteLine($"[CLIENT] Received Session Resume Response. Stage: {response.Stage}, Reason: {response.Reason}");
 
             if (!response.Validate(out string? validationReason))
             {

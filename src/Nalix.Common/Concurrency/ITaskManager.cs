@@ -128,4 +128,12 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="handle">The handle to the recurring job if found.</param>
     /// <returns>True if the recurring job was found; otherwise, false.</returns>
     bool TryGetRecurring(string name, [NotNullWhen(true)] out IRecurringHandle? handle);
+
+    /// <summary>
+    /// Waits asynchronously for all workers in a specific group to complete.
+    /// </summary>
+    /// <param name="group">The name of the group to wait for.</param>
+    /// <param name="ct">Optional cancellation token.</param>
+    /// <returns>A task that completes when all workers in the group have finished.</returns>
+    Task WaitGroupAsync(string group, CancellationToken ct = default);
 }

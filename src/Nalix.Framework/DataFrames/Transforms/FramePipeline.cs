@@ -24,6 +24,7 @@ public static class FramePipeline
     {
         ArgumentNullException.ThrowIfNull(current);
 
+        IBufferLease original = current;
         PacketFlags flags = current.Span.ReadFlagsLE();
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
@@ -38,19 +39,30 @@ public static class FramePipeline
                 throw new InvalidOperationException("Encrypted frame received before session key establishment.");
             }
 
-            IBufferLease next = PacketCipher.DecryptFrame(current, secret, algorithm);
-            current.Dispose();
-            current = next;
+            try
+            {
+                current = PacketCipher.DecryptFrame(current, secret, algorithm);
 
-            // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
-            flags = current.Span.ReadFlagsLE();
+                // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
+                flags = current.Span.ReadFlagsLE();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
         }
 
         if (flags.HasFlag(PacketFlags.COMPRESSED))
         {
-            IBufferLease next = PacketCompression.DecompressFrame(current);
-            current.Dispose();
-            current = next;
+            IBufferLease prev = current;
+            current = PacketCompression.DecompressFrame(current);
+
+            // If we replaced a buffer that was ALREADY a replacement (intermediate),
+            // we must dispose it to avoid a leak. We do NOT dispose the 'original' one.
+            if (!ReferenceEquals(prev, original))
+            {
+                prev.Dispose();
+            }
         }
     }
 
@@ -63,13 +75,12 @@ public static class FramePipeline
     {
         ArgumentNullException.ThrowIfNull(current);
 
+        IBufferLease original = current;
         bool doCompress = enableCompress && (current.Length - FrameTransformer.Offset) >= minSizeToCompress;
 
         if (doCompress)
         {
-            IBufferLease next = PacketCompression.CompressFrame(current);
-            current.Dispose();
-            current = next;
+            current = PacketCompression.CompressFrame(current);
         }
 
         if (enableEncrypt)
@@ -79,9 +90,15 @@ public static class FramePipeline
                 throw new InvalidOperationException("Encryption requested but no cipher suite has been negotiated.");
             }
 
-            IBufferLease next = PacketCipher.EncryptFrame(current, secret, algorithm);
-            current.Dispose();
-            current = next;
+            IBufferLease prev = current;
+            current = PacketCipher.EncryptFrame(current, secret, algorithm);
+
+            // If we replaced a buffer that was ALREADY a replacement (intermediate),
+            // we must dispose it to avoid a leak. We do NOT dispose the 'original' one.
+            if (!ReferenceEquals(prev, original))
+            {
+                prev.Dispose();
+            }
         }
     }
 }
