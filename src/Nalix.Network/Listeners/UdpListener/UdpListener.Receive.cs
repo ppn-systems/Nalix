@@ -29,12 +29,12 @@ public abstract partial class UdpListenerBase
     #region Datagram Layout
 
     /// <summary>
-    /// Session token size in bytes — equals <see cref="Snowflake.Size"/> (7 bytes).
+    /// Session token size in bytes — equals <see cref="Snowflake.Size"/> (8 bytes).
     /// The token is the connection's <see cref="ISnowflake"/> identifier issued
     /// by the server after TCP login.
     /// </summary>
     /// <remarks>
-    /// Datagram layout: <c>[SessionToken (7 bytes) | Payload ...]</c>.
+    /// Datagram layout: <c>[SessionToken (8 bytes) | Payload ...]</c>.
     /// Security is provided by the TCP handshake that issued the token; UDP carries
     /// only non-sensitive game-state data (movement, actions, etc.).
     /// </remarks>
@@ -209,9 +209,9 @@ public abstract partial class UdpListenerBase
     /// </param>
     /// <param name="remoteEndPoint">The remote endpoint that sent the datagram.</param>
     /// <remarks>
-    /// <para>Datagram layout: <c>[SessionToken (7 bytes / ISnowflake) | Payload ...]</c></para>
+    /// <para>Datagram layout: <c>[SessionToken (8 bytes / ISnowflake) | Payload ...]</c></para>
     /// <para>
-    /// The session token is the connection's <see cref="ISnowflake"/> ID (7 bytes)
+    /// The session token is the connection's <see cref="ISnowflake"/> ID (8 bytes)
     /// issued during TCP login. It maps 1:1 to a <see cref="Connection"/> in the
     /// <see cref="IConnectionHub"/>. Lightweight by design — sensitive operations
     /// go through the TCP channel.
@@ -294,7 +294,7 @@ public abstract partial class UdpListenerBase
         _ = Interlocked.Increment(ref _rxPackets);
         _ = Interlocked.Add(ref _rxBytes, lease.Length);
 
-        // Strip the 7-byte Session Token and wrap the remaining payload into a new lease.
+        // Strip the 8-byte Session Token and wrap the remaining payload into a new lease.
         // We take ownership of the underlying buffer from the original lease but only for the payload slice.
         if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length) || rawBuffer is null)
         {
@@ -304,7 +304,7 @@ public abstract partial class UdpListenerBase
 
         try
         {
-            // Create a new lease for the payload (7 bytes offset)
+            // Create a new lease for the payload (8 bytes offset)
             BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer, start + Snowflake.Size, length - Snowflake.Size);
             incomingLease.IsReliable = false;
 
@@ -361,11 +361,11 @@ public abstract partial class UdpListenerBase
     }
 
     /// <summary>
-    /// Resolves a <see cref="Connection"/> from a session token (7-byte <see cref="ISnowflake"/>).
+    /// Resolves a <see cref="Connection"/> from a session token (8-byte <see cref="ISnowflake"/>).
     /// Override in a derived class to change the token → connection mapping strategy.
     /// </summary>
     /// <param name="hub">The active connection hub.</param>
-    /// <param name="sessionToken">The 7-byte session token extracted from the datagram header.</param>
+    /// <param name="sessionToken">The 8-byte session token extracted from the datagram header.</param>
     /// <param name="connection">When this method returns <c>true</c>, the resolved connection.</param>
     /// <returns><c>true</c> if a matching connection was found; otherwise <c>false</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

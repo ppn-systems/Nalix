@@ -17,10 +17,10 @@ using Nalix.SDK.Options;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// Provides a high-performance UDP transport session supporting 7-byte session token authentication.
+/// Provides a high-performance UDP transport session supporting 8-byte session token authentication.
 /// </summary>
 /// <remarks>
-/// Datagram layout for outbound packets: <c>[SessionToken (7 bytes) | Payload ...]</c>.
+/// Datagram layout for outbound packets: <c>[SessionToken (8 bytes) | Payload ...]</c>.
 /// Inbound packets from the server are treated as raw payloads.
 /// </remarks>
 public class UdpSession : TransportSession
@@ -41,7 +41,7 @@ public class UdpSession : TransportSession
     #region Properties
 
     /// <summary>
-    /// Gets or sets the 7-byte session token (Snowflake) used to identify this session on the UDP channel.
+    /// Gets or sets the 8-byte session token (Snowflake) used to identify this session on the UDP channel.
     /// </summary>
     public Snowflake? SessionToken
     {
@@ -283,9 +283,9 @@ public class UdpSession : TransportSession
 
             /*
              * [UDP Datagram Envelope]
-             * To support stateless/sharded UDP on the server, we prepend a 7-byte 
+             * To support stateless/sharded UDP on the server, we prepend an 8-byte 
              * session token (Snowflake) to every datagram.
-             * Layout: [Token (7 bytes)][Payload (N bytes)]
+             * Layout: [Token (8 bytes)][Payload (N bytes)]
              */
             // Step 4: Final Envelope [Token + Packet]
             using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + current.Length);
@@ -434,7 +434,7 @@ public class UdpSession : TransportSession
             try
             {
                 // Receive raw datagram — for UDP, we receive the packet directly [Flags + Payload]
-                // (Server-to-Client UDP does not include the 7-byte token)
+                // (Server-to-Client UDP does not include the 8-byte token)
                 IBufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
 
                 try
