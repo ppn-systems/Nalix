@@ -10,11 +10,15 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
+
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -156,7 +160,10 @@ internal static class AsyncCallback
         if (callback is null)
         {
 #if DEBUG
-            s_logger?.Trace($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-null skipping");
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            {
+                s_logger.LogTrace($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-null skipping");
+            }
 #endif
             return false;
         }
@@ -385,7 +392,10 @@ internal static class AsyncCallback
             return;
         }
 
-        s_logger?.Warn(message);
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+        {
+            s_logger.LogWarning(message);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -408,11 +418,17 @@ internal static class AsyncCallback
 
         if (ex is null)
         {
-            s_logger?.Error(message);
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+            {
+                s_logger.LogError(message);
+            }
         }
         else
         {
-            s_logger?.Error(message, ex);
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+            {
+                s_logger.LogError(ex, message);
+            }
         }
     }
 

@@ -11,6 +11,9 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -58,13 +61,19 @@ public abstract partial class TcpListenerBase
                 // IPv6Any (::) -> listens on all IPv6 interfaces (and IPv4 via DualMode).
                 IPEndPoint epV6Any = new(IPAddress.IPv6Any, _port);
 
-                _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
+                }
 
                 sock.Bind(epV6Any);
                 sock.Listen(_config.Backlog);
 
                 _listener = sock;
-                _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+                }
 
                 return;
             }
@@ -72,7 +81,10 @@ public abstract partial class TcpListenerBase
             {
                 // IPv6/DualMode is not supported on this environment -> IPv4 fallback.
                 // WHY not rethrow: Failover automatically is better than crashing the server.
-                _logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+                }
 
                 try
                 {
@@ -80,15 +92,21 @@ public abstract partial class TcpListenerBase
                 }
                 catch (ObjectDisposedException closeEx)
                 {
-                    _logger?.Debug(
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
-                        $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.LogDebug(
+                            $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
+                            $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
+                    }
                 }
                 catch (Exception closeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
                 {
-                    _logger?.Warn(
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
-                        $"ipv6-fallback-close-failed", closeEx);
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(
+                            closeEx,
+                            $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] ipv6-fallback-close-failed");
+                    }
                 }
 
                 try
@@ -97,9 +115,12 @@ public abstract partial class TcpListenerBase
                 }
                 catch (Exception disposeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(disposeEx))
                 {
-                    _logger?.Warn(
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
-                        $"ipv6-fallback-dispose-failed", disposeEx);
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(
+                            disposeEx,
+                            $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] ipv6-fallback-dispose-failed");
+                    }
                 }
 
                 sock = null;
@@ -121,12 +142,18 @@ public abstract partial class TcpListenerBase
 
         IPEndPoint epV4Any = new(IPAddress.Any, _port);
 
-        _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
+        }
 
         _listener.Bind(epV4Any);
         _listener.Listen(_config.Backlog);
 
-        _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+        }
     }
 
     /// <summary>

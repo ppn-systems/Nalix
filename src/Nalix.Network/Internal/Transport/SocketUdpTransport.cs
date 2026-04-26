@@ -21,6 +21,9 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
@@ -125,9 +128,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 }
                 catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
                 {
-                    s_logger?.Debug(
-                        $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
-                        $"dualmode-not-applied reason={ex.GetType().Name}");
+                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        s_logger.LogDebug($"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] dualmode-not-applied reason={ex.GetType().Name}");
+                    }
                 }
             }
 
@@ -140,27 +144,31 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             }
             catch (SocketException ex)
             {
-                s_logger?.Debug(
-                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
-                    $"dontfragment-not-applied reason={ex.SocketErrorCode}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                {
+                    s_logger.LogDebug($"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] dontfragment-not-applied reason={ex.SocketErrorCode}");
+                }
             }
             catch (NotSupportedException ex)
             {
-                s_logger?.Debug(
-                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
-                    $"dontfragment-not-supported reason={ex.GetType().Name}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                {
+                    s_logger.LogDebug($"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] dontfragment-not-supported reason={ex.GetType().Name}");
+                }
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
-                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
-                    $"dontfragment-object-disposed reason={ex.GetType().Name}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                {
+                    s_logger.LogDebug($"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] dontfragment-object-disposed reason={ex.GetType().Name}");
+                }
             }
             catch (InvalidOperationException ex)
             {
-                s_logger?.Debug(
-                    $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
-                    $"dontfragment-invalid-op reason={ex.GetType().Name}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                {
+                    s_logger.LogDebug($"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] dontfragment-invalid-op reason={ex.GetType().Name}");
+                }
             }
 
             if (OperatingSystem.IsWindows())
@@ -172,9 +180,10 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 }
                 catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException)
                 {
-                    s_logger?.Debug(
-                        $"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] " +
-                        $"udp-connreset-ioctl-not-applied reason={ex.GetType().Name}");
+                    if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                    {
+                        s_logger.LogDebug($"[NW.{nameof(SocketUdpTransport)}:{nameof(Initialize)}] udp-connreset-ioctl-not-applied reason={ex.GetType().Name}");
+                    }
                 }
             }
         }

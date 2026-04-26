@@ -13,6 +13,9 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
@@ -119,7 +122,10 @@ public abstract partial class UdpListenerBase
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-        _logger?.Debug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+        }
     }
 
     /// <summary>
@@ -165,15 +171,21 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                _logger?.Debug(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                    $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                        $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                }
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                _logger?.Warn(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                    $"cts-dispose-failed port={_port}", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(ex,
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                        $"cts-dispose-failed port={_port}");
+                }
             }
 
             _cts = null;
@@ -186,15 +198,21 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                _logger?.Debug(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                    $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                        $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                }
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                _logger?.Warn(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                    $"socket-dispose-failed port={_port}", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(ex,
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
+                        $"socket-dispose-failed port={_port}");
+                }
             }
 
             _socket = null;
@@ -203,7 +221,10 @@ public abstract partial class UdpListenerBase
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
 
-        _logger?.Debug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
+        }
     }
 
     #endregion IDisposable

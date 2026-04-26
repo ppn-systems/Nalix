@@ -9,6 +9,9 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
@@ -38,9 +41,12 @@ public abstract partial class UdpListenerBase
             try { _socket.DualMode = true; }
             catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
             {
-                _logger?.Debug(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
-                    $"dualmode-not-applied port={_port} reason={ex.GetType().Name}");
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
+                        $"dualmode-not-applied port={_port} reason={ex.GetType().Name}");
+                }
             }
         }
 
@@ -53,9 +59,12 @@ public abstract partial class UdpListenerBase
         // ReceiveFromAsync can populate it without an address-family mismatch.
         _anyEndPoint = new IPEndPoint(bindAddress, 0);
 
-        _logger?.Debug(
-            $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
-            $"init-ok port={_port} af={af} reuse={_options.ReuseAddress} buf={_options.BufferSize}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug(
+                $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
+                $"init-ok port={_port} af={af} reuse={_options.ReuseAddress} buf={_options.BufferSize}");
+        }
     }
 
     /// <summary>
@@ -122,9 +131,12 @@ public abstract partial class UdpListenerBase
             }
             catch (SocketException ex)
             {
-                _logger?.Error(
-                    "Failed to set SIO_UDP_CONNRESET. " +
-                    "UDP sockets on Windows may throw SocketException(ConnectionReset) when receiving datagrams from unreachable clients.", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex,
+                        "Failed to set SIO_UDP_CONNRESET. " +
+                        "UDP sockets on Windows may throw SocketException(ConnectionReset) when receiving datagrams from unreachable clients.");
+                }
             }
         }
     }
