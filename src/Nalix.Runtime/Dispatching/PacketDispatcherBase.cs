@@ -105,9 +105,9 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     {
         if (this.Options.TryResolveHandler(packet.OpCode, out PacketHandler<TPacket> handler))
         {
-            if (this.Logging?.IsEnabled(LogLevel.Trace) == true)
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Trace))
             {
-                this.Logging.Trace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.OpCode}");
+                this.Logging.LogTrace($"[NW.{nameof(PacketDispatcherBase<TPacket>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.OpCode}");
             }
 
             ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, token);
@@ -124,7 +124,10 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 {
                     if (ex is not SerializationFailureException)
                     {
-                        this.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.OpCode}", ex);
+                        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+                        {
+                            this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatcherBase<TPacket>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.OpCode}");
+                        }
                     }
                 }
 
@@ -141,14 +144,17 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    owner.Logging?.Error($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={opCode}", ex);
+                    if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
+                    {
+                        owner.Logging.LogError(ex, $"[NW.{nameof(PacketDispatcherBase<TPacket>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={opCode}");
+                    }
                 }
             }
         }
 
-        if (this.Logging?.IsEnabled(LogLevel.Warning) == true)
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
         {
-            this.Logging.Warn($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] no-handler opcode={packet.OpCode}");
+            this.Logging.LogWarning($"[NW.{nameof(PacketDispatcherBase<TPacket>)}:{nameof(ExecutePacketHandlerAsync)}] no-handler opcode={packet.OpCode}");
         }
         return ValueTask.CompletedTask;
     }

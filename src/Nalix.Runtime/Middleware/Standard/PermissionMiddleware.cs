@@ -11,6 +11,7 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Framework.DataFrames.Pooling;
 using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 
@@ -52,9 +53,12 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        _logger?.Trace(
-            $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
-            $"need={context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)"} have={context.Connection.Level}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace(
+                $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
+                $"need={context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)"} have={context.Connection.Level}");
+        }
 
         if (!DirectiveGuard.TryAcquire(
             context.Connection,

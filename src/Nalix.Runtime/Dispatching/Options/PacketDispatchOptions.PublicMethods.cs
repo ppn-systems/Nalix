@@ -33,7 +33,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         this.Logging = logger;
-        this.Logging.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<TPacket>)}:{nameof(WithLogging)}] logger-attached");
+        }
 
         return this;
     }
@@ -53,7 +56,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         Action<Exception, ushort> errorHandler)
     {
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<TPacket>)}:{nameof(WithErrorHandling)}] error-handler-set");
+        }
         _errorHandler = errorHandler;
 
         return this;
@@ -73,7 +79,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         ArgumentNullException.ThrowIfNull(middleware);
 
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<TPacket>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+        }
 
         _pipeline.Use(middleware);
 
@@ -100,7 +109,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
 
         this.DispatchLoopCount = loopCount;
-        this.Logging?.Debug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<TPacket>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
+        }
         return this;
     }
 
@@ -234,14 +246,20 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             if (concretePacketType is not null && concretePacketType != typeof(TPacket))
             {
-                this.Logging?.Debug(
-                    $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                    $"type-map opcode=0x{descriptor.OpCode:X4} -> {concretePacketType.Name}");
+                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+                {
+                    this.Logging.LogDebug(
+                        $"[NW.{nameof(PacketDispatchOptions<TPacket>)}:{nameof(WithHandler)}] " +
+                        $"type-map opcode=0x{descriptor.OpCode:X4} -> {concretePacketType.Name}");
+                }
             }
         }
 
-        this.Logging?.Info($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                           $"reg-handlers count={compiledHandlers.Length} controller={controllerType.Name}");
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Information))
+        {
+            this.Logging.LogInformation($"[NW.{nameof(PacketDispatchOptions<TPacket>)}:{nameof(WithHandler)}] " +
+                               $"reg-handlers count={compiledHandlers.Length} controller={controllerType.Name}");
+        }
 
         return this;
     }

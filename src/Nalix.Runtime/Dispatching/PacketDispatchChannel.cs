@@ -183,7 +183,10 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] deactivate-error", ex);
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            {
+                this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] deactivate-error");
+            }
         }
         finally
         {
@@ -193,7 +196,10 @@ public sealed class PacketDispatchChannel
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                this.Logging?.Warn($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] linked-cts-dispose-failed", ex);
+                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+                {
+                    this.Logging.LogWarning(ex, $"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] linked-cts-dispose-failed");
+                }
             }
 
             try
@@ -202,7 +208,10 @@ public sealed class PacketDispatchChannel
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                this.Logging?.Warn($"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] local-cts-dispose-failed", ex);
+                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+                {
+                    this.Logging.LogWarning(ex, $"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] local-cts-dispose-failed");
+                }
             }
         }
     }
@@ -450,7 +459,10 @@ public sealed class PacketDispatchChannel
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            this.Logging?.Error($"[NW.{nameof(PacketDispatchChannel)}:DispatchWorkerLoopAsync] fatal-loop-error index={index}", ex);
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            {
+                this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatchChannel)}:DispatchWorkerLoopAsync] fatal-loop-error index={index}");
+            }
         }
         finally
         {
@@ -506,7 +518,10 @@ public sealed class PacketDispatchChannel
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
-            this.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            {
+                this.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+            }
         }
 
         // 5. Cleanup for synchronous errors/cancellation
@@ -534,7 +549,10 @@ public sealed class PacketDispatchChannel
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
-            owner.Logging?.Error($"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}", ex);
+            if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
+            {
+                owner.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+            }
         }
         finally
         {
