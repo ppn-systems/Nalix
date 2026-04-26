@@ -1,4 +1,5 @@
 #if DEBUG
+using System;
 using System.Threading.Tasks;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
@@ -7,12 +8,15 @@ using Nalix.Network.Hosting;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
+using Nalix.Framework.Injection;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.DataFrames.Pooling;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
 
 [Collection("RealServerTests")]
-public sealed class CipherExtensionsTests
+public sealed class CipherExtensionsTests : IDisposable
 {
     private readonly IPacketRegistry _registry;
 
@@ -43,27 +47,33 @@ public sealed class CipherExtensionsTests
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port,
-                Algorithm = CipherSuiteType.Chacha20Poly1305
+                Algorithm = CipherSuiteType.Chacha20Poly1305,
+                ServerPublicKey = TestUtils.GetServerPublicKey()
             };
 
             using var session = new TcpSession(options, _registry);
             await session.ConnectAsync();
-
-            // Note: Real server needs to support CIPHER_UPDATE.
-            // If the framework doesn't have a default handler for it, this might timeout.
-            // I'll check if there is a handler for CIPHER_UPDATE in the framework.
-
-            // For now, I'll assume it works if the framework supports it.
-            // Wait! If it doesn't, I should add a handler in the test.
+            await session.HandshakeAsync();
 
             await session.UpdateCipherAsync(CipherSuiteType.Salsa20Poly1305, timeoutMs: 20_000);
 
             Assert.Equal(CipherSuiteType.Salsa20Poly1305, session.Options.Algorithm);
+
+            // Send a ping to verify Salsa20 works for subsequent packets
+            using var pingLease = PacketPool<Control>.Rent();
+            var ping = pingLease.Value;
+            ping.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING, 100, PacketFlags.NONE, ProtocolReason.NONE);
+            
+            using var pong = await session.RequestAsync<Control>(ping);
+            Assert.Equal(ControlType.PONG, pong.Type);
+            Assert.Equal(ping.SequenceId, pong.SequenceId);
         }
         finally
         {
             await app.DeactivateAsync();
         }
     }
+
+    public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif

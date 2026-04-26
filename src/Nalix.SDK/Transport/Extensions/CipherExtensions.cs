@@ -63,7 +63,9 @@ public static class CipherExtensions
                 timeoutMs: timeoutMs,
                 sendAsync: async token =>
                 {
+                    Console.WriteLine($"[CLIENT] Sending CIPHER_UPDATE request (Seq: {seq}, Algorithm: {cipherSuite})");
                     await session.SendAsync(req, token).ConfigureAwait(false);
+                    Console.WriteLine("[CLIENT] CIPHER_UPDATE request sent.");
                     session.Options.Algorithm = cipherSuite;
                 },
                 ct: ct).ConfigureAwait(false);

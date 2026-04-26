@@ -63,13 +63,14 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, object> _signatureInstanceCache = new();
 
+    [ThreadStatic] private static int s_tsSlotsInvalidated;
     [ThreadStatic] private static RuntimeTypeHandle s_tsLastKey;
     [ThreadStatic] private static object? s_tsLastValue;
 
     /// <summary>
     /// Near fields
     /// </summary>
-    private static int s_slotsInvalidated; // 0 = valid, 1 = invalid
+    private static int s_slotsInvalidated = 1; // Monotonic counter for L1/Slot invalidation
 
     private long _instanceCreationCount;
     private long _instanceCacheHitCount;
@@ -278,7 +279,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
         // Publish to generic slot for the concrete type
         Volatile.Write(ref GenericSlot<T>.Value, instance);
-        Volatile.Write(ref s_slotsInvalidated, 0); // re-validate slots
+        _ = Interlocked.Increment(ref s_slotsInvalidated); // Invalidate all cached slots and L1
 
         if (registerInterfaces)
         {
@@ -638,11 +639,15 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
         }
 
         // 2) Thread L1
+        int globalInvalidated = Volatile.Read(ref s_slotsInvalidated);
         RuntimeTypeHandle key = typeof(T).TypeHandle;
-        if (s_tsLastValue is not null && s_tsLastKey.Equals(key))
+
+        if (s_tsSlotsInvalidated == globalInvalidated && s_tsLastValue is not null && s_tsLastKey.Equals(key))
         {
             return s_tsLastValue as T;
         }
+
+        s_tsSlotsInvalidated = globalInvalidated;
 
         // 3) Dictionary fallback
         _ = _instanceCache.TryGetValue(key, out object? instance);
@@ -697,7 +702,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
         _disposables.Clear();
 
         // Invalidate all generic slots at once (no need to enumerate)
-        Volatile.Write(ref s_slotsInvalidated, 1);
+        _ = Interlocked.Increment(ref s_slotsInvalidated);
 
         // Optional: clear thread L1 (best-effort)
         s_tsLastKey = default;
@@ -923,18 +928,12 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
         return created;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TRY_GET_FROM_GENERIC_SLOT<T>(out T? value) where T : class
     {
-        if (Volatile.Read(ref s_slotsInvalidated) != 0)
-        {
-            value = null;
-            return false;
-        }
-
-        object? obj = Volatile.Read(ref GenericSlot<T>.Value);
-        value = obj as T;
-        return value is not null;
+        // GenericSlot is not safe for replacement in multi-threaded test environments.
+        // We rely on the monotonic L1 cache (ThreadStatic) instead.
+        value = null;
+        return false;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

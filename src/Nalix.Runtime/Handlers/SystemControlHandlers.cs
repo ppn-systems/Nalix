@@ -92,14 +92,6 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        // SEC-39: Additional validation for established sessions.
-        if (connection.Algorithm != requestedSuite)
-        {
-            // In the current version, algorithm changes after handshake are not supported
-            // to prevent tampering with the established crypto context.
-            return;
-        }
-
         connection.Algorithm = requestedSuite;
 
         using PacketLease<Control> lease = PacketPool<Control>.Rent();

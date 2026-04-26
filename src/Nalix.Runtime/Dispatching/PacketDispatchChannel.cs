@@ -16,7 +16,6 @@ using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -470,13 +469,10 @@ public sealed class PacketDispatchChannel
         // If TryDeserialize fails, the packet is already handled.
         if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
         {
-            Console.WriteLine($"[TEST] Dispatch.ExecutePacketAsync: Deserialize FAILED. Magic={lease.Span.ReadMagicNumberLE()}");
             connection.IncrementErrorCount();
             lease.Dispose();
             return ValueTask.CompletedTask;
         }
-
-        Console.WriteLine($"[TEST] Dispatch.ExecutePacketAsync: Deserialize SUCCESS. OpCode={packet.OpCode}, Magic={packet.MagicNumber}");
 
         try
         {
