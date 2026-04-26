@@ -74,6 +74,7 @@ internal sealed class FrameReader : IDisposable
                     try
                     {
                         await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
+                        Console.WriteLine($"[CLIENT] FrameReader: Received header. Bytes={BitConverter.ToString(headerMemory.ToArray())}");
 
                         ushort totalLen = BinaryPrimitives.ReadUInt16LittleEndian(headerMemory.Span);
                         if ((uint)totalLen < TcpSession.HeaderSize || totalLen > _options.BufferSize)
@@ -116,6 +117,7 @@ internal sealed class FrameReader : IDisposable
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
+                        Console.WriteLine($"[CLIENT] FrameReader: ERROR in loop: {ex}");
                         _onError(ex);
                         break;
                     }

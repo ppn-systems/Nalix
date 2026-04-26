@@ -109,12 +109,21 @@ public static class HandshakeExtensions
         }
 
         Bytes32 sessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, clientNonce, serverHello.Nonce, transcriptHash);
+        
+        // BUG-FIX: Apply established connection settings BEFORE receiving SERVER_FINISH.
+        // The server applies encryption immediately after receiving CLIENT_FINISH, 
+        // meaning SERVER_FINISH will be ENCRYPTED. 
+        // If we don't set the secret/algorithm here, the background reader will fail to decrypt it.
+        session.Options.Secret = sessionKey;
+        session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
         using Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(masterSecret, transcriptHash))
         {
             TranscriptHash = transcriptHash
         };
 
+        // Note: RequestAsync uses encrypt: false by default for the request itself, 
+        // which is correct as the server expects CLIENT_FINISH as PLAIN.
         Handshake serverFinish = await session.RequestAsync<Handshake>(
             clientFinish,
             options: RequestOptions.Default.WithTimeout(5000),
@@ -137,9 +146,7 @@ public static class HandshakeExtensions
             throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");
         }
 
-        // Apply established connection settings
-        session.Options.Secret = sessionKey;
-        session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
+        // Finalize state
         session.Options.EncryptionEnabled = true;
         session.Options.SessionToken = serverFinish.SessionToken;
     }

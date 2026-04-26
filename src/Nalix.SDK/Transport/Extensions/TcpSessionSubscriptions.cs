@@ -211,16 +211,20 @@ public static class TcpSessionSubscriptions
                 return;
             }
 
-            if (buffer.Span.ReadMagicNumberLE() != targetMagic)
+            uint bufferMagic = buffer.Span.ReadMagicNumberLE();
+            if (bufferMagic != targetMagic)
             {
+                Console.WriteLine($"[TEST] OnOnce: Magic mismatch. Buffer=0x{bufferMagic:X8}, Target=0x{targetMagic:X8} ({typeof(TPacket).Name})");
                 return;
             }
+
 
             try
             {
                 IPacket p = client.Catalog.Deserialize(buffer.Span);
                 try
                 {
+                    Console.WriteLine($"[TEST] OnOnce: Received {p.GetType().Name}. OpCode={p.OpCode}");
                     if (p is not TPacket t || !predicate(t))
                     {
                         return;
@@ -229,11 +233,14 @@ public static class TcpSessionSubscriptions
                     // Atomic once-guard: only the first arriving thread proceeds.
                     if (Interlocked.Exchange(ref fired, 1) != 0)
                     {
+                        Console.WriteLine($"[TEST] OnOnce: Already fired. Skipping.");
                         return;
                     }
 
+                    Console.WriteLine($"[TEST] OnOnce: Calling handler for {typeof(TPacket).Name}");
                     client.OnMessageReceived -= Wrapper;
                     handler(t);
+                    Console.WriteLine($"[TEST] OnOnce: Handler called.");
                 }
                 finally
                 {
