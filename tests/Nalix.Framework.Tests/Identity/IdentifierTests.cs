@@ -13,15 +13,15 @@ namespace Nalix.Framework.Tests.Identity;
 public class IdentifierTests
 {
     [Fact]
-    public void CreateEmptyIsEmptyTrueAndSerializesTo7ZeroBytes()
+    public void CreateEmptyIsEmptyTrueAndSerializesTo8ZeroBytes()
     {
         Snowflake id = Snowflake.Empty; // all zero
         Assert.True(id.IsEmpty); // not empty => false
 
-        Span<byte> buf = stackalloc byte[7];
+        Span<byte> buf = stackalloc byte[8];
         Assert.True(id.TryWriteBytes(buf, out int written));
-        Assert.Equal(7, written);
-        Assert.Equal(new byte[7], buf.ToArray());
+        Assert.Equal(8, written);
+        Assert.Equal(new byte[8], buf.ToArray());
     }
 
     [Fact]
@@ -36,9 +36,9 @@ public class IdentifierTests
         Assert.Equal(machine, id.MachineId);
         Assert.Equal(type, id.Type);
 
-        Span<byte> buf = stackalloc byte[7];
+        Span<byte> buf = stackalloc byte[8];
         Assert.True(id.TryWriteBytes(buf, out int written));
-        Assert.Equal(7, written);
+        Assert.Equal(8, written);
 
         // little-endian layout: [0..3]=Value, [4..5]=Machine, [6]=Type  (core impl)
         Assert.Equal(0x44, buf[0]);
@@ -48,6 +48,7 @@ public class IdentifierTests
         Assert.Equal(0x66, buf[4]);
         Assert.Equal(0x55, buf[5]);
         Assert.Equal(0x77, buf[6]);
+        Assert.Equal(0x00, buf[7]);
 
         Snowflake back = Snowflake.FromBytes(buf);
         Assert.Equal(id, back);
@@ -58,37 +59,37 @@ public class IdentifierTests
     public void TrySerializeToByteSpanTooSmallReturnsFalse()
     {
         Snowflake id = Snowflake.NewId(0xAABBCCDD, 0xEEFF, (SnowflakeType)0x12);
-        Span<byte> small = stackalloc byte[6];
+        Span<byte> small = stackalloc byte[7];
         Assert.False(id.TryWriteBytes(small, out int written));
         Assert.Equal(0, written);
     }
 
     [Fact]
-    public void SerializeReturnsNew7ByteArray()
+    public void SerializeReturnsNew8ByteArray()
     {
         Snowflake id = Snowflake.NewId(0x01020304, 0x0506, (SnowflakeType)0x07);
         byte[] arr = id.ToByteArray();
-        Assert.Equal(7, arr.Length);
-        Assert.Equal(new byte[] { 0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x07 }, arr);
+        Assert.Equal(8, arr.Length);
+        Assert.Equal(new byte[] { 0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x07, 0x00 }, arr);
     }
 
     [Fact]
     public void DeserializeFromByteArrayInvalidLengthThrows()
     {
         _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes([]));
-        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes(new byte[6]));
-        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes(new byte[8]));
+        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes(new byte[7]));
+        _ = Assert.Throws<SerializationFailureException>(() => Snowflake.FromBytes(new byte[9]));
     }
 
     [Fact]
-    public void HexStringMatchesSerializedBytesLength14()
+    public void HexStringMatchesSerializedBytesLength16()
     {
         Snowflake id = Snowflake.NewId(0x00112233, 0x4455, (SnowflakeType)0x66);
-        Span<byte> buf = stackalloc byte[7];
+        Span<byte> buf = stackalloc byte[8];
         Assert.True(id.TryWriteBytes(buf, out _));
-        string hex = id.ToString(); // Convert.ToHexString(7 bytes) => 14 hex chars
+        string hex = id.ToString(); // Convert.ToHexString(8 bytes) => 16 hex chars
         Assert.Equal(Convert.ToHexString(buf.ToArray()), hex);
-        Assert.Equal(14, hex.Length);
+        Assert.Equal(16, hex.Length);
     }
 
     [Fact]
@@ -119,17 +120,17 @@ public class IdentifierTests
     {
         // NewId(type, machineId) uses SecureRandom for Value; we just check round-trip
         Snowflake id = Snowflake.NewId((SnowflakeType)0x11, machineId: 0x2222);
-        Span<byte> buf = stackalloc byte[7];
+        Span<byte> buf = stackalloc byte[8];
         Assert.True(id.TryWriteBytes(buf, out _));
         Snowflake back = Snowflake.FromBytes(buf);
         Assert.Equal(id, back);
     }
 
     [Fact]
-    public void UnsafeSizeOfIs7ForExplicitLayout()
+    public void UnsafeSizeOfIs8ForExplicitLayout()
     {
         int size = Unsafe.SizeOf<Snowflake>();
-        Assert.Equal(7, size);
+        Assert.Equal(8, size);
     }
 
     [Fact]
@@ -167,10 +168,10 @@ public class IdentifierTests
     }
 
     [Fact]
-    public void FromUInt56RoundTripsToSameIdentifier()
+    public void FromUInt64RoundTripsToSameIdentifier()
     {
         Snowflake source = Snowflake.NewId(0xDEADBEEF, 0xABCD, (SnowflakeType)0x22);
-        Snowflake roundTripped = Snowflake.FromUInt56(source.ToUInt56());
+        Snowflake roundTripped = Snowflake.FromUInt64(source.ToUInt64());
 
         Assert.Equal(source, roundTripped);
     }
@@ -205,8 +206,8 @@ public class IdentifierTests
         public SnowflakeType Type => SnowflakeType.System;
         public uint Value => 1;
         public ushort MachineId => 1;
-        public Nalix.Common.Primitives.UInt56 ToUInt56() => Nalix.Common.Primitives.UInt56.Zero;
-        public byte[] ToByteArray() => new byte[7];
+        public ulong ToUInt64() => 0UL;
+        public byte[] ToByteArray() => new byte[8];
         public bool TryWriteBytes(Span<byte> destination) => false;
         public bool TryWriteBytes(Span<byte> destination, out int bytesWritten)
         {
@@ -215,3 +216,4 @@ public class IdentifierTests
         }
     }
 }
+
