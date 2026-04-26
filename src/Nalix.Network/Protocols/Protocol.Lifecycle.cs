@@ -7,6 +7,8 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+
 namespace Nalix.Network.Protocols;
 
 public abstract partial class Protocol
@@ -60,7 +62,10 @@ public abstract partial class Protocol
             return;
         }
 
-        s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        {
+            s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
+        }
 
         // Derived protocols can release managed resources when disposing == true.
     }

@@ -30,46 +30,46 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// <summary>
     /// Gets or sets the directive type.
     /// </summary>
-    [SerializeOrder(13)]
+    [SerializeOrder(0)]
     public ControlType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the reason for the directive.
     /// </summary>
-    [SerializeOrder(14)]
+    [SerializeOrder(1)]
     public ProtocolReason Reason { get; set; }
 
     /// <summary>
     /// Gets or sets the suggested action for the client.
     /// </summary>
-    [SerializeOrder(15)]
+    [SerializeOrder(2)]
     public ProtocolAdvice Action { get; set; }
 
     /// <summary>
     /// Gets or sets directive flags.
     /// </summary>
-    [SerializeOrder(16)]
+    [SerializeOrder(3)]
     public ControlFlags Control { get; set; }
 
     /// <summary>
     /// Gets or sets the first directive argument.
     /// Usage: RetryAfterMs (for RATE_LIMITED), AlgorithmId (for CIPHER_UPDATE).
     /// </summary>
-    [SerializeOrder(17)]
+    [SerializeOrder(4)]
     public uint Arg0 { get; set; }
 
     /// <summary>
     /// Gets or sets the second directive argument.
     /// Usage: Credit (for RATE_LIMITED), SequenceId (for ACK/NACK).
     /// </summary>
-    [SerializeOrder(18)]
+    [SerializeOrder(5)]
     public uint Arg1 { get; set; }
 
     /// <summary>
     /// Gets or sets the third directive argument.
     /// Usage: OpCode (for FAIL/ERROR), Port (for REDIRECT).
     /// </summary>
-    [SerializeOrder(19)]
+    [SerializeOrder(6)]
     public ushort Arg2 { get; set; }
 
     /// <summary>

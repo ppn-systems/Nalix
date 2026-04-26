@@ -7,6 +7,9 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.Protocols;
 
 public abstract partial class Protocol
@@ -58,7 +61,10 @@ public abstract partial class Protocol
         // Check if accepting connections is enabled
         if (!this.IsAccepting)
         {
-            s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            {
+                s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
+            }
             connection.Disconnect();
             return;
         }
@@ -73,7 +79,10 @@ public abstract partial class Protocol
         {
             if (this.ValidateConnection(connection))
             {
-                s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                {
+                    s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
+                }
 
                 // Start receiving data from the connection
                 connection.TCP.BeginReceive(cancellationToken);
@@ -81,14 +90,20 @@ public abstract partial class Protocol
                 return;
             }
 
-            s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=validation-failed");
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            {
+                s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=validation-failed");
+            }
 
             // Connections failed validation, close immediately
             connection.Disconnect();
         }
         catch (OperationCanceledException)
         {
-            s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-canceled id={connection.ID}");
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            {
+                s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-canceled id={connection.ID}");
+            }
             connection.Disconnect();
         }
         catch (ObjectDisposedException ex)
@@ -96,7 +111,10 @@ public abstract partial class Protocol
             // Only log warning if not already shutting down to reduce noise.
             if (!cancellationToken.IsCancellationRequested)
             {
-                s_logger?.Warn($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID} target={ex.ObjectName}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+                {
+                    s_logger.LogWarning($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID} target={ex.ObjectName}");
+                }
             }
 
             connection.Disconnect();
@@ -107,7 +125,10 @@ public abstract partial class Protocol
             this.OnConnectionError(connection, ex);
             connection.Disconnect();
 
-            s_logger?.Debug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+            {
+                s_logger.LogDebug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");
+            }
         }
     }
 

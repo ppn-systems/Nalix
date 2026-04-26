@@ -18,9 +18,13 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
 using Nalix.Network.Sessions;
+
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Network.Connections;
 
@@ -265,6 +269,7 @@ public sealed class ConnectionHub : IConnectionHub
     /// <exception cref="ArgumentNullException">
     /// Thrown if <paramref name="message"/> or <paramref name="sendFunc"/> is null.</exception>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
     public async Task BroadcastAsync<T>(
         T message,
         Func<IConnection, T, Task> sendFunc,
@@ -284,9 +289,9 @@ public sealed class ConnectionHub : IConnectionHub
         IConnection[] connections = this.CaptureConnectionSnapshot();
         if (connections.Length == 0)
         {
-            if (_logger?.IsEnabled(LogLevel.Trace) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.Trace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
+                _logger.LogTrace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
             }
 
             return;
@@ -309,9 +314,9 @@ public sealed class ConnectionHub : IConnectionHub
                 nameof(BroadcastAsync)).ConfigureAwait(false);
         }
 
-        if (measureLatency)
+        if (measureLatency && logger != null)
         {
-            logger!.Info($"[PERF.NW.BroadcastAsync] total={connections.Length}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            logger.LogInformation($"[PERF.NW.BroadcastAsync] total={connections.Length}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
     }
 
@@ -355,7 +360,10 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (_disposed)
         {
-            _logger?.Warn($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
+            }
             return 0;
         }
 
@@ -388,8 +396,11 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (closedCount > 0)
         {
-            _logger?.Info(
-                $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation(
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
+            }
         }
 
         return closedCount;
@@ -438,8 +449,11 @@ public sealed class ConnectionHub : IConnectionHub
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
-        _logger?.Info(
-            $"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Length}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                $"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Length}");
+        }
     }
 
     /// <summary>
@@ -657,7 +671,10 @@ public sealed class ConnectionHub : IConnectionHub
             disposableStore.Dispose();
         }
 
-        _logger?.Info($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
+        }
     }
 
     #endregion APIs
@@ -684,6 +701,7 @@ public sealed class ConnectionHub : IConnectionHub
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
     private RegisterResult TryRegisterCore(IConnection connection)
     {
         if (_disposed)
@@ -708,9 +726,9 @@ public sealed class ConnectionHub : IConnectionHub
             ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(connectionKey);
             if (!shard.TryAdd(connectionKey, connection))
             {
-                if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.Debug(
+                    _logger.LogDebug(
                         $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
                 }
 
@@ -723,15 +741,15 @@ public sealed class ConnectionHub : IConnectionHub
                 _anonymousQueue.Enqueue(connectionKey);
             }
 
-            if (_logger?.IsEnabled(LogLevel.Trace) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.Trace(
+                _logger.LogTrace(
                     $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={Volatile.Read(ref _count)}");
             }
 
-            if (measureLatency)
+            if (measureLatency && _logger != null)
             {
-                _logger!.Info(
+                _logger.LogInformation(
                     $"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
             }
 
@@ -748,23 +766,24 @@ public sealed class ConnectionHub : IConnectionHub
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
     private bool TryUnregisterCore(IConnection connection)
     {
         ulong connectionKey = connection.ID.ToUInt64();
         ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(connectionKey);
 
-#pragma warning disable CA2000
+#pragma warning disable CA2000 // Dispose objects before losing scope
         if (!shard.TryRemove(connectionKey, out IConnection? existing))
         {
-            if (_logger?.IsEnabled(LogLevel.Debug) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug(
+                _logger.LogDebug(
                     $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
             }
 
             return false;
         }
-#pragma warning restore CA2000
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
         bool measureLatency = _options.IsEnableLatency && _logger?.IsEnabled(LogLevel.Information) == true;
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
@@ -784,20 +803,23 @@ public sealed class ConnectionHub : IConnectionHub
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] dispose-error id={removedConnection.ID}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] dispose-error id={removedConnection.ID}");
+            }
         }
 
-        if (_logger?.IsEnabled(LogLevel.Trace) == true)
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.Trace(
+            _logger.LogTrace(
                 $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={Volatile.Read(ref _count)}");
         }
 
         ConnectionUnregistered?.Invoke(removedConnection);
 
-        if (measureLatency)
+        if (measureLatency && _logger != null)
         {
-            _logger!.Info(
+            _logger.LogInformation(
                 $"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
         }
 
@@ -909,12 +931,12 @@ public sealed class ConnectionHub : IConnectionHub
                 continue;
             }
 
-#pragma warning disable CA2000
+#pragma warning disable CA2000 // Dispose objects before losing scope
             if (!shard.TryRemove(oldestId, out IConnection? evictedConnection) || evictedConnection is null)
             {
                 continue;
             }
-#pragma warning restore CA2000
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
             evictedConnection.OnCloseEvent -= this.OnClientDisconnected;
             _ = Interlocked.Decrement(ref _count);
@@ -923,9 +945,9 @@ public sealed class ConnectionHub : IConnectionHub
             this.NotifyCapacityLimit(incomingConnection, "evict-oldest");
             ConnectionUnregistered?.Invoke(evictedConnection);
 
-            if (_logger?.IsEnabled(LogLevel.Information) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
             {
-                _logger.Info(
+                _logger.LogInformation(
                     $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evicted id={evictedConnection.ID}");
             }
 
@@ -935,9 +957,11 @@ public sealed class ConnectionHub : IConnectionHub
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                _logger?.Error(
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evict-disconnect-failed id={evictedConnection.ID}",
-                    ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex,
+                        $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evict-disconnect-failed id={evictedConnection.ID}");
+                }
             }
 
             return true;
@@ -980,9 +1004,11 @@ public sealed class ConnectionHub : IConnectionHub
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error(
-                $"[NW.{nameof(ConnectionHub)}:{nameof(RejectIncomingConnection)}] reject-disconnect-failed id={incomingConnection.ID}",
-                ex);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex,
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(RejectIncomingConnection)}] reject-disconnect-failed id={incomingConnection.ID}");
+            }
         }
     }
 
@@ -1066,8 +1092,11 @@ public sealed class ConnectionHub : IConnectionHub
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    _logger?.Error(
-                        $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={connection.ID}", ex);
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError(ex,
+                            $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={connection.ID}");
+                    }
                 }
             }
 
@@ -1082,9 +1111,9 @@ public sealed class ConnectionHub : IConnectionHub
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                if (_logger?.IsEnabled(LogLevel.Information) == true)
+                if (_logger != null && _logger.IsEnabled(LogLevel.Information))
                 {
-                    _logger.Info($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
+                    _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -1123,8 +1152,11 @@ public sealed class ConnectionHub : IConnectionHub
             }
 
             IConnection owner = owners[i];
-            _logger?.Error(
-                $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={owner.ID}", exception);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(exception,
+                    $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={owner.ID}");
+            }
         }
     }
 
@@ -1164,9 +1196,11 @@ public sealed class ConnectionHub : IConnectionHub
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    _logger?.Error(
-                        $"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastBatchedAsync)}] send-failure id={connection.ID}",
-                        ex);
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError(ex,
+                            $"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastBatchedAsync)}] send-failure id={connection.ID}");
+                    }
                 }
 
                 if (taskCount < batchSize)
@@ -1210,9 +1244,9 @@ public sealed class ConnectionHub : IConnectionHub
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            if (_logger?.IsEnabled(LogLevel.Information) == true)
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
             {
-                _logger.Info($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
+                _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -1289,15 +1323,18 @@ public sealed class ConnectionHub : IConnectionHub
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 session.Return();
-                logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
+                if (logger != null && logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
+                }
                 return;
             }
 
             if (storeTask.IsCompletedSuccessfully)
             {
-                if (logger?.IsEnabled(LogLevel.Debug) == true)
+                if (logger != null && logger.IsEnabled(LogLevel.Debug))
                 {
-                    logger.Debug($"[NW.{nameof(ConnectionHub)}] auto-persist done id={id} attributes={attributeCount}");
+                    logger.LogDebug("[NW.{Hub}] auto-persist done id={Id} attributes={Count}", nameof(ConnectionHub), id, attributeCount);
                 }
 
                 return;
@@ -1306,14 +1343,17 @@ public sealed class ConnectionHub : IConnectionHub
             // Keep unregistration non-blocking, but ensure cleanup if persistence fails.
             _ = PersistSessionAsync(storeTask, session, logger, id);
 
-            if (logger?.IsEnabled(LogLevel.Debug) == true)
+            if (logger != null && logger.IsEnabled(LogLevel.Debug))
             {
-                logger.Debug($"[NW.{nameof(ConnectionHub)}] auto-persist queued id={id} attributes={attributeCount}");
+                logger.LogDebug($"[NW.{nameof(ConnectionHub)}] auto-persist queued id={id} attributes={attributeCount}");
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-prepare-error id={connection.ID}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-prepare-error id={connection.ID}");
+            }
         }
     }
 
@@ -1327,7 +1367,10 @@ public sealed class ConnectionHub : IConnectionHub
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            logger?.Error(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
+            if (logger != null && logger.IsEnabled(LogLevel.Error))
+            {
+                logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
+            }
         }
         finally
         {

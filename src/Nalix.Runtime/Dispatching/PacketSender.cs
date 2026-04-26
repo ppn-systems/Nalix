@@ -96,7 +96,10 @@ public sealed class PacketSender : IPacketSender, IPoolable
         int packetLength = packet.Length;
 
 #if DEBUG
-        s_logger?.Debug($"[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packetLength}, NeedEncrypt={needEncrypt}");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        {
+            s_logger.LogDebug($"[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packetLength}, NeedEncrypt={needEncrypt}");
+        }
 #endif
 
         // Serialize into a pooled buffer first so the subsequent compression/encryption

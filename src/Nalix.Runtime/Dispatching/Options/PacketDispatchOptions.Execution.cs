@@ -38,10 +38,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 return;
             }
 
-            this.Logging?.Debug(
-                $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
-                $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
-                $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+            {
+                this.Logging.LogDebug(
+                    $"[NW.{nameof(PacketDispatchOptions<TPacket>)}:{nameof(ExecuteHandlerAsync)}] " +
+                    $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
+                    $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
+            }
 
             await this.TrySendControlAsync(
                 context,
@@ -61,10 +64,13 @@ public sealed partial class PacketDispatchOptions<TPacket>
         // application code touch it.
         if (context.Packet is IPacketValidatable validatable && !validatable.Validate(out string? failureReason))
         {
-            this.Logging?.Warn(
-                $"[{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
-                $"validation-failed opcode=0x{descriptor.OpCode:X4} " +
-                $"reason={failureReason} — skipping handler");
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+            {
+                this.Logging.LogWarning(
+                    $"[{nameof(PacketDispatchOptions<TPacket>)}:{nameof(ExecuteHandlerAsync)}] " +
+                    $"validation-failed opcode=0x{descriptor.OpCode:X4} " +
+                    $"reason={failureReason} — skipping handler");
+            }
 
             await this.TrySendControlAsync(
                 context,
@@ -187,17 +193,20 @@ public sealed partial class PacketDispatchOptions<TPacket>
         bool teardownException = IsConnectionTeardownException(exception);
         if (teardownException)
         {
-            if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
             {
-                this.Logging.Debug(
-                    $"[{nameof(PacketDispatchOptions<>)}:{nameof(HandleDispatchExceptionAsync)}] " +
+                this.Logging.LogDebug(
+                    $"[{nameof(PacketDispatchOptions<TPacket>)}:{nameof(HandleDispatchExceptionAsync)}] " +
                     $"teardown-suppressed opcode={descriptor.OpCode} ex={exception.GetType().Name}");
             }
         }
         else
         {
-            this.Logging?.Error($"[{nameof(PacketDispatchOptions<>)}:{nameof(HandleDispatchExceptionAsync)}] " +
-                                $"handler-failed opcode={descriptor.OpCode}", exception);
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            {
+                this.Logging.LogError(exception, $"[{nameof(PacketDispatchOptions<TPacket>)}:{nameof(HandleDispatchExceptionAsync)}] " +
+                                    $"handler-failed opcode={descriptor.OpCode}");
+            }
         }
 
         if (teardownException)
@@ -255,10 +264,10 @@ public sealed partial class PacketDispatchOptions<TPacket>
         }
         catch (Exception ex) when (IsConnectionTeardownException(ex))
         {
-            if (this.Logging?.IsEnabled(LogLevel.Debug) == true)
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
             {
-                this.Logging.Debug(
-                    $"[{nameof(PacketDispatchOptions<>)}:{nameof(TrySendControlAsync)}] " +
+                this.Logging.LogDebug(
+                    $"[{nameof(PacketDispatchOptions<TPacket>)}:{nameof(TrySendControlAsync)}] " +
                     $"control-send-skipped opcode={opCode} reason={reason} ex={ex.GetType().Name}");
             }
         }
