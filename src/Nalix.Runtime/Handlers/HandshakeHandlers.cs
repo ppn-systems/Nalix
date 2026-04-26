@@ -210,6 +210,7 @@ public sealed class HandshakeHandlers
 
     private static async ValueTask HandleClientHelloAsync(IConnection connection, Handshake packet)
     {
+        Console.WriteLine($"[SERVER] HandleClientHelloAsync from {connection.NetworkEndpoint}");
         /*
          * [Stage 1: Client Hello]
          * 1. Acquire a handshake slot to prevent race conditions.
@@ -279,11 +280,13 @@ public sealed class HandshakeHandlers
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.TranscriptHash = transcriptHash;
 
+        Console.WriteLine($"[SERVER] Sent SERVER_HELLO to {connection.NetworkEndpoint}");
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }
 
     private static async ValueTask HandleClientFinishAsync(IConnection connection, Handshake packet)
     {
+        Console.WriteLine($"[SERVER] HandleClientFinishAsync from {connection.NetworkEndpoint}");
         if (!TryGetState(connection, out HandshakeContext? state) || state is null)
         {
             await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
@@ -321,11 +324,13 @@ public sealed class HandshakeHandlers
         reply.TranscriptHash = state.TranscriptHash;
         reply.SessionToken = session is not null ? Snowflake.NewId(session.Snapshot.SessionToken) : (Snowflake)connection.ID;
 
+        Console.WriteLine($"[SERVER] Sent SERVER_FINISH to {connection.NetworkEndpoint}. Token={reply.SessionToken}");
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }
 
     private static async ValueTask RejectHandshakeAsync(IConnection connection, ProtocolReason reason)
     {
+        Console.WriteLine($"[SERVER] RejectHandshakeAsync: {reason} for {connection.NetworkEndpoint}");
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
         try

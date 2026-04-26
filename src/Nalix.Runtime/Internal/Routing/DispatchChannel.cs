@@ -20,6 +20,11 @@ using Nalix.Framework.Injection;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Options;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Runtime.Internal.Routing;
 
 /// <summary>

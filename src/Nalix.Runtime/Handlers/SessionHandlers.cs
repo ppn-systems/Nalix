@@ -41,6 +41,7 @@ public sealed class SessionHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
+
         if (Hub is null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE).ConfigureAwait(false);
@@ -162,6 +163,7 @@ public sealed class SessionHandlers
     /// <param name="reason">The failure reason to report.</param>
     private static async ValueTask HandleFailureAsync(IConnection connection, ProtocolReason reason)
     {
+        Console.WriteLine($"[SERVER] Session Resume Failed: {reason} for {connection.NetworkEndpoint}");
         IConnection.ITransport tcp = connection.TCP;
 
         using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
@@ -176,6 +178,10 @@ public sealed class SessionHandlers
         {
             await tcp.SendAsync(ack)
                      .ConfigureAwait(false);
+            
+            // BUG-Fix: Give the transport a tiny window to flush the rejection packet before closing the socket.
+            // Without this, the client often receives a TCP RESET/FIN before the SESSION_RESUME response.
+            await Task.Delay(100).ConfigureAwait(false);
         }
         finally
         {
