@@ -15,7 +15,7 @@ public sealed class SessionSnapshot
     /// <summary>
     /// Gets or sets the snapshot token.
     /// </summary>
-    public UInt56 SessionToken { get; init; }
+    public ulong SessionToken { get; init; }
 
     /// <summary>
     /// Gets or sets the creation timestamp in Unix milliseconds.
@@ -59,3 +59,4 @@ public sealed class SessionSnapshot
         this.Attributes = null;
     }
 }
+

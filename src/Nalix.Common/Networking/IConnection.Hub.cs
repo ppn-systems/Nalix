@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Networking;
 
@@ -39,7 +38,7 @@ public interface IConnectionHub : IReportable, IDisposable
     /// <param name="id">The identifier of the connection to retrieve.</param>
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    IConnection? GetConnection(UInt56 id);
+    IConnection? GetConnection(ulong id);
 
     /// <summary>
     /// Retrieves a client connection by its unique identifier.
@@ -87,3 +86,4 @@ public interface IConnectionHub : IReportable, IDisposable
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>
     IReadOnlyCollection<IConnection> ListConnections();
 }
+
