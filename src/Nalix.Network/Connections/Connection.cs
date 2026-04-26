@@ -308,11 +308,16 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "<Pending>")]
     private void PerformDestructiveCleanup()
     {
         lock (_lock)
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
         }
 

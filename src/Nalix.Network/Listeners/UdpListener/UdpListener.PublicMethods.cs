@@ -56,7 +56,7 @@ public abstract partial class UdpListenerBase : IListener
         // Avoid blocking lifecycle calls behind an already-running transition.
         if (!_lock.Wait(0, CancellationToken.None))
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"activate-skipped lock-busy port={_port}");
             return;
@@ -67,7 +67,7 @@ public abstract partial class UdpListenerBase : IListener
             // Only activate from STOPPED; all other states are ignored.
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                     $"ignored-activate state={this.State}");
                 return;
@@ -91,12 +91,12 @@ public abstract partial class UdpListenerBase : IListener
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
-            s_logger?.Info(
+            _logger?.Info(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"listening port={_port} protocol={_protocol.GetType().Name}");
 
             // Dispatch parallel SAEA receive workers
-            int concurrency = Math.Max(1, s_options.MaxParallelUDP);
+            int concurrency = Math.Max(1, _options.MaxParallelUDP);
             for (int i = 0; i < concurrency; i++)
             {
 #pragma warning disable CA2000 // Ownership transfers to StartReceive/SAEA completion once queued to the ThreadPool.
@@ -115,7 +115,7 @@ public abstract partial class UdpListenerBase : IListener
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
-            s_logger?.Info(
+            _logger?.Info(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"cancel port={_port}");
         }
@@ -123,7 +123,7 @@ public abstract partial class UdpListenerBase : IListener
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
-            s_logger?.Critical(
+            _logger?.Critical(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"bind-fail port={_port}", ex);
         }
@@ -131,7 +131,7 @@ public abstract partial class UdpListenerBase : IListener
         {
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
-            s_logger?.Critical(
+            _logger?.Critical(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
                 $"critical port={_port}", ex);
         }
@@ -171,7 +171,7 @@ public abstract partial class UdpListenerBase : IListener
 
             if (prev != (int)ListenerState.STARTING)
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"ignored-deactivate state={this.State}");
                 return;
@@ -188,13 +188,13 @@ public abstract partial class UdpListenerBase : IListener
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-cancel-failed port={_port}", ex);
             }
@@ -206,13 +206,13 @@ public abstract partial class UdpListenerBase : IListener
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"socket-close-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"socket-close-failed port={_port}", ex);
             }
@@ -223,13 +223,13 @@ public abstract partial class UdpListenerBase : IListener
             _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                         .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}");
 
-            s_logger?.Info(
+            _logger?.Info(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                 $"stopped port={_port}");
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            s_logger?.Error(
+            _logger?.Error(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                 $"stop-error port={_port}", ex);
         }
@@ -241,13 +241,13 @@ public abstract partial class UdpListenerBase : IListener
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-dispose-failed port={_port}", ex);
             }
@@ -258,13 +258,13 @@ public abstract partial class UdpListenerBase : IListener
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"rate-limiter-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
                     $"rate-limiter-dispose-failed port={_port}", ex);
             }
@@ -310,17 +310,17 @@ public abstract partial class UdpListenerBase : IListener
         // Socket configuration — UDP-relevant settings only.
         _ = sb.AppendLine("Configuration:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress    : {s_options.ReuseAddress}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize      : {s_options.BufferSize}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6      : {s_options.EnableIPv6}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DualMode        : {s_options.DualMode}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress    : {_options.ReuseAddress}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize      : {_options.BufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6      : {_options.EnableIPv6}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DualMode        : {_options.DualMode}");
         _ = sb.AppendLine();
 
         // Worker concurrency info.
         _ = sb.AppendLine("Worker:");
         _ = sb.AppendLine("------------------------------------------------------------");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Group           : {TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GroupConcurrency: {s_options.MaxGroupConcurrency}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"GroupConcurrency: {_options.MaxGroupConcurrency}");
         _ = sb.AppendLine();
 
         // Traffic counters.
@@ -375,16 +375,16 @@ public abstract partial class UdpListenerBase : IListener
 
             ["Config"] = new Dictionary<string, object>
             {
-                ["ReuseAddress"] = s_options.ReuseAddress,
-                ["BufferSize"] = s_options.BufferSize,
-                ["EnableIPv6"] = s_options.EnableIPv6,
-                ["DualMode"] = s_options.DualMode
+                ["ReuseAddress"] = _options.ReuseAddress,
+                ["BufferSize"] = _options.BufferSize,
+                ["EnableIPv6"] = _options.EnableIPv6,
+                ["DualMode"] = _options.DualMode
             },
 
             ["Worker"] = new Dictionary<string, object>
             {
                 ["Group"] = $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
-                ["GroupConcurrencyLimit"] = s_options.MaxGroupConcurrency
+                ["GroupConcurrencyLimit"] = _options.MaxGroupConcurrency
             },
 
             ["Traffic"] = new Dictionary<string, object>
