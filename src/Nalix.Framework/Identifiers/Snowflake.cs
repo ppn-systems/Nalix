@@ -18,14 +18,14 @@ using Nalix.Framework.Random;
 namespace Nalix.Framework.Identifiers;
 
 /// <summary>
-/// Represents a 56-bit unique identifier composed of a value, machine identifier, and type.
+/// Represents a 64-bit unique identifier composed of a value, machine identifier, and type.
 /// Provides methods for creation, decomposition, and conversion to various formats.
 /// </summary>
 [SkipLocalsInit]
 [ExcludeFromCodeCoverage]
 [StructLayout(
     LayoutKind.Sequential, Pack = 1)]
-[DebuggerDisplay("0x{ToUInt56():X14} (T={Type}, M={MachineId})")]
+[DebuggerDisplay("0x{_combined:X16} (T={Type}, M={MachineId})")]
 public readonly partial struct Snowflake : ISnowflake
 {
     #region Const
@@ -34,10 +34,10 @@ public readonly partial struct Snowflake : ISnowflake
     /// The size in bytes of the <see cref="Snowflake"/> structure.
     /// </summary>
     [SerializeIgnore]
-    public const byte Size = 7;
+    public const byte Size = 8;
 
     [SerializeIgnore]
-    private readonly UInt56 _combined;
+    private readonly ulong _combined;
 
     [SerializeIgnore]
     private static readonly ushort s_machineId = LAZY_LOAD_MACHINE_ID();
@@ -53,8 +53,7 @@ public readonly partial struct Snowflake : ISnowflake
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ulong raw = (ulong)_combined;
-            return (uint)(raw & 0xFFFFFFFFUL);
+            return (uint)(_combined & 0xFFFFFFFFUL);
         }
     }
 
@@ -65,8 +64,7 @@ public readonly partial struct Snowflake : ISnowflake
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ulong raw = (ulong)_combined;
-            return (ushort)((raw >> 32) & 0xFFFFUL);
+            return (ushort)((_combined >> 32) & 0xFFFFUL);
         }
     }
 
@@ -77,8 +75,7 @@ public readonly partial struct Snowflake : ISnowflake
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get
         {
-            ulong raw = (ulong)_combined;
-            return (SnowflakeType)((raw >> 48) & 0xFFUL);
+            return (SnowflakeType)((_combined >> 48) & 0xFFUL);
         }
     }
 
@@ -108,31 +105,31 @@ public readonly partial struct Snowflake : ISnowflake
     /// <param name="type">The identifier type (8 bits).</param>
     /// <remarks>
     /// This constructor validates the type parameter to ensure it represents a valid <see cref="SnowflakeType"/>.
-    /// The components are efficiently combined using bit operations to form the 56-bit identifier.
+    /// The components are efficiently combined using bit operations to form the 64-bit identifier.
     /// </remarks>
     [DebuggerHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Snowflake(uint value, ushort machineId, SnowflakeType type) => _combined = new UInt56((byte)type, machineId, value);
+    private Snowflake(uint value, ushort machineId, SnowflakeType type) => _combined = ((ulong)(byte)type << 48) | ((ulong)machineId << 32) | value;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Snowflake"/> struct from a <see cref="UInt56"/> value.
+    /// Initializes a new instance of the <see cref="Snowflake"/> struct from a <see cref="ulong"/> value.
     /// </summary>
-    /// <param name="uInt56">The 56-bit unsigned integer representing the combined identifier value.</param>
+    /// <param name="value">The 64-bit unsigned integer representing the combined identifier value.</param>
     /// <remarks>
-    /// This constructor allows direct initialization from a pre-composed 56-bit value,
+    /// This constructor allows direct initialization from a pre-composed 64-bit value,
     /// which is useful for deserialization scenarios. No validation is performed on the input.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public Snowflake(UInt56 uInt56) => _combined = uInt56;
+    public Snowflake(ulong value) => _combined = value;
 
     #endregion Constructors
 
     #region Factory Methods
 
     /// <summary>
-    /// Creates a new <see cref="Snowflake"/> from a <see cref="UInt56"/> value.
+    /// Creates a new <see cref="Snowflake"/> from a <see cref="ulong"/> value.
     /// </summary>
-    /// <param name="uInt56">The 56-bit unsigned integer representing the combined identifier value.</param>
+    /// <param name="value">The 64-bit unsigned integer representing the combined identifier value.</param>
     /// <returns>A new <see cref="Snowflake"/> instance.</returns>
     /// <remarks>
     /// This method provides a fast way to construct a <see cref="Snowflake"/> from a pre-composed value.
@@ -141,7 +138,7 @@ public readonly partial struct Snowflake : ISnowflake
     [DebuggerHidden]
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Snowflake NewId(UInt56 uInt56) => new(uInt56);
+    public static Snowflake NewId(ulong value) => new(value);
 
     /// <summary>
     /// Creates a new <see cref="Snowflake"/> with the specified components.
@@ -249,7 +246,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// </summary>
     /// <returns>A 32-bit signed integer hash code.</returns>
     /// <remarks>
-    /// The hash code is computed efficiently from the underlying 56-bit value
+    /// The hash code is computed efficiently from the underlying 64-bit value
     /// and is suitable for use in hash-based collections like <see cref="Dictionary{TKey,TValue}"/>.
     /// This implementation ensures consistent hash values for equal identifiers.
     /// </remarks>
@@ -299,3 +296,4 @@ public readonly partial struct Snowflake : ISnowflake
 
     #endregion Private Methods
 }
+
