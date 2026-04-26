@@ -24,7 +24,7 @@ The following diagram illustrates how `Connection` bridges the raw `SocketConnec
 flowchart TD
     subgraph Transport[Transport Layer - SocketConnection]
         RawData[Incoming Raw Data]
-        RawClose[Native Close Signal]
+        RawClose[Native Disconnect Signal]
     end
 
     subgraph Hub[Connection Internal Bridges]
@@ -54,7 +54,7 @@ flowchart TD
 
 ### 1. High-Priority Event Bridging
 
-Connection uses "Bridges" to handle events. Importantly, **Close events are treated as high-priority** and bypass standard backpressure queues to ensure that system resources are released immediately, even if the processing thread pool is saturated.
+Connection uses "Bridges" to handle events. Importantly, **Disconnect/Close events are treated as high-priority** and bypass standard backpressure queues to ensure that system resources are released immediately, even if the processing thread pool is saturated.
 
 ### 2. Error Tracking (SEC-54)
 
@@ -72,7 +72,7 @@ Every connection instance maintains a `SlidingWindow` (UdpReplayWindow) to track
 - `ID`: The 57-bit unique identifier for the session.
 - `Secret / Algorithm`: Zero-allocation `Bytes32` secret and active cipher suite.
 - `TCP / UDP`: Accessors to the underlying transport-specific send/receive primitives.
-- `Close(force)` / `Disconnect(reason)`: Gracefully or forcefully terminates the connection.
+- `Disconnect(reason)`: Safely terminates the connection with an optional reason.
 - `Attributes`: A pooled `IObjectMap` for attaching custom metadata to the connection.
 
 ## Best Practices
