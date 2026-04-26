@@ -544,7 +544,7 @@ internal sealed class TimingWheel : IActivatable
 
                             try
                             {
-                                task.Conn.Close(force: true);
+                                task.Conn.Disconnect();
                             }
                             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                             {
