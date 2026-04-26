@@ -57,7 +57,7 @@ public static class HandshakeExtensions
 
         using Handshake clientHello = new(HandshakeStage.CLIENT_HELLO, clientKey.PublicKey, clientNonce);
 
-        Handshake serverHello = await session.RequestAsync<Handshake>(
+        using Handshake serverHello = await session.RequestAsync<Handshake>(
             clientHello,
             options: RequestOptions.Default.WithTimeout(5000),
             predicate: p => p.Stage is HandshakeStage.SERVER_HELLO or HandshakeStage.ERROR,
@@ -109,7 +109,7 @@ public static class HandshakeExtensions
         }
 
         Bytes32 sessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, clientNonce, serverHello.Nonce, transcriptHash);
-        
+
         // BUG-FIX: Apply established connection settings BEFORE receiving SERVER_FINISH.
         // The server applies encryption immediately after receiving CLIENT_FINISH, 
         // meaning SERVER_FINISH will be ENCRYPTED. 
@@ -124,7 +124,7 @@ public static class HandshakeExtensions
 
         // Note: RequestAsync uses encrypt: false by default for the request itself, 
         // which is correct as the server expects CLIENT_FINISH as PLAIN.
-        Handshake serverFinish = await session.RequestAsync<Handshake>(
+        using Handshake serverFinish = await session.RequestAsync<Handshake>(
             clientFinish,
             options: RequestOptions.Default.WithTimeout(5000),
             predicate: p => p.Stage is HandshakeStage.SERVER_FINISH or HandshakeStage.ERROR,

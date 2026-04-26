@@ -9,6 +9,8 @@ using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.Framework.Injection;
+using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Framework.DataFrames.Pooling;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -58,10 +60,11 @@ public sealed class CipherExtensionsTests : IDisposable
             Assert.Equal(CipherSuiteType.Salsa20Poly1305, session.Options.Algorithm);
 
             // Send a ping to verify Salsa20 works for subsequent packets
-            using var ping = new Control();
+            using var pingLease = PacketPool<Control>.Rent();
+            var ping = pingLease.Value;
             ping.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING, 100, PacketFlags.NONE, ProtocolReason.NONE);
             
-            var pong = await session.RequestAsync<Control>(ping);
+            using var pong = await session.RequestAsync<Control>(ping);
             Assert.Equal(ControlType.PONG, pong.Type);
             Assert.Equal(ping.SequenceId, pong.SequenceId);
         }
