@@ -366,7 +366,7 @@ public sealed class ObjectPoolManager : IReportable
 
         if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug($"[SH.{nameof(ObjectPoolManager)}:{nameof(Prealloc)}] prealloc type={typeof(T).Name} count={count} allocated={allocated}");
+            logger.LogDebug($"[FW.{nameof(ObjectPoolManager)}:{nameof(Prealloc)}] prealloc type={typeof(T).Name} count={count} allocated={allocated}");
         }
 
         return allocated;
@@ -406,7 +406,7 @@ public sealed class ObjectPoolManager : IReportable
 
         if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug($"[SH.{nameof(ObjectPoolManager)}:{nameof(SetMaxCapacity)}] set-max type={typeof(T).Name} cap={maxCapacity}");
+            logger.LogDebug($"[FW.{nameof(ObjectPoolManager)}:{nameof(SetMaxCapacity)}] set-max type={typeof(T).Name} cap={maxCapacity}");
         }
 
         return true;
@@ -553,7 +553,7 @@ public sealed class ObjectPoolManager : IReportable
 
         if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug($"[SH.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
+            logger.LogDebug($"[FW.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
         }
 
         return totalRemoved;
@@ -601,7 +601,7 @@ public sealed class ObjectPoolManager : IReportable
 
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
-                    logger.LogWarning($"[SH.{nameof(ObjectPoolManager)}:Internal] unhealthy-pool type={kvp.Key.Name} miss-rate={missRate:F2}%");
+                    logger.LogWarning($"[FW.{nameof(ObjectPoolManager)}:Internal] unhealthy-pool type={kvp.Key.Name} miss-rate={missRate:F2}%");
                 }
             }
             else
@@ -631,7 +631,7 @@ public sealed class ObjectPoolManager : IReportable
 
         if (logger != null && logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation($"[SH.{nameof(ObjectPoolManager)}::{nameof(ResetStatistics)}] " +
+            logger.LogInformation($"[FW.{nameof(ObjectPoolManager)}::{nameof(ResetStatistics)}] " +
                                   $"stats-before-reset gets={gets} returns={returns} hits={hits} misses={misses} " +
                                   $"hit-rate={(gets > 0 ? (hits / (double)gets * 100.0) : 0):F1}% " +
                                   $"uptime={this.Uptime.TotalSeconds:F0}s pools={this.PoolCount}");
@@ -651,7 +651,7 @@ public sealed class ObjectPoolManager : IReportable
 
         if (logger != null && logger.IsEnabled(LogLevel.Trace))
         {
-            logger.LogTrace($"[SH.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
+            logger.LogTrace($"[FW.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
         }
     }
 
@@ -678,7 +678,7 @@ public sealed class ObjectPoolManager : IReportable
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
                 {
-                    logger.LogError(ex, $"[SH.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error");
+                    logger.LogError(ex, $"[FW.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error");
                 }
             }
         }
