@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
+using Nalix.Common.Concurrency;
 using Nalix.Common.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Network.Hosting.Internal;
@@ -243,6 +244,18 @@ public sealed class NetworkApplication : IActivatableAsync
             }
 
             _packetDispatch = null;
+
+            // BUG-Fix: Ensure all background workers are fully stopped before returning.
+            // Without this, "zombie" tasks from Test A might interfere with Test B's resources.
+            ITaskManager? taskManager = InstanceManager.Instance.GetExistingInstance<ITaskManager>();
+            if (taskManager is not null)
+            {
+                // Wait for all network and time-related workers (listeners, dispatchers, timing wheels, etc.)
+                // These groups usually start with 'net/' or 'time/'
+                await taskManager.WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
+                await taskManager.WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
+            }
+
             _isStarted = false;
         }
         finally

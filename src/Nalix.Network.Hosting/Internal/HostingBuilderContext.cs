@@ -12,6 +12,11 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Hosting.Internal;
 
 /// <summary>
