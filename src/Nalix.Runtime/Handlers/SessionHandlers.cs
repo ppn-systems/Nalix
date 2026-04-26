@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
@@ -58,7 +57,6 @@ public sealed class SessionHandlers
 
         if (!packet.Validate(out string? reason))
         {
-            Debug.WriteLine($"[NW.Session] Rejecting SESSION_RESUME. Reason: {reason}");
             await HandleFailureAsync(context.Connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
@@ -71,7 +69,6 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        Console.WriteLine($"[SERVER] Session Resume Request for Token: {packet.SessionToken}");
         SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken.ToUInt64())
                                                        .ConfigureAwait(false);
         if (session == null)
@@ -101,7 +98,6 @@ public sealed class SessionHandlers
         Bytes32 expectedProof = new(expectedProofBytes);
         if (packet.Proof != expectedProof)
         {
-            Console.WriteLine($"[SERVER] Proof mismatch. Expected: {expectedProof}, Got: {packet.Proof}");
             session.Return();
             await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
@@ -165,7 +161,6 @@ public sealed class SessionHandlers
     /// <param name="reason">The failure reason to report.</param>
     private static async ValueTask HandleFailureAsync(IConnection connection, ProtocolReason reason)
     {
-        Console.WriteLine($"[SERVER] Session Resume Failed: {reason} for {connection.NetworkEndpoint}");
         IConnection.ITransport tcp = connection.TCP;
 
         using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();

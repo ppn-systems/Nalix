@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.ComponentModel;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -16,7 +15,6 @@ using Nalix.Common.Security;
 using Nalix.Framework.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Security;
@@ -176,12 +174,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     internal SlidingWindow UdpReplayWindow => _udpReplayWindow ??= new(s_options.UdpReplayWindowSize);
 
-    [EditorBrowsable(EditorBrowsableState.Never)]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void ReleasePendingPacket() => this.Socket.OnPacketProcessed();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
+
     internal void SetUdpTransport(SocketUdpTransport transport) => this.UdpTransport = transport;
 
     #endregion Internal
@@ -215,48 +213,15 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     #region Methods
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Close(bool force = false)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        // Route close through the bridge so the same high-priority callback path
-        // is used everywhere.
-
-#pragma warning disable CA2000
-        this.OnCloseEventBridge(this, new ConnectionEventArgs(this));
-#pragma warning restore CA2000
-
-#if DEBUG
-        _logger?.Debug($"[NW.{nameof(Connection)}:{this.Close}] close request id={this.ID} remote={this.NetworkEndpoint}");
-#endif
-    }
-
-    /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void Disconnect(string? reason = null) => this.Close(force: true);
-
-    /// <summary>
-    /// Manually triggers the receive-path process callback for a given buffer lease.
-    /// This is used exclusively for testing to simulate incoming packets without a real socket.
-    /// </summary>
-    /// <param name="lease">The buffer lease carrying the simulated packet payload.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void InjectIncoming(BufferLease lease)
+    public void Disconnect(string? reason = null)
     {
-        this.Socket.IncrementPendingCallbacks();
+#if DEBUG
+        _logger?.Debug($"[NW.{nameof(Connection)}:{this.Disconnect}] " +
+                       $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}");
+#endif
 
-        ConnectionEventArgs args = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Get<ConnectionEventArgs>();
-        args.Initialize(lease, this);
-
-        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
-        {
-            this.ReleasePendingPacket();
-            args.Dispose();
-        }
+        this.Dispose();
     }
 
     #endregion Methods
@@ -278,16 +243,18 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             {
                 // Signal that we are closing but NOT yet fully disposed.
                 // This allows event handlers (like session persistence) to still read attributes.
-                _ = Interlocked.Exchange(ref _closeSignaled, 1);
+                if (_onCloseEvent != null && Interlocked.Exchange(ref _closeSignaled, 1) == 0)
+                {
+                    ConnectionEventArgs closeArgs = new(this);
 
-                ConnectionEventArgs closeArgs = new(this);
-                try
-                {
-                    _onCloseEvent?.Invoke(this, closeArgs);
-                }
-                finally
-                {
-                    closeArgs.Dispose();
+                    try
+                    {
+                        _onCloseEvent?.Invoke(this, closeArgs);
+                    }
+                    finally
+                    {
+                        closeArgs.Dispose();
+                    }
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

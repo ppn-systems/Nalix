@@ -96,17 +96,6 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     event EventHandler<IConnectEventArgs> OnPostProcessEvent;
 
     /// <summary>
-    /// Closes the connection and releases all associated resources.
-    /// </summary>
-    /// <param name="force">
-    /// <c>true</c> to force the connection closed immediately; otherwise, attempt a normal close.
-    /// </param>
-    /// <remarks>
-    /// Ensures that both the socket and associated streams are properly closed.
-    /// </remarks>
-    void Close(bool force = false);
-
-    /// <summary>
     /// Disconnects the connection safely with an optional reason.
     /// </summary>
     /// <param name="reason">An optional string providing the reason for disconnection.</param>
