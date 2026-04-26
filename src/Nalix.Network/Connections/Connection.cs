@@ -184,7 +184,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void ReleasePendingPacket() => this.Socket.OnPacketProcessed();
 
-#if DEBUG
     /// <summary>
     /// Injects a packet directly into the process pipeline for testing.
     /// This bypasses the socket receive loop but still triggers AsyncCallback
@@ -203,7 +202,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             lease.Dispose();
         }
     }
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
