@@ -44,20 +44,20 @@ public abstract partial class TcpListenerBase
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
-        if (s_config.MaxParallel < 1)
+        if (_config.MaxParallel < 1)
         {
             throw new InternalErrorException("s_connectionLimitOptions.MaxParallel must be at least 1.");
         }
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            s_logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
+            _logger.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
         }
 
         // Avoid blocking lifecycle transitions behind a concurrent caller.
         if (!_lock.Wait(0, CancellationToken.None))
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] " +
                 $"activate-skipped lock-busy port={_port}");
             return;
@@ -71,7 +71,7 @@ public abstract partial class TcpListenerBase
             // cannot both observe STOPPED and initialize twice.
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
+                _logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
 
                 return;
             }
@@ -114,9 +114,9 @@ public abstract partial class TcpListenerBase
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
-            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
+            _logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port}");
 
-            if (s_config.EnableTimeout)
+            if (_config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                         .Activate(linkedToken);
@@ -127,7 +127,7 @@ public abstract partial class TcpListenerBase
             // Spawn N accept-worker async tasks, where N = MaxParallel.
             // Multiple workers let the listener accept several connections in
             // parallel instead of serializing every accept behind one loop.
-            for (int i = 0; i < s_config.MaxParallel; i++)
+            for (int i = 0; i < _config.MaxParallel; i++)
             {
                 IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
@@ -149,19 +149,19 @@ public abstract partial class TcpListenerBase
         }
         catch (OperationCanceledException)
         {
-            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
+            _logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] cancel port={_port}");
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (SocketException ex)
         {
-            s_logger?.Error($"[NW.{nameof(TcpListenerBase)}: {nameof(Activate)} ] start-failed port= {_port}", ex);
+            _logger?.Error($"[NW.{nameof(TcpListenerBase)}: {nameof(Activate)} ] start-failed port= {_port}", ex);
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            s_logger?.Critical($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
+            _logger?.Critical($"[NW.{nameof(TcpListenerBase)}:{nameof(Activate)}] critical-error port={_port}", ex);
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
@@ -187,7 +187,7 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
+        _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
 
         // Try RUNNING -> STOPPING first; if that fails, allow STARTING -> STOPPING
         // so shutdown works even while activation is still in progress.
@@ -201,7 +201,7 @@ public abstract partial class TcpListenerBase
 
             if (prev != (int)ListenerState.STARTING)
             {
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] ignored-deactivate state={this.State}");
+                _logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] ignored-deactivate state={this.State}");
 
                 return;
             }
@@ -216,13 +216,13 @@ public abstract partial class TcpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cancel-reg-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cancel-reg-dispose-failed port={_port}", ex);
             }
@@ -233,13 +233,13 @@ public abstract partial class TcpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-cancel-failed port={_port}", ex);
             }
@@ -250,13 +250,13 @@ public abstract partial class TcpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"listener-close-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"listener-close-failed port={_port}", ex);
             }
@@ -268,13 +268,13 @@ public abstract partial class TcpListenerBase
             _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
                                          .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}"));
 
-            if (s_config.EnableTimeout)
+            if (_config.EnableTimeout)
             {
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                         .Deactivate(CancellationToken.None);
             }
 
-            s_logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] stop protocol={_protocol} port={_port}");
+            _logger?.Info($"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] stop protocol={_protocol} port={_port}");
         }
         finally
         {
@@ -284,13 +284,13 @@ public abstract partial class TcpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Deactivate)}] " +
                     $"cts-dispose-failed port={_port}", ex);
             }
@@ -323,13 +323,13 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("Configuration:");
         _ = sb.AppendLine("--------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableTimeout       : {s_config.EnableTimeout}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MaxParallelAccepts  : {s_config.MaxParallel}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize          : {s_config.BufferSize}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"KeepAlive           : {s_config.KeepAlive}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress        : {s_config.ReuseAddress}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6          : {s_config.EnableIPv6}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Backlog             : {s_config.Backlog}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableTimeout       : {_config.EnableTimeout}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MaxParallelAccepts  : {_config.MaxParallel}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"BufferSize          : {_config.BufferSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"KeepAlive           : {_config.KeepAlive}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReuseAddress        : {_config.ReuseAddress}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"EnableIPv6          : {_config.EnableIPv6}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Backlog             : {_config.Backlog}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("Metrics:");
@@ -378,13 +378,13 @@ public abstract partial class TcpListenerBase
             ["Disposed"] = _isDisposed,
             ["Configuration"] = new Dictionary<string, object>
             {
-                ["EnableTimeout"] = s_config.EnableTimeout,
-                ["MaxParallelAccepts"] = s_config.MaxParallel,
-                ["BufferSize"] = s_config.BufferSize,
-                ["KeepAlive"] = s_config.KeepAlive,
-                ["ReuseAddress"] = s_config.ReuseAddress,
-                ["EnableIPv6"] = s_config.EnableIPv6,
-                ["Backlog"] = s_config.Backlog
+                ["EnableTimeout"] = _config.EnableTimeout,
+                ["MaxParallelAccepts"] = _config.MaxParallel,
+                ["BufferSize"] = _config.BufferSize,
+                ["KeepAlive"] = _config.KeepAlive,
+                ["ReuseAddress"] = _config.ReuseAddress,
+                ["EnableIPv6"] = _config.EnableIPv6,
+                ["Backlog"] = _config.Backlog
             },
             ["Metrics"] = new Dictionary<string, object>
             {

@@ -19,7 +19,7 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void Initialize()
     {
-        if (s_config.EnableIPv6)
+        if (_config.EnableIPv6)
         {
             // Try creating an IPv6 socket with DualMode first.
             // DualMode = true -> 1 socket that receives both IPv6 and IPv4-mapped (::ffff:x.x.x.x).
@@ -33,12 +33,12 @@ public abstract partial class TcpListenerBase
                     Blocking = true,
 
                     // DualMode MUST be set BEFORE Bind — after Bind, it cannot be set again.
-                    DualMode = s_config.DualMode,
+                    DualMode = _config.DualMode,
 
                     // ExclusiveAddressUse = !ReuseAddress:
                     // ReuseAddress = true -> multiple processes can bind to the same port (load balancing).
                     // ReuseAddress = false -> exclusive -> prevent port hijacking.
-                    ExclusiveAddressUse = !s_config.ReuseAddress,
+                    ExclusiveAddressUse = !_config.ReuseAddress,
 
                     // LingerState(false, 0) -> When Close() is called, RST is sent immediately,
                     // Don't wait for the drain buffer. WHY: Server-side listener does not require a liner
@@ -48,23 +48,23 @@ public abstract partial class TcpListenerBase
 
                 // ReuseAddress MUST be set BEFORE Bind.
                 // WHY: Allows binding the port again immediately after the server restart (avoid "Address already in use").
-                sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
+                sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, _config.ReuseAddress ? 1 : 0);
 
                 // Increase the receiver buffer of the listener socket.
                 // WHY: Listener socket receives connection request (SYN), larger buffer
                 // This helps OS queue have more pending connections before app accepts.
-                sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, s_config.BufferSize);
+                sock.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, _config.BufferSize);
 
                 // IPv6Any (::) -> listens on all IPv6 interfaces (and IPv4 via DualMode).
                 IPEndPoint epV6Any = new(IPAddress.IPv6Any, _port);
 
-                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
+                _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
 
                 sock.Bind(epV6Any);
-                sock.Listen(s_config.Backlog);
+                sock.Listen(_config.Backlog);
 
                 _listener = sock;
-                s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+                _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
 
                 return;
             }
@@ -72,7 +72,7 @@ public abstract partial class TcpListenerBase
             {
                 // IPv6/DualMode is not supported on this environment -> IPv4 fallback.
                 // WHY not rethrow: Failover automatically is better than crashing the server.
-                s_logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+                _logger?.Warn($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
 
                 try
                 {
@@ -80,13 +80,13 @@ public abstract partial class TcpListenerBase
                 }
                 catch (ObjectDisposedException closeEx)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
                         $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
                 }
                 catch (Exception closeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
                         $"ipv6-fallback-close-failed", closeEx);
                 }
@@ -97,7 +97,7 @@ public abstract partial class TcpListenerBase
                 }
                 catch (Exception disposeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(disposeEx))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
                         $"ipv6-fallback-dispose-failed", disposeEx);
                 }
@@ -111,22 +111,22 @@ public abstract partial class TcpListenerBase
         _listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp)
         {
             Blocking = true,
-            ExclusiveAddressUse = !s_config.ReuseAddress,
+            ExclusiveAddressUse = !_config.ReuseAddress,
             LingerState = new LingerOption(false, 0)
         };
 
-        _listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, s_config.ReuseAddress ? 1 : 0);
+        _listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, _config.ReuseAddress ? 1 : 0);
 
-        _listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, s_config.BufferSize);
+        _listener.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveBuffer, _config.BufferSize);
 
         IPEndPoint epV4Any = new(IPAddress.Any, _port);
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
+        _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
 
         _listener.Bind(epV4Any);
-        _listener.Listen(s_config.Backlog);
+        _listener.Listen(_config.Backlog);
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+        _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
     }
 
     /// <summary>
@@ -222,11 +222,11 @@ public abstract partial class TcpListenerBase
         // OS-level buffer for each connection.
         // Larger -> fewer syscalls when throughput is high (batching more recv/send into the OS buffer).
         // Smaller -> saves memory when there are multiple connections simultaneously.
-        socket.NoDelay = s_config.NoDelay;
-        socket.SendBufferSize = s_config.BufferSize;
-        socket.ReceiveBufferSize = s_config.BufferSize;
+        socket.NoDelay = _config.NoDelay;
+        socket.SendBufferSize = _config.BufferSize;
+        socket.ReceiveBufferSize = _config.BufferSize;
 
-        if (s_config.KeepAlive)
+        if (_config.KeepAlive)
         {
             // Enable TCP Keep-Alive -> OS will automatically send probes when connection idle.
             // WHY requires Keep-Alive: NAT/firewall usually drops the "silent" connection after a few minutes.

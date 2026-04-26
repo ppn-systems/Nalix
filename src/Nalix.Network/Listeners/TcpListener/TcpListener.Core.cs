@@ -43,10 +43,10 @@ public abstract partial class TcpListenerBase : IListener
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
-    private readonly ILogger? s_logger;
-    private readonly TimingWheel s_timing;
-    private readonly NetworkSocketOptions s_config;
-    private readonly ObjectPoolManager s_pool;
+    private readonly ILogger? _logger;
+    private readonly TimingWheel _timing;
+    private readonly NetworkSocketOptions _config;
+    private readonly ObjectPoolManager _pool;
 
     #endregion Fields
 
@@ -95,30 +95,30 @@ public abstract partial class TcpListenerBase : IListener
         _state = (int)ListenerState.STOPPED;
 
         // Fetch infrastructure instances via InstanceManager for proper test isolation
-        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        s_timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
-        s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+        _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         // Register force-close action to ConnectionGuard for DDoS protection
         _ = _limiter.WithForceClose(key => _hub.ForceClose(key));
 
-        s_config.Validate();
+        _config.Validate();
 
         _lock = new SemaphoreSlim(1, 1);
-        _acceptWorkerIds = new(s_config.MaxParallel);
+        _acceptWorkerIds = new(_config.MaxParallel);
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
 
         // Configure object pools for accept contexts and socket async event args based on the provided options.
-        _ = s_pool.SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
-        _ = s_pool.SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
+        _ = _pool.SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
+        _ = _pool.SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
-        _ = s_pool.Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
-        _ = s_pool.Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
+        _ = _pool.Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
+        _ = _pool.Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
     }
 
     /// <summary>
@@ -171,13 +171,13 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"cts-cancel-ignored port={self._port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"cts-cancel-failed port={self._port}", ex);
                 }
@@ -189,13 +189,13 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"listener-close-ignored port={self._port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"listener-close-failed port={self._port}", ex);
                 }
@@ -208,20 +208,20 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"cancel-group-failed port={self._port}", ex);
                 }
 
                 _ = Interlocked.Exchange(ref self._state, (int)ListenerState.STOPPED);
 
-                s_logger?.Info(
+                _logger?.Info(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                     $"stopped port={self._port}");
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Error(
+                _logger?.Error(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                     $"stop-error port={self._port} ex={ex.Message}");
             }
@@ -233,13 +233,13 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"cts-dispose-ignored port={self._port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                         $"cts-dispose-failed port={self._port}", ex);
                 }
@@ -255,19 +255,19 @@ public abstract partial class TcpListenerBase : IListener
                     }
                     catch (SemaphoreFullException ex)
                     {
-                        s_logger?.Warn(
+                        _logger?.Warn(
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                             $"lock-release-ignored port={self._port} reason={nameof(SemaphoreFullException)} ex={ex.Message}");
                     }
                     catch (ObjectDisposedException ex)
                     {
-                        s_logger?.Warn(
+                        _logger?.Warn(
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                             $"lock-release-ignored port={self._port} reason={nameof(ObjectDisposedException)} ex={ex.Message}");
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        s_logger?.Error(
+                        _logger?.Error(
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(SCHEDULE_STOP)}] " +
                             $"lock-release-error port={self._port} ex={ex.Message}");
                     }
@@ -322,13 +322,13 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cancel-reg-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cancel-reg-dispose-failed port={_port}", ex);
                 }
@@ -339,13 +339,13 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-cancel-failed port={_port}", ex);
                 }
@@ -356,13 +356,13 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-dispose-failed port={_port}", ex);
                 }
@@ -376,13 +376,13 @@ public abstract partial class TcpListenerBase : IListener
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"listener-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"listener-dispose-failed port={_port}", ex);
                 }
@@ -393,24 +393,41 @@ public abstract partial class TcpListenerBase : IListener
 
                 try
                 {
+                    _timing.Dispose();
+                }
+                catch (ObjectDisposedException ex)
+                {
+                    _logger?.Debug(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
+                        $"timing-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    _logger?.Warn(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
+                        $"timing-dispose-failed port={_port}", ex);
+                }
+
+                try
+                {
                     _limiter.Dispose();
                 }
                 catch (ObjectDisposedException ex)
                 {
-                    s_logger?.Debug(
+                    _logger?.Debug(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"limiter-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    s_logger?.Warn(
+                    _logger?.Warn(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                         $"limiter-dispose-failed port={_port}", ex);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                s_logger?.Error(
+                _logger?.Error(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
                     $"dispose-failed port={_port}", ex);
             }
@@ -424,7 +441,7 @@ public abstract partial class TcpListenerBase : IListener
             _lock.Dispose();
         }
 
-        s_logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
+        _logger?.Debug($"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] disposed");
     }
 
     #endregion IDispose

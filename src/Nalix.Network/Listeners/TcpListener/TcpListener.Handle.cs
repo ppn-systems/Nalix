@@ -43,16 +43,16 @@ public abstract partial class TcpListenerBase
         try
         {
             this.DoAccept(connection);
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                s_logger.Trace(
+                _logger.Trace(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
                     $"new={connection.NetworkEndpoint}");
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            s_logger?.Error(
+            _logger?.Error(
                 ex,
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
                 $"process-error={connection.NetworkEndpoint}");
@@ -121,15 +121,15 @@ public abstract partial class TcpListenerBase
         {
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
-                    s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                    _logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
                 }
             }
             else
             {
                 args.Connection.ThrottledError(
-                    s_logger, "protocol.process_error",
+                    _logger, "protocol.process_error",
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
             }
         }
@@ -179,9 +179,9 @@ public abstract partial class TcpListenerBase
         args.Connection.OnProcessEvent -= this.ProcessFrame;
         args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
 
-        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            s_logger.Trace(
+            _logger.Trace(
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] " +
                 $"close={args.Connection.NetworkEndpoint}");
         }
@@ -234,9 +234,9 @@ public abstract partial class TcpListenerBase
 
         // Context only needs to return immediately during the accept — phase after the socket has been claimed.
         // This pool slot will be reused for the next accept without waiting.
-        s_pool.Return(context);
+        _pool.Return(context);
 
-        Connection connection = new(socket, s_logger);
+        Connection connection = new(socket, _logger);
         try
         {
             // Subscribe lifecycle events.
@@ -253,13 +253,13 @@ public abstract partial class TcpListenerBase
             // as long as it depends on the same args lifecycle rules.
             connection.OnPostProcessEvent += _protocol.PostProcessMessage;
 
-            if (s_config.EnableTimeout)
+            if (_config.EnableTimeout)
             {
                 // Register connection with TimingWheel to track idle timeout.
                 // WHY TimingWheel instead of Timer per-connection:
                 // - Timer per-connection: O(n) memory + GC pressure when there are thousands of connections.
                 // - TimingWheel: O(1) tick, shared wheel for all connections -> much more efficient.
-                s_timing.Register(connection);
+                _timing.Register(connection);
             }
 
             return connection;
@@ -294,11 +294,11 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
                 // Log in Trace (not Error) because this is expected failure in error-recovery path.
                 // WHY not rethrow: Currently in cleanup path -> the second exception will obscure the original exception.
-                s_logger.Trace($"[NW.{nameof(TcpListenerBase)}:Internal] accept-error ex={ex.Message}");
+                _logger.Trace($"[NW.{nameof(TcpListenerBase)}:Internal] accept-error ex={ex.Message}");
             }
         }
     }
@@ -354,7 +354,7 @@ public abstract partial class TcpListenerBase
             {
                 // SocketError check first — cheapest path, no pattern match required.
                 // This is an early exit for all OS-level errors (Interrupted, OperationAborted, etc.)
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -366,7 +366,7 @@ public abstract partial class TcpListenerBase
                 // SocketError == Success but AcceptSocket null — a rare case,
                 // usually due to a race between Close() and Completed callbacks.
                 // No socket to log endpoint, logging warning is sufficient.
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-socket-null port={_port}");
 
                 RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -390,7 +390,7 @@ public abstract partial class TcpListenerBase
                 // Prepare args for the NEXT accept immediately.
                 // WHY prepare now: AcceptNext will call AcceptAsync with this args.
                 // Otherwise, rebind context -> the old context (returned to the pool) is reused -> bug.
-                PooledAcceptContext nextCtx = s_pool.Get<PooledAcceptContext>();
+                PooledAcceptContext nextCtx = _pool.Get<PooledAcceptContext>();
 
                 ((PooledSocketAsyncEventArgs)args).Context = nextCtx;
                 nextCtx.BindArgsForSync((PooledSocketAsyncEventArgs)args);
@@ -398,7 +398,7 @@ public abstract partial class TcpListenerBase
             catch (ObjectDisposedException)
             {
                 // Listener is disposed of while accept is running -> this is expected shutdown case.
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] " +
                     $"disposed-during-accept remote={socket.RemoteEndPoint?.ToString() ?? "<null>"}");
 
@@ -416,7 +416,7 @@ public abstract partial class TcpListenerBase
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 this.Metrics.RECORD_ERROR();
-                s_logger?.Error(
+                _logger?.Error(
                     ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}");
 
                 if (connection != null)
@@ -476,8 +476,8 @@ public abstract partial class TcpListenerBase
         // Prepare NEW args BEFORE processing the current args.
         // WHY before: After HandleAccept + Return(args), the old args belong to the pool.
         // AcceptNext requires new args ready to call immediately -> cannot allocate after Return.
-        PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
-        PooledSocketAsyncEventArgs newArgs = s_pool.Get<PooledSocketAsyncEventArgs>();
+        PooledAcceptContext context = _pool.Get<PooledAcceptContext>();
+        PooledSocketAsyncEventArgs newArgs = _pool.Get<PooledSocketAsyncEventArgs>();
 
         newArgs.Context = context;
         context.BindArgsForSync(newArgs);
@@ -496,7 +496,7 @@ public abstract partial class TcpListenerBase
 
             // Ensure the args is clean before returning to pool
             args.AcceptSocket = null;
-            s_pool.Return((PooledSocketAsyncEventArgs)args);
+            _pool.Return((PooledSocketAsyncEventArgs)args);
 
             // Continue the accept pipeline with the new args.
             // WHY in finally: Ensure the pipeline does not stop even if HandleAccept throws.
@@ -590,7 +590,7 @@ public abstract partial class TcpListenerBase
             }
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
-                s_logger?.Error(ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}");
+                _logger?.Error(ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}");
 
                 // Delay 50ms to avoid CPU spinning during persistent errors (eg, file descriptor explosion).
                 // Use Thread.Sleep because this is a synchronous wait on a background worker thread.
@@ -670,10 +670,10 @@ public abstract partial class TcpListenerBase
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
                     // Token cancelled -> shutdown graceful -> exit loop.
-                    s_logger.Trace(
+                    _logger.Trace(
                         $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
                         $"shutdown-requested port={_port}");
                 }
@@ -701,7 +701,7 @@ public abstract partial class TcpListenerBase
                 }
 
                 this.Metrics.RECORD_ERROR();
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
                     $"transient-socket-error={ex.SocketErrorCode} port={_port}");
 
@@ -714,7 +714,7 @@ public abstract partial class TcpListenerBase
             catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
             {
                 this.Metrics.RECORD_ERROR();
-                s_logger?.Error(
+                _logger?.Error(
                     ex,
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
                     $"accept-error port={_port}");
@@ -724,7 +724,7 @@ public abstract partial class TcpListenerBase
                 continue;
             }
 
-            s_logger?.Trace(
+            _logger?.Trace(
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
                 $"accepted remote={connection.NetworkEndpoint} port={_port}");
 
@@ -733,7 +733,7 @@ public abstract partial class TcpListenerBase
             ctx.Advance(1, note: "accepted");
         }
 
-        s_logger?.Trace(
+        _logger?.Trace(
             $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
             $"loop-exited port={_port}");
     }
@@ -794,7 +794,7 @@ public abstract partial class TcpListenerBase
         // contextOwned = false: ownership has been transferred to InitializeConnection.
         // This pattern prevents double-return (returns twice to the pool) and memory leak(no return).
         bool contextOwned = true;
-        PooledAcceptContext context = s_pool.Get<PooledAcceptContext>();
+        PooledAcceptContext context = _pool.Get<PooledAcceptContext>();
 
         try
         {
@@ -851,13 +851,13 @@ public abstract partial class TcpListenerBase
             }
             catch (ObjectDisposedException ode)
             {
-                s_logger?.Debug(
+                _logger?.Debug(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
                     $"listener-endpoint-disposed port={_port} reason={ode.GetType().Name}");
             }
             catch (Exception lookupEx) when (ExceptionClassifier.IsNonFatal(lookupEx))
             {
-                s_logger?.Warn(
+                _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
                     $"listener-endpoint-lookup-failed port={_port}", lookupEx);
             }
@@ -871,7 +871,7 @@ public abstract partial class TcpListenerBase
             // This pattern completely eliminates the possibility of double-returns and simultaneous leaks.
             if (contextOwned)
             {
-                s_pool.Return(context);
+                _pool.Return(context);
             }
         }
     }
@@ -904,10 +904,10 @@ public abstract partial class TcpListenerBase
     {
         if (pooled.Context is PooledAcceptContext ctx)
         {
-            s_pool.Return(ctx);
+            _pool.Return(ctx);
         }
 
-        PooledAcceptContext next = s_pool.Get<PooledAcceptContext>();
+        PooledAcceptContext next = _pool.Get<PooledAcceptContext>();
         pooled.Context = next;
         next.BindArgsForSync(pooled);
     }
