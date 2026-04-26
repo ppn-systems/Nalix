@@ -261,6 +261,7 @@ public class UdpSession : TransportSession
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
         IBufferLease src = BufferLease.Rent(packetLength);
+        IBufferLease current = src;
         try
         {
             int written = packet.Serialize(src.SpanFull);
@@ -268,16 +269,16 @@ public class UdpSession : TransportSession
 
             // Step 2: Transform outbound frame through the shared packet helpers (Compress -> Encrypt).
             FramePipeline.ProcessOutbound(
-                ref src,
+                ref current,
                 this.Options.CompressionEnabled,
                 this.Options.CompressionThreshold,
                 encrypt ?? this.Options.EncryptionEnabled,
                 this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
             // Step 3: Check MTU (Token + Packet)
-            if (src.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            if (current.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
             {
-                throw new NetworkException($"UDP packet too large after transformation: {src.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+                throw new NetworkException($"UDP packet too large after transformation: {current.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
             }
 
             /*
@@ -287,15 +288,20 @@ public class UdpSession : TransportSession
              * Layout: [Token (7 bytes)][Payload (N bytes)]
              */
             // Step 4: Final Envelope [Token + Packet]
-            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + src.Length);
+            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + current.Length);
             _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
-            src.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
-            finalLease.CommitLength(Snowflake.Size + src.Length);
+            current.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
+            finalLease.CommitLength(Snowflake.Size + current.Length);
 
             await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }
         finally
         {
+            if (!ReferenceEquals(current, src))
+            {
+                current.Dispose();
+            }
+
             src.Dispose();
         }
     }
@@ -312,6 +318,7 @@ public class UdpSession : TransportSession
 
         // Step 1: Wrap raw payload into a BufferLease
         IBufferLease src = BufferLease.Rent(payload.Length);
+        IBufferLease current = src;
         try
         {
             payload.Span.CopyTo(src.Span);
@@ -319,26 +326,31 @@ public class UdpSession : TransportSession
 
             // Step 2: Transform
             FramePipeline.ProcessOutbound(
-                ref src,
+                ref current,
                 this.Options.CompressionEnabled,
                 this.Options.CompressionThreshold,
                 encrypt ?? this.Options.EncryptionEnabled,
                 this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
-            if (src.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            if (current.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
             {
-                throw new NetworkException($"UDP payload too large after transformation: {src.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+                throw new NetworkException($"UDP payload too large after transformation: {current.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
             }
 
-            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + src.Length);
+            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + current.Length);
             _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
-            src.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
-            finalLease.CommitLength(Snowflake.Size + src.Length);
+            current.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
+            finalLease.CommitLength(Snowflake.Size + current.Length);
 
             await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }
         finally
         {
+            if (!ReferenceEquals(current, src))
+            {
+                current.Dispose();
+            }
+
             src.Dispose();
         }
     }
@@ -428,7 +440,13 @@ public class UdpSession : TransportSession
                 try
                 {
                     // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
+                    IBufferLease original = datagram;
                     FramePipeline.ProcessInbound(ref datagram, this.Options.Secret.AsSpan(), this.Options.Algorithm);
+                    
+                    if (!ReferenceEquals(datagram, original))
+                    {
+                        original.Dispose();
+                    }
 
                     Func<ReadOnlyMemory<byte>, Task>? asyncHandler = this.OnMessageAsync;
                     EventHandler<IBufferLease>? syncHandler = this.OnMessageReceived;

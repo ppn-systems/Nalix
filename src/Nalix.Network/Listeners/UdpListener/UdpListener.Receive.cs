@@ -440,14 +440,17 @@ public abstract partial class UdpListenerBase
 
         IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
         IBufferLease current = lease;
+        bool exchanged = false;
 
         try
         {
             FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
 
-            if (current != lease)
+            if (!ReferenceEquals(current, lease))
             {
                 replaceable.ExchangeLease(current)?.Dispose();
+                lease = current;
+                exchanged = true;
             }
 
             _protocol.ProcessMessage(sender, args);
@@ -463,6 +466,13 @@ public abstract partial class UdpListenerBase
             else
             {
                 args.Connection.ThrottledError(s_logger, "protocol.process_error", $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
+            }
+        }
+        finally
+        {
+            if (!exchanged && !ReferenceEquals(current, lease))
+            {
+                current.Dispose();
             }
         }
     }

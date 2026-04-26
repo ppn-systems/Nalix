@@ -74,7 +74,6 @@ internal sealed class FrameReader : IDisposable
                     try
                     {
                         await RECEIVE_EXACTLY_ASYNC(s, headerMemory, token).ConfigureAwait(false);
-                        Console.WriteLine($"[CLIENT] FrameReader: Received header. Bytes={BitConverter.ToString(headerMemory.ToArray())}");
 
                         ushort totalLen = BinaryPrimitives.ReadUInt16LittleEndian(headerMemory.Span);
                         if ((uint)totalLen < TcpSession.HeaderSize || totalLen > _options.BufferSize)
@@ -117,7 +116,6 @@ internal sealed class FrameReader : IDisposable
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        Console.WriteLine($"[CLIENT] FrameReader: ERROR in loop: {ex}");
                         _onError(ex);
                         break;
                     }
@@ -159,6 +157,7 @@ internal sealed class FrameReader : IDisposable
 
     private void PROCESS_NORMAL_FRAME(IBufferLease lease)
     {
+        IBufferLease original = lease;
         try
         {
             FramePipeline.ProcessInbound(ref lease, _options.Secret.AsSpan(), _options.Algorithm);
@@ -167,7 +166,12 @@ internal sealed class FrameReader : IDisposable
         }
         finally
         {
-            lease.Dispose();
+            if (!ReferenceEquals(lease, original))
+            {
+                lease.Dispose();
+            }
+
+            original.Dispose();
         }
     }
 
