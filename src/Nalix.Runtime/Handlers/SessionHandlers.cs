@@ -71,13 +71,16 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
+        Console.WriteLine($"[SERVER] Session Resume Request for Token: {packet.SessionToken}");
         SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken.ToUInt56())
                                                        .ConfigureAwait(false);
         if (session == null)
         {
+            Console.WriteLine("[SERVER] Session not found in store.");
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
             return;
         }
+        Console.WriteLine("[SERVER] Session found.");
 
         // SEC-16: Validate proof-of-possession (MAC) using the stored session secret.
         // We compute HMAC-SHA256(Secret, SessionToken) and compare it with the client's proof.
@@ -100,10 +103,12 @@ public sealed class SessionHandlers
         Bytes32 expectedProof = new(expectedProofBytes);
         if (packet.Proof != expectedProof)
         {
+            Console.WriteLine($"[SERVER] Proof mismatch. Expected: {expectedProof}, Got: {packet.Proof}");
             session.Return();
             await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
         }
+        Console.WriteLine("[SERVER] Proof validated.");
 
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
         RestoreSessionSnapshot(context.Connection, session);
@@ -128,7 +133,9 @@ public sealed class SessionHandlers
             proof: new Bytes32(responseProofBytes),
             flags: packet.Flags);
 
+        Console.WriteLine($"[SERVER] Sending Session Resume Ack. New Token: {newTokenSnowflake}");
         await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
+        Console.WriteLine("[SERVER] Session Resume Ack sent.");
         session.Return();
     }
 

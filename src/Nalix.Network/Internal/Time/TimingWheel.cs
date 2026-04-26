@@ -75,9 +75,9 @@ internal sealed class TimingWheel : IActivatable
 {
     #region Fields
 
-    private readonly ILogger? s_logger;
-    private readonly TimingWheelOptions s_options;
-    private readonly ObjectPoolManager s_poolManager;
+    private readonly ILogger? _logger;
+    private readonly TimingWheelOptions _options;
+    private readonly ObjectPoolManager _poolManager;
 
     private readonly int _tickMs;
     private readonly int _wheelSize;
@@ -168,24 +168,24 @@ internal sealed class TimingWheel : IActivatable
     /// </summary>
     public TimingWheel()
     {
-        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        s_options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
-        s_poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
+        _poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-        s_options.Validate();
+        _options.Validate();
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
 
-        _ = s_poolManager.SetMaxCapacity<TimeoutTask>(options.TimeoutTaskCapacity);
+        _ = _poolManager.SetMaxCapacity<TimeoutTask>(options.TimeoutTaskCapacity);
 
         // Preallocate objects in the pools so the wheel does not pay allocation
         // cost on the first few timeout registrations.
-        _ = s_poolManager.Prealloc<TimeoutTask>(options.TimeoutTaskPreallocate);
+        _ = _poolManager.Prealloc<TimeoutTask>(options.TimeoutTaskPreallocate);
 
-        _wheelSize = s_options.BucketCount;
-        _tickMs = s_options.TickDuration;
-        _idleTimeoutMs = s_options.IdleTimeoutMs;
+        _wheelSize = _options.BucketCount;
+        _tickMs = _options.TickDuration;
+        _idleTimeoutMs = _options.IdleTimeoutMs;
 
         _useMask = (_wheelSize & (_wheelSize - 1)) == 0 && _wheelSize > 0;
         _mask = _useMask ? (_wheelSize - 1) : 0;
@@ -233,7 +233,7 @@ internal sealed class TimingWheel : IActivatable
             }
         );
 
-        s_logger?.Info(
+        _logger?.Info(
             $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated (ref={_activeListeners}) " +
             $"wheelsize={_wheelSize} tick={_tickMs}ms idle={_idleTimeoutMs}ms mask={_useMask}");
     }
@@ -277,13 +277,13 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (ObjectDisposedException ex)
         {
-            s_logger?.Debug(
+            _logger?.Debug(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
                 $"cts-cancel-ignored reason={ex.GetType().Name}");
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
                 $"cts-cancel-failed", ex);
         }
@@ -294,13 +294,13 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (ObjectDisposedException ex)
         {
-            s_logger?.Debug(
+            _logger?.Debug(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
                 $"cts-dispose-ignored reason={ex.GetType().Name}");
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
                 $"cts-dispose-failed", ex);
         }
@@ -311,14 +311,14 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            s_logger?.Warn(
+            _logger?.Warn(
                 $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
                 $"worker-dispose-failed", ex);
         }
 
         this.DRAIN_AND_RELEASE_ALL_BUCKETS();
 
-        s_logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
+        _logger?.Info($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
     }
 
     #endregion IActivatable
@@ -358,7 +358,7 @@ internal sealed class TimingWheel : IActivatable
 
         try
         {
-            task = s_poolManager.Get<TimeoutTask>();
+            task = _poolManager.Get<TimeoutTask>();
             task.Conn = connection;
 
             // Set version to match current connection version.
@@ -391,7 +391,7 @@ internal sealed class TimingWheel : IActivatable
         {
             if (task is not null && !queued)
             {
-                s_poolManager.Return(task);
+                _poolManager.Return(task);
             }
 
             if (subscribed)
@@ -502,7 +502,7 @@ internal sealed class TimingWheel : IActivatable
                         // ── Defensive null-guard ──────────────────────────────────────────
                         if (task.Conn is null)
                         {
-                            s_poolManager.Return(task);
+                            _poolManager.Return(task);
                             task = next;
                             continue;
                         }
@@ -516,7 +516,7 @@ internal sealed class TimingWheel : IActivatable
                                 conn._timeoutTask = null;
                             }
 
-                            s_poolManager.Return(task);
+                            _poolManager.Return(task);
                             task = next;
                             continue;
                         }
@@ -535,9 +535,9 @@ internal sealed class TimingWheel : IActivatable
 
                         if (idleMs >= _idleTimeoutMs)
                         {
-                            if (s_logger?.IsEnabled(LogLevel.Debug) == true)
+                            if (_logger?.IsEnabled(LogLevel.Debug) == true)
                             {
-                                s_logger.Debug(
+                                _logger.Debug(
                                 $"[NW.{nameof(TimingWheel)}] timeout " +
                                 $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
                             }
@@ -548,7 +548,7 @@ internal sealed class TimingWheel : IActivatable
                             }
                             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                             {
-                                s_logger?.Error(
+                                _logger?.Error(
                                     $"[NW.{nameof(TimingWheel)}] close-error " +
                                     $"remote={task.Conn.NetworkEndpoint?.Address}", ex);
                             }
@@ -560,7 +560,7 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 conn._timeoutTask = null;
                             }
-                            s_poolManager.Return(task);
+                            _poolManager.Return(task);
                             task = next;
                             continue;
                         }
@@ -591,7 +591,7 @@ internal sealed class TimingWheel : IActivatable
         }
         catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            s_logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
+            _logger?.Error($"[NW.{nameof(TimingWheel)}] loop-error", ex);
         }
     }
 
@@ -627,7 +627,7 @@ internal sealed class TimingWheel : IActivatable
                 // cleared, so they should be ignored here.
                 if (task.Conn is not null)
                 {
-                    s_poolManager.Return(task);
+                    _poolManager.Return(task);
                 }
 
                 task = next;

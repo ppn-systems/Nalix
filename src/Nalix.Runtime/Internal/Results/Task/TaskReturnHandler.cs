@@ -7,8 +7,8 @@ using Nalix.Common.Networking.Packets;
 using Nalix.Runtime.Dispatching;
 
 #if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Runtime.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Runtime.Benchmarks")]
 #endif
 
 namespace Nalix.Runtime.Internal.Results.Task;
