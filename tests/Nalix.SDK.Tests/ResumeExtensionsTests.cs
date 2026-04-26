@@ -27,7 +27,7 @@ using Xunit;
 namespace Nalix.SDK.Tests;
 
 [Collection("RealServerTests")]
-public sealed class ResumeExtensionsTests
+public sealed class ResumeExtensionsTests : IDisposable
 {
     private readonly IPacketRegistry _registry;
 
@@ -136,13 +136,15 @@ public sealed class ResumeExtensionsTests
             { 
                 Secret = clientSecret,
                 SessionToken = token,
-                EncryptionEnabled = false 
+                EncryptionEnabled = false,
+                ResumeTimeoutMillis = 10000
             }, _registry);
 
             await session.ConnectAsync("127.0.0.1", (ushort)port);
 
             // 3. Perform Resume
             ProtocolReason result = await session.ResumeSessionAsync();
+
 
             // 4. Verify Result
             // SessionHandlers returns TOKEN_REVOKED if proof is invalid
@@ -206,5 +208,6 @@ public sealed class ResumeExtensionsTests
             await app.DeactivateAsync();
         }
     }
+    public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif

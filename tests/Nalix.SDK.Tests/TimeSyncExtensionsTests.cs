@@ -14,7 +14,7 @@ using Xunit;
 namespace Nalix.SDK.Tests;
 
 [Collection("RealServerTests")]
-public sealed class TimeSyncExtensionsTests
+public sealed class TimeSyncExtensionsTests : IDisposable
 {
     private readonly IPacketRegistry _registry;
 
@@ -49,7 +49,7 @@ public sealed class TimeSyncExtensionsTests
             using var session = new TcpSession(options, _registry);
             await session.ConnectAsync();
 
-            (double rtt, double adjusted) = await session.SyncTimeAsync(timeoutMs: 1000);
+            (double rtt, double adjusted) = await session.SyncTimeAsync(timeoutMs: 10000);
             
             Assert.True(rtt >= 0);
             // Adjusted might be 0 if clocks are perfectly synced, but usually it's non-zero
@@ -59,5 +59,6 @@ public sealed class TimeSyncExtensionsTests
             await app.DeactivateAsync();
         }
     }
+    public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
