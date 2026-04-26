@@ -285,7 +285,7 @@ public abstract partial class TcpListenerBase
     [StackTraceHidden]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    protected static void SafeCloseSocket(Socket socket)
+    protected void SafeCloseSocket(Socket socket)
     {
         try
         {
@@ -900,7 +900,7 @@ public abstract partial class TcpListenerBase
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RebindAcceptContext(PooledSocketAsyncEventArgs pooled)
+    private void RebindAcceptContext(PooledSocketAsyncEventArgs pooled)
     {
         if (pooled.Context is PooledAcceptContext ctx)
         {

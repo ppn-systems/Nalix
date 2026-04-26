@@ -1249,9 +1249,11 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private void TryPersistSession(IConnection connection)
     {
-        if (_disposed || connection.IsDisposed)
+        if (_disposed) return;
+
+        if (connection.IsDisposed)
         {
-            return;
+             return;
         }
 
         // Only persist if the handshake was established

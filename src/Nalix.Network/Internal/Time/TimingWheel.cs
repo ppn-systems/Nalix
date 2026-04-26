@@ -20,6 +20,11 @@ using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
+
 namespace Nalix.Network.Internal.Time;
 
 /// <summary>
@@ -70,9 +75,9 @@ internal sealed class TimingWheel : IActivatable
 {
     #region Fields
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly TimingWheelOptions s_options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
-    private static readonly ObjectPoolManager s_poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private readonly ILogger? s_logger;
+    private readonly TimingWheelOptions s_options;
+    private readonly ObjectPoolManager s_poolManager;
 
     private readonly int _tickMs;
     private readonly int _wheelSize;
@@ -163,18 +168,20 @@ internal sealed class TimingWheel : IActivatable
     /// </summary>
     public TimingWheel()
     {
+        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        s_options = ConfigurationManager.Instance.Get<TimingWheelOptions>();
+        s_poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
         s_options.Validate();
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
 
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<TimeoutTask>(options.TimeoutTaskCapacity);
+        _ = s_poolManager.SetMaxCapacity<TimeoutTask>(options.TimeoutTaskCapacity);
 
         // Preallocate objects in the pools so the wheel does not pay allocation
         // cost on the first few timeout registrations.
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<TimeoutTask>(options.TimeoutTaskPreallocate);
+        _ = s_poolManager.Prealloc<TimeoutTask>(options.TimeoutTaskPreallocate);
 
         _wheelSize = s_options.BucketCount;
         _tickMs = s_options.TickDuration;

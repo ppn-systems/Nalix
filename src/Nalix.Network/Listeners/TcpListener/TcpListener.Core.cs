@@ -43,10 +43,10 @@ public abstract partial class TcpListenerBase : IListener
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-    private static readonly TimingWheel s_timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
-    private static readonly NetworkSocketOptions s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private readonly ILogger? s_logger;
+    private readonly TimingWheel s_timing;
+    private readonly NetworkSocketOptions s_config;
+    private readonly ObjectPoolManager s_pool;
 
     #endregion Fields
 
@@ -74,8 +74,6 @@ public abstract partial class TcpListenerBase : IListener
 
     #region Constructors
 
-    static TcpListenerBase() => s_config.Validate();
-
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpListenerBase"/> class using the port defined in the configuration,
     /// and the specified protocol, buffer pool, and logger.
@@ -95,6 +93,12 @@ public abstract partial class TcpListenerBase : IListener
         _port = port;
         _protocol = protocol;
         _state = (int)ListenerState.STOPPED;
+
+        // Fetch infrastructure instances via InstanceManager for proper test isolation
+        s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        s_timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+        s_config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         // Register force-close action to ConnectionGuard for DDoS protection
@@ -109,16 +113,12 @@ public abstract partial class TcpListenerBase : IListener
         options.Validate();
 
         // Configure object pools for accept contexts and socket async event args based on the provided options.
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
+        _ = s_pool.SetMaxCapacity<PooledAcceptContext>(options.AcceptContextCapacity);
+        _ = s_pool.SetMaxCapacity<PooledSocketAsyncEventArgs>(options.SocketArgsCapacity);
 
         // Preallocate objects in the pools to improve performance and reduce latency during runtime.
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
+        _ = s_pool.Prealloc<PooledAcceptContext>(options.AcceptContextPreallocate);
+        _ = s_pool.Prealloc<PooledSocketAsyncEventArgs>(options.SocketArgsPreallocate);
     }
 
     /// <summary>
@@ -128,7 +128,7 @@ public abstract partial class TcpListenerBase : IListener
     /// <param name="protocol">The protocol to handle the connections.</param>
     /// <param name="hub">The connection hub for managing active connections.</param>
     [DebuggerStepThrough]
-    protected TcpListenerBase(IProtocol protocol, IConnectionHub hub) : this(s_config.Port, protocol, hub)
+    protected TcpListenerBase(IProtocol protocol, IConnectionHub hub) : this(ConfigurationManager.Instance.Get<NetworkSocketOptions>().Port, protocol, hub)
     {
     }
 
@@ -145,7 +145,7 @@ public abstract partial class TcpListenerBase : IListener
             return;
         }
 
-        static async void cb(object? state)
+        async void cb(object? state)
         {
             if (state is not TcpListenerBase self)
             {

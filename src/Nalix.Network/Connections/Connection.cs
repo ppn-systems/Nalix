@@ -46,6 +46,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     private long _bytesSent;
     private long _argsPoolMask; // Bitmask for free/busy status.
     private long _contextPoolMask;
+    private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
 
     private IObjectMap<string, object>? _attributes;
     private IConnection.ITransport? _tcp;
@@ -266,13 +267,28 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Dispose()
     {
-        if (Interlocked.Exchange(ref _closeSignaled, 1) == 0)
-        {
-            ConnectionEventArgs closeArgs = new(this);
+        // Guard against recursive calls or concurrent disposal.
+        // Only the first thread that moves state from 0 to 1 gets to trigger the events.
+        int previousState = Interlocked.CompareExchange(ref _disposeState, 1, 0);
 
+        if (previousState == 0)
+        {
+            // We are the primary disposer.
             try
             {
-                _onCloseEvent?.Invoke(this, closeArgs);
+                // Signal that we are closing but NOT yet fully disposed.
+                // This allows event handlers (like session persistence) to still read attributes.
+                _ = Interlocked.Exchange(ref _closeSignaled, 1);
+
+                ConnectionEventArgs closeArgs = new(this);
+                try
+                {
+                    _onCloseEvent?.Invoke(this, closeArgs);
+                }
+                finally
+                {
+                    closeArgs.Dispose();
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -280,17 +296,23 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             }
             finally
             {
-                closeArgs.Dispose();
+                // Now that all handlers have finished, we can proceed to the destructive phase.
+                this.PerformDestructiveCleanup();
             }
+            return;
         }
 
+        // If we are already in state 1 (Closing) or 2 (Disposed), we just return.
+        // This handles the recursive call from TcpListenerBase.HandleConnectionClose
+        // without prematurely setting _disposed = true.
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void PerformDestructiveCleanup()
+    {
         lock (_lock)
         {
-            if (_disposed)
-            {
-                return;
-            }
-
+            if (_disposed) return;
             _disposed = true;
         }
 
@@ -347,6 +369,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger?.Error($"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
+        }
+
+        finally
+        {
+            Volatile.Write(ref _disposeState, 2);
         }
 
         GC.SuppressFinalize(this);

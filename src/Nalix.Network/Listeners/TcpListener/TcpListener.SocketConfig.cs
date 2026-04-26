@@ -207,7 +207,7 @@ public abstract partial class TcpListenerBase
         "CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
     [SuppressMessage(
         "Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>")]
-    protected static void InitializeOptions(Socket socket)
+    protected void InitializeOptions(Socket socket)
     {
         ArgumentNullException.ThrowIfNull(socket, nameof(socket));
 
