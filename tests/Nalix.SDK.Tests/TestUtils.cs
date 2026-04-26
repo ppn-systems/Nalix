@@ -119,6 +119,7 @@ public sealed class IntegrationTestProtocol : Protocol
     {
         if (args.Lease is IBufferLease lease)
         {
+            Console.WriteLine($"[TEST] IntegrationTestProtocol.ProcessMessage: Received {lease.Length} bytes.");
             _dispatch.HandlePacket(lease, args.Connection);
         }
     }
