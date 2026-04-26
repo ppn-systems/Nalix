@@ -8,7 +8,7 @@ public enum TypeKind
     Decimal,       // decimal
     DateTime,      // DateTime
     Guid,          // Guid
-    Snowflake,     // Snowflake, UInt56
+    Snowflake,     // Snowflake, ulong
     Bytes32,       // Bytes32
     Array,         // T[]
     List,          // List<T>
@@ -21,3 +21,4 @@ public enum TypeKind
     NestedPacket,  // Inherits PacketBase or has [SerializePackable]
     Unknown
 }
+

@@ -72,7 +72,7 @@ public sealed class SessionHandlers
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
         Console.WriteLine($"[SERVER] Session Resume Request for Token: {packet.SessionToken}");
-        SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken.ToUInt56())
+        SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken.ToUInt64())
                                                        .ConfigureAwait(false);
         if (session == null)
         {
@@ -113,7 +113,7 @@ public sealed class SessionHandlers
         // Generate a new session entry with a rotated token for subsequent resume attempts.
         // Storage is deferred until connection unregistration.
         SessionEntry newEntry = Hub.SessionStore.CreateSession(context.Connection);
-        UInt56 newToken = newEntry.Snapshot.SessionToken;
+        ulong newToken = newEntry.Snapshot.SessionToken;
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
 
         Span<byte> newTokenBytes = stackalloc byte[8];
@@ -186,3 +186,4 @@ public sealed class SessionHandlers
         }
     }
 }
+

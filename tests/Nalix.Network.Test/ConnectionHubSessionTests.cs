@@ -36,7 +36,7 @@ public sealed class ConnectionHubSessionTests
         _ = session.Snapshot.Algorithm.Should().Be(connection.Algorithm);
         _ = session.Snapshot.Level.Should().Be(connection.Level);
         _ = session.Snapshot.Attributes.Should().ContainKey("test").WhoseValue.Should().Be("value");
-        _ = session.ConnectionId.Should().Be(connection.ID.ToUInt56());
+        _ = session.ConnectionId.Should().Be(connection.ID.ToUInt64());
     }
 
     [Fact]
@@ -300,3 +300,4 @@ public sealed class ConnectionHubSessionTests
         }
     }
 }
+

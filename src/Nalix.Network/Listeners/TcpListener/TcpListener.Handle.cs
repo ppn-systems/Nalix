@@ -230,7 +230,7 @@ public abstract partial class TcpListenerBase
         // It still holds the reference socket and will close it itself in its catch block.
         // If the return context is here when throw -> caller doesn't know the context has been returned ->
         // double-return bug: context returned twice -> pool corrupted.
-        InitializeOptions(socket);
+        this.InitializeOptions(socket);
 
         // Context only needs to return immediately during the accept — phase after the socket has been claimed.
         // This pool slot will be reused for the next accept without waiting.
@@ -357,7 +357,7 @@ public abstract partial class TcpListenerBase
                 _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
 
-                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                 return;
             }
 
@@ -369,7 +369,7 @@ public abstract partial class TcpListenerBase
                 _logger?.Warn(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-socket-null port={_port}");
 
-                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
                 return;
             }
 
@@ -408,10 +408,10 @@ public abstract partial class TcpListenerBase
                 }
                 else
                 {
-                    SafeCloseSocket(socket);
+                    this.SafeCloseSocket(socket);
                 }
 
-                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -425,10 +425,10 @@ public abstract partial class TcpListenerBase
                 }
                 else
                 {
-                    SafeCloseSocket(socket);
+                    this.SafeCloseSocket(socket);
                 }
 
-                RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
             }
         }
         finally
@@ -814,13 +814,13 @@ public abstract partial class TcpListenerBase
             // -> finally, Return(context) will be true.
             if (!socket.Connected || socket.Handle.ToInt64() == -1)
             {
-                SafeCloseSocket(socket);
+                this.SafeCloseSocket(socket);
                 throw new NetworkException("Invalid socket.");
             }
 
             if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
             {
-                SafeCloseSocket(socket);
+                this.SafeCloseSocket(socket);
                 throw new NetworkException("Connection rejected by limiter.");
             }
 
@@ -921,7 +921,7 @@ public abstract partial class TcpListenerBase
         // -> finally, Return(context) will be true.
         if (!socket.Connected || socket.Handle.ToInt64() == -1)
         {
-            SafeCloseSocket(socket);
+            this.SafeCloseSocket(socket);
             throw new NetworkException("Invalid socket.");
         }
 
@@ -929,7 +929,7 @@ public abstract partial class TcpListenerBase
         // If the limiter rejects the connection, close the socket and throw to trigger the appropriate metrics and logging in the caller.
         if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
         {
-            SafeCloseSocket(socket);
+            this.SafeCloseSocket(socket);
             throw new NetworkException("Connection rejected by limiter.");
         }
 

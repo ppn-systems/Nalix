@@ -162,12 +162,12 @@ public static class FormatterProvider
         Register(new NullableArrayFormatter<TimeOnly>());
         Register(new NullableArrayFormatter<DateTimeOffset>());
 
-        // UInt56 is a project-specific numeric type, so it gets the same full
+        // ulong is a project-specific numeric type, so it gets the same full
         // formatter coverage as the built-in primitives.
-        Register(new ArrayFormatter<UInt56>());
-        Register(new UnmanagedFormatter<UInt56>());
-        Register(new NullableFormatter<UInt56>());
-        Register(new NullableArrayFormatter<UInt56>());
+        Register(new ArrayFormatter<ulong>());
+        Register(new UnmanagedFormatter<ulong>());
+        Register(new NullableFormatter<ulong>());
+        Register(new NullableArrayFormatter<ulong>());
 
         InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
             "[SH.FormatterProvider] init-ok in {0} ms. " +
@@ -735,3 +735,4 @@ public static class FormatterProvider
 
     #endregion Private Methods
 }
+

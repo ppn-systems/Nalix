@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Networking.Sessions;
 
@@ -19,14 +18,14 @@ public sealed class SessionEntry
     /// <summary>
     /// Gets or sets the current identifier of the connection associated with this session.
     /// </summary>
-    public UInt56 ConnectionId { get; set; }
+    public ulong ConnectionId { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SessionEntry"/> class.
     /// </summary>
     /// <param name="snapshot">The session snapshot.</param>
     /// <param name="connectionId">The current connection identifier.</param>
-    public SessionEntry(SessionSnapshot snapshot, UInt56 connectionId)
+    public SessionEntry(SessionSnapshot snapshot, ulong connectionId)
     {
         this.Snapshot = snapshot ?? throw new ArgumentNullException(nameof(snapshot));
         this.ConnectionId = connectionId;
@@ -37,3 +36,4 @@ public sealed class SessionEntry
     /// </summary>
     public void Return() => this.Snapshot.Return();
 }
+

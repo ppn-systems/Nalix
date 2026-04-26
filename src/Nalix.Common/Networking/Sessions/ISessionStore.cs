@@ -3,7 +3,6 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Primitives;
 
 namespace Nalix.Common.Networking.Sessions;
 
@@ -35,7 +34,7 @@ public interface ISessionStore
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="SessionEntry"/> if found; otherwise, <c>null</c>.
     /// </returns>
-    ValueTask<SessionEntry?> RetrieveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
+    ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Removes the session entry with the specified session token from the store.
@@ -43,7 +42,7 @@ public interface ISessionStore
     /// <param name="sessionToken">The session token identifier.</param>
     /// <param name="cancellationToken">The cancellation token for the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that represents the asynchronous remove operation.</returns>
-    ValueTask RemoveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
+    ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Atomically retrieves and removes a session entry from the store.
@@ -56,5 +55,6 @@ public interface ISessionStore
     /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="SessionEntry"/> if found
     /// and successfully consumed; otherwise, <c>null</c> if the token does not exist or was already consumed.
     /// </returns>
-    ValueTask<SessionEntry?> ConsumeAsync(UInt56 sessionToken, CancellationToken cancellationToken = default);
+    ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 }
+

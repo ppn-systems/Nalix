@@ -54,7 +54,7 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **52 bytes**.
 | 7 | `Priority` | `byte` | 1 | Fixed at `0x03` (URGENT). |
 | 8 | `SequenceId` | `ushort` | 2 | Correlation identifier. |
 | 10 | `Stage` | `byte` | 1 | `0x01` (REQUEST), `0x02` (RESPONSE). |
-| 11 | `SessionToken` | `Snowflake` | 7 | The 56-bit unique session identifier. |
+| 11 | `SessionToken` | `Snowflake` | 7 | The 64-bit unique session identifier. |
 | 18 | `Reason` | `ushort` | 2 | `ProtocolReason` result (`ProtocolReason.NONE` = success). |
 | 20 | `Proof` | `Bytes32` | 32 | HMAC-Keccak256 proof-of-possession for the session secret. |
 
@@ -90,3 +90,4 @@ When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
 - [Session Contracts](../common/session-contracts.md)
 - [Snowflake Identifiers](../framework/runtime/snowflake.md)
 - [SDK Resume Extensions](../sdk/resume-extensions.md)
+

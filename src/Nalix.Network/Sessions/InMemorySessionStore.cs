@@ -24,7 +24,7 @@ namespace Nalix.Network.Sessions;
 /// </summary>
 public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
 {
-    private readonly ConcurrentDictionary<UInt56, SessionEntry> _store = new();
+    private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
     private readonly IWorkerHandle _scavenger;
     private readonly CancellationTokenSource _cts = new();
     private int _disposed;
@@ -69,7 +69,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
     private void Scavenge()
     {
         long now = Clock.UnixMillisecondsNow();
-        foreach (KeyValuePair<UInt56, SessionEntry> pair in _store)
+        foreach (KeyValuePair<ulong, SessionEntry> pair in _store)
         {
             if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now)
             {
@@ -88,7 +88,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
         ArgumentNullException.ThrowIfNull(entry);
         cancellationToken.ThrowIfCancellationRequested();
 
-        UInt56 token = entry.Snapshot.SessionToken;
+        ulong token = entry.Snapshot.SessionToken;
 
         while (true)
         {
@@ -120,7 +120,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override ValueTask RemoveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default)
+    public override ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -134,7 +134,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override ValueTask<SessionEntry?> RetrieveAsync(UInt56 sessionToken, CancellationToken cancellationToken = default)
+    public override ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -163,7 +163,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
     /// retrieve-and-remove. Only one concurrent caller can successfully consume a given token.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override ValueTask<SessionEntry?> ConsumeAsync(UInt56 sessionToken, CancellationToken cancellationToken = default)
+    public override ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -214,3 +214,4 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
         GC.SuppressFinalize(this);
     }
 }
+
