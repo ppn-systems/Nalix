@@ -38,7 +38,7 @@ flowchart TD
         RoundCheck{Rounds > 0?}
         IdleCheck{Idle > Timeout?}
         
-        Disconnect[Close & Unregister]
+        Disconnect[Disconnect & Unregister]
         Resched[Reschedule to future Bucket]
         Pool[Return to ObjectPool]
     end

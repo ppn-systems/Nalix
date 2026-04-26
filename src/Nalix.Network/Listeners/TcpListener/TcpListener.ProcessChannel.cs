@@ -112,7 +112,7 @@ public abstract partial class TcpListenerBase
                 $"process-channel-unavailable remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
 
             ArgumentNullException.ThrowIfNull(connection);
-            connection.Close();
+            connection.Dispose();
             return;
         }
 
@@ -141,7 +141,7 @@ public abstract partial class TcpListenerBase
             $"channel-full remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port} - dropped");
 
         ArgumentNullException.ThrowIfNull(connection);
-        connection.Close();
+        connection.Disconnect();
     }
 
     #endregion Producer — called from AcceptConnectionsAsync
@@ -242,7 +242,7 @@ public abstract partial class TcpListenerBase
                 $"error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
 
             ArgumentNullException.ThrowIfNull(connection);
-            connection.Close();
+            connection.Disconnect();
         }
     }
 

@@ -59,7 +59,7 @@ public abstract partial class Protocol
         if (!this.IsAccepting)
         {
             s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
-            connection.Close();
+            connection.Disconnect();
             return;
         }
 
@@ -84,7 +84,7 @@ public abstract partial class Protocol
             s_logger?.Trace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=validation-failed");
 
             // Connections failed validation, close immediately
-            connection.Close();
+            connection.Disconnect();
         }
         catch (OperationCanceledException)
         {
