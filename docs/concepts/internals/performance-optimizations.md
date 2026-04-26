@@ -53,13 +53,13 @@ graph LR
 - **Parallel execution** — Workers are scaled to match logical CPU cores in auto mode.
 - **Low-latency wake** — Uses specialized signaling to wake dedicated threads immediately upon packet arrival, bypassing the non-deterministic scheduling of the standard thread pool.
 
-## 3. 56-Bit Snowflake Identifiers
+## 3. 64-bit Snowflake Identifiers
 
-Nalix uses a customized 56-bit Snowflake identifier for internal task tracking and packet correlation.
+Nalix uses a customized 64-bit Snowflake identifier for internal task tracking and packet correlation.
 
 | Design choice | Rationale |
 | :--- | :--- |
-| 56-bit (vs. standard 64-bit) | Fits efficiently into packed headers, avoids 53-bit precision limits in JavaScript-based clients |
+| 64-bit (vs. standard 64-bit) | Fits efficiently into packed headers, avoids 53-bit precision limits in JavaScript-based clients |
 | 1 ms timestamp resolution | Sufficient for networking use cases; enables 4,096 IDs per millisecond per shard (12-bit sequence) |
 | Deterministic ordering | Snowflake IDs are sortable by creation time, enabling natural ordering in logs and diagnostics |
 
@@ -106,3 +106,4 @@ For measured performance data across serialization, cryptography, compression, a
 - [Buffer Management](../../api/framework/memory/buffer-management.md) — Buffer pool API details
 - [Object Pooling](../../api/framework/memory/object-pooling.md) — Object recycling API details
 - [LZ4](../../api/framework/memory/lz4.md) — Compression API details
+

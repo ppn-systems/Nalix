@@ -49,7 +49,7 @@ public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
         }
 
         // 2) Session token gate from connection attributes + session store.
-        if (!TryGetSessionToken(context.Connection, out UInt56 sessionToken))
+        if (!TryGetSessionToken(context.Connection, out ulong sessionToken))
         {
             context.Connection.Disconnect("Missing session token.");
             return;
@@ -75,10 +75,10 @@ public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
         await next(context.CancellationToken).ConfigureAwait(false);
     }
 
-    private static bool TryGetSessionToken(IConnection connection, out UInt56 token)
+    private static bool TryGetSessionToken(IConnection connection, out ulong token)
     {
         if (connection.Attributes.TryGetValue(ConnectionAttributes.SessionToken, out object? raw) &&
-            raw is UInt56 sessionToken)
+            raw is ulong sessionToken)
         {
             token = sessionToken;
             return true;
@@ -137,3 +137,4 @@ flowchart LR
 
 - [Middleware Pipeline](../../api/runtime/middleware/pipeline.md)
 - [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md)
+

@@ -54,7 +54,7 @@ flowchart TD
 
 `SessionStoreBase.CreateSession(...)` snapshots the connection into a `SessionEntry`:
 
-- `SessionToken` is derived from `connection.ID.ToUInt56()`.
+- `SessionToken` is derived from `connection.ID.Toulong()`.
 - `CreatedAtUnixMilliseconds` uses `Clock.UnixMillisecondsNow()`.
 - `ExpiresAtUnixMilliseconds` is `now + SessionTtl.TotalMilliseconds`.
 - `Secret`, `Algorithm`, and `Level` are copied from the connection.
@@ -86,7 +86,7 @@ without blocking unregistration and returns the session only if persistence fail
 
 ### Storage and Replacement
 
-`StoreAsync(...)` uses a `ConcurrentDictionary<UInt56, SessionEntry>` keyed by the
+`StoreAsync(...)` uses a `ConcurrentDictionary<ulong, SessionEntry>` keyed by the
 session token:
 
 - first insert wins when the token is absent;
@@ -144,3 +144,4 @@ finalization. Cleanup errors are handled best-effort for non-fatal exceptions.
 - [Session Store](../session-store.md)
 - [Session Resume](../../security/session-resume.md)
 - [Network Options](./options.md)
+
