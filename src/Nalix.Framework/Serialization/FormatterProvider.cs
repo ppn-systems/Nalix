@@ -13,13 +13,14 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
-using Nalix.Common.Primitives;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Serialization.Formatters.Automatic;
 using Nalix.Framework.Serialization.Formatters.Cache;
 using Nalix.Framework.Serialization.Formatters.Collections;
 using Nalix.Framework.Serialization.Formatters.Primitives;
 using Nalix.Framework.Serialization.Internal.Types;
+
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
 
 namespace Nalix.Framework.Serialization;
 
@@ -169,13 +170,16 @@ public static class FormatterProvider
         Register(new NullableFormatter<ulong>());
         Register(new NullableArrayFormatter<ulong>());
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?.Info(
-            "[SH.FormatterProvider] init-ok in {0} ms. " +
-            "total={1}, primitives={2}, nullables={3}, arrays={4}, " +
-            "nullableArrays={5}, lists={6}, enums={7}, strings={8}",
-            s_sw.ElapsedMilliseconds,
-            s_cntTotal, s_cntPrimitives, s_cntNullables, s_cntArrays,
-            s_cntNullableArrays, s_cntLists, s_cntEnums, s_cntStrings);
+        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation(
+                "[FW.FormatterProvider] init-ok in {ElapsedMilliseconds} ms. " +
+                "total={Total}, primitives={Primitives}, nullables={Nullables}, arrays={Arrays}, " +
+                "nullableArrays={NullableArrays}, lists={Lists}, enums={Enums}, strings={Strings}",
+                s_sw.ElapsedMilliseconds,
+                s_cntTotal, s_cntPrimitives, s_cntNullables, s_cntArrays,
+                s_cntNullableArrays, s_cntLists, s_cntEnums, s_cntStrings);
+        }
     }
 
     #endregion Static Constructor

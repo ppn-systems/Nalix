@@ -20,6 +20,9 @@ using Nalix.Framework.Memory.Internal.Buffers;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Framework.Memory.Buffers;
 
 /// <summary>
@@ -580,13 +583,19 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         {
             // If fallback is enabled, return a shared ArrayPool buffer instead of
             // failing the operation outright.
-            _logger?.Warn($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
+            }
             _ = Interlocked.Increment(ref _fallbackCount);
 
             return _fallbackArrayPool.Rent(size);
         }
 
-        _logger?.Error($"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}", ex);
+        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+        {
+            _logger.LogError(ex, $"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}");
+        }
         ExceptionDispatchInfo.Capture(ex).Throw();
         throw new InvalidOperationException("Unreachable");
     }
@@ -606,12 +615,18 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         if (_config.FallbackToArrayPool)
         {
             _fallbackArrayPool.Return(buffer, clearArray: false);
-            _logger?.Debug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
+            }
 
             return;
         }
 
-        _logger?.Warn($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
+        }
     }
 
     #endregion Private: Rent / Return helpers
@@ -634,7 +649,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         }
 
         _isInitialized = true;
-        _logger?.Info($"[SH.{nameof(BufferPoolManager)}:Internal] init-ok total={_config.TotalBuffers} buckets={_bufferAllocations.Length}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[SH.{nameof(BufferPoolManager)}:Internal] init-ok total={_config.TotalBuffers} buckets={_bufferAllocations.Length}");
+        }
     }
 
     [StackTraceHidden]
@@ -650,7 +668,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
         int cycle = Interlocked.Increment(ref _trimCycleCount);
         bool deepTrim = this.SHOULD_RUN_DEEP_TRIM(cycle);
 
-        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-run deep={deepTrim}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-run deep={deepTrim}");
+        }
 
         // Compute memory budget once per cycle (cache it)
         (long targetBudget, long currentUsage, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
@@ -828,7 +849,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[info.BufferSize] = metrics;
         }
 
-        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}%");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}%");
+        }
     }
 
     #endregion Private: Allocation & Trimming
@@ -875,7 +899,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = m;
         }
 
-        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={poolInfo.BufferSize} by={buffersToShrink}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={poolInfo.BufferSize} by={buffersToShrink}");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -921,7 +948,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (this.IS_OVER_MEMORY_BUDGET())
         {
-            _logger?.Warn($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
+            }
             return;
         }
 
@@ -934,7 +964,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _metricsCache[poolInfo.BufferSize] = metrics;
         }
 
-        _logger?.Trace($"[SH.{nameof(BufferPoolManager)}:Internal] increase minimumLength={poolInfo.BufferSize} by={increaseStep}");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] increase minimumLength={poolInfo.BufferSize} by={increaseStep}");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1138,7 +1171,10 @@ public sealed class BufferPoolManager : IDisposable, IReportable
                                     .CleanupJobId(RecurringName, this.GetHashCode()));
         }
 
-        _logger?.Info($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
+        }
 
         GC.SuppressFinalize(this);
     }

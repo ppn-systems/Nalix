@@ -17,6 +17,9 @@ using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Framework.Memory.Objects;
 
 /// <summary>
@@ -325,8 +328,10 @@ public sealed class ObjectPoolManager : IReportable
         if (outstandingAfter < 0)
         {
             // Log and reset to zero to avoid negative counters due to bugs
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Warn($"[SH.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+            if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning($"[FW.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+            }
 
             _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
         }
@@ -359,8 +364,10 @@ public sealed class ObjectPoolManager : IReportable
         _ = Interlocked.Add(ref _totalCreated, allocated);
         _ = Interlocked.Add(ref metrics.TotalCreated, allocated);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[SH.{nameof(ObjectPoolManager)}:{nameof(Prealloc)}] prealloc type={typeof(T).Name} count={count} allocated={allocated}");
+        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug($"[SH.{nameof(ObjectPoolManager)}:{nameof(Prealloc)}] prealloc type={typeof(T).Name} count={count} allocated={allocated}");
+        }
 
         return allocated;
     }
@@ -397,8 +404,10 @@ public sealed class ObjectPoolManager : IReportable
             }
         } while (Interlocked.CompareExchange(ref _peakPoolCount, currentCount, observed) != observed);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                        .Debug($"[SH.{nameof(ObjectPoolManager)}:{nameof(SetMaxCapacity)}] set-max type={typeof(T).Name} cap={maxCapacity}");
+        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug($"[SH.{nameof(ObjectPoolManager)}:{nameof(SetMaxCapacity)}] set-max type={typeof(T).Name} cap={maxCapacity}");
+        }
 
         return true;
     }
@@ -542,8 +551,10 @@ public sealed class ObjectPoolManager : IReportable
 
         _ = Interlocked.Add(ref _totalDisposed, totalRemoved);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Debug($"[SH.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
+        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
+        {
+            logger.LogDebug($"[SH.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
+        }
 
         return totalRemoved;
     }
@@ -588,8 +599,10 @@ public sealed class ObjectPoolManager : IReportable
                 unhealthyCount++;
                 _ = Interlocked.Increment(ref metrics.ConsecutiveFailures);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[SH.{nameof(ObjectPoolManager)}:Internal] unhealthy-pool type={kvp.Key.Name} miss-rate={missRate:F2}%");
+                if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
+                {
+                    logger.LogWarning($"[SH.{nameof(ObjectPoolManager)}:Internal] unhealthy-pool type={kvp.Key.Name} miss-rate={missRate:F2}%");
+                }
             }
             else
             {
@@ -614,11 +627,15 @@ public sealed class ObjectPoolManager : IReportable
         long hits = Interlocked.Read(ref _totalCacheHits);
         long misses = Interlocked.Read(ref _totalCacheMisses);
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Info($"[SH.{nameof(ObjectPoolManager)}::{nameof(ResetStatistics)}] " +
-                                      $"stats-before-reset gets={gets} returns={returns} hits={hits} misses={misses} " +
-                                      $"hit-rate={(gets > 0 ? (hits / (double)gets * 100.0) : 0):F1}% " +
-                                      $"uptime={this.Uptime.TotalSeconds:F0}s pools={this.PoolCount}");
+        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        if (logger != null && logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation($"[SH.{nameof(ObjectPoolManager)}::{nameof(ResetStatistics)}] " +
+                                  $"stats-before-reset gets={gets} returns={returns} hits={hits} misses={misses} " +
+                                  $"hit-rate={(gets > 0 ? (hits / (double)gets * 100.0) : 0):F1}% " +
+                                  $"uptime={this.Uptime.TotalSeconds:F0}s pools={this.PoolCount}");
+        }
 
         _ = Interlocked.Exchange(ref _totalGetOperations, 0);
         _ = Interlocked.Exchange(ref _totalReturnOperations, 0);
@@ -632,8 +649,10 @@ public sealed class ObjectPoolManager : IReportable
             pool.ResetStatistics();
         }
 
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[SH.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
+        if (logger != null && logger.IsEnabled(LogLevel.Trace))
+        {
+            logger.LogTrace($"[SH.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
+        }
     }
 
     /// <summary>Schedules a regular trimming operation to run in the background.</summary>
@@ -657,8 +676,10 @@ public sealed class ObjectPoolManager : IReportable
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[SH.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error", ex);
+                if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
+                {
+                    logger.LogError(ex, $"[SH.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error");
+                }
             }
         }
     }

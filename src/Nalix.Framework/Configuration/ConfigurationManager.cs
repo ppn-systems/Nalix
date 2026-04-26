@@ -38,14 +38,17 @@ namespace Nalix.Framework.Configuration;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_configContainerDict.Count}")]
-[SuppressMessage("Usage", "CA2213:Disposable fields should be disposed",
-Justification = "ConfigurationManager releases _configLock, _reloadGate, and _configFileWatcher in DisposeManaged inherited from SingletonBase.")]
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
+[SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "<Pending>")]
+[SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates", Justification = "<Pending>")]
+[SuppressMessage("Usage", "CA2254:Template should be a static expression", Justification = "<Pending>")]
 public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 {
     #region Fields
+
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// volatile: assigned atomically in SetConfigFilePath; all threads must see the latest reference.
@@ -216,8 +219,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] old-config-flush-failed msg={ex.Message}");
+                        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                        {
+                            s_logger?.LogDebug($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] old-config-flush-failed msg={ex.Message}");
+                        }
                     }
                 }
 
@@ -226,8 +231,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 _directoryChecked = false;
                 _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                {
+                    s_logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
+                }
 
                 if (autoReload && !_configContainerDict.IsEmpty)
                 {
@@ -245,8 +252,11 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
                         this.LastReloadTime = DateTime.UtcNow;
 
-                        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
+
+                        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                        {
+                            s_logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
+                        }
 
                         pathToWatch = normalizedPath;
                     }
@@ -323,8 +333,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
                 TClass container = new();
                 container.Initialize(iniSnapshot.Value);
 
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                {
+                    s_logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+                }
 
                 return container;
             }, LazyThreadSafetyMode.ExecutionAndPublication)
@@ -442,15 +454,19 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
 
             if (reloadException is not null)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Error($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-failed count={_configContainerDict.Count}", reloadException);
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+                {
+                    s_logger.LogError(reloadException, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-failed count={_configContainerDict.Count}");
+                }
 
                 throw new InvalidOperationException(
                     $"Configuration reload failed: {reloadException.Message}", reloadException);
             }
 
-            InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                    .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
+            if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+            {
+                s_logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
+            }
         }
         catch (ObjectDisposedException) when (_isDisposed)
         {
@@ -495,8 +511,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        {
+            s_logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+        }
 
         return _configContainerDict.TryRemove(typeof(TClass), out _);
     }
@@ -511,8 +529,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void ClearAll()
     {
-        InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+        {
+            s_logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+        }
 
         _configContainerDict.Clear();
     }
@@ -539,8 +559,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             try
             {
                 snapshot.Value.Flush();
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Trace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
+                {
+                    s_logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -566,8 +588,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Debug($"[FW.{nameof(ConfigurationManager)}:{nameof(DisposeManaged)}] flush-failed msg={ex.Message}");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
+                {
+                    s_logger.LogDebug($"[FW.{nameof(ConfigurationManager)}:{nameof(DisposeManaged)}] flush-failed msg={ex.Message}");
+                }
             }
         }
 
@@ -583,8 +607,10 @@ public sealed class ConfigurationManager : SingletonBase<ConfigurationManager>
             gateTaken = _reloadGate.Wait(0);
             if (!gateTaken)
             {
-                InstanceManager.Instance.GetExistingInstance<ILogger>()?
-                                        .Warn($"[FW.{nameof(ConfigurationManager)}:{nameof(DisposeManaged)}] reload-gate-busy; disposing without waiting.");
+                if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+                {
+                    s_logger.LogWarning($"[FW.{nameof(ConfigurationManager)}:{nameof(DisposeManaged)}] reload-gate-busy; disposing without waiting.");
+                }
             }
         }
         catch (ObjectDisposedException)
