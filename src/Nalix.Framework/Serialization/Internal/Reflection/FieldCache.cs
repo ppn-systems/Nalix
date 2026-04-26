@@ -78,9 +78,7 @@ internal static partial class FieldCache<
                 }
 
                 bool isHeader = explicitOrder is not null && explicitOrder.Value.IsHeader;
-                int order = explicitOrder is not null && (layout == SerializeLayout.Explicit || isHeader)
-                    ? explicitOrder.Value.Order
-                    : sequentialOrder++;
+                int order = explicitOrder is not null && (layout != SerializeLayout.Auto || isHeader) ? explicitOrder.Value.Order : sequentialOrder++;
 
                 int size = GET_TYPE_MEMORY_SIZE(field.FieldType);
 

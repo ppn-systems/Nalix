@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.RateLimiting;
 
 /// <summary>
@@ -102,7 +105,10 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             Exception? ex = task.Exception?.GetBaseException();
             if (ex is not null && Volatile.Read(ref self._disposed) == 0)
             {
-                self._logger?.Error($"[NW.{nameof(DatagramGuard)}] cleanup-loop-faulted", ex);
+                if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
+                {
+                    self._logger.LogError(ex, $"[NW.{nameof(DatagramGuard)}] cleanup-loop-faulted");
+                }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
@@ -235,7 +241,10 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             catch (OperationCanceledException) { break; }
             catch (ObjectDisposedException ex)
             {
-                _logger?.Warn($"[NW.{nameof(DatagramGuard)}] Cleanup error.", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning(ex, $"[NW.{nameof(DatagramGuard)}] Cleanup error.");
+                }
             }
         }
     }
@@ -269,7 +278,10 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
 
         if (removed > 0)
         {
-            _logger?.Debug($"[NW.{nameof(DatagramGuard)}] Evicted {removed} idle windows. IPv4={_ipv4Map.Count}, IPv6={_ipv6Map.Count}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.LogDebug($"[NW.{nameof(DatagramGuard)}] Evicted {removed} idle windows. IPv4={_ipv4Map.Count}, IPv6={_ipv6Map.Count}");
+            }
         }
     }
 
@@ -291,7 +303,10 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
 
             if (_cleanupTask.IsCompleted && _cleanupTask.Exception?.GetBaseException() is Exception ex)
             {
-                _logger?.Debug($"[NW.{nameof(DatagramGuard)}] cleanup-task-completed-with-error during dispose", ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(ex, $"[NW.{nameof(DatagramGuard)}] cleanup-task-completed-with-error during dispose");
+                }
             }
         }
     }

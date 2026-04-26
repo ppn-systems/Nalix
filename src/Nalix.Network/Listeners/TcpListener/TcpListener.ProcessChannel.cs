@@ -12,6 +12,9 @@ using Nalix.Common.Networking;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
+#pragma warning disable CA1848 // Use the LoggerMessage delegates
+#pragma warning disable CA2254 // Template should be a static expression
+
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -107,9 +110,11 @@ public abstract partial class TcpListenerBase
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
         {
-            _logger?.Warn(
-                $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
-                $"process-channel-unavailable remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+                                 $"process-channel-unavailable remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+            }
 
             ArgumentNullException.ThrowIfNull(connection);
             connection.Dispose();
@@ -120,7 +125,7 @@ public abstract partial class TcpListenerBase
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.Trace(
+                _logger.LogTrace(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
                     $"queued remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
             }
@@ -136,9 +141,11 @@ public abstract partial class TcpListenerBase
         //   optimize ProcessConnection for faster execution.
         this.Metrics.RECORD_REJECTED();
 
-        _logger?.Warn(
-            $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
-            $"channel-full remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port} - dropped");
+        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+        {
+            _logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+                             $"channel-full remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port} - dropped");
+        }
 
         ArgumentNullException.ThrowIfNull(connection);
         connection.Disconnect();
@@ -152,7 +159,7 @@ public abstract partial class TcpListenerBase
     {
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.Trace(
+            _logger.LogTrace(
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] " +
                 $"worker-started port={_port}");
         }
@@ -210,7 +217,7 @@ public abstract partial class TcpListenerBase
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.Trace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] worker-exited port={_port}");
+                _logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] worker-exited port={_port}");
             }
         }
     }
@@ -236,10 +243,13 @@ public abstract partial class TcpListenerBase
         {
             this.Metrics.RECORD_ERROR();
 
-            _logger?.Error(
-                ex,
-                $"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] " +
-                $"error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(
+                    ex,
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] " +
+                    $"error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+            }
 
             ArgumentNullException.ThrowIfNull(connection);
             connection.Disconnect();

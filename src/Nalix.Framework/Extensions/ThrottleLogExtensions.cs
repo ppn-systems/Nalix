@@ -2,14 +2,48 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Framework.Time;
 
-#pragma warning disable IDE0130 // Namespace does not match folder structure
-namespace Microsoft.Extensions.Logging;
-#pragma warning restore IDE0130 // Namespace does not match folder structure
+namespace Nalix.Framework.Extensions;
+
+/// <inheritdoc/>
+public static partial class Log
+{
+    /// <inheritdoc/>
+    [LoggerMessage(
+        EventId = 1001,
+        Level = LogLevel.Warning,
+        Message = "{Message}{Suffix}")]
+    public static partial void DataProcessingWarning(ILogger logger, string message, string suffix);
+
+    /// <inheritdoc/>
+    [LoggerMessage(
+        EventId = 1002,
+        Level = LogLevel.Trace,
+        Message = "{Message}{Suffix}")]
+    public static partial void DataProcessingTrace(ILogger logger, string message, string suffix);
+
+    /// <inheritdoc/>
+    [LoggerMessage(
+        EventId = 1003,
+        Level = LogLevel.Error,
+        Message = "{Message}{Suffix}")]
+    public static partial void DataProcessingError(ILogger logger, string message, string suffix);
+
+    /// <inheritdoc/>
+    [LoggerMessage(
+        EventId = 1003,
+        Level = LogLevel.Error,
+        Message = "{Message}{Suffix}")]
+    [SuppressMessage("LoggingGenerator",
+        "SYSLIB1006:Multiple logging methods cannot use the same event id within a class", Justification = "<Pending>")]
+    public static partial void DataProcessingError(ILogger logger, Exception ex, string message, string suffix);
+}
 
 /// <summary>
 /// Provides extension methods for throttled logging using connection attributes.
@@ -31,10 +65,15 @@ public static class ThrottleLogExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrottledWarn(this IConnection connection, ILogger? logger, string key, string message)
     {
-        if (SHOULD_LOG(connection, key, out long suppressed))
+        if (!SHOULD_LOG(connection, key, out long suppressed))
         {
-            string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
-            logger?.Warn($"{message}{suffix}");
+            return;
+        }
+        string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
+
+        if (logger != null && logger.IsEnabled(LogLevel.Warning))
+        {
+            Log.DataProcessingWarning(logger, message, suffix);
         }
     }
 
@@ -44,17 +83,25 @@ public static class ThrottleLogExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrottledError(this IConnection connection, ILogger? logger, string key, string message, Exception? ex = null)
     {
-        if (SHOULD_LOG(connection, key, out long suppressed))
+        if (!SHOULD_LOG(connection, key, out long suppressed))
         {
-            string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
-            if (ex != null)
-            {
-                logger?.Error(ex, message + suffix);
-            }
-            else
-            {
-                logger?.Error(message + suffix);
-            }
+            return;
+        }
+
+        if (logger == null || !logger.IsEnabled(LogLevel.Error))
+        {
+            return;
+        }
+
+        string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
+
+        if (ex != null)
+        {
+            Log.DataProcessingError(logger, ex, message, suffix);
+        }
+        else
+        {
+            Log.DataProcessingError(logger, message, suffix);
         }
     }
 
@@ -64,10 +111,16 @@ public static class ThrottleLogExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrottledTrace(this IConnection connection, ILogger? logger, string key, string message)
     {
-        if (SHOULD_LOG(connection, key, out long suppressed))
+        if (!SHOULD_LOG(connection, key, out long suppressed))
         {
-            string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
-            logger?.Trace($"{message}{suffix}");
+            return;
+        }
+
+        string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
+
+        if (logger != null && logger.IsEnabled(LogLevel.Trace))
+        {
+            Log.DataProcessingTrace(logger, message, suffix);
         }
     }
 

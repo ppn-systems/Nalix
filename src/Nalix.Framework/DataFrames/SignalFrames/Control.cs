@@ -15,6 +15,7 @@ namespace Nalix.Framework.DataFrames.SignalFrames;
 /// </summary>
 [Packet]
 [ExcludeFromCodeCoverage]
+[SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IFixedSizeSerializable
 {
