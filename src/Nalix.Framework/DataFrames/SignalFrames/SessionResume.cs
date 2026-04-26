@@ -38,7 +38,7 @@ public enum SessionResumeStage : byte
 /// </summary>
 [Packet]
 [ExcludeFromCodeCoverage]
-[SerializePackable(SerializeLayout.Sequential)]
+[SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_SIGNAL Stage={Stage}, Token={SessionToken}, Reason={Reason}")]
 public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable
 {

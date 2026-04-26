@@ -54,7 +54,7 @@ public enum HandshakeStage : byte
 /// </summary>
 [Packet]
 [ExcludeFromCodeCoverage]
-[SerializePackable(SerializeLayout.Sequential)]
+[SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
 public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, IPacketValidatable
 {
