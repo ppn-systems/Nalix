@@ -132,7 +132,7 @@ public sealed class TransportOptions : ConfigurationLoader
     public int AsyncQueueCapacity { get; set; } = 1024;
 
     /// <summary>
-    /// The maximum size (in bytes) allowed for a single UDP datagram (including the 7-byte Token).
+    /// The maximum size (in bytes) allowed for a single UDP datagram (including the 8-byte Token).
     /// </summary>
     [IniComment("Maximum allowed UDP datagram size in bytes (including header). Default 1400.")]
     [Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]

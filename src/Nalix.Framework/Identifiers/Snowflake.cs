@@ -263,7 +263,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// Returns the hexadecimal string representation of this identifier.
     /// </summary>
-    /// <returns>A 14-character hexadecimal string representing this identifier (7 bytes = 14 hex digits).</returns>
+    /// <returns>A 16-character hexadecimal string representing this identifier (8 bytes = 16 hex digits).</returns>
     /// <remarks>
     /// This method efficiently serializes the identifier to a stack-allocated buffer before
     /// converting to hexadecimal format. The returned string is always uppercase and fixed-length.
