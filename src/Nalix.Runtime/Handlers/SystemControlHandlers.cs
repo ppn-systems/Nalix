@@ -92,16 +92,13 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        Console.WriteLine($"[SERVER] Cipher Update Request: {requestedSuite} (Seq: {packet.SequenceId})");
         connection.Algorithm = requestedSuite;
 
         using PacketLease<Control> lease = PacketPool<Control>.Rent();
         Control ack = lease.Value;
         ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
 
-        Console.WriteLine($"[SERVER] Sending Cipher Update ACK (Seq: {packet.SequenceId})");
         await connection.TCP.SendAsync(ack).ConfigureAwait(false);
-        Console.WriteLine("[SERVER] Cipher Update ACK sent.");
     }
 
     private static async ValueTask HandlePing(IConnection connection, Control ping)

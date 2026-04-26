@@ -260,7 +260,7 @@ public class UdpSession : TransportSession
         }
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
-        IBufferLease src = BufferLease.Rent(packetLength);
+        BufferLease src = BufferLease.Rent(packetLength);
         IBufferLease current = src;
         try
         {
@@ -317,7 +317,7 @@ public class UdpSession : TransportSession
         }
 
         // Step 1: Wrap raw payload into a BufferLease
-        IBufferLease src = BufferLease.Rent(payload.Length);
+        BufferLease src = BufferLease.Rent(payload.Length);
         IBufferLease current = src;
         try
         {
@@ -442,7 +442,7 @@ public class UdpSession : TransportSession
                     // Transform inbound frame through the shared packet helpers (Decrypt -> Decompress).
                     IBufferLease original = datagram;
                     FramePipeline.ProcessInbound(ref datagram, this.Options.Secret.AsSpan(), this.Options.Algorithm);
-                    
+
                     if (!ReferenceEquals(datagram, original))
                     {
                         original.Dispose();

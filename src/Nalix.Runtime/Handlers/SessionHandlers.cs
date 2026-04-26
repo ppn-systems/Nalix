@@ -76,11 +76,9 @@ public sealed class SessionHandlers
                                                        .ConfigureAwait(false);
         if (session == null)
         {
-            Console.WriteLine("[SERVER] Session not found in store.");
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
             return;
         }
-        Console.WriteLine("[SERVER] Session found.");
 
         // SEC-16: Validate proof-of-possession (MAC) using the stored session secret.
         // We compute HMAC-SHA256(Secret, SessionToken) and compare it with the client's proof.
@@ -108,7 +106,6 @@ public sealed class SessionHandlers
             await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
         }
-        Console.WriteLine("[SERVER] Proof validated.");
 
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
         RestoreSessionSnapshot(context.Connection, session);
@@ -133,9 +130,7 @@ public sealed class SessionHandlers
             proof: new Bytes32(responseProofBytes),
             flags: packet.Flags);
 
-        Console.WriteLine($"[SERVER] Sending Session Resume Ack. New Token: {newTokenSnowflake}");
         await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
-        Console.WriteLine("[SERVER] Session Resume Ack sent.");
         session.Return();
     }
 
@@ -183,12 +178,7 @@ public sealed class SessionHandlers
 
         try
         {
-            await tcp.SendAsync(ack)
-                     .ConfigureAwait(false);
-            
-            // BUG-Fix: Give the transport a tiny window to flush the rejection packet before closing the socket.
-            // Without this, the client often receives a TCP RESET/FIN before the SESSION_RESUME response.
-            await Task.Delay(100).ConfigureAwait(false);
+            await tcp.SendAsync(ack).ConfigureAwait(false);
         }
         finally
         {
