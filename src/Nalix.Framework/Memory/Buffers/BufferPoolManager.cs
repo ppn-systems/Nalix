@@ -585,7 +585,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             // failing the operation outright.
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[SH.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
+                _logger.LogWarning($"[FW.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
             }
             _ = Interlocked.Increment(ref _fallbackCount);
 
@@ -594,7 +594,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Error))
         {
-            _logger.LogError(ex, $"[SH.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}");
+            _logger.LogError(ex, $"[FW.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}");
         }
         ExceptionDispatchInfo.Capture(ex).Throw();
         throw new InvalidOperationException("Unreachable");
@@ -617,7 +617,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
             _fallbackArrayPool.Return(buffer, clearArray: false);
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug($"[SH.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
+                _logger.LogDebug($"[FW.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
             }
 
             return;
@@ -625,7 +625,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
         {
-            _logger.LogWarning($"[SH.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
+            _logger.LogWarning($"[FW.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
         }
     }
 

@@ -268,7 +268,7 @@ public sealed class BufferOptions : ConfigurationLoader
                     if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
                     {
                         logger.LogError(
-                            $"[SH.{nameof(BufferOptions)}:Internal] " +
+                            $"[FW.{nameof(BufferOptions)}:Internal] " +
                             $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
                     }
 
