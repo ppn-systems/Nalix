@@ -1,4 +1,3 @@
-#if DEBUG
 using System;
 using System.IO;
 using System.Net;
@@ -169,4 +168,3 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
-#endif
