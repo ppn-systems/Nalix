@@ -12,6 +12,7 @@ using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
+using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Xunit;
