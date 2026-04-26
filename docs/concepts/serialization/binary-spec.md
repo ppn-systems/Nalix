@@ -29,8 +29,7 @@ All fixed-size primitives are written bit-for-bit using their standard represent
 | `float` | 4 | 32-bit floating point (IEEE 754). |
 | `double` | 8 | 64-bit floating point (IEEE 754). |
 | `char` | 2 | UTF-16 code unit. |
-| `UInt56` | 7 | 56-bit unsigned integer (Nalix specific). |
-| `Snowflake` | 7 | 56-bit unique identifier (Decomposed from UInt56). |
+| `Snowflake` | 8 | 64-bit unique identifier (Decomposed from ulong). |
 | `Enum` | Varies | Underlying integral type (e.g., `int32`, `byte`). |
 
 ### Special 16-Byte Primitives

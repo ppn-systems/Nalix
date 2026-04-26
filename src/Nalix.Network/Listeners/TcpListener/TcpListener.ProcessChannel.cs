@@ -22,6 +22,7 @@ public abstract partial class TcpListenerBase
     // WHY separate thread: This thread runs continuously; using ThreadPool will occupy the thread pool
     // and compete with more important async callback I/O.
     private System.Threading.Channels.Channel<IConnection>? _processChannel;
+
 #pragma warning disable CA2213 // Disposed by STOP_PROCESS_CHANNEL via Interlocked.Exchange; partial-class analyzer does not follow this helper.
     private IWorkerHandle? _processWorker;
 #pragma warning restore CA2213

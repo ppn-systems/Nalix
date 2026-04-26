@@ -118,15 +118,6 @@ export class BinaryWriter {
         this.writeUint64(value);
     }
 
-    public writeUint56(value: bigint) {
-        this.ensureCapacity(7);
-        let temp = value;
-        for (let i = 0; i < 7; i++) {
-            this.view.setUint8(this.offset + i, Number(temp & 0xFFn));
-            temp >>= 8n;
-        }
-        this.offset += 7;
-    }
 
     public writeBytes32(value: Uint8Array) {
         this.ensureCapacity(32);
@@ -244,14 +235,6 @@ export class BinaryReader {
         return this.readUint64();
     }
 
-    public readUint56(): bigint {
-        let val = 0n;
-        for (let i = 0; i < 7; i++) {
-            val |= BigInt(this.view.getUint8(this.offset + i)) << BigInt(i * 8);
-        }
-        this.offset += 7;
-        return val;
-    }
 
     public readBytes32(): Uint8Array {
         const arr = new Uint8Array(32);
@@ -274,3 +257,4 @@ export class BinaryReader {
         return val;
     }
 }
+

@@ -63,12 +63,12 @@ public sealed class ResumeExtensionsTests : IDisposable
             // Create a fake connection object to represent the "previous" connection
             SessionSnapshot snapshot = new()
             {
-                SessionToken = token.ToUInt56(),
+                SessionToken = token.ToUInt64(),
                 Secret = secret,
                 Algorithm = CipherSuiteType.Chacha20Poly1305,
                 ExpiresAtUnixMilliseconds = long.MaxValue
             };
-            SessionEntry entry = new(snapshot, UInt56.Zero);
+            SessionEntry entry = new(snapshot, 0UL);
 
             await hub.SessionStore.StoreAsync(entry);
 
@@ -124,11 +124,11 @@ public sealed class ResumeExtensionsTests : IDisposable
             IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
             SessionSnapshot snapshot = new()
             {
-                SessionToken = token.ToUInt56(),
+                SessionToken = token.ToUInt64(),
                 Secret = serverSecret,
                 ExpiresAtUnixMilliseconds = long.MaxValue
             };
-            SessionEntry entry = new(snapshot, UInt56.Zero);
+            SessionEntry entry = new(snapshot, 0UL);
             await hub.SessionStore.StoreAsync(entry);
 
             // 2. Setup Client with WRONG secret
@@ -211,3 +211,4 @@ public sealed class ResumeExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+

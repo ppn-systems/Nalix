@@ -17,9 +17,9 @@ public readonly partial struct Snowflake
     #region Deserialize
 
     /// <summary>
-    /// Creates a <see cref="Snowflake"/> identifier from a 56-bit combined value.
+    /// Creates a <see cref="Snowflake"/> identifier from a 64-bit combined value.
     /// </summary>
-    /// <param name="combined">The 56-bit unsigned integer containing all identifier components.</param>
+    /// <param name="combined">The 64-bit unsigned integer containing all identifier components.</param>
     /// <returns>A <see cref="Snowflake"/> instance constructed from the combined value.</returns>
     /// <remarks>
     /// This is the most efficient deserialization method as it directly uses the pre-composed value
@@ -27,10 +27,10 @@ public readonly partial struct Snowflake
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Snowflake FromUInt56(UInt56 combined) => NewId(combined);
+    public static Snowflake FromUInt64(ulong combined) => NewId(combined);
 
     /// <summary>
-    /// Creates a <see cref="Snowflake"/> from a 7-byte span.
+    /// Creates a <see cref="Snowflake"/> from an 8-byte span.
     /// </summary>
     /// <param name="bytes">The byte span containing the identifier data in little-endian format.</param>
     /// <returns>A reconstructed <see cref="Snowflake"/> instance.</returns>
@@ -39,7 +39,7 @@ public readonly partial struct Snowflake
     /// </exception>
     /// <remarks>
     /// This method deserializes a <see cref="Snowflake"/> from a byte representation.
-    /// The expected layout is: [0-3]=Value (32 bits), [4-5]=MachineId (16 bits), [6]=Type (8 bits),
+    /// The expected layout is: [0-3]=Value (32 bits), [4-5]=MachineId (16 bits), [6]=Type (8 bits), [7]=Reserved (8 bits),
     /// all in little-endian byte order. The method validates the buffer size before reading.
     /// </remarks>
     [Pure]
@@ -53,16 +53,14 @@ public readonly partial struct Snowflake
         }
 
         // Optimized deserialization using BinaryPrimitives (bounds-checked, vectorized)
-        uint value = System.Buffers.Binary.BinaryPrimitives.ReadUInt32LittleEndian(bytes);
-        ushort machineId = System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(4, 2));
-        byte type = bytes[6];
+        ulong value = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(bytes);
 
         // Cast directly without additional validation for performance
-        return new Snowflake(value, machineId, (SnowflakeType)type);
+        return new Snowflake(value);
     }
 
     /// <summary>
-    /// Creates a <see cref="Snowflake"/> from a 7-byte array.
+    /// Creates a <see cref="Snowflake"/> from an 8-byte array.
     /// </summary>
     /// <param name="bytes">The byte array containing the identifier data in little-endian format.</param>
     /// <returns>A reconstructed <see cref="Snowflake"/> instance.</returns>
@@ -70,7 +68,7 @@ public readonly partial struct Snowflake
     /// Thrown when <paramref name="bytes"/> is <c>null</c>.
     /// </exception>
     /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (7) bytes.
+    /// Thrown when <paramref name="bytes"/> is not exactly <see cref="Size"/> (8) bytes.
     /// </exception>
     /// <remarks>
     /// This overload accepts a byte array and delegates to the span-based <see cref="FromBytes(ReadOnlySpan{byte})"/> method.
@@ -88,7 +86,7 @@ public readonly partial struct Snowflake
     /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public UInt56 ToUInt56() => _combined;
+    public ulong ToUInt64() => _combined;
 
     /// <exception cref="OutOfMemoryException">Thrown when the runtime cannot allocate the destination byte array.</exception>
     /// <inheritdoc/>
@@ -115,9 +113,7 @@ public readonly partial struct Snowflake
         }
 
         // Optimized serialization using direct property access and BinaryPrimitives
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, this.Value);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), this.MachineId);
-        destination[6] = (byte)this.Type;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(destination, _combined);
 
         bytesWritten = Size;
         return true;
@@ -134,9 +130,7 @@ public readonly partial struct Snowflake
         }
 
         // Optimized serialization using direct property access and BinaryPrimitives
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(destination, this.Value);
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(destination.Slice(4, 2), this.MachineId);
-        destination[6] = (byte)this.Type;
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(destination, _combined);
 
         return true;
     }

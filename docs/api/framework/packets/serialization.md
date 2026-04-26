@@ -56,7 +56,7 @@ The provider registers built-in formatters for:
 - `bool`
 - `Guid`
 - `DateOnly`, `DateTime`, `TimeOnly`, `TimeSpan`, `DateTimeOffset`
-- `UInt56`
+- `ulong`
 
 ## Collection behavior
 
@@ -171,3 +171,4 @@ LiteSerializer.Register(new MyCustomFormatter());
 - [Framework Serialization Basics](../serialization/serialization-basics.md)
 - [Packet Registry](./packet-registry.md)
 - [Built-in Frames](./built-in-frames.md)
+

@@ -22,7 +22,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// This operation compares the underlying 56-bit values for equality.
+    /// This operation compares the underlying 64-bit values for equality.
     /// The comparison is performed in constant time to prevent timing attacks.
     /// </remarks>
     [Pure]
@@ -57,7 +57,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// <c>true</c> if the identifiers are not equal; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// This operation compares the underlying 56-bit values for inequality.
+    /// This operation compares the underlying 64-bit values for inequality.
     /// The comparison is performed in constant time to prevent timing attacks.
     /// </remarks>
     [Pure]
@@ -73,7 +73,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// <c>true</c> if <paramref name="a"/> is less than <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// Comparison is performed on the underlying 64-bit values, providing a total ordering.
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,7 +88,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// <c>true</c> if <paramref name="a"/> is greater than <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// Comparison is performed on the underlying 64-bit values, providing a total ordering.
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -103,7 +103,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// <c>true</c> if <paramref name="a"/> is less than or equal to <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// Comparison is performed on the underlying 64-bit values, providing a total ordering.
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -118,7 +118,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// <c>true</c> if <paramref name="a"/> is greater than or equal to <paramref name="b"/>; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// Comparison is performed on the underlying 56-bit values, providing a total ordering.
+    /// Comparison is performed on the underlying 64-bit values, providing a total ordering.
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -139,7 +139,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// A value greater than zero if this instance follows <paramref name="other"/>.
     /// </returns>
     /// <remarks>
-    /// This method compares the underlying 56-bit values directly, providing efficient ordering.
+    /// This method compares the underlying 64-bit values directly, providing efficient ordering.
     /// The implementation uses branchless comparison for optimal CPU pipeline performance.
     /// </remarks>
     [Pure]
@@ -187,7 +187,7 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
     /// <c>true</c> if the identifiers are equal; otherwise, <c>false</c>.
     /// </returns>
     /// <remarks>
-    /// This method performs a direct comparison of the underlying 56-bit values.
+    /// This method performs a direct comparison of the underlying 64-bit values.
     /// The comparison is performed in constant time to prevent timing attacks.
     /// </remarks>
     [Pure]
@@ -212,3 +212,4 @@ public readonly partial struct Snowflake : IEquatable<Snowflake>, IComparable<Sn
 
     #endregion Equality and Comparison Methods
 }
+

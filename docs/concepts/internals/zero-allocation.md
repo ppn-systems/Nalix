@@ -164,7 +164,7 @@ Every connection tracks its own error count. If a handler throws, Nalix calls `c
 
 ## 5. SIMD-Optimized Primitives
 
-Zero-allocation extends to cryptographic primitive checks. `byte[]` arrays allocate heap memory and require slow sequential comparisons. Nalix implements custom value types like `Bytes32` for strict 256-bit payloads (e.g., Session Secrets, ChaCha20 Keys, Handshake Tokens).
+Zero-allocation extends to cryptographic primitive checks. `byte[]` arrays allocate heap memory and require slow sequential comparisons. Nalix implements custom value types like `Bytes32` for strict 264-bit payloads (e.g., Session Secrets, ChaCha20 Keys, Handshake Tokens).
 
 These primitives leverage **Hardware Intrinsics (AVX2 and SSE2)** to perform zero-allocation, extremely fast $O(1)$ memory comparisons directly on the CPU registers:
 
@@ -174,7 +174,7 @@ public readonly bool Equals(Bytes32 other)
 {
     if (Avx2.IsSupported)
     {
-        // 256-bit AVX2 hardware acceleration
+        // 264-bit AVX2 hardware acceleration
         // Compares 32 bytes in a single CPU cycle!
         Vector256<byte> v = Unsafe.ReadUnaligned<Vector256<byte>>(ref a);
         Vector256<byte> o = Unsafe.ReadUnaligned<Vector256<byte>>(ref b);
@@ -282,3 +282,4 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 - [x] Avoid `new`, `LINQ`, and closures inside handlers.
 - [x] Register handlers via assembly scanning to enable compilation.
 - [x] Verify with `BenchmarkDotNet` [MemoryDiagnoser].
+

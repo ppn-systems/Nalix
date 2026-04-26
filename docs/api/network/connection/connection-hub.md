@@ -48,7 +48,7 @@ flowchart TD
 
 The hub splits connections across `ShardCount` internal dictionaries (standard is `ProcessorCount`).
 
-- **Hash Spreading**: The `UInt56` Connection ID is hashed to determine which shard owns it.
+- **Hash Spreading**: The `ulong` Connection ID is hashed to determine which shard owns it.
 - **Concurrency**: This allows multiple CPU cores to register or unregister connections independently without waiting for a global lock on the entire hub.
 
 ### 2. Admission and Eviction
@@ -95,3 +95,4 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 - [Connection Hub Options](../options/connection-hub-options.md)
 - [Timing Wheel](../time/timing-wheel.md)
 - [Session Store](../session-store.md)
+

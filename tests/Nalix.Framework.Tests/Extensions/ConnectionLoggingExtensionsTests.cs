@@ -160,7 +160,7 @@ public sealed class ConnectionLoggingExtensionsTests
         public uint Value => 1;
         public ushort MachineId => 1;
 
-        public UInt56 ToUInt56() => UInt56.Zero;
+        public ulong ToUInt64() => 0UL;
 
         public byte[] ToByteArray() => new byte[7];
 
@@ -207,3 +207,4 @@ public sealed class ConnectionLoggingExtensionsTests
         public void Dispose() { }
     }
 }
+

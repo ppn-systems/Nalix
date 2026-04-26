@@ -92,7 +92,7 @@ The internal component that translates a handler's return type into a send actio
 
 ## Snowflake
 
-A customized 56-bit distributed identifier used for internal task tracking and packet correlation. Provides 1 ms timestamp resolution with 12 bits for sequence (4,096 IDs per millisecond per shard).
+A customized 64-bit distributed identifier used for internal task tracking and packet correlation. Provides 1 ms timestamp resolution with 12 bits for sequence (4,096 IDs per millisecond per shard).
 
 ## TCP vs UDP
 
@@ -112,3 +112,4 @@ The idle-timeout scheduler used by the network layer. Manages connection timeout
 - [Selecting Building Blocks](./runtime/building-blocks.md) — Decision guide for component selection
 - [Architecture](./fundamentals/architecture.md) — Layered component overview
 - [Middleware](./runtime/middleware-pipeline.md) — Middleware Pipeline and handler policy
+

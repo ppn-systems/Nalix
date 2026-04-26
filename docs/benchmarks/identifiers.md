@@ -1,6 +1,6 @@
 # Distributed Identifier Benchmarks
 
-Detailed performance metrics for Nalix identifier generation systems, featuring the custom 56-bit Snowflake implementation.
+Detailed performance metrics for Nalix identifier generation systems, featuring the custom 64-bit Snowflake implementation.
 
 ## Snowflake IDs
 
@@ -16,9 +16,9 @@ Ultra-high-throughput, collision-resistant ID generation designed for massive-sc
 
 ### Why Nalix Snowflake?
 
-The Nalix Snowflake implementation deviates from the standard 64-bit specification to provide better categorical isolation and extreme memory efficiency using the custom **UInt56** primitive.
+The Nalix Snowflake implementation provides better categorical isolation and extreme memory efficiency.
 
-- **56-bit Compact Storage**: Stored in exactly 7 bytes via the `UInt56` struct, reducing memory footprint by 12.5% compared to standard `long` identifiers—critical for systems handling billions of IDs in memory.
+- **64-bit Storage**: Stored in exactly 8 bytes via the `ulong` struct, ensuring compatibility with standard platforms while retaining extreme performance.
 - **Categorical Isolation**: Includes a dedicated **8-bit Type** field (High bits 48-55), allowing the system to identify the entity category (e.g., Account, Message, Transaction) directly from the ID without a database lookup.
 - **Multi-Dimensional Uniqueness**:
     -**Type (8 bits)**: Categorizes the identifier.
