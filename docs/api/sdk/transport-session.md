@@ -77,5 +77,5 @@ The abstract session sits between application code and the socket layer. It keep
 - [UDP Session](./udp-session.md)
 - [SDK Overview](./index.md)
 - [Subscriptions](./subscriptions.md)
-- [Request Options](./options/request-options.md)
-- [Transport Options](./options/transport-options.md)
+- [Request Options](../options/sdk/request-options.md)
+- [Transport Options](../options/sdk/transport-options.md)

@@ -13,9 +13,9 @@ Use this pattern for standard request/reply flows where the handler returns exac
 ```csharp
 using System.Threading.Tasks;
 using Contracts; // Contains PingRequest and PingResponse
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 
 namespace MyServer.Handlers;
 
@@ -41,7 +41,7 @@ Use this pattern when you need to send multiple replies, push to other connectio
 ```csharp
 using System.Threading.Tasks;
 using Contracts;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 namespace MyServer.Handlers;
 
@@ -71,8 +71,8 @@ Handlers should gracefully handle failures within the execution block. While the
 ```csharp
 using System;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 
 [PacketOpcode(0x2001)]
 public async ValueTask HandleSecureAction(IPacketContext<SecureAction> context)
@@ -120,9 +120,9 @@ Handlers and Middlewares must be registered with the `NetworkApplicationBuilder`
 This is the recommended path for most applications. It provides automatic instance management and dependency injection.
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Runtime.Dispatching;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Handlers
@@ -148,8 +148,8 @@ If you are building a custom runtime or using the `PacketDispatchChannel` direct
 
 ```csharp
 using Nalix.Runtime.Dispatching;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 
 var channel = new PacketDispatchChannel(options =>
 {
@@ -191,4 +191,4 @@ sequenceDiagram
 - **Avoid blocking threads**: Always use `ValueTask` or `Task` for async I/O.
 - **Statelessness**: Prefer stateless handlers to allow the dispatcher to reuse controller instances efficiently.
 - **Opcode Management**: Keep opcodes defined as `const ushort` in your shared Contract project.
-- **Namespace Consistency**: Always include `Nalix.Common.Networking.Packets` to resolve context types.
+- **Namespace Consistency**: Always include `Nalix.Abstractions.Networking.Packets` to resolve context types.

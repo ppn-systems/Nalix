@@ -156,7 +156,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             if (property.IsImplicitlyDeclared
                 || property.DeclaredAccessibility != Accessibility.Public
                 || property.IsStatic
-                || HasAttribute(property, symbols.ConfiguredIgnoreAttribute))
+                || HasAttribute(property, symbols.ConfigurationIgnoreAttribute))
             {
                 continue;
             }
@@ -210,8 +210,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             if (method.Name != "Populate"
                 || method.MethodKind != MethodKind.Ordinary
                 || method.Parameters.Length != 2
-                || !SymbolEqualityComparer.Default.Equals(method.Parameters[0].Type, symbols.MethodInfoType)
-                || !SymbolEqualityComparer.Default.Equals(method.Parameters[1].Type, symbols.PacketMetadataBuilderType))
+                || !IsSymbol(method.Parameters[0].Type, symbols.MethodInfoType)
+                || !IsSymbol(method.Parameters[1].Type, symbols.PacketMetadataBuilderType))
             {
                 continue;
             }
@@ -236,9 +236,9 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         AttributeData? orderAttribute = typeSymbol.GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.MiddlewareOrderAttribute));
+            .FirstOrDefault(a => IsSymbol(a.AttributeClass, symbols.MiddlewareOrderAttribute));
         AttributeData? stageAttribute = typeSymbol.GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.MiddlewareStageAttribute));
+            .FirstOrDefault(a => IsSymbol(a.AttributeClass, symbols.MiddlewareStageAttribute));
 
         if (orderAttribute is null)
         {
@@ -298,7 +298,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static void AnalyzeSerializationType(SymbolAnalysisContext context, INamedTypeSymbol typeSymbol, SymbolSet symbols)
     {
         AttributeData? serializePackable = typeSymbol.GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, symbols.SerializePackableAttribute));
+            .FirstOrDefault(a => IsSymbol(a.AttributeClass, symbols.SerializePackableAttribute));
 
         if (serializePackable is null)
         {
@@ -466,7 +466,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
         if (methodSymbol.Parameters[0].Type is not INamedTypeSymbol firstParamType
             || !firstParamType.IsGenericType
-            || !SymbolEqualityComparer.Default.Equals(firstParamType.ConstructedFrom, symbols.PacketContextType)
+            || !IsSymbol(firstParamType.ConstructedFrom, symbols.PacketContextType)
             || firstParamType.TypeArguments.Length != 1)
         {
             return;
@@ -478,7 +478,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         foreach (CastExpressionSyntax cast in methodDeclaration.DescendantNodes().OfType<CastExpressionSyntax>())
         {
             ITypeSymbol? castType = context.SemanticModel.GetTypeInfo(cast.Type, context.CancellationToken).Type;
-            if (castType is null || !SymbolEqualityComparer.Default.Equals(castType, packetType))
+            if (castType is null || !IsSymbol(castType, packetType))
             {
                 continue;
             }
@@ -506,10 +506,10 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         bool isPacketBaseSelfType = false;
         if (baseType is not null
             && baseType.IsGenericType
-            && SymbolEqualityComparer.Default.Equals(baseType.ConstructedFrom, symbols.PacketBaseType))
+            && IsSymbol(baseType.ConstructedFrom, symbols.PacketBaseType))
         {
             ITypeSymbol selfTypeArgument = baseType.TypeArguments[0];
-            if (!SymbolEqualityComparer.Default.Equals(selfTypeArgument, typeSymbol))
+            if (!IsSymbol(selfTypeArgument, typeSymbol))
             {
                 Location? location = typeSymbol.Locations.FirstOrDefault(static l => l.IsInSource);
                 if (location is not null)
@@ -530,13 +530,13 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         foreach (INamedTypeSymbol implementedInterface in typeSymbol.AllInterfaces.OfType<INamedTypeSymbol>())
         {
             if (!implementedInterface.IsGenericType
-                || !SymbolEqualityComparer.Default.Equals(implementedInterface.ConstructedFrom, symbols.PacketDeserializerType))
+                || !IsSymbol(implementedInterface.ConstructedFrom, symbols.PacketDeserializerType))
             {
                 continue;
             }
 
             ITypeSymbol selfTypeArgument = implementedInterface.TypeArguments[0];
-            if (!SymbolEqualityComparer.Default.Equals(selfTypeArgument, typeSymbol))
+            if (!IsSymbol(selfTypeArgument, typeSymbol))
             {
                 Location? location = typeSymbol.Locations.FirstOrDefault(static l => l.IsInSource);
                 if (location is not null)
@@ -571,7 +571,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         string controllerKey = $"{ns}.{controllerName}";
 
         INamedTypeSymbol existing = controllerNames.GetOrAdd(controllerKey, typeSymbol);
-        if (!SymbolEqualityComparer.Default.Equals(existing, typeSymbol))
+        if (!IsSymbol(existing, typeSymbol))
         {
             Report(
                 context,
@@ -632,7 +632,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
                 string opcodeKey = $"{ns}.{opcode.Value}";
                 (IMethodSymbol Method, INamedTypeSymbol Controller) = globalOpcodes.GetOrAdd(opcodeKey, (methodSymbol, typeSymbol));
-                if (!SymbolEqualityComparer.Default.Equals(Controller, typeSymbol))
+                if (!IsSymbol(Controller, typeSymbol))
                 {
                     Report(context, DiagnosticDescriptors.GlobalDuplicateOpcode, methodSymbol, methodSymbol.Name, opcode.Value, Method.Name, Controller.Name);
                 }
@@ -677,7 +677,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return parameters.Length switch
             {
                 1 => true,
-                2 => SymbolEqualityComparer.Default.Equals(parameters[1].Type, symbols.CancellationTokenType),
+                2 => IsSymbol(parameters[1].Type, symbols.CancellationTokenType),
                 _ => false
             };
         }
@@ -692,7 +692,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return parameters.Length switch
             {
                 2 => true,
-                3 => SymbolEqualityComparer.Default.Equals(parameters[2].Type, symbols.CancellationTokenType),
+                3 => IsSymbol(parameters[2].Type, symbols.CancellationTokenType),
                 _ => false
             };
         }
@@ -707,8 +707,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        if (SymbolEqualityComparer.Default.Equals(returnType, symbols.TaskType)
-            || SymbolEqualityComparer.Default.Equals(returnType, symbols.ValueTaskType))
+        if (IsSymbol(returnType, symbols.TaskType)
+            || IsSymbol(returnType, symbols.ValueTaskType))
         {
             return true;
         }
@@ -723,16 +723,16 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return true;
         }
 
-        if (SymbolEqualityComparer.Default.Equals(returnType, symbols.MemoryByteType)
-            || SymbolEqualityComparer.Default.Equals(returnType, symbols.ReadOnlyMemoryByteType))
+        if (IsSymbol(returnType, symbols.MemoryByteType)
+            || IsSymbol(returnType, symbols.ReadOnlyMemoryByteType))
         {
             return true;
         }
 
         if (returnType is INamedTypeSymbol namedReturnType && namedReturnType.IsGenericType)
         {
-            if (SymbolEqualityComparer.Default.Equals(namedReturnType.ConstructedFrom, symbols.GenericTaskType)
-                || SymbolEqualityComparer.Default.Equals(namedReturnType.ConstructedFrom, symbols.GenericValueTaskType))
+            if (IsSymbol(namedReturnType.ConstructedFrom, symbols.GenericTaskType)
+                || IsSymbol(namedReturnType.ConstructedFrom, symbols.GenericValueTaskType))
             {
                 return namedReturnType.TypeArguments.Length == 1
                     && HasSupportedReturnType(namedReturnType.TypeArguments[0], symbols);
@@ -784,7 +784,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
                 .OfType<INamedTypeSymbol>()
                 .Any(interfaceSymbol =>
                     interfaceSymbol.IsGenericType
-                    && SymbolEqualityComparer.Default.Equals(interfaceSymbol.ConstructedFrom, symbols.PacketDeserializerType));
+                    && IsSymbol(interfaceSymbol.ConstructedFrom, symbols.PacketDeserializerType));
 
         if (!isPacketLikeType)
         {
@@ -852,7 +852,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
            && method.DeclaredAccessibility == Accessibility.Public
            && method.Parameters.Length == 1
            && IsReadOnlySpanByteType(method.Parameters[0].Type)
-           && SymbolEqualityComparer.Default.Equals(method.ReturnType, containingType);
+           && IsSymbol(method.ReturnType, containingType);
 
     private static IEnumerable<IMethodSymbol> EnumerateDeserializeMethods(INamedTypeSymbol typeSymbol)
     {
@@ -889,7 +889,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static string? GetPacketControllerName(INamedTypeSymbol typeSymbol, INamedTypeSymbol? controllerAttributeSymbol)
     {
         AttributeData? attribute = typeSymbol.GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, controllerAttributeSymbol));
+            .FirstOrDefault(a => IsSymbol(a.AttributeClass, controllerAttributeSymbol));
         if (attribute is null)
         {
             return null;
@@ -929,7 +929,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         ITypeSymbol firstParameterType = methodSymbol.Parameters[0].Type;
         if (firstParameterType is not INamedTypeSymbol namedType
             || !namedType.IsGenericType
-            || !SymbolEqualityComparer.Default.Equals(namedType.ConstructedFrom, packetContextSymbol))
+            || !IsSymbol(namedType.ConstructedFrom, packetContextSymbol))
         {
             return false;
         }
@@ -957,7 +957,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static ushort? GetOpcode(IMethodSymbol methodSymbol, INamedTypeSymbol? packetAttributeSymbol)
     {
         AttributeData? attribute = methodSymbol.GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, packetAttributeSymbol));
+            .FirstOrDefault(a => IsSymbol(a.AttributeClass, packetAttributeSymbol));
 
         if (attribute?.ConstructorArguments.Length != 1)
         {
@@ -973,8 +973,19 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         };
     }
 
+    private static bool IsSymbol(ISymbol? symbol, ISymbol? target)
+    {
+        if (symbol is null || target is null) return false;
+        if (SymbolEqualityComparer.Default.Equals(symbol, target)) return true;
+        string s1 = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        string s2 = target.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        if (s1 == s2) return true;
+
+        return symbol.ToDisplayString() == target.ToDisplayString();
+    }
+
     private static bool HasAttribute(ISymbol symbol, INamedTypeSymbol? attributeSymbol)
-        => attributeSymbol is not null && symbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, attributeSymbol));
+        => attributeSymbol is not null && symbol.GetAttributes().Any(a => IsSymbol(a.AttributeClass, attributeSymbol));
 
     private static bool IsPacketContext(ITypeSymbol? type, SymbolSet symbols)
     {
@@ -989,8 +1000,8 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         INamedTypeSymbol genericDef = namedType.ConstructedFrom;
-        return SymbolEqualityComparer.Default.Equals(genericDef, symbols.PacketContextType)
-               || SymbolEqualityComparer.Default.Equals(genericDef, symbols.PacketContextInterface);
+        return IsSymbol(genericDef, symbols.PacketContextType)
+               || IsSymbol(genericDef, symbols.PacketContextInterface);
     }
 
     private static bool HasInternalByPass(IMethodSymbol methodSymbol, INamedTypeSymbol typeSymbol, SymbolSet symbols)
@@ -1000,17 +1011,17 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     }
 
     private static bool Implements(ITypeSymbol typeSymbol, INamedTypeSymbol? interfaceSymbol)
-        => interfaceSymbol is not null && (SymbolEqualityComparer.Default.Equals(typeSymbol, interfaceSymbol)
-           || typeSymbol.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, interfaceSymbol)));
+        => interfaceSymbol is not null && (IsSymbol(typeSymbol, interfaceSymbol)
+           || typeSymbol.AllInterfaces.Any(i => IsSymbol(i, interfaceSymbol)));
 
     private static bool ImplementsOpenGeneric(ITypeSymbol typeSymbol, INamedTypeSymbol? openGenericInterfaceSymbol)
         => openGenericInterfaceSymbol is not null && typeSymbol.AllInterfaces
             .OfType<INamedTypeSymbol>()
-            .Any(i => i.IsGenericType && SymbolEqualityComparer.Default.Equals(i.ConstructedFrom, openGenericInterfaceSymbol));
+            .Any(i => i.IsGenericType && IsSymbol(i.ConstructedFrom, openGenericInterfaceSymbol));
 
     private static bool IsAssignable(ITypeSymbol from, ITypeSymbol? to)
-        => to is not null && (SymbolEqualityComparer.Default.Equals(from, to)
-           || from.AllInterfaces.Any(i => SymbolEqualityComparer.Default.Equals(i, to))
+        => to is not null && (IsSymbol(from, to)
+           || from.AllInterfaces.Any(i => IsSymbol(i, to))
            || HasBaseType(from, to));
 
     private static bool HasBaseType(ITypeSymbol typeSymbol, ITypeSymbol? expectedBase)
@@ -1023,7 +1034,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         ITypeSymbol? current = typeSymbol.BaseType;
         while (current is not null)
         {
-            if (SymbolEqualityComparer.Default.Equals(current, expectedBase))
+            if (IsSymbol(current, expectedBase))
             {
                 return true;
             }
@@ -1039,7 +1050,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol? current = typeSymbol.BaseType;
         while (current is not null)
         {
-            if (current.IsGenericType && SymbolEqualityComparer.Default.Equals(current.ConstructedFrom, symbols.PacketBaseType))
+            if (current.IsGenericType && IsSymbol(current.ConstructedFrom, symbols.PacketBaseType))
             {
                 return true;
             }
@@ -1060,7 +1071,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         TypedConstant arg = serializePackable.ConstructorArguments[0];
         if (arg.Type is null
             || serializeLayoutType is null
-            || !SymbolEqualityComparer.Default.Equals(arg.Type, serializeLayoutType)
+            || !IsSymbol(arg.Type, serializeLayoutType)
             || arg.Value is null)
         {
             return false;
@@ -1079,7 +1090,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static int? GetSerializeOrder(ISymbol symbol, INamedTypeSymbol? serializeOrderAttribute)
     {
         AttributeData? attribute = symbol.GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, serializeOrderAttribute));
+            .FirstOrDefault(a => IsSymbol(a.AttributeClass, serializeOrderAttribute));
 
         if (attribute?.ConstructorArguments.Length != 1)
         {
@@ -1099,7 +1110,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     private static int? GetMiddlewareOrder(ITypeSymbol typeSymbol, INamedTypeSymbol? middlewareOrderAttribute)
     {
         AttributeData? attribute = typeSymbol.GetAttributes()
-            .FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, middlewareOrderAttribute));
+            .FirstOrDefault(a => IsSymbol(a.AttributeClass, middlewareOrderAttribute));
 
         if (attribute?.ConstructorArguments.Length != 1)
         {
@@ -1200,20 +1211,20 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     private static bool? TryGetEncryptValue(IOperation operation, SymbolSet symbols)
     {
-        if (operation.Type is null || !SymbolEqualityComparer.Default.Equals(operation.Type, symbols.RequestOptionsType))
+        if (operation.Type is null || !IsSymbol(operation.Type, symbols.RequestOptionsType))
         {
             return null;
         }
 
         if (operation is IPropertyReferenceOperation propertyReference
             && propertyReference.Property.Name == "Default"
-            && SymbolEqualityComparer.Default.Equals(propertyReference.Member.ContainingType, symbols.RequestOptionsType))
+            && IsSymbol(propertyReference.Member.ContainingType, symbols.RequestOptionsType))
         {
             return false;
         }
 
         if (operation is IObjectCreationOperation creation
-            && SymbolEqualityComparer.Default.Equals(creation.Type, symbols.RequestOptionsType))
+            && IsSymbol(creation.Type, symbols.RequestOptionsType))
         {
             foreach (IPropertyReferenceOperation initializer in creation.Initializer?.Initializers.OfType<ISimpleAssignmentOperation>()
                          .Select(static assignment => assignment.Target)
@@ -1233,7 +1244,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         if (operation is IInvocationOperation invocation
-            && SymbolEqualityComparer.Default.Equals(invocation.TargetMethod.ContainingType, symbols.RequestOptionsType))
+            && IsSymbol(invocation.TargetMethod.ContainingType, symbols.RequestOptionsType))
         {
             string methodName = invocation.TargetMethod.Name;
             if (methodName == "WithEncrypt")
@@ -1268,7 +1279,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
     {
         if (stageAttribute.ConstructorArguments.Length != 1
             || stageAttribute.ConstructorArguments[0].Type is null
-            || !SymbolEqualityComparer.Default.Equals(stageAttribute.ConstructorArguments[0].Type, middlewareStageType)
+            || !IsSymbol(stageAttribute.ConstructorArguments[0].Type, middlewareStageType)
             || stageAttribute.ConstructorArguments[0].Value is not byte stageValue
             || stageValue != 0)
         {
@@ -1482,7 +1493,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             return;
         }
 
-        List<IParameterSymbol> leaseParams = [.. method.Parameters.Where(p => SymbolEqualityComparer.Default.Equals(p.Type, symbols.BufferLeaseType))];
+        List<IParameterSymbol> leaseParams = [.. method.Parameters.Where(p => IsSymbol(p.Type, symbols.BufferLeaseType))];
         if (leaseParams.Count == 0)
         {
             return;

@@ -4,10 +4,10 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.DataFrames.Pooling;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Extensions;
 

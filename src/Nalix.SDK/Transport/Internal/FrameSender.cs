@@ -6,11 +6,12 @@ using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Options;
+using Nalix.Abstractions;
+using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Options;
+using Nalix.Codec.Transforms;
+using Nalix.Environment.Configuration;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
@@ -76,7 +77,7 @@ internal sealed class FrameSender : IDisposable
         IBufferLease current = lease;
         try
         {
-            Framework.DataFrames.Transforms.FramePipeline.ProcessOutbound(
+            FramePipeline.ProcessOutbound(
                 ref current,
                 _options.CompressionEnabled,
                 _options.CompressionThreshold,
@@ -108,7 +109,7 @@ internal sealed class FrameSender : IDisposable
                 BufferLease.ByteArrayPool.Return(frame);
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
             return false;

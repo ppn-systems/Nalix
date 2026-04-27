@@ -5,10 +5,10 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.Extensions;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.Extensions;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions;
 
 namespace Nalix.SDK.Transport.Extensions;
 
@@ -84,7 +84,7 @@ public static class TcpSessionSubscriptions
                     }
                 }
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
@@ -135,7 +135,7 @@ public static class TcpSessionSubscriptions
                     }
                 }
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
@@ -172,7 +172,7 @@ public static class TcpSessionSubscriptions
 
                 handler(p);
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On(predicate) failed: {0}", ex);
             }
@@ -245,7 +245,7 @@ public static class TcpSessionSubscriptions
                     }
                 }
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnOnce<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
@@ -299,7 +299,7 @@ public static class TcpSessionSubscriptions
             {
                 onDisconnected(ex);
             }
-            catch (Exception callbackEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(callbackEx))
+            catch (Exception callbackEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(callbackEx))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
             }
@@ -346,7 +346,7 @@ public static class TcpSessionSubscriptions
             {
                 onDisconnected(ex);
             }
-            catch (Exception callbackEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(callbackEx))
+            catch (Exception callbackEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(callbackEx))
             {
                 Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> predicate disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
             }
@@ -446,7 +446,7 @@ public sealed class CompositeSubscription : IDisposable
             {
                 s?.Dispose();
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Trace.TraceError("Nalix.SDK.CompositeSubscription.Dispose failed: {0}", ex);
             }

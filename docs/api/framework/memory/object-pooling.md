@@ -1,4 +1,4 @@
-# Object Pooling
+﻿# Object Pooling
 
 The Object Pooling system in `Nalix.Framework` provides a thread-safe, high-performance mechanism for recycling expensive class instances, reducing the frequency of garbage collection.
 
@@ -25,7 +25,7 @@ flowchart LR
 
 ## Source Mapping
 
-- `src/Nalix.Common/Abstractions/IPoolable.cs`
+- `src/Nalix.Abstractions/IPoolable.cs`
 - `src/Nalix.Framework/Memory/Pools/ObjectPool.cs`
 - `src/Nalix.Framework/Memory/Objects/ObjectPoolManager.cs`
 - `src/Nalix.Framework/Memory/Objects/TypedObjectPool.cs`

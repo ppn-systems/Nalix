@@ -7,18 +7,18 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Framework.Configuration;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
+using Nalix.Abstractions;
 
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
 #pragma warning disable CA2254 // Template should be a static expression
@@ -290,7 +290,7 @@ internal sealed class TimingWheel : IActivatable
                     $"cts-cancel-ignored reason={ex.GetType().Name}");
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
@@ -313,7 +313,7 @@ internal sealed class TimingWheel : IActivatable
                     $"cts-dispose-ignored reason={ex.GetType().Name}");
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
@@ -327,7 +327,7 @@ internal sealed class TimingWheel : IActivatable
         {
             worker?.Dispose();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
@@ -411,7 +411,7 @@ internal sealed class TimingWheel : IActivatable
                 conn._timeoutTask = task;
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (task is not null && !queued)
             {
@@ -570,7 +570,7 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 task.Conn.Disconnect();
                             }
-                            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                             {
                                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                                 {
@@ -616,7 +616,7 @@ internal sealed class TimingWheel : IActivatable
         {
             // Expected on shutdown
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {

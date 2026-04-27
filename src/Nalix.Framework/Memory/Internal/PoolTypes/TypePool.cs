@@ -4,7 +4,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
+
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]

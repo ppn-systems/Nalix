@@ -10,8 +10,8 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Sources;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Transport;
@@ -201,7 +201,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     /// <b>Sync fast-path:</b> when <see cref="Socket.ReceiveAsync(SocketAsyncEventArgs)"/>
     /// returns <see langword="false"/>, the result is returned via
     /// <see cref="ValueTask{T}"/> — no Task allocation,
-    /// no TCS await. Common on LAN/loopback, where the socket often completes
+    /// no TCS await. Abstractions on LAN/loopback, where the socket often completes
     /// inline before the OS has a chance to post an async completion.
     /// </para>
     /// </summary>

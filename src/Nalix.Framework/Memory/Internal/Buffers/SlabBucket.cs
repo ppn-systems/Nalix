@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Framework.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
@@ -175,7 +174,7 @@ internal sealed class SlabBucket : IDisposable
             return array;
         }
 
-        throw FrameworkErrors.SlabBucketAllocationFailed;
+        throw new InvalidOperationException("SlabBucket: failed to allocate standalone buffer.");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

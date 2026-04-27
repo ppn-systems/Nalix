@@ -120,6 +120,6 @@ These helpers use the same error model as the underlying session APIs:
 ## Related APIs
 
 - [Session Extensions](./tcp-session-extensions.md)
-- [Request Options](./options/request-options.md)
-- [Control Type Enum](../common/protocols/control-type.md)
+- [Request Options](../options/sdk/request-options.md)
+- [Control Type Enum](../abstractions/protocols/control-type.md)
 - [TCP Session](./tcp-session.md)

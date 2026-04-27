@@ -3,7 +3,7 @@
 
 using System;
 using System.Collections.Generic;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Objects;
 

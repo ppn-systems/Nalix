@@ -5,7 +5,7 @@ using System;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 
-using Nalix.Common.Identity;
+using Nalix.Abstractions.Identity;
 
 namespace Nalix.Framework.Identifiers;
 

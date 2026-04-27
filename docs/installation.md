@@ -19,11 +19,11 @@ Install only the packages required for your role. Every package is available on 
 The hosted server model provides a fluent builder and managed lifecycle. This is the recommended starting point for new projects.
 
 ```bash
-dotnet add package Nalix.Network.Hosting
+dotnet add package Nalix.Hosting
 dotnet add package Nalix.Logging
 ```
 
-`Nalix.Network.Hosting` transitively references `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, and `Nalix.Common`.
+`Nalix.Hosting` transitively references `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, and `Nalix.Abstractions`.
 
 ### Server (manual wiring)
 
@@ -33,7 +33,7 @@ If you need full control over startup order without the hosting builder:
 dotnet add package Nalix.Network
 dotnet add package Nalix.Runtime
 dotnet add package Nalix.Framework
-dotnet add package Nalix.Common
+dotnet add package Nalix.Abstractions
 dotnet add package Nalix.Logging
 ```
 
@@ -43,14 +43,14 @@ dotnet add package Nalix.Logging
 dotnet add package Nalix.SDK
 ```
 
-`Nalix.SDK` transitively references `Nalix.Framework` and `Nalix.Common`.
+`Nalix.SDK` transitively references `Nalix.Framework` and `Nalix.Abstractions`.
 
 ### Shared contracts
 
 If your packet definitions live in a separate assembly:
 
 ```bash
-dotnet add package Nalix.Common
+dotnet add package Nalix.Abstractions
 dotnet add package Nalix.Framework
 ```
 
@@ -58,10 +58,10 @@ dotnet add package Nalix.Framework
 
 | Scenario | Packages |
 |---|---|
-| Hosted server | `Nalix.Network.Hosting`, `Nalix.Logging` |
-| Manual server | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Common`, `Nalix.Logging` |
+| Hosted server | `Nalix.Hosting`, `Nalix.Logging` |
+| Manual server | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Abstractions`, `Nalix.Logging` |
 | Client | `Nalix.SDK` |
-| Shared contracts | `Nalix.Common`, `Nalix.Framework` |
+| Shared contracts | `Nalix.Abstractions`, `Nalix.Framework` |
 | Full stack | Server set + Client set, sharing one contracts assembly |
 
 ## Configuration File
@@ -111,10 +111,10 @@ transport.Validate();
 
 ```mermaid
 graph TD
-    Hosting["Nalix.Network.Hosting"] --> Network["Nalix.Network"]
+    Hosting["Nalix.Hosting"] --> Network["Nalix.Network"]
     Hosting --> Runtime["Nalix.Runtime"]
     Network --> Framework["Nalix.Framework"]
-    Network --> Common["Nalix.Common"]
+    Network --> Common["Nalix.Abstractions"]
     Runtime --> Framework
     Runtime --> Common
     Framework --> Common

@@ -32,7 +32,6 @@ sequenceDiagram
     Lease-->>App: Return IBufferLease (Shell)
     
     Note over App, Lease: Business Logic (Span/Memory)
-    end
 
     App->>Lease: Dispose()
     Lease->>Manager: Return(byte[])
@@ -42,8 +41,8 @@ sequenceDiagram
 
 ## Source Mapping
 
-- `src/Nalix.Common/Abstractions/IBufferLease.cs`
-- `src/Nalix.Framework/Memory/Buffers/BufferLease.cs`
+- `src/Nalix.Abstractions/IBufferLease.cs`
+- `src/Nalix.Codec/Memory/BufferLease.cs`
 - `src/Nalix.Framework/Memory/Buffers/BufferPoolManager.cs`
 - `src/Nalix.Framework/Options/BufferOptions.cs`
 - `src/Nalix.Framework/Memory/Internal/Buffers/SlabBucket.cs`
@@ -161,5 +160,5 @@ The `BufferPoolManager` provides deep insights into memory health via the `Gener
 ## Related APIs
 
 - [Object Pooling](./object-pooling.md)
-- [Network Options](../../network/options/options.md)
+- [Network Options](../../options/network/options.md)
 - [Zero-Allocation Path](../../../concepts/internals/zero-allocation.md)

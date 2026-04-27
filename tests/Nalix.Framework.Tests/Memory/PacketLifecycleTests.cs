@@ -1,23 +1,20 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.DataFrames.Pooling;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Injection;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
-using Xunit;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Framework.Tests.Memory;
 
+[Collection("Sequential Pooling Tests")]
 public sealed class PacketLifecycleTests : IDisposable
 {
     private readonly ObjectPoolManager _manager;
-    private readonly ObjectPoolManager? _previousManager;
     private readonly bool _previousDiagnostics;
-
     public PacketLifecycleTests()
     {
         // Enable diagnostics globally for the duration of the test
@@ -26,23 +23,13 @@ public sealed class PacketLifecycleTests : IDisposable
         config.EnableDiagnostics = true;
 
         _manager = new ObjectPoolManager();
-
-        // Mock the global instance so that PacketBase.Dispose uses our local manager
-        _previousManager = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>();
-        InstanceManager.Instance.Register<ObjectPoolManager>(_manager);
+        PacketRegistry.Configure(_manager);
     }
 
     public void Dispose()
     {
         // Restore previous manager if any, otherwise clear
-        if (_previousManager != null)
-        {
-            InstanceManager.Instance.Register<ObjectPoolManager>(_previousManager);
-        }
-        else
-        {
-            InstanceManager.Instance.RemoveInstance(typeof(ObjectPoolManager));
-        }
+        PacketRegistry.Configure(null!);
 
         // Restore diagnostics setting
         ConfigurationManager.Instance.Get<ObjectPoolOptions>().EnableDiagnostics = _previousDiagnostics;
@@ -67,9 +54,12 @@ public sealed class PacketLifecycleTests : IDisposable
         Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["TotalReturns"]);
     }
 
+#if DEBUG
     [Fact]
     public void PacketBase_AtomicDisposal_PreventsDoubleReturn()
     {
+        Assert.NotNull(PacketRegistry.Manager);
+        Assert.Same(_manager, PacketRegistry.Manager);
         Handshake packet = _manager.Get<Handshake>();
         Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
 
@@ -83,4 +73,18 @@ public sealed class PacketLifecycleTests : IDisposable
         Assert.Equal(0L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
         Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["TotalReturns"]); // Should NOT be 2
     }
+#endif
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

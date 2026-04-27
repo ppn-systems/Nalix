@@ -1,13 +1,14 @@
+using Nalix.Codec.Memory;
 #if DEBUG
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Internal;
 using Nalix.SDK.Transport.Extensions;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Xunit;
 using NSubstitute;
 
@@ -24,7 +25,7 @@ public sealed class PacketAwaiterTests
         session.Catalog.Returns(new ManualCatalog(packet));
 
         ManualLease lease = new();
-        uint magic = Nalix.Framework.DataFrames.PacketRegistryFactory.Compute(typeof(TestPacket));
+        uint magic = Nalix.Codec.DataFrames.PacketRegistryFactory.Compute(typeof(TestPacket));
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(lease.Span, magic);
 
         Task<TestPacket> awaitTask = PacketAwaiter.AwaitAsync<TestPacket>(
@@ -102,3 +103,19 @@ public sealed class PacketAwaiterTests
     }
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

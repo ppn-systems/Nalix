@@ -1,5 +1,5 @@
 using System;
-using Nalix.Common.Networking.Protocols;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.SDK.Extensions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Extensions;
@@ -91,3 +91,18 @@ public sealed class SdkOptionsAndExtensionsTests
         public void Dispose() => this.Disposed = true;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

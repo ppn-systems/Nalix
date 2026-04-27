@@ -16,11 +16,11 @@ A Shard Proxy is a wrapper for `IConnection` that provides a stable object ident
     The dispatcher uses the **Reference Identity** of the `IConnection` object. You **must** return the exact same instance of your proxy for all connections that belong to the same shard.
 
 ```csharp
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Abstractions.Abstractions;
 
 public sealed class UserShardProxy : IConnection
 {
@@ -71,7 +71,7 @@ Implement the `IPacketDispatch` interface to intercept incoming packets and reso
 
 ```csharp
 using Nalix.Runtime.Dispatching;
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Memory.Buffers;
 
 public class UserBasedRouter : IPacketDispatch
@@ -147,5 +147,5 @@ By passing the **Proxy Instance** to `HandlePacket`, the `DispatchChannel<T>` us
 ## Related APIs
 
 - [IPacketDispatch](../../api/runtime/routing/packet-dispatch.md)
-- [Dispatch Options](../../api/runtime/options/dispatch-options.md)
-- [IConnection](../../api/common/connection-contracts.md)
+- [Dispatch Options](../../api/options/runtime/dispatch-options.md)
+- [IConnection](../../api/abstractions/connection-contracts.md)

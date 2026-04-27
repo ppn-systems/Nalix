@@ -39,7 +39,7 @@ That is the minimum surface, but a real UDP server still needs a session story, 
 ### 1. Authentication
 
 `IsAuthenticated(...)` is the first application-level UDP policy hook after the
-runtime has resolved the connection from the 7-byte session token.
+runtime has resolved the connection from the 8-byte session token.
 
 Use it to:
 
@@ -70,7 +70,7 @@ For most teams, the easiest model is:
 - use UDP to carry fast authenticated datagrams
 - keep both paths tied to the same `ConnectionHub`
 
-The current runtime expects UDP datagrams to reference an existing `ConnectionHub` connection and to carry a 7-byte session token prefix validated by `UdpListenerBase`.
+The current runtime expects UDP datagrams to reference an existing `ConnectionHub` connection and to carry a 8-byte session token prefix validated by `UdpListenerBase`.
 
 ### 3. Runtime tuning
 
@@ -114,7 +114,7 @@ For client-friendly docs, the easiest mental model is:
 receive datagram
   -> rate-limit by remote IP
   -> copy socket buffer into a BufferLease
-  -> require 7-byte SessionToken
+  -> require 8-byte SessionToken
   -> validate the Nalix payload header and UNRELIABLE flag
   -> resolve the connection through IConnectionHub
   -> verify pinned endpoint
@@ -128,7 +128,7 @@ receive datagram
 - UDP should not invent a second identity model separate from TCP sessions
 - unauthenticated drops should be visible in diagnostics
 - `IsAuthenticated(...)` should stay fast and deterministic
-- the datagram layout is `[7-byte SessionToken][Payload]`
+- the datagram layout is `[8-byte SessionToken][Payload]`
 - Payload itself follows the standard 10-byte Nalix header format: `[Magic(4), OpCode(2), Flags(1), Priority(1), SequenceId(2), ...]`
 
 ## Related APIs

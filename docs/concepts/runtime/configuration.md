@@ -1,4 +1,4 @@
-# Configuration System
+﻿# Configuration System
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
@@ -34,7 +34,7 @@ flowchart LR
 
 ---
 
-## 🏗️ Configuration Pillars
+## ðŸ—ï¸ Configuration Pillars
 
 ### ConfigurationManager
 
@@ -56,7 +56,7 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 
 ---
 
-## 🔧 Runtime Registry
+## ðŸ”§ Runtime Registry
 
 ### InstanceManager (DI)
 
@@ -71,7 +71,7 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 
 ---
 
-## 🚀 The Transport Shell
+## ðŸš€ The Transport Shell
 
 After configuration and shared services are ready, the dispatch and transport layers are initialized.
 
@@ -95,4 +95,4 @@ For most teams, this is the safest default wiring:
 
 - [Server Blueprint](../../guides/getting-started/server-blueprint.md) { .md-button }
 - [Production Checklist](../../guides/deployment/production-checklist.md) { .md-button }
-- [Configuration API](../../api/framework/runtime/configuration.md) { .md-button }
+- [Configuration API](../../api/environment/configuration.md) { .md-button }

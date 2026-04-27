@@ -1,12 +1,12 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.DataFrames.Transforms;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Random;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Transforms;
+using Nalix.Codec.Memory;
+using Nalix.Environment;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
@@ -35,12 +35,12 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
 
         Handshake frame = new();
         frame.Initialize(
-            HandshakeStage.SERVER_HELLO,
+            HandshakeStage.ServerHello,
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            PacketFlags.RELIABLE);
-        frame.Flags = PacketFlags.NONE;
+            PacketFlags.Reliable);
+        frame.Flags = PacketFlags.None;
         _rawPacket = frame.Serialize();
 
         _source = BufferLease.CopyFrom(_rawPacket);

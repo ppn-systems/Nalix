@@ -7,6 +7,7 @@ using Nalix.Common.Concurrency;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
+using Nalix.Abstractions.Concurrency;
 namespace Nalix.Benchmark.Framework.Tasks;
 
 /// <summary>

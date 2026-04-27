@@ -1,4 +1,4 @@
-# Nalix.Runtime API Reference
+﻿# Nalix.Runtime API Reference
 
 `Nalix.Runtime` is the server-side execution layer that converts incoming raw buffers into structured packet handlers. It manages the dispatching lifecycle, middleware pipelines, and metadata resolution.
 
@@ -53,7 +53,7 @@ flowchart TD
 
 - [Middleware Overview](./middleware/index.md): Explains the packet-level pipeline (`MiddlewarePipeline`).
 - [Routing Overview](./routing/index.md): Details how Nalix finds the right handler for each packet opcode.
-- [Metadata Provider](./routing/packet-metadata.md): Service for enriching the dispatch context with session or business data.
+- [Metadata Provider](../abstractions/packet-metadata.md): Service for enriching the dispatch context with session or business data.
 
 ## Architecture Notes
 
@@ -65,4 +65,4 @@ flowchart TD
 
 - [Framework Core](../framework/index.md)
 - [Network Transport](../network/index.md)
-- [Common Contracts](../common/index.md)
+- [Common Contracts](../abstractions/index.md)

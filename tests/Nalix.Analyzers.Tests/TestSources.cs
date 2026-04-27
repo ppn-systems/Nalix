@@ -1,3 +1,5 @@
+using Nalix.Codec.Memory;
+using Nalix.Abstractions.Serialization;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
@@ -9,9 +11,13 @@ internal static class TestSources
 global using System;
 global using System.Threading;
 global using System.Threading.Tasks;
-global using Nalix.Framework.DataFrames;
+global using Nalix.Codec.DataFrames;
+global using Nalix.Network.Routing;
+global using Nalix.Abstractions.Networking.Packets;
+global using Nalix.Abstractions.Middleware;
+global using Nalix.Runtime.Dispatching;
 
-namespace Nalix.Common.Serialization
+namespace Nalix.Codec.Serialization
 {
     public enum SerializeLayout : byte { Sequential = 0, Explicit = 1 }
     public interface IFixedSizeSerializable { }
@@ -22,10 +28,10 @@ namespace Nalix.Common.Serialization
     public sealed class SerializeDynamicSizeAttribute : Attribute { public SerializeDynamicSizeAttribute(int size = 0) { } }
 }
 
-namespace Nalix.Common.Networking.Packets
+namespace Nalix.Abstractions.Networking.Packets
 {
     public enum PacketHeaderOffset { MagicNumber = 0, OpCode = 4, Flags = 6, Priority = 7, Transport = 8, SequenceId = 9, Region = 12 }
-    [Nalix.Common.Serialization.SerializePackable(Nalix.Common.Serialization.SerializeLayout.Explicit)]
+    [Nalix.Codec.Serialization.SerializePackable(Nalix.Codec.Serialization.SerializeLayout.Explicit)]
     public interface IPacket { }
     public interface IPacketRegistry { }
     public interface IPacketDeserializer<TPacket> where TPacket : IPacket { }
@@ -34,14 +40,16 @@ namespace Nalix.Common.Networking.Packets
     {
         public PacketControllerAttribute(string? name = null) { }
     }
+    public enum PacketFlags : ushort { None = 0 }
+    public enum PacketPriority : byte { Normal = 0 }
 }
 
-namespace Nalix.Common.Networking
+namespace Nalix.Abstractions.Networking
 {
     public interface IConnection { }
 }
 
-namespace Nalix.Common.Middleware
+namespace Nalix.Abstractions.Middleware
 {
     public enum MiddlewareStage : byte { Inbound, Outbound, Both }
     public sealed class MiddlewareOrderAttribute : Attribute { public MiddlewareOrderAttribute(int order) { } }
@@ -52,33 +60,37 @@ namespace Nalix.Common.Middleware
     }
 }
 
-namespace Nalix.Common.Abstractions
+namespace Nalix.Abstractions
 {
     public interface IBufferLease { }
-    public sealed class ConfiguredIgnoreAttribute : Attribute
+    public sealed class ConfigurationIgnoreAttribute : Attribute
     {
-        public ConfiguredIgnoreAttribute(string? reason = null) { }
+        public ConfigurationIgnoreAttribute(string? reason = null) { }
+    }
+}
+
+namespace Nalix.Network.Routing
+{
+    using Nalix.Abstractions.Networking.Packets;
+    public sealed class PacketDispatchOptions<TPacket> where TPacket : IPacket
+    {
+        public PacketDispatchOptions<TPacket> WithHandler<TController>() where TController : class => this;
+        public PacketDispatchOptions<TPacket> WithMiddleware(Nalix.Abstractions.Middleware.IPacketMiddleware<TPacket> middleware) => this;
+        public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int count) => this;
     }
 }
 
 namespace Nalix.Runtime.Dispatching
 {
     using System.Reflection;
-    using Nalix.Common.Networking.Packets;
-    using Nalix.Common.Networking;
-    using Nalix.Runtime.Middleware;
+    using Nalix.Abstractions.Networking.Packets;
+    using Nalix.Abstractions.Networking;
 
     public sealed class PacketContext<TPacket> : IPacketContext<TPacket> where TPacket : IPacket
     {
         public TPacket Packet => default!;
         public IConnection Connection => null!;
         public CancellationToken CancellationToken => default;
-    }
-    public sealed class PacketDispatchOptions<TPacket> where TPacket : IPacket
-    {
-        public PacketDispatchOptions<TPacket> WithHandler<TController>() where TController : class => this;
-        public PacketDispatchOptions<TPacket> WithMiddleware(IPacketMiddleware<TPacket> middleware) => this;
-        public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int count) => this;
     }
 
     public sealed class PacketMetadataBuilder
@@ -88,18 +100,20 @@ namespace Nalix.Runtime.Dispatching
         public TAttribute? Get<TAttribute>() where TAttribute : Attribute => null;
     }
 
+    public interface IPacketDispatch { }
+
     public interface IPacketMetadataProvider
     {
         void Populate(MethodInfo method, PacketMetadataBuilder builder);
     }
 }
 
-namespace Nalix.Runtime.Middleware
+namespace Nalix.Abstractions.Middleware
 {
-    using Nalix.Common.Abstractions;
-    using Nalix.Common.Networking;
-    using Nalix.Common.Networking.Packets;
-    using Nalix.Runtime.Dispatching;
+    using Nalix.Abstractions;
+    using Nalix.Abstractions.Networking;
+    using Nalix.Abstractions.Networking.Packets;
+    using Nalix.Abstractions.Networking.Packets;
 
     public interface IPacketMiddleware<TPacket> where TPacket : IPacket
     {
@@ -108,7 +122,7 @@ namespace Nalix.Runtime.Middleware
 
 }
 
-namespace Nalix.Common.Networking.Packets
+namespace Nalix.Abstractions.Networking.Packets
 {
     public interface IPacketContext<TPacket> where TPacket : IPacket
     {
@@ -117,9 +131,9 @@ namespace Nalix.Common.Networking.Packets
         CancellationToken CancellationToken { get; }
     }
 }
-namespace Nalix.Framework.DataFrames
+namespace Nalix.Codec.DataFrames
 {
-    using Nalix.Common.Networking.Packets;
+    using Nalix.Abstractions.Networking.Packets;
 
     public abstract class PacketBase<TSelf> : IPacket, IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>
     {
@@ -137,8 +151,8 @@ namespace Nalix.SDK.Transport
 {
     using System.Threading;
     using System.Threading.Tasks;
-    using Nalix.Common.Abstractions;
-    using Nalix.Common.Networking.Packets;
+    using Nalix.Abstractions;
+    using Nalix.Abstractions.Networking.Packets;
 
     public interface ITransportOptions { }
 
@@ -198,7 +212,7 @@ namespace Nalix.SDK.Transport.Extensions
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using Nalix.Common.Networking.Packets;
+    using Nalix.Abstractions.Networking.Packets;
     using Nalix.SDK.Options;
     using Nalix.SDK.Transport;
 
@@ -214,14 +228,14 @@ namespace Nalix.SDK.Transport.Extensions
     }
 }
 
-namespace Nalix.Framework.Configuration.Binding
+namespace Nalix.Environment.Configuration.Binding
 {
     public abstract class ConfigurationLoader
     {
     }
 }
 
-namespace Nalix.Network.Hosting
+namespace Nalix.Hosting
 {
     public sealed class NetworkApplicationBuilder
     {
@@ -236,3 +250,18 @@ namespace Nalix.Network.Hosting
 }
 """;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

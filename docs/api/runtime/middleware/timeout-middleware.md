@@ -1,4 +1,4 @@
-# Timeout Middleware
+﻿# Timeout Middleware
 
 `TimeoutMiddleware` enforces per-handler execution time limits for inbound packet
 processing. It wraps downstream middleware and the final handler in a timed
@@ -8,7 +8,7 @@ rather than the caller's cancellation token, causes execution to stop.
 ## Source mapping
 
 - `src/Nalix.Runtime/Middleware/Standard/TimeoutMiddleware.cs`
-- `src/Nalix.Common/Networking/Packets/PacketTimeoutAttribute.cs`
+- `src/Nalix.Abstractions/Networking/Packets/PacketTimeoutAttribute.cs`
 
 ## Runtime role
 
@@ -108,4 +108,4 @@ handler continue to the pipeline error path.
 - [Pipeline](./pipeline.md)
 - [Permission Middleware](./permission-middleware.md)
 - [Policy Rate Limiter](./policy-rate-limiter.md)
-- [Packet Attributes](../routing/packet-attributes.md)
+- [Packet Attributes](../../abstractions/packet-attributes.md)

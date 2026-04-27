@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Environment;
+using Nalix.Environment.IO;
 using Nalix.Logging.Exceptions;
 
 #if DEBUG
@@ -151,7 +151,7 @@ internal sealed class FileWriter : IDisposable
 
                 _writer.Flush();
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 _provider.Options.HandleFileError?.Invoke(
                     new FileError(ex, _currentPath ?? "<unknown>"));
@@ -159,7 +159,7 @@ internal sealed class FileWriter : IDisposable
                 {
                     this.CLOSE_LOG_FILE_LOCKED();
                 }
-                catch (Exception closeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
+                catch (Exception closeEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
                 {
                     _provider.Options.HandleFileError?.Invoke(
                         new FileError(closeEx, _currentPath ?? "<unknown>"));
@@ -175,7 +175,7 @@ internal sealed class FileWriter : IDisposable
         lock (_fileLock)
         {
             try { _writer?.Flush(); }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 _provider.Options.HandleFileError?.Invoke(
                     new FileError(ex, _currentPath ?? "<unknown>"));
@@ -208,7 +208,7 @@ internal sealed class FileWriter : IDisposable
         {
             _writer?.Flush();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));
@@ -218,7 +218,7 @@ internal sealed class FileWriter : IDisposable
         {
             _writer?.Dispose();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));
@@ -228,7 +228,7 @@ internal sealed class FileWriter : IDisposable
         {
             _stream?.Dispose();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));
@@ -252,7 +252,7 @@ internal sealed class FileWriter : IDisposable
         {
             _ = Directory.CreateDirectory(Directories.LogsDirectory);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(new FileError(ex, Directories.LogsDirectory));
             this.CLOSE_LOG_FILE_LOCKED();
@@ -306,7 +306,7 @@ internal sealed class FileWriter : IDisposable
 
                 return; // Thành công
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 _provider.Options.HandleFileError?.Invoke(new FileError(ex, filename));
                 this.CLOSE_LOG_FILE_LOCKED();
@@ -334,9 +334,9 @@ internal sealed class FileWriter : IDisposable
             StringBuilder sb = new(256);
             _ = sb.AppendLine("-----------------------------------------------------");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Log File Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"USER: {Environment.UserName}");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Machine: {Environment.MachineName}");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"OS: {Environment.OSVersion}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"USER: {System.Environment.UserName}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Machine: {System.Environment.MachineName}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"OS: {System.Environment.OSVersion}");
             _ = sb.AppendLine("-----------------------------------------------------");
 
             string header = sb.ToString();
@@ -345,7 +345,7 @@ internal sealed class FileWriter : IDisposable
 
             _writtenBytesForCurrentFile += s_utf8NoBom.GetByteCount(header);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));

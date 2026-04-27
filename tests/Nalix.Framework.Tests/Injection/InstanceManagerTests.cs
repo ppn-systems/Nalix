@@ -248,3 +248,16 @@ public sealed class InstanceManagerTests : IDisposable
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

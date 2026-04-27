@@ -24,10 +24,10 @@ Nalix uses a modular package architecture. Each package has a focused responsibi
 
 ```mermaid
 graph TD
-    Hosting["Nalix.Network.Hosting"] --> Network["Nalix.Network"]
+    Hosting["Nalix.Hosting"] --> Network["Nalix.Network"]
     Hosting --> Runtime["Nalix.Runtime"]
     Runtime --> Framework["Nalix.Framework"]
-    Runtime --> Common["Nalix.Common"]
+    Runtime --> Common["Nalix.Abstractions"]
     Network --> Framework
     Network --> Common
     Framework --> Common
@@ -39,12 +39,12 @@ graph TD
 
 | Layer | Package | Responsibility |
 | :--- | :--- | :--- |
-| Hosting | `Nalix.Network.Hosting` | Fluent builder, application lifecycle, automatic discovery |
+| Hosting | `Nalix.Hosting` | Fluent builder, application lifecycle, automatic discovery |
 | Transport | `Nalix.Network` | TCP/UDP listeners, connection lifecycle, protocol bridge, session store |
 | Dispatch | `Nalix.Runtime` | Packet dispatch, middleware, handler compilation, session resume |
 | Pipeline | `Nalix.Runtime` | Rate limiting, concurrency gating, time synchronization |
 | Infrastructure | `Nalix.Framework` | Configuration, DI, serialization, packet registry, pooling, compression, identifiers |
-| Contracts | `Nalix.Common` | Shared abstractions, packet attributes, middleware primitives |
+| Contracts | `Nalix.Abstractions` | Shared abstractions, packet attributes, middleware primitives |
 | Client | `Nalix.SDK` | Transport sessions, request/response correlation, handshake and resume flows |
 | Logging | `Nalix.Logging` | Structured logging with batched console and file targets |
 
@@ -128,9 +128,9 @@ The network runtime is designed to run with pressure controls enabled by default
 
 | Your code | Which package / layer |
 | :--- | :--- |
-| Packet definitions (POCOs) | Shared contracts assembly → `Nalix.Common` + `Nalix.Framework` |
+| Packet definitions (POCOs) | Shared contracts assembly → `Nalix.Abstractions` + `Nalix.Framework` |
 | Handler classes | Server project → registered with `PacketDispatchChannel` |
-| Middleware | Server project → implements `IPacketMiddleware<TPacket>` from `Nalix.Common` |
+| Middleware | Server project → implements `IPacketMiddleware<TPacket>` from `Nalix.Abstractions` |
 | Protocol customization | Server project → extends `Protocol` from `Nalix.Network` |
 | Client session logic | Client project → uses `TcpSession` from `Nalix.SDK` |
 | Configuration | INI file → loaded by `ConfigurationManager` from `Nalix.Framework` |

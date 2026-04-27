@@ -17,11 +17,11 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -43,12 +43,12 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -64,12 +64,12 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -98,12 +98,12 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -127,12 +127,12 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -150,12 +150,12 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -185,12 +185,12 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -213,12 +213,12 @@ namespace Demo;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Dispatching;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -249,3 +249,16 @@ public sealed class Example
         await Verifier<MiddlewareCodeFixProvider>.VerifyAnalyzerAsync(source, "NALIX033");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

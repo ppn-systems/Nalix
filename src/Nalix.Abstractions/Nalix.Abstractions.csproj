@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<!-- Build & Lang -->
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<OutputType>Library</OutputType>
+		<IsTrimmable>false</IsTrimmable>
+		<Deterministic>true</Deterministic>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<TargetFramework>netstandard2.1;net10.0</TargetFramework>
+
+		<TrimMode>partial</TrimMode>
+		<PublishAot>true</PublishAot>
+
+		<Description><![CDATA[
+Nalix.Abstractions defines the fundamental abstractions, enums, and shared contracts for the Nalix ecosystem. It provides base interfaces, environment helpers, serialization primitives, and protocol definitions used across all Nalix modules.
+
+This library focuses on performance, consistency, and cross-platform reliability — serving as the foundation for higher-level components such as Nalix.Framework, Nalix.Network, Nalix.SDK, Nalix.Shared, and Nalix.Logging.
+		]]></Description>
+
+		<PackageReleaseNotes><![CDATA[
+- Foundational Abstractions: Core interfaces for connection lifecycles and shared framework contracts used across all Nalix modules.
+- Networking Standards: Unified IPacket, IBufferLease, and protocol enums (CipherSuite, Snowflake) for consistent communication.
+- Memory & Concurrency: High-performance gating and memory-leasing primitives designed for low-allocation networking scenarios.
+- System Diagnostics: Flexible exception models and logging abstractions providing the base for framework-wide observability.
+		]]></PackageReleaseNotes>
+    </PropertyGroup>
+
+    <Import Project="..\Nalix.Build.props" />
+    <Import Project="..\Package.Build.props" />
+	
+    <ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+    </ItemGroup>
+	
+</Project>

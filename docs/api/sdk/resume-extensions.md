@@ -5,7 +5,7 @@
 ## Source Mapping
 
 - `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
-- `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
 - `src/Nalix.SDK/Options/TransportOptions.cs`
 
 ## Implementation Flow
@@ -78,7 +78,7 @@ if (resumed)
 For granular control over the connection lifecycle, you can use `ResumeSessionAsync` directly after a manual `ConnectAsync`.
 
 ```csharp
-using Nalix.Common.Networking.Protocols;
+using Nalix.Abstractions.Networking.Protocols;
 
 await session.ConnectAsync();
 
@@ -108,5 +108,5 @@ if (!session.Options.SessionToken.IsEmpty && session.Options.Secret.Length > 0)
 
 - [Session Resumption Protocol](../security/session-resume.md)
 - [Handshake Extensions](./handshake-extensions.md)
-- [Transport Options](./options/transport-options.md)
+- [Transport Options](../options/sdk/transport-options.md)
 - [TCP Session](./tcp-session.md)

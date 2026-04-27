@@ -17,7 +17,7 @@ For a standard network packet, you must apply both of the following attributes:
 2. **`[SerializePackable]`**: Configures the wire layout. Without this, the serializer will fail with an `InvalidOperationException`.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Serialization;
 
 [Packet] // Discovery & Registration
@@ -200,9 +200,9 @@ Network data can be malformed, truncated, or malicious. Nalix protects the hot p
 In a high-performance scenario, let the dispatcher handle these exceptions. It will log the failure, increment the connection's error count via `IConnection.IncrementErrorCount()`, and safely return the buffer to the pool.
 
 ```csharp
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 
 try 
 {
@@ -224,10 +224,10 @@ Packets must be registered with the `PacketRegistry` before they can be deserial
 
 ### Automatic registration (hosted server)
 
-When using `Nalix.Network.Hosting`, use the builder to scan assemblies:
+When using `Nalix.Hosting`, use the builder to scan assemblies:
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
     .AddPacket<PingRequest>()        // Scans the assembly containing PingRequest
@@ -240,7 +240,7 @@ var app = NetworkApplication.CreateBuilder()
 When building the dispatch manually, create the registry explicitly:
 
 ```csharp
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 PacketRegistryFactory factory = new();
 factory.RegisterPacket<PingRequest>()
@@ -269,7 +269,7 @@ In this scenario, we have a `UserProfile` class that we want to shared between s
 ```csharp
 using System;
 using Nalix.Framework.Serialization;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 // 1. Define your data contract (shared)
 public sealed class UserProfile
@@ -309,7 +309,7 @@ LiteSerializer.Register<UserProfile>(new UserProfileFormatter());
 
 ```csharp
 using Nalix.Framework.Serialization;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 public class GeoLocationFormatter : IFormatter<GeoLocation>
 {

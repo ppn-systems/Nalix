@@ -1,7 +1,9 @@
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
 
 using System;
 using System.Collections.Generic;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Xunit;
@@ -175,3 +177,18 @@ public sealed partial class MemoryTests
         Assert.True(data.ContainsKey("Pools"));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

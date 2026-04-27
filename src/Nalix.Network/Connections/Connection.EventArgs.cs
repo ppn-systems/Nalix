@@ -4,9 +4,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 

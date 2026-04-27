@@ -3,15 +3,10 @@
 
 using System;
 using System.Threading;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Framework.Configuration;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
-
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Runtime.Internal.RateLimiting;
 
@@ -54,7 +49,7 @@ internal static class DirectiveGuard
         try
         {
             state.SpinLock.Enter(ref lockTaken);
-            long nowMs = Environment.TickCount64;
+            long nowMs = System.Environment.TickCount64;
 
             if (attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed)
                 && boxed is long lastSentAtMs
@@ -101,3 +96,4 @@ internal static class DirectiveGuard
         return created;
     }
 }
+

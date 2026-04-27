@@ -84,7 +84,7 @@ The `ConnectionEventArgs` carries a `BufferLease`.
 
 - [Connection](./connection.md)
 - [Socket Connection](../socket-connection.md)
-- [Network Callback Options](../options/network-callback-options.md)
+- [Network Callback Options](../../options/network/network-callback-options.md)
 - [Object Pooling](../../framework/memory/object-pooling.md)
 - [Object Map](../../framework/memory/object-map.md)
 - [Typed Object Pools](../../framework/memory/typed-object-pools.md)

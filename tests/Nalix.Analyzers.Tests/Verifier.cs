@@ -1,3 +1,4 @@
+using Nalix.Abstractions.Serialization;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
@@ -155,37 +156,42 @@ internal static class Verifier<TCodeFix>
         Compilation compilation = await document.Project.GetCompilationAsync().ConfigureAwait(false)
             ?? throw new InvalidOperationException("Compilation could not be created.");
         Diagnostic[] compilationErrors = [.. compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error)];
-        Assert.True(compilationErrors.Length == 0, string.Join(Environment.NewLine, compilationErrors.Select(static d => d.ToString())));
+        Assert.True(compilationErrors.Length == 0, string.Join(System.Environment.NewLine, compilationErrors.Select(static d => d.ToString())));
         string[] requiredMetadataNames =
         [
-            "Nalix.Common.Networking.Packets.PacketOpcodeAttribute",
-            "Nalix.Common.Networking.Packets.PacketControllerAttribute",
-            "Nalix.Common.Networking.Packets.IPacket",
-            "Nalix.Framework.DataFrames.PacketBase`1",
-            "Nalix.Common.Serialization.SerializeHeaderAttribute",
-            "Nalix.Common.Serialization.SerializePackableAttribute",
-            "Nalix.Common.Serialization.SerializeIgnoreAttribute",
-            "Nalix.Common.Serialization.SerializeDynamicSizeAttribute",
-            "Nalix.Common.Serialization.SerializeLayout",
-            "Nalix.Common.Networking.Packets.PacketHeaderOffset",
+            "Nalix.Abstractions.Networking.Packets.PacketOpcodeAttribute",
+            "Nalix.Abstractions.Networking.Packets.PacketControllerAttribute",
+            "Nalix.Abstractions.Networking.Packets.IPacket",
+            "Nalix.Codec.DataFrames.PacketBase`1",
+            "Nalix.Abstractions.Serialization.SerializeHeaderAttribute",
+            "Nalix.Abstractions.Serialization.SerializePackableAttribute",
+            "Nalix.Abstractions.Serialization.SerializeIgnoreAttribute",
+            "Nalix.Abstractions.Serialization.SerializeDynamicSizeAttribute",
+            "Nalix.Abstractions.Serialization.SerializeLayout",
+            "Nalix.Abstractions.Networking.Packets.PacketHeaderOffset",
             "Nalix.Runtime.Dispatching.PacketContext`1",
-            "Nalix.Common.Networking.IConnection",
-            "Nalix.Runtime.Dispatching.PacketDispatchOptions`1",
-            "Nalix.Framework.DataFrames.PacketRegistryFactory",
-            "Nalix.Common.Networking.Packets.IPacketDeserializer`1",
-            "Nalix.Runtime.Middleware.IPacketMiddleware`1",
-            "Nalix.Common.Serialization.SerializeOrderAttribute",
-            "Nalix.Common.Middleware.MiddlewareOrderAttribute",
-            "Nalix.Common.Middleware.MiddlewareStageAttribute",
-            "Nalix.Common.Middleware.MiddlewareStage",
-            "Nalix.Framework.Configuration.Binding.ConfigurationLoader",
-            "Nalix.Common.Abstractions.ConfiguredIgnoreAttribute",
+            "Nalix.Abstractions.Networking.IConnection",
+            "Nalix.Network.Routing.PacketDispatchOptions`1",
+            "Nalix.Codec.DataFrames.PacketRegistryFactory",
+            "Nalix.Abstractions.Networking.Packets.IPacketDeserializer`1",
+            "Nalix.Abstractions.Middleware.IPacketMiddleware`1",
+            "Nalix.Abstractions.Serialization.SerializeOrderAttribute",
+            "Nalix.Abstractions.Middleware.MiddlewareOrderAttribute",
+            "Nalix.Abstractions.Middleware.MiddlewareStageAttribute",
+            "Nalix.Abstractions.Middleware.MiddlewareStage",
+            "Nalix.Environment.Configuration.Binding.ConfigurationLoader",
+            "Nalix.Abstractions.ConfigurationIgnoreAttribute",
             "Nalix.Runtime.Dispatching.IPacketMetadataProvider",
             "Nalix.Runtime.Dispatching.PacketMetadataBuilder",
             "System.Reflection.MethodInfo",
             "Nalix.SDK.Options.RequestOptions",
             "Nalix.SDK.Transport.Extensions.RequestExtensions",
-            "Nalix.SDK.Transport.TcpSession"
+            "Nalix.SDK.Transport.TcpSession",
+            "Nalix.Hosting.NetworkApplicationBuilder",
+            "Nalix.Abstractions.Serialization.IFixedSizeSerializable",
+            "Nalix.Abstractions.Networking.Packets.IPacketContext`1",
+            "Nalix.Abstractions.IBufferLease",
+            "Nalix.Runtime.Dispatching.IPacketDispatch"
         ];
         string[] missingMetadata = [.. requiredMetadataNames.Where(name => compilation.GetTypeByMetadataName(name) is null)];
         Assert.True(missingMetadata.Length == 0, "Missing metadata: " + string.Join(", ", missingMetadata));
@@ -226,4 +232,18 @@ internal static class Verifier<TCodeFix>
 
     private static string Normalize(string text) => text.Replace("\r\n", "\n").Trim();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

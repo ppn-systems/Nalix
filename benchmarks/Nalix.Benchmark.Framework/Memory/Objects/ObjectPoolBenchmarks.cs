@@ -1,9 +1,12 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions.Memory;
+using Nalix.Codec.Memory;
+
+using Nalix.Abstractions;
+
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Memory.Pools;
-
 namespace Nalix.Benchmark.Framework.Memory.Objects;
 
 /// <summary>

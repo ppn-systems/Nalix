@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Framework.Random;
+using Nalix.Environment.Random;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -100,3 +100,16 @@ public sealed class CsprngTests
         Csprng.Fill(empty);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

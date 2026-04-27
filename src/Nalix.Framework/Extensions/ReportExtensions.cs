@@ -4,8 +4,8 @@
 using System;
 using System.Globalization;
 using System.IO;
-using Nalix.Common.Abstractions;
-using Nalix.Framework.Environment;
+using Nalix.Abstractions;
+using Nalix.Environment.IO;
 
 namespace Nalix.Framework.Extensions;
 
@@ -127,7 +127,7 @@ public static class ReportExtensions
 
             _ = Directory.CreateDirectory(s_reportDir);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             s_reportDir = Path.Combine(AppContext.BaseDirectory, "reports");
         }
@@ -164,7 +164,7 @@ public static class ReportExtensions
         }
 
         // Use a broader set of invalid characters for cross-platform consistency.
-        // Windows is more restrictive than Linux, so we adopt a "least common denominator" approach.
+        // Windows is more restrictive than Linux, so we adopt a "least Abstractions denominator" approach.
         char[] invalidChars = ['*', '?', ':', '"', '<', '>', '|', '/', '\\', '\0'];
         char[] result = value.ToCharArray();
         for (int i = 0; i < result.Length; i++)

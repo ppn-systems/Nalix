@@ -4,7 +4,7 @@
 using System;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
@@ -119,7 +119,7 @@ public abstract partial class Protocol
 
             connection.Disconnect();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             // Log exception if a logger is available
             this.OnConnectionError(connection, ex);
