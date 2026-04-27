@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Common.Primitives;
+using Nalix.Abstractions.Primitives;
 using System.Security.Cryptography;
 
 namespace Nalix.Benchmark.Framework.Primitives;
