@@ -16,8 +16,8 @@ public sealed class RoutingCodeFixTests
 namespace Demo;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class ExampleController
@@ -28,7 +28,7 @@ public sealed class ExampleController
     }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -38,8 +38,8 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
 namespace Demo;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController]
 public sealed class ExampleController
@@ -51,7 +51,7 @@ public sealed class ExampleController
     }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -71,18 +71,18 @@ public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPac
     {
         const string source = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 public sealed class ExampleController
 {
     [PacketOpcode(1)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection)
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection)
     {
     }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -98,19 +98,19 @@ public sealed class Example
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Common.Networking.Packets;
-using Nalix.Runtime.Dispatching;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Network.Routing; using Nalix.Runtime.Dispatching;
 
 [PacketController]
 public sealed class ExampleController
 {
     [PacketOpcode(1)]
-    public void Handle(LoginPacket packet, Nalix.Common.Networking.IConnection connection)
+    public void Handle(LoginPacket packet, Nalix.Abstractions.Networking.IConnection connection)
     {
     }
 }
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -138,7 +138,7 @@ public sealed class Example
     {
         const string source = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class RegistryPacket : PacketBase<RegistryPacket>
 {
@@ -155,7 +155,7 @@ public sealed class Example
 
         const string fixedSource = """
 namespace Demo;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 public sealed class RegistryPacket : PacketBase<RegistryPacket>
 {
@@ -182,3 +182,16 @@ public sealed class Example
             expectedEquivalenceKey: "Nalix.PacketRegistry.Deserialize.Add");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

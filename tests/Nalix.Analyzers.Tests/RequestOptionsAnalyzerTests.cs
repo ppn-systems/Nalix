@@ -1,3 +1,4 @@
+using Nalix.Codec.Memory;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
@@ -53,13 +54,13 @@ public sealed class Example
         const string source = """
 namespace Demo;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -71,7 +72,7 @@ public sealed class PlainClient : IClientConnection
     public IPacketRegistry Catalog => null!;
     public event EventHandler OnConnected { add { } remove { } }
     public event EventHandler<Exception> OnDisconnected { add { } remove { } }
-    public event EventHandler<Nalix.Common.Abstractions.IBufferLease> OnMessageReceived { add { } remove { } }
+    public event EventHandler<Nalix.Abstractions.IBufferLease> OnMessageReceived { add { } remove { } }
     public event EventHandler<long> OnBytesSent { add { } remove { } }
     public event EventHandler<long> OnBytesReceived { add { } remove { } }
     public event EventHandler<Exception> OnError { add { } remove { } }
@@ -98,13 +99,13 @@ public sealed class Example
         const string source = """
 namespace Demo;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-public sealed class LoginPacket : Nalix.Framework.DataFrames.PacketBase<LoginPacket>
+public sealed class LoginPacket : Nalix.Codec.DataFrames.PacketBase<LoginPacket>
 {
     public static new LoginPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<LoginPacket>.Deserialize(buffer);
 }
@@ -123,4 +124,18 @@ public sealed class Example
         await Verifier<ConfigurationIgnoreCodeFixProvider>.VerifyAnalyzerAsync(source);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

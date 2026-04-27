@@ -15,8 +15,8 @@ public sealed class RequestOptionsCodeFixTests
         const string source = """
 namespace Demo;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -40,8 +40,8 @@ public sealed class Example
         const string fixedSource = """
 namespace Demo;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -79,8 +79,8 @@ public sealed class Example
         const string source = """
 namespace Demo;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -104,8 +104,8 @@ public sealed class Example
         const string fixedSource = """
 namespace Demo;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -137,3 +137,16 @@ public sealed class Example
             expectedEquivalenceKey: "Nalix.RequestOptions.Retry.SetZero");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

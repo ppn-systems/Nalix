@@ -17,8 +17,8 @@ namespace Nalix.Analyzers.CodeFixes;
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ConfigurationIgnoreCodeFixProvider)), Shared]
 public sealed class ConfigurationIgnoreCodeFixProvider : CodeFixProvider
 {
-    private const string AddConfiguredIgnoreTitle = "Add [ConfiguredIgnore]";
-    private const string AddConfiguredIgnoreEquivalenceKey = "Nalix.Configuration.ConfiguredIgnore.Add";
+    private const string AddConfigurationIgnoreTitle = "Add [ConfigurationIgnore]";
+    private const string AddConfigurationIgnoreEquivalenceKey = "Nalix.Configuration.ConfigurationIgnore.Add";
     private const string MakeSetterPublicTitle = "Make setter public";
     private const string MakeSetterPublicEquivalenceKey = "Nalix.Configuration.Setter.MakePublic";
 
@@ -44,9 +44,9 @@ public sealed class ConfigurationIgnoreCodeFixProvider : CodeFixProvider
 
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: AddConfiguredIgnoreTitle,
-                createChangedDocument: cancellationToken => AddConfiguredIgnoreAsync(context.Document, property, cancellationToken),
-                equivalenceKey: AddConfiguredIgnoreEquivalenceKey),
+                title: AddConfigurationIgnoreTitle,
+                createChangedDocument: cancellationToken => AddConfigurationIgnoreAsync(context.Document, property, cancellationToken),
+                equivalenceKey: AddConfigurationIgnoreEquivalenceKey),
             diagnostic);
 
         if (diagnostic.Id == "NALIX024" && CanMakeSetterPublic(property))
@@ -60,14 +60,14 @@ public sealed class ConfigurationIgnoreCodeFixProvider : CodeFixProvider
         }
     }
 
-    private static async Task<Document> AddConfiguredIgnoreAsync(Document document, PropertyDeclarationSyntax property, CancellationToken cancellationToken)
+    private static async Task<Document> AddConfigurationIgnoreAsync(Document document, PropertyDeclarationSyntax property, CancellationToken cancellationToken)
     {
         DocumentEditor editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
 
         AttributeListSyntax attributeList = SyntaxFactory.AttributeList(
             SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Attribute(
-                    SyntaxFactory.ParseName("Nalix.Abstractions.Abstractions.ConfiguredIgnore"))));
+                    SyntaxFactory.ParseName("Nalix.Abstractions.ConfigurationIgnore"))));
 
         editor.ReplaceNode(property, property.AddAttributeLists(attributeList));
         return editor.GetChangedDocument();
