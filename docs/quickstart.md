@@ -28,12 +28,12 @@ dotnet new sln
 
 # 1. Shared Contracts
 dotnet new classlib -n Contracts
-dotnet add Contracts package Nalix.Common
+dotnet add Contracts package Nalix.Abstractions
 
 # 2. Server Host
 dotnet new console -n Server
 dotnet add Server reference Contracts
-dotnet add Server package Nalix.Network.Hosting
+dotnet add Server package Nalix.Hosting
 
 # 3. Client App
 dotnet new console -n Client
@@ -52,8 +52,8 @@ Create the shared packet contracts in the `Contracts` project. Both server and c
 === "PingRequest.cs"
 
     ```csharp
-    using Nalix.Common.Networking.Packets;
-    using Nalix.Common.Serialization;
+    using Nalix.Abstractions.Networking.Packets;
+    using Nalix.Abstractions.Serialization;
 
     namespace Contracts;
 
@@ -71,8 +71,8 @@ Create the shared packet contracts in the `Contracts` project. Both server and c
 === "PingResponse.cs"
 
     ```csharp
-    using Nalix.Common.Networking.Packets;
-    using Nalix.Common.Serialization;
+    using Nalix.Abstractions.Networking.Packets;
+    using Nalix.Abstractions.Serialization;
 
     namespace Contracts;
 
@@ -120,7 +120,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
 
     ```csharp
     using Contracts;
-    using Nalix.Common.Networking.Packets;
+    using Nalix.Abstractions.Networking.Packets;
 
     [PacketController("PingHandler")]
     public sealed class PingHandler
@@ -139,7 +139,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
 === "Protocol.cs"
 
     ```csharp
-    using Nalix.Common.Networking;
+    using Nalix.Abstractions.Networking;
     using Nalix.Network.Protocols;
     using Nalix.Runtime.Dispatching;
 
@@ -157,7 +157,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
 === "Program.cs"
 
     ```csharp
-    using Nalix.Network.Hosting;
+    using Nalix.Hosting;
     using Nalix.Network.Options;
 
     using var app = NetworkApplication.CreateBuilder()

@@ -247,7 +247,6 @@ nav:
           - Typed Object Pools: api/framework/memory/typed-object-pools.md
       - Logging:
         - Overview: api/logging/index.md
-        - Options: api/logging/options.md
         - Extensions: api/logging/extensions.md
         - Targets: api/logging/targets.md
       - Cryptography:
@@ -268,10 +267,8 @@ nav:
           - Packet Sender: api/runtime/routing/packet-sender.md
           - Dispatch Contracts: api/runtime/routing/dispatch-contracts.md
           - Dispatch: api/runtime/routing/packet-dispatch.md
-          - Packet Dispatch Options: api/runtime/routing/packet-dispatch-options.md
           - Dispatch Channel and Router: api/runtime/routing/dispatch-channel-and-router.md
           - Handler Return Types: api/runtime/routing/handler-results.md
-          - Dispatch Options: api/runtime/options/dispatch-options.md
         - Middleware:
           - Overview: api/runtime/middleware/index.md
           - Pipeline: api/runtime/middleware/pipeline.md
@@ -296,23 +293,8 @@ nav:
         - Time:
           - Time Synchronizer: api/network/time/time-synchronizer.md
           - Timing Wheel: api/network/time/timing-wheel.md
-        - Options:
-          - Overview: api/network/options/options.md
-          - Network Socket: api/network/options/network-socket-options.md
-          - Connection Limit: api/network/options/connection-limit-options.md
-          - Connection Hub Options: api/network/options/connection-hub-options.md
-          - Datagram Guard Options: api/network/options/datagram-guard-options.md
-          - Timing Wheel Options: api/network/options/timing-wheel-options.md
-          - Pooling Options: api/network/options/pooling-options.md
-          - Network Callback Options: api/network/options/network-callback-options.md
-          - Session Store Options: api/network/options/session-store-options.md
-          - Compression Options: api/network/options/compression-options.md
-          - Token Bucket Options: api/network/options/token-bucket-options.md
-          - Concurrency Options: api/network/options/concurrency-options.md
-          - Directive Guard Options: api/network/options/directive-guard-options.md
       - Hosting:
         - Application: api/hosting/network-application.md
-        - Hosting Options: api/hosting/hosting-options.md
       - SDK:
         - Overview: api/sdk/index.md
         - High-level APIs:
@@ -330,9 +312,29 @@ nav:
           - Frame Reader and Sender: api/sdk/frame-reader-and-sender.md
           - Transport Session: api/sdk/transport-session.md
           - Protocol String Extensions: api/sdk/protocol-string-extensions.md
-        - Options:
-          - Transport Options: api/sdk/options/transport-options.md
-          - Request Options: api/sdk/options/request-options.md
+      - Options:
+        - Logging: api/options/logging/logging-options.md
+        - Runtime:
+          - Packet Dispatch Options: api/options/runtime/packet-dispatch-options.md
+          - Dispatch Options: api/options/runtime/dispatch-options.md
+        - Network:
+          - Overview: api/options/network/options.md
+          - Network Socket: api/options/network/network-socket-options.md
+          - Connection Limit: api/options/network/connection-limit-options.md
+          - Connection Hub: api/options/network/connection-hub-options.md
+          - Datagram Guard: api/options/network/datagram-guard-options.md
+          - Timing Wheel: api/options/network/timing-wheel-options.md
+          - Pooling: api/options/network/pooling-options.md
+          - Network Callback: api/options/network/network-callback-options.md
+          - Session Store: api/options/network/session-store-options.md
+          - Compression: api/options/network/compression-options.md
+          - Token Bucket: api/options/network/token-bucket-options.md
+          - Concurrency: api/options/network/concurrency-options.md
+          - Directive Guard: api/options/network/directive-guard-options.md
+        - Hosting: api/options/hosting/hosting-options.md
+        - SDK:
+          - Transport Options: api/options/sdk/transport-options.md
+          - Request Options: api/options/sdk/request-options.md
   - Benchmarks:
       - Overview: benchmarks/index.md
       - Core Infrastructure: benchmarks/infrastructure.md
