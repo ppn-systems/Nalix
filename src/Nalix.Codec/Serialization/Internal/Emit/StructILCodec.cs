@@ -6,6 +6,11 @@ using System.Reflection.Emit;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal.Reflection;
 
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Benchmarks")]
+#endif
+
 namespace Nalix.Codec.Serialization.Internal.Emit;
 
 /// <summary>

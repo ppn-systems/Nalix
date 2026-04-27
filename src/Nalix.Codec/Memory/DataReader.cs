@@ -9,7 +9,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Codec.Internal;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Codec.Memory;
 

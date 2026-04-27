@@ -4,10 +4,16 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization;
 using Nalix.Codec.Serialization.Formatters.Cache;
 using Nalix.Codec.Serialization.Internal.Reflection;
 using Nalix.Codec.Serialization.Internal.Types;
+
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Benchmarks")]
+#endif
+
+namespace Nalix.Codec.Serialization.Internal.Emit;
 
 internal static class FieldILCodec
 {

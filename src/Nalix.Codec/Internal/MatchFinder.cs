@@ -2,18 +2,15 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
-
 using System.Runtime.CompilerServices;
-using Nalix.Codec.LZ4.Encoders;
-
-
+using Nalix.Codec.LZ4;
 
 
 #if DEBUG
 using System.Diagnostics;
 
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Benchmarks")]
 #endif
 
 namespace Nalix.Codec.Internal;

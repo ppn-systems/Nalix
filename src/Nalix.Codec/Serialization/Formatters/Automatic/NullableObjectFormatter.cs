@@ -4,7 +4,6 @@
 using System;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.Serialization.Formatters.Automatic;
 
@@ -82,7 +81,7 @@ internal sealed class NullableObjectFormatter<
         {
             if (value is not null)
             {
-                throw new Common.Exceptions.SerializationFailureException(
+                throw new Abstractions.Exceptions.SerializationFailureException(
                     $"Cannot Fill a non-null instance of '{typeof(T).Name}' with null data from the stream.");
             }
             return;

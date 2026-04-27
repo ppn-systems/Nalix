@@ -3,7 +3,7 @@
 
 using System;
 using System.Runtime.Intrinsics;
-using Nalix.Common.Primitives;
+using Nalix.Abstractions.Primitives;
 
 namespace Nalix.Codec.Security.Hashing;
 

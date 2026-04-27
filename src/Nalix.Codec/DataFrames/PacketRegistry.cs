@@ -5,8 +5,9 @@ using System;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.Extensions;
-using Nalix.Common.Networking.Packets;
 
 namespace Nalix.Codec.DataFrames;
 
@@ -32,6 +33,12 @@ public sealed class PacketRegistry : IPacketRegistry
     #region Fields
 
     private readonly FrozenDictionary<uint, PacketDeserializer> _deserializers;
+
+    /// <summary>
+    /// A single instance of the Pool Manager shared across all packet types.
+    /// If this is <see langword="null"/>, the system automatically falls back to standard allocation.
+    /// </summary>
+    internal static IObjectPoolManager? Manager;
 
     #endregion Fields
 
@@ -88,60 +95,14 @@ public sealed class PacketRegistry : IPacketRegistry
     #region Public API
 
     /// <summary>
-    /// Builds a packet registry by scanning currently loaded assemblies and matching
-    /// packet types by namespace.
+    /// Configures the shared Pool Manager for the entire packet ecosystem.
     /// </summary>
-    /// <param name="packetNamespace">Namespace to match.</param>
-    /// <param name="recursive">
-    /// When <see langword="true"/>, includes child namespaces recursively.
-    /// </param>
-    public static PacketRegistry LoadFromNamespace(string packetNamespace, bool recursive = true)
-    {
-        PacketRegistryFactory factory = new();
-        _ = factory.IncludeCurrentDomain();
-
-        _ = recursive
-            ? factory.IncludeNamespaceRecursive(packetNamespace)
-            : factory.IncludeNamespace(packetNamespace);
-
-        return factory.CreateCatalog();
-    }
-
-    /// <summary>
-    /// Builds a packet registry from one packet assembly (.dll) path.
-    /// </summary>
-    /// <param name="assemblyPath">Absolute or relative path to a packet assembly.</param>
-    /// <param name="requirePacketAttribute">
-    /// When <see langword="true"/>, only packet types decorated with
-    /// <see cref="PacketAttribute"/> are registered.
-    /// </param>
-    public static PacketRegistry LoadFromAssemblyPath(string assemblyPath, bool requirePacketAttribute = false)
-    {
-        PacketRegistryFactory factory = new();
-        _ = factory.RegisterPacketAssembly(assemblyPath, requirePacketAttribute);
-        return factory.CreateCatalog();
-    }
-
-    /// <summary>
-    /// Builds a packet registry by loading one assembly path and filtering packet
-    /// types by namespace within that assembly.
-    /// </summary>
-    /// <param name="assemblyPath">Absolute or relative path to a packet assembly.</param>
-    /// <param name="packetNamespace">Namespace to match within the loaded assembly.</param>
-    /// <param name="recursive">
-    /// When <see langword="true"/>, includes child namespaces recursively.
-    /// </param>
-    public static PacketRegistry LoadFromNamespace(string assemblyPath, string packetNamespace, bool recursive = true)
-    {
-        PacketRegistryFactory factory = new();
-        _ = factory.IncludeAssembly(assemblyPath);
-
-        _ = recursive
-            ? factory.IncludeNamespaceRecursive(packetNamespace)
-            : factory.IncludeNamespace(packetNamespace);
-
-        return factory.CreateCatalog();
-    }
+    /// <param name="manager">An implementation of <see cref="IObjectPoolManager"/> from the infrastructure layer.</param>
+    /// <remarks>
+    /// Because <see cref="PacketRegistry"/> is shared, calling Configure on any 
+    /// <c>PacketProvider&lt;T&gt;</c> will take effect for all other packet types.
+    /// </remarks>
+    public static void Configure(IObjectPoolManager manager) => Manager = manager;
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

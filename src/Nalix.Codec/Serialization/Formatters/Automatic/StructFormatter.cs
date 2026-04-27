@@ -4,7 +4,7 @@
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal.Emit;
 using Nalix.Codec.Serialization.Internal.Types;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Codec.Serialization.Formatters.Automatic;
 

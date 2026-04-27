@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Codec.Internal;
 
 /// <summary>
-/// Provides cached, zero-allocation exception instances for common framework errors.
+/// Provides cached, zero-allocation exception instances for Abstractions framework errors.
 /// These instances avoid the overhead of stack trace generation by overriding the StackTrace property.
 /// </summary>
 internal static class CodecErrors

@@ -5,7 +5,7 @@ using Nalix.Codec.Extensions;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 

@@ -6,7 +6,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Codec.Internal;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Codec.Security.Internal;
 

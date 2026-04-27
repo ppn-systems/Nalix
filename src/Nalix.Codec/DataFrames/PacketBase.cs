@@ -11,14 +11,14 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Serialization;
 
 namespace Nalix.Codec.DataFrames;
 
@@ -182,7 +182,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     /// <returns>A new or rented <typeparamref name="TSelf"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "Factory pattern")]
-    public static TSelf Create() => PacketProvider<TSelf>.Create();
+    public static TSelf Create()
+    {
+        IObjectPoolManager? mgr = PacketRegistry.Manager;
+        return mgr == null ? new TSelf() : mgr.Get<TSelf>();
+    }
 
     /// <summary>
     /// Deserializes a <typeparamref name="TSelf"/> packet from <paramref name="buffer"/>
@@ -309,7 +313,8 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
             this.ResetForPool();
 
             // Use the concrete type TSelf to call the fast generic Return path.
-            PacketProvider<TSelf>.Return((TSelf)this);
+            IObjectPoolManager? mgr = PacketRegistry.Manager;
+            mgr?.Return((TSelf)this);
         }
     }
 

@@ -14,8 +14,8 @@ using System.Text;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
 
 namespace Nalix.Codec.DataFrames;
 

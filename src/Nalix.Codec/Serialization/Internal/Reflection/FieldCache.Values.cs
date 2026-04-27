@@ -8,11 +8,11 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Codec.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Codec.Benchmarks")]
 #endif
 
 namespace Nalix.Codec.Serialization.Internal.Reflection;

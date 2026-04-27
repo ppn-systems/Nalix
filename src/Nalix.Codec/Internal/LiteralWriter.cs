@@ -6,8 +6,8 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Benchmarks")]
 #endif
 
 namespace Nalix.Codec.Internal;

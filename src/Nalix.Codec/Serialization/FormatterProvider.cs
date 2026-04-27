@@ -11,12 +11,12 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Serialization.Formatters.Automatic;
 using Nalix.Codec.Serialization.Formatters.Cache;
 using Nalix.Codec.Serialization.Formatters.Collections;
 using Nalix.Codec.Serialization.Formatters.Primitives;
 using Nalix.Codec.Serialization.Internal.Types;
-using Nalix.Common.Exceptions;
 
 namespace Nalix.Codec.Serialization;
 
@@ -70,11 +70,11 @@ public static class FormatterProvider
     static FormatterProvider()
     {
         // String formatters are registered first because they are among the most
-        // common and often participate in higher-level composite serializers.
+        // Abstractions and often participate in higher-level composite serializers.
         Register(new StringFormatter());
         Register(new StringArrayFormatter());
 
-        // Primitive unmanaged formatters cover the common scalar types that can
+        // Primitive unmanaged formatters cover the Abstractions scalar types that can
         // be serialized directly without per-element reference tracking.
         Register(new UnmanagedFormatter<char>());
         Register(new UnmanagedFormatter<byte>());

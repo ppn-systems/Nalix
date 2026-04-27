@@ -7,12 +7,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Formatters.Automatic;
 using Nalix.Codec.Serialization.Internal.Types;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Serialization;
 
 namespace Nalix.Codec.Serialization;
 

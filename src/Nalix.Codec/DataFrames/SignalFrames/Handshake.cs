@@ -4,12 +4,12 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Security.Hashing;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Primitives;
-using Nalix.Common.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -93,7 +93,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// Used primarily for UDP connection mapping.
     /// </summary>
     [SerializeOrder(2)]
-    public ISnowflake SessionToken { get; set; } = default!;
+    public ulong SessionToken { get; set; }
 
     /// <summary>
     /// Gets or sets the ephemeral public key for the current handshake side.
@@ -167,7 +167,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.Nonce = nonce;
         this.Proof = proof ?? Bytes32.Zero;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = ISnowflake.Empty!;
+        this.SessionToken = 0;
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = ISnowflake.Empty!;
+        this.SessionToken = 0;
     }
 
     /// <inheritdoc/>
@@ -264,7 +264,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = ISnowflake.Empty!;
+        this.SessionToken = 0;
         this.Priority = PacketPriority.URGENT;
     }
 }

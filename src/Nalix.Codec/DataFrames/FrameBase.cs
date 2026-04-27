@@ -3,14 +3,14 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.DataFrames;
 
 /// <summary>
 /// Represents the base class for all packet frames in the messaging system.
-/// Provides common header fields and serialization logic for derived packet types.
+/// Provides Abstractions header fields and serialization logic for derived packet types.
 /// </summary>
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]

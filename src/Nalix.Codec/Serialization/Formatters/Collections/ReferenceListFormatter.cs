@@ -6,8 +6,8 @@ using System.Runtime.InteropServices;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 

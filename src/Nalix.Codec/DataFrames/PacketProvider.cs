@@ -1,5 +1,8 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System.Runtime.CompilerServices;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 
 namespace Nalix.Codec.DataFrames;
 
@@ -19,7 +22,7 @@ public static class PacketProvider<T> where T : PacketBase<T>, new()
     public static T Create()
     {
         // Use a local variable to optimize static field access
-        IObjectPoolManager? mgr = PacketPoolRegistry.Manager;
+        IObjectPoolManager? mgr = PacketRegistry.Manager;
         return mgr == null ? new T() : mgr.Get<T>();
     }
 
@@ -30,30 +33,8 @@ public static class PacketProvider<T> where T : PacketBase<T>, new()
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Return(T packet)
     {
-        IObjectPoolManager? mgr = PacketPoolRegistry.Manager;
+        IObjectPoolManager? mgr = PacketRegistry.Manager;
         mgr?.Return(packet);
     }
 }
 
-/// <summary>
-/// Provides a centralized storage for the <see cref="IObjectPoolManager"/>.
-/// This class is internal to protect the pool state from unauthorized external modification.
-/// </summary>
-public static class PacketPoolRegistry
-{
-    /// <summary>
-    /// A single instance of the Pool Manager shared across all packet types.
-    /// If this is <see langword="null"/>, the system automatically falls back to standard allocation.
-    /// </summary>
-    internal static IObjectPoolManager? Manager;
-
-    /// <summary>
-    /// Configures the shared Pool Manager for the entire packet ecosystem.
-    /// </summary>
-    /// <param name="manager">An implementation of <see cref="IObjectPoolManager"/> from the infrastructure layer.</param>
-    /// <remarks>
-    /// Because <see cref="PacketPoolRegistry"/> is shared, calling Configure on any 
-    /// <c>PacketProvider&lt;T&gt;</c> will take effect for all other packet types.
-    /// </remarks>
-    public static void Configure(IObjectPoolManager manager) => Manager = manager;
-}

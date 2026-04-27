@@ -7,13 +7,13 @@
 // Header layout (12 bytes):
 // [0..3]  : MAGIC "NALX" (4 ASCII bytes)
 // [4]     : version (1 byte)
-// [5]     : type  (1 byte)  -> CipherSuiteType (Nalix.Common.Enums)
+// [5]     : type  (1 byte)  -> CipherSuiteType (Nalix.Abstractions.Enums)
 // [6]     : flags (1 byte)  (reserved)
 // [7]     : nonceLen (1 byte)
 // [8..11] : seq (uint32 little-endian)
 
 using System.Runtime.CompilerServices;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Security;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]

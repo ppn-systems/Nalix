@@ -6,7 +6,7 @@ using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Codec.DataFrames.Chunks;
 

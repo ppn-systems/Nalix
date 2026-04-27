@@ -3,7 +3,6 @@
 
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.Serialization.Formatters.Automatic;
 

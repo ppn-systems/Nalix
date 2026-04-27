@@ -5,11 +5,11 @@ using System;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Codec.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Codec.Benchmarks")]
 #endif
 
 namespace Nalix.Codec.Serialization.Internal.Types;

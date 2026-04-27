@@ -8,7 +8,7 @@
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Symmetric;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Security;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security.Engine;

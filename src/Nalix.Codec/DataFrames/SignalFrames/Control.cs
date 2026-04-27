@@ -3,10 +3,10 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Serialization;
-using Nalix.Framework.Time;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Serialization;
+using Nalix.Environment.Time;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 

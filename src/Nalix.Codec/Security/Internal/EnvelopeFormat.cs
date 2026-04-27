@@ -17,8 +17,8 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Security;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]

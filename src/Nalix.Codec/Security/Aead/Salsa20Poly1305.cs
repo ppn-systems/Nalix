@@ -125,7 +125,7 @@ public static class Salsa20Poly1305
             {
                 poly.Clear();
             }
-            catch (System.Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (System.Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 Debug.WriteLine($"[Salsa20Poly1305] Poly1305.Clear failed: {ex}");
             }

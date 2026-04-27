@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Primitives;
+using Nalix.Abstractions.Primitives;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security.Asymmetric;

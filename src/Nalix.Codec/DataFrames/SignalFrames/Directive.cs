@@ -3,9 +3,9 @@
 
 using System.Diagnostics;
 using Nalix.Codec.DataFrames;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 

@@ -4,7 +4,7 @@
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -77,7 +77,7 @@ internal sealed class NullableArrayFormatter<
 
         if (length < 0 || length > SerializerBounds.MaxArray)
         {
-            throw new Common.Exceptions.SerializationFailureException(
+            throw new Abstractions.Exceptions.SerializationFailureException(
                 $"Nullable array length out of range: {length}. Max allowed is {SerializerBounds.MaxArray}.");
         }
 

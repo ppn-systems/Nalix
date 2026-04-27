@@ -6,10 +6,10 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Codec.Serialization.Internal.Types;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
+using Nalix.Abstractions;
 
 namespace Nalix.Codec.DataFrames.Internal;
 

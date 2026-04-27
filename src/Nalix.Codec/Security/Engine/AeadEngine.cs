@@ -4,8 +4,8 @@
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security.Aead;
 using Nalix.Codec.Security.Internal;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Security;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security.Engine;

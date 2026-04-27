@@ -4,8 +4,8 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Codec.Options;

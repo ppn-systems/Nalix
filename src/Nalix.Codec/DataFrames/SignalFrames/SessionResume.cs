@@ -3,11 +3,11 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Primitives;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -60,7 +60,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// Gets or sets the session token involved in the operation.
     /// </summary>
     [SerializeOrder(1)]
-    public ISnowflake SessionToken { get; set; } = ISnowflake.Empty!;
+    public ulong SessionToken { get; set; }
 
     /// <summary>
     /// Gets or sets the protocol reason code (used primarily in responses).
@@ -82,7 +82,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// <summary>
     /// Initializes the packet with the specified stage and metadata.
     /// </summary>
-    public void Initialize(SessionResumeStage stage, ISnowflake sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
+    public void Initialize(SessionResumeStage stage, ulong sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
         this.Priority = PacketPriority.URGENT;
@@ -101,7 +101,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
         this.Priority = PacketPriority.URGENT;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = SessionResumeStage.NONE;
-        this.SessionToken = ISnowflake.Empty!;
+        this.SessionToken = 0;
         this.Reason = ProtocolReason.NONE;
         this.Proof = Bytes32.Zero;
     }
@@ -118,10 +118,10 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
         bool isValid = this.Stage switch
         {
             SessionResumeStage.REQUEST =>
-                !this.SessionToken.IsEmpty && !this.Proof.IsZero,
+                !(this.SessionToken == 0) && !this.Proof.IsZero,
 
             SessionResumeStage.RESPONSE =>
-                this.Reason != ProtocolReason.NONE || (!this.SessionToken.IsEmpty && !this.Proof.IsZero),
+                this.Reason != ProtocolReason.NONE || (!(this.SessionToken == 0) && !this.Proof.IsZero),
             SessionResumeStage.NONE or _ => false
         };
 

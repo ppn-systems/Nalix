@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal.Types;
-using Nalix.Common.Serialization;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -53,7 +53,7 @@ internal sealed class ListFormatter<
         long totalBytesLong = (long)span.Length * s_elementSize;
         if (totalBytesLong > int.MaxValue)
         {
-            throw new Common.Exceptions.SerializationFailureException(
+            throw new Abstractions.Exceptions.SerializationFailureException(
                 $"List data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
         }
 
@@ -93,13 +93,13 @@ internal sealed class ListFormatter<
 
         if (length < 0 || length > SerializerBounds.MaxArray)
         {
-            throw new Common.Exceptions.SerializationFailureException("List length out of range.");
+            throw new Abstractions.Exceptions.SerializationFailureException("List length out of range.");
         }
 
         long totalBytesLong = (long)length * s_elementSize;
         if (totalBytesLong > int.MaxValue)
         {
-            throw new Common.Exceptions.SerializationFailureException(
+            throw new Abstractions.Exceptions.SerializationFailureException(
                 $"List data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
         }
 

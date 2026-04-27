@@ -7,8 +7,8 @@ using System.Runtime.CompilerServices;
 using Nalix.Codec.Security.Engine;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Symmetric;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Security;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security;
