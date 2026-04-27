@@ -256,7 +256,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         INamedTypeSymbol typeSymbol,
         IMethodSymbol methodSymbol,
         MethodDeclarationSyntax methodSyntax,
-        SymbolSet symbols)
+        SymbolSet _)
     {
         SyntaxNode? bodyRoot = (SyntaxNode?)methodSyntax.Body ?? methodSyntax.ExpressionBody?.Expression;
         if (bodyRoot is null)

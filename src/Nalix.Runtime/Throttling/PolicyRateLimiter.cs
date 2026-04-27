@@ -474,7 +474,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                     {
                         if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                         {
-                            _logger.LogError(ex, 
+                            _logger.LogError(ex,
                                 $"[NW.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] " +
                                 $"disposal-error policy={policy}");
                         }
