@@ -18,7 +18,7 @@ This guide provides a comprehensive, end-to-end flowchart for creating, configur
 The client and server **must** use the exact same packet contracts. The `IPacketRegistry` (catalog) maps packet types to their structural metadata and deserialize logic.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.DataFrames;
 
 // 1. Initialize the shared registry.
@@ -35,7 +35,7 @@ The `TransportOptions` govern connection backoff patterns, socket buffer sizing,
 
 ```csharp
 using Nalix.SDK.Options;
-using Nalix.Common.Security;
+using Nalix.Abstractions.Security;
 using Nalix.Framework.Configuration;
 
 // OPTION A: Load automatically from the environment's configuration files (Recommended)
@@ -171,7 +171,7 @@ async Task ConnectUdpStandardAsync()
 ```
 
 !!! danger "UDP Fragmented Size Constraint"
-    UDP payloads plus the 7-byte `SessionToken` prefix cannot exceed `TransportOptions.MaxUdpDatagramSize` (Default `1400` bytes). Large chunks of data must be routed through TCP protocols. Violating the MTU triggers local `NetworkException` halts.
+    UDP payloads plus the 8-byte `SessionToken` prefix cannot exceed `TransportOptions.MaxUdpDatagramSize` (Default `1400` bytes). Large chunks of data must be routed through TCP protocols. Violating the MTU triggers local `NetworkException` halts.
 
 !!! info
     The `Bytes32` primitive is used for the cryptographic secret to ensure zero-allocation memory pinned security during the entire lifecycle.
@@ -252,4 +252,4 @@ session.Dispose();
 - [Transport Session Guidelines](../../api/sdk/transport-session.md)
 - [TCP Session Guidelines](../../api/sdk/tcp-session.md)
 - [UDP Session Guidelines](../../api/sdk/udp-session.md)
-- [Extensive Transport Options Documentation](../../api/sdk/options/transport-options.md)
+- [Extensive Transport Options Documentation](../../api/options/sdk/transport-options.md)

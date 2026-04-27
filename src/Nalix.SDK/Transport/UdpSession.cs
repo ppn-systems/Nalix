@@ -2,16 +2,17 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames.Transforms;
-using Nalix.Framework.Identifiers;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Transforms;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport;
@@ -23,16 +24,15 @@ namespace Nalix.SDK.Transport;
 /// Datagram layout for outbound packets: <c>[SessionToken (8 bytes) | Payload ...]</c>.
 /// Inbound packets from the server are treated as raw payloads.
 /// </remarks>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "<Pending>")]
 public class UdpSession : TransportSession
 {
     #region Fields
 
-#pragma warning disable CA2213 // Disposed through Interlocked.Exchange locals inside DisconnectInternalAsync/Dispose(bool).
     private Socket? _socket;
     private IPEndPoint? _remoteEndPoint;
-    private Snowflake? _sessionToken;
+    private ulong _sessionToken;
     private CancellationTokenSource? _loopCts;
-#pragma warning restore CA2213
     private System.Threading.Channels.Channel<Func<Task>>? _asyncQueue;
     private int _disposed;
 
@@ -43,13 +43,13 @@ public class UdpSession : TransportSession
     /// <summary>
     /// Gets or sets the 8-byte session token (Snowflake) used to identify this session on the UDP channel.
     /// </summary>
-    public Snowflake? SessionToken
+    public ulong SessionToken
     {
-        get => _sessionToken ?? (this.Options.SessionToken.IsEmpty ? null : this.Options.SessionToken);
+        get => _sessionToken;
         set
         {
             _sessionToken = value;
-            this.Options.SessionToken = value ?? Snowflake.Empty;
+            this.Options.SessionToken = value;
         }
     }
 
@@ -124,7 +124,7 @@ public class UdpSession : TransportSession
 
             // Initialize UDP socket
             _socket = new Socket(_remoteEndPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-            _sessionToken = this.Options.SessionToken.IsEmpty ? null : this.Options.SessionToken;
+            _sessionToken = this.Options.SessionToken;
 
             // BUG-62: Apply ConnectTimeoutMillis from options
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -246,17 +246,12 @@ public class UdpSession : TransportSession
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
-        if (!_sessionToken.HasValue)
-        {
-            throw new NetworkException("SessionToken must be set before sending UDP packets.");
-        }
-
         packet.Flags = (packet.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
         int packetLength = packet.Length;
 
-        if (packetLength + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+        if (packetLength + ISnowflake.Size > this.Options.MaxUdpDatagramSize)
         {
-            throw new NetworkException($"UDP packet too large: {packetLength + Snowflake.Size} bytes (including token). Max allowed is {this.Options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
+            throw new NetworkException($"UDP packet too large: {packetLength + ISnowflake.Size} bytes (including token). Max allowed is {this.Options.MaxUdpDatagramSize} bytes. Use TCP for large data.");
         }
 
         // Step 1: Serialize the IPacket directly into a leasing buffer
@@ -276,9 +271,9 @@ public class UdpSession : TransportSession
                 this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
             // Step 3: Check MTU (Token + Packet)
-            if (current.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            if (current.Length + ISnowflake.Size > this.Options.MaxUdpDatagramSize)
             {
-                throw new NetworkException($"UDP packet too large after transformation: {current.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+                throw new NetworkException($"UDP packet too large after transformation: {current.Length + ISnowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
             }
 
             /*
@@ -288,10 +283,11 @@ public class UdpSession : TransportSession
              * Layout: [Token (8 bytes)][Payload (N bytes)]
              */
             // Step 4: Final Envelope [Token + Packet]
-            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + current.Length);
-            _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
-            current.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
-            finalLease.CommitLength(Snowflake.Size + current.Length);
+            using BufferLease finalLease = BufferLease.Rent(ISnowflake.Size + current.Length);
+            BinaryPrimitives.WriteUInt64LittleEndian(finalLease.SpanFull[..ISnowflake.Size], _sessionToken);
+
+            current.Span.CopyTo(finalLease.SpanFull[ISnowflake.Size..]);
+            finalLease.CommitLength(ISnowflake.Size + current.Length);
 
             await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }
@@ -311,11 +307,6 @@ public class UdpSession : TransportSession
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
-        if (!_sessionToken.HasValue)
-        {
-            throw new NetworkException("SessionToken must be set before sending UDP packets.");
-        }
-
         // Step 1: Wrap raw payload into a BufferLease
         BufferLease src = BufferLease.Rent(payload.Length);
         IBufferLease current = src;
@@ -332,15 +323,15 @@ public class UdpSession : TransportSession
                 encrypt ?? this.Options.EncryptionEnabled,
                 this.Options.Secret.AsSpan(), this.Options.Algorithm);
 
-            if (current.Length + Snowflake.Size > this.Options.MaxUdpDatagramSize)
+            if (current.Length + ISnowflake.Size > this.Options.MaxUdpDatagramSize)
             {
-                throw new NetworkException($"UDP payload too large after transformation: {current.Length + Snowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
+                throw new NetworkException($"UDP payload too large after transformation: {current.Length + ISnowflake.Size} bytes. Max allowed is {this.Options.MaxUdpDatagramSize} bytes.");
             }
 
-            using BufferLease finalLease = BufferLease.Rent(Snowflake.Size + current.Length);
-            _ = _sessionToken.Value.TryWriteBytes(finalLease.SpanFull[..Snowflake.Size]);
-            current.Span.CopyTo(finalLease.SpanFull[Snowflake.Size..]);
-            finalLease.CommitLength(Snowflake.Size + current.Length);
+            using BufferLease finalLease = BufferLease.Rent(ISnowflake.Size + current.Length);
+            BinaryPrimitives.WriteUInt64LittleEndian(finalLease.SpanFull[..ISnowflake.Size], _sessionToken);
+            current.Span.CopyTo(finalLease.SpanFull[ISnowflake.Size..]);
+            finalLease.CommitLength(ISnowflake.Size + current.Length);
 
             await this.SendAsyncInternal(finalLease.Memory, ct).ConfigureAwait(false);
         }

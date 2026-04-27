@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Framework.Security.Symmetric;
+using Nalix.Codec.Security.Symmetric;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -95,3 +95,16 @@ public sealed class Salsa20Tests
         _ = Assert.Throws<ArgumentException>(() => Salsa20.Decrypt(key, nonce, 0UL, ciphertext, tooSmall));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

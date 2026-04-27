@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Framework.Serialization;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Benchmark.Framework.Serialization;
 

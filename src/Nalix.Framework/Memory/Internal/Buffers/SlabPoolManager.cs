@@ -125,7 +125,7 @@ internal sealed class SlabPoolManager : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int FindBestFitSize(int size)
     {
-        // O(1) Fast path for common small sizes
+        // O(1) Fast path for Abstractions small sizes
         if (size is > 0 and <= 4096)
         {
             return _fastBucketMap?[size] ?? this.BINARY_SEARCH_BEST_FIT(size);

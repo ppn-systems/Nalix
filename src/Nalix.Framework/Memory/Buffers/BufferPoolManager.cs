@@ -12,16 +12,13 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration;
+using Nalix.Abstractions;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.Buffers;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Framework.Memory.Buffers;
 
@@ -30,7 +27,7 @@ namespace Nalix.Framework.Memory.Buffers;
 /// ArrayPool when a requested size cannot be satisfied by a managed pool.
 /// </summary>
 [DebuggerNonUserCode]
-public sealed class BufferPoolManager : IDisposable, IReportable
+public sealed class BufferPoolManager : IBufferPoolManager
 {
     #region Fields & Constants
 
@@ -533,6 +530,7 @@ public sealed class BufferPoolManager : IDisposable, IReportable
     }
 
     #endregion Public API
+
     #region Private: Rent / Return helpers
 
     [StackTraceHidden]

@@ -8,11 +8,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Common.Identity;
-using Nalix.Common.Serialization;
-using Nalix.Framework.Configuration;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Serialization;
+using Nalix.Environment.Configuration;
+using Nalix.Environment.Random;
 using Nalix.Framework.Options;
-using Nalix.Framework.Random;
 
 namespace Nalix.Framework.Identifiers;
 
@@ -33,7 +33,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// The size in bytes of the <see cref="Snowflake"/> structure.
     /// </summary>
     [SerializeIgnore]
-    public const byte Size = 8;
+    public const int Size = 8;
 
     [SerializeIgnore]
     private readonly ulong _combined;
@@ -77,7 +77,7 @@ public readonly partial struct Snowflake : ISnowflake
     /// Gets an empty <see cref="Snowflake"/> instance with all components set to zero.
     /// </summary>
     [SerializeIgnore]
-    public static Snowflake Empty => new(0, 0, 0);
+    public static readonly ISnowflake Empty = new Snowflake(0, 0, 0);
 
     /// <inheritdoc/>
     [SerializeIgnore]
@@ -209,7 +209,7 @@ public readonly partial struct Snowflake : ISnowflake
     [Pure]
     public static bool TryParse(string? s, out Snowflake result)
     {
-        result = Empty;
+        result = (Snowflake)Empty;
         if (string.IsNullOrWhiteSpace(s) || s.Length != Size * 2)
         {
             return false;
@@ -221,7 +221,7 @@ public readonly partial struct Snowflake : ISnowflake
             result = FromBytes(bytes);
             return true;
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             return false;
         }

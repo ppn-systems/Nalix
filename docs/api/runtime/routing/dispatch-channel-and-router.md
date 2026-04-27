@@ -54,4 +54,4 @@ Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection is
 
 - [Dispatch Contracts](./dispatch-contracts.md)
 - [Packet Dispatch](./packet-dispatch.md)
-- [Dispatch Options](../options/dispatch-options.md)
+- [Dispatch Options](../../options/runtime/dispatch-options.md)

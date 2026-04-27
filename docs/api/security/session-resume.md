@@ -4,10 +4,10 @@ Session resumption enables low-latency reconnection by bypassing the full X25519
 
 ## Source Mapping
 
-- `src/Nalix.Framework/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
 - `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
 - `src/Nalix.Network/Sessions/SessionStoreBase.cs`
-- `src/Nalix.Common/Networking/Sessions/ISessionStore.cs`
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`
 - `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
 
 ## 1. Design & Rationale
@@ -15,7 +15,7 @@ Session resumption enables low-latency reconnection by bypassing the full X25519
 Nalix utilizes a **Unified Signal Flow** (introduced in v1.2) to manage session state. By consolidating the legacy `SessionResume` and `SessionResumeAck` packets into a single `SESSION_SIGNAL` packet with a `Stage` state machine, the protocol reduces complexity and ensures atomic state transitions.
 
 - **Atomic Resumption**: The server applies the restored session snapshot and returns the (possibly rotated) token in a single round-trip.
-- **Stateless Re-entry**: UDP sessions can be resumed immediately as long as the 7-byte `SessionToken` and its associated `Secret` are valid.
+- **Stateless Re-entry**: UDP sessions can be resumed immediately as long as the 8-byte `SessionToken` and its associated `Secret` are valid.
 - **Token Rotation**: The server may issue a new `SessionToken` in every successful response to prevent long-term token leakage.
 
 ---
@@ -69,7 +69,7 @@ When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
 1. The incoming packet is strictly validated using `IPacketValidatable` to ensure the `Stage`, `SessionToken`, and `Proof` fields are structurally sound for a `REQUEST`.
 2. The server extracts the `SessionToken` from the payload.
 3. It atomically consumes a valid `SessionEntry` via the active `ISessionStore` (`ConsumeAsync`) to prevent token replay.
-4. It validates `Proof` using HMAC-Keccak256 over the 7-byte session token and the stored session secret.
+4. It validates `Proof` using HMAC-Keccak256 over the 8-byte session token and the stored session secret.
 5. If validation succeeds, the runtime restores the connection's `Secret`, `Level`, and `Attributes`.
 6. A rotated session token is generated and stored, then a `RESPONSE` is sent with `ProtocolReason.NONE`.
 7. If validation, token lookup, or proof verification fails, the server sends an error reason (for example `MALFORMED_PACKET`, `SESSION_EXPIRED` or `TOKEN_REVOKED`) and disconnects.
@@ -87,7 +87,7 @@ When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
 ## Related Documentation
 
 - [Handshake Protocol (X25519)](./handshake.md)
-- [Session Contracts](../common/session-contracts.md)
-- [Snowflake Identifiers](../framework/runtime/snowflake.md)
+- [Session Contracts](../abstractions/session-contracts.md)
+- [Snowflake Identifiers](../framework/snowflake.md)
 - [SDK Resume Extensions](../sdk/resume-extensions.md)
 

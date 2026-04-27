@@ -2,7 +2,7 @@
 
 > Roslyn-based static analysis to enforce high-performance coding standards and serialization correctness in Nalix projects.
 
-**Nalix.Analyzers** is a developer-productivity package that identifies common pitfalls when working with the Nalix networking framework. It provides real-time feedback in your IDE and during CI/CD to ensure your application remains efficient, secure, and maintainable.
+**Nalix.Analyzers** is a developer-productivity package that identifies Abstractions pitfalls when working with the Nalix networking framework. It provides real-time feedback in your IDE and during CI/CD to ensure your application remains efficient, secure, and maintainable.
 
 ## Key Features
 

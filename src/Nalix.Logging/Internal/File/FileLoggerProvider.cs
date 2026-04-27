@@ -10,10 +10,10 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Concurrency;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.Environment;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Environment.Configuration;
+using Nalix.Environment.IO;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -141,7 +141,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
             await _writer.WriteAsync(new LogMessage(timestampUtc, logLevel, eventId, message, exception), _cts.Token).ConfigureAwait(false);
             _ = Interlocked.Increment(ref _queued);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Increment(ref _entriesDroppedCount);
         }
@@ -151,18 +151,18 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
 
     public string GenerateReport()
         => $"FileLoggerProvider [UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
-         + Environment.NewLine + $"- USER: {Environment.UserName}"
-         + Environment.NewLine + $"- Log File: {Path.Combine(Directories.LogsDirectory, this.Options.LogFileName)}"
-         + Environment.NewLine + $"- Written:  {this.TotalEntriesWritten:N0}"
-         + Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
-         + Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
+         + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
+         + System.Environment.NewLine + $"- Log File: {Path.Combine(Directories.LogsDirectory, this.Options.LogFileName)}"
+         + System.Environment.NewLine + $"- Written:  {this.TotalEntriesWritten:N0}"
+         + System.Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
+         + System.Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
 
     public IDictionary<string, object> GetReportData()
     {
         return new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["UtcNow"] = DateTime.UtcNow,
-            ["User"] = Environment.UserName,
+            ["User"] = System.Environment.UserName,
             ["LogFile"] = Path.Combine(Directories.LogsDirectory, this.Options.LogFileName),
             ["Written"] = this.TotalEntriesWritten,
             ["Dropped"] = this.EntriesDroppedCount,
@@ -236,7 +236,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         catch (OperationCanceledException)
         {
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
 #if DEBUG
             Debug.WriteLine($"[LG.FileLogger] Consumer error: {ex}");
@@ -292,7 +292,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
             _fileWriter.Flush();
             _fileWriter.Dispose();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
 #if DEBUG
             Debug.WriteLine($"[LG.FileLogger] Dispose error: {ex}");

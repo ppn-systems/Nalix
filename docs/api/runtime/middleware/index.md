@@ -8,7 +8,7 @@ post-processing.
 ## Source mapping
 
 - `src/Nalix.Runtime/Middleware/MiddlewarePipeline.cs`
-- `src/Nalix.Common/Middleware/IPacketMiddleware.cs`
+- `src/Nalix.Abstractions/Middleware/IPacketMiddleware.cs`
 - `src/Nalix.Runtime/Middleware/Standard/*Middleware.cs`
 - `src/Nalix.Runtime/Throttling/*`
 
@@ -66,5 +66,5 @@ Inbound security middleware follows a fail-closed model:
 
 - [Middleware Usage Guide](../../../guides/application/middleware-usage.md)
 - [Packet Context](../routing/packet-context.md)
-- [Packet Attributes](../routing/packet-attributes.md)
-- [Dispatch Options](../options/dispatch-options.md)
+- [Packet Attributes](../../abstractions/packet-attributes.md)
+- [Dispatch Options](../../options/runtime/dispatch-options.md)

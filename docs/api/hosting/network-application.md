@@ -1,6 +1,6 @@
 # Network Application
 
-`Nalix.Network.Hosting` provides a Microsoft-style builder and host for Nalix servers. It simplifies the setup of protocols, listeners, dispatchers, and dependency injection into a single fluent flow.
+`Nalix.Hosting` provides a Microsoft-style builder and host for Nalix servers. It simplifies the setup of protocols, listeners, dispatchers, and dependency injection into a single fluent flow.
 
 ## Why use the Hosting Builder?
 
@@ -18,9 +18,9 @@ The public API surface revolves around two main types:
 
 ## Source mapping
 
-- `src/Nalix.Network.Hosting/NetworkApplication.cs`
-- `src/Nalix.Network.Hosting/INetworkApplicationBuilder.cs`
-- `src/Nalix.Network.Hosting/NetworkApplicationBuilder.cs`
+- `src/Nalix.Hosting/NetworkApplication.cs`
+- `src/Nalix.Hosting/INetworkApplicationBuilder.cs`
+- `src/Nalix.Hosting/NetworkApplicationBuilder.cs`
 
 ## Startup Flow
 
@@ -167,11 +167,12 @@ To keep message reading allocation-free on the server hot path:
 
 ## Related APIs
 
-- [Nalix.Network.Hosting package overview](../../packages/nalix-network-hosting.md)
+- [Nalix.Hosting package overview](../../packages/nalix-hosting.md)
 - [Protocol](../network/protocol.md)
 - [TCP Listener](../network/tcp-listener.md)
 - [UDP Listener](../network/udp-listener.md)
 - [Packet Dispatch](../runtime/routing/packet-dispatch.md)
-- [Packet Registry](../framework/packets/packet-registry.md)
-- [Configuration](../framework/runtime/configuration.md)
-- [Instance Manager (DI)](../framework/runtime/instance-manager.md)
+- [Packet Registry](../codec/packets/packet-registry.md)
+- [Configuration](../environment/configuration.md)
+- [Instance Manager (DI)](../framework/instance-manager.md)
+

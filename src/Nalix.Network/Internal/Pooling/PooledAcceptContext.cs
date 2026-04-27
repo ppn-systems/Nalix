@@ -10,8 +10,8 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 

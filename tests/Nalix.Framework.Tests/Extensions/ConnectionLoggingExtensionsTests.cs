@@ -6,15 +6,15 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Extensions;
@@ -122,7 +122,7 @@ public sealed class ConnectionLoggingExtensionsTests
         public event EventHandler<IConnectEventArgs>? OnProcessEvent { add { } remove { } }
         public event EventHandler<IConnectEventArgs>? OnPostProcessEvent { add { } remove { } }
 
-        public void Close(bool force = false) { }
+        public void Disconnect(bool force = false) { }
 
         public void Disconnect(string? reason = null) { }
 
@@ -163,23 +163,23 @@ public sealed class ConnectionLoggingExtensionsTests
 
         public ulong ToUInt64() => 0UL;
 
-        public byte[] ToByteArray() => new byte[7];
+        public byte[] ToByteArray() => new byte[8];
 
         public bool TryWriteBytes(Span<byte> destination)
         {
-            if (destination.Length < 7)
+            if (destination.Length < 8)
             {
                 return false;
             }
 
-            destination[..7].Clear();
+            destination[..8].Clear();
             return true;
         }
 
         public bool TryWriteBytes(Span<byte> destination, out int bytesWritten)
         {
             bool ok = this.TryWriteBytes(destination);
-            bytesWritten = ok ? 7 : 0;
+            bytesWritten = ok ? 8 : 0;
             return ok;
         }
     }
@@ -208,4 +208,17 @@ public sealed class ConnectionLoggingExtensionsTests
         public void Dispose() { }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 

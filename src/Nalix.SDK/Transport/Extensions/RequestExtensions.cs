@@ -5,8 +5,8 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 

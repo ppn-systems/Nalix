@@ -1,8 +1,9 @@
 using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Framework.Time;
+using Nalix.Environment;
 
+using Nalix.Environment.Time;
 namespace Nalix.Benchmark.Framework.Time;
 
 /// <summary>

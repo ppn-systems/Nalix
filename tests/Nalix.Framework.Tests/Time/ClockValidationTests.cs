@@ -3,7 +3,7 @@
 
 using System;
 using System.Threading;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
@@ -164,3 +164,16 @@ public sealed class ClockValidationTests
         Assert.InRange(Math.Abs(adjustment), 9000, 11000);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

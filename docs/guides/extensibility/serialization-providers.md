@@ -1,4 +1,4 @@
-# Custom Serialization Provider
+﻿# Custom Serialization Provider
 
 This guide shows how to register a custom serialization provider in `Nalix.Framework` using `IFormatter<T>` and `LiteSerializer.Register(...)`.
 
@@ -69,6 +69,6 @@ UserProfile restored = LiteSerializer.Deserialize<UserProfile>(payload, out int 
 
 ## Related pages
 
-- [Serialization Basics](../../api/framework/serialization/serialization-basics.md)
+- [Serialization Basics](../../api/codec/serialization/serialization-basics.md)
 - [Serialization Concept](../../concepts/fundamentals/packet-system.md)
 - [Packet Lifecycle](../../concepts/fundamentals/packet-lifecycle.md)

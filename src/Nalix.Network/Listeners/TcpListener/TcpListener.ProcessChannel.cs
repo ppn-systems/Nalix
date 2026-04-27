@@ -6,9 +6,9 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
@@ -239,7 +239,7 @@ public abstract partial class TcpListenerBase
             // - Dedicated worker thread BelowNormal -> does not compete with I/O callbacks.
             this.ProcessConnection(connection);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             this.Metrics.RECORD_ERROR();
 

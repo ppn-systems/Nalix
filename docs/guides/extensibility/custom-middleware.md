@@ -19,11 +19,11 @@ The following middleware checks for a valid session token in the connection attr
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Abstractions.Primitives;
 using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 
@@ -95,7 +95,7 @@ public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
 Middleware is registered fluently during server setup using the `ConfigureDispatch` method.
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 using NetworkApplication app = NetworkApplication.CreateBuilder()
     .ConfigureDispatch(options =>

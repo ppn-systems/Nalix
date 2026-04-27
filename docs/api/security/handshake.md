@@ -4,8 +4,8 @@ Nalix implements a high-performance **Static-Ephemeral DH (Noise Protocol inspir
 
 ## Source Mapping
 
-- `src/Nalix.Framework/DataFrames/SignalFrames/Handshake.cs`
-- `src/Nalix.Framework/Security/HandshakeX25519.cs`
+- `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`
+- `src/Nalix.Codec/Security/HandshakeX25519.cs`
 - `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
 
@@ -99,5 +99,5 @@ await session.SendAsync(new SecurePacket());
 
 - [AEAD & Envelope Encryption](./aead-and-envelope.md)
 - [X25519 Primitives](./cryptography.md)
-- [Snowflake Identifiers](../framework/runtime/snowflake.md)
+- [Snowflake Identifiers](../framework/snowflake.md)
 - [Session Resume](./session-resume.md)

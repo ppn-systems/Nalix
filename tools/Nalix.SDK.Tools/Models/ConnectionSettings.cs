@@ -26,7 +26,7 @@ public sealed class ConnectionSettings
     public PacketFlags Transport { get; set; } = PacketFlags.RELIABLE;
 
     /// <summary>
-    /// Gets or sets the UDP session token (7-byte Snowflake hex).
+    /// Gets or sets the UDP session token (8-byte Snowflake hex).
     /// </summary>
     public string SessionToken { get; set; } = string.Empty;
 

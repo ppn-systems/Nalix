@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Threading;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Xunit;
@@ -125,3 +125,16 @@ public sealed class ObjectPoolDiagnosticsTests
     private void CreateLeak(ObjectPoolManager manager) => _ = manager.Get<TestPoolable>();
 #endif
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

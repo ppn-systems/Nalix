@@ -2,8 +2,8 @@
 
 `Nalix.Network` is the core transport layer of the Nalix framework. It handles TCP and UDP listeners, connection lifecycle management, protocol bridge logic, session storage, and socket-level infrastructure.
 
-!!! note "For most projects, start with Nalix.Network.Hosting"
-    `Nalix.Network.Hosting` wraps this package with a fluent builder that handles startup wiring automatically. Use `Nalix.Network` directly only when you need full control over listener and protocol construction.
+!!! note "For most projects, start with Nalix.Hosting"
+    `Nalix.Hosting` wraps this package with a fluent builder that handles startup wiring automatically. Use `Nalix.Network` directly only when you need full control over listener and protocol construction.
 
 ## Where It Fits
 
@@ -37,10 +37,10 @@ The `IProtocol` interface and `Protocol` base class define how raw network data 
 
 Key responsibilities:
 
-- **Connection acceptance** — `ValidateConnection(IConnection)` controls whether new connections are accepted
-- **Receive loop management** — `OnAccept(IConnection)` starts listening for incoming frames
-- **Frame forwarding** — `ProcessMessage(object sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`
-- **Connection state** — `IsAccepting` controls whether the protocol accepts new connections
+- **Connection acceptance** â€” `ValidateConnection(IConnection)` controls whether new connections are accepted
+- **Receive loop management** â€” `OnAccept(IConnection)` starts listening for incoming frames
+- **Frame forwarding** â€” `ProcessMessage(object sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`
+- **Connection state** â€” `IsAccepting` controls whether the protocol accepts new connections
 
 ```csharp
 public sealed class MyProtocol : Protocol
@@ -62,10 +62,10 @@ public sealed class MyProtocol : Protocol
 
 ### Connections
 
-- **`IConnection`** — Abstract representation of a client connection with identity, transport adapters, permission level, and cipher state.
-- **`SocketConnection`** — Concrete socket-based implementation.
-- **`ConnectionHub`** — In-memory registry of active connections. Supports lookup by ID, username mapping, forced disconnects, bulk broadcast, and `GenerateReport()`.
-- **`ConnectionGuard`** — Socket-level admission control that rejects endpoints before application resources are allocated.
+- **`IConnection`** â€” Abstract representation of a client connection with identity, transport adapters, permission level, and cipher state.
+- **`SocketConnection`** â€” Concrete socket-based implementation.
+- **`ConnectionHub`** â€” In-memory registry of active connections. Supports lookup by ID, username mapping, forced disconnects, bulk broadcast, and `GenerateReport()`.
+- **`ConnectionGuard`** â€” Socket-level admission control that rejects endpoints before application resources are allocated.
 
 ### Session Store
 
@@ -98,9 +98,9 @@ All option types support `Validate()` for startup-time verification.
 
 ## Related Packages
 
-- [Nalix.Runtime](./nalix-runtime.md) — Dispatch pipeline and middleware
-- [Nalix.Network.Hosting](./nalix-network-hosting.md) — Fluent bootstrap
-- [Nalix.Common](./nalix-common.md) — Shared contracts and primitives
+- [Nalix.Runtime](./nalix-runtime.md) â€” Dispatch pipeline and middleware
+- [Nalix.Hosting](./nalix-hosting.md) â€” Fluent bootstrap
+- [Nalix.Abstractions](./nalix-abstractions.md) â€” Shared contracts and primitives
 
 ## Key API Pages
 
@@ -110,4 +110,4 @@ All option types support `Validate()` for startup-time verification.
 - [Connection](../api/network/connection/connection.md)
 - [Connection Hub](../api/network/connection/connection-hub.md)
 - [Session Store](../api/network/session-store.md)
-- [Network Options](../api/network/options/options.md)
+- [Network Options](../api/options/network/options.md)

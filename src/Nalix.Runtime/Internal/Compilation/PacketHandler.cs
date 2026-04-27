@@ -7,13 +7,16 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Results;
 
 #if DEBUG
+[assembly: InternalsVisibleTo("Nalix.Runtime.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Runtime.Pipeline.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Runtime.Benchmarks")]
 #endif
 
 namespace Nalix.Runtime.Internal.Compilation;

@@ -8,11 +8,11 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames.Chunks;
+using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Codec.Memory;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 
 #pragma warning disable CA1848 // Use the LoggerMessage delegates

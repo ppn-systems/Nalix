@@ -1,9 +1,9 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Primitives;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Random;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Environment;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
@@ -21,11 +21,11 @@ public class PacketSerializationBenchmarks : NalixBenchmarkBase
     {
         _handshake = new Handshake();
         _handshake.Initialize(
-            HandshakeStage.CLIENT_HELLO,
+            HandshakeStage.ClientHello,
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            PacketFlags.RELIABLE);
+            PacketFlags.Reliable);
 
         _serializedHandshake = _handshake.Serialize();
         _buffer = new byte[Handshake.Size];

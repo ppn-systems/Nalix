@@ -3,11 +3,10 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.Configuration.Binding;
-using Nalix.Framework.Identifiers;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.SDK.Options;
 
@@ -142,7 +141,7 @@ public sealed class TransportOptions : ConfigurationLoader
     /// Gets the unique session token assigned by the server for UDP communication.
     /// </summary>
     [ConfiguredIgnore]
-    public Snowflake SessionToken { get; set; }
+    public ulong SessionToken { get; set; } = 0;
 
     /// <summary>
     /// Gets or sets the pinned Server Identity Public Key (required for protecting against MitM attacks).

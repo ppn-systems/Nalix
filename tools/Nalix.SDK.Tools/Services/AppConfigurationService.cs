@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Framework.Environment;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.SDK.Tools.Abstractions;
 using Nalix.SDK.Tools.Configuration;
 

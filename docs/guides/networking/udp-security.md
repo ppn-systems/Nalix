@@ -14,14 +14,14 @@ Use it when you already know you need UDP and want to understand the trust and r
 
 ## What the runtime expects
 
-When `UdpListenerBase` receives a datagram, it expects the first 7 bytes to be the session token:
+When `UdpListenerBase` receives a datagram, it expects the first 8 bytes to be the session token:
 
-- session token (`Snowflake`, 7 bytes)
+- session token (`Snowflake`, 8 bytes)
 - payload
 
 In source, the listener validates:
 
-- the datagram is at least 7 bytes long
+- the datagram is at least 8 bytes long
 - the payload is at least the 10-byte Nalix packet header
 - the packet flags include `PacketFlags.UNRELIABLE`
 - the token resolves to a connection in `ConnectionHub`
@@ -34,7 +34,7 @@ In source, the listener validates:
 ```mermaid
 flowchart LR
     A["UDP datagram received"] --> B["Rate-limit remote IP"]
-    B --> C["Read 7-byte session token prefix"]
+    B --> C["Read 8-byte session token prefix"]
     C --> D["Validate payload header and UDP flag"]
     D --> E["Find connection in ConnectionHub"]
     E --> F["Verify pinned endpoint"]
@@ -111,7 +111,7 @@ Instead, it uses the session token plus the connection/auth state already establ
 
 For clients, that means:
 
-- send the 7-byte session token first
+- send the 8-byte session token first
 - keep the payload small enough to fit `MaxUdpDatagramSize`
 - treat UDP as a fast datagram path, not a second authentication protocol
 
@@ -141,4 +141,4 @@ For a simple deployment:
 - [UDP Listener](../../api/network/udp-listener.md)
 - [UDP Session](../../api/sdk/udp-session.md)
 - [Connection Hub](../../api/network/connection/connection-hub.md)
-- [Network Options](../../api/network/options/options.md)
+- [Network Options](../../api/options/network/options.md)

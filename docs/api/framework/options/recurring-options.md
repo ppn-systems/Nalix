@@ -28,5 +28,5 @@ RecurringOptions options = new()
 
 ## Related APIs
 
-- [Task Manager](../runtime/task-manager.md)
+- [Task Manager](../task-manager.md)
 - [WorkerOptions](./worker-options.md)

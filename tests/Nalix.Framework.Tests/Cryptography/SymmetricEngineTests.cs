@@ -2,10 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Security;
-using Nalix.Framework.Security.Engine;
-using Nalix.Framework.Security.Symmetric;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.Security.Engine;
+using Nalix.Codec.Security.Symmetric;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -173,3 +173,16 @@ public sealed class SymmetricEngineTests
         _ = Assert.Throws<CipherException>(() => SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out _));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

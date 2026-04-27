@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Security.Cryptography;
-using Nalix.Framework.Security.Aead;
+using Nalix.Codec.Security.Aead;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -68,3 +68,16 @@ public sealed class Salsa20Poly1305Tests
         Assert.True(result < 0, "Span-based Decrypt should return a negative value on authentication failure.");
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

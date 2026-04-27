@@ -114,7 +114,7 @@ I.**Symptoms**
 
 II.**Check first**
 
-- datagram contains the 7-byte session token prefix and payload
+- datagram contains the 8-byte session token prefix and payload
 - session exists in `ConnectionHub`
 - `IsAuthenticated(...)` returns true
 - connection secret is initialized

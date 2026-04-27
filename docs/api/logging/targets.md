@@ -92,4 +92,4 @@ var logger = new NLogix(cfg =>
 ## Related APIs
 
 - [Logging](./index.md)
-- [Logging Options](./options.md)
+- [Logging Options](../options/network/options.md)

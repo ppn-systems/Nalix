@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Framework.Random;
+using Nalix.Environment;
 
 namespace Nalix.Benchmark.Framework.Random;
 

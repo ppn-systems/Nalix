@@ -67,13 +67,13 @@ flowchart TD
 ### Core Implementations
 
 - [PacketDispatchChannel](./packet-dispatch.md): The standard runtime dispatcher using worker loops and wake signaling.
-- [PacketDispatchOptions<`TPacket`>](./packet-dispatch-options.md): Fluent configuration for handlers and middleware.
+- [PacketDispatchOptions<`TPacket`>](../../options/runtime/packet-dispatch-options.md): Fluent configuration for handlers and middleware.
 - [PacketContext<`TPacket`>](./packet-context.md): The state object representing a single packet execution.
 - [PacketSender](./packet-sender.md): An abstraction for responding to packets within a context.
 
 ## Related APIs
 
-- [Packet Attributes](./packet-attributes.md)
-- [Packet Metadata](./packet-metadata.md)
+- [Packet Attributes](../../abstractions/packet-attributes.md)
+- [Packet Metadata](../../abstractions/packet-metadata.md)
 - [Handler Result Types](./handler-results.md)
 - [Runtime Overview](../index.md)

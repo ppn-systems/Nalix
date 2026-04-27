@@ -9,7 +9,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 
 #pragma warning disable CA1848 // Use the LoggerMessage delegates
 #pragma warning disable CA2254 // Template should be a static expression
@@ -77,7 +77,7 @@ public abstract partial class TcpListenerBase
 
                 return;
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 // IPv6/DualMode is not supported on this environment -> IPv4 fallback.
                 // WHY not rethrow: Failover automatically is better than crashing the server.
@@ -99,7 +99,7 @@ public abstract partial class TcpListenerBase
                             $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
                     }
                 }
-                catch (Exception closeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
+                catch (Exception closeEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
@@ -113,7 +113,7 @@ public abstract partial class TcpListenerBase
                 {
                     sock?.Dispose();
                 }
-                catch (Exception disposeEx) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(disposeEx))
+                catch (Exception disposeEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(disposeEx))
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
@@ -276,7 +276,7 @@ public abstract partial class TcpListenerBase
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
                                        SocketOptionName.TcpKeepAliveRetryCount, 3);
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 // Fallback Windows-only: SIO_KEEPALIVE_VALS IOControl.
                 // WHY fallback: Older runtime or restricted environment does not support cross-platform API.

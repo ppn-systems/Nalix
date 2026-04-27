@@ -5,18 +5,20 @@
 !!! info "The Engine of the Server"
     While `Nalix.SDK` is designed for client-side consumption, `Nalix.Runtime` is the engine that handles the heavy lifting on the server, managing worker affinity, request routing, and industrial-grade session persistence.
 
-!!! note "Typically consumed via Nalix.Network.Hosting"
-    Most projects consume `Nalix.Runtime` indirectly through `Nalix.Network.Hosting`, which wires up the dispatcher and middleware automatically. Use `Nalix.Runtime` directly only when you need full control over the dispatch pipeline.
+!!! note "Typically consumed via Nalix.Hosting"
+    Most projects consume `Nalix.Runtime` indirectly through `Nalix.Hosting`, which wires up the dispatcher and middleware automatically. Use `Nalix.Runtime` directly only when you need full control over the dispatch pipeline.
 
 ## Where It Fits
 
 ```mermaid
 flowchart LR
     A["Nalix.Network (Transport)"] --> B["Nalix.Runtime (Dispatch)"]
-    B --> C["Nalix.Framework (Registry / Serialization)"]
-    B --> D["Nalix.Common (Contracts)"]
-    B --> E["Handler Logic"]
+    B --> C["Nalix.Codec (Serialization)"]
+    B --> D["Nalix.Framework (Registry)"]
+    B --> E["Nalix.Abstractions (Contracts)"]
+    B --> F["Handler Logic"]
 ```
+
 
 ## Core Components
 
@@ -133,21 +135,21 @@ Call `dispatch.GenerateReport()` to inspect runtime state:
 ## Related Packages
 
 - [Nalix.Network](./nalix-network.md) — Transport and listeners
-- [Nalix.Network.Hosting](./nalix-network-hosting.md) — Fluent bootstrap
+- [Nalix.Hosting](./nalix-hosting.md) — Fluent bootstrap
 - [Nalix.Framework](./nalix-framework.md) — Packet registry and serialization
-- [Nalix.Common](./nalix-common.md) — Shared contracts and primitives
+- [Nalix.Abstractions](./nalix-abstractions.md) — Shared contracts and primitives
 
 ## Key API Pages
 
 - [Packet Dispatch](../api/runtime/routing/packet-dispatch.md)
-- [Packet Dispatch Options](../api/runtime/routing/packet-dispatch-options.md)
+- [Packet Dispatch Options](../api/options/runtime/packet-dispatch-options.md)
 - [Middleware Pipeline](../api/runtime/middleware/pipeline.md)
 - [Concurrency Gate](../api/runtime/middleware/concurrency-gate.md)
 - [Policy Rate Limiter](../api/runtime/middleware/policy-rate-limiter.md)
 - [Token Bucket Limiter](../api/runtime/middleware/token-bucket-limiter.md)
 - [Permission Middleware](../api/runtime/middleware/permission-middleware.md)
 - [Timeout Middleware](../api/runtime/middleware/timeout-middleware.md)
-- [Packet Attributes](../api/runtime/routing/packet-attributes.md)
+- [Packet Attributes](../api/abstractions/packet-attributes.md)
 - [Handler Return Types](../api/runtime/routing/handler-results.md)
-- [Dispatch Options](../api/runtime/options/dispatch-options.md)
+- [Dispatch Options](../api/options/runtime/dispatch-options.md)
 - [Session Resume](../api/security/session-resume.md)

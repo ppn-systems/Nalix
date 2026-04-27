@@ -20,7 +20,7 @@ flowchart LR
 
 - `TransportSession`
 - `TcpSession`
-- `UdpSession` (with 7-byte session token support)
+- `UdpSession` (with 8-byte session token support)
 - `TransportOptions`
 - `RequestOptions`
 - transport extensions such as `ControlExtensions`, `RequestExtensions`, `HandshakeExtensions`, `ResumeExtensions`, `CipherExtensions`, and `TcpSessionSubscriptions`
@@ -113,7 +113,7 @@ Call `Bootstrap.Initialize()` manually only when you need to force the same setu
 | `CompressionThreshold` | `512` | Compression trigger size in bytes. |
 | `EncryptionEnabled` | `true` | Packet encryption toggle. |
 | `AsyncQueueCapacity` | `1024` | `1..65536`. |
-| `MaxUdpDatagramSize` | `1400` | `64..65507`; includes the 7-byte token/header. |
+| `MaxUdpDatagramSize` | `1400` | `64..65507`; includes the 8-byte token/header. |
 | `ServerPublicKey` | `null` | Optional pinned X25519 public key string. |
 | `ResumeEnabled` | `true` | Attempts resume before a fresh handshake. |
 | `ResumeTimeoutMillis` | `3000` | `100..Int32.MaxValue`. |
@@ -139,6 +139,6 @@ Each retry receives its own `TimeoutMs` window. Fatal connection or send errors 
 - [Handshake Extensions](../api/sdk/handshake-extensions.md)
 - [Session Extensions](../api/sdk/tcp-session-extensions.md)
 - [Cipher Updates](../api/sdk/cipher-extensions.md)
-- [Request Options](../api/sdk/options/request-options.md)
+- [Request Options](../api/options/sdk/request-options.md)
 - [Session Diagnostics](../api/sdk/diagnostics.md)
 - [Thread Dispatching](../api/sdk/thread-dispatching.md)

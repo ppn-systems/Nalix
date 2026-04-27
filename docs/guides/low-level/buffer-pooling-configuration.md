@@ -21,7 +21,7 @@ To use buffer pooling, you must register a `BufferPoolManager` with the applicat
 ### Basic Setup
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Framework.Memory.Buffers;
 
 var app = NetworkApplication.CreateBuilder()

@@ -16,18 +16,13 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Results;
-
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
 
 namespace Nalix.Runtime.Internal.Compilation;
 
@@ -929,3 +924,4 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     #endregion Private Methods
 }
+

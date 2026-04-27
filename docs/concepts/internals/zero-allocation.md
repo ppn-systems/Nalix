@@ -45,7 +45,7 @@ sequenceDiagram
 High performance starts with how you define your data. Use `SerializeLayout.Explicit` to ensure the framework can use specialized bit-blitting deserializers.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Serialization;
 
 [Packet]
@@ -143,7 +143,7 @@ Standard exceptions are expensive due to stack trace generation. Nalix uses a **
 Instead of per-packet `try-catch` blocks in your handlers, use the global observer:
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 builder.ConfigureDispatch(options =>
 {
@@ -193,7 +193,7 @@ To enable this optimized path, ensure your hosting configuration is tuned for co
 
 ```csharp
 using System;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
     .AddHandlers<GameMarker>() // Triggers handler compilation
@@ -216,7 +216,7 @@ You can programmatically verify that a block of code does not allocate in unit t
 
 ```csharp
 using System;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 long startingBytes = GC.GetAllocatedBytesForCurrentThread();
 
@@ -235,7 +235,7 @@ Use `MemoryDiagnoser` to verify that your handlers are truly "green" (0 B alloca
 
 ```csharp
 using BenchmarkDotNet.Attributes;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [MemoryDiagnoser]
 public class ProtocolBenchmarks
