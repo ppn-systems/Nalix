@@ -12,23 +12,21 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Options;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Environment.Configuration;
-using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Options;
 using Nalix.Framework.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]

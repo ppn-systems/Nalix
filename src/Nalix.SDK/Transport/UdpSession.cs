@@ -6,12 +6,12 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Codec.DataFrames.Transforms;
+using Nalix.Codec.Memory;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport;
@@ -49,7 +49,7 @@ public class UdpSession : TransportSession
         set
         {
             _sessionToken = value;
-            this.Options.SessionToken = value ?? Snowflake.Empty;
+            this.Options.SessionToken = (Snowflake)(value ?? Snowflake.Empty);
         }
     }
 

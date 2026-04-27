@@ -5,7 +5,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
-using Nalix.Framework.Options;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK;
@@ -31,9 +30,6 @@ public static class Bootstrap
     {
         // Use a dedicated client configuration file to avoid conflicts with server-side default.ini
         ConfigurationManager.Instance.SetConfigFilePath(Path.Combine(Directories.ConfigurationDirectory, "client.ini"));
-
-        // 1. Disable packet pooling for simpler memory management on client platforms
-        ConfigurationManager.Instance.Get<PacketOptions>().EnablePooling = false;
 
         // 2. Initialize TransportOptions to provide a default template in client.ini
         _ = ConfigurationManager.Instance.Get<TransportOptions>();

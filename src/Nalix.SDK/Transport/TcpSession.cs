@@ -2,10 +2,10 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Codec.Memory;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 

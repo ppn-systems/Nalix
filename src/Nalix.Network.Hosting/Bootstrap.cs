@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
 using Nalix.Framework.Injection;
@@ -73,7 +74,7 @@ public static partial class Bootstrap
         ConfigurationManager.Instance.SetConfigFilePath(Path.Combine(Directories.ConfigurationDirectory, "server.ini"));
 
         // 1. Enable packet pooling (explicitly) for maximum server throughput
-        ConfigurationManager.Instance.Get<PacketOptions>().EnablePooling = true;
+
 
         // 2. Initialize all core server options to provide full templates in server.ini
 

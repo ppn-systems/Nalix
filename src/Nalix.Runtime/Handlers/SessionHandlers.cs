@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Security.Hashing;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
@@ -11,11 +13,9 @@ using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
-using Nalix.Framework.DataFrames.Pooling;
-using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Security.Hashing;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -167,7 +167,7 @@ public sealed class SessionHandlers
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
-            sessionToken: default,
+            sessionToken: default!,
             reason: reason,
             flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 

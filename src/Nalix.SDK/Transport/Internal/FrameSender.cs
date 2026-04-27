@@ -6,11 +6,12 @@ using System.Buffers.Binary;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Codec.DataFrames.Transforms;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Options;
 using Nalix.Common.Abstractions;
 using Nalix.Environment.Configuration;
-using Nalix.Framework.DataFrames.Chunks;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Options;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
@@ -76,7 +77,7 @@ internal sealed class FrameSender : IDisposable
         IBufferLease current = lease;
         try
         {
-            Framework.DataFrames.Transforms.FramePipeline.ProcessOutbound(
+            FramePipeline.ProcessOutbound(
                 ref current,
                 _options.CompressionEnabled,
                 _options.CompressionThreshold,

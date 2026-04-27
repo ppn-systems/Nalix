@@ -4,11 +4,11 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Security.Hashing;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Security.Hashing;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 
@@ -68,11 +68,11 @@ public static class ResumeExtensions
 
             if (response.Reason != ProtocolReason.NONE)
             {
-                session.Options.SessionToken = response.SessionToken;
+                session.Options.SessionToken = (Framework.Identifiers.Snowflake)response.SessionToken;
                 return response.Reason;
             }
 
-            session.Options.SessionToken = response.SessionToken;
+            session.Options.SessionToken = (Framework.Identifiers.Snowflake)response.SessionToken;
             session.Options.EncryptionEnabled = true;
             return ProtocolReason.NONE;
         }

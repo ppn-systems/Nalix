@@ -4,10 +4,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Security;
-using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;
