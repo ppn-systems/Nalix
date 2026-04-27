@@ -146,36 +146,35 @@ public sealed partial class NalixUsageAnalyzer
 
         public static SymbolSet? Create(Compilation compilation)
         {
-            INamedTypeSymbol? packetOpcodeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketOpcodeAttribute");
-            INamedTypeSymbol? controllerAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketControllerAttribute");
-            INamedTypeSymbol? packetInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacket");
+            INamedTypeSymbol? packetOpcodeAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketOpcodeAttribute");
+            INamedTypeSymbol? controllerAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketControllerAttribute");
+            INamedTypeSymbol? packetInterface = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.IPacket");
             INamedTypeSymbol? packetBaseType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketBase`1");
-            INamedTypeSymbol? serializePackableAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializePackableAttribute");
-            INamedTypeSymbol? serializeHeaderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeHeaderAttribute");
-            INamedTypeSymbol? serializeOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeOrderAttribute");
-            INamedTypeSymbol? serializeIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeIgnoreAttribute");
-            INamedTypeSymbol? serializeDynamicSizeAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeDynamicSizeAttribute");
-            INamedTypeSymbol? serializeLayoutType = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.SerializeLayout");
-            INamedTypeSymbol? packetHeaderOffsetType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.PacketHeaderOffset");
+            INamedTypeSymbol? serializePackableAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.SerializePackableAttribute");
+            INamedTypeSymbol? serializeHeaderAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.SerializeHeaderAttribute");
+            INamedTypeSymbol? serializeOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.SerializeOrderAttribute");
+            INamedTypeSymbol? serializeIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.SerializeIgnoreAttribute");
+            INamedTypeSymbol? serializeDynamicSizeAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.SerializeDynamicSizeAttribute");
+            INamedTypeSymbol? serializeLayoutType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.SerializeLayout");
+            INamedTypeSymbol? packetHeaderOffsetType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.PacketHeaderOffset");
             INamedTypeSymbol? packetContextType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketContext`1");
-            INamedTypeSymbol? packetContextInterface = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketContext`1");
-            INamedTypeSymbol? connectionType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.IConnection");
+            INamedTypeSymbol? packetContextInterface = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.IPacketContext`1");
+            INamedTypeSymbol? connectionType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.IConnection");
             INamedTypeSymbol? packetDispatchOptionsType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketDispatchOptions`1");
             INamedTypeSymbol? packetRegistryFactoryType = compilation.GetTypeByMetadataName("Nalix.Framework.DataFrames.PacketRegistryFactory");
-            INamedTypeSymbol? packetDeserializerType = compilation.GetTypeByMetadataName("Nalix.Common.Networking.Packets.IPacketDeserializer`1");
+            INamedTypeSymbol? packetDeserializerType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Networking.Packets.IPacketDeserializer`1");
             INamedTypeSymbol? packetMiddlewareType = compilation.GetTypeByMetadataName("Nalix.Runtime.Middleware.IPacketMiddleware`1");
             INamedTypeSymbol? networkApplicationBuilderType = compilation.GetTypeByMetadataName("Nalix.Network.Hosting.NetworkApplicationBuilder");
-            INamedTypeSymbol? middlewareOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareOrderAttribute");
-            INamedTypeSymbol? middlewareStageAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStageAttribute");
-            INamedTypeSymbol? middlewareStageType = compilation.GetTypeByMetadataName("Nalix.Common.Middleware.MiddlewareStage");
+            INamedTypeSymbol? middlewareOrderAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Middleware.MiddlewareOrderAttribute");
+            INamedTypeSymbol? middlewareStageAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Middleware.MiddlewareStageAttribute");
+            INamedTypeSymbol? middlewareStageType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Middleware.MiddlewareStage");
             INamedTypeSymbol? configurationLoaderType = compilation.GetTypeByMetadataName("Nalix.Framework.Configuration.Binding.ConfigurationLoader");
-            INamedTypeSymbol? configuredIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ConfiguredIgnoreAttribute");
-            INamedTypeSymbol? reservedOpcodePermittedAttribute = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.ReservedOpcodePermittedAttribute");
+            INamedTypeSymbol? configuredIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.ConfiguredIgnoreAttribute");
+            INamedTypeSymbol? reservedOpcodePermittedAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.ReservedOpcodePermittedAttribute");
             INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
             INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
             INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
-            INamedTypeSymbol? requestOptionsType =
-                compilation.GetTypeByMetadataName("Nalix.SDK.Options.RequestOptions");
+            INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Options.RequestOptions");
             INamedTypeSymbol? requestExtensionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Extensions.RequestExtensions");
             INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSession");
             INamedTypeSymbol? taskType = compilation.GetTypeByMetadataName(typeof(Task).FullName);
@@ -188,9 +187,9 @@ public sealed partial class NalixUsageAnalyzer
             ITypeSymbol byteType = compilation.GetSpecialType(SpecialType.System_Byte);
             INamedTypeSymbol? readOnlyMemoryByteType = readOnlyMemoryType?.Construct(byteType);
             INamedTypeSymbol? memoryByteType = memoryType?.Construct(byteType);
-            INamedTypeSymbol? fixedSizeSerializableType = compilation.GetTypeByMetadataName("Nalix.Common.Serialization.IFixedSizeSerializable");
+            INamedTypeSymbol? fixedSizeSerializableType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Serialization.IFixedSizeSerializable");
             INamedTypeSymbol? packetDispatchType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketDispatch");
-            INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Common.Abstractions.IBufferLease");
+            INamedTypeSymbol? bufferLeaseType = compilation.GetTypeByMetadataName("Nalix.Abstractions.IBufferLease");
             int packetHeaderRegionOffset = 12;
             if (packetHeaderOffsetType is not null)
             {

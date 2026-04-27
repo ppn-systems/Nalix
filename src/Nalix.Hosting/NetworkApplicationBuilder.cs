@@ -7,15 +7,16 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.Memory;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
 using Nalix.Network.Routing;
@@ -91,6 +92,20 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<BufferPoolManager>(manager);
         BufferLease.ByteArrayPool.Configure(manager);
+
+        return this;
+    }
+
+    /// <summary>
+    /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    public INetworkApplicationBuilder ConfigureObjectPoolManager(ObjectPoolManager manager)
+    {
+        ArgumentNullException.ThrowIfNull(manager);
+        InstanceManager.Instance.Register<ObjectPoolManager>(manager);
+        PacketRegistry.Configure(manager);
 
         return this;
     }

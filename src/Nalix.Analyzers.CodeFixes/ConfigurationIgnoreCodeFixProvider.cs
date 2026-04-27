@@ -67,7 +67,7 @@ public sealed class ConfigurationIgnoreCodeFixProvider : CodeFixProvider
         AttributeListSyntax attributeList = SyntaxFactory.AttributeList(
             SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Attribute(
-                    SyntaxFactory.ParseName("Nalix.Common.Abstractions.ConfiguredIgnore"))));
+                    SyntaxFactory.ParseName("Nalix.Abstractions.Abstractions.ConfiguredIgnore"))));
 
         editor.ReplaceNode(property, property.AddAttributeLists(attributeList));
         return editor.GetChangedDocument();

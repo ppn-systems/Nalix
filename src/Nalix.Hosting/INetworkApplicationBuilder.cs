@@ -4,10 +4,11 @@
 using System;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 
@@ -53,6 +54,13 @@ public interface INetworkApplicationBuilder
     /// <param name="manager">The manager instance to use.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager);
+
+    /// <summary>
+    /// Explicitly registers a <see cref="ObjectPoolManager"/> instance to be used by the application.
+    /// </summary>
+    /// <param name="manager">The manager instance to use.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureObjectPoolManager(ObjectPoolManager manager);
 
     /// <summary>
     /// Configures the server identity certificate path.

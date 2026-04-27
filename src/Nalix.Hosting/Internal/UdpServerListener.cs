@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 using Nalix.Network.Listeners.Udp;
 
 #if DEBUG

@@ -6,9 +6,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Networking;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Dispatching;
@@ -144,7 +144,7 @@ public sealed class NetworkApplication : IActivatableAsync
             {
                 InstanceManager.Instance.Register<IPacketDispatch>(_packetDispatch);
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
             }
 
@@ -200,7 +200,7 @@ public sealed class NetworkApplication : IActivatableAsync
                     _listeners[i].Deactivate(cancellationToken);
                     _listeners[i].Dispose();
                 }
-                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_stopListenerFailedMessage(_logger, ex);
                 }
@@ -214,7 +214,7 @@ public sealed class NetworkApplication : IActivatableAsync
                 {
                     _protocols[i].Dispose();
                 }
-                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_disposeProtocolFailedMessage(_logger, ex);
                 }
@@ -228,7 +228,7 @@ public sealed class NetworkApplication : IActivatableAsync
                 {
                     await _hostedServices[i].DeactivateAsync(cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
@@ -241,7 +241,7 @@ public sealed class NetworkApplication : IActivatableAsync
             {
                 _packetDispatch?.Deactivate(cancellationToken);
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
