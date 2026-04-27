@@ -24,11 +24,6 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Results;
 
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
 namespace Nalix.Runtime.Internal.Compilation;
 
 /// <summary>
@@ -929,3 +924,4 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     #endregion Private Methods
 }
+

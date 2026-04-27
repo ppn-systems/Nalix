@@ -14,11 +14,6 @@ using Nalix.Runtime.Internal.Results.Primitives;
 using Nalix.Runtime.Internal.Results.Task;
 using Nalix.Runtime.Internal.Results.Void;
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
 namespace Nalix.Runtime.Internal.Results;
 
 /// <summary>
@@ -137,3 +132,4 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
         return new UnsupportedReturnHandler<TPacket>(returnType);
     }
 }
+

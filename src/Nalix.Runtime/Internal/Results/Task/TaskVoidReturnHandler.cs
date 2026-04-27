@@ -6,11 +6,6 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Runtime.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Runtime.Benchmarks")]
-#endif
-
 namespace Nalix.Runtime.Internal.Results.Task;
 
 /// <inheritdoc/>
@@ -28,3 +23,4 @@ internal sealed class TaskVoidReturnHandler<TPacket> : IReturnHandler<TPacket> w
         await task.ConfigureAwait(false);
     }
 }
+

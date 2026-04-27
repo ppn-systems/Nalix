@@ -8,11 +8,6 @@ using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
 namespace Nalix.Runtime.Internal.RateLimiting;
 
 /// <summary>
@@ -101,3 +96,4 @@ internal static class DirectiveGuard
         return created;
     }
 }
+

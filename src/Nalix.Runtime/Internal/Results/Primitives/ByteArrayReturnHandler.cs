@@ -6,11 +6,6 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
 namespace Nalix.Runtime.Internal.Results.Primitives;
 
 /// <inheritdoc/>
@@ -35,3 +30,4 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> 
         }
     }
 }
+
