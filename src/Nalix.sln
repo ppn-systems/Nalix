@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Analyzers", "Nalix.An
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Analyzers.CodeFixes", "Nalix.Analyzers.CodeFixes\Nalix.Analyzers.CodeFixes.csproj", "{5C2949D2-35AF-4CF5-927E-0FC1B309AE94}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Network.Hosting", "Nalix.Network.Hosting\Nalix.Network.Hosting.csproj", "{95FD7620-8809-4A71-9F79-805C21B925B7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Hosting", "Nalix.Hosting\Nalix.Hosting.csproj", "{95FD7620-8809-4A71-9F79-805C21B925B7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Runtime", "Nalix.Runtime\Nalix.Runtime.csproj", "{D17F329D-430C-4502-BCB7-F80319CDFB71}"
 EndProject
