@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<OutputType>Library</OutputType>
+		<IsTrimmable>false</IsTrimmable>
+		<Deterministic>true</Deterministic>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Description>
+			<![CDATA[Nalix.Environment provides the essential bootstrap infrastructure for the Nalix ecosystem. It coordinates system environment discovery, secure filesystem preparation (Unix-compatible permissions), and high-performance configuration loading. By decoupling environment-specific logic and settings binding from the core execution engine, it ensures a reliable and predictable startup sequence for Nalix-based servers and applications.]]>
+		</Description>
+		<PackageReleaseNotes>
+			<![CDATA[- Infrastructure Decoupling: Successfully migrated Environment IO, Unix Directory Permissions, and Configuration Loading logic from the main framework to Nalix.Environment.
+- Secure Bootstrapping: Hardened filesystem sanitization and directory preparation helpers for cross-platform reliability.
+- Performance Configuration: Optimized ConfigurationLoader and Binding systems to support zero-allocation POCO options.
+- Clean Dependency Flow: Established a lean foundation that serves as the primary configuration provider for Nalix.Engine and Nalix.Framework.]]>
+		</PackageReleaseNotes>
+	</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+	<Import Project="..\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+	</ItemGroup>
+</Project>

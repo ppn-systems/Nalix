@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<IsPackable>true</IsPackable>
+		<OutputType>Library</OutputType>
+		<IsTrimmable>false</IsTrimmable>
+		<Deterministic>true</Deterministic>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Description>
+			<![CDATA[Nalix.Codec is a high-performance data transformation and framing engine for the Nalix ecosystem. It provides a unified pipeline for serialization, stream compression (LZ4), and AEAD cryptography. 
+Designed for .NET 10, it enables zero-allocation object-to-packet transformation, secure handshake protocols, and robust data framing, ensuring maximum throughput and end-to-end data integrity.]]>
+		</Description>
+		<PackageReleaseNotes>
+			<![CDATA[- Pipeline-Oriented Architecture: Unified Serialization, Compression, and Security into a cohesive Codec stack.
+- High-Performance Framing: Integrated DataFrames and FragmentAssembler for reliable large-packet handling.
+- Advanced Cryptography: Hardened AEAD engines (ChaCha20Poly1305/Salsa20Poly1305) and X25519 handshake logic.
+- Optimized Serialization: Refined LiteSerializer with IL-emitted codecs for unmanaged and complex types.
+- Efficient Compression: Integrated LZ4 block encoders with custom memory pool support to minimize GC pressure.]]>
+		</PackageReleaseNotes>
+	</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+	<Import Project="..\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+	</ItemGroup>
+</Project>
