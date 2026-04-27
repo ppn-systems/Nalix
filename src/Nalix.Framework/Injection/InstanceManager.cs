@@ -12,8 +12,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Injection.DI;
 
 namespace Nalix.Framework.Injection;
@@ -288,7 +288,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             {
                 Type itf = itfs[i];
 
-                // Skip common infrastructure interfaces that many objects implement.
+                // Skip Abstractions infrastructure interfaces that many objects implement.
                 // Registrations for these would clobber each other and cause accidental disposal
                 // of previously registered objects (e.g. ConnectionHub clobbered by BufferPoolManager).
                 if (itf.Name is "IDisposable" or "IAsyncDisposable" or "IReportable")

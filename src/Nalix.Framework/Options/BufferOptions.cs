@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Framework.Options;
@@ -210,7 +210,7 @@ public sealed class BufferOptions : ConfigurationLoader
                     $"Sum of buffer allocation ratios exceeds 1.0 ({totalRatio}).");
             }
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             throw new ValidationException(
                 $"Invalid BufferAllocations: {ex.Message}");

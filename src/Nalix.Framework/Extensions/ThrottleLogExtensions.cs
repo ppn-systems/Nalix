@@ -6,8 +6,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Networking;
-using Nalix.Framework.Time;
+using Nalix.Abstractions.Networking;
+using Nalix.Environment.Time;
 
 namespace Nalix.Framework.Extensions;
 
