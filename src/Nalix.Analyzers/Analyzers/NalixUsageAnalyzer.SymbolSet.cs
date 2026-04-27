@@ -170,7 +170,7 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? middlewareStageAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.Middleware.MiddlewareStageAttribute");
             INamedTypeSymbol? middlewareStageType = compilation.GetTypeByMetadataName("Nalix.Abstractions.Middleware.MiddlewareStage");
             INamedTypeSymbol? configurationLoaderType = compilation.GetTypeByMetadataName("Nalix.Environment.Configuration.Binding.ConfigurationLoader");
-            INamedTypeSymbol? configurationIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.ConfigurationIgnoreAttribute");
+            INamedTypeSymbol? configurationIgnoreAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.ConfiguredIgnoreAttribute");
             INamedTypeSymbol? reservedOpcodePermittedAttribute = compilation.GetTypeByMetadataName("Nalix.Abstractions.ReservedOpcodePermittedAttribute");
             INamedTypeSymbol? packetMetadataProviderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.IPacketMetadataProvider");
             INamedTypeSymbol? packetMetadataBuilderType = compilation.GetTypeByMetadataName("Nalix.Runtime.Dispatching.PacketMetadataBuilder");
