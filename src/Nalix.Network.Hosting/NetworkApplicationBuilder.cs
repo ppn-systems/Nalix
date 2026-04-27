@@ -548,7 +548,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         // Always register a new manager to ensure isolation.
 
-        BufferPoolManager manager = new BufferPoolManager(_state.Logger);
+        BufferPoolManager manager = new(_state.Logger);
         try
         {
             InstanceManager.Instance.Register<BufferPoolManager>(manager);

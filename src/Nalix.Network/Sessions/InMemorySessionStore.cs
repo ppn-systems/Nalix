@@ -10,7 +10,6 @@ using System.Threading.Tasks;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking.Sessions;
-using Nalix.Common.Primitives;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;

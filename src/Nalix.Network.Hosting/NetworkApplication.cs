@@ -243,7 +243,10 @@ public sealed class NetworkApplication : IActivatableAsync
             }
             catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                s_stopDispatcherFailedMessage(_logger, ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    s_stopDispatcherFailedMessage(_logger, ex);
+                }
             }
 
             _packetDispatch = null;
