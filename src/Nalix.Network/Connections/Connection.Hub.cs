@@ -17,14 +17,11 @@ using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Sessions;
 using Nalix.Common.Security;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;
 using Nalix.Network.Sessions;
-
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Network.Connections;
 
@@ -147,7 +144,7 @@ public sealed class ConnectionHub : IConnectionHub
         for (int i = 0; i < _shardCount; i++)
         {
             _shards[i] = new ConcurrentDictionary<ulong, IConnection>(
-                concurrencyLevel: Environment.ProcessorCount,
+                concurrencyLevel: System.Environment.ProcessorCount,
                 capacity: perShardCapacity);
         }
     }

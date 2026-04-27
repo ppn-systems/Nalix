@@ -11,9 +11,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.RateLimiting;
 
 /// <summary>
@@ -88,7 +85,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         _staleWindowThresholdSeconds = (uint)Math.Max(1, (int)NormalizePositive(staleWindowThreshold, TimeSpan.FromSeconds(10)).TotalSeconds);
 
         // Capacity hint to avoid early resizes, concurrencyLevel = number of CPU cores.
-        int concurrency = Environment.ProcessorCount;
+        int concurrency = System.Environment.ProcessorCount;
         _ipv4Map = new ConcurrentDictionary<uint, WindowSlot>(concurrency, Math.Max(1, initialIPv4Capacity));
         _ipv6Map = new ConcurrentDictionary<string, WindowSlot>(
             concurrency, Math.Max(1, initialIPv6Capacity), StringComparer.Ordinal);
@@ -135,7 +132,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         }
 
         // Use a real 1000 ms second window so configured PPS limits are precise.
-        uint currentSecond = (uint)(Environment.TickCount64 / 1000);
+        uint currentSecond = (uint)(System.Environment.TickCount64 / 1000);
 
         return endPoint.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork
             ? this.TryAcceptIPv4(endPoint.Address, currentSecond)
@@ -254,7 +251,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     /// </summary>
     private void EvictStaleWindows()
     {
-        uint currentSecond = (uint)(Environment.TickCount64 / 1000);
+        uint currentSecond = (uint)(System.Environment.TickCount64 / 1000);
         uint staleThreshold = _staleWindowThresholdSeconds;
         int removed = 0;
 

@@ -8,8 +8,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.Environment;
+using Nalix.Environment.Configuration;
+using Nalix.Environment.IO;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -134,7 +134,7 @@ public static partial class Bootstrap
         ConfigurationManager.Instance.Flush();
 
         // 4. Show high-end startup diagnostics if running in interactive mode
-        if (Environment.UserInteractive && !hostingOptions.DisableStartupBanner)
+        if (System.Environment.UserInteractive && !hostingOptions.DisableStartupBanner)
         {
             PRINT_STARTUP_BANNER(hostingOptions);
         }
@@ -156,13 +156,13 @@ public static partial class Bootstrap
         Console.ResetColor();
 
         Console.WriteLine($"[INIT] Version   : {typeof(Bootstrap).Assembly.GetName().Version}");
-        Console.WriteLine($"[INIT] PID       : {Environment.ProcessId}");
-        Console.WriteLine($"[INIT] OS        : {Environment.OSVersion}");
+        Console.WriteLine($"[INIT] PID       : {System.Environment.ProcessId}");
+        Console.WriteLine($"[INIT] OS        : {System.Environment.OSVersion}");
         Console.WriteLine($"[INIT] Arch      : {RuntimeInformation.ProcessArchitecture}");
         Console.WriteLine($"[INIT] Runtime   : {RuntimeInformation.FrameworkDescription}");
         Console.WriteLine($"[INIT] Config    : {ConfigurationManager.Instance.ConfigFilePath}");
         Console.WriteLine($"[INIT] GC Mode   : {s_serverGC}");
-        Console.WriteLine($"[INIT] Processors: {Environment.ProcessorCount}");
+        Console.WriteLine($"[INIT] Processors: {System.Environment.ProcessorCount}");
         Console.WriteLine();
         Console.WriteLine();
 
@@ -176,7 +176,6 @@ public static partial class Bootstrap
         Console.WriteLine(Resource.Separator);
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1848:Use the LoggerMessage delegates", Justification = "<Pending>")]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
     private static void REGISTER_GLOBAL_EXCEPTION_HANDLERS()
     {

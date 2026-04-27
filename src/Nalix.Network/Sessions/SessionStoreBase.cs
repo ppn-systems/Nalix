@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Sessions;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Time;
 using Nalix.Network.Options;

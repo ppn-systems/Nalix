@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Hosting.Options;
 

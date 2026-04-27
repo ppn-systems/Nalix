@@ -8,7 +8,7 @@ using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;

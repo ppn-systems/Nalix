@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;

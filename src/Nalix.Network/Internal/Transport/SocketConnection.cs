@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;

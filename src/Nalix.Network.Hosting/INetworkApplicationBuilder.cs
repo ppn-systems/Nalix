@@ -6,7 +6,7 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
 using Nalix.Common.Networking;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;

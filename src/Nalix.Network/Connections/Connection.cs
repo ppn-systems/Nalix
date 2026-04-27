@@ -12,7 +12,7 @@ using Nalix.Common.Identity;
 using Nalix.Common.Networking;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;

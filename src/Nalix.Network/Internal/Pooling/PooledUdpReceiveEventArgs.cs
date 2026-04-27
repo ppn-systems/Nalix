@@ -9,7 +9,7 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Network.Options;
 
 #if DEBUG
