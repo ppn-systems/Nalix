@@ -3,7 +3,7 @@
 
 using Nalix.Common.Abstractions;
 using Nalix.Common.Security;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Runtime.Options;
 

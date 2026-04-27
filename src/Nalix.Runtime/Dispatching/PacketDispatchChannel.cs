@@ -71,7 +71,7 @@ public sealed class PacketDispatchChannel
 
         _wakeSignal = new SemaphoreSlim(0, int.MaxValue);
 
-        _maxDrainPerWake = Math.Clamp(Environment.ProcessorCount * this.Options.MaxDrainPerWakeMultiplier, this.Options.MinDrainPerWake, this.Options.MaxDrainPerWake);
+        _maxDrainPerWake = Math.Clamp(System.Environment.ProcessorCount * this.Options.MaxDrainPerWakeMultiplier, this.Options.MinDrainPerWake, this.Options.MaxDrainPerWake);
     }
 
     #endregion Constructors
@@ -114,7 +114,7 @@ public sealed class PacketDispatchChannel
 
         Volatile.Write(ref _activeLoops, 0);
 
-        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(Environment.ProcessorCount, this.Options.MinDispatchLoops, this.Options.MaxDispatchLoops);
+        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(System.Environment.ProcessorCount, this.Options.MinDispatchLoops, this.Options.MaxDispatchLoops);
         _workerHandle = new IWorkerHandle[_dispatchLoops];
         CancellationToken linkedTokenRef = linkedToken;
 

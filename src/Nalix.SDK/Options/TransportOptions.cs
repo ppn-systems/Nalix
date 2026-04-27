@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Primitives;
 using Nalix.Common.Security;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 using Nalix.Framework.Identifiers;
 
 namespace Nalix.SDK.Options;

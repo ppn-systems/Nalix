@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.DataFrames.Chunks;
 using Nalix.Framework.DataFrames.Transforms;
 using Nalix.Framework.Memory.Buffers;

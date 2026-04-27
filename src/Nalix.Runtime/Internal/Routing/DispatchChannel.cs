@@ -15,7 +15,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Options;
@@ -729,7 +729,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetBucketCount(DispatchOptions options)
     {
-        int target = Math.Clamp(Environment.ProcessorCount * options.BucketCountMultiplier, options.MinBucketCount, options.MaxBucketCount);
+        int target = Math.Clamp(System.Environment.ProcessorCount * options.BucketCountMultiplier, options.MinBucketCount, options.MaxBucketCount);
         uint rounded = BitOperations.RoundUpToPowerOf2((uint)target);
         return rounded == 0 ? options.MinBucketCount : (int)rounded;
     }

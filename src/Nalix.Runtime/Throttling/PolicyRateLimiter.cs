@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;

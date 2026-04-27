@@ -3,8 +3,8 @@
 
 using System.IO;
 using System.Runtime.CompilerServices;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.Environment;
+using Nalix.Environment.Configuration;
+using Nalix.Environment.IO;
 using Nalix.Framework.Options;
 using Nalix.SDK.Options;
 

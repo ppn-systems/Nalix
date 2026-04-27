@@ -5,7 +5,7 @@ using System;
 using System.Threading;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
 
 #if DEBUG
@@ -54,7 +54,7 @@ internal static class DirectiveGuard
         try
         {
             state.SpinLock.Enter(ref lockTaken);
-            long nowMs = Environment.TickCount64;
+            long nowMs = System.Environment.TickCount64;
 
             if (attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed)
                 && boxed is long lastSentAtMs
