@@ -23,8 +23,8 @@ Designed for .NET 10, it enables zero-allocation object-to-packet transformation
 	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Environment\Nalix.Environment.csproj" />
+		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">

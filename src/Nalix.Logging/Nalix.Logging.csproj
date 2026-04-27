@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -28,7 +28,8 @@ It features a modular engine with pluggable sinks (console, file, channel), batc
 	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
+		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
 	</ItemGroup>
 </Project>

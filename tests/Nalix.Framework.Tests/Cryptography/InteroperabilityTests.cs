@@ -1,6 +1,6 @@
 using System;
 using System.Security.Cryptography;
-using Nalix.Common.Primitives;
+using Nalix.Abstractions.Primitives;
 using Nalix.Framework.Security.Asymmetric;
 using Nalix.Framework.Security.Hashing;
 using Nalix.Framework.Security.Symmetric;

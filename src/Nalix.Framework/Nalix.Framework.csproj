@@ -26,8 +26,9 @@ Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) prin
 	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Environment\Nalix.Environment.csproj" />
+		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
