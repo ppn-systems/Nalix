@@ -3,17 +3,17 @@ using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Environment;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Environment;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Security.Asymmetric;
-using Nalix.Network.Hosting;
+using Nalix.Codec.Security.Asymmetric;
+using Nalix.Hosting;
 using Nalix.Runtime.Handlers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
@@ -109,7 +109,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
             Assert.True(session.Options.EncryptionEnabled);
             Assert.NotEqual(Bytes32.Zero, session.Options.Secret);
             Assert.Equal(CipherSuiteType.Chacha20Poly1305, session.Options.Algorithm);
-            Assert.NotEqual(Snowflake.Empty, session.Options.SessionToken);
+            Assert.NotEqual(0UL, session.Options.SessionToken);
         }
         finally
         {
@@ -146,9 +146,9 @@ public sealed class HandshakeIntegrationTests : IDisposable
             // 1. First connect (performs Handshake)
             bool resumed1 = await session.ConnectWithResumeAsync();
             Assert.False(resumed1);
-            Assert.NotEqual(Snowflake.Empty, session.Options.SessionToken);
+            Assert.NotEqual(0UL, session.Options.SessionToken);
             
-            Snowflake token = session.Options.SessionToken;
+            ulong token = session.Options.SessionToken;
             Bytes32 secret = session.Options.Secret;
 
             await session.DisconnectAsync();
@@ -156,7 +156,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
             // 2. Second connect (should resume)
             bool resumed2 = await session.ConnectWithResumeAsync();
             Assert.True(resumed2);
-            Assert.NotEqual(Snowflake.Empty, session.Options.SessionToken);
+            Assert.NotEqual(0UL, session.Options.SessionToken);
             Assert.Equal(secret, session.Options.Secret);
             Assert.True(session.Options.EncryptionEnabled);
         }
@@ -168,3 +168,18 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

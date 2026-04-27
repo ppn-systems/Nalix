@@ -1,3 +1,4 @@
+using Nalix.Codec.Memory;
 using System;
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
@@ -5,11 +6,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
@@ -194,3 +195,19 @@ internal sealed class FakePacketRegistry : IPacketRegistry
         return true;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

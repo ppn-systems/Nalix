@@ -1,9 +1,9 @@
 #if DEBUG
 using System;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Network.Hosting;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Hosting;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -54,3 +54,18 @@ public sealed class PingExtensionsTests : IDisposable
     public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
