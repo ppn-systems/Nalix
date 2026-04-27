@@ -1,10 +1,11 @@
+using Nalix.Codec.Extensions;
 using System;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 
@@ -81,3 +82,17 @@ namespace Nalix.Debug
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
