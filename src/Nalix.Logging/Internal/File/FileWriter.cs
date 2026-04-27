@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Environment;
+using Nalix.Environment.IO;
 using Nalix.Logging.Exceptions;
 
 #if DEBUG
@@ -334,9 +334,9 @@ internal sealed class FileWriter : IDisposable
             StringBuilder sb = new(256);
             _ = sb.AppendLine("-----------------------------------------------------");
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Log File Created: {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"USER: {Environment.UserName}");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Machine: {Environment.MachineName}");
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"OS: {Environment.OSVersion}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"USER: {System.Environment.UserName}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Machine: {System.Environment.MachineName}");
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"OS: {System.Environment.OSVersion}");
             _ = sb.AppendLine("-----------------------------------------------------");
 
             string header = sb.ToString();

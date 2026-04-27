@@ -9,8 +9,8 @@ using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration.Binding;
-using Nalix.Framework.Environment;
+using Nalix.Environment.Configuration.Binding;
+using Nalix.Environment.IO;
 using Nalix.Logging.Exceptions;
 
 namespace Nalix.Logging.Options;
@@ -56,7 +56,7 @@ public sealed class FileLogOptions : ConfigurationLoader
         set => field = string.IsNullOrWhiteSpace(value)
             ? $"log_{DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}_.log"
             : value;
-    } = $"log_{Environment.MachineName}_.log";
+    } = $"log_{System.Environment.MachineName}_.log";
 
     /// <summary>
     /// Gets or sets the interval at which buffered log entries are flushed to disk.

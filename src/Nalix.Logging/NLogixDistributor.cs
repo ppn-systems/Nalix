@@ -250,13 +250,13 @@ public sealed class NLogixDistributor : INLogixDistributor
     /// </summary>
     /// <returns>A string containing diagnostic information.</returns>
     public override string ToString()
-        => $"[NLogixDistributor Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + Environment.NewLine +
-           $"- USER: {Environment.UserName}" + Environment.NewLine +
-           $"- Active Targets: {_targets.Count}" + Environment.NewLine +
-           $"- Entries Published: {this.TotalEntriesPublished:N0}" + Environment.NewLine +
-           $"- Target Operations: {this.TotalTargetInvocations:N0}" + Environment.NewLine +
-           $"- Errors: {this.TotalPublishErrors:N0}" + Environment.NewLine +
-           $"- Disposed: {_isDisposed != 0}" + Environment.NewLine;
+        => $"[NLogixDistributor Stats - {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]" + System.Environment.NewLine +
+           $"- USER: {System.Environment.UserName}" + System.Environment.NewLine +
+           $"- Active Targets: {_targets.Count}" + System.Environment.NewLine +
+           $"- Entries Published: {this.TotalEntriesPublished:N0}" + System.Environment.NewLine +
+           $"- Target Operations: {this.TotalTargetInvocations:N0}" + System.Environment.NewLine +
+           $"- Errors: {this.TotalPublishErrors:N0}" + System.Environment.NewLine +
+           $"- Disposed: {_isDisposed != 0}" + System.Environment.NewLine;
 
     #endregion Public Methods
 }

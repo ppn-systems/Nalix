@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Logging.Options;
 

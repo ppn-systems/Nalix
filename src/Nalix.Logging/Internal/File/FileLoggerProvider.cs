@@ -12,8 +12,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Concurrency;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.Environment;
+using Nalix.Environment.Configuration;
+using Nalix.Environment.IO;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -151,18 +151,18 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
 
     public string GenerateReport()
         => $"FileLoggerProvider [UTC: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}]"
-         + Environment.NewLine + $"- USER: {Environment.UserName}"
-         + Environment.NewLine + $"- Log File: {Path.Combine(Directories.LogsDirectory, this.Options.LogFileName)}"
-         + Environment.NewLine + $"- Written:  {this.TotalEntriesWritten:N0}"
-         + Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
-         + Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
+         + System.Environment.NewLine + $"- USER: {System.Environment.UserName}"
+         + System.Environment.NewLine + $"- Log File: {Path.Combine(Directories.LogsDirectory, this.Options.LogFileName)}"
+         + System.Environment.NewLine + $"- Written:  {this.TotalEntriesWritten:N0}"
+         + System.Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
+         + System.Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
 
     public IDictionary<string, object> GetReportData()
     {
         return new Dictionary<string, object>(StringComparer.Ordinal)
         {
             ["UtcNow"] = DateTime.UtcNow,
-            ["User"] = Environment.UserName,
+            ["User"] = System.Environment.UserName,
             ["LogFile"] = Path.Combine(Directories.LogsDirectory, this.Options.LogFileName),
             ["Written"] = this.TotalEntriesWritten,
             ["Dropped"] = this.EntriesDroppedCount,
