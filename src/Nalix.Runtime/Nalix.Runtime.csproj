@@ -31,6 +31,7 @@ It serves as the foundation for building complex message-processing workflows, o
 	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
+		<ProjectReference Include="..\Nalix.Codec\Nalix.Codec.csproj" />
 		<ProjectReference Include="..\Nalix.Common\Nalix.Common.csproj" />
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
