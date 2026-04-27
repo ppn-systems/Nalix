@@ -11,11 +11,11 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
-using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Networking.Packets;
 
 namespace Nalix.Codec.DataFrames;
 
@@ -128,7 +128,7 @@ public sealed class PacketRegistryFactory
     /// <param name="requireAttribute">Only register classes with the attribute if true; register all if false.</param>
     public PacketRegistryFactory RegisterAllPackets(Assembly? asm, bool requireAttribute = false)
     {
-        if (asm is null) throw new ArgumentNullException(nameof(asm));
+        ArgumentNullException.ThrowIfNull(asm);
 
         int count = 0;
         foreach (Type? type in SAFE_GET_TYPES(asm))
@@ -185,7 +185,7 @@ public sealed class PacketRegistryFactory
     /// </summary>
     public PacketRegistryFactory IncludeAssembly(Assembly? asm)
     {
-        if (asm is null) throw new ArgumentNullException(nameof(asm));
+        ArgumentNullException.ThrowIfNull(asm);
 
         bool added = _assemblies.Add(asm);
         TRACE(added ? $"include-asm name={asm.GetName().Name}" : $"include-asm-skip name={asm.GetName().Name}");
