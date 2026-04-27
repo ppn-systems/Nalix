@@ -5,7 +5,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Environment;
+using Nalix.Environment.IO;
 
 namespace Nalix.Framework.Extensions;
 

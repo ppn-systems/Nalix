@@ -15,7 +15,7 @@ using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.DataFrames.Internal;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;

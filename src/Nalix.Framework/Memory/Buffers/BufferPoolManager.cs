@@ -13,15 +13,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.Buffers;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Framework.Memory.Buffers;
 

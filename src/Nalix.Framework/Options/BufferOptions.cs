@@ -8,13 +8,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Microsoft.Extensions.Logging;
 using Nalix.Common.Abstractions;
-using Nalix.Framework.Configuration.Binding;
-using Nalix.Framework.Injection;
-
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
+using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Framework.Options;
 
@@ -263,15 +258,8 @@ public sealed class BufferOptions : ConfigurationLoader
                         : ((int, double)[])allocations;
                 }
                 catch (Exception ex) when (ex is FormatException or ArgumentException
-                                                      or OverflowException or ArgumentOutOfRangeException)
+                                            or OverflowException or ArgumentOutOfRangeException)
                 {
-                    if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
-                    {
-                        logger.LogError(
-                            $"[FW.{nameof(BufferOptions)}:Internal] " +
-                            $"alloc-parse-fail str='{bufferAllocationsString}' msg={ex.Message}");
-                    }
-
                     throw new ArgumentException(
                         $"[{nameof(BufferOptions)}] Malformed allocation string. Expected '<size>,<ratio>;...'. ERROR: {ex.Message}");
                 }

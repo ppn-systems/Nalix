@@ -5,7 +5,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Configuration.Binding;
+using Nalix.Environment.Configuration.Binding;
 using Nalix.Framework.DataFrames.Chunks;
 
 namespace Nalix.Framework.Options;

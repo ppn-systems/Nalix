@@ -15,9 +15,6 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 using Nalix.Framework.Time;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Framework.Tasks;
 
 public partial class TaskManager

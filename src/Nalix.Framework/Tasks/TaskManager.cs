@@ -15,14 +15,11 @@ using Microsoft.Extensions.Logging;
 using Nalix.Common.Concurrency;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Identity;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
-
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Framework.Tasks;
 

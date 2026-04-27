@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Common.Identity;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Options;
 using Nalix.Framework.Random;
 
