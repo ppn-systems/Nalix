@@ -11,7 +11,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
@@ -390,7 +390,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (!string.IsNullOrEmpty(stringValue))
         {
-            // Optimize common boolean representations
+            // Optimize Abstractions boolean representations
             if (stringValue.Equals("true", StringComparison.OrdinalIgnoreCase) ||
                 stringValue.Equals("1", StringComparison.OrdinalIgnoreCase) ||
                 stringValue.Equals("yes", StringComparison.OrdinalIgnoreCase))

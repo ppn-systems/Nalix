@@ -8,7 +8,7 @@ using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.IO;
 using Nalix.Logging.Exceptions;

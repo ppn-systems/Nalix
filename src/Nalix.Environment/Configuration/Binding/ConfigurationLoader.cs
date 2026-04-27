@@ -22,7 +22,7 @@ namespace Nalix.Environment.Configuration.Binding;
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
 /// Supported data types: int, long, short, byte, double, float, decimal, bool, char, string, DateTime, TimeSpan, Guid, and all Enum types.
 /// The section and key names in the INI file are derived from the class and property names.
-/// Apply <see cref="Common.Abstractions.IniCommentAttribute"/> to the class or its properties
+/// Apply <see cref="Abstractions.IniCommentAttribute"/> to the class or its properties
 /// to generate human-readable comments in the INI file on first run.
 /// </remarks>
 [SkipLocalsInit]
@@ -122,7 +122,7 @@ public abstract partial class ConfigurationLoader
 
     /// <summary>
     /// Initializes an instance of <see cref="ConfigurationLoader"/> from the provided <see cref="IniConfig"/>.
-    /// Section and property comments from <see cref="Common.Abstractions.IniCommentAttribute"/>
+    /// Section and property comments from <see cref="Abstractions.IniCommentAttribute"/>
     /// are written to the file the first time a key is generated.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
@@ -170,7 +170,7 @@ public abstract partial class ConfigurationLoader
                 throw new InvalidOperationException(
                     $"Invalid operation while setting section={section} key={propertyInfo.Name}.", ex);
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 throw new InvalidOperationException(
                     $"Unexpected error while setting section={section} key={propertyInfo.Name}: {ex.Message}", ex);

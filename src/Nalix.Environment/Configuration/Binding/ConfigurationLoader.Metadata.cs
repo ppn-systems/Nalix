@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Internal;
 
 namespace Nalix.Environment.Configuration.Binding;

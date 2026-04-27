@@ -10,8 +10,8 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Concurrency;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
 using Nalix.Framework.Injection;
@@ -141,7 +141,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
             await _writer.WriteAsync(new LogMessage(timestampUtc, logLevel, eventId, message, exception), _cts.Token).ConfigureAwait(false);
             _ = Interlocked.Increment(ref _queued);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Increment(ref _entriesDroppedCount);
         }
@@ -236,7 +236,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         catch (OperationCanceledException)
         {
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
 #if DEBUG
             Debug.WriteLine($"[LG.FileLogger] Consumer error: {ex}");
@@ -292,7 +292,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
             _fileWriter.Flush();
             _fileWriter.Dispose();
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
 #if DEBUG
             Debug.WriteLine($"[LG.FileLogger] Dispose error: {ex}");

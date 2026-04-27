@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Concurrency;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -236,7 +236,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
             System.Console.Write(sb);
             _ = Interlocked.Add(ref _writtenCount, batch.Count);
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Add(ref _droppedCount, batch.Count);
         }

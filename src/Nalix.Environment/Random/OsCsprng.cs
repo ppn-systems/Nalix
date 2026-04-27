@@ -8,7 +8,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-using Nalix.Common.Exceptions;
+using Nalix.Abstractions.Exceptions;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]

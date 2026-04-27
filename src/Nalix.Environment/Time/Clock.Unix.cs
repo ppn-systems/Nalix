@@ -6,7 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Framework.Time;
+namespace Nalix.Environment.Time;
 
 public static partial class Clock
 {
