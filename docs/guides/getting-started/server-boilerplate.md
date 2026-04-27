@@ -16,7 +16,7 @@ For 99% of applications, the **Hosting Builder** is the standard way to bootstra
 ```csharp
 using Microsoft.Extensions.Logging;
 using Nalix.Logging;
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Framework.Configuration;
 
@@ -62,7 +62,7 @@ In a real project, you should split these into separate files. This boilerplate 
 The protocol translates raw frames into clean objects. Keep this thin; its only job is to forward data to the dispatcher.
 
 ```csharp
-using Nalix.Common.Networking;
+using Nalix.Abstractions.Networking;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 
@@ -83,7 +83,7 @@ public sealed class MyProtocol : Protocol
 Handlers are where your application logic lives. Use `IPacketContext<T>` to access the packet and the connection safely.
 
 ```csharp
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketController("SystemHandlers")]
 public sealed class MyPingHandler

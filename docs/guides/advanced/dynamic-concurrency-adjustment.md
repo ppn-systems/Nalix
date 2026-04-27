@@ -48,8 +48,8 @@ else if (delta < 0) {
 Here is a complete example of a middleware that lowers the concurrency limit of a specific opcode when the system CPU usage exceeds a threshold.
 
 ```csharp
-using Nalix.Common.Middleware;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Tasks;
 using Nalix.Runtime.Throttling;
 
@@ -129,5 +129,5 @@ public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<Cancell
 ## Related Information
 
 - [Concurrency Gate API](../../api/runtime/middleware/concurrency-gate.md)
-- [TaskManager Monitoring](../../api/framework/runtime/task-manager.md)
+- [TaskManager Monitoring](../../api/framework/task-manager.md)
 - [Custom Middleware Guide](../extensibility/custom-middleware.md)
