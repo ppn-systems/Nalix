@@ -22,7 +22,7 @@ namespace Nalix.Framework.Memory.Objects;
 /// <summary>
 /// Provides thread-safe access to a collection of object pools.
 /// </summary>
-public sealed class ObjectPoolManager : IReportable
+public sealed class ObjectPoolManager : IObjectPoolManager
 {
     #region Nested Types
 
