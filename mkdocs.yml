@@ -191,12 +191,12 @@ nav:
         - Identity Certificate Tool: guides/tools/certificate-tool.md
   - Packages:
       - Overview: packages/index.md
-      - Nalix.Common: packages/nalix-common.md
+      - Nalix.Abstractions: packages/nalix-abstractions.md
       - Nalix.Framework: packages/nalix-framework.md
       - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
       - Nalix.Runtime: packages/nalix-runtime.md
-      - Nalix.Network.Hosting: packages/nalix-network-hosting.md
+      - Nalix.Hosting: packages/nalix-hosting.md
       - Nalix.SDK: packages/nalix-sdk.md
   - API:
       - Overview: api/index.md
@@ -204,43 +204,46 @@ nav:
         - Overview: api/analyzers/index.md
         - Diagnostic Codes: api/analyzers/diagnostic-codes.md
         - Code Fixes: api/analyzers/code-fixes.md
-      - Common:
-        - Overview: api/common/index.md
-        - Control Type: api/common/protocols/control-type.md
-        - Diagnostics Contracts: api/common/diagnostics-contracts.md
-        - Packet Contracts: api/common/packet-contracts.md
-        - Connection Contracts: api/common/connection-contracts.md
-        - Session Contracts: api/common/session-contracts.md
-        - Concurrency Contracts: api/common/concurrency-contracts.md
-        - Enums: api/common/enums.md
+      - Abstractions:
+        - Overview: api/abstractions/index.md
+        - Control Type: api/abstractions/protocols/control-type.md
+        - Packet Contracts: api/abstractions/packet-contracts.md
+        - Connection Contracts: api/abstractions/connection-contracts.md
+        - Session Contracts: api/abstractions/session-contracts.md
+        - Concurrency Contracts: api/abstractions/concurrency-contracts.md
+        - Packet Attributes: api/abstractions/packet-attributes.md
+        - Packet Metadata: api/abstractions/packet-metadata.md
+        - Enums: api/abstractions/enums.md
       - Framework:
         - Overview: api/framework/index.md
-        - Environment: api/framework/environment/directories.md
+        - Environment:
+          - Directories: api/environment/directories.md
+          - Clock: api/environment/clock.md
+          - Timing Scope: api/environment/timing-scope.md
+          - Configuration: api/environment/configuration.md
         - Runtime:
-          - Clock: api/framework/runtime/clock.md
-          - Snowflake: api/framework/runtime/snowflake.md
-          - Timing Scope: api/framework/runtime/timing-scope.md
-          - Task Manager: api/framework/runtime/task-manager.md
-          - Configuration: api/framework/runtime/configuration.md
-          - Singleton Base: api/framework/runtime/singleton-base.md
-          - Instance Manager (DI): api/framework/runtime/instance-manager.md
+          - Snowflake: api/framework/snowflake.md
+          - Task Manager: api/framework/task-manager.md
+          - Singleton Base: api/framework/singleton-base.md
+          - Instance Manager (DI): api/framework/instance-manager.md
         - Options:
           - Worker Options: api/framework/options/worker-options.md
           - Recurring Options: api/framework/options/recurring-options.md
-          - Packet Options: api/framework/options/packet-options.md
-        - Packets:
-          - Frame Model: api/framework/packets/frame-model.md
-          - Fragmentation: api/framework/packets/fragmentation.md
-          - Built-in Frames: api/framework/packets/built-in-frames.md
-          - Packet Pooling: api/framework/packets/packet-pooling.md
-          - Packet Registry: api/framework/packets/packet-registry.md
-          - Packet IO & Headers: api/framework/packets/reader-writer-and-header-extensions.md
-        - Serialization:
-          - Serialization: api/framework/packets/serialization.md
-          - Framework Serialization: api/framework/serialization/serialization-basics.md
-          - Serialization Attributes: api/common/serialization-attributes.md
+        - Codec:
+          - Overview: packages/nalix-codec.md
+          - LZ4: api/codec/lz4.md
+          - Packets:
+            - Frame Model: api/codec/packets/frame-model.md
+            - Fragmentation: api/codec/packets/fragmentation.md
+            - Built-in Frames: api/codec/packets/built-in-frames.md
+            - Packet Registry: api/codec/packets/packet-registry.md
+          - Serialization:
+            - Serialization Basics: api/codec/serialization/serialization-basics.md
+            - Packet Serialization: api/codec/serialization/packet-serialization.md
+            - Attributes: api/abstractions/serialization-attributes.md
+            - IO & Headers: api/codec/serialization/reader-writer-and-header-extensions.md
         - Memory & Pooling:
-          - LZ4: api/framework/memory/lz4.md
+          - Packet Pooling: api/runtime/pooling/packet-pooling.md
           - Buffer Management: api/framework/memory/buffer-management.md
           - Object Pooling: api/framework/memory/object-pooling.md
           - Object Map: api/framework/memory/object-map.md
@@ -261,8 +264,6 @@ nav:
         - Handlers: api/runtime/handlers/index.md
         - Routing:
           - Overview: api/runtime/routing/index.md
-          - Attributes: api/runtime/routing/packet-attributes.md
-          - Metadata: api/runtime/routing/packet-metadata.md
           - Context: api/runtime/routing/packet-context.md
           - Packet Sender: api/runtime/routing/packet-sender.md
           - Dispatch Contracts: api/runtime/routing/dispatch-contracts.md
