@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Codec.Internal;
-using Nalix.Codec.LZ4.Encoders;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security.Primitives;
 
@@ -69,7 +68,7 @@ internal static class LZ4Decoder
             lease = rentedLease;
             return true;
         }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             rentedLease.Dispose();
             throw;

@@ -4,7 +4,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 
-namespace Nalix.Codec.LZ4.Encoders;
+namespace Nalix.Codec.LZ4;
 
 /// <summary>
 /// Provides LZ4-related compression constants used across the encoder implementation.

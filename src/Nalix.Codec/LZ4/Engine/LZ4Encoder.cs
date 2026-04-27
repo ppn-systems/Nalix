@@ -6,7 +6,6 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Nalix.Codec.Internal;
-using Nalix.Codec.LZ4.Encoders;
 
 namespace Nalix.Codec.LZ4.Engine;
 

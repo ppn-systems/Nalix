@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Codec.Internal;
 
-namespace Nalix.Codec.LZ4.Encoders;
+namespace Nalix.Codec.LZ4;
 
 /// <summary>
 /// Provides methods for compressing data using the LZ4 greedy compression algorithm.
