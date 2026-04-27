@@ -9,7 +9,7 @@ using Nalix.Codec.Memory;
 namespace Nalix.Codec.Extensions;
 
 /// <summary>
-/// Extension methods for writing primitive and common types to <see cref="DataWriter"/>.
+/// Extension methods for writing primitive and Abstractions types to <see cref="DataWriter"/>.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class DataWriterExtensions
