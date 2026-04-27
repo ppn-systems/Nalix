@@ -79,7 +79,7 @@ NLogix logger = new(cfg =>
 | `Error` | Failures requiring attention (dispatch error, handler exception) |
 | `Critical` | Unrecoverable failures (listener crash, startup failure) |
 
-## Usage with Nalix.Network.Hosting
+## Usage with Nalix.Hosting
 
 When using the hosting builder, register the logger via `ConfigureLogging`:
 
@@ -96,6 +96,6 @@ var app = NetworkApplication.CreateBuilder()
 ## Key API Pages
 
 - [Logging Overview](../api/logging/index.md)
-- [Logging Options](../api/logging/options.md)
+- [Logging Options](../api/options/network/options.md)
 - [Logging Extensions](../api/logging/extensions.md)
 - [Logging Targets](../api/logging/targets.md)
