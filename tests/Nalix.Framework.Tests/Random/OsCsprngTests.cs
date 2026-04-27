@@ -1,6 +1,6 @@
 #if DEBUG
 using System;
-using Nalix.Framework.Random.Core;
+using Nalix.Environment.Random;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Random;
@@ -45,3 +45,16 @@ public sealed class OsCsprngTests
     }
 }
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+

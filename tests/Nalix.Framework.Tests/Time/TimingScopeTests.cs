@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Threading;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Time;
@@ -34,3 +34,16 @@ public sealed class TimingScopeTests
         Assert.True(second >= first);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

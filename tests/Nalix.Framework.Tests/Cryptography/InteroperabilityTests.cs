@@ -1,10 +1,10 @@
 using System;
 using System.Security.Cryptography;
 using Nalix.Abstractions.Primitives;
-using Nalix.Framework.Security.Asymmetric;
-using Nalix.Framework.Security.Hashing;
-using Nalix.Framework.Security.Symmetric;
-using Nalix.Framework.Security.Aead;
+using Nalix.Codec.Security.Asymmetric;
+using Nalix.Codec.Security.Hashing;
+using Nalix.Codec.Security.Symmetric;
+using Nalix.Codec.Security.Aead;
 using Org.BouncyCastle.Crypto.Digests;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Macs;
@@ -89,7 +89,7 @@ public sealed class InteroperabilityTests
         byte[] message = GenerateRandom(1024);
 
         // Nalix
-        byte[] nalixTag = Nalix.Framework.Security.Hashing.Poly1305.Compute(key, message);
+        byte[] nalixTag = Nalix.Codec.Security.Hashing.Poly1305.Compute(key, message);
 
         // BouncyCastle
         var bc = new BCPoly1305();
@@ -112,7 +112,7 @@ public sealed class InteroperabilityTests
         byte[] nalixTag = new byte[16];
 
         // Nalix
-        Nalix.Framework.Security.Aead.ChaCha20Poly1305.Encrypt(key, nonce, plaintext, aad, nalixCipher, nalixTag);
+        Nalix.Codec.Security.Aead.ChaCha20Poly1305.Encrypt(key, nonce, plaintext, aad, nalixCipher, nalixTag);
 
         // BouncyCastle
         var engine = new Org.BouncyCastle.Crypto.Modes.ChaCha20Poly1305();
@@ -139,7 +139,7 @@ public sealed class InteroperabilityTests
         byte[] nalixTag = new byte[16];
 
         // Nalix
-        Nalix.Framework.Security.Aead.Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, nalixCipher, nalixTag);
+        Nalix.Codec.Security.Aead.Salsa20Poly1305.Encrypt(key, nonce, plaintext, aad, nalixCipher, nalixTag);
 
         // BouncyCastle Manual Construction
         // 1. Derive PolyKey (from block 0)
@@ -225,11 +225,11 @@ public sealed class InteroperabilityTests
         bobPrivClamped[31] |= 64;
 
         // 3. Nalix Keys
-        var aliceNalix = Nalix.Framework.Security.Asymmetric.X25519.GenerateKeyFromPrivateKey(new Bytes32(alicePrivClamped));
-        var bobNalix = Nalix.Framework.Security.Asymmetric.X25519.GenerateKeyFromPrivateKey(new Bytes32(bobPrivClamped));
+        var aliceNalix = Nalix.Codec.Security.Asymmetric.X25519.GenerateKeyFromPrivateKey(new Bytes32(alicePrivClamped));
+        var bobNalix = Nalix.Codec.Security.Asymmetric.X25519.GenerateKeyFromPrivateKey(new Bytes32(bobPrivClamped));
 
         // 4. Nalix Agreement
-        byte[] aliceSecret = Nalix.Framework.Security.Asymmetric.X25519.Agreement(aliceNalix.PrivateKey, bobNalix.PublicKey).ToByteArray();
+        byte[] aliceSecret = Nalix.Codec.Security.Asymmetric.X25519.Agreement(aliceNalix.PrivateKey, bobNalix.PublicKey).ToByteArray();
 
         // 5. BouncyCastle Keys
         byte[] alicePubBC = new byte[32];
@@ -248,3 +248,16 @@ public sealed class InteroperabilityTests
         Assert.Equal(bcSecret, aliceSecret);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

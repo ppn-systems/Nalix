@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Exceptions;
-using Nalix.Framework.Security.Symmetric;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Codec.Security.Symmetric;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -106,3 +106,16 @@ public sealed class ChaCha20Tests
         _ = Assert.ThrowsAny<CipherException>(() => cipher.GenerateKeyBlock(block));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

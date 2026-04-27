@@ -1,3 +1,4 @@
+using Nalix.Codec.Memory;
 using System;
 using Nalix.Framework.Memory.Buffers;
 using Xunit;
@@ -72,3 +73,17 @@ public sealed partial class MemoryTests
         Assert.Null(ex);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+

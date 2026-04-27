@@ -1,11 +1,11 @@
 
 using System;
 using Xunit;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Serialization;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Serialization;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Injection;
-using Nalix.Framework.DataFrames.Pooling;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Framework.Tests;
 
@@ -44,3 +44,16 @@ public class LeakReproductionTests
         Assert.Same(originalReference, refToInstance);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+

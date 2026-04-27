@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Security;
-using Nalix.Framework.Security;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.Security;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
@@ -94,3 +94,16 @@ public sealed class EnvelopeCipherTests
             EnvelopeCipher.Encrypt(key, plaintext, tooSmall, seq: null, CipherSuiteType.Chacha20Poly1305, out _));
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
