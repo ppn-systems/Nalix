@@ -5,9 +5,9 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Framework.Time;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Environment.Time;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Extensions;

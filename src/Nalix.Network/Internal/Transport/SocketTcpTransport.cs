@@ -8,8 +8,8 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Codec.Memory;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Network.Connections;
 
 #if DEBUG

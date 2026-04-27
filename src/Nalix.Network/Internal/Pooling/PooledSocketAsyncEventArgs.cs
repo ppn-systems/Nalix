@@ -5,7 +5,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
+
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]

@@ -10,9 +10,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
 
@@ -223,7 +223,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             {
                 this.Limiter.Dispose();
             }
-            catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
@@ -470,7 +470,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                         removed.Dispose();
                         disposedCount++;
                     }
-                    catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                    catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                     {
                         if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                         {

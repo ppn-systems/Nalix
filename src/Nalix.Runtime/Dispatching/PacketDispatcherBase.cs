@@ -6,16 +6,16 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
 
 namespace Nalix.Runtime.Dispatching;
 
 /// <summary>
-/// Serves as the base class for packet dispatchers, offering common configuration and logging support.
+/// Serves as the base class for packet dispatchers, offering Abstractions configuration and logging support.
 /// </summary>
 /// <typeparam name="TPacket">
 /// The packet type that implements both <see cref="IPacket"/>.

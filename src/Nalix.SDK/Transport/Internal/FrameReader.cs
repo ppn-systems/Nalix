@@ -7,12 +7,12 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Codec.DataFrames.Transforms;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Options;
-using Nalix.Common.Abstractions;
 using Nalix.Environment.Configuration;
 using Nalix.SDK.Options;
+using Nalix.Abstractions;
+using Nalix.Codec.Transforms;
 
 namespace Nalix.SDK.Transport.Internal;
 
@@ -104,7 +104,7 @@ internal sealed class FrameReader : IDisposable
 
                             this.PROCESS_NORMAL_FRAME(lease);
                         }
-                        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (rented != null)
                             {
@@ -127,7 +127,7 @@ internal sealed class FrameReader : IDisposable
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             _onError(ex);
         }

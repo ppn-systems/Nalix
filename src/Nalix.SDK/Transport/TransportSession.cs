@@ -4,14 +4,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// Provides the common contract for client-side transport sessions.
+/// Provides the Abstractions contract for client-side transport sessions.
 /// </summary>
 /// <remarks>
 /// Derived sessions expose a consistent lifecycle for connecting, disconnecting,

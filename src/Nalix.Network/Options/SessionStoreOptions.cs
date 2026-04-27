@@ -3,7 +3,7 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;

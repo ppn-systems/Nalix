@@ -6,12 +6,12 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Identity;
+using Nalix.Abstractions.Identity;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Framework.Time;
+using Nalix.Environment.Time;
+using Nalix.Abstractions;
 
 namespace Nalix.Runtime.Timekeeping;
 
@@ -340,7 +340,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                     {
                                         h(ts);
                                     }
-                                    catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                                    catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                                     {
                                         if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                                         {
@@ -355,7 +355,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                 {
                                     handler(timestamp);
                                 }
-                                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                                 {
                                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                                     {
@@ -383,7 +383,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     // Expected during shutdown
                 }
-                catch (Exception ex) when (Common.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                     {

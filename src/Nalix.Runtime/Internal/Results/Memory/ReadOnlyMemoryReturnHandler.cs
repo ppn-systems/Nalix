@@ -4,7 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
 
 #if DEBUG

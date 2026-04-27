@@ -10,12 +10,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Concurrency;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Identity;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -384,7 +384,7 @@ public sealed class PacketDispatchChannel
                  * [The Hot Loop: Draining the Channel]
                  * We drain up to _maxDrainPerWake packets in a single pass.
                  * Draining is asynchronous but optimized: synchronous completions 
-                 * (common) are essentially free.
+                 * (Abstractions) are essentially free.
                  */
                 while (processed < _maxDrainPerWake &&
                        _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))

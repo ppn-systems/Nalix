@@ -4,11 +4,11 @@
 using System;
 using System.Threading.Tasks;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Networking.Protocols;
-using Nalix.Common.Security;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Security;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;

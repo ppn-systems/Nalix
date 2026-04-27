@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Internal.Results.Memory;
 using Nalix.Runtime.Internal.Results.Packet;
 using Nalix.Runtime.Internal.Results.Primitives;
@@ -65,7 +65,7 @@ internal static class ReturnTypeHandlerFactory<TPacket> where TPacket : IPacket
     }
 
     /// <summary>
-    /// Creates the immutable base handler map for the common return types.
+    /// Creates the immutable base handler map for the Abstractions return types.
     /// These handlers cover the fast path and avoid reflection for the built-in
     /// return shapes that appear most often in packet handlers.
     /// </summary>

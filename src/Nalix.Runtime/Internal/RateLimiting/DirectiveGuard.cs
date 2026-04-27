@@ -3,8 +3,8 @@
 
 using System;
 using System.Threading;
-using Nalix.Common.Abstractions;
-using Nalix.Common.Networking;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
 

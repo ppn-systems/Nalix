@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
+using Nalix.Abstractions;
 
 namespace Nalix.Network.RateLimiting;
 
@@ -163,7 +163,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool TryAcceptIPv6(IPAddress address, uint currentSecond)
     {
-        // For IPv6, use the address as a string key (less common for UDP DDoS scenarios)
+        // For IPv6, use the address as a string key (less Abstractions for UDP DDoS scenarios)
         string key = address.ToString();
         if (!_ipv6Map.TryGetValue(key, out WindowSlot? slot))
         {

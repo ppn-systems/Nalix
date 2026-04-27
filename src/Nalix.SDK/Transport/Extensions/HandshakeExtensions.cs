@@ -4,12 +4,12 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Asymmetric;
-using Nalix.Common.Exceptions;
-using Nalix.Common.Primitives;
-using Nalix.Common.Security;
 using Nalix.Environment.Random;
 using Nalix.SDK.Options;
 
@@ -148,6 +148,6 @@ public static class HandshakeExtensions
 
         // Finalize state
         session.Options.EncryptionEnabled = true;
-        session.Options.SessionToken = (Framework.Identifiers.Snowflake)serverFinish.SessionToken;
+        session.Options.SessionToken = serverFinish.SessionToken;
     }
 }
