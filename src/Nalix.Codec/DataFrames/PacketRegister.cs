@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using Nalix.Common.Networking.Packets;
 
-namespace Nalix.Framework.DataFrames;
+namespace Nalix.Codec.DataFrames;
 
 /// <summary>
 /// Provides convenience helpers to create <see cref="PacketRegistry"/> instances.

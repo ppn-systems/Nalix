@@ -2,12 +2,12 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Reflection.Emit;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization;
-using Nalix.Framework.Serialization.Formatters.Cache;
-using Nalix.Framework.Serialization.Internal.Reflection;
-using Nalix.Framework.Serialization.Internal.Types;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
+using Nalix.Codec.Serialization.Formatters.Cache;
+using Nalix.Codec.Serialization.Internal.Reflection;
+using Nalix.Codec.Serialization.Internal.Types;
 
 internal static class FieldILCodec
 {

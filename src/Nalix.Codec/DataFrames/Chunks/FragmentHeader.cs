@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Common.Exceptions;
 
-namespace Nalix.Framework.DataFrames.Chunks;
+namespace Nalix.Codec.DataFrames.Chunks;
 
 //┌───────────────────────────────────────────────────────────────────────────┐
 //│  Wire format for each chunk(= 1 normal framed packet)                     │

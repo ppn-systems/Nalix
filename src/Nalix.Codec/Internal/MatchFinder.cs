@@ -4,7 +4,10 @@
 using System.ComponentModel;
 
 using System.Runtime.CompilerServices;
-using Nalix.Framework.LZ4.Encoders;
+using Nalix.Codec.LZ4.Encoders;
+
+
+
 
 #if DEBUG
 using System.Diagnostics;
@@ -13,7 +16,7 @@ using System.Diagnostics;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Memory.Internal;
+namespace Nalix.Codec.Internal;
 
 /// <summary>
 /// Provides functionality for finding matches in input data using a hash table.

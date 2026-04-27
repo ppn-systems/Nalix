@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
 
-namespace Nalix.Framework.DataFrames;
+namespace Nalix.Codec.DataFrames;
 
 /// <summary>
 /// Represents the base class for all packet frames in the messaging system.

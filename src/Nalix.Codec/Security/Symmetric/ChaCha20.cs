@@ -1,10 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Framework.Security.Internal;
-using Nalix.Framework.Security.Primitives;
+using Nalix.Codec.Security.Internal;
+using Nalix.Codec.Security.Primitives;
 
-namespace Nalix.Framework.Security.Symmetric;
+namespace Nalix.Codec.Security.Symmetric;
 
 /// <summary>
 /// Provides ChaCha20 stream cipher encryption and decryption (RFC 7539).

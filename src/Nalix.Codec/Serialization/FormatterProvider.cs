@@ -11,18 +11,14 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
+using Nalix.Codec.Serialization.Formatters.Automatic;
+using Nalix.Codec.Serialization.Formatters.Cache;
+using Nalix.Codec.Serialization.Formatters.Collections;
+using Nalix.Codec.Serialization.Formatters.Primitives;
+using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Serialization.Formatters.Automatic;
-using Nalix.Framework.Serialization.Formatters.Cache;
-using Nalix.Framework.Serialization.Formatters.Collections;
-using Nalix.Framework.Serialization.Formatters.Primitives;
-using Nalix.Framework.Serialization.Internal.Types;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-
-namespace Nalix.Framework.Serialization;
+namespace Nalix.Codec.Serialization;
 
 /// <summary>
 /// Provides a global registry for registering and retrieving formatters without boxing.
@@ -33,6 +29,8 @@ namespace Nalix.Framework.Serialization;
 public static class FormatterProvider
 {
     #region Fields
+
+    private static readonly DiagnosticListener s_listener = new("Nalix.Environment");
 
     private static int s_cntTotal, s_cntPrimitives, s_cntNullables, s_cntArrays,
                        s_cntNullableArrays, s_cntLists, s_cntEnums, s_cntStrings;
@@ -170,15 +168,21 @@ public static class FormatterProvider
         Register(new NullableFormatter<ulong>());
         Register(new NullableArrayFormatter<ulong>());
 
-        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Information))
+        if (s_listener.IsEnabled("init"))
         {
-            logger.LogInformation(
-                "[FW.FormatterProvider] init-ok in {ElapsedMilliseconds} ms. " +
-                "total={Total}, primitives={Primitives}, nullables={Nullables}, arrays={Arrays}, " +
-                "nullableArrays={NullableArrays}, lists={Lists}, enums={Enums}, strings={Strings}",
-                s_sw.ElapsedMilliseconds,
-                s_cntTotal, s_cntPrimitives, s_cntNullables, s_cntArrays,
-                s_cntNullableArrays, s_cntLists, s_cntEnums, s_cntStrings);
+            s_listener.Write("init", new
+            {
+                ElapsedMs = s_sw.ElapsedMilliseconds,
+                Total = s_cntTotal,
+                Primitives = s_cntPrimitives,
+                Nullables = s_cntNullables,
+                Arrays = s_cntArrays,
+                NullableArrays = s_cntNullableArrays,
+                Lists = s_cntLists,
+                Enums = s_cntEnums,
+                Strings = s_cntStrings,
+                Timestamp = DateTime.UtcNow
+            });
         }
     }
 

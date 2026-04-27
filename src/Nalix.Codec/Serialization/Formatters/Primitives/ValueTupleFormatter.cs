@@ -1,9 +1,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 
-namespace Nalix.Framework.Serialization.Formatters.Primitives;
+namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Serializes value tuples element-by-element using the registered formatter for

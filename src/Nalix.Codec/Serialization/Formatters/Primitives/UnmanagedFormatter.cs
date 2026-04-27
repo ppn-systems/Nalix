@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.Memory.Buffers;
 
-namespace Nalix.Framework.Serialization.Formatters.Primitives;
+namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Provides formatting for unmanaged types.

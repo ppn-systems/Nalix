@@ -3,11 +3,11 @@
 
 using System;
 using System.Buffers.Binary;
+using Nalix.Codec.Security.Hashing;
+using Nalix.Codec.Security.Primitives;
 using Nalix.Common.Primitives;
-using Nalix.Framework.Security.Hashing;
-using Nalix.Framework.Security.Primitives;
 
-namespace Nalix.Framework.Security;
+namespace Nalix.Codec.Security;
 
 /// <summary>
 /// Provides shared cryptographic primitives and utility methods for the Nalix handshake protocol.
@@ -64,7 +64,7 @@ public static class HandshakeX25519
     /// <remarks>
     /// This API is kept for compatibility and returns raw transcript bytes.
     /// Callers should wipe the returned buffer with
-    /// <see cref="Nalix.Framework.Security.Primitives.MemorySecurity.ZeroMemory(byte[])"/> after hashing.
+    /// <see cref="MemorySecurity.ZeroMemory(byte[])"/> after hashing.
     /// </remarks>
     public static byte[] ComposeTranscriptBuffer(Bytes32 clientPublicKey, Bytes32 clientNonce, Bytes32 serverPublicKey, Bytes32 serverNonce)
     {

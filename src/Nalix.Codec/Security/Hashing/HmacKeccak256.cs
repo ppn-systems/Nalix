@@ -4,7 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Framework.Security.Hashing;
+namespace Nalix.Codec.Security.Hashing;
 
 /// <summary>
 /// Provides high-performance HMAC implementation using Keccak-256 (original).

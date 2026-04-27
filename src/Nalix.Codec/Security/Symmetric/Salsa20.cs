@@ -1,7 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Framework.Security.Symmetric;
+namespace Nalix.Codec.Security.Symmetric;
 
 /// <summary>
 /// Provides encryption and decryption utilities using the Salsa20 stream cipher.

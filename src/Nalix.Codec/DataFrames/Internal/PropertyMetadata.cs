@@ -5,14 +5,13 @@ using System;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Identifiers;
-using Nalix.Framework.Serialization.Internal.Types;
 
-namespace Nalix.Framework.DataFrames.Internal;
+namespace Nalix.Codec.DataFrames.Internal;
 
 /// <summary>
 /// Immutable cache of reflection metadata for a single serializable property on a packet type.
@@ -274,7 +273,6 @@ internal sealed class PropertyMetadata
             TypeCode.Object when type == typeof(TimeOnly) => 8,
             TypeCode.Object when type == typeof(DateOnly) => 4,
             TypeCode.Object when type == typeof(DateTimeOffset) => 10,
-            TypeCode.Object when type == typeof(Snowflake) => 7,
 
             _ when type.IsEnum => ComputeFixedSize(Enum.GetUnderlyingType(type)),
             TypeCode.Empty => 0,

@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Codec.Memory;
 
-namespace Nalix.Framework.Serialization;
+namespace Nalix.Codec.Serialization;
 
 /// <summary>
 /// Defines methods to serialize and deserialize a value of type <typeparamref name="T"/>.

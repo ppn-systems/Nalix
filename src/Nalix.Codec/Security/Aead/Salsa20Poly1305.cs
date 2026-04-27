@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
-using Nalix.Framework.Security.Hashing;
-using Nalix.Framework.Security.Internal;
-using Nalix.Framework.Security.Primitives;
-using Nalix.Framework.Security.Symmetric;
+using Nalix.Codec.Security.Hashing;
+using Nalix.Codec.Security.Internal;
+using Nalix.Codec.Security.Primitives;
+using Nalix.Codec.Security.Symmetric;
 
-namespace Nalix.Framework.Security.Aead;
+namespace Nalix.Codec.Security.Aead;
 
 /// <summary>
 /// Provides an allocation-minimized, Span-first implementation of a

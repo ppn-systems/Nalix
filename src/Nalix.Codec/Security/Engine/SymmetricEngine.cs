@@ -5,12 +5,13 @@
 // Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
 // Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
+using Nalix.Codec.Security;
+using Nalix.Codec.Security.Internal;
+using Nalix.Codec.Security.Symmetric;
 using Nalix.Common.Security;
-using Nalix.Framework.Random;
-using Nalix.Framework.Security.Internal;
-using Nalix.Framework.Security.Symmetric;
+using Nalix.Environment.Random;
 
-namespace Nalix.Framework.Security.Engine;
+namespace Nalix.Codec.Security.Engine;
 
 /// <summary>
 /// Provides a unified, Span-first engine to generate and apply symmetric

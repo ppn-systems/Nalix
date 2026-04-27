@@ -7,14 +7,14 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nalix.Codec.Internal;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization.Formatters.Automatic;
+using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Exceptions;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Formatters.Automatic;
-using Nalix.Framework.Serialization.Internal.Types;
 
-namespace Nalix.Framework.Serialization;
+namespace Nalix.Codec.Serialization;
 
 /// <summary>
 /// Provides serialization and deserialization methods for objects.
@@ -100,7 +100,7 @@ public static class LiteSerializer
             long dataSizeLong = (long)size * length;
             if (dataSizeLong > int.MaxValue - 4)
             {
-                throw FrameworkErrors.SerializationOverflow;
+                throw CodecErrors.SerializationOverflow;
             }
 
             int dataSize = (int)dataSizeLong;
@@ -181,7 +181,7 @@ public static class LiteSerializer
             int size = TypeMetadata.SizeOf<T>();
             if (buffer.Length < size)
             {
-                throw FrameworkErrors.SerializationBufferTooSmall;
+                throw CodecErrors.SerializationBufferTooSmall;
             }
 
             Unsafe.WriteUnaligned(
@@ -199,7 +199,7 @@ public static class LiteSerializer
 
             if (buffer.Length < required)
             {
-                throw FrameworkErrors.SerializationBufferTooSmall;
+                throw CodecErrors.SerializationBufferTooSmall;
             }
 
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
@@ -251,7 +251,7 @@ public static class LiteSerializer
 
             if (buffer.Length < size)
             {
-                throw FrameworkErrors.SerializationBufferTooSmall;
+                throw CodecErrors.SerializationBufferTooSmall;
             }
 
             Unsafe.WriteUnaligned(
@@ -274,7 +274,7 @@ public static class LiteSerializer
                 // Write null-array marker (4 bytes: 0xFF 0xFF 0xFF 0xFF)
                 if (buffer.Length < 4)
                 {
-                    throw FrameworkErrors.SerializationBufferTooSmall;
+                    throw CodecErrors.SerializationBufferTooSmall;
                 }
 
                 SerializerBounds.NullArrayMarker.CopyTo(buffer);
@@ -289,7 +289,7 @@ public static class LiteSerializer
                 // Write empty-array marker (4 bytes: 0x00 0x00 0x00 0x00)
                 if (buffer.Length < 4)
                 {
-                    throw FrameworkErrors.SerializationBufferTooSmall;
+                    throw CodecErrors.SerializationBufferTooSmall;
                 }
 
                 SerializerBounds.EmptyArrayMarker.CopyTo(buffer);
@@ -308,7 +308,7 @@ public static class LiteSerializer
 
             if (buffer.Length < totalSize)
             {
-                throw FrameworkErrors.SerializationBufferTooSmall;
+                throw CodecErrors.SerializationBufferTooSmall;
             }
 
             // Write the element count as a 4-byte little-endian prefix
@@ -332,7 +332,7 @@ public static class LiteSerializer
         {
             if (buffer.Length < fixedSize)
             {
-                throw FrameworkErrors.SerializationBufferTooSmall;
+                throw CodecErrors.SerializationBufferTooSmall;
             }
 
             // DataWriter(Span<byte>) wraps the span directly — zero allocation, no pool renting.
@@ -400,7 +400,7 @@ public static class LiteSerializer
 
         if (buffer.Length == 0)
         {
-            throw FrameworkErrors.SerializationEmptyBuffer;
+            throw CodecErrors.SerializationEmptyBuffer;
         }
 
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
@@ -448,7 +448,7 @@ public static class LiteSerializer
 
         if (buffer.Length == 0)
         {
-            throw FrameworkErrors.SerializationEmptyBuffer;
+            throw CodecErrors.SerializationEmptyBuffer;
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
@@ -484,7 +484,7 @@ public static class LiteSerializer
 
         if (buffer.IsEmpty)
         {
-            throw FrameworkErrors.SerializationEmptyBuffer;
+            throw CodecErrors.SerializationEmptyBuffer;
         }
 
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
@@ -530,7 +530,7 @@ public static class LiteSerializer
 
         if (buffer.IsEmpty)
         {
-            throw FrameworkErrors.SerializationEmptyBuffer;
+            throw CodecErrors.SerializationEmptyBuffer;
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
@@ -561,14 +561,14 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw FrameworkErrors.SerializationEmptyBuffer;
+            throw CodecErrors.SerializationEmptyBuffer;
         }
 
         if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw FrameworkErrors.SerializationEndOfStream;
+                throw CodecErrors.SerializationEndOfStream;
             }
             value = Unsafe.ReadUnaligned<T>(
                 ref MemoryMarshal.GetReference(buffer));
@@ -599,7 +599,7 @@ public static class LiteSerializer
 
             if (buffer.Length < 4)
             {
-                throw FrameworkErrors.SerializationEndOfStream;
+                throw CodecErrors.SerializationEndOfStream;
             }
 
             int length = Unsafe.ReadUnaligned<int>(
@@ -621,7 +621,7 @@ public static class LiteSerializer
             int dataSize = (int)dataSizeLong;
             if (buffer.Length < dataSize + 4)
             {
-                throw FrameworkErrors.SerializationEndOfStream;
+                throw CodecErrors.SerializationEndOfStream;
             }
 
             Array arr = Array.CreateInstance(elementType, length);
@@ -681,14 +681,14 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw FrameworkErrors.SerializationEmptyBuffer;
+            throw CodecErrors.SerializationEmptyBuffer;
         }
 
         if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw FrameworkErrors.SerializationEndOfStream;
+                throw CodecErrors.SerializationEndOfStream;
             }
             value = Unsafe.SizeOf<T>();
 
@@ -719,7 +719,7 @@ public static class LiteSerializer
 
             if (buffer.Length < 4)
             {
-                throw FrameworkErrors.SerializationEndOfStream;
+                throw CodecErrors.SerializationEndOfStream;
             }
 
             int length = Unsafe.ReadUnaligned<int>(
@@ -741,7 +741,7 @@ public static class LiteSerializer
             int dataSize = (int)dataSizeLong;
             if (buffer.Length < dataSize + 4)
             {
-                throw FrameworkErrors.SerializationEndOfStream;
+                throw CodecErrors.SerializationEndOfStream;
             }
 
             Array arr = Array.CreateInstance(elementType, length);

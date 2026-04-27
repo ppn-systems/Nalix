@@ -5,7 +5,7 @@ using System;
 using System.Buffers;
 using System.ComponentModel;
 
-namespace Nalix.Framework.LZ4.Engine;
+namespace Nalix.Codec.LZ4.Engine;
 
 /// <summary>
 /// Provides pooled hash tables for LZ4 compression to avoid repeated allocations.

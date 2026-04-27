@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 
-namespace Nalix.Framework.Serialization.Formatters.Automatic;
+namespace Nalix.Codec.Serialization.Formatters.Automatic;
 
 /// <summary>
 /// Provides serialization and deserialization for nullable reference types using a marker byte to indicate nullability.
@@ -81,7 +82,7 @@ internal sealed class NullableObjectFormatter<
         {
             if (value is not null)
             {
-                throw new Nalix.Common.Exceptions.SerializationFailureException(
+                throw new Common.Exceptions.SerializationFailureException(
                     $"Cannot Fill a non-null instance of '{typeof(T).Name}' with null data from the stream.");
             }
             return;

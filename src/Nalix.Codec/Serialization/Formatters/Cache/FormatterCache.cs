@@ -3,12 +3,13 @@
 
 #if DEBUG
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Serialization;
 
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Formatters.Cache;
+namespace Nalix.Codec.Serialization.Formatters.Cache;
 
 /// <summary>
 /// Provides a static cache for storing and retrieving formatters for specific types.

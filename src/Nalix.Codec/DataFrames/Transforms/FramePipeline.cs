@@ -3,12 +3,12 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Extensions;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
-using Nalix.Framework.Extensions;
 
-namespace Nalix.Framework.DataFrames.Transforms;
+namespace Nalix.Codec.DataFrames.Transforms;
 
 /// <summary>
 /// Unifies the execution of cryptographic and compression transforms for inbound and outbound frames.

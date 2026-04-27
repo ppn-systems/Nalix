@@ -25,7 +25,7 @@ using Nalix.Common.Security;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Security.Internal;
+namespace Nalix.Codec.Security.Internal;
 
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]

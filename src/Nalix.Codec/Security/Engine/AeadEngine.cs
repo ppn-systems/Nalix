@@ -1,14 +1,14 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Codec.Memory;
+using Nalix.Codec.Security.Aead;
+using Nalix.Codec.Security.Internal;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Random;
-using Nalix.Framework.Security.Aead;
-using Nalix.Framework.Security.Internal;
+using Nalix.Environment.Random;
 
-namespace Nalix.Framework.Security.Engine;
+namespace Nalix.Codec.Security.Engine;
 
 /// <summary>
 /// Provides high-level APIs to encrypt and decrypt AEAD envelopes in the

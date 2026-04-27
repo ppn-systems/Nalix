@@ -1,12 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Exceptions;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
 
-namespace Nalix.Framework.Serialization.Formatters.Primitives;
+namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Serializes unmanaged memory blocks as a length-prefixed raw byte payload.
@@ -94,7 +95,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
 
         if (length > SerializerBounds.MaxArray)
         {
-            throw FrameworkErrors.SerializationLengthOutOfRange;
+            throw CodecErrors.SerializationLengthOutOfRange;
         }
 
         int byteCount;
@@ -104,7 +105,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         }
         catch (System.OverflowException)
         {
-            throw FrameworkErrors.SerializationLengthOutOfRange;
+            throw CodecErrors.SerializationLengthOutOfRange;
         }
 
         // Allocate once and copy the raw payload block directly into the array.

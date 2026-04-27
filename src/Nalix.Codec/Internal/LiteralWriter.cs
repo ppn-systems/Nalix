@@ -10,7 +10,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Memory.Internal;
+namespace Nalix.Codec.Internal;
 
 /// <summary>
 /// Writes literal byte sequences into a destination pointer and advances that pointer

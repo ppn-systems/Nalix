@@ -1,9 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Framework.Security.Primitives;
 
-namespace Nalix.Framework.Security.Hashing;
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using Nalix.Codec.Security.Primitives;
+
+namespace Nalix.Codec.Security.Hashing;
 
 /// <summary>
 /// High-performance, zero-allocation implementation of the Poly1305 message authentication code

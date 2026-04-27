@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Internal.Reflection;
+namespace Nalix.Codec.Serialization.Internal.Reflection;
 
 /// <summary>
 /// Exposes the cached field layout for a specific serialized type.

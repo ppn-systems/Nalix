@@ -4,13 +4,13 @@
 using System;
 using Nalix.Common.Exceptions;
 
-namespace Nalix.Framework.Exceptions;
+namespace Nalix.Codec.Internal;
 
 /// <summary>
 /// Provides cached, zero-allocation exception instances for common framework errors.
 /// These instances avoid the overhead of stack trace generation by overriding the StackTrace property.
 /// </summary>
-internal static class FrameworkErrors
+internal static class CodecErrors
 {
     #region LZ4 Errors
 
@@ -74,9 +74,6 @@ internal static class FrameworkErrors
 
     #region Resource Errors
 
-    public static readonly InvalidOperationException SlabBucketAllocationFailed =
-        new CachedInvalidOperationException("SlabBucket: failed to allocate standalone buffer.");
-
     public static readonly InvalidOperationException SerializationFixedBufferExpansion =
         new CachedInvalidOperationException("Cannot expand a fixed-size serialization buffer.");
 
@@ -86,22 +83,22 @@ internal static class FrameworkErrors
 
     private sealed class CachedSerializationException(string message) : SerializationFailureException(message)
     {
-        public override string? StackTrace => "   at Nalix.Framework.Serialization (Cached Exception)";
+        public override string? StackTrace => "   at Nalix.Codec.Serialization (Cached Exception)";
     }
 
     private sealed class CachedCipherException(string message) : CipherException(message)
     {
-        public override string? StackTrace => "   at Nalix.Framework.Security (Cached Exception)";
+        public override string? StackTrace => "   at Nalix.Codec.Security (Cached Exception)";
     }
 
     private sealed class CachedInvalidOperationException(string message) : InvalidOperationException(message)
     {
-        public override string? StackTrace => "   at Nalix.Framework (Cached Exception)";
+        public override string? StackTrace => "   at Nalix.Codec (Cached Exception)";
     }
 
     private sealed class CachedLZ4Exception(string message) : LZ4Exception(message)
     {
-        public override string? StackTrace => "   at Nalix.Framework.LZ4 (Cached Exception)";
+        public override string? StackTrace => "   at Nalix.Codec.LZ4 (Cached Exception)";
     }
 
     #endregion Private Cached Exception Types

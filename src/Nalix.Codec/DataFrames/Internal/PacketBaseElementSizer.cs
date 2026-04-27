@@ -6,7 +6,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
-namespace Nalix.Framework.DataFrames.Internal;
+namespace Nalix.Codec.DataFrames.Internal;
 
 internal static class PacketBaseElementSizer
 {

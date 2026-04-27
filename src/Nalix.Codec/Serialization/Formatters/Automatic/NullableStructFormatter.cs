@@ -1,10 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 
-namespace Nalix.Framework.Serialization.Formatters.Automatic;
+namespace Nalix.Codec.Serialization.Formatters.Automatic;
 
 /// <summary>
 /// Provides serialization and deserialization for nullable value types (<see cref="System.Nullable{T}"/>) using a marker byte to indicate nullability.

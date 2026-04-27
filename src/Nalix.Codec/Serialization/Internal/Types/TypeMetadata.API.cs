@@ -15,7 +15,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Internal.Types;
+namespace Nalix.Codec.Serialization.Internal.Types;
 
 /// <summary>
 /// Provides type-shape queries used by the serializer and formatter registry.

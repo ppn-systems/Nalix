@@ -3,13 +3,13 @@
 
 using System;
 using System.Runtime.InteropServices;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal.Types;
 
-namespace Nalix.Framework.Serialization.Formatters.Collections;
+namespace Nalix.Codec.Serialization.Formatters.Collections;
 
 /// <summary>
 /// Provides serialization and deserialization for <see cref="System.Collections.Generic.List{T}"/>

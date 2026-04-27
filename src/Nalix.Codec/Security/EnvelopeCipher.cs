@@ -4,14 +4,14 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Security.Engine;
+using Nalix.Codec.Security.Internal;
+using Nalix.Codec.Security.Symmetric;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Security;
-using Nalix.Framework.Random;
-using Nalix.Framework.Security.Engine;
-using Nalix.Framework.Security.Internal;
-using Nalix.Framework.Security.Symmetric;
+using Nalix.Environment.Random;
 
-namespace Nalix.Framework.Security;
+namespace Nalix.Codec.Security;
 
 /// <summary>
 /// Provides a unified high-level cryptographic façade that supports both

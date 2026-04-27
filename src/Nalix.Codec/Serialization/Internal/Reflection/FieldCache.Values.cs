@@ -15,7 +15,7 @@ using Nalix.Common.Exceptions;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Internal.Reflection;
+namespace Nalix.Codec.Serialization.Internal.Reflection;
 
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static partial class FieldCache<T>

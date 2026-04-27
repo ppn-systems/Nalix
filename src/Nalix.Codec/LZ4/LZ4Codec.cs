@@ -5,12 +5,12 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.LZ4.Encoders;
+using Nalix.Codec.LZ4.Engine;
+using Nalix.Codec.Memory;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.LZ4.Encoders;
-using Nalix.Framework.LZ4.Engine;
-using Nalix.Framework.Memory.Buffers;
 
-namespace Nalix.Framework.LZ4;
+namespace Nalix.Codec.LZ4;
 
 /// <summary>
 /// Provides high-performance LZ4 compression and decompression helpers.

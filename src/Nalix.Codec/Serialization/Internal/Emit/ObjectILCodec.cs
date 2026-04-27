@@ -1,8 +1,8 @@
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal.Reflection;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization.Internal.Reflection;
 
 /// <summary>
 /// Builds a per-type IL serializer for reference types and caches the generated

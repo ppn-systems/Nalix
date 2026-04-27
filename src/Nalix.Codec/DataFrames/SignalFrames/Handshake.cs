@@ -4,14 +4,14 @@
 using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Nalix.Codec.Security.Hashing;
+using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Identifiers;
-using Nalix.Framework.Security.Hashing;
 
-namespace Nalix.Framework.DataFrames.SignalFrames;
+namespace Nalix.Codec.DataFrames.SignalFrames;
 
 /// <summary>
 /// Identifies the current phase of the default Nalix handshake flow.
@@ -74,7 +74,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         Bytes32.Size +             // Nonce
         Bytes32.Size +             // Proof
         Bytes32.Size +             // TranscriptHash
-        Snowflake.Size;             // SessionToken
+        ISnowflake.Size;             // SessionToken
 
     /// <summary>
     /// Stages the current phase of the handshake process.
@@ -93,7 +93,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// Used primarily for UDP connection mapping.
     /// </summary>
     [SerializeOrder(2)]
-    public Snowflake SessionToken { get; set; }
+    public ISnowflake SessionToken { get; set; } = default!;
 
     /// <summary>
     /// Gets or sets the ephemeral public key for the current handshake side.
@@ -167,7 +167,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.Nonce = nonce;
         this.Proof = proof ?? Bytes32.Zero;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = Snowflake.Empty;
+        this.SessionToken = ISnowflake.Empty!;
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = Snowflake.Empty;
+        this.SessionToken = ISnowflake.Empty!;
     }
 
     /// <inheritdoc/>
@@ -264,7 +264,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = Snowflake.Empty;
+        this.SessionToken = ISnowflake.Empty!;
         this.Priority = PacketPriority.URGENT;
     }
 }

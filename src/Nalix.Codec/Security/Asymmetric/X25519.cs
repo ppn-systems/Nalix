@@ -3,9 +3,9 @@
 
 using System;
 using Nalix.Common.Primitives;
-using Nalix.Framework.Random;
+using Nalix.Environment.Random;
 
-namespace Nalix.Framework.Security.Asymmetric;
+namespace Nalix.Codec.Security.Asymmetric;
 
 /// <summary>
 /// Provides methods for generating and using X25519 key pairs for elliptic curve Diffie–Hellman (ECDH) 

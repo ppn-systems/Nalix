@@ -13,7 +13,7 @@ using Nalix.Common.Serialization;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Internal.Reflection;
+namespace Nalix.Codec.Serialization.Internal.Reflection;
 
 internal static partial class FieldCache<
     [DynamicallyAccessedMembers(

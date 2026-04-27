@@ -10,7 +10,7 @@ using System.Reflection;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Internal.Reflection;
+namespace Nalix.Codec.Serialization.Internal.Reflection;
 
 /// <summary>
 /// Describes one serialized field and the metadata needed to read or write it

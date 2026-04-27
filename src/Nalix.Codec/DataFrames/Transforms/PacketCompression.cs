@@ -6,12 +6,12 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
 
-namespace Nalix.Framework.DataFrames.Transforms;
+namespace Nalix.Codec.DataFrames.Transforms;
 
 /// <summary>
 /// Shared packet compression helpers for LZ4-framed payloads.

@@ -13,6 +13,16 @@ namespace Nalix.Common.Identity;
 public interface ISnowflake
 {
     /// <summary>
+    /// Size of the snowflake identifier in bytes when serialized.
+    /// </summary>
+    static int Size { get; }
+
+    /// <summary>
+    /// Gets an empty snowflake identifier.
+    /// </summary>
+    static ISnowflake? Empty { get; }
+
+    /// <summary>
     /// Gets whether the identifier is empty.
     /// </summary>
     /// <remarks>

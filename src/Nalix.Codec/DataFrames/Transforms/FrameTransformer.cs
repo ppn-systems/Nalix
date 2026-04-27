@@ -6,17 +6,17 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Internal;
+using Nalix.Codec.LZ4;
+using Nalix.Codec.LZ4.Encoders;
+using Nalix.Codec.Security;
+using Nalix.Codec.Security.Internal;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
-using Nalix.Framework.LZ4;
-using Nalix.Framework.LZ4.Encoders;
-using Nalix.Framework.Memory.Internal;
-using Nalix.Framework.Security;
-using Nalix.Framework.Security.Internal;
 
-namespace Nalix.Framework.DataFrames.Transforms;
+namespace Nalix.Codec.DataFrames.Transforms;
 
 /// <summary>
 /// Provides high-performance packet transformation utilities including encryption,

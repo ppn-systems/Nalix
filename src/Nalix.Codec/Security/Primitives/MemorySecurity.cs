@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace Nalix.Framework.Security.Primitives;
+namespace Nalix.Codec.Security.Primitives;
 
 /// <summary>
 /// Provides helper methods for securely clearing sensitive data from memory.

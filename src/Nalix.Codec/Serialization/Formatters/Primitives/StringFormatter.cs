@@ -3,13 +3,14 @@
 
 using System;
 using System.Runtime.InteropServices;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Exceptions;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
 
-namespace Nalix.Framework.Serialization.Formatters.Primitives;
+namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Serializes <see cref="string"/> values as a length-prefixed UTF-8 payload.
@@ -59,7 +60,7 @@ public sealed class StringFormatter : IFormatter<string>
         int byteCount = s_utf8.GetByteCount(value);
         if (byteCount > SerializerBounds.MaxString)
         {
-            throw FrameworkErrors.SerializationStringTooLong;
+            throw CodecErrors.SerializationStringTooLong;
         }
 
         // Write the length first so the reader knows exactly how many bytes to consume.
@@ -73,7 +74,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         if (bytesWritten != byteCount)
         {
-            throw FrameworkErrors.SerializationDataMismatch;
+            throw CodecErrors.SerializationDataMismatch;
         }
 
         writer.Advance(byteCount);
@@ -112,7 +113,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         if (length < 0 || length > SerializerBounds.MaxString)
         {
-            throw FrameworkErrors.SerializationLengthOutOfRange;
+            throw CodecErrors.SerializationLengthOutOfRange;
         }
 
         // Build a read-only span over the exact UTF-8 byte range and decode it directly.

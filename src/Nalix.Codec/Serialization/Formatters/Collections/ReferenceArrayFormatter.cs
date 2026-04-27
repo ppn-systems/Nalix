@@ -1,12 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Exceptions;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
 
-namespace Nalix.Framework.Serialization.Formatters.Collections;
+namespace Nalix.Codec.Serialization.Formatters.Collections;
 
 /// <summary>
 /// Provides serialization and deserialization for arrays of reference types.
@@ -77,7 +78,7 @@ internal sealed class ReferenceArrayFormatter<
 
         if (length < 0 || length > SerializerBounds.MaxArray)
         {
-            throw FrameworkErrors.SerializationLengthOutOfRange;
+            throw CodecErrors.SerializationLengthOutOfRange;
         }
 
         T[] array = new T[length];

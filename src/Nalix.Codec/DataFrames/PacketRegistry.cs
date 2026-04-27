@@ -5,10 +5,10 @@ using System;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Extensions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.Extensions;
 
-namespace Nalix.Framework.DataFrames;
+namespace Nalix.Codec.DataFrames;
 
 /// <summary>
 /// Provides an immutable, thread-safe catalog of packet deserializers and transformers.

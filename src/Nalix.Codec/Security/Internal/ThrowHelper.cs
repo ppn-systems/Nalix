@@ -5,10 +5,10 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Codec.Internal;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.Exceptions;
 
-namespace Nalix.Framework.Security.Internal;
+namespace Nalix.Codec.Security.Internal;
 
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerStepThrough]
@@ -36,7 +36,7 @@ internal static class ThrowHelper
     {
         if (paramName == "key")
         {
-            throw FrameworkErrors.CipherInvalidKeyLength;
+            throw CodecErrors.CipherInvalidKeyLength;
         }
 
         throw new CipherException($"The key length is invalid. {paramName}");
@@ -52,7 +52,7 @@ internal static class ThrowHelper
     {
         if (paramName == "nonce")
         {
-            throw FrameworkErrors.CipherInvalidNonceLength;
+            throw CodecErrors.CipherInvalidNonceLength;
         }
 
         throw new CipherException($"The nonce length is invalid. {paramName}");
@@ -68,7 +68,7 @@ internal static class ThrowHelper
     {
         if (paramName == "tag")
         {
-            throw FrameworkErrors.CipherInvalidTagLength;
+            throw CodecErrors.CipherInvalidTagLength;
         }
 
         throw new CipherException($"The authentication tag length is invalid. {paramName}");
@@ -80,7 +80,7 @@ internal static class ThrowHelper
     /// <exception cref="CipherException">Always thrown when cipher output length validation fails.</exception>
     [System.Diagnostics.CodeAnalysis.DoesNotReturn]
     public static void ThrowOutputLengthMismatchException()
-        => throw FrameworkErrors.CipherOutputLengthMismatch;
+        => throw CodecErrors.CipherOutputLengthMismatch;
 
     /// <summary>
     /// Throws an <see cref="CipherException"/> when the ciphertext buffer is too small.
@@ -92,7 +92,7 @@ internal static class ThrowHelper
     {
         if (paramName == "ciphertext")
         {
-            throw FrameworkErrors.CiphertextTooShort;
+            throw CodecErrors.CiphertextTooShort;
         }
 
         throw new CipherException($"The ciphertext buffer is too small. {paramName}");

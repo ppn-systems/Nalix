@@ -3,10 +3,10 @@
 using System;
 using System.Reflection;
 using System.Reflection.Emit;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization.Internal.Reflection;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization.Internal.Reflection;
 
-namespace Nalix.Framework.Serialization.Internal.Emit;
+namespace Nalix.Codec.Serialization.Internal.Emit;
 
 /// <summary>
 /// Builds a per-type IL serializer for value types and caches the generated

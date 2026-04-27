@@ -3,13 +3,13 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Nalix.Common.Identity;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Primitives;
 using Nalix.Common.Serialization;
-using Nalix.Framework.Identifiers;
 
-namespace Nalix.Framework.DataFrames.SignalFrames;
+namespace Nalix.Codec.DataFrames.SignalFrames;
 
 /// <summary>
 /// Identifies the stage of a session management operation.
@@ -46,7 +46,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     [SerializeIgnore]
     public static int Size { get; } = PacketConstants.HeaderSize
         + sizeof(SessionResumeStage)
-        + Snowflake.Size
+        + ISnowflake.Size
         + sizeof(ProtocolReason)
         + 32; // Proof (HMAC-SHA256)
 
@@ -60,7 +60,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// Gets or sets the session token involved in the operation.
     /// </summary>
     [SerializeOrder(1)]
-    public Snowflake SessionToken { get; set; }
+    public ISnowflake SessionToken { get; set; } = ISnowflake.Empty!;
 
     /// <summary>
     /// Gets or sets the protocol reason code (used primarily in responses).
@@ -82,7 +82,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// <summary>
     /// Initializes the packet with the specified stage and metadata.
     /// </summary>
-    public void Initialize(SessionResumeStage stage, Snowflake sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
+    public void Initialize(SessionResumeStage stage, ISnowflake sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
         this.Priority = PacketPriority.URGENT;
@@ -101,7 +101,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
         this.Priority = PacketPriority.URGENT;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = SessionResumeStage.NONE;
-        this.SessionToken = Snowflake.Empty;
+        this.SessionToken = ISnowflake.Empty!;
         this.Reason = ProtocolReason.NONE;
         this.Proof = Bytes32.Zero;
     }

@@ -12,7 +12,7 @@ using Nalix.Common.Serialization;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Internal.Types;
+namespace Nalix.Codec.Serialization.Internal.Types;
 
 internal static partial class TypeMetadata
 {

@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Nalix.Framework.Security.Primitives;
+namespace Nalix.Codec.Security.Primitives;
 
 /// <summary>
 /// High-performance bitwise utilities for cryptographic operations.

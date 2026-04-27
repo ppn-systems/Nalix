@@ -5,7 +5,7 @@ using System;
 using System.Runtime.Intrinsics;
 using Nalix.Common.Primitives;
 
-namespace Nalix.Framework.Security.Hashing;
+namespace Nalix.Codec.Security.Hashing;
 
 /// <summary>
 /// Implements Keccak-256 — the <b>original</b> Keccak sponge as used by Ethereum and Web3,

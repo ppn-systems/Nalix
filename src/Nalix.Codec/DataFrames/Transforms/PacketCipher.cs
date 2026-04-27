@@ -6,15 +6,15 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Security;
 using Nalix.Common.Abstractions;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Security;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Security;
 
-namespace Nalix.Framework.DataFrames.Transforms;
+namespace Nalix.Codec.DataFrames.Transforms;
 
 /// <summary>
 /// Shared packet cipher helpers for encrypting and decrypting framed payloads.

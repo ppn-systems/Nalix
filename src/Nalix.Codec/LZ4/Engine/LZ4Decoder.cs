@@ -6,13 +6,12 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Framework.Exceptions;
-using Nalix.Framework.LZ4.Encoders;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Internal;
-using Nalix.Framework.Security.Primitives;
+using Nalix.Codec.Internal;
+using Nalix.Codec.LZ4.Encoders;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Security.Primitives;
 
-namespace Nalix.Framework.LZ4.Engine;
+namespace Nalix.Codec.LZ4.Engine;
 
 /// <summary>
 /// Provides decompression functionality for the LZ4 format.
@@ -92,29 +91,29 @@ internal static class LZ4Decoder
     {
         if (input.Length < LZ4BlockHeader.Size)
         {
-            throw FrameworkErrors.LZ4InvalidHeader;
+            throw CodecErrors.LZ4InvalidHeader;
         }
 
         header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
 
         if (header.OriginalLength < 0)
         {
-            throw FrameworkErrors.LZ4InvalidHeader;
+            throw CodecErrors.LZ4InvalidHeader;
         }
 
         if (header.CompressedLength < LZ4BlockHeader.Size)
         {
-            throw FrameworkErrors.LZ4InvalidHeader;
+            throw CodecErrors.LZ4InvalidHeader;
         }
 
         if (header.CompressedLength != input.Length)
         {
-            throw FrameworkErrors.LZ4InvalidHeader;
+            throw CodecErrors.LZ4InvalidHeader;
         }
 
         if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
         {
-            throw FrameworkErrors.LZ4InvalidHeader;
+            throw CodecErrors.LZ4InvalidHeader;
         }
     }
 
@@ -124,7 +123,7 @@ internal static class LZ4Decoder
     {
         if (header.OriginalLength > output.Length)
         {
-            throw FrameworkErrors.LZ4OutputBufferTooSmall;
+            throw CodecErrors.LZ4OutputBufferTooSmall;
         }
 
         if (header.OriginalLength == 0)
@@ -153,7 +152,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw FrameworkErrors.LZ4CorruptPayload;
+                            throw CodecErrors.LZ4CorruptPayload;
                         }
 
                         literalLength += extraLength;
@@ -164,7 +163,7 @@ internal static class LZ4Decoder
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw FrameworkErrors.LZ4CorruptPayload;
+                            throw CodecErrors.LZ4CorruptPayload;
                         }
 
                         MemOps.Copy(inputPtr, outputPtr, literalLength);
@@ -180,7 +179,7 @@ internal static class LZ4Decoder
                     if (inputPtr + sizeof(ushort) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw FrameworkErrors.LZ4CorruptPayload;
+                        throw CodecErrors.LZ4CorruptPayload;
                     }
 
                     int offset = MemOps.ReadUnaligned<ushort>(inputPtr);
@@ -188,7 +187,7 @@ internal static class LZ4Decoder
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw FrameworkErrors.LZ4CorruptPayload;
+                        throw CodecErrors.LZ4CorruptPayload;
                     }
 
                     int matchLength = token & LZ4CompressionConstants.TokenMatchMask;
@@ -198,7 +197,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw FrameworkErrors.LZ4CorruptPayload;
+                            throw CodecErrors.LZ4CorruptPayload;
                         }
 
                         matchLength += extraLength;
@@ -209,7 +208,7 @@ internal static class LZ4Decoder
                     if (outputPtr + matchLength > outputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw FrameworkErrors.LZ4CorruptPayload;
+                        throw CodecErrors.LZ4CorruptPayload;
                     }
 
                     MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
@@ -219,7 +218,7 @@ internal static class LZ4Decoder
                 if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
                     MemorySecurity.ZeroMemory(output);
-                    throw FrameworkErrors.LZ4CorruptPayload;
+                    throw CodecErrors.LZ4CorruptPayload;
                 }
 
                 return header.OriginalLength;

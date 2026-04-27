@@ -6,7 +6,7 @@
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Shared.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Security.Asymmetric;
+namespace Nalix.Codec.Security.Asymmetric;
 
 /// <summary>
 /// Represents an element of the field GF(2^255 - 19).

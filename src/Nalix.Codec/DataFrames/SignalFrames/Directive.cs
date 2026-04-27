@@ -2,11 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
+using Nalix.Codec.DataFrames;
 using Nalix.Common.Networking.Packets;
 using Nalix.Common.Networking.Protocols;
 using Nalix.Common.Serialization;
 
-namespace Nalix.Framework.DataFrames.SignalFrames;
+namespace Nalix.Codec.DataFrames.SignalFrames;
 
 /// <summary>
 /// Represents a directive frame used for control and server feedback.

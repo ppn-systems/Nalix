@@ -1,11 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 using Nalix.Common.Exceptions;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
 
-namespace Nalix.Framework.Serialization.Formatters.Primitives;
+namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
 /// <summary>
 /// Serializes nullable value types as a one-byte presence flag followed by the

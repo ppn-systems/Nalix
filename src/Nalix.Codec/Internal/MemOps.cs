@@ -13,7 +13,7 @@ using System.Runtime.Intrinsics;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Memory.Internal;
+namespace Nalix.Codec.Internal;
 
 /// <summary>
 /// Provides low-level memory operations using unsafe code to perform optimized,

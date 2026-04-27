@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
 #endif
 
-namespace Nalix.Framework.Serialization.Internal.Types;
+namespace Nalix.Codec.Serialization.Internal.Types;
 
 /// <summary>
 /// Classifies the type shape that matters to the serializer's layout logic.

@@ -1,9 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Framework.Security.Hashing;
 
-namespace Nalix.Framework.Security.Internal;
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using Nalix.Codec.Security.Hashing;
+
+namespace Nalix.Codec.Security.Internal;
 
 /// <summary>
 /// Provides a PBKDF2_I (Password-Based Key Derivation Function 2) implementation

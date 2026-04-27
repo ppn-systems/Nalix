@@ -2,13 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Framework.Configuration;
-using Nalix.Framework.Options;
-using Nalix.Framework.Random;
-using Nalix.Framework.Security.Internal;
-using Nalix.Framework.Security.Primitives;
+using Nalix.Codec.Options;
+using Nalix.Codec.Security.Internal;
+using Nalix.Codec.Security.Primitives;
+using Nalix.Environment.Configuration;
+using Nalix.Environment.Random;
 
-namespace Nalix.Framework.Security.Hashing;
+namespace Nalix.Codec.Security.Hashing;
 
 /// <summary>
 /// Provides secure credential hashing and verification using PBKDF2_I.

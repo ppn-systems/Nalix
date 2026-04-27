@@ -4,26 +4,20 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
-using Microsoft.Extensions.Logging;
-using Nalix.Common.Abstractions;
+using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 using Nalix.Common.Exceptions;
 using Nalix.Common.Networking.Packets;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Serialization;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
-namespace Nalix.Framework.DataFrames;
+namespace Nalix.Codec.DataFrames;
 
 /// <summary>
 /// Builds an immutable <see cref="PacketRegistry"/> by scanning packet types and
@@ -50,6 +44,8 @@ namespace Nalix.Framework.DataFrames;
 public sealed class PacketRegistryFactory
 {
     #region Static: Defaults & Utilities
+
+    private static readonly DiagnosticListener s_listener = new("Nalix.Codec");
 
     private const BindingFlags StaticPublic = BindingFlags.Public | BindingFlags.Static;
     private const BindingFlags StaticNonPublic = BindingFlags.NonPublic | BindingFlags.Static;
@@ -615,16 +611,16 @@ public sealed class PacketRegistryFactory
         return null;
     }
 
-    // ── Logger helpers ────────────────────────────────────────────────────────
-
-    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
-
     private static void TRACE(string msg)
     {
-        ILogger? logger = Logging;
-        if (logger != null && logger.IsEnabled(LogLevel.Trace))
+        if (s_listener.IsEnabled("registry"))
         {
-            logger.LogTrace($"[FW.{nameof(PacketRegistryFactory)}] {msg}");
+            s_listener.Write("registry", new
+            {
+                Message = msg,
+                Factory = nameof(PacketRegistryFactory),
+                Timestamp = DateTime.UtcNow
+            });
         }
     }
 
@@ -701,25 +697,7 @@ public sealed class PacketRegistryFactory
         MethodInfo miDeserialize) where TPacket : IPacket
     {
         PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
-
-        if (Logging is { } logger && logger.IsEnabled(LogLevel.Trace))
-        {
-            logger.LogTrace($"[FW.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
-        }
-    }
-
-    /// <summary>
-    /// Builds Rent and Return delegates for <typeparamref name="TPacket"/> using the shared pool.
-    /// Called once per packet type at catalog build time — never on the hot path.
-    /// </summary>
-    private static (Func<IPacket> Rent, Action<IPacket> Return) BUILD_POOL_OPS_FOR<TPacket>()
-        where TPacket : class, IPacket, IPoolable, new()
-    {
-        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-        return (
-            Rent: pool.Get<TPacket>,
-            Return: obj => pool.Return((TPacket)obj)
-        );
+        TRACE($"[FW.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
     }
 
     #endregion Private: Binding Helpers

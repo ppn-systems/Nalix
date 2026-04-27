@@ -5,7 +5,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
-namespace Nalix.Framework.LZ4;
+namespace Nalix.Codec.LZ4;
 
 /// <summary>
 /// Defines the block header structure used in Nalix compression, which contains metadata
