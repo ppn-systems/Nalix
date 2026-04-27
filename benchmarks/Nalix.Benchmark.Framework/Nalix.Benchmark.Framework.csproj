@@ -10,13 +10,19 @@
 	<ItemGroup>
 		<PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
 		<PackageReference Include="MessagePack" Version="3.1.4" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.5" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
 
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\src\Nalix.Common\Nalix.Common.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Abstractions\Nalix.Abstractions.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Codec\Nalix.Codec.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Environment\Nalix.Environment.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
 	</ItemGroup>
 
 	<PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
