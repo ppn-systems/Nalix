@@ -80,4 +80,4 @@ Bootstrap subscribes to `Console.CancelKeyPress` and `AppDomain.CurrentDomain.Pr
 ## Related APIs
 
 - [Network Application](../../hosting/network-application.md)
-- [Configuration System](../../concepts/runtime/configuration.md)
+- [Configuration System](../../../concepts/runtime/configuration.md)

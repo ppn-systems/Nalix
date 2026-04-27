@@ -60,6 +60,6 @@ var options = new NLogixOptions()
 
 ## Related APIs
 
-- [Logging](./index.md)
-- [Configuration](../environment/configuration.md)
+- [Logging](../../logging/index.md)
+- [Configuration](../../environment/configuration.md)
 - [Instance Manager (DI)](../../framework/instance-manager.md)
