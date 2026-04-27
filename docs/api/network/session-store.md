@@ -4,7 +4,7 @@
 
 ## Source Mapping
 
-- `src/Nalix.Common/Networking/Sessions/ISessionStore.cs`
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`
 - `src/Nalix.Network/Sessions/InMemorySessionStore.cs`
 
 ## Why This Type Exists
@@ -91,7 +91,7 @@ Control the session lifecycle via `SessionStoreOptions`:
 
 - [Handshake Protocol](../security/handshake.md)
 - [Session Resumption](../security/session-resume.md)
-- [Snowflake Identifiers (ulong)](../framework/runtime/snowflake.md)
+- [Snowflake Identifiers (ulong)](../framework/snowflake.md)
 - [Object Pooling](../framework/memory/object-pooling.md)
 - [Object Map](../framework/memory/object-map.md)
 

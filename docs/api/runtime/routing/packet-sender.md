@@ -18,7 +18,7 @@ This prevents confusion between per-handler metadata policy and per-call overrid
 
 ## Source Mapping
 
-- `src/Nalix.Common/Networking/Packets/IPacketSender.cs`
+- `src/Nalix.Abstractions/Networking/Packets/IPacketSender.cs`
 - `src/Nalix.Runtime/Dispatching/PacketSender.cs`
 
 ## Why This Type Exists
@@ -60,5 +60,5 @@ await context.Sender.SendAsync(replyPacket, forceEncrypt: true, ct);
 ## Related APIs
 
 - [Packet Context](./packet-context.md)
-- [Compression Options](../../network/options/compression-options.md)
+- [Compression Options](../../options/network/compression-options.md)
 - [Packet Dispatch](./packet-dispatch.md)

@@ -9,11 +9,11 @@ packets fail-closed when permission metadata is missing or insufficient.
 | Source | Responsibility |
 | --- | --- |
 | `src/Nalix.Runtime/Middleware/Standard/PermissionMiddleware.cs` | Runtime permission enforcement and unauthorized directive emission. |
-| `src/Nalix.Common/Middleware/MiddlewareOrderAttribute.cs` | Declares middleware order metadata. |
-| `src/Nalix.Common/Middleware/MiddlewareStageAttribute.cs` | Declares middleware stage metadata. |
-| `src/Nalix.Common/Networking/ConnectionAttributes.cs` | Stores per-connection directive throttle timestamps. |
+| `src/Nalix.Abstractions/Middleware/MiddlewareOrderAttribute.cs` | Declares middleware order metadata. |
+| `src/Nalix.Abstractions/Middleware/MiddlewareStageAttribute.cs` | Declares middleware stage metadata. |
+| `src/Nalix.Abstractions/Networking/ConnectionAttributes.cs` | Stores per-connection directive throttle timestamps. |
 | `src/Nalix.Runtime/Internal/RateLimiting/DirectiveGuard.cs` | Rate-gates repeated directive responses. |
-| `src/Nalix.Framework/DataFrames/SignalFrames/Directive.cs` | Rejection signal frame sent to the client. |
+| `src/Nalix.Codec/DataFrames/SignalFrames/Directive.cs` | Rejection signal frame sent to the client. |
 
 ## Runtime Metadata
 
@@ -129,7 +129,7 @@ enter a pipeline containing `PermissionMiddleware`.
 ## Related APIs
 
 - [Middleware Pipeline](./pipeline.md)
-- [Directive Guard Options](../../network/options/directive-guard-options.md)
-- [Directive Frame](../../framework/packets/built-in-frames.md)
+- [Directive Guard Options](../../options/network/directive-guard-options.md)
+- [Directive Frame](../../codec/packets/built-in-frames.md)
 - [Timeout Middleware](./timeout-middleware.md)
-- [Packet Attributes](../routing/packet-attributes.md)
+- [Packet Attributes](../../abstractions/packet-attributes.md)

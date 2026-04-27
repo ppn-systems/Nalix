@@ -52,6 +52,6 @@ The context provides several critical properties for handler developers:
 ## Related APIs
 
 - [Packet Dispatch](./packet-dispatch.md)
-- [Packet Metadata](./packet-metadata.md)
+- [Packet Metadata](../../abstractions/packet-metadata.md)
 - [Packet Sender](./packet-sender.md)
 - [Object Pooling](../../framework/memory/object-pooling.md)

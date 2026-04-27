@@ -1,4 +1,4 @@
-# Concurrency Gate
+﻿# Concurrency Gate
 
 `ConcurrencyGate` is the runtime per-opcode concurrency limiter used by
 `ConcurrencyMiddleware`. It protects handler execution by bounding how many
@@ -9,7 +9,7 @@ requests to wait in a bounded queue.
 
 - `src/Nalix.Runtime/Middleware/Standard/ConcurrencyMiddleware.cs`
 - `src/Nalix.Runtime/Throttling/ConcurrencyGate.cs`
-- `src/Nalix.Common/Networking/Packets/PacketConcurrencyLimitAttribute.cs`
+- `src/Nalix.Abstractions/Networking/Packets/PacketConcurrencyLimitAttribute.cs`
 - `src/Nalix.Runtime/Options/ConcurrencyOptions.cs`
 
 ## Runtime role
@@ -182,4 +182,4 @@ While `ConcurrencyGate` typically uses static attributes, the underlying `Semaph
 - [Pipeline](./pipeline.md)
 - [Permission Middleware](./permission-middleware.md)
 - [Policy Rate Limiter](./policy-rate-limiter.md)
-- [Packet Attributes](../routing/packet-attributes.md)
+- [Packet Attributes](../../abstractions/packet-attributes.md)

@@ -21,7 +21,7 @@ flowchart TD
     subgraph Extraction[Header Extraction]
         SizeCheck[Size Validator]
         FlagCheck[PacketFlags Mask Verification]
-        Token[Extract 7-byte Token]
+        Token[Extract 8-byte Token]
     end
 
     subgraph Security[Security Authentication Gate]
@@ -72,7 +72,7 @@ UDP is vulnerable to spoofing and reflection attacks. Nalix hardens the listener
 
 - **Minimum Size Guard**: Any datagram smaller than 10 bytes is instantly dropped.
 - **Flag Verification**: The listener validates `payload[6]` (the `PacketFlags` byte) to ensure it carries the `PacketFlags.UNRELIABLE` mask identifying a UDP frame.
-- **Session Lookup**: The first 7 bytes (`SessionToken`) are read natively via `ReadOnlySpan<byte>` and cross-referenced with the `IConnectionHub`. Extremely fast mapping occurs without object allocation.
+- **Session Lookup**: The first 8 bytes (`SessionToken`) are read natively via `ReadOnlySpan<byte>` and cross-referenced with the `IConnectionHub`. Extremely fast mapping occurs without object allocation.
 
 ### Stage 2: IP Pinning (SEC-30)
 
@@ -92,7 +92,7 @@ Due to UDP's nature, an attacker could capture a valid packet and replay it iter
 Once authenticated, the UDP payload follows a standardized processing pipeline:
 
 1. **Extraction**: Nalix extracts a `BufferLease` (rented from the `ByteArrayPool`) containing the raw datagram.
-2. **Slicing**: The 7-byte `SessionToken` prefix is mathematically sliced off using `Memory<byte>` operations without array copies.
+2. **Slicing**: The 8-byte `SessionToken` prefix is mathematically sliced off using `Memory<byte>` operations without array copies.
 3. **Async Dispatch**: The datagram is offloaded to the **`ThreadPool`** via the `AsyncCallback` dispatcher. This aligns the UDP processing model with TCP, ensuring that heavy decryption or application logic does not block the low-level receive loop.
 4. **Processing**: The remaining payload is routed to the `FramePipeline` for decryption and decompression.
 5. **Protocol Delivery**: The resolved `IProtocol` receives the clean payload via `ProcessMessage(...)`.

@@ -72,13 +72,13 @@ To understand the Nalix networking stack, we recommend reading the documentation
 
 ### Network Options
 
-- [Options Overview](./options/options.md)
-- [Network Socket Options](./options/network-socket-options.md)
-- [Connection Limit Options](./options/connection-limit-options.md)
-- [Connection Hub Options](./options/connection-hub-options.md)
-- [Timing Wheel Options](./options/timing-wheel-options.md)
-- [Pooling Options](./options/pooling-options.md)
-- [Network Callback Options](./options/network-callback-options.md)
+- [Options Overview](../options/network/options.md)
+- [Network Socket Options](../options/network/network-socket-options.md)
+- [Connection Limit Options](../options/network/connection-limit-options.md)
+- [Connection Hub Options](../options/network/connection-hub-options.md)
+- [Timing Wheel Options](../options/network/timing-wheel-options.md)
+- [Pooling Options](../options/network/pooling-options.md)
+- [Network Callback Options](../options/network/network-callback-options.md)
 
 ## Related APIs
 

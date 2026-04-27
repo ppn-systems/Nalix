@@ -32,7 +32,7 @@ graph TD
 
 - `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
 - `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
-- `src/Nalix.Framework/DataFrames/Transforms/FramePipeline.cs`
+- `src/Nalix.Codec/Transforms/FramePipeline.cs`
 
 ## Frame Sender (`FrameSender`)
 
@@ -69,7 +69,7 @@ A critical aspect of the SDK pipeline is its zero-copy (or minimized copy) archi
 ## Related APIs
 
 - [TCP Session](./tcp-session.md)
-- [Fragmentation](../framework/packets/fragmentation.md)
+- [Fragmentation](../codec/packets/fragmentation.md)
 - [Buffer Management](../framework/memory/buffer-management.md)
 - [Object Pooling](../framework/memory/object-pooling.md)
 - [Handshake Extensions](./handshake-extensions.md)

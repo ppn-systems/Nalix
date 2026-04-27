@@ -4,13 +4,13 @@ This page covers the encryption primitives that matter most to transport and pac
 
 ## Source mapping
 
-- `src/Nalix.Framework/Security/Aead/ChaCha20Poly1305.cs`
-- `src/Nalix.Framework/Security/Aead/Salsa20Poly1305.cs`
-- `src/Nalix.Framework/Security/Engine/AeadEngine.cs`
-- `src/Nalix.Framework/Security/Engine/SymmetricEngine.cs`
-- `src/Nalix.Framework/Security/Symmetric/ChaCha20.cs`
-- `src/Nalix.Framework/Security/Symmetric/Salsa20.cs`
-- `src/Nalix.Framework/Security/EnvelopeCipher.cs`
+- `src/Nalix.Codec/Security/Aead/ChaCha20Poly1305.cs`
+- `src/Nalix.Codec/Security/Aead/Salsa20Poly1305.cs`
+- `src/Nalix.Codec/Security/Engine/AeadEngine.cs`
+- `src/Nalix.Codec/Security/Engine/SymmetricEngine.cs`
+- `src/Nalix.Codec/Security/Symmetric/ChaCha20.cs`
+- `src/Nalix.Codec/Security/Symmetric/Salsa20.cs`
+- `src/Nalix.Codec/Security/EnvelopeCipher.cs`
 
 ## Main types
 
@@ -73,5 +73,5 @@ EnvelopeCipher.Encrypt(
 
 - [Cryptography](./cryptography.md)
 - [Hashing and MAC](./hashing-and-mac.md)
-- [Transport Options](../sdk/options/transport-options.md)
+- [Transport Options](../options/sdk/transport-options.md)
 - [UDP Security Guide](../../guides/networking/udp-security.md)

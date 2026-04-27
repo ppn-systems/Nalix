@@ -1,4 +1,4 @@
-# Nalix.Analyzers Code Fixes
+﻿# Nalix.Analyzers Code Fixes
 
 `Nalix.Analyzers.CodeFixes` provides the Roslyn fixes that complement the diagnostics in `Nalix.Analyzers`.
 
@@ -100,6 +100,6 @@ The available fixes currently cover these common workflows:
 ## Related APIs
 
 - [Analyzers Overview](./index.md)
-- [Serialization Attributes](../common/serialization-attributes.md)
-- [Packet Registry](../framework/packets/packet-registry.md)
+- [Serialization Attributes](../abstractions/serialization-attributes.md)
+- [Packet Registry](../codec/packets/packet-registry.md)
 - [Middleware Pipeline](../../concepts/runtime/middleware-pipeline.md)

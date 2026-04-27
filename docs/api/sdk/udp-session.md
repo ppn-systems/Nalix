@@ -1,6 +1,6 @@
 # UDP Session
 
-`UdpSession` is a high-performance, datagram-oriented client transport in `Nalix.SDK`. It is designed for low-latency scenarios where packet loss is acceptable but speed is critical. It uses a 7-byte session token mechanism to allow the server to multiplex thousands of concurrent UDP streams.
+`UdpSession` is a high-performance, datagram-oriented client transport in `Nalix.SDK`. It is designed for low-latency scenarios where packet loss is acceptable but speed is critical. It uses a 8-byte session token mechanism to allow the server to multiplex thousands of concurrent UDP streams.
 
 !!! important "Client-side datagram transport"
     `UdpSession` is a client-side datagram transport. Server UDP receive paths should use `Nalix.Network` UDP listeners, not SDK sessions.
@@ -14,7 +14,7 @@ graph TD
         S --> T["FramePipeline.ProcessOutbound"]
         T --> M{"Token + transformed length <= MaxUdpDatagramSize?"}
         M -- no --> E["throw NetworkException"]
-        M -- yes --> O["prepend 7-byte SessionToken"]
+        M -- yes --> O["prepend 8-byte SessionToken"]
         O --> U["Socket.SendAsync connected UDP socket"]
     end
 
@@ -31,13 +31,13 @@ graph TD
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/UdpSession.cs`
-- `src/Nalix.Framework/DataFrames/Transforms/FramePipeline.cs`
-- `src/Nalix.Framework/DataFrames/Transforms/PacketCipher.cs`
-- `src/Nalix.Framework/DataFrames/Transforms/PacketCompression.cs`
+- `src/Nalix.Codec/Transforms/FramePipeline.cs`
+- `src/Nalix.Codec/Transforms/FrameCipher.cs`
+- `src/Nalix.Codec/Transforms/FrameCompression.cs`
 
 ## Role and Design
 
-Unlike TCP, `UdpSession` is connectionless at the socket level but "session-aware" at the framework level. Every outbound datagram is prepended with a 7-byte `Snowflake` identifier, which the server uses to map the packet to a trusted session.
+Unlike TCP, `UdpSession` is connectionless at the socket level but "session-aware" at the framework level. Every outbound datagram is prepended with a 8-byte `Snowflake` identifier, which the server uses to map the packet to a trusted session.
 
 - **Zero-Allocation Receive**: Uses pooled `BufferLease` memory and direct `ReceiveAsync` to eliminate per-datagram allocations.
 - **MTU Enforcement**: Automatically prevents sending datagrams larger than `MaxUdpDatagramSize` (default: 1400 bytes) to avoid IP fragmentation.
@@ -59,7 +59,7 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 
 | Member | Description |
 | --- | --- |
-| `SessionToken` | The 7-byte identifier used to authenticate outbound datagrams. |
+| `SessionToken` | The 8-byte identifier used to authenticate outbound datagrams. |
 | `IsConnected` | True if the socket is open and bound. |
 | `Options` | Access to transport options like `MaxUdpDatagramSize` and `Secret`. |
 
@@ -96,4 +96,4 @@ await client.SendAsync(new PlayerInputPacket { Velocity = 1.0f });
 - [SDK Overview](./index.md)
 - [TCP Session](./tcp-session.md)
 - [Transport Session](./transport-session.md)
-- [Transport Options](./options/transport-options.md)
+- [Transport Options](../options/sdk/transport-options.md)

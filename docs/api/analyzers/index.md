@@ -1,4 +1,4 @@
-# Nalix.Analyzers
+﻿# Nalix.Analyzers
 
 `Nalix.Analyzers` provides Roslyn diagnostics that catch invalid packet,
 serialization, middleware, configuration, SDK, hosting, and pooled-resource usage
@@ -77,5 +77,5 @@ boundary for an `IBufferLease`.
 - [Diagnostic Codes](./diagnostic-codes.md)
 - [Code Fixes Reference](./code-fixes.md)
 - [Network Application Builder](../hosting/network-application.md)
-- [Serialization Basics](../framework/serialization/serialization-basics.md)
-- [Packet Registry](../framework/packets/packet-registry.md)
+- [Serialization Basics](../codec/serialization/serialization-basics.md)
+- [Packet Registry](../codec/packets/packet-registry.md)

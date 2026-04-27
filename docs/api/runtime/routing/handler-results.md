@@ -44,7 +44,7 @@ Handlers should be able to return responses naturally (sync or async) while runt
 
 ```csharp
 using System.Threading.Tasks;
-using Nalix.Common.Networking.Packets;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketOpcode(0x1001)]
 public static LoginResponse Handle(LoginRequest request) => new();

@@ -1,4 +1,4 @@
-# Nalix.Runtime.Handlers
+﻿# Nalix.Runtime.Handlers
 
 `Nalix.Runtime.Handlers` provides the core controller pattern and built-in protocol handlers that manage the basic handshaking, session management, and system control logic of the Nalix framework.
 
@@ -92,6 +92,6 @@ public class MyController
 ## Related Information
 
 - [Implementing Packet Handlers](../../../guides/application/packet-handlers.md)
-- [Packet Attributes](../routing/packet-attributes.md)
-- [Packet Metadata](../routing/packet-metadata.md)
+- [Packet Attributes](../../abstractions/packet-attributes.md)
+- [Packet Metadata](../../abstractions/packet-metadata.md)
 - [Handler Result Types](../routing/handler-results.md)
