@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Common.Identity;
+using Nalix.Abstractions.Identity;
 using Nalix.Framework.Identifiers;
 
 namespace Nalix.Benchmark.Framework.Identifiers;

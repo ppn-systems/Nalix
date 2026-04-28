@@ -18,7 +18,7 @@ public sealed class BenchmarkConfig : ManualConfig
 {
     public BenchmarkConfig()
     {
-        string artifactsPath = Path.Combine(Environment.CurrentDirectory, "BenchmarkDotNet.Artifacts");
+        string artifactsPath = Path.Combine(System.Environment.CurrentDirectory, "BenchmarkDotNet.Artifacts");
 
         this.Add(DefaultConfig.Instance);
         _ = this.AddJob(

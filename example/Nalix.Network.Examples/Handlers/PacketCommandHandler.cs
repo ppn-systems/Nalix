@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Common.Networking.Packets;
-using Nalix.Common.Security;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Network.Examples.Attributes;
 
 namespace Nalix.Network.Examples.Handlers;
