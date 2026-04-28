@@ -21,6 +21,7 @@ using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Pooling;
+using Nalix.Runtime.Extensions;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -31,8 +32,6 @@ namespace Nalix.Runtime.Handlers;
 public sealed class HandshakeHandlers
 {
     #region Fields
-
-    private static IConnectionHub? Hub => InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
     private static Bytes32 s_certificate = Bytes32.Zero;
     private static int s_isInitialized;
@@ -308,7 +307,11 @@ public sealed class HandshakeHandlers
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
-        SessionEntry? session = Hub?.SessionStore.CreateSession(connection);
+        IConnectionHub? hub = connection.GetHub();
+        if (hub is not null)
+        {
+            await hub.SessionStore.StoreAsync(connection).ConfigureAwait(false);
+        }
 
         using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
 
@@ -319,7 +322,7 @@ public sealed class HandshakeHandlers
         reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.TranscriptHash = state.TranscriptHash;
-        reply.SessionToken = session is not null ? session.Snapshot.SessionToken : connection.ID.ToUInt64();
+        reply.SessionToken = connection.ID.ToUInt64();
 
         await connection.TCP.SendAsync(reply).ConfigureAwait(false);
     }

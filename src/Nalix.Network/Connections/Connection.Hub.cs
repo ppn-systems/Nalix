@@ -716,6 +716,7 @@ public sealed class ConnectionHub : IConnectionHub
         }
 
         connection.OnCloseEvent += this.OnClientDisconnected;
+        connection.Attributes[ConnectionAttributes.OwnerHub] = this;
 
         bool added = false;
         try
@@ -791,7 +792,19 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (_sessionOptions.AutoSaveOnUnregister)
         {
-            this.TryPersistSession(removedConnection);
+            _ = PersistBackgroundAsync(_sessionStore, removedConnection);
+        }
+
+        static async Task PersistBackgroundAsync(ISessionStore store, IConnection connection)
+        {
+            try
+            {
+                await store.StoreAsync(connection).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                // Background persistence failures (including policy violations) are ignored in fire-and-forget scenarios
+            }
         }
 
         try
@@ -1276,107 +1289,6 @@ public sealed class ConnectionHub : IConnectionHub
         _ = this.TryUnregisterCore(args.Connection);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private void TryPersistSession(IConnection connection)
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        if (connection.IsDisposed)
-        {
-            return;
-        }
-
-        // Only persist if the handshake was established
-        if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) || established is not true)
-        {
-            return;
-        }
-
-        // Only persist if there is meaningful metadata beyond internal flags
-        // We subtract 1 if HandshakeEstablished is present, but for simplicity
-        // we just use the threshold configured. Default threshold is 4.
-        // Usually, a "useful" session has at least one user-defined attribute.
-        if (connection.Attributes.Count <= _sessionOptions.MinAttributesForPersistence)
-        {
-            return;
-        }
-
-        try
-        {
-            SessionEntry session = _sessionStore.CreateSession(connection);
-
-            ILogger? logger = _logger;
-            ISnowflake id = connection.ID;
-            int attributeCount = connection.Attributes.Count;
-
-            ValueTask storeTask;
-            try
-            {
-                storeTask = _sessionStore.StoreAsync(session);
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                session.Return();
-                if (logger != null && logger.IsEnabled(LogLevel.Error))
-                {
-                    logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
-                }
-                return;
-            }
-
-            if (storeTask.IsCompletedSuccessfully)
-            {
-                if (logger != null && logger.IsEnabled(LogLevel.Debug))
-                {
-                    logger.LogDebug("[NW.{Hub}] auto-persist done id={Id} attributes={Count}", nameof(ConnectionHub), id, attributeCount);
-                }
-
-                return;
-            }
-
-            // Keep unregistration non-blocking, but ensure cleanup if persistence fails.
-            _ = PersistSessionAsync(storeTask, session, logger, id);
-
-            if (logger != null && logger.IsEnabled(LogLevel.Debug))
-            {
-                logger.LogDebug($"[NW.{nameof(ConnectionHub)}] auto-persist queued id={id} attributes={attributeCount}");
-            }
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-prepare-error id={connection.ID}");
-            }
-        }
-    }
-
-    private static async Task PersistSessionAsync(ValueTask storeTask, SessionEntry session, ILogger? logger, ISnowflake id)
-    {
-        bool stored = false;
-        try
-        {
-            await storeTask.ConfigureAwait(false);
-            stored = true;
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (logger != null && logger.IsEnabled(LogLevel.Error))
-            {
-                logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}] auto-persist-error id={id}");
-            }
-        }
-        finally
-        {
-            if (!stored)
-            {
-                session.Return();
-            }
-        }
-    }
 
     private enum RegisterResult : byte
     {

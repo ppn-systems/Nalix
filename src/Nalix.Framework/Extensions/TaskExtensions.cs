@@ -118,6 +118,7 @@ public static class TaskExtensions
     public static async Task<T?> WithTimeout<T>(this Task<T> @this, int msTimeout)
     {
         ArgumentNullException.ThrowIfNull(@this);
+        ArgumentOutOfRangeException.ThrowIfLessThan(msTimeout, -1);
 
         Task timeout = Task.Delay(msTimeout);
         Task completed = await Task.WhenAny(@this, timeout).ConfigureAwait(false);

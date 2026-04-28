@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Environment.Time;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Sessions;
@@ -64,5 +64,60 @@ public abstract class SessionStoreBase : ISessionStore
 
     /// <inheritdoc/>
     public abstract ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);
-}
 
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public virtual ValueTask StoreAsync(IConnection connection, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        if (connection.IsDisposed)
+        {
+            throw new ObjectDisposedException(nameof(connection), "Cannot store session for a disposed connection.");
+        }
+
+        // Only persist if the handshake was established
+        if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) || established is not true)
+        {
+            throw new InvalidOperationException("Cannot store session for a connection that has not established a handshake. This is a state violation.");
+        }
+
+        // Only persist if there is meaningful metadata beyond internal flags.
+        // This is a resource policy, so we skip instead of throwing to avoid breaking legitimate protocol flows.
+        if (connection.Attributes.Count <= _options.MinAttributesForPersistence)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        SessionEntry entry = this.CreateSession(connection);
+        try
+        {
+            ValueTask storeTask = this.StoreAsync(entry, cancellationToken);
+
+            if (storeTask.IsCompletedSuccessfully)
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            return AWAIT_AND_RECLAIM(storeTask, entry);
+        }
+        catch (Exception)
+        {
+            entry.Return();
+            throw;
+        }
+
+        static async ValueTask AWAIT_AND_RECLAIM(ValueTask task, SessionEntry session)
+        {
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                session.Return();
+                throw;
+            }
+        }
+    }
+}

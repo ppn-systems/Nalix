@@ -70,7 +70,20 @@ public sealed class ConnectionHubTests
         hub.UnregisterConnection(connection);
 
         SessionEntry attempted = await failingStore.WaitForStoreAttemptAsync(TimeSpan.FromSeconds(3));
-        attempted.Snapshot.Secret.Should().Be(Bytes32.Zero);
+        
+        // Wait for background persistence to finish throwing and reclaiming
+        bool reclaimed = false;
+        for (int i = 0; i < 50; i++)
+        {
+            if (attempted.Snapshot.Secret == Bytes32.Zero)
+            {
+                reclaimed = true;
+                break;
+            }
+            await Task.Delay(10);
+        }
+
+        reclaimed.Should().BeTrue("Session secret should be zeroed after store failure.");
         attempted.Snapshot.Attributes.Should().BeNull();
     }
 

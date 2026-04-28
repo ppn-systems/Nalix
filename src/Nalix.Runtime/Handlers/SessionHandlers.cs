@@ -15,7 +15,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
+using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
@@ -26,7 +26,6 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Session")]
 public sealed class SessionHandlers
 {
-    private static IConnectionHub? Hub => InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
 
     /// <summary>
     /// Handles a session resume request and restores the connection state when the token is valid.
@@ -42,7 +41,8 @@ public sealed class SessionHandlers
         ArgumentNullException.ThrowIfNull(context);
 
 
-        if (Hub is null)
+        IConnectionHub? hub = context.Connection.GetHub();
+        if (hub is null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE).ConfigureAwait(false);
             return;
@@ -70,7 +70,7 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await Hub.SessionStore.ConsumeAsync(packet.SessionToken)
+        SessionEntry? session = await hub.SessionStore.ConsumeAsync(packet.SessionToken)
                                                        .ConfigureAwait(false);
         if (session == null)
         {
@@ -106,11 +106,15 @@ public sealed class SessionHandlers
 
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
         RestoreSessionSnapshot(context.Connection, session);
+        context.Connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
 
         // Generate a new session entry with a rotated token for subsequent resume attempts.
-        // Storage is deferred until connection unregistration.
-        SessionEntry newEntry = Hub.SessionStore.CreateSession(context.Connection);
-        ulong newToken = newEntry.Snapshot.SessionToken;
+        if (hub is not null)
+        {
+            await hub.SessionStore.StoreAsync(context.Connection).ConfigureAwait(false);
+        }
+
+        ulong newToken = context.Connection.ID.ToUInt64();
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
 
         Span<byte> newTokenBytes = stackalloc byte[8];
