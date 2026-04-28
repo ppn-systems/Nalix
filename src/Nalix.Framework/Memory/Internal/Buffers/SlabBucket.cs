@@ -197,7 +197,7 @@ internal sealed class SlabBucket : IDisposable
         _ = Interlocked.Decrement(ref _rentedCount);
 
         // Deferred shrink: if we have pending shrinks, drop this buffer instead of caching/returning it.
-        if (Volatile.Read(ref _pendingShrinkCount) > 0 && TRY_DEFERRED_SHRINK())
+        if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK())
         {
             return;
         }
@@ -366,7 +366,7 @@ internal sealed class SlabBucket : IDisposable
             if (arr != null)
             {
                 // Also check for deferred shrink here
-                if (Volatile.Read(ref _pendingShrinkCount) > 0 && TRY_DEFERRED_SHRINK())
+                if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK())
                 {
                     cache.Cache[i] = null;
                     continue;

@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Environment.Random;
 using Nalix.Environment.Time;
@@ -93,7 +94,7 @@ public partial class TaskManager
                 {
                     st.Cts.Dispose();
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                     {
@@ -175,7 +176,7 @@ public partial class TaskManager
 
                     this.START_WORKER_EXECUTION(worker);
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     this.RELEASE_GLOBAL_GATE();
 
@@ -196,7 +197,7 @@ public partial class TaskManager
             {
                 break;
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -265,7 +266,7 @@ public partial class TaskManager
                         _ = source.TrySetResult();
                     }, tcs, CancellationToken.None, TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = tcs.TrySetException(ex);
                 }
@@ -322,7 +323,7 @@ public partial class TaskManager
                             cts.Dispose();
                         }
                         catch (ObjectDisposedException) { }
-                        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } loggerDispose && loggerDispose.IsEnabled(LogLevel.Warning))
                             {
@@ -381,7 +382,7 @@ public partial class TaskManager
         {
             wasCancelled = true;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             failure = ex;
             _ = Interlocked.Increment(ref _workerErrorCount);
@@ -413,7 +414,7 @@ public partial class TaskManager
                     concreteOptions?.OnFailed?.Invoke(st, failure);
                 }
             }
-            catch (Exception cbex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(cbex))
+            catch (Exception cbex) when (ExceptionClassifier.IsNonFatal(cbex))
             {
                 _ = Interlocked.Increment(ref _workerErrorCount);
 
@@ -429,7 +430,7 @@ public partial class TaskManager
                 {
                     _ = gate.SemaphoreSlim.Release();
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     _ = Interlocked.Increment(ref _workerErrorCount);
 
@@ -591,7 +592,7 @@ public partial class TaskManager
 
                     await this.RECURRING_BACKOFF_ASYNC(s, ct).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     s.MarkFailure();
                     if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
@@ -616,7 +617,7 @@ public partial class TaskManager
                         {
                             _ = s.Gate.Release();
                         }
-                        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                             {
@@ -628,7 +629,7 @@ public partial class TaskManager
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 s.MarkFailure();
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
@@ -723,7 +724,7 @@ public partial class TaskManager
                 st.Cts.Dispose();
             }
             catch (ObjectDisposedException) { }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -755,7 +756,7 @@ public partial class TaskManager
                 gate.SemaphoreSlim.Dispose();
                 this.TRACE($"[FW.{nameof(TaskManager)}] group-gate-dispose-ok group={group}");
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -829,7 +830,7 @@ public partial class TaskManager
                 await Task.Delay(options.ObservingInterval, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { break; }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
                 {
@@ -958,7 +959,7 @@ public partial class TaskManager
 
             this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}] def={_concurrencyDeficiency}");
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Revert on error
             _currentConcurrencyLimit = previousLimit;

@@ -299,10 +299,6 @@ public readonly partial struct Snowflake : ISnowflake
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int GetHashCode() =>
-        // Use HashCode.Combine to mix the high and low 32 bits properly.
-        // The default ulong.GetHashCode() simply XORs the halves, which leads to
-        // frequent collisions in Snowflake IDs where specific bit ranges (Type/Timestamp) 
-        // often align or overlap in predictable ways across different instances.
         HashCode.Combine((uint)(_combined >> 32), (uint)_combined);
 
     /// <summary>

@@ -465,7 +465,7 @@ public sealed partial class TaskManager : ITaskManager
 
         Task? t = st.Task;
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        
+
         if (t is not null)
         {
             _ = t.ContinueWith(_ =>
