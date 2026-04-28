@@ -28,7 +28,7 @@ public class IdentifierTests
     public void NewIdWithFixedComponentsSerializesLittleEndianAndRoundTrips()
     {
         const uint value = 0x11223344;
-        const ushort machine = 0x5566;
+        const ushort machine = 0x166; // 10 bits max
         const SnowflakeType type = (SnowflakeType)0x77;
 
         Snowflake id = Snowflake.NewId(value, machine, type);
@@ -40,15 +40,16 @@ public class IdentifierTests
         Assert.True(id.TryWriteBytes(buf, out int written));
         Assert.Equal(8, written);
 
-        // little-endian layout: [0..3]=Value, [4..5]=Machine, [6]=Type  (core impl)
-        Assert.Equal(0x44, buf[0]);
-        Assert.Equal(0x33, buf[1]);
-        Assert.Equal(0x22, buf[2]);
-        Assert.Equal(0x11, buf[3]);
-        Assert.Equal(0x66, buf[4]);
-        Assert.Equal(0x55, buf[5]);
-        Assert.Equal(0x77, buf[6]);
-        Assert.Equal(0x00, buf[7]);
+        // new layout (little-endian): [0-2]=Machine/Seq, [3-6]=Timestamp, [7]=Type
+        // Machine 0x166 (0001 0110 0110)
+        Assert.Equal(0x66, buf[0]); // bottom 8 bits of machine
+        Assert.Equal(0x01, buf[1]); // top 2 bits of machine (01) + sequence (0)
+        Assert.Equal(0x00, buf[2]); // sequence (0)
+        Assert.Equal(0x44, buf[3]); // timestamp byte 0
+        Assert.Equal(0x33, buf[4]); // timestamp byte 1
+        Assert.Equal(0x22, buf[5]); // timestamp byte 2
+        Assert.Equal(0x11, buf[6]); // timestamp byte 3
+        Assert.Equal(0x77, buf[7]); // type
 
         Snowflake back = Snowflake.FromBytes(buf);
         Assert.Equal(id, back);
@@ -67,10 +68,10 @@ public class IdentifierTests
     [Fact]
     public void SerializeReturnsNew8ByteArray()
     {
-        Snowflake id = Snowflake.NewId(0x01020304, 0x0506, (SnowflakeType)0x07);
+        Snowflake id = Snowflake.NewId(0x01020304, 0x0106, (SnowflakeType)0x07);
         byte[] arr = id.ToByteArray();
         Assert.Equal(8, arr.Length);
-        Assert.Equal(new byte[] { 0x04, 0x03, 0x02, 0x01, 0x06, 0x05, 0x07, 0x00 }, arr);
+        Assert.Equal(new byte[] { 0x06, 0x01, 0x00, 0x04, 0x03, 0x02, 0x01, 0x07 }, arr);
     }
 
     [Fact]

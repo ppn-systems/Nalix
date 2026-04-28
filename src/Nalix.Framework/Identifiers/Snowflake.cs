@@ -1,6 +1,17 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+/*
+ * | Component  | Size    | Bit Range | Description                                           |
+ * |------------|---------|-----------|-------------------------------------------------------|
+ * | Type       | 8 bits  | 56-63     | Entity classification (e.g., Account, Session, etc.)  |
+ * | Timestamp  | 32 bits | 24-55     | Unix Seconds (ensures chronological sorting)          |
+ * | Sequence   | 14 bits | 10-23     | Prevents collisions within the same second            |
+ * | Machine ID | 10 bits | 0-9       | Unique node identifier (supports up to 1024 nodes)    |
+ * 
+ *   ID = (Type  << 56) | (Timestamp << 24) | (Sequence << 10) | MachineID
+ */
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,10 +19,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Serialization;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Random;
+using Nalix.Environment.Time;
 using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Identifiers;
@@ -39,6 +51,15 @@ public readonly partial struct Snowflake : ISnowflake
     private readonly ulong _combined;
 
     [SerializeIgnore]
+    private static int s_sequence;
+
+    [SerializeIgnore]
+    private static uint s_lastTimestamp;
+
+    [SerializeIgnore]
+    private static readonly Lock s_genLock = new();
+
+    [SerializeIgnore]
     private static readonly ushort s_machineId = LAZY_LOAD_MACHINE_ID();
 
     #endregion Const
@@ -50,7 +71,7 @@ public readonly partial struct Snowflake : ISnowflake
     public uint Value
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (uint)(_combined & 0xFFFFFFFFUL);
+        get => (uint)((_combined >> 24) & 0xFFFFFFFFUL);
     }
 
     /// <inheritdoc/>
@@ -58,7 +79,7 @@ public readonly partial struct Snowflake : ISnowflake
     public ushort MachineId
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (ushort)((_combined >> 32) & 0xFFFFUL);
+        get => (ushort)(_combined & 0x3FFUL);
     }
 
     /// <inheritdoc/>
@@ -66,7 +87,17 @@ public readonly partial struct Snowflake : ISnowflake
     public SnowflakeType Type
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => (SnowflakeType)((_combined >> 48) & 0xFFUL);
+        get => (SnowflakeType)((_combined >> 56) & 0xFFUL);
+    }
+
+    /// <summary>
+    /// Gets the sequence component of the identifier (14 bits).
+    /// </summary>
+    [SerializeIgnore]
+    public ushort Sequence
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => (ushort)((_combined >> 10) & 0x3FFFUL);
     }
 
     #endregion Decomposition
@@ -90,16 +121,25 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// Initializes a new instance of the <see cref="Snowflake"/> struct.
     /// </summary>
-    /// <param name="value">The main identifier value (32 bits).</param>
-    /// <param name="machineId">The machine identifier (16 bits).</param>
+    /// <param name="timestamp">The Unix timestamp value (32 bits).</param>
+    /// <param name="machineId">The machine identifier (10 bits used).</param>
     /// <param name="type">The identifier type (8 bits).</param>
-    /// <remarks>
-    /// This constructor validates the type parameter to ensure it represents a valid <see cref="SnowflakeType"/>.
-    /// The components are efficiently combined using bit operations to form the 64-bit identifier.
-    /// </remarks>
+    /// <param name="sequence">The sequence number (14 bits).</param>
     [DebuggerHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Snowflake(uint value, ushort machineId, SnowflakeType type) => _combined = ((ulong)(byte)type << 48) | ((ulong)machineId << 32) | value;
+    private Snowflake(uint timestamp, ushort machineId, SnowflakeType type, uint sequence)
+        => _combined = ((ulong)(byte)type << 56) | ((ulong)timestamp << 24) | ((ulong)(sequence & 0x3FFF) << 10) | (machineId & 0x3FFu);
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Snowflake"/> struct.
+    /// </summary>
+    /// <param name="value">The main identifier value (32 bits).</param>
+    /// <param name="machineId">The machine identifier (10 bits used).</param>
+    /// <param name="type">The identifier type (8 bits).</param>
+    [DebuggerHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Snowflake(uint value, ushort machineId, SnowflakeType type)
+        => _combined = ((ulong)(byte)type << 56) | ((ulong)value << 24) | (machineId & 0x3FFu);
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Snowflake"/> struct from a <see cref="ulong"/> value.
@@ -196,8 +236,24 @@ public readonly partial struct Snowflake : ISnowflake
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Snowflake NewId(SnowflakeType type, ushort machineId = 1)
     {
-        uint value = Csprng.NextUInt32();
-        return new Snowflake(value, machineId, type);
+        lock (s_genLock)
+        {
+            uint now = Clock.UnixSecondsNowUInt32();
+            if (now == s_lastTimestamp)
+            {
+                s_sequence++;
+                // If sequence overflows 14 bits (16384), we could wait or just wrap.
+                // Given the benchmark of 2.87us, we can't exceed 16k in a second easily.
+                s_sequence &= 0x3FFF;
+            }
+            else
+            {
+                s_lastTimestamp = now;
+                s_sequence = 0;
+            }
+
+            return new Snowflake(now, machineId, type, (uint)s_sequence);
+        }
     }
 
     /// <summary>
