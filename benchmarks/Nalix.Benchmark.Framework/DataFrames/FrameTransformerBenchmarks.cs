@@ -6,7 +6,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Transforms;
 using Nalix.Codec.Memory;
-using Nalix.Environment;
+using Nalix.Environment.Random;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
