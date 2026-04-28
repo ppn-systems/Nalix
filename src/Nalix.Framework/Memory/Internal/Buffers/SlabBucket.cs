@@ -44,6 +44,7 @@ internal sealed class SlabBucket : IDisposable
     private readonly Lock _slabLock;
     private readonly SlabBucketRing _freeRing;
     private readonly ThreadLocal<ThreadLocalCache> _threadCache;
+    private readonly ConditionalWeakTable<byte[], object?> _ownedBuffers = new();
 
     private int _totalBuffers;
     private int _rentedCount;
@@ -182,6 +183,13 @@ internal sealed class SlabBucket : IDisposable
     public void Return(byte[] array)
     {
         if (array is null || array.Length != _segmentSize)
+        {
+            return;
+        }
+
+        // Ownership check to prevent memory poisoning with non-pinned arrays.
+        // POH objects are always in Gen 2 (or higher in future runtimes).
+        if (GC.GetGeneration(array) < 2 || !_ownedBuffers.TryGetValue(array, out _))
         {
             return;
         }
@@ -329,6 +337,7 @@ internal sealed class SlabBucket : IDisposable
                 // Single pinned allocation — the entire point of standalone slab-based pooling.
                 // The array lives on the Pinned Object Heap and stays pinned for its lifetime.
                 byte[] array = GC.AllocateArray<byte>(_segmentSize, pinned: true);
+                _ownedBuffers.Add(array, null);
 
                 if (_freeRing.TryEnqueue(array))
                 {
