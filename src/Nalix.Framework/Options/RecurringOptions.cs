@@ -14,30 +14,30 @@ public sealed class RecurringOptions : IRecurringOptions
     /// <summary>
     /// Gets an optional tag for identifying the recurring task.
     /// </summary>
-    public string? Tag { get; init; }
+    public string? Tag { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the recurring task is non-reentrant.
     /// </summary>
-    public bool NonReentrant { get; init; } = true;
+    public bool NonReentrant { get; set; } = true;
 
     /// <summary>
     /// Gets an optional jitter to randomize the start time of the recurring task.
     /// </summary>
-    public TimeSpan? Jitter { get; init; } = TimeSpan.FromMilliseconds(250);
+    public TimeSpan? Jitter { get; set; } = TimeSpan.FromMilliseconds(250);
 
     /// <summary>
     /// Gets an optional timeout for a single run, after which the run is cancelled.
     /// </summary>
-    public TimeSpan? ExecutionTimeout { get; init; }
+    public TimeSpan? ExecutionTimeout { get; set; }
 
     /// <summary>
     /// Gets the number of consecutive failures before backoff is applied.
     /// </summary>
-    public int FailuresBeforeBackoff { get; init; } = 1;
+    public int FailuresBeforeBackoff { get; set; } = 1;
 
     /// <summary>
     /// Gets the maximum backoff duration after consecutive failures.
     /// </summary>
-    public TimeSpan BackoffCap { get; init; } = TimeSpan.FromSeconds(15);
+    public TimeSpan BackoffCap { get; set; } = TimeSpan.FromSeconds(15);
 }

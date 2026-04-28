@@ -3,7 +3,6 @@
 
 using System;
 using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
 using System.Threading;
 using Nalix.Abstractions.Identity;
 
@@ -17,23 +16,22 @@ public interface IWorkerOptions
     /// <summary>
     /// Gets the optional tag associated with the worker.
     /// </summary>
-    [Required]
-    string? Tag { get; init; }
+    string? Tag { get; set; }
 
     /// <summary>
     /// Gets the optional machine identifier for the worker instance.
     /// </summary>
-    ushort MachineId { get; init; }
+    ushort MachineId { get; set; }
 
     /// <summary>
     /// Gets the optional identifier type for the worker instance.
     /// </summary>
-    SnowflakeType IdType { get; init; }
+    SnowflakeType IdType { get; set; }
 
     /// <summary>
     /// Gets the dispatch priority for this worker while it is waiting in the scheduler queue.
     /// </summary>
-    WorkerPriority Priority { get; init; }
+    WorkerPriority Priority { get; set; }
 
     /// <summary>
     /// Gets the action to invoke when the worker has completed successfully.
@@ -55,30 +53,29 @@ public interface IWorkerOptions
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <c>TimeSpan.Zero</c> to auto-remove workers immediately.
     /// </summary>
-    TimeSpan? RetainFor { get; init; }
+    TimeSpan? RetainFor { get; set; }
 
     /// <summary>
     /// Gets the optional concurrency cap for workers in the same group.
     /// If set, executions in this group are limited by this value.
     /// </summary>
-    [Range(0, int.MaxValue)]
-    int? GroupConcurrencyLimit { get; init; }
+    int? GroupConcurrencyLimit { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether the group slot should be acquired immediately or the worker should be cancelled if unavailable.
     /// Default is <c>false</c>, which means the worker will wait for a slot.
     /// </summary>
     [DefaultValue(false)]
-    bool TryAcquireSlotImmediately { get; init; }
+    bool TryAcquireSlotImmediately { get; set; }
 
     /// <summary>
     /// Gets the cancellation token that is linked to the worker's execution.
     /// </summary>
-    CancellationToken CancellationToken { get; init; }
+    CancellationToken CancellationToken { get; set; }
 
     /// <summary>
     /// Gets the optional OS-level thread priority for the worker.
     /// If set, the worker will run on a dedicated thread with this priority.
     /// </summary>
-    ThreadPriority? OSPriority { get; init; }
+    ThreadPriority? OSPriority { get; set; }
 }

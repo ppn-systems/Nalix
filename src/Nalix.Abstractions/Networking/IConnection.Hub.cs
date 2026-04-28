@@ -37,7 +37,6 @@ public interface IConnectionHub : IReportable, IDisposable
     /// </summary>
     /// <param name="id">The identifier of the connection to retrieve.</param>
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     IConnection? GetConnection(ulong id);
 
     /// <summary>

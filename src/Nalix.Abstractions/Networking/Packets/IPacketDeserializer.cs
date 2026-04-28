@@ -16,5 +16,9 @@ public interface IPacketDeserializer<TPacket> where TPacket : IPacket
     /// </summary>
     /// <param name="buffer">A read-only span containing the serialized packet bytes.</param>
     /// <returns>A new <typeparamref name="TPacket"/> instance.</returns>
+#if NET7_0_OR_GREATER
     static abstract TPacket Deserialize(ReadOnlySpan<byte> buffer);
+#else
+    TPacket Deserialize(ReadOnlySpan<byte> buffer);
+#endif
 }

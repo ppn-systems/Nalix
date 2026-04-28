@@ -178,7 +178,6 @@ Workflows in `.github/workflows/`:
 | `ci-linux.yml` | Build & test on Ubuntu via `_build.yml` |
 | `ci-windows.yml` | Build & test on Windows via `_build.yml` |
 | `_build.yml` | Reusable template: restore → build → test → publish |
-| `benchmark.yml` | Run BenchmarkDotNet on `master`, upload artifacts, compare against previous run |
 | `_codeql.yml` | CodeQL security analysis (C#, scheduled + PR) |
 | `docs.yml` | MkDocs build and deploy to GitHub Pages |
 | `community-welcome.yml` | Greet first-time contributors |

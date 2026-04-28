@@ -20,7 +20,7 @@ public sealed class MiddlewareStageAttribute : Attribute
     /// Gets a value indicating whether this middleware should always execute in outbound,
     /// even when <c>PacketContext&lt;TPacket&gt;.SkipOutbound</c> is true.
     /// </summary>
-    public bool AlwaysExecute { get; init; }
+    public bool AlwaysExecute { get; set; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="MiddlewareStageAttribute"/> class.
