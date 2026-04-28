@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Framework.Injection;
+using Nalix.Abstractions.Exceptions;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Injection;
@@ -220,6 +221,23 @@ public sealed class InstanceManagerTests : IDisposable
         _ = Assert.IsType<bool>(only);
     }
 
+    [Fact(DisplayName = "CreateInstance with null for struct parameter should throw")]
+    public void CreateInstanceWithNullForStructParameterThrows()
+    {
+        // This used to cause an IL crash (NullReferenceException in dynamic factory)
+        // because RESOLVE_BEST_CONSTRUCTOR incorrectly accepted null for MyStruct.
+        // It should now throw InternalErrorException during resolution.
+        _ = Assert.Throws<InternalErrorException>(() => _manager.CreateInstance(typeof(StructParamService), [null]));
+    }
+
+    [Fact(DisplayName = "CreateInstance with null for Nullable struct parameter should succeed")]
+    public void CreateInstanceWithNullForNullableStructParameterSucceeds()
+    {
+        NullableStructParamService instance = (NullableStructParamService)_manager.CreateInstance(typeof(NullableStructParamService), [null]);
+        Assert.NotNull(instance);
+        Assert.Null(instance.S);
+    }
+
     private sealed class DisposableCounter : IDisposable
     {
         private int _disposed;
@@ -247,6 +265,11 @@ public sealed class InstanceManagerTests : IDisposable
         {
         }
     }
+
+    private struct MyStruct { public int X; }
+    private sealed class StructParamService(MyStruct s) { public MyStruct S { get; } = s; }
+
+    private sealed class NullableStructParamService(MyStruct? s) { public MyStruct? S { get; } = s; }
 }
 
 

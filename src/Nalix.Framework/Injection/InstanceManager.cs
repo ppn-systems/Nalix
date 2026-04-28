@@ -64,8 +64,13 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ActivatorKey, object> _signatureInstanceCache = new();
 
     [ThreadStatic] private static int s_tsSlotsInvalidated;
-    [ThreadStatic] private static RuntimeTypeHandle s_tsLastKey;
-    [ThreadStatic] private static object? s_tsLastValue;
+    [ThreadStatic] private static RuntimeTypeHandle s_tsKey0;
+    [ThreadStatic] private static object? s_tsVal0;
+    [ThreadStatic] private static InstanceManager? s_tsMgr0;
+
+    [ThreadStatic] private static RuntimeTypeHandle s_tsKey1;
+    [ThreadStatic] private static object? s_tsVal1;
+    [ThreadStatic] private static InstanceManager? s_tsMgr1;
 
     /// <summary>
     /// Near fields
@@ -209,7 +214,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
     /// Gets the number of cached instances.
     /// </summary>
     [Pure]
-    public int CachedInstanceCount => _instanceCache.Count;
+    public int CachedInstanceCount => _instanceCache.Count + _signatureInstanceCache.Count;
 
     /// <summary>
     /// Gets the assembly that started the application.
@@ -638,30 +643,48 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             return viaSlot;
         }
 
-        // 2) Thread L1
+        // 2) Thread L1 (2-slot MRU with isolation)
         int globalInvalidated = Volatile.Read(ref s_slotsInvalidated);
         RuntimeTypeHandle key = typeof(T).TypeHandle;
 
-        if (s_tsSlotsInvalidated == globalInvalidated && s_tsLastValue is not null && s_tsLastKey.Equals(key))
+        if (s_tsSlotsInvalidated != globalInvalidated)
         {
-            return s_tsLastValue as T;
+            s_tsSlotsInvalidated = globalInvalidated;
+            s_tsKey0 = default; s_tsVal0 = null; s_tsMgr0 = null;
+            s_tsKey1 = default; s_tsVal1 = null; s_tsMgr1 = null;
         }
-
-        s_tsSlotsInvalidated = globalInvalidated;
+        else
+        {
+            if (ReferenceEquals(s_tsMgr0, this) && s_tsKey0.Equals(key))
+            {
+                return (T?)s_tsVal0;
+            }
+            if (ReferenceEquals(s_tsMgr1, this) && s_tsKey1.Equals(key))
+            {
+                // Swap to Slot 0 (MRU)
+                object? v = s_tsVal1;
+                s_tsKey1 = s_tsKey0; s_tsVal1 = s_tsVal0; s_tsMgr1 = s_tsMgr0;
+                s_tsKey0 = key; s_tsVal0 = v; s_tsMgr0 = this;
+                return (T?)v;
+            }
+        }
 
         // 3) Dictionary fallback
-        _ = _instanceCache.TryGetValue(key, out object? instance);
-
-        // Publish to L1 + slot
-        s_tsLastKey = key;
-        s_tsLastValue = instance;
-        if (instance is not null)
+        if (!_instanceCache.TryGetValue(key, out object? instance))
         {
-            _ = Interlocked.Increment(ref _instanceCacheHitCount);
-            Volatile.Write(ref GenericSlot<T>.Value, instance);
+            return null;
         }
 
-        return instance as T;
+        _ = Interlocked.Increment(ref _instanceCacheHitCount);
+
+        // Publish to L1 (Slot 0)
+        s_tsKey1 = s_tsKey0; s_tsVal1 = s_tsVal0; s_tsMgr1 = s_tsMgr0;
+        s_tsKey0 = key; s_tsVal0 = instance; s_tsMgr0 = this;
+
+        // Publish to slot
+        Volatile.Write(ref GenericSlot<T>.Value, instance);
+
+        return (T)instance;
     }
 
     /// <summary>
@@ -698,15 +721,16 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
         }
 
         _instanceCache.Clear();
+        _signatureInstanceCache.Clear();
         _activatorCache.Clear();
         _disposables.Clear();
 
         // Invalidate all generic slots at once (no need to enumerate)
         _ = Interlocked.Increment(ref s_slotsInvalidated);
 
-        // Optional: clear thread L1 (best-effort)
-        s_tsLastKey = default;
-        s_tsLastValue = null;
+        // Optional: clear thread L1 (best-effort for current thread)
+        s_tsKey0 = default; s_tsVal0 = null; s_tsMgr0 = null;
+        s_tsKey1 = default; s_tsVal1 = null; s_tsMgr1 = null;
 
         this.EmitLog(LogLevel.Information, $"[FW.{nameof(InstanceManager)}:{nameof(Clear)}] cleared");
     }
@@ -749,6 +773,19 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | {source}");
         }
 
+        foreach (KeyValuePair<ActivatorKey, object> kvp in _signatureInstanceCache)
+        {
+            Type type = kvp.Value.GetType();
+            string typeName = type.FullName ?? type.Name;
+            if (typeName.Length > 32)
+            {
+                typeName = "..." + typeName[^29..];
+            }
+
+            bool isDisposable = kvp.Value is IDisposable;
+            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{typeName.PadRight(45)} | {(isDisposable ? "Yes" : "No "),10} | SignatureCache");
+        }
+
         _ = sb.AppendLine("---------------------------------------------------------------------------");
         return sb.ToString();
     }
@@ -788,6 +825,19 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
                 ["Type"] = typeName,
                 ["IsDisposable"] = isDisposable,
                 ["Source"] = source
+            });
+        }
+
+        foreach (KeyValuePair<ActivatorKey, object> kvp in _signatureInstanceCache)
+        {
+            Type type = kvp.Value.GetType();
+            string typeName = type.FullName ?? type.Name;
+
+            instances.Add(new Dictionary<string, object>(3, StringComparer.Ordinal)
+            {
+                ["Type"] = typeName,
+                ["IsDisposable"] = kvp.Value is IDisposable,
+                ["Source"] = "SignatureCache"
             });
         }
 
@@ -951,9 +1001,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Non-fatal: reflection may fail in trimmed / restricted environments.
-            _ = Instance; // attempt safe access if possible
-                          // If we cannot get instance, ignore; otherwise log.
-                          // We cannot call LogEvent here directly (static context) reliably, so swallow or let caller log if needed.
+            // attempt safe access if possible
+            // If we cannot get instance, ignore; otherwise log.
+            // We cannot call LogEvent here directly (static context) reliably, so swallow or let caller log if needed.
+            _ = Instance;
         }
     }
 
@@ -1105,9 +1156,17 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IWithLoggi
 
                 if (a == null)
                 {
-                    if (!p.IsValueType)
+                    // Reference types and Nullable<T> can accept null.
+                    if (!p.IsValueType || Nullable.GetUnderlyingType(p) != null)
                     {
                         score += 25;
+                    }
+                    else
+                    {
+                        // Non-nullable ValueType (struct/enum) cannot accept null.
+                        // We must reject this constructor entirely.
+                        score = int.MinValue;
+                        break;
                     }
 
                     continue;
