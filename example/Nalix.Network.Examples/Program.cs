@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Microsoft.Extensions.Logging;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -75,7 +75,7 @@ internal class Program
 
                 _ = options.WithDispatchLoopCount(8);
                 _ = options.WithMiddleware(new PacketTagMiddleware());
-                _ = options.WithErrorHandling((exception, command) => logger?.Error($"Error handling command: {command}", exception));
+                _ = options.WithErrorHandling((exception, command) => logger?.LogError(exception, $"Error handling command: {command}"));
             })
             .AddTcp<ExamplePacketProtocol>()
             .Build();
