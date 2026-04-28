@@ -7,11 +7,6 @@ using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Framework.Memory.Pools;
 
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
-#endif
-
 namespace Nalix.Framework.Memory.Objects;
 
 /// <summary>
@@ -90,11 +85,21 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
 
         // ObjectPoolManager doesn't have GetMultiple, so we simulate it
         List<T> result = new(count);
-        for (int i = 0; i < count; i++)
+        try
         {
-            result.Add(_manager.Get<T>());
+            for (int i = 0; i < count; i++)
+            {
+                result.Add(_manager.Get<T>());
+            }
+            return result;
         }
-        return result;
+        catch
+        {
+            // SEC-88: Return already acquired objects to the pool if an exception occurs
+            // to prevent resource leaks.
+            _ = this.ReturnMultiple(result);
+            throw;
+        }
     }
 
     /// <summary>

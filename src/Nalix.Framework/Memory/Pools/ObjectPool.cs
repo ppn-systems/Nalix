@@ -447,14 +447,21 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         }
 
         List<T> result = new(count);
-        _ = typeof(T);
-
-        for (int i = 0; i < count; i++)
+        try
         {
-            result.Add(this.Get<T>());
+            for (int i = 0; i < count; i++)
+            {
+                result.Add(this.Get<T>());
+            }
+            return result;
         }
-
-        return result;
+        catch
+        {
+            // SEC-88: Return already acquired objects to the pool if an exception occurs
+            // to prevent resource leaks.
+            _ = this.ReturnMultiple(result);
+            throw;
+        }
     }
 
     /// <summary>
