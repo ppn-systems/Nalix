@@ -18,7 +18,14 @@ public static class ExceptionClassifier
     /// <returns><see langword="true"/> if the exception is non-fatal.</returns>
     public static bool IsNonFatal(Exception ex)
     {
+#if NET10_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(ex);
+#else
+        if (ex is null)
+        {
+            throw new ArgumentNullException(nameof(ex));
+        }
+#endif
 
         return ex is not (
             OutOfMemoryException or

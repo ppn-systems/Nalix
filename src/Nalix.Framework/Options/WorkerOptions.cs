@@ -16,22 +16,22 @@ public sealed class WorkerOptions : IWorkerOptions
     /// <summary>
     /// Gets an optional tag for identifying the worker.
     /// </summary>
-    public string? Tag { get; init; }
+    public string? Tag { get; set; }
 
     /// <summary>
     /// Gets the optional machine identifier for the worker instance.
     /// </summary>
-    public ushort MachineId { get; init; } = 1;
+    public ushort MachineId { get; set; } = 1;
 
     /// <summary>
     /// Gets the optional identifier type for the worker instance.
     /// </summary>
-    public SnowflakeType IdType { get; init; } = SnowflakeType.System;
+    public SnowflakeType IdType { get; set; } = SnowflakeType.System;
 
     /// <summary>
     /// Gets the scheduler priority for this worker while it is queued.
     /// </summary>
-    public WorkerPriority Priority { get; init; } = WorkerPriority.NORMAL;
+    public WorkerPriority Priority { get; set; } = WorkerPriority.NORMAL;
 
     /// <summary>
     /// Gets the optional execution timeout for the worker instance.
@@ -43,22 +43,22 @@ public sealed class WorkerOptions : IWorkerOptions
     /// Gets the duration for which finished workers are retained for diagnostics.
     /// Set to <c>null</c> or <see cref="TimeSpan.Zero"/> to auto-remove.
     /// </summary>
-    public TimeSpan? RetainFor { get; init; } = TimeSpan.FromMinutes(2);
+    public TimeSpan? RetainFor { get; set; } = TimeSpan.FromMinutes(2);
 
     /// <summary>
     /// Gets the optional per-group concurrency cap. If set, executions in this group are gated.
     /// </summary>
-    public int? GroupConcurrencyLimit { get; init; }
+    public int? GroupConcurrencyLimit { get; set; }
 
     /// <summary>
     /// Gets a value indicating whether to acquire group slot immediately or cancel if unavailable. Default: false (wait).
     /// </summary>
-    public bool TryAcquireSlotImmediately { get; init; }
+    public bool TryAcquireSlotImmediately { get; set; }
 
     /// <summary>
     /// Gets the cancellation token that is linked to the worker's execution.
     /// </summary>
-    public CancellationToken CancellationToken { get; init; }
+    public CancellationToken CancellationToken { get; set; }
 
     /// <summary>
     /// Gets the action to invoke when the worker has completed successfully.
@@ -73,5 +73,5 @@ public sealed class WorkerOptions : IWorkerOptions
     /// <summary>
     /// Gets the optional OS-level thread priority for the worker.
     /// </summary>
-    public ThreadPriority? OSPriority { get; init; }
+    public ThreadPriority? OSPriority { get; set; }
 }
