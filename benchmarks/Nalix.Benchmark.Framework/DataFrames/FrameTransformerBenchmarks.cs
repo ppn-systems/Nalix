@@ -6,7 +6,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Transforms;
 using Nalix.Codec.Memory;
-using Nalix.Environment;
+using Nalix.Environment.Random;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
@@ -35,12 +35,12 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
 
         Handshake frame = new();
         frame.Initialize(
-            HandshakeStage.ServerHello,
+            HandshakeStage.SERVER_HELLO,
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            PacketFlags.Reliable);
-        frame.Flags = PacketFlags.None;
+            PacketFlags.RELIABLE);
+        frame.Flags = PacketFlags.NONE;
         _rawPacket = frame.Serialize();
 
         _source = BufferLease.CopyFrom(_rawPacket);

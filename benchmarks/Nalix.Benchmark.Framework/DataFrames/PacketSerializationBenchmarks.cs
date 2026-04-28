@@ -3,7 +3,7 @@ using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Environment;
+using Nalix.Environment.Random;
 
 namespace Nalix.Benchmark.Framework.DataFrames;
 
@@ -21,11 +21,11 @@ public class PacketSerializationBenchmarks : NalixBenchmarkBase
     {
         _handshake = new Handshake();
         _handshake.Initialize(
-            HandshakeStage.ClientHello,
+            HandshakeStage.CLIENT_HELLO,
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            PacketFlags.Reliable);
+            PacketFlags.RELIABLE);
 
         _serializedHandshake = _handshake.Serialize();
         _buffer = new byte[Handshake.Size];

@@ -1,6 +1,5 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Abstractions.Memory;
 using Nalix.Codec.Memory;
 
 using Nalix.Abstractions;
