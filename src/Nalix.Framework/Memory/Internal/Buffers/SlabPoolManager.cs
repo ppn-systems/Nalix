@@ -25,13 +25,13 @@ namespace Nalix.Framework.Memory.Internal.Buffers;
 internal sealed class SlabPoolManager : IDisposable
 {
     /// <summary>Sorted bucket sizes for binary search lookup.</summary>
-    private int[] _sortedSizes;
+    private volatile int[] _sortedSizes;
 
     /// <summary>Buckets keyed by segment size.</summary>
     private readonly Dictionary<int, SlabBucket> _buckets;
 
     private readonly Lock _lock;
-    private int[]? _fastBucketMap; // Fast lookup for sizes up to 4KB
+    private volatile int[]? _fastBucketMap; // Fast lookup for sizes up to 4KB
     private bool _disposed;
 
     /// <summary>Occurs when any bucket managed by this pool manager needs to resize.</summary>
@@ -140,9 +140,11 @@ internal sealed class SlabPoolManager : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int BINARY_SEARCH_BEST_FIT(int size)
+    private int BINARY_SEARCH_BEST_FIT(int size) => BINARY_SEARCH_INTERNAL(_sortedSizes, size);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int BINARY_SEARCH_INTERNAL(int[] keys, int size)
     {
-        int[] keys = _sortedSizes;
         if (keys.Length == 0)
         {
             return 0;
@@ -173,14 +175,17 @@ internal sealed class SlabPoolManager : IDisposable
         }
 
         Array.Sort(keys);
-        _sortedSizes = keys;
 
-        // Build fast lookup map for sizes 0..4096
+        // Build fast lookup map for sizes 0..4096 using local keys
+        // to avoid field read issues during concurrent rebuilds.
         int[] map = new int[4097];
         for (int s = 1; s <= 4096; s++)
         {
-            map[s] = this.BINARY_SEARCH_BEST_FIT(s);
+            map[s] = BINARY_SEARCH_INTERNAL(keys, s);
         }
+
+        // Atomic assignment — volatile ensures visibility and order
+        _sortedSizes = keys;
         _fastBucketMap = map;
     }
 
