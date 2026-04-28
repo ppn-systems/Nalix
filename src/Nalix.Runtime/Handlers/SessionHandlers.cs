@@ -15,9 +15,8 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
-using Nalix.Runtime.Pooling;
 using Nalix.Runtime.Extensions;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
 

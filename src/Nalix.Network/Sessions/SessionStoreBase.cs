@@ -9,8 +9,8 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Environment.Time;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Sessions;
@@ -69,10 +69,7 @@ public abstract class SessionStoreBase : ISessionStore
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public virtual ValueTask StoreAsync(IConnection connection, CancellationToken cancellationToken = default)
     {
-        if (connection is null)
-        {
-            throw new ArgumentNullException(nameof(connection));
-        }
+        ArgumentNullException.ThrowIfNull(connection);
 
         if (connection.IsDisposed)
         {
