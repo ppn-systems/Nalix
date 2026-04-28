@@ -11,9 +11,9 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Identity;
 using Nalix.Environment.Random;
+using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
-using Nalix.Environment.Time;
 
 namespace Nalix.Framework.Tasks;
 
@@ -875,24 +875,9 @@ public partial class TaskManager
         double processorCount = System.Environment.ProcessorCount;
 
         // cpuDelta / wallDelta = tỷ lệ sử dụng trên 1 core -> nhân processorCount -> % trên toàn bộ core
-        double cpuUsagePercent = cpuDelta / (double)wallDelta * processorCount * 100.0;
+        double cpuUsagePercent = cpuDelta / (double)wallDelta / processorCount * 100.0;
 
         return Math.Min(cpuUsagePercent, processorCount * 100.0);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int COUNT_RUNNING_THREADS(Process proc)
-    {
-        int running = 0;
-        foreach (ProcessThread thread in proc.Threads)
-        {
-            if (thread.ThreadState == System.Diagnostics.ThreadState.Running)
-            {
-                running++;
-            }
-        }
-
-        return running;
     }
 
     [StackTraceHidden]
