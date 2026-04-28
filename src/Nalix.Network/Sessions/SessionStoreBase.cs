@@ -64,5 +64,43 @@ public abstract class SessionStoreBase : ISessionStore
 
     /// <inheritdoc/>
     public abstract ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public virtual ValueTask StoreAsync(IConnection connection, CancellationToken cancellationToken = default)
+    {
+        if (connection is null)
+        {
+            throw new ArgumentNullException(nameof(connection));
+        }
+
+        if (connection.IsDisposed)
+        {
+            throw new ObjectDisposedException(nameof(connection), "Cannot store session for a disposed connection.");
+        }
+
+        // Only persist if the handshake was established
+        if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) || established is not true)
+        {
+            throw new InvalidOperationException("Cannot store session for a connection that has not established a handshake. This is a state violation.");
+        }
+
+        // Only persist if there is meaningful metadata beyond internal flags.
+        // This is a resource policy, so we skip instead of throwing to avoid breaking legitimate protocol flows.
+        if (connection.Attributes.Count <= _options.MinAttributesForPersistence)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        SessionEntry entry = this.CreateSession(connection);
+        ValueTask storeTask = this.StoreAsync(entry, cancellationToken);
+
+        if (storeTask.IsCompletedSuccessfully)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        return new ValueTask(storeTask.AsTask());
+    }
 }
 

@@ -20,11 +20,15 @@ public interface ISessionStore
     SessionEntry CreateSession(IConnection connection);
 
     /// <summary>
-    /// Persists the specified <see cref="SessionEntry"/> to the store.
+    /// Persists the session for the specified connection. 
+    /// Enforces policies (handshake state, min attributes) and throws if they are not met.
     /// </summary>
-    /// <param name="entry">The session entry to store.</param>
-    /// <param name="cancellationToken">The cancellation token for the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous store operation.</returns>
+    ValueTask StoreAsync(IConnection connection, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Persists the specified session entry directly to the store.
+    /// This is a low-level operation that bypasses connection-level policy checks.
+    /// </summary>
     ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);
 
     /// <summary>

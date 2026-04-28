@@ -85,12 +85,4 @@ public interface IConnectionHub : IReportable, IDisposable
     /// </summary>
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>
     IReadOnlyCollection<IConnection> ListConnections();
-
-    /// <summary>
-    /// Manually persists the session for the specified connection.
-    /// </summary>
-    /// <param name="connection">The connection whose session should be persisted.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    ValueTask SaveSessionAsync(IConnection connection);
 }
-

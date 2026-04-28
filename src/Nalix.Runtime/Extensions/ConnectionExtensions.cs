@@ -17,6 +17,21 @@ namespace Nalix.Runtime.Extensions;
 public static class ConnectionExtensions
 {
     /// <summary>
+    /// Gets the connection hub that owns this connection from its attributes.
+    /// </summary>
+    /// <param name="connection">The connection to get the hub for.</param>
+    /// <returns>The owning <see cref="IConnectionHub"/>, or <c>null</c> if not found.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static IConnectionHub? GetHub(this IConnection connection)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        return connection.Attributes.TryGetValue(ConnectionAttributes.OwnerHub, out object? obj)
+            ? (IConnectionHub)obj
+            : null;
+    }
+
+    /// <summary>
     /// Sends a control directive asynchronously over the connection.
     /// </summary>
     /// <param name="connection">The connection to send the directive on.</param>
