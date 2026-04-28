@@ -17,8 +17,8 @@ namespace Nalix.Analyzers.CodeFixes;
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ConfigurationIgnoreCodeFixProvider)), Shared]
 public sealed class ConfigurationIgnoreCodeFixProvider : CodeFixProvider
 {
-    private const string AddConfigurationIgnoreTitle = "Add [ConfigurationIgnore]";
-    private const string AddConfigurationIgnoreEquivalenceKey = "Nalix.Configuration.ConfigurationIgnore.Add";
+    private const string AddConfigurationIgnoreTitle = "Add [ConfiguredIgnore]";
+    private const string AddConfigurationIgnoreEquivalenceKey = "Nalix.Configuration.ConfiguredIgnore.Add";
     private const string MakeSetterPublicTitle = "Make setter public";
     private const string MakeSetterPublicEquivalenceKey = "Nalix.Configuration.Setter.MakePublic";
 
@@ -67,7 +67,7 @@ public sealed class ConfigurationIgnoreCodeFixProvider : CodeFixProvider
         AttributeListSyntax attributeList = SyntaxFactory.AttributeList(
             SyntaxFactory.SingletonSeparatedList(
                 SyntaxFactory.Attribute(
-                    SyntaxFactory.ParseName("Nalix.Abstractions.ConfigurationIgnore"))));
+                    SyntaxFactory.ParseName("Nalix.Abstractions.ConfiguredIgnore"))));
 
         editor.ReplaceNode(property, property.AddAttributeLists(attributeList));
         return editor.GetChangedDocument();

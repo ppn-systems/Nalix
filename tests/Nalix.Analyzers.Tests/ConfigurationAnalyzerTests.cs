@@ -30,7 +30,7 @@ using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
-    [Nalix.Abstractions.ConfigurationIgnore]
+    [Nalix.Abstractions.ConfiguredIgnore]
     public List<int> Values { get; set; } = [];
 }
 """;
@@ -40,8 +40,8 @@ public sealed class DemoOptions : ConfigurationLoader
             fixedSource,
             "NALIX023",
             actionIndex: 0,
-            expectedTitle: "Add [ConfigurationIgnore]",
-            expectedEquivalenceKey: "Nalix.Configuration.ConfigurationIgnore.Add");
+            expectedTitle: "Add [ConfiguredIgnore]",
+            expectedEquivalenceKey: "Nalix.Configuration.ConfiguredIgnore.Add");
     }
 
     [Fact]
@@ -83,7 +83,7 @@ using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
-    [ConfigurationIgnore]
+    [ConfiguredIgnore]
     public List<int> Values { get; set; } = [];
 }
 """;
@@ -130,7 +130,7 @@ using Nalix.Environment.Configuration.Binding;
 
 public sealed class DemoOptions : ConfigurationLoader
 {
-    [Nalix.Abstractions.ConfigurationIgnore]
+    [Nalix.Abstractions.ConfiguredIgnore]
     public int ReadOnlyPort { get; }
 }
 """;
@@ -140,8 +140,8 @@ public sealed class DemoOptions : ConfigurationLoader
             fixedSource,
             "NALIX024",
             actionIndex: 0,
-            expectedTitle: "Add [ConfigurationIgnore]",
-            expectedEquivalenceKey: "Nalix.Configuration.ConfigurationIgnore.Add");
+            expectedTitle: "Add [ConfiguredIgnore]",
+            expectedEquivalenceKey: "Nalix.Configuration.ConfiguredIgnore.Add");
     }
 
     [Fact]
