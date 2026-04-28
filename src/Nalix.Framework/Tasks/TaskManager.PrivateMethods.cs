@@ -169,7 +169,7 @@ public partial class TaskManager
 
                     if (worker is null)
                     {
-                        _ = _globalConcurrencyGate.Release();
+                        this.RELEASE_GLOBAL_GATE();
                         continue;
                     }
 
@@ -177,7 +177,7 @@ public partial class TaskManager
                 }
                 catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
-                    _ = _globalConcurrencyGate.Release();
+                    this.RELEASE_GLOBAL_GATE();
 
                     if (worker is not null)
                     {
@@ -469,7 +469,7 @@ public partial class TaskManager
             }
 
             this.RETAIN_OR_REMOVE(st);
-            _ = _globalConcurrencyGate.Release();
+            this.RELEASE_GLOBAL_GATE();
         }
     }
 
@@ -678,6 +678,25 @@ public partial class TaskManager
                 logger.LogDebug(ex, $"[FW.{nameof(TaskManager)}:{nameof(RECURRING_BACKOFF_ASYNC)}] backoff-cancelled");
             }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void RELEASE_GLOBAL_GATE()
+    {
+        // Check if we need to 'steal' this permit to satisfy a pending limit reduction
+        int def = Volatile.Read(ref _concurrencyDeficiency);
+        while (def > 0)
+        {
+            if (Interlocked.CompareExchange(ref _concurrencyDeficiency, def - 1, def) == def)
+            {
+                // Permit consumed by the deficiency, don't release to semaphore
+                return;
+            }
+            def = Volatile.Read(ref _concurrencyDeficiency);
+        }
+
+        // No deficiency, return the permit to the global pool
+        _ = _globalConcurrencyGate.Release();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -902,28 +921,40 @@ public partial class TaskManager
         {
             if (delta > 0)
             {
-                // Tăng capacity: release thêm slot vào semaphore
-                _ = _globalConcurrencyGate.Release(delta);
+                // Tăng capacity: ưu tiên bù đắp deficiency trước, sau đó mới release vào semaphore
+                int toRelease = delta;
+                int def = Volatile.Read(ref _concurrencyDeficiency);
+                while (def > 0 && toRelease > 0)
+                {
+                    int consumed = Math.Min(def, toRelease);
+                    if (Interlocked.CompareExchange(ref _concurrencyDeficiency, def - consumed, def) == def)
+                    {
+                        toRelease -= consumed;
+                    }
+                    def = Volatile.Read(ref _concurrencyDeficiency);
+                }
+
+                if (toRelease > 0)
+                {
+                    _ = _globalConcurrencyGate.Release(toRelease);
+                }
             }
             else if (delta < 0)
             {
                 // Giảm capacity: thu hồi slot bằng Wait(0) non-blocking
-                // Nếu slot đang bị giữ (worker đang chạy), chấp nhận revert một phần
-                // thay vì block — tránh deadlock
-                int i;
-                for (i = 0; i < -delta; i++)
+                // Nếu slot đang bị giữ (worker đang chạy), tăng deficiency để 'trộm' slot ngay khi nó được release
+                int toSteal = -delta;
+                for (int i = 0; i < toSteal; i++)
                 {
                     if (!_globalConcurrencyGate.Wait(0))
                     {
-                        // Không còn slot rảnh -> revert về số đã thu hồi được thực tế
-                        this.TRACE($"[FW.TaskManager.Internal] concurrency-partial-retreat from={previousLimit} to={previousLimit - i}");
-                        _currentConcurrencyLimit = previousLimit - i;
-                        break;
+                        // Không thể trộm ngay -> đánh dấu nợ (deficiency)
+                        _ = Interlocked.Increment(ref _concurrencyDeficiency);
                     }
                 }
             }
 
-            this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}]");
+            this.TRACE($"[FW.TaskManager.Internal] concurrency-limit-adjusted=[{previousLimit}->{_currentConcurrencyLimit}] def={_concurrencyDeficiency}");
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {

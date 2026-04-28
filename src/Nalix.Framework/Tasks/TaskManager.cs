@@ -60,6 +60,7 @@ public sealed partial class TaskManager : ITaskManager
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
+    private int _concurrencyDeficiency;
 
     #endregion Fields
 
