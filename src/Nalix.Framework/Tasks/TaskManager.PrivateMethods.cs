@@ -321,6 +321,7 @@ public partial class TaskManager
                         {
                             cts.Dispose();
                         }
+                        catch (ObjectDisposedException) { }
                         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } loggerDispose && loggerDispose.IsEnabled(LogLevel.Warning))
@@ -721,6 +722,7 @@ public partial class TaskManager
             {
                 st.Cts.Dispose();
             }
+            catch (ObjectDisposedException) { }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))

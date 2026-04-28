@@ -403,6 +403,7 @@ public sealed partial class TaskManager : ITaskManager
             {
                 st.Cts.Dispose();
             }
+            catch (ObjectDisposedException) { } // Ignore if already disposed
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (logger != null && logger.IsEnabled(LogLevel.Debug))
@@ -464,11 +465,13 @@ public sealed partial class TaskManager : ITaskManager
 
         Task? t = st.Task;
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        
         if (t is not null)
         {
             _ = t.ContinueWith(_ =>
             {
                 try { st.CancellationTokenSource.Dispose(); }
+                catch (ObjectDisposedException) { }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (logger != null && logger.IsEnabled(LogLevel.Debug))
@@ -477,6 +480,7 @@ public sealed partial class TaskManager : ITaskManager
                     }
                 }
                 try { st.Gate.Dispose(); }
+                catch (ObjectDisposedException) { }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (logger != null && logger.IsEnabled(LogLevel.Debug))
