@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;
 
+[Collection("ObjectPoolDiagnostics")]
 public sealed class ObjectPoolDiagnosticsTests
 {
     [Fact]
@@ -54,12 +55,20 @@ public sealed class ObjectPoolDiagnosticsTests
             Thread.Sleep(50); 
             manager.Return(item);
 
-            // Give metrics time to record
-            Thread.Sleep(100); 
+            string report = "";
+            bool found = false;
+            for (int i = 0; i < 20; i++)
+            {
+                report = manager.GenerateReport();
+                if (report.Contains("Lifetime (ms)"))
+                {
+                    found = true;
+                    break;
+                }
+                Thread.Sleep(50);
+            }
 
-            string report = manager.GenerateReport();
-
-            Assert.True(report.Contains("Lifetime (ms)"), $"Report should contain Lifetime metrics. Full report:\n{report}");
+            Assert.True(found, $"Report should contain Lifetime metrics. Full report:\n{report}");
             Assert.Contains("Avg=", report);
             Assert.Contains("p95=", report);
             Assert.Contains("Max=", report);
