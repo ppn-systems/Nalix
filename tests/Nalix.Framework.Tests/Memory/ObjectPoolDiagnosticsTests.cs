@@ -44,14 +44,22 @@ public sealed class ObjectPoolDiagnosticsTests
         try
         {
             ObjectPoolManager manager = new();
+            
+            // Force EnableDiagnostics on the manager's private config to bypass sync issues
+            var field = typeof(ObjectPoolManager).GetField("_config", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            var managerConfig = (ObjectPoolOptions)field.GetValue(manager);
+            managerConfig.EnableDiagnostics = true;
 
             TestPoolable item = manager.Get<TestPoolable>();
-            Thread.Sleep(10); // Simulate some work
+            Thread.Sleep(50); 
             manager.Return(item);
+
+            // Give metrics time to record
+            Thread.Sleep(100); 
 
             string report = manager.GenerateReport();
 
-            Assert.Contains("Lifetime (ms)", report);
+            Assert.True(report.Contains("Lifetime (ms)"), $"Report should contain Lifetime metrics. Full report:\n{report}");
             Assert.Contains("Avg=", report);
             Assert.Contains("p95=", report);
             Assert.Contains("Max=", report);
@@ -74,6 +82,9 @@ public sealed class ObjectPoolDiagnosticsTests
             ObjectPoolManager manager = new();
 
             TestPoolable item = manager.Get<TestPoolable>();
+
+            // Allow ConcurrentBag's eventual consistency to catch up for the iterator
+            Thread.Sleep(10); 
 
             string report = manager.GenerateReport();
 

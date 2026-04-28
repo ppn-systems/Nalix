@@ -90,14 +90,34 @@ public abstract class SessionStoreBase : ISessionStore
         }
 
         SessionEntry entry = this.CreateSession(connection);
-        ValueTask storeTask = this.StoreAsync(entry, cancellationToken);
-
-        if (storeTask.IsCompletedSuccessfully)
+        try
         {
-            return ValueTask.CompletedTask;
+            ValueTask storeTask = this.StoreAsync(entry, cancellationToken);
+
+            if (storeTask.IsCompletedSuccessfully)
+            {
+                return ValueTask.CompletedTask;
+            }
+
+            return AWAIT_AND_RECLAIM(storeTask, entry);
+        }
+        catch (Exception)
+        {
+            entry.Return();
+            throw;
         }
 
-        return new ValueTask(storeTask.AsTask());
+        static async ValueTask AWAIT_AND_RECLAIM(ValueTask task, SessionEntry session)
+        {
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                session.Return();
+                throw;
+            }
+        }
     }
 }
-

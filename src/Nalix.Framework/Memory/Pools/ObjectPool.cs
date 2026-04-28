@@ -473,6 +473,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public TypedObjectPool<T> CreateTypedPool<T>() where T : IPoolable, new() => new(this);
 
+    internal int AvailableCountByType(Type type)
+    {
+        return _typePools.TryGetValue(type, out TypePool? typePool) ? typePool.AvailableCount : 0;
+    }
+
     internal Dictionary<string, object> GetTypeInfoByType(Type type)
     {
         return _typePools.TryGetValue(type, out TypePool? typePool)
