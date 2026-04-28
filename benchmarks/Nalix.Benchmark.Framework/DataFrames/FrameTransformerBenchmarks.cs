@@ -35,12 +35,12 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
 
         Handshake frame = new();
         frame.Initialize(
-            HandshakeStage.SERVER_HELLO,
+            HandshakeStage.ServerHello,
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            PacketFlags.RELIABLE);
-        frame.Flags = PacketFlags.NONE;
+            PacketFlags.Reliable);
+        frame.Flags = PacketFlags.None;
         _rawPacket = frame.Serialize();
 
         _source = BufferLease.CopyFrom(_rawPacket);

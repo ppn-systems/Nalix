@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Codec.DataFrames.Chunks;
+
 namespace Nalix.Benchmark.Framework.DataFrames;
 
 /// <summary>

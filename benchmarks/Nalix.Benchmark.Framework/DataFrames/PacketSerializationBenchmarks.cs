@@ -21,11 +21,11 @@ public class PacketSerializationBenchmarks : NalixBenchmarkBase
     {
         _handshake = new Handshake();
         _handshake.Initialize(
-            HandshakeStage.CLIENT_HELLO,
+            HandshakeStage.ClientHello,
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
             new Bytes32(Csprng.GetBytes(32)),
-            PacketFlags.RELIABLE);
+            PacketFlags.Reliable);
 
         _serializedHandshake = _handshake.Serialize();
         _buffer = new byte[Handshake.Size];
