@@ -34,18 +34,7 @@ public static class LZ4Codec
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int Encode(ReadOnlySpan<byte> input, Span<byte> output)
-    {
-        try
-        {
-            return LZ4Encoder.Encode(input, output);
-        }
-        catch (AccessViolationException ex)
-        {
-            throw new InternalErrorException(
-                $"LZ4 memory violation: inputLength={input.Length}, outputLength={output.Length}.", ex);
-        }
-    }
+    public static int Encode(ReadOnlySpan<byte> input, Span<byte> output) => LZ4Encoder.Encode(input, output);
 
     /// <summary>
     /// Compresses the input data into a pooled <see cref="BufferLease"/>.
