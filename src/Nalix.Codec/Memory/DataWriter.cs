@@ -7,9 +7,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using Nalix.Codec.Internal;
-using Nalix.Codec.Options;
-using Nalix.Environment.Configuration;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Memory;
 
@@ -42,8 +42,6 @@ public ref struct DataWriter
     /// True when the backing array was rented from ArrayPool and must be returned on Dispose
     /// </summary>
     private readonly bool _rent;
-    
-    private static readonly SerializationOptions s_options = ConfigurationManager.Instance.Get<SerializationOptions>();
 
     #endregion Fields
 
@@ -187,7 +185,7 @@ public ref struct DataWriter
         // Use checked arithmetic to prevent integer overflow attacks
         // and enforce a hard limit to prevent OOM-based DoS.
         // The limit is read from global configuration to allow per-deployment tuning.
-        int limit = s_options.MaxWriterCapacity;
+        int limit = SerializationStaticOptions.Instance.MaxWriterCapacity;
 
         int current = _owner?.Length ?? 0;
         int needed = this.WrittenCount + minimumSize;
