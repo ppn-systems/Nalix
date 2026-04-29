@@ -5,10 +5,9 @@
 // Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
 // Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
-using Nalix.Codec.Security;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Symmetric;
-using Nalix.Abstractions.Security;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security.Engine;
@@ -85,9 +84,8 @@ public static class SymmetricEngine
             case CipherSuiteType.None:
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
-                throw new System.NotSupportedException("Authenticated symmetric algorithms are not supported by the raw keystream API.");
             default:
-                ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
+                ThrowHelper.ThrowNotSupportedException("Authenticated symmetric algorithms are not supported by the raw keystream API.");
                 return;
         }
     }
