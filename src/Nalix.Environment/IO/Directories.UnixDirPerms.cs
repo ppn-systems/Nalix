@@ -209,22 +209,26 @@ public static partial class Directories
     /// </param>
     private static void RAISE_DIRECTORY_CREATED([DisallowNull] string path)
     {
-        Action<string>? handlers = DirectoryCreated;
-        if (handlers == null)
+        lock (s_handlerLock)
         {
-            return;
-        }
-
-        Delegate[] invocationList = handlers.GetInvocationList();
-        for (int i = 0; i < invocationList.Length; i++)
-        {
-            try
+            for (int i = s_directoryCreatedHandlers.Count - 1; i >= 0; i--)
             {
-                ((Action<string>)invocationList[i]).Invoke(path);
-            }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-            {
-                Debug.WriteLine($"[Directories] DirectoryCreated handler failed for '{path}': {ex}");
+                if (s_directoryCreatedHandlers[i].TryGetTarget(out Action<string>? handler))
+                {
+                    try
+                    {
+                        handler.Invoke(path);
+                    }
+                    catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                    {
+                        Debug.WriteLine($"[Directories] DirectoryCreated handler failed for '{path}': {ex}");
+                    }
+                }
+                else
+                {
+                    // Remove collected handlers to prevent list growth
+                    s_directoryCreatedHandlers.RemoveAt(i);
+                }
             }
         }
     }
