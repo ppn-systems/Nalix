@@ -373,6 +373,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             bool shouldForceClose = false;
             ConnectionAllowResult result;
 
+            // Lock-free trim before taking the SpinLock to avoid holding the lock during potentially long loops
+            this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+
             bool spinLockTaken = false;
             try
             {
@@ -382,8 +385,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 {
                     continue; // Retry with a fresh GetOrAdd, this one is tombstoned
                 }
-
-                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
             if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
             {
@@ -543,20 +544,14 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 LastConnectionTime = now
             };
 
-            // Trim queue when releasing to prevent unbounded growth
-            if (newCount == 0)
+            // Clear queue if no connections and queue is large
+            if (newCount == 0 && entry.RecentConnectionTimestamps.Count > _config.MaxConnectionsPerWindow * 2)
             {
-                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
+                entry.RecentConnectionTimestamps.Clear();
 
-                // Clear queue if no connections and queue is large
-                if (entry.RecentConnectionTimestamps.Count > _config.MaxConnectionsPerWindow * 2)
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    entry.RecentConnectionTimestamps.Clear();
-
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
-                    {
-                        _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
-                    }
+                    _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
                 }
             }
         }
@@ -567,6 +562,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 entry.SpinLock.Exit();
             }
         }
+
+        // Lock-free trim after releasing the SpinLock
+        this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
 
         return true;
     }
