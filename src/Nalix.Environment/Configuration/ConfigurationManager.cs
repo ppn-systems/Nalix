@@ -5,13 +5,10 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
-using Microsoft.Extensions.Logging;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Configuration.Internal;
@@ -26,7 +23,7 @@ namespace Nalix.Environment.Configuration;
 /// <remarks>
 /// <para>
 /// Thread-safety model:
-/// - <see cref="Get{TClass}()"/> snapshots <c>_iniFile</c> under a read lock before use.
+/// - <see cref="Get{TClass}()"/> snapshots the current context under a read lock before use.
 /// - <see cref="ReloadAll"/> and <see cref="SetConfigFilePath"/> use a write lock for exclusive access.
 /// - A <see cref="SemaphoreSlim"/>(1,1) gate serialises reload/path-change operations
 ///   and makes callers WAIT instead of silently returning <see langword="false"/>.
@@ -36,11 +33,11 @@ namespace Nalix.Environment.Configuration;
 /// </remarks>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-[DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_configContainerDict.Count}")]
+[DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_currentContext.ContainerDict.Count}")]
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public sealed class ConfigurationManager : IDisposable, IWithLogging<ConfigurationManager>
+public sealed class ConfigurationManager : IDisposable
 {
     #region Singleton Pattern (Internalized)
 
@@ -56,16 +53,10 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
     #region Fields
 
-    private ILogger? _logger;
-
-    /// <summary>
-    /// volatile: assigned atomically in SetConfigFilePath; all threads must see the latest reference.
-    /// </summary>
-    private volatile Lazy<IniConfig> _iniFile;
+    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
 
     private readonly string _baseConfigDirectory;
     private readonly ReaderWriterLockSlim _configLock;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<ConfigurationLoader>> _configContainerDict;
 
     /// <summary>
     /// SemaphoreSlim(1,1): serialises ReloadAll / SetConfigFilePath.
@@ -92,6 +83,13 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     private volatile string _configFilePath;
     private FileSystemWatcher? _configFileWatcher;
 
+    private readonly Lock _syncLock = new();
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ConfigurationContext> _contextCache;
+    private volatile ConfigurationContext _currentContext;
+
+    private const int MaxCachedContexts = 10;
+
     #endregion Fields
 
     #region Properties
@@ -117,12 +115,12 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         get
         {
             // Snapshot under read lock to avoid a TOCTOU race with SetConfigFilePath.
-            Lazy<IniConfig> snapshot;
+            ConfigurationContext snapshot;
             _configLock.EnterReadLock();
-            try { snapshot = _iniFile; }
+            try { snapshot = _currentContext; }
             finally { _configLock.ExitReadLock(); }
 
-            return snapshot.IsValueCreated && snapshot.Value.ExistsFile;
+            return snapshot.IniFile.IsValueCreated && snapshot.IniFile.Value.ExistsFile;
         }
     }
 
@@ -160,9 +158,10 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         // If the watcher fires during construction it needs _configLock and _reloadGate to exist.
         _configLock = new(LockRecursionPolicy.NoRecursion);
         _reloadGate = new SemaphoreSlim(1, 1);
-        _configContainerDict = new();
+        _contextCache = new(StringComparer.OrdinalIgnoreCase);
 
-        _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
+        // Initialise the default context
+        _currentContext = this.GET_OR_CREATE_CONTEXT(_configFilePath);
         this.SETUP_FILE_WATCHER();
     }
 
@@ -170,12 +169,6 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
     #region Public Methods
 
-    /// <inheritdoc/>
-    public ConfigurationManager WithLogging(ILogger logger)
-    {
-        _logger = logger;
-        return this;
-    }
 
     /// <summary>
     /// Changes the active configuration file path and optionally reloads all containers.
@@ -213,6 +206,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             throw new TimeoutException(
                 "A configuration reload/path-change operation is already running.");
         }
+
         string? pathToWatch = null;
 
         try
@@ -226,63 +220,50 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                         $"Config path unchanged: value='{normalizedPath}'.");
                 }
 
-                if (_iniFile.IsValueCreated)
+                ConfigurationContext oldContext = _currentContext;
+                if (oldContext.IniFile.IsValueCreated)
                 {
                     try
                     {
-                        _iniFile.Value.Flush();
+                        oldContext.IniFile.Value.Flush();
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                         {
-                            _logger?.LogDebug($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] old-config-flush-failed msg={ex.Message}");
+                            Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Flush", oldContext.Path, Exception = ex });
                         }
                     }
                 }
 
                 string oldPath = _configFilePath;
-                _configFilePath = normalizedPath;
-                _directoryChecked = false;
-                _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
+                ConfigurationContext newContext = this.GET_OR_CREATE_CONTEXT(normalizedPath);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                _configFilePath = normalizedPath;
+                _currentContext = newContext;
+                _directoryChecked = false;
+
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.PathChanged))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
+                    Listener.Write(DiagnosticsEvents.Configuration.PathChanged, new { From = oldPath, To = normalizedPath, CacheHit = newContext.IniFile.IsValueCreated });
                 }
 
-                if (autoReload && !_configContainerDict.IsEmpty)
+                if (autoReload && !newContext.ContainerDict.IsEmpty)
                 {
                     try
                     {
-                        IniConfig newIniFile = _iniFile.Value; // force-load the new file
-
-                        foreach (Lazy<ConfigurationLoader> lazy in _configContainerDict.Values)
-                        {
-                            if (lazy.IsValueCreated)
-                            {
-                                lazy.Value.Initialize(newIniFile);
-                            }
-                        }
-
-                        this.LastReloadTime = DateTime.UtcNow;
-
-
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-                        {
-                            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
-                        }
-
+                        // Perform reload of the current context state
+                        this.ReloadCurrentContextInternal();
                         pathToWatch = normalizedPath;
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        // Roll back state — do NOT call SETUP_FILE_WATCHER inside the write lock.
+                        // Roll back state
                         _configFilePath = oldPath;
+                        _currentContext = oldContext;
                         _directoryChecked = false;
-                        _iniFile = this.CREATE_LAZY_INI_CONFIG(oldPath);
 
-                        pathToWatch = oldPath; // restore watcher for the old path
+                        pathToWatch = oldPath;
 
                         throw new InvalidOperationException(
                             $"Auto-reload failed: path='{normalizedPath}', error={ex.Message}", ex);
@@ -301,7 +282,10 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             // Set up the watcher AFTER releasing the write lock (both success and rollback paths).
             if (pathToWatch is not null)
             {
-                this.SETUP_FILE_WATCHER();
+                lock (_syncLock)
+                {
+                    this.SETUP_FILE_WATCHER();
+                }
             }
         }
         finally
@@ -329,28 +313,28 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
-        Lazy<IniConfig> iniSnapshot;
+        ConfigurationContext context;
         _configLock.EnterReadLock();
 
         try
         {
-            iniSnapshot = _iniFile;
+            context = _currentContext;
         }
         finally
         {
             _configLock.ExitReadLock();
         }
 
-        Lazy<ConfigurationLoader> lazy = _configContainerDict.GetOrAdd(
+        Lazy<ConfigurationLoader> lazy = context.ContainerDict.GetOrAdd(
             typeof(TClass),
             _ => new Lazy<ConfigurationLoader>(() =>
             {
                 TClass container = new();
-                container.Initialize(iniSnapshot.Value);
+                container.Initialize(context.IniFile.Value);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+                    Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Created", Type = typeof(TClass).Name, Context = context.Path });
                 }
 
                 return container;
@@ -438,23 +422,20 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
         try
         {
+            ConfigurationContext context = _currentContext;
+
+            // SEC-23: Perform I/O (Reload) OUTSIDE of the global Write Lock.
+            // IniConfig.Reload is internally thread-safe. This prevents Get<T> readers
+            // from being blocked while waiting for disk I/O.
+            if (context.IniFile.IsValueCreated)
+            {
+                context.IniFile.Value.Reload();
+            }
+
             _configLock.EnterWriteLock();
             try
             {
-                if (_iniFile.IsValueCreated)
-                {
-                    _iniFile.Value.Reload();
-                }
-
-                foreach (Lazy<ConfigurationLoader> lazy in _configContainerDict.Values)
-                {
-                    if (lazy.IsValueCreated)
-                    {
-                        lazy.Value.Initialize(_iniFile.Value);
-                    }
-                }
-
-                this.LastReloadTime = DateTime.UtcNow;
+                this.ReloadCurrentContextInternal();
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -469,18 +450,18 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
             if (reloadException is not null)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    _logger.LogError(reloadException, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-failed count={_configContainerDict.Count}");
+                    Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Reload", Exception = reloadException, context.ContainerDict.Count });
                 }
 
                 throw new InvalidOperationException(
                     $"Configuration reload failed: {reloadException.Message}", reloadException);
             }
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
             {
-                _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
+                Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "Completed", context.ContainerDict.Count });
             }
         }
         catch (ObjectDisposedException) when (_isDisposed)
@@ -509,7 +490,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
+    public bool IsLoaded<TClass>() where TClass : ConfigurationLoader => _currentContext.ContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes a specific configuration from the cache.
@@ -526,12 +507,13 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        ConfigurationContext context = _currentContext;
+        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+            Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Removed", Type = typeof(TClass).Name, Context = context.Path });
         }
 
-        return _configContainerDict.TryRemove(typeof(TClass), out _);
+        return context.ContainerDict.TryRemove(typeof(TClass), out _);
     }
 
     /// <summary>
@@ -544,12 +526,13 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void ClearAll()
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        ConfigurationContext context = _currentContext;
+        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+            Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Cleared", Context = context.Path });
         }
 
-        _configContainerDict.Clear();
+        context.ContainerDict.Clear();
     }
 
     /// <summary>
@@ -566,7 +549,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         // Snapshot under read lock — avoids TOCTOU race between IsValueCreated and .Value.
         Lazy<IniConfig> snapshot;
         _configLock.EnterReadLock();
-        try { snapshot = _iniFile; }
+        try { snapshot = _currentContext.IniFile; }
         finally { _configLock.ExitReadLock(); }
 
         if (snapshot.IsValueCreated)
@@ -574,9 +557,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             try
             {
                 snapshot.Value.Flush();
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Flush))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+                    Listener.Write(DiagnosticsEvents.Configuration.Flush, new { Status = "Completed", Path = snapshot.Value.FilePath });
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -595,17 +578,18 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     {
         _isDisposed = true;
 
-        if (_iniFile.IsValueCreated)
+        ConfigurationContext context = _currentContext;
+        if (context.IniFile.IsValueCreated)
         {
             try
             {
-                _iniFile.Value.Flush();
+                context.IniFile.Value.Flush();
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    _logger.LogDebug($"[FW.{nameof(ConfigurationManager)}:{nameof(Dispose)}] flush-failed msg={ex.Message}");
+                    Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "DisposeFlush", Exception = ex });
                 }
             }
         }
@@ -622,9 +606,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             gateTaken = _reloadGate.Wait(0);
             if (!gateTaken)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
                 {
-                    _logger.LogWarning($"[FW.{nameof(ConfigurationManager)}:{nameof(Dispose)}] reload-gate-busy; disposing without waiting.");
+                    Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "DisposeGateBusy" });
                 }
             }
         }
@@ -642,7 +626,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
         _reloadGate.Dispose();
         _configLock.Dispose();
-        _configContainerDict.Clear();
+        _contextCache.Clear();
     }
 
     #endregion Protected Methods
@@ -680,6 +664,11 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
         };
 
+        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
+        {
+            Listener.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "WatcherStarted", Path = currentPath });
+        }
+
         // Capture path at setup time — lambda must not close over _configFilePath directly.
         string watchedPath = currentPath;
 
@@ -696,20 +685,33 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             }
 
             // Debounce: reset timer on every event so only the trailing edge triggers a reload.
-            _debounceTimer?.Dispose();
-            _debounceTimer = new Timer(
-                _ =>
-                {
-                    if (_isDisposed)
+            lock (_syncLock)
+            {
+                _debounceTimer?.Dispose();
+                _debounceTimer = new Timer(
+                    _ =>
                     {
-                        return;
-                    }
+                        try
+                        {
+                            if (_isDisposed)
+                            {
+                                return;
+                            }
 
-                    this.ReloadAll();
-                },
-                state: null,
-                dueTime: s_debounceDelay,
-                period: Timeout.InfiniteTimeSpan);
+                            this.ReloadAll();
+                        }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
+                            {
+                                Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "BackgroundReload", Exception = ex });
+                            }
+                        }
+                    },
+                    state: null,
+                    dueTime: s_debounceDelay,
+                    period: Timeout.InfiniteTimeSpan);
+            }
         };
 
         _configFileWatcher.EnableRaisingEvents = true;
@@ -729,16 +731,22 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         string normalizedPath = Path.GetFullPath(pathToValidate);
         string normalizedBaseDir = Path.GetFullPath(_baseConfigDirectory);
 
-        if (!normalizedBaseDir.EndsWith(Path.DirectorySeparatorChar.ToString(CultureInfo.InvariantCulture), StringComparison.InvariantCulture))
+        // SEC-25: Ensure base directory check is robust against prefix-matching attacks.
+        // C:\Config vs C:\Config_Evil
+        if (!normalizedBaseDir.EndsWith(Path.DirectorySeparatorChar))
         {
             normalizedBaseDir += Path.DirectorySeparatorChar;
         }
 
         if (!normalizedPath.StartsWith(normalizedBaseDir, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InternalErrorException(
-                $"Configuration file path '{pathToValidate}' is outside the allowed " +
-                $"configuration directory '{_baseConfigDirectory}'.");
+            // Allow if the path is exactly the base directory (though it's usually a file path)
+            if (!string.Equals(normalizedPath, Path.GetFullPath(_baseConfigDirectory), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InternalErrorException(
+                    $"Configuration file path '{pathToValidate}' is outside the allowed " +
+                    $"configuration directory '{_baseConfigDirectory}'.");
+            }
         }
     }
 
@@ -747,54 +755,132 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ENSURE_CONFIG_DIRECTORY_EXISTS()
     {
-        if (_directoryChecked) // volatile read — no lock needed
+        if (_directoryChecked)
         {
             return;
         }
 
-        string currentPath = _configFilePath; // volatile read
-        string? directory = Path.GetDirectoryName(currentPath);
-
-        if (string.IsNullOrWhiteSpace(directory))
+        lock (_syncLock)
         {
-            throw new InvalidOperationException(
-                "Configuration file path does not contain a valid directory component.");
-        }
+            if (_directoryChecked)
+            {
+                return;
+            }
 
-        if (!Directory.Exists(directory))
-        {
-            try
-            {
-                DirectoryInfo dirInfo = Directory.CreateDirectory(directory);
+            string currentPath = _configFilePath;
+            string? directory = Path.GetDirectoryName(currentPath);
 
-                if (!dirInfo.Exists)
-                {
-                    throw new InvalidOperationException($"Directory creation reported success but directory does not exist: {directory}");
-                }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                throw new UnauthorizedAccessException(
-                    $"Access denied when creating configuration directory: {directory}", ex);
-            }
-            catch (PathTooLongException ex)
-            {
-                throw new PathTooLongException(
-                    $"Configuration directory path is too long: {directory}", ex);
-            }
-            catch (IOException ex)
-            {
-                throw new IOException(
-                    $"I/O error creating configuration directory: {directory}", ex);
-            }
-            catch (Exception ex) when (ex is not InvalidOperationException)
+            if (string.IsNullOrWhiteSpace(directory))
             {
                 throw new InvalidOperationException(
-                    $"Unexpected error creating configuration directory: {directory}", ex);
+                    "Configuration file path does not contain a valid directory component.");
+            }
+
+            if (!Directory.Exists(directory))
+            {
+                try
+                {
+                    DirectoryInfo dirInfo = Directory.CreateDirectory(directory);
+
+                    if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
+                    {
+                        Listener.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "Created", Path = directory });
+                    }
+
+                    if (!dirInfo.Exists)
+                    {
+                        throw new InvalidOperationException($"Directory creation reported success but directory does not exist: {directory}");
+                    }
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    throw new UnauthorizedAccessException(
+                        $"Access denied when creating configuration directory: {directory}", ex);
+                }
+                catch (PathTooLongException ex)
+                {
+                    throw new PathTooLongException(
+                        $"Configuration directory path is too long: {directory}", ex);
+                }
+                catch (IOException ex)
+                {
+                    throw new IOException(
+                        $"I/O error creating configuration directory: {directory}", ex);
+                }
+                catch (Exception ex) when (ex is not InvalidOperationException)
+                {
+                    throw new InvalidOperationException(
+                        $"Unexpected error creating configuration directory: {directory}", ex);
+                }
+            }
+
+            _directoryChecked = true;
+        }
+    }
+
+    private ConfigurationContext GET_OR_CREATE_CONTEXT(string path)
+    {
+        return _contextCache.GetOrAdd(path, p =>
+        {
+            // SEC-26: Prevent memory leaks by capping the context cache.
+            // When full, we clear the cache. A more advanced implementation would use LRU.
+            if (_contextCache.Count >= MaxCachedContexts)
+            {
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Cache))
+                {
+                    Listener.Write(DiagnosticsEvents.Configuration.Cache, new { Action = "Cleared", Reason = "CapacityExceeded", Limit = MaxCachedContexts });
+                }
+                _contextCache.Clear();
+            }
+
+            return new ConfigurationContext
+            {
+                Path = p,
+                IniFile = this.CREATE_LAZY_INI_CONFIG(p),
+                ContainerDict = new()
+            };
+        });
+    }
+
+    private void ReloadCurrentContextInternal()
+    {
+        ConfigurationContext context = _currentContext;
+        int successCount = 0;
+        int failureCount = 0;
+
+        foreach (Lazy<ConfigurationLoader> lazy in context.ContainerDict.Values)
+        {
+            if (lazy.IsValueCreated)
+            {
+                try
+                {
+                    lazy.Value.Initialize(context.IniFile.Value);
+                    successCount++;
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    failureCount++;
+                    if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
+                    {
+                        Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "PartialError", Type = lazy.Value.GetType().Name, Exception = ex });
+                    }
+                }
             }
         }
 
-        _directoryChecked = true; // volatile write
+        this.LastReloadTime = DateTime.UtcNow;
+
+        if (failureCount > 0 && Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
+        {
+            Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "CompletedWithErrors", SuccessCount = successCount, FailureCount = failureCount });
+        }
+    }
+
+    private sealed class ConfigurationContext
+    {
+        public required string Path { get; init; }
+        public required Lazy<IniConfig> IniFile { get; init; }
+        public required System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<ConfigurationLoader>> ContainerDict { get; init; }
     }
 
     #endregion Private Methods

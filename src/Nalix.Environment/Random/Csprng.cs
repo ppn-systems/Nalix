@@ -21,7 +21,8 @@ public static class Csprng
     #region Fields
 
     private static string DebuggerDisplay => "Csprng(primary=OS)";
-    private static readonly DiagnosticListener s_listener = new("Nalix.Environment");
+
+    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
 
     /// <summary>
     /// Maximum byte-array length accepted by allocation-returning CSPRNG helpers.
@@ -52,15 +53,15 @@ public static class Csprng
             s_f = OsRandom.Fill;
             OsRandom.Reseed(TimeSpan.FromMinutes(1));
 
-            if (s_listener.IsEnabled("init"))
+            if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
             {
-                s_listener.Write("init", new { Message = "OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced.", Timestamp = DateTime.UtcNow });
+                Listener.Write(DiagnosticsEvents.Random.Init, new { Message = "OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced.", Timestamp = DateTime.UtcNow });
             }
         }
 
-        if (s_listener.IsEnabled("init"))
+        if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
         {
-            s_listener.Write("init", new { Message = $"init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}", Timestamp = DateTime.UtcNow });
+            Listener.Write(DiagnosticsEvents.Random.Init, new { Message = $"init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}", Timestamp = DateTime.UtcNow });
         }
     }
 
