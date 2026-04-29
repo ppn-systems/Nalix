@@ -46,6 +46,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     private readonly int _maxTrackedIPv6Windows;
     private readonly TimeSpan _cleanupInterval;
     private readonly uint _staleWindowThresholdSeconds;
+    private readonly bool _failOpenWhenFull;
 
     private readonly Task _cleanupTask;
     private readonly CancellationTokenSource _cts;
@@ -69,6 +70,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     /// <param name="staleWindowThreshold">How long an inactive source window is retained before eviction.</param>
     /// <param name="initialIPv4Capacity">Initial capacity for the IPv4 source window map.</param>
     /// <param name="initialIPv6Capacity">Initial capacity for the IPv6 source window map.</param>
+    /// <param name="failOpenWhenFull">Whether to fail open when the map is full.</param>
     public DatagramGuard(
         int maxPacketsPerSecond = 1000,
         int maxTrackedIPv4Windows = 65_536,
@@ -76,13 +78,15 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         TimeSpan? cleanupInterval = null,
         TimeSpan? staleWindowThreshold = null,
         int initialIPv4Capacity = 1024,
-        int initialIPv6Capacity = 64)
+        int initialIPv6Capacity = 64,
+        bool failOpenWhenFull = false)
     {
         _maxPacketsPerSecond = Math.Max(1, maxPacketsPerSecond);
         _maxTrackedIPv4Windows = Math.Max(1, maxTrackedIPv4Windows);
         _maxTrackedIPv6Windows = Math.Max(1, maxTrackedIPv6Windows);
         _cleanupInterval = NormalizePositive(cleanupInterval, TimeSpan.FromMinutes(1));
         _staleWindowThresholdSeconds = (uint)Math.Max(1, (int)NormalizePositive(staleWindowThreshold, TimeSpan.FromSeconds(10)).TotalSeconds);
+        _failOpenWhenFull = failOpenWhenFull;
 
         // Capacity hint to avoid early resizes, concurrencyLevel = number of CPU cores.
         int concurrency = System.Environment.ProcessorCount;
@@ -151,7 +155,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         {
             if (_ipv4Map.Count >= _maxTrackedIPv4Windows)
             {
-                return false;
+                return _failOpenWhenFull;
             }
 
             slot = _ipv4Map.GetOrAdd(key, static _ => new WindowSlot());
@@ -169,7 +173,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         {
             if (_ipv6Map.Count >= _maxTrackedIPv6Windows)
             {
-                return false;
+                return _failOpenWhenFull;
             }
 
             slot = _ipv6Map.GetOrAdd(key, static _ => new WindowSlot());
@@ -241,6 +245,13 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
                 if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {
                     _logger.LogWarning(ex, $"[NW.{nameof(DatagramGuard)}] Cleanup error.");
+                }
+            }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, $"[NW.{nameof(DatagramGuard)}] Unexpected error in CleanupLoopAsync.");
                 }
             }
         }

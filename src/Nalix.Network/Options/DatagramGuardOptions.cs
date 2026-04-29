@@ -55,6 +55,13 @@ public sealed class DatagramGuardOptions : ConfigurationLoader
     public System.TimeSpan IdleTimeout { get; set; } = System.TimeSpan.FromSeconds(10);
 
     /// <summary>
+    /// Gets or sets a value indicating whether the rate limiter should fail open (allow packets) when the tracking map is full.
+    /// Default is false (fail closed). Setting to true prevents denial of service for legitimate users during a spoofed IP flood.
+    /// </summary>
+    [IniComment("If true, allows packets when tracking map is full (prevents legitimate user lockout during IP flood). Default false.")]
+    public bool FailOpenWhenFull { get; set; } = false;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     public void Validate()

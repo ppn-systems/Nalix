@@ -13,9 +13,6 @@ using Nalix.Framework.Injection;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase
@@ -117,7 +114,8 @@ public abstract partial class UdpListenerBase
             _datagramGuardOptions.CleanupInterval,
             _datagramGuardOptions.IdleTimeout,
             _datagramGuardOptions.IPv4Capacity,
-            _datagramGuardOptions.IPv6Capacity);
+            _datagramGuardOptions.IPv6Capacity,
+            _datagramGuardOptions.FailOpenWhenFull);
 
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
