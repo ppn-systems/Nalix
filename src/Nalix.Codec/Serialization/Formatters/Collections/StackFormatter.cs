@@ -2,11 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -165,10 +165,10 @@ internal sealed class StackFormatter<
             return null;
         }
 
-        if (count is < 0 or > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new SerializationFailureException(
-                $"Stack count out of range: {count}. Max allowed is {SerializerBounds.MaxArray}.");
+                $"Stack count out of range: {count}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
         }
 
         System.Collections.Generic.Stack<T> stack = new(count);
@@ -195,3 +195,4 @@ internal sealed class StackFormatter<
         return stack;
     }
 }
+

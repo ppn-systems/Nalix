@@ -7,6 +7,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -170,10 +171,10 @@ internal sealed class QueueFormatter<
             return null;
         }
 
-        if (count < 0 || count > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new SerializationFailureException(
-                $"Queue count out of range: {count}. Max allowed is {SerializerBounds.MaxArray}.");
+                $"Queue count out of range: {count}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
         }
 
         System.Collections.Generic.Queue<T> queue = new(count);
@@ -186,3 +187,4 @@ internal sealed class QueueFormatter<
         return queue;
     }
 }
+

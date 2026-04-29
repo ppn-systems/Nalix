@@ -5,10 +5,9 @@
 // Supports: CHACHA20 (nonce 12 bytes, counter uint32), SALSA20 (nonce 8 bytes, counter uint64).
 // Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
-using Nalix.Codec.Security;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Symmetric;
-using Nalix.Abstractions.Security;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security.Engine;
@@ -85,9 +84,8 @@ public static class SymmetricEngine
             case CipherSuiteType.None:
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
-                throw new System.NotSupportedException("Authenticated symmetric algorithms are not supported by the raw keystream API.");
             default:
-                ThrowHelper.ThrowNotSupportedException("Unsupported symmetric algorithm");
+                ThrowHelper.ThrowNotSupportedException("Authenticated symmetric algorithms are not supported by the raw keystream API.");
                 return;
         }
     }
@@ -111,7 +109,8 @@ public static class SymmetricEngine
     /// If empty (<c>default</c>), a random nonce of the appropriate length is generated.
     /// </param>
     /// <param name="seq">
-    /// Sequence number written into the envelope header and used as the initial block counter.
+    /// Sequence number written into the envelope header. When provided, it is XORed into the
+    /// nonce to ensure uniqueness and prevent keystream reuse.
     /// If <see langword="null"/>, a random 32-bit value is used.
     /// </param>
     /// <param name="algorithm">Symmetric cipher to use (default: <see cref="CipherSuiteType.Chacha20"/>).</param>
@@ -167,14 +166,24 @@ public static class SymmetricEngine
             nonce.CopyTo(nonceToUse);
         }
 
-        // Reuse the sequence value as the stream counter so the envelope header
-        // stays aligned with the cipher state and the caller only has to manage
-        // one monotonic number.
-        ulong counter = seqVal;
+        System.Span<byte> effectiveNonce = stackalloc byte[resolvedNonceLength];
+        nonceToUse.CopyTo(effectiveNonce);
+
+        // XOR the sequence value into a temporary effective nonce to ensure uniqueness
+        // even if the base nonce is reused. This follows RFC 8439 / TLS 1.3 best practices
+        // to prevent catastrophic keystream reuse.
+        for (int i = 0; i < 4 && i < resolvedNonceLength; i++)
+        {
+            effectiveNonce[resolvedNonceLength - 1 - i] ^= (byte)(seqVal >> (8 * i));
+        }
+
         System.Span<byte> ctSlice = ciphertext.Slice(EnvelopeFormat.HeaderSize + resolvedNonceLength, plaintext.Length);
 
-        Encrypt(algorithm, key, nonceToUse, counter, plaintext, ctSlice, out _);
+        // Use the effective nonce for encryption and start block counter at 0.
+        Encrypt(algorithm, key, effectiveNonce, 0, plaintext, ctSlice, out _);
 
+        // Store the ORIGINAL base nonce in the envelope, not the effective one.
+        // The sequence number in the header will be used during decryption to reconstruct the effective nonce.
         _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonceToUse, ctSlice);
         written = total;
     }
@@ -200,7 +209,17 @@ public static class SymmetricEngine
     {
         EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
 
-        Encrypt(env.AeadType, key, env.Nonce, env.Seq, env.Ciphertext, plaintext, out written);
+        int nonceLen = env.Nonce.Length;
+        System.Span<byte> effectiveNonce = stackalloc byte[nonceLen];
+        env.Nonce.CopyTo(effectiveNonce);
+
+        // Reconstruct the same effective nonce used during encryption by XORing the sequence number.
+        for (int i = 0; i < 4 && i < nonceLen; i++)
+        {
+            effectiveNonce[nonceLen - 1 - i] ^= (byte)(env.Seq >> (8 * i));
+        }
+
+        Encrypt(env.AeadType, key, effectiveNonce, 0, env.Ciphertext, plaintext, out written);
     }
 
     #endregion Envelope API

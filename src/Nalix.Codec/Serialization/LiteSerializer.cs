@@ -12,6 +12,7 @@ using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Formatters.Automatic;
+using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
 
 namespace Nalix.Codec.Serialization;
@@ -297,19 +298,13 @@ public static class LiteSerializer
             }
 
             long dataSizeLong = (long)fixedSize * length;
-            if (dataSizeLong > int.MaxValue - 4)
-            {
-                throw new SerializationFailureException(
-                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds maximum.");
-            }
-
-            int dataSize = (int)dataSizeLong;
-            int totalSize = dataSize + 4; // 4-byte length prefix
-
-            if (buffer.Length < totalSize)
+            if (buffer.Length < dataSizeLong + 4)
             {
                 throw CodecErrors.SerializationBufferTooSmall;
             }
+
+            int dataSize = (int)dataSizeLong;
+            int totalSize = dataSize + 4; // Safe now because of the check above
 
             // Write the element count as a 4-byte little-endian prefix
             Unsafe.WriteUnaligned(
@@ -406,23 +401,17 @@ public static class LiteSerializer
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
-        unsafe
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
         {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                if (value is not null && fillable is not null)
-                {
-                    fillable.Fill(ref reader, value);
-                }
-                else
-                {
-                    value = formatter.Deserialize(ref reader);
-                }
-
-                return reader.BytesRead;
-            }
+            fillable.Fill(ref reader, value);
         }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        return reader.BytesRead;
     }
 
     /// <summary>
@@ -452,16 +441,10 @@ public static class LiteSerializer
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
-        unsafe
-        {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                T result = formatter.Deserialize(ref reader);
-                value = reader.BytesRead;
-                return result;
-            }
-        }
+        DataReader reader = new(buffer);
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
     }
 
     /// <summary>
@@ -490,23 +473,17 @@ public static class LiteSerializer
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
-        unsafe
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
         {
-            fixed (byte* ptr = buffer.Span)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                if (value is not null && fillable is not null)
-                {
-                    fillable.Fill(ref reader, value);
-                }
-                else
-                {
-                    value = formatter.Deserialize(ref reader);
-                }
-
-                return reader.BytesRead;
-            }
+            fillable.Fill(ref reader, value);
         }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        return reader.BytesRead;
     }
 
     /// <summary>
@@ -534,16 +511,10 @@ public static class LiteSerializer
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
-        unsafe
-        {
-            fixed (byte* ptr = buffer.Span)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                T result = formatter.Deserialize(ref reader);
-                value = reader.BytesRead;
-                return result;
-            }
-        }
+        DataReader reader = new(buffer);
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
     }
 
     /// <summary>
@@ -573,7 +544,7 @@ public static class LiteSerializer
             value = Unsafe.ReadUnaligned<T>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            return Unsafe.SizeOf<T>();
+            return TypeMetadata.SizeOf<T>();
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
@@ -605,26 +576,34 @@ public static class LiteSerializer
             int length = Unsafe.ReadUnaligned<int>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            if (length < 0 || length > SerializerBounds.MaxArray)
+            if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
             {
                 throw new SerializationFailureException(
-                    $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
+                    $"Array length {length} is out of allowed range [0, {SerializationStaticOptions.Instance.MaxArrayLength}] for type '{typeof(T)}'. (Config: Serialization.MaxArrayLength)");
             }
 
+            // Calculate total data size and verify the buffer has enough bytes 
+            // BEFORE attempting any heap allocation to prevent OOM/DoS.
             long dataSizeLong = (long)size * length;
-            if (dataSizeLong > int.MaxValue)
-            {
-                throw new SerializationFailureException(
-                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds int.MaxValue.");
-            }
-
-            int dataSize = (int)dataSizeLong;
-            if (buffer.Length < dataSize + 4)
+            if (buffer.Length < dataSizeLong + 4)
             {
                 throw CodecErrors.SerializationEndOfStream;
             }
 
-            Array arr = Array.CreateInstance(elementType, length);
+            int dataSize = (int)dataSizeLong;
+
+            // Allocation: Using GC.AllocateUninitializedArray is safer and faster for large blocks
+            // as it avoids the zero-fill overhead (which can be a DoS vector for large MaxArray).
+            Array arr;
+            if (typeof(T) == typeof(byte[]))
+            {
+                arr = GC.AllocateUninitializedArray<byte>(length);
+            }
+            else
+            {
+                arr = Array.CreateInstance(elementType, length);
+            }
+
             ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
 
             Unsafe.CopyBlockUnaligned(
@@ -639,23 +618,17 @@ public static class LiteSerializer
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
-        unsafe
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
         {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                if (value is not null && fillable is not null)
-                {
-                    fillable.Fill(ref reader, value);
-                }
-                else
-                {
-                    value = formatter.Deserialize(ref reader);
-                }
-
-                return reader.BytesRead;
-            }
+            fillable.Fill(ref reader, value);
         }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        return reader.BytesRead;
     }
 
     /// <summary>
@@ -690,7 +663,7 @@ public static class LiteSerializer
             {
                 throw CodecErrors.SerializationEndOfStream;
             }
-            value = Unsafe.SizeOf<T>();
+            value = TypeMetadata.SizeOf<T>();
 
             return Unsafe.ReadUnaligned<T>(
                 ref MemoryMarshal.GetReference(buffer));
@@ -725,26 +698,33 @@ public static class LiteSerializer
             int length = Unsafe.ReadUnaligned<int>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            if (length < 0 || length > SerializerBounds.MaxArray)
+            if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
             {
                 throw new SerializationFailureException(
-                    $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
+                    $"Array length {length} is out of allowed range [0, {SerializationStaticOptions.Instance.MaxArrayLength}] for type '{typeof(T)}'. (Config: Serialization.MaxArrayLength)");
             }
 
+            // Safety check: Ensure the buffer actually contains the promised data size
+            // BEFORE we allocate memory on the heap.
             long dataSizeLong = (long)size * length;
-            if (dataSizeLong > int.MaxValue)
-            {
-                throw new SerializationFailureException(
-                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds int.MaxValue.");
-            }
-
-            int dataSize = (int)dataSizeLong;
-            if (buffer.Length < dataSize + 4)
+            if (buffer.Length < dataSizeLong + 4)
             {
                 throw CodecErrors.SerializationEndOfStream;
             }
 
-            Array arr = Array.CreateInstance(elementType, length);
+            int dataSize = (int)dataSizeLong;
+
+            // Allocation: Using uninitialized arrays to avoid zero-filling overhead.
+            Array arr;
+            if (typeof(T) == typeof(byte[]))
+            {
+                arr = GC.AllocateUninitializedArray<byte>(length);
+            }
+            else
+            {
+                arr = Array.CreateInstance(elementType, length);
+            }
+
             ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
 
             Unsafe.CopyBlockUnaligned(
@@ -757,16 +737,10 @@ public static class LiteSerializer
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
-        unsafe
-        {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                T result = formatter.Deserialize(ref reader);
-                value = reader.BytesRead;
-                return result;
-            }
-        }
+        DataReader reader = new(buffer);
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
     }
 
     #endregion APIs

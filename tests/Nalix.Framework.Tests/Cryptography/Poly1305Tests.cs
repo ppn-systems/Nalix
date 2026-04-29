@@ -105,8 +105,15 @@ public sealed class Poly1305Tests
             poly.Update([1, 2, 3]);
             poly.FinalizeTag(output);
 
-            _ = Assert.Throws<InvalidOperationException>(() => poly.FinalizeTag(output));
-            _ = Assert.Throws<InvalidOperationException>(() => poly.Update([4, 5]));
+            bool threw1 = false;
+            try { poly.FinalizeTag(output); }
+            catch (InvalidOperationException) { threw1 = true; }
+            Assert.True(threw1);
+
+            bool threw2 = false;
+            try { poly.Update([4, 5]); }
+            catch (InvalidOperationException) { threw2 = true; }
+            Assert.True(threw2);
         }
         finally
         {
@@ -123,9 +130,20 @@ public sealed class Poly1305Tests
         Poly1305 poly = new(key);
         poly.Clear();
 
-        _ = Assert.Throws<ObjectDisposedException>(() => poly.ComputeTag([1, 2], output));
-        _ = Assert.Throws<ObjectDisposedException>(() => poly.Update([1, 2]));
-        _ = Assert.Throws<ObjectDisposedException>(() => poly.FinalizeTag(output));
+        bool threw1 = false;
+        try { poly.ComputeTag([1, 2], output); }
+        catch (ObjectDisposedException) { threw1 = true; }
+        Assert.True(threw1);
+
+        bool threw2 = false;
+        try { poly.Update([1, 2]); }
+        catch (ObjectDisposedException) { threw2 = true; }
+        Assert.True(threw2);
+
+        bool threw3 = false;
+        try { poly.FinalizeTag(output); }
+        catch (ObjectDisposedException) { threw3 = true; }
+        Assert.True(threw3);
     }
 }
 

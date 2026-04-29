@@ -8,6 +8,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -102,7 +103,7 @@ internal sealed class EnumListFormatter<
             return null!;
         }
 
-        if (count < 0 || count > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new SerializationFailureException("Enum list length out of range.");
         }
@@ -132,3 +133,4 @@ internal sealed class EnumListFormatter<
         return result;
     }
 }
+

@@ -5,6 +5,7 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 
@@ -209,7 +210,7 @@ public static class DataReaderExtensions
             return [];
         }
 
-        if (count < 0 || count > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw CodecErrors.SerializationLengthOutOfRange;
         }
@@ -268,3 +269,4 @@ public static class DataReaderExtensions
 
     #endregion Helper Properties
 }
+

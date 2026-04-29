@@ -117,9 +117,8 @@ public static class Salsa20Poly1305
             // MAC the detached transcript in the exact AEAD order so AAD and
             // ciphertext stay bound together in the final tag.
             Poly1305 poly = new(polyKey);
-
             // Use only the written portion of dstCiphertext for MAC
-            BUILD_TRANSCRIPT_AND_FINALIZE(poly, aad, dstCiphertext[..written], tag);
+            BUILD_TRANSCRIPT_AND_FINALIZE(ref poly, aad, dstCiphertext[..written], tag);
 
             try
             {
@@ -198,7 +197,7 @@ public static class Salsa20Poly1305
             // Recompute the expected tag over the detached transcript before
             // decrypting. If this check fails, the ciphertext is rejected.
             Poly1305 poly = new(polyKey);
-            BUILD_TRANSCRIPT_AND_FINALIZE(poly, aad, ciphertext, computed);
+            BUILD_TRANSCRIPT_AND_FINALIZE(ref poly, aad, ciphertext, computed);
 
             // Reject tampered ciphertext before producing plaintext. The compare is
             // fixed-time so attackers cannot learn where the mismatch occurred.
@@ -232,7 +231,7 @@ public static class Salsa20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void BUILD_TRANSCRIPT_AND_FINALIZE(
-        Poly1305 mac, System.ReadOnlySpan<byte> aad,
+        ref Poly1305 mac, System.ReadOnlySpan<byte> aad,
         System.ReadOnlySpan<byte> ciphertext, System.Span<byte> tagOut16)
     {
         // AAD first, then pad to the next 16-byte boundary so the transcript
@@ -241,8 +240,7 @@ public static class Salsa20Poly1305
         {
             mac.Update(aad);
         }
-
-        Pad16(mac, aad.Length);
+        Pad16(ref mac, aad.Length);
 
         // Ciphertext follows the same padding rule as AAD so the transcript stays
         // canonical and cannot be interpreted ambiguously.
@@ -250,8 +248,7 @@ public static class Salsa20Poly1305
         {
             mac.Update(ciphertext);
         }
-
-        Pad16(mac, ciphertext.Length);
+        Pad16(ref mac, ciphertext.Length);
 
         // Bind the exact lengths into the MAC so transcript truncation or
         // extension cannot be forged.
@@ -271,7 +268,7 @@ public static class Salsa20Poly1305
     /// <param name="length"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void Pad16(Poly1305 mac, int length)
+    private static void Pad16(ref Poly1305 mac, int length)
     {
         // Poly1305 pads to the next 16-byte boundary. If the segment is already
         // aligned, there is nothing to add.

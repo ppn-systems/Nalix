@@ -12,8 +12,10 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Internal;
 using Nalix.Codec.LZ4;
+using Nalix.Codec.Options;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Internal;
+using Nalix.Environment.Configuration;
 
 namespace Nalix.Codec.Transforms;
 
@@ -34,6 +36,8 @@ public static class FrameTransformer
     /// Offset in bytes where the payload (DATA_REGION) starts in the packet.
     /// </summary>
     public const int Offset = (int)PacketHeaderOffset.Region;
+
+    private static readonly CompressionOptions s_compressionOptions = ConfigurationManager.Instance.Get<CompressionOptions>();
 
     /// <summary>
     /// Calculates the maximum ciphertext size required for encrypting a plaintext of the given size
@@ -91,15 +95,17 @@ public static class FrameTransformer
 
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
 
-        // SEC-35: Validate OriginalLength before returning it for pre-allocation.
+        // Validate OriginalLength before returning it for pre-allocation.
         // Malicious payloads can declare any value here to trigger allocation-based DoS.
-        const int MaxDecompressedSize = 64 * 1024 * 1024; // 64 MB hard cap
-        if (header.OriginalLength <= 0 || header.OriginalLength > MaxDecompressedSize)
+        // The limit is read from the cached configuration instance to ensure high performance.
+        int limit = s_compressionOptions.MaxDecompressedSize;
+
+        if (header.OriginalLength <= 0 || header.OriginalLength > limit)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(src),
                 $"LZ4 header declares invalid OriginalLength={header.OriginalLength}. " +
-                $"Must be in range [1, {MaxDecompressedSize}].");
+                $"Must be in range [1, {limit}]. (Config: Compression.MaxDecompressedSize)");
         }
 
         return header.OriginalLength;
