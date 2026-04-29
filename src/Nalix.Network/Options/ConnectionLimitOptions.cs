@@ -94,6 +94,14 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     public int MaxPacketPerSecond { get; set; } = 128;
 
     /// <summary>
+    /// Gets or sets the maximum number of expired entries to remove in a single cleanup cycle.
+    /// If set to 0 (default), it will automatically scale to remove a percentage of the tracked entries.
+    /// </summary>
+    [IniComment("Max entries to clean per cycle. 0 = auto scale based on load (default 0)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 10_000_000, ErrorMessage = "MaxCleanupKeysPerRun must be between 0 and 10,000,000.")]
+    public int MaxCleanupKeysPerRun { get; set; } = 0;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

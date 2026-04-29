@@ -46,7 +46,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private const int MinReportCapacity = 128;
     private const int MaxReportCapacity = 4096;
-    private const int MaxCleanupKeysPerRun = 1000;
 
     #endregion Constants
 
@@ -857,11 +856,15 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             int scanned = 0;
             int removed = 0;
 
-            List<INetworkEndpoint> keysToRemove = new(MaxCleanupKeysPerRun);
+            int maxCleanupKeys = _config.MaxCleanupKeysPerRun > 0 
+                ? _config.MaxCleanupKeysPerRun 
+                : Math.Max(1000, _map.Count / 4);
+
+            List<INetworkEndpoint> keysToRemove = new(Math.Min(maxCleanupKeys, _map.Count));
 
             foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
             {
-                if (scanned++ >= MaxCleanupKeysPerRun)
+                if (scanned++ >= maxCleanupKeys)
                 {
                     break;
                 }
