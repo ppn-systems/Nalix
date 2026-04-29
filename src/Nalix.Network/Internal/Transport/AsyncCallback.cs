@@ -115,10 +115,7 @@ internal static class AsyncCallback
         // Once the count reaches zero, remove the key so the fairness map stays
         // bounded and a short-lived remote endpoint does not leave stale entries.
         INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(w.Args);
-        if (endpoint is not null)
-        {
-            RELEASE_ENDPOINT_SLOT(endpoint);
-        }
+        RELEASE_ENDPOINT_SLOT(endpoint);
 
         EXECUTE_AND_RETURN(w);
     };
@@ -180,18 +177,16 @@ internal static class AsyncCallback
         // Per-IP fairness is checked before the work item is queued so one remote
         // endpoint cannot reserve the global pool faster than others and starve
         // healthy peers.
+        // Unknown/null endpoints are grouped into a single bucket (hash 0) to prevent limit bypass.
         INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
-        if (endpoint is not null)
+        if (!TRY_RESERVE_ENDPOINT_SLOT(endpoint, out int ipPending))
         {
-            if (!TRY_RESERVE_ENDPOINT_SLOT(endpoint, out int ipPending))
-            {
-                // Apply per-IP fairness first so a single remote endpoint cannot
-                // monopolize the queue even if there is still global headroom.
-                RELEASE_GLOBAL_SLOT();
-                Interlocked.Increment(ref s_droppedCallbacks);
-                LOG_THROTTLED_WARN_SAFE(args, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint} pending={ipPending} max={s_opts.MaxPendingPerIp}");
-                return false;
-            }
+            // Apply per-IP fairness first so a single remote endpoint cannot
+            // monopolize the queue even if there is still global headroom.
+            RELEASE_GLOBAL_SLOT();
+            Interlocked.Increment(ref s_droppedCallbacks);
+            LOG_THROTTLED_WARN_SAFE(args, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint?.ToString() ?? "unknown"} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+            return false;
         }
 
         // ── Warn when approaching global limit ────────────────────────────────
@@ -285,11 +280,7 @@ internal static class AsyncCallback
                 // Roll back the reservation so counters stay consistent if the queue
                 // rejects the work item after we already reserved capacity.
                 RELEASE_GLOBAL_SLOT();
-
-                if (endpoint is not null)
-                {
-                    RELEASE_ENDPOINT_SLOT(endpoint);
-                }
+                RELEASE_ENDPOINT_SLOT(endpoint);
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
@@ -327,9 +318,9 @@ internal static class AsyncCallback
     private static void RELEASE_GLOBAL_SLOT() => _ = Interlocked.Decrement(ref s_pendingNormal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint endpoint, out int pendingAfter)
+    private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint? endpoint, out int pendingAfter)
     {
-        int hash = endpoint.GetHashCode();
+        int hash = endpoint?.GetHashCode() ?? 0;
         long[] map = s_perIpFairnessMap;
         int startIndex = (hash & 0x7FFFFFFF) % map.Length;
 
@@ -368,9 +359,9 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint endpoint)
+    private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint? endpoint)
     {
-        int hash = endpoint.GetHashCode();
+        int hash = endpoint?.GetHashCode() ?? 0;
         long[] map = s_perIpFairnessMap;
         int startIndex = (hash & 0x7FFFFFFF) % map.Length;
 
