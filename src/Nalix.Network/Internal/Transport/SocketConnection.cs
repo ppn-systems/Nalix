@@ -12,17 +12,17 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Options;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Time;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Environment.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
@@ -518,7 +518,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(_buffer, offset, payloadLen));
         lease.IsReliable = true;
 
-        this.LastPingTime = Clock.UnixMillisecondsNow();
         ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
         ReadOnlySpan<byte> payloadSpan = lease.Span;
 
@@ -549,6 +548,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             }
 
             args.Initialize(lease, _cachedArgs.Connection);
+            this.LastPingTime = Clock.UnixMillisecondsNow();
 
             if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
             {
@@ -607,11 +607,14 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 #endif
 
             FragmentAssemblyResult? assembled = fragmentAssembler.Add(header, chunkBody, out bool streamEvicted);
+
             if (assembled is not null)
             {
                 BufferLease assembledLease = assembled.Value.Lease;
                 assembledLease.IsReliable = true;
                 assembledLease.Retain();
+
+                this.LastPingTime = Clock.UnixMillisecondsNow();
                 args.Initialize(assembledLease, _cachedArgs.Connection);
 
                 if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
