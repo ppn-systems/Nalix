@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -34,6 +35,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
     #region Fields
 
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private static readonly ConnectionLimitOptions s_options = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 
     private readonly ILogger? _logger;
@@ -282,7 +284,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                         try
                         {
                             Delegate[] handlers = _onCloseEvent.GetInvocationList();
-                            foreach (EventHandler<IConnectEventArgs> handler in handlers)
+                            foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
                             {
                                 try
                                 {
@@ -393,7 +395,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                     {
                         argsPool[i]?.Dispose();
                     }
-                    
+
                     System.Buffers.ArrayPool<ConnectionEventArgs>.Shared.Return(argsPool, clearArray: true);
                 }
             }
@@ -450,9 +452,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 if (_argsPool == null)
                 {
                     _argsPool = System.Buffers.ArrayPool<ConnectionEventArgs>.Shared.Rent(8);
+
                     for (int i = 0; i < 8; i++)
                     {
-                        _argsPool[i] = new ConnectionEventArgs(this);
+                        ConnectionEventArgs arg = s_pool.Get<ConnectionEventArgs>();
+                        arg.Initialize(this);
+                        _argsPool[i] = arg;
                     }
                 }
             }
@@ -508,7 +513,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                     _contextPool = System.Buffers.ArrayPool<PooledConnectEventContext>.Shared.Rent(8);
                     for (int i = 0; i < 8; i++)
                     {
-                        _contextPool[i] = new PooledConnectEventContext { LocalOwner = this };
+                        PooledConnectEventContext ctx = s_pool.Get<PooledConnectEventContext>();
+                        ctx.LocalOwner = this;
+                        _contextPool[i] = ctx;
                     }
                 }
             }
@@ -631,7 +638,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             if (self._onCloseEvent != null)
             {
                 Delegate[] handlers = self._onCloseEvent.GetInvocationList();
-                foreach (EventHandler<IConnectEventArgs> handler in handlers)
+                foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
                 {
                     try
                     {
