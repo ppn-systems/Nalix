@@ -17,6 +17,8 @@ namespace Nalix.Environment.IO;
 
 public static partial class Directories
 {
+    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
+
     /// <summary>
     /// Recommended Unix directory permissions for Abstractions directory types.
     /// </summary>
@@ -87,6 +89,12 @@ public static partial class Directories
             if (!Directory.Exists(path))
             {
                 _ = Directory.CreateDirectory(path);
+
+                if (Listener.IsEnabled(DiagnosticsEvents.IO.Directory))
+                {
+                    Listener.Write(DiagnosticsEvents.IO.Directory, new { Action = "Created", Path = path, Caller = callerMemberName });
+                }
+
                 RAISE_DIRECTORY_CREATED(path);
             }
         }

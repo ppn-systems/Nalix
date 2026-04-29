@@ -17,6 +17,8 @@ namespace Nalix.Environment.Time;
 [DebuggerStepThrough]
 public static partial class Clock
 {
+    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
+
     #region Constants and Fields
 
     // Baseline values used to anchor the monotonic stopwatch to UTC time.
@@ -92,10 +94,15 @@ public static partial class Clock
 
         // Compare the reference time against the current local estimate first.
         double diffMs = (externalTime - NowUtc()).TotalMilliseconds;
+
         if (Math.Abs(diffMs) <= maxAllowedDriftMs)
         {
             // If the difference is small enough, keep the current estimate rather
             // than forcing a correction that would just introduce noise.
+            if (Listener.IsEnabled(DiagnosticsEvents.Time.Synchronized))
+            {
+                Listener.Write(DiagnosticsEvents.Time.Synchronized, new { Status = "Skipped", DiffMs = diffMs, MaxAllowed = maxAllowedDriftMs });
+            }
             return 0;
         }
 
@@ -129,6 +136,11 @@ public static partial class Clock
 
         s_lastExternalTime = externalTime;
         s_lastSyncMonoTicks = nowMono;
+
+        if (Listener.IsEnabled(DiagnosticsEvents.Time.Synchronized))
+        {
+            Listener.Write(DiagnosticsEvents.Time.Synchronized, new { Status = "Applied", AdjustmentMs = diffMs, DriftRate = s_driftCorrection });
+        }
 
         return diffMs;
     }
@@ -183,7 +195,16 @@ public static partial class Clock
         DateTime externalTime = DateTime.UnixEpoch.AddMilliseconds(corrected);
 
         double adjustMs = (externalTime - NowUtc()).TotalMilliseconds;
-        return Math.Abs(adjustMs) > maxHardAdjustMs ? 0 : SynchronizeTime(externalTime, maxAllowedDriftMs);
+        if (Math.Abs(adjustMs) > maxHardAdjustMs)
+        {
+            if (Listener.IsEnabled(DiagnosticsEvents.Time.Synchronized))
+            {
+                Listener.Write(DiagnosticsEvents.Time.Synchronized, new { Status = "Rejected", AdjustmentMs = adjustMs, Limit = maxHardAdjustMs });
+            }
+            return 0;
+        }
+
+        return SynchronizeTime(externalTime, maxAllowedDriftMs);
     }
 
     /// <summary>Resets time synchronization to use the local system clock.</summary>
@@ -197,6 +218,11 @@ public static partial class Clock
 
         IsSynchronized = false;
         LastSyncTime = DateTime.MinValue;
+
+        if (Listener.IsEnabled(DiagnosticsEvents.Time.Reset))
+        {
+            Listener.Write(DiagnosticsEvents.Time.Reset, new { Action = "ManualReset" });
+        }
     }
 
     /// <summary>Gets the estimated clock drift rate.</summary>

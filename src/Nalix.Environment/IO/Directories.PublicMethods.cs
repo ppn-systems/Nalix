@@ -114,6 +114,11 @@ public static partial class Directories
             Debug.WriteLine($"[Directories] DeleteOldFiles failed for '{directoryPath}': {ex}");
         }
 
+        if (deleted > 0 && Listener.IsEnabled(DiagnosticsEvents.IO.Cleanup))
+        {
+            Listener.Write(DiagnosticsEvents.IO.Cleanup, new { Action = "FilesDeleted", Count = deleted, Path = directoryPath });
+        }
+
         return deleted;
     }
 

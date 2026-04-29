@@ -664,6 +664,11 @@ public sealed class ConfigurationManager : IDisposable
             NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size
         };
 
+        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
+        {
+            Listener.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "WatcherStarted", Path = currentPath });
+        }
+
         // Capture path at setup time — lambda must not close over _configFilePath directly.
         string watchedPath = currentPath;
 
@@ -777,6 +782,11 @@ public sealed class ConfigurationManager : IDisposable
                 {
                     DirectoryInfo dirInfo = Directory.CreateDirectory(directory);
 
+                    if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
+                    {
+                        Listener.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "Created", Path = directory });
+                    }
+
                     if (!dirInfo.Exists)
                     {
                         throw new InvalidOperationException($"Directory creation reported success but directory does not exist: {directory}");
@@ -816,6 +826,10 @@ public sealed class ConfigurationManager : IDisposable
             // When full, we clear the cache. A more advanced implementation would use LRU.
             if (_contextCache.Count >= MaxCachedContexts)
             {
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Cache))
+                {
+                    Listener.Write(DiagnosticsEvents.Configuration.Cache, new { Action = "Cleared", Reason = "CapacityExceeded", Limit = MaxCachedContexts });
+                }
                 _contextCache.Clear();
             }
 
