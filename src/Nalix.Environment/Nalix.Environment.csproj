@@ -24,7 +24,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">

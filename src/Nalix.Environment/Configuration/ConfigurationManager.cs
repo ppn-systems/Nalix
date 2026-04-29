@@ -9,8 +9,6 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security;
 using System.Threading;
-using Microsoft.Extensions.Logging;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Configuration.Internal;
@@ -39,7 +37,7 @@ namespace Nalix.Environment.Configuration;
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
-public sealed class ConfigurationManager : IDisposable, IWithLogging<ConfigurationManager>
+public sealed class ConfigurationManager : IDisposable
 {
     #region Singleton Pattern (Internalized)
 
@@ -55,7 +53,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
     #region Fields
 
-    private ILogger? _logger;
+    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
 
     private readonly string _baseConfigDirectory;
     private readonly ReaderWriterLockSlim _configLock;
@@ -171,12 +169,6 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
     #region Public Methods
 
-    /// <inheritdoc/>
-    public ConfigurationManager WithLogging(ILogger logger)
-    {
-        _logger = logger;
-        return this;
-    }
 
     /// <summary>
     /// Changes the active configuration file path and optionally reloads all containers.
@@ -237,9 +229,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                         {
-                            _logger?.LogDebug($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] old-config-flush-failed msg={ex.Message}");
+                            Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Flush", oldContext.Path, Exception = ex });
                         }
                     }
                 }
@@ -251,9 +243,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                 _currentContext = newContext;
                 _directoryChecked = false;
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.PathChanged))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}' (L1 Cache Hit: {newContext.IniFile.IsValueCreated})");
+                    Listener.Write(DiagnosticsEvents.Configuration.PathChanged, new { From = oldPath, To = normalizedPath, CacheHit = newContext.IniFile.IsValueCreated });
                 }
 
                 if (autoReload && !newContext.ContainerDict.IsEmpty)
@@ -340,9 +332,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                 TClass container = new();
                 container.Initialize(context.IniFile.Value);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name} in context {context.Path}");
+                    Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Created", Type = typeof(TClass).Name, Context = context.Path });
                 }
 
                 return container;
@@ -458,18 +450,18 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
             if (reloadException is not null)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    _logger.LogError(reloadException, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-failed count={context.ContainerDict.Count}");
+                    Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Reload", Exception = reloadException, context.ContainerDict.Count });
                 }
 
                 throw new InvalidOperationException(
                     $"Configuration reload failed: {reloadException.Message}", reloadException);
             }
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
             {
-                _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={context.ContainerDict.Count}");
+                Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "Completed", context.ContainerDict.Count });
             }
         }
         catch (ObjectDisposedException) when (_isDisposed)
@@ -516,9 +508,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
         ConfigurationContext context = _currentContext;
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name} in context {context.Path}");
+            Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Removed", Type = typeof(TClass).Name, Context = context.Path });
         }
 
         return context.ContainerDict.TryRemove(typeof(TClass), out _);
@@ -535,9 +527,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     public void ClearAll()
     {
         ConfigurationContext context = _currentContext;
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all in context {context.Path}");
+            Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Cleared", Context = context.Path });
         }
 
         context.ContainerDict.Clear();
@@ -565,9 +557,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             try
             {
                 snapshot.Value.Flush();
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Flush))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Flush)}] flushed");
+                    Listener.Write(DiagnosticsEvents.Configuration.Flush, new { Status = "Completed", Path = snapshot.Value.FilePath });
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -595,9 +587,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    _logger.LogDebug($"[FW.{nameof(ConfigurationManager)}:{nameof(Dispose)}] flush-failed msg={ex.Message}");
+                    Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "DisposeFlush", Exception = ex });
                 }
             }
         }
@@ -614,9 +606,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             gateTaken = _reloadGate.Wait(0);
             if (!gateTaken)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
                 {
-                    _logger.LogWarning($"[FW.{nameof(ConfigurationManager)}:{nameof(Dispose)}] reload-gate-busy; disposing without waiting.");
+                    Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "DisposeGateBusy" });
                 }
             }
         }
@@ -705,10 +697,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                         }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
-                            // SEC-24: Prevent unhandled exceptions in the Timer callback from crashing the process.
-                            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                            if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                             {
-                                _logger.LogError(ex, $"[FW.{nameof(ConfigurationManager)}:DebounceTimer] background-reload-failed");
+                                Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "BackgroundReload", Exception = ex });
                             }
                         }
                     },
@@ -855,9 +846,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     failureCount++;
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
                     {
-                        _logger.LogWarning(ex, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] partial-reload-failed for {lazy.Value.GetType().Name}");
+                        Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "PartialError", Type = lazy.Value.GetType().Name, Exception = ex });
                     }
                 }
             }
@@ -865,9 +856,9 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
         this.LastReloadTime = DateTime.UtcNow;
 
-        if (failureCount > 0 && _logger != null && _logger.IsEnabled(LogLevel.Error))
+        if (failureCount > 0 && Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
         {
-            _logger.LogError($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-completed-with-errors success={successCount} failures={failureCount}");
+            Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "CompletedWithErrors", SuccessCount = successCount, FailureCount = failureCount });
         }
     }
 

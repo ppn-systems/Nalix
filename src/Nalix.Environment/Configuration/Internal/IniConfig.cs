@@ -79,6 +79,8 @@ internal sealed class IniConfig : IDisposable
     /// </summary>
     public bool ExistsFile => File.Exists(_path);
 
+    public string FilePath => _path;
+
     #endregion Properties
 
     #region Constructor
@@ -241,7 +243,7 @@ internal sealed class IniConfig : IDisposable
                 {
                     foreach (string k in keysToRemove)
                     {
-                        _valueCache.Remove(k);
+                        _ = _valueCache.Remove(k);
                     }
                 }
 
