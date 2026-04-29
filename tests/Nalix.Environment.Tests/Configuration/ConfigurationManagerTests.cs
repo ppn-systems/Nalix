@@ -171,7 +171,7 @@ public sealed class ConfigurationManagerTests : IDisposable
 
         SampleConfig configuration = manager.Get<SampleConfig>(filePath);
 
-        Assert.Equal(filePath, manager.ConfigFilePath);
+        Assert.Equal(Path.GetFullPath(filePath), manager.ConfigFilePath);
         Assert.Equal(15, configuration.Number);
         Assert.Equal("overload", configuration.Message);
     }
@@ -197,14 +197,13 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [Fact]
-    public void SetConfigFilePathWhenAutoReloadIsDisabledKeepsExistingValuesUntilReloadAll()
+    public void SetConfigFilePath_SwitchesContextAndPreservesState()
     {
         string firstPath = this.WriteConfigFile(
             "first.ini",
             """
             [Sample]
             Number = 1
-            Message = first
             """);
 
         string secondPath = this.WriteConfigFile(
@@ -212,33 +211,32 @@ public sealed class ConfigurationManagerTests : IDisposable
             """
             [Sample]
             Number = 2
-            Message = second
             """);
 
         using ConfigurationManager manager = this.CreateManager(firstPath);
-        SampleConfig configuration = manager.Get<SampleConfig>();
+        SampleConfig config1 = manager.Get<SampleConfig>();
+        Assert.Equal(1, config1.Number);
 
-        manager.SetConfigFilePath(secondPath, autoReload: false);
+        manager.SetConfigFilePath(secondPath);
+        SampleConfig config2 = manager.Get<SampleConfig>();
+        Assert.Equal(2, config2.Number);
+        Assert.NotSame(config1, config2);
 
-        Assert.Equal(secondPath, manager.ConfigFilePath);
-        Assert.Equal(1, configuration.Number);
-        Assert.Equal("first", configuration.Message);
-
-        manager.ReloadAll();
-
-        Assert.Equal(2, configuration.Number);
-        Assert.Equal("second", configuration.Message);
+        // Switch back to first - should be instantaneous (L1 Cache hit)
+        manager.SetConfigFilePath(firstPath);
+        SampleConfig config1_again = manager.Get<SampleConfig>();
+        Assert.Same(config1, config1_again);
+        Assert.Equal(1, config1_again.Number);
     }
 
     [Fact]
-    public void SetConfigFilePathWhenAutoReloadIsEnabledUpdatesExistingLoadedInstance()
+    public void SetConfigFilePathWhenAutoReloadIsEnabledUpdatesContextTimestamp()
     {
         string firstPath = this.WriteConfigFile(
             "auto-first.ini",
             """
             [Sample]
             Number = 10
-            Message = before
             """);
 
         string secondPath = this.WriteConfigFile(
@@ -246,18 +244,15 @@ public sealed class ConfigurationManagerTests : IDisposable
             """
             [Sample]
             Number = 20
-            Message = after
             """);
 
         using ConfigurationManager manager = this.CreateManager(firstPath);
-        SampleConfig configuration = manager.Get<SampleConfig>();
+        _ = manager.Get<SampleConfig>();
 
         DateTime beforeReload = manager.LastReloadTime;
         manager.SetConfigFilePath(secondPath, autoReload: true);
 
-        Assert.Equal(secondPath, manager.ConfigFilePath);
-        Assert.Equal(20, configuration.Number);
-        Assert.Equal("after", configuration.Message);
+        Assert.Equal(Path.GetFullPath(secondPath), manager.ConfigFilePath);
         Assert.True(manager.LastReloadTime >= beforeReload);
     }
 

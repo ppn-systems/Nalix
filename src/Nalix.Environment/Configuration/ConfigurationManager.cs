@@ -25,7 +25,7 @@ namespace Nalix.Environment.Configuration;
 /// <remarks>
 /// <para>
 /// Thread-safety model:
-/// - <see cref="Get{TClass}()"/> snapshots <c>_iniFile</c> under a read lock before use.
+/// - <see cref="Get{TClass}()"/> snapshots the current context under a read lock before use.
 /// - <see cref="ReloadAll"/> and <see cref="SetConfigFilePath"/> use a write lock for exclusive access.
 /// - A <see cref="SemaphoreSlim"/>(1,1) gate serialises reload/path-change operations
 ///   and makes callers WAIT instead of silently returning <see langword="false"/>.
@@ -35,7 +35,7 @@ namespace Nalix.Environment.Configuration;
 /// </remarks>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
-[DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_configContainerDict.Count}")]
+[DebuggerDisplay("ConfigFilePath = {ConfigFilePath,nq}, LoadedTypes = {_currentContext.ContainerDict.Count}")]
 [DynamicallyAccessedMembers(
     DynamicallyAccessedMemberTypes.NonPublicMethods |
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
@@ -57,14 +57,8 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
     private ILogger? _logger;
 
-    /// <summary>
-    /// volatile: assigned atomically in SetConfigFilePath; all threads must see the latest reference.
-    /// </summary>
-    private volatile Lazy<IniConfig> _iniFile;
-
     private readonly string _baseConfigDirectory;
     private readonly ReaderWriterLockSlim _configLock;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<ConfigurationLoader>> _configContainerDict;
 
     /// <summary>
     /// SemaphoreSlim(1,1): serialises ReloadAll / SetConfigFilePath.
@@ -93,6 +87,11 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
     private readonly Lock _syncLock = new();
 
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, ConfigurationContext> _contextCache;
+    private volatile ConfigurationContext _currentContext;
+
+    private const int MaxCachedContexts = 10;
+
     #endregion Fields
 
     #region Properties
@@ -118,12 +117,12 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         get
         {
             // Snapshot under read lock to avoid a TOCTOU race with SetConfigFilePath.
-            Lazy<IniConfig> snapshot;
+            ConfigurationContext snapshot;
             _configLock.EnterReadLock();
-            try { snapshot = _iniFile; }
+            try { snapshot = _currentContext; }
             finally { _configLock.ExitReadLock(); }
 
-            return snapshot.IsValueCreated && snapshot.Value.ExistsFile;
+            return snapshot.IniFile.IsValueCreated && snapshot.IniFile.Value.ExistsFile;
         }
     }
 
@@ -161,9 +160,10 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         // If the watcher fires during construction it needs _configLock and _reloadGate to exist.
         _configLock = new(LockRecursionPolicy.NoRecursion);
         _reloadGate = new SemaphoreSlim(1, 1);
-        _configContainerDict = new();
+        _contextCache = new(StringComparer.OrdinalIgnoreCase);
 
-        _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
+        // Initialise the default context
+        _currentContext = this.GET_OR_CREATE_CONTEXT(_configFilePath);
         this.SETUP_FILE_WATCHER();
     }
 
@@ -214,6 +214,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             throw new TimeoutException(
                 "A configuration reload/path-change operation is already running.");
         }
+
         string? pathToWatch = null;
 
         try
@@ -227,11 +228,12 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                         $"Config path unchanged: value='{normalizedPath}'.");
                 }
 
-                if (_iniFile.IsValueCreated)
+                ConfigurationContext oldContext = _currentContext;
+                if (oldContext.IniFile.IsValueCreated)
                 {
                     try
                     {
-                        _iniFile.Value.Flush();
+                        oldContext.IniFile.Value.Flush();
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
@@ -243,47 +245,33 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
                 }
 
                 string oldPath = _configFilePath;
+                ConfigurationContext newContext = this.GET_OR_CREATE_CONTEXT(normalizedPath);
+
                 _configFilePath = normalizedPath;
+                _currentContext = newContext;
                 _directoryChecked = false;
-                _iniFile = this.CREATE_LAZY_INI_CONFIG(_configFilePath);
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}'");
+                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] path-changed from='{oldPath}' to='{normalizedPath}' (L1 Cache Hit: {newContext.IniFile.IsValueCreated})");
                 }
 
-                if (autoReload && !_configContainerDict.IsEmpty)
+                if (autoReload && !newContext.ContainerDict.IsEmpty)
                 {
                     try
                     {
-                        IniConfig newIniFile = _iniFile.Value; // force-load the new file
-
-                        foreach (Lazy<ConfigurationLoader> lazy in _configContainerDict.Values)
-                        {
-                            if (lazy.IsValueCreated)
-                            {
-                                lazy.Value.Initialize(newIniFile);
-                            }
-                        }
-
-                        this.LastReloadTime = DateTime.UtcNow;
-
-
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-                        {
-                            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(SetConfigFilePath)}] auto-reload-ok count={_configContainerDict.Count}");
-                        }
-
+                        // Perform reload of the current context state
+                        this.ReloadCurrentContextInternal();
                         pathToWatch = normalizedPath;
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        // Roll back state — do NOT call SETUP_FILE_WATCHER inside the write lock.
+                        // Roll back state
                         _configFilePath = oldPath;
+                        _currentContext = oldContext;
                         _directoryChecked = false;
-                        _iniFile = this.CREATE_LAZY_INI_CONFIG(oldPath);
 
-                        pathToWatch = oldPath; // restore watcher for the old path
+                        pathToWatch = oldPath;
 
                         throw new InvalidOperationException(
                             $"Auto-reload failed: path='{normalizedPath}', error={ex.Message}", ex);
@@ -333,28 +321,28 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TClass Get<TClass>() where TClass : ConfigurationLoader, new()
     {
-        Lazy<IniConfig> iniSnapshot;
+        ConfigurationContext context;
         _configLock.EnterReadLock();
 
         try
         {
-            iniSnapshot = _iniFile;
+            context = _currentContext;
         }
         finally
         {
             _configLock.ExitReadLock();
         }
 
-        Lazy<ConfigurationLoader> lazy = _configContainerDict.GetOrAdd(
+        Lazy<ConfigurationLoader> lazy = context.ContainerDict.GetOrAdd(
             typeof(TClass),
             _ => new Lazy<ConfigurationLoader>(() =>
             {
                 TClass container = new();
-                container.Initialize(iniSnapshot.Value);
+                container.Initialize(context.IniFile.Value);
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
-                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name}");
+                    _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Get)}] create {typeof(TClass).Name} in context {context.Path}");
                 }
 
                 return container;
@@ -442,46 +430,20 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
         try
         {
+            ConfigurationContext context = _currentContext;
+
             // SEC-23: Perform I/O (Reload) OUTSIDE of the global Write Lock.
             // IniConfig.Reload is internally thread-safe. This prevents Get<T> readers
             // from being blocked while waiting for disk I/O.
-            if (_iniFile.IsValueCreated)
+            if (context.IniFile.IsValueCreated)
             {
-                _iniFile.Value.Reload();
+                context.IniFile.Value.Reload();
             }
 
             _configLock.EnterWriteLock();
             try
             {
-                int successCount = 0;
-                int failureCount = 0;
-
-                foreach (Lazy<ConfigurationLoader> lazy in _configContainerDict.Values)
-                {
-                    if (lazy.IsValueCreated)
-                    {
-                        try
-                        {
-                            lazy.Value.Initialize(_iniFile.Value);
-                            successCount++;
-                        }
-                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                        {
-                            failureCount++;
-                            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-                            {
-                                _logger.LogWarning(ex, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] partial-reload-failed for {lazy.Value.GetType().Name}");
-                            }
-                        }
-                    }
-                }
-
-                this.LastReloadTime = DateTime.UtcNow;
-
-                if (failureCount > 0 && _logger != null && _logger.IsEnabled(LogLevel.Error))
-                {
-                    _logger.LogError($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-completed-with-errors success={successCount} failures={failureCount}");
-                }
+                this.ReloadCurrentContextInternal();
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -498,7 +460,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(reloadException, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-failed count={_configContainerDict.Count}");
+                    _logger.LogError(reloadException, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-failed count={context.ContainerDict.Count}");
                 }
 
                 throw new InvalidOperationException(
@@ -507,7 +469,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={_configContainerDict.Count}");
+                _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-ok count={context.ContainerDict.Count}");
             }
         }
         catch (ObjectDisposedException) when (_isDisposed)
@@ -536,7 +498,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool IsLoaded<TClass>() where TClass : ConfigurationLoader => _configContainerDict.ContainsKey(typeof(TClass));
+    public bool IsLoaded<TClass>() where TClass : ConfigurationLoader => _currentContext.ContainerDict.ContainsKey(typeof(TClass));
 
     /// <summary>
     /// Removes a specific configuration from the cache.
@@ -553,12 +515,13 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.NoInlining)]
     public bool Remove<TClass>() where TClass : ConfigurationLoader
     {
+        ConfigurationContext context = _currentContext;
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name}");
+            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(Remove)}] remove {typeof(TClass).Name} in context {context.Path}");
         }
 
-        return _configContainerDict.TryRemove(typeof(TClass), out _);
+        return context.ContainerDict.TryRemove(typeof(TClass), out _);
     }
 
     /// <summary>
@@ -571,12 +534,13 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void ClearAll()
     {
+        ConfigurationContext context = _currentContext;
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all");
+            _logger.LogTrace($"[FW.{nameof(ConfigurationManager)}:{nameof(ClearAll)}] clear-all in context {context.Path}");
         }
 
-        _configContainerDict.Clear();
+        context.ContainerDict.Clear();
     }
 
     /// <summary>
@@ -593,7 +557,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         // Snapshot under read lock — avoids TOCTOU race between IsValueCreated and .Value.
         Lazy<IniConfig> snapshot;
         _configLock.EnterReadLock();
-        try { snapshot = _iniFile; }
+        try { snapshot = _currentContext.IniFile; }
         finally { _configLock.ExitReadLock(); }
 
         if (snapshot.IsValueCreated)
@@ -622,11 +586,12 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     {
         _isDisposed = true;
 
-        if (_iniFile.IsValueCreated)
+        ConfigurationContext context = _currentContext;
+        if (context.IniFile.IsValueCreated)
         {
             try
             {
-                _iniFile.Value.Flush();
+                context.IniFile.Value.Flush();
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -669,7 +634,7 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
         _reloadGate.Dispose();
         _configLock.Dispose();
-        _configContainerDict.Clear();
+        _contextCache.Clear();
     }
 
     #endregion Protected Methods
@@ -850,6 +815,67 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
             _directoryChecked = true;
         }
+    }
+
+    private ConfigurationContext GET_OR_CREATE_CONTEXT(string path)
+    {
+        return _contextCache.GetOrAdd(path, p =>
+        {
+            // SEC-26: Prevent memory leaks by capping the context cache.
+            // When full, we clear the cache. A more advanced implementation would use LRU.
+            if (_contextCache.Count >= MaxCachedContexts)
+            {
+                _contextCache.Clear();
+            }
+
+            return new ConfigurationContext
+            {
+                Path = p,
+                IniFile = this.CREATE_LAZY_INI_CONFIG(p),
+                ContainerDict = new()
+            };
+        });
+    }
+
+    private void ReloadCurrentContextInternal()
+    {
+        ConfigurationContext context = _currentContext;
+        int successCount = 0;
+        int failureCount = 0;
+
+        foreach (Lazy<ConfigurationLoader> lazy in context.ContainerDict.Values)
+        {
+            if (lazy.IsValueCreated)
+            {
+                try
+                {
+                    lazy.Value.Initialize(context.IniFile.Value);
+                    successCount++;
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    failureCount++;
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(ex, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] partial-reload-failed for {lazy.Value.GetType().Name}");
+                    }
+                }
+            }
+        }
+
+        this.LastReloadTime = DateTime.UtcNow;
+
+        if (failureCount > 0 && _logger != null && _logger.IsEnabled(LogLevel.Error))
+        {
+            _logger.LogError($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-completed-with-errors success={successCount} failures={failureCount}");
+        }
+    }
+
+    private sealed class ConfigurationContext
+    {
+        public required string Path { get; init; }
+        public required Lazy<IniConfig> IniFile { get; init; }
+        public required System.Collections.Concurrent.ConcurrentDictionary<Type, Lazy<ConfigurationLoader>> ContainerDict { get; init; }
     }
 
     #endregion Private Methods
