@@ -106,8 +106,11 @@ public abstract partial class ConfigurationLoader
 
         foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
         {
-            object? value = propertyInfo.PropertyInfo.GetValue(this);
-            propertyInfo.PropertyInfo.SetValue(clone, value);
+            if (propertyInfo.Getter != null && propertyInfo.Setter != null)
+            {
+                object? value = propertyInfo.Getter(this);
+                propertyInfo.Setter(clone, value);
+            }
         }
 
         _ = Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
@@ -160,20 +163,11 @@ public abstract partial class ConfigurationLoader
 
                 propertyInfo.SetValue(this, value);
             }
-            catch (ArgumentException ex)
-            {
-                throw new ArgumentException(
-                    $"Invalid argument while setting section={section} key={propertyInfo.Name}.", ex);
-            }
-            catch (InvalidOperationException ex)
-            {
-                throw new InvalidOperationException(
-                    $"Invalid operation while setting section={section} key={propertyInfo.Name}.", ex);
-            }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                throw new InvalidOperationException(
-                    $"Unexpected error while setting section={section} key={propertyInfo.Name}: {ex.Message}", ex);
+                // SEC-21: Prevent a single malformed property from crashing the entire container.
+                // Log the error and continue with the default value.
+                Trace.TraceError($"Configuration binding failed for section={section} key={propertyInfo.Name}: {ex.Message}");
             }
         }
 

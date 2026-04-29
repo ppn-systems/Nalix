@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
@@ -40,6 +41,15 @@ public partial class ConfigurationLoader
                 continue;
             }
 
+            TypeCode typeCode = Type.GetTypeCode(property.PropertyType);
+
+            // SEC-22: Only include supported types to avoid shallow-copy side-effects in Clone<T>
+            // and NotSupportedException during initialization.
+            if (!IsSupportedType(property.PropertyType, typeCode))
+            {
+                continue;
+            }
+
             string? propComment = CustomAttributeExtensions.GetCustomAttribute<IniCommentAttribute>(property, inherit: true)?.Comment;
 
             // Create the property metadata
@@ -49,7 +59,9 @@ public partial class ConfigurationLoader
                 Comment = propComment,
                 PropertyInfo = property,
                 PropertyType = property.PropertyType,
-                TypeCode = Type.GetTypeCode(property.PropertyType)
+                TypeCode = typeCode,
+                Getter = CreateGetter(property),
+                Setter = CreateSetter(property)
             };
 
             bindableProperties.Add(propertyMetadata);
@@ -70,4 +82,35 @@ public partial class ConfigurationLoader
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ConfigurationMetadata GetOrCreateMetadata(Type type) => s_metadataCache.GetOrAdd(type, CreateConfigurationMetadata);
+
+    private static bool IsSupportedType(Type type, TypeCode code)
+    {
+        if (type.IsEnum)
+        {
+            return true;
+        }
+
+        if (code != TypeCode.Object && code != TypeCode.Empty && code != TypeCode.DBNull)
+        {
+            return true;
+        }
+
+        return type == typeof(Guid) || type == typeof(TimeSpan);
+    }
+
+    private static Func<object, object?> CreateGetter(PropertyInfo property)
+    {
+        ParameterExpression obj = Expression.Parameter(typeof(object), "obj");
+        MemberExpression prop = Expression.Property(Expression.Convert(obj, property.DeclaringType!), property);
+        return Expression.Lambda<Func<object, object?>>(Expression.Convert(prop, typeof(object)), obj).Compile();
+    }
+
+    private static Action<object, object?> CreateSetter(PropertyInfo property)
+    {
+        ParameterExpression obj = Expression.Parameter(typeof(object), "obj");
+        ParameterExpression val = Expression.Parameter(typeof(object), "val");
+        MemberExpression prop = Expression.Property(Expression.Convert(obj, property.DeclaringType!), property);
+        BinaryExpression assign = Expression.Assign(prop, Expression.Convert(val, property.PropertyType));
+        return Expression.Lambda<Action<object, object?>>(assign, obj, val).Compile();
+    }
 }
