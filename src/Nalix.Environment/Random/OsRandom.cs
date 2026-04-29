@@ -49,6 +49,7 @@ internal static class OsRandom
 
     private static Timer? s_reseedTimer;
     private static readonly Lock s_timerLock = new();
+    private static readonly Lock s_stateLock = new();
 
     #endregion Fields
 
@@ -65,17 +66,42 @@ internal static class OsRandom
 
         long ticks = DateTime.UtcNow.Ticks;
         long tc64 = System.Environment.TickCount64;
+        long mono = Stopwatch.GetTimestamp();
         int pid = System.Environment.ProcessId;
         int tid = System.Environment.CurrentManagedThreadId;
+        long memory = GC.GetTotalMemory(false);
+        int procCount = System.Environment.ProcessorCount;
+        int pageSize = System.Environment.SystemPageSize;
 
         MemoryMarshal.Write(seed[0..8], in ticks);
         MemoryMarshal.Write(seed[8..16], in tc64);
-        MemoryMarshal.Write(seed[16..20], in pid);
-        MemoryMarshal.Write(seed[20..24], in tid);
+        MemoryMarshal.Write(seed[16..24], in mono);
+        
+        int mix = pid ^ tid ^ (int)memory ^ (procCount << 24) ^ pageSize;
+        MemoryMarshal.Write(seed[24..28], in mix);
 
-        // Guid-based per-process tag to spread instances on the same host
+        // Mix in multiple GUIDs and environment details for better initial entropy
+        Span<byte> g1 = Guid.NewGuid().ToByteArray();
+        Span<byte> g2 = Guid.NewGuid().ToByteArray();
+        
+        // Add machine and user info hash (stable per-session but adds to uniqueness)
+        int infoHash = (System.Environment.MachineName.GetHashCode() ^ System.Environment.UserName.GetHashCode());
+        
+        // Add a memory address to the mix (ASLR makes this very random per-run)
+        unsafe 
+        { 
+            nuint stackAddr = (nuint)(&ticks); 
+            infoHash ^= (int)(stackAddr ^ (stackAddr >> 32));
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            seed[28 + i] = (byte)(g1[i] ^ g2[i + 8] ^ (infoHash >> (i * 8)));
+        }
+
+        // Guid-based per-process tag
         byte[] g = Guid.NewGuid().ToByteArray();
-        MemoryExtensions.AsSpan(g, 0, 16).CopyTo(s_instanceTag);
+        g.CopyTo(s_instanceTag, 0);
 
         s_tag0 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(MemoryExtensions.AsSpan(s_instanceTag, 0, 8));
         s_tag1 = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(MemoryExtensions.AsSpan(s_instanceTag, 8, 8));
@@ -94,10 +120,23 @@ internal static class OsRandom
         {
             if (s_reseedTimer != null)
             {
+                s_reseedTimer.Change(interval, interval);
                 return;
             }
 
             s_reseedTimer = new Timer(_ => Reseed(), null, interval, interval);
+        }
+    }
+
+    /// <summary>
+    /// Stops the automatic background reseed timer.
+    /// </summary>
+    public static void StopReseed()
+    {
+        lock (s_timerLock)
+        {
+            s_reseedTimer?.Dispose();
+            s_reseedTimer = null;
         }
     }
 
@@ -127,30 +166,46 @@ internal static class OsRandom
 
         ulong[] st = THREAD_STATE();
 
-        if (dst.Length < 8)
+        int offset = 0;
+        
+        // SEC: Check alignment to prevent crash on strict-alignment architectures (e.g. ARM32).
+        // If the buffer is not 8-byte aligned, fill byte-by-byte until we reach alignment or the end.
+        unsafe
         {
-            ulong x = NEXT_U64(st);
-            for (int i = 0; i < dst.Length; i++)
+            nuint addr = (nuint)Unsafe.AsPointer(ref MemoryMarshal.GetReference(dst));
+            int misalign = (int)(addr & 7);
+            if (misalign != 0)
             {
-                dst[i] = (byte)(x & 0xFF);
-                x >>= 8;
+                int alignPadding = 8 - misalign;
+                int toFill = Math.Min(alignPadding, dst.Length);
+                
+                ulong x = NEXT_U64(st);
+                for (int i = 0; i < toFill; i++)
+                {
+                    dst[offset++] = (byte)(x & 0xFF);
+                    x >>= 8;
+                }
             }
-            return;
         }
 
-        Span<ulong> u64 = MemoryMarshal.Cast<byte, ulong>(dst);
+        if (offset >= dst.Length) return;
+
+        Span<byte> alignedPart = dst[offset..];
+        Span<ulong> u64 = MemoryMarshal.Cast<byte, ulong>(alignedPart);
+        
         for (int i = 0; i < u64.Length; i++)
         {
             u64[i] = NEXT_U64(st);
         }
 
-        int rem = dst.Length - (u64.Length * 8);
-        if (rem > 0)
+        int remaining = alignedPart.Length - (u64.Length * 8);
+        if (remaining > 0)
         {
+            offset = dst.Length - remaining;
             ulong x = NEXT_U64(st);
-            for (int i = 0; i < rem; i++)
+            for (int i = 0; i < remaining; i++)
             {
-                dst[dst.Length - rem + i] = (byte)(x & 0xFF);
+                dst[offset++] = (byte)(x & 0xFF);
                 x >>= 8;
             }
         }
@@ -169,10 +224,16 @@ internal static class OsRandom
             return st;
         }
 
-        ulong base0 = s_state[0];
-        ulong base1 = s_state[1];
-        ulong base2 = s_state[2];
-        ulong base3 = s_state[3];
+        int currentVersion;
+        ulong base0, base1, base2, base3;
+        lock (s_stateLock)
+        {
+            base0 = s_state[0];
+            base1 = s_state[1];
+            base2 = s_state[2];
+            base3 = s_state[3];
+            currentVersion = s_version;
+        }
 
         ulong tid = (ulong)System.Environment.CurrentManagedThreadId;
         ulong now = (ulong)DateTime.UtcNow.Ticks;
@@ -185,7 +246,7 @@ internal static class OsRandom
         }
 
         t_state = local;
-        t_version = s_version;
+        t_version = currentVersion;
         t_counter = 0;
 
         return local;
@@ -263,29 +324,35 @@ internal static class OsRandom
         MemoryMarshal.Write(seed[8..16], in tc64);
         MemoryMarshal.Write(seed[16..20], in pid);
 
-        // Fold in the process tag and a moving counter derived from WorkingSet and Stopwatch
+        // Fold in the process tag and a moving counter derived from WorkingSet, GC, and Stopwatch
         ulong tag0 = READ_U64(s_instanceTag, 0);
         ulong tag1 = READ_U64(s_instanceTag, 8);
         ulong mono = (ulong)Stopwatch.GetTimestamp();
+        ulong mem = (ulong)GC.GetTotalMemory(false);
+        ulong ws = (ulong)System.Environment.WorkingSet;
+        
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
-            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ (ulong)System.Environment.WorkingSet);
+            seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ ws ^ mem);
 
         ulong a = SPLIT_MIX_64(READ_U64(seed, 0) ^ 0x9E3779B97F4A7C15UL);
         ulong b = SPLIT_MIX_64(READ_U64(seed, 8) ^ 0xBF58476D1CE4E5B9UL);
         ulong c = SPLIT_MIX_64(READ_U64(seed, 16) ^ 0x94D049BB133111EBUL);
         ulong d = SPLIT_MIX_64(READ_U64(seed, 24) ^ 0xD2B74407B1CE6E93UL);
 
-        s_state[0] = System.Numerics.BitOperations.RotateLeft(s_state[0], 7) + a;
-        s_state[1] ^= b;
-        s_state[2] = System.Numerics.BitOperations.RotateLeft(s_state[2] + c, 17);
-        s_state[3] ^= System.Numerics.BitOperations.RotateLeft(d, 29);
-
-        for (int i = 0; i < 8; i++)
+        lock (s_stateLock)
         {
-            _ = XOSHIRO_NEXT(s_state);
-        }
+            s_state[0] = System.Numerics.BitOperations.RotateLeft(s_state[0], 7) + a;
+            s_state[1] ^= b;
+            s_state[2] = System.Numerics.BitOperations.RotateLeft(s_state[2] + c, 17);
+            s_state[3] ^= System.Numerics.BitOperations.RotateLeft(d, 29);
 
-        unchecked { s_version++; }
+            for (int i = 0; i < 8; i++)
+            {
+                _ = XOSHIRO_NEXT(s_state);
+            }
+
+            unchecked { s_version++; }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
