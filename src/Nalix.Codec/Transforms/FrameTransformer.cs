@@ -12,8 +12,10 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Internal;
 using Nalix.Codec.LZ4;
+using Nalix.Codec.Options;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Internal;
+using Nalix.Environment.Configuration;
 
 namespace Nalix.Codec.Transforms;
 
@@ -93,12 +95,15 @@ public static class FrameTransformer
 
         // Validate OriginalLength before returning it for pre-allocation.
         // Malicious payloads can declare any value here to trigger allocation-based DoS.
-        if (header.OriginalLength <= 0 || header.OriginalLength > PacketConstants.MaxDecompressedBodySize)
+        // The limit is read from global configuration to allow per-deployment tuning.
+        int limit = ConfigurationManager.Instance.Get<CompressionOptions>().MaxDecompressedSize;
+
+        if (header.OriginalLength <= 0 || header.OriginalLength > limit)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(src),
                 $"LZ4 header declares invalid OriginalLength={header.OriginalLength}. " +
-                $"Must be in range [1, {PacketConstants.MaxDecompressedBodySize}].");
+                $"Must be in range [1, {limit}]. (Config: Compression.MaxDecompressedSize)");
         }
 
         return header.OriginalLength;
