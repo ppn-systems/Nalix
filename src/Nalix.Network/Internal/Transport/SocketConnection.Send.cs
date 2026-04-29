@@ -45,6 +45,7 @@ internal sealed partial class SocketConnection
         }
 
         long totalLengthLong = (long)data.Length + HeaderSize;
+
         if (totalLengthLong > ushort.MaxValue)
         {
             throw new ArgumentOutOfRangeException(
@@ -408,6 +409,7 @@ internal sealed partial class SocketConnection
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = s_fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+
         if (totalChunks > ushort.MaxValue)
         {
             throw new InternalErrorException(
@@ -524,6 +526,7 @@ internal sealed partial class SocketConnection
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = s_fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+
         if (totalChunks > ushort.MaxValue)
         {
             return ValueTask.FromException(new InternalErrorException(

@@ -281,7 +281,21 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                         ConnectionEventArgs closeArgs = new(this);
                         try
                         {
-                            _onCloseEvent.Invoke(this, closeArgs);
+                            Delegate[] handlers = _onCloseEvent.GetInvocationList();
+                            foreach (EventHandler<IConnectEventArgs> handler in handlers)
+                            {
+                                try
+                                {
+                                    handler(this, closeArgs);
+                                }
+                                catch (Exception handlerEx) when (ExceptionClassifier.IsNonFatal(handlerEx))
+                                {
+                                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                                    {
+                                        _logger.LogError(handlerEx, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] close-handler-error");
+                                    }
+                                }
+                            }
                         }
                         finally
                         {
@@ -590,7 +604,24 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         try
         {
             _ = Interlocked.Exchange(ref self._isDispatchingClose, 1);
-            self._onCloseEvent?.Invoke(self, e);
+            if (self._onCloseEvent != null)
+            {
+                Delegate[] handlers = self._onCloseEvent.GetInvocationList();
+                foreach (EventHandler<IConnectEventArgs> handler in handlers)
+                {
+                    try
+                    {
+                        handler(self, e);
+                    }
+                    catch (Exception handlerEx) when (ExceptionClassifier.IsNonFatal(handlerEx))
+                    {
+                        if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
+                        {
+                            self._logger.LogError(handlerEx, $"[NW.{nameof(Connection)}:{nameof(OnCloseEventDispatchBridge)}] close-handler-error");
+                        }
+                    }
+                }
+            }
         }
         finally
         {
