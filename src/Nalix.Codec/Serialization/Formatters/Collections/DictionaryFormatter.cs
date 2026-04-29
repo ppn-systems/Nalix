@@ -7,6 +7,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -182,10 +183,10 @@ internal sealed class DictionaryFormatter<
             return null;
         }
 
-        if (count < 0 || count > SerializerBounds.MaxArray)
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new SerializationFailureException(
-                $"Dictionary count out of range: {count}. Max allowed is {SerializerBounds.MaxArray}.");
+                $"Dictionary count out of range: {count}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
         }
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);
@@ -199,3 +200,4 @@ internal sealed class DictionaryFormatter<
         return dict;
     }
 }
+

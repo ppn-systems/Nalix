@@ -5,6 +5,7 @@ using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -75,10 +76,10 @@ internal sealed class NullableArrayFormatter<
             return [];
         }
 
-        if (length < 0 || length > SerializerBounds.MaxArray)
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new Abstractions.Exceptions.SerializationFailureException(
-                $"Nullable array length out of range: {length}. Max allowed is {SerializerBounds.MaxArray}.");
+                $"Nullable array length out of range: {length}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
         }
 
         T?[] array = new T?[length];
@@ -91,3 +92,4 @@ internal sealed class NullableArrayFormatter<
         return array;
     }
 }
+

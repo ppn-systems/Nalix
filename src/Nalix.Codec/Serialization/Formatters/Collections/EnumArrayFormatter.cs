@@ -6,6 +6,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -96,7 +97,7 @@ internal sealed class EnumArrayFormatter<
             return null!;
         }
 
-        if (length < 0 || length > SerializerBounds.MaxArray)
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new SerializationFailureException("Array length out of range");
         }
@@ -130,3 +131,4 @@ internal sealed class EnumArrayFormatter<
         return result;
     }
 }
+

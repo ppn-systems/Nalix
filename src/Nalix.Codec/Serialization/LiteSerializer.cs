@@ -605,10 +605,11 @@ public static class LiteSerializer
             int length = Unsafe.ReadUnaligned<int>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            if (length < 0 || length > SerializerBounds.MaxArray)
+            int limit = s_options.MaxArrayLength;
+            if (length < 0 || length > limit)
             {
                 throw new SerializationFailureException(
-                    $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
+                    $"Array length {length} is out of allowed range [0, {limit}] for type '{typeof(T)}'. (Config: Serialization.MaxArrayLength)");
             }
 
             // Calculate total data size and verify the buffer has enough bytes 
@@ -738,10 +739,11 @@ public static class LiteSerializer
             int length = Unsafe.ReadUnaligned<int>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            if (length < 0 || length > SerializerBounds.MaxArray)
+            int limit = s_options.MaxArrayLength;
+            if (length < 0 || length > limit)
             {
                 throw new SerializationFailureException(
-                    $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
+                    $"Array length {length} is out of allowed range [0, {limit}] for type '{typeof(T)}'. (Config: Serialization.MaxArrayLength)");
             }
 
             // Safety check: Ensure the buffer actually contains the promised data size
@@ -842,6 +844,7 @@ public static class LiteSerializer
         public static readonly bool ThrowsOnNull;
         public static readonly IFormatter<T> Formatter;
         public static readonly IFillableFormatter<T>? Fillable;
+        public static readonly SerializationOptions Options = ConfigurationManager.Instance.Get<SerializationOptions>();
 
         static RootFormatterCache()
         {

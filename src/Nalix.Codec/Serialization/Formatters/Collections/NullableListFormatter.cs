@@ -6,6 +6,7 @@ using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -78,10 +79,10 @@ internal sealed class NullableValueListFormatter<
             return [];
         }
 
-        if (length < 0 || length > SerializerBounds.MaxArray)
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
             throw new Abstractions.Exceptions.SerializationFailureException(
-                $"Nullable list length out of range: {length}. Max allowed is {SerializerBounds.MaxArray}.");
+                $"Nullable list length out of range: {length}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
         }
 
         System.Collections.Generic.List<T?> list = new(length);
@@ -96,3 +97,4 @@ internal sealed class NullableValueListFormatter<
         return list;
     }
 }
+

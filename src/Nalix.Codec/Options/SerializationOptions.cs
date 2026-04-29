@@ -4,6 +4,8 @@
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
+using Nalix.Codec.Serialization.Internal;
+
 namespace Nalix.Codec.Options;
 
 /// <summary>
@@ -25,6 +27,22 @@ public sealed class SerializationOptions : ConfigurationLoader
     public int MaxWriterCapacity { get; init; } = 128 * 1024 * 1024; // 128MB default
 
     /// <summary>
+    /// Gets or sets the maximum allowed element count for arrays and collections during deserialization.
+    /// </summary>
+    [IniComment("Maximum number of elements in an array or collection (default 1M)")]
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue,
+        ErrorMessage = "MaxArrayLength must be >= 0.")]
+    public int MaxArrayLength { get; init; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxArrayLength)
+
+    /// <summary>
+    /// Gets or sets the maximum allowed length, in bytes, for UTF-8 strings during deserialization.
+    /// </summary>
+    [IniComment("Maximum length (bytes) for a UTF-8 string (default 1M)")]
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue,
+        ErrorMessage = "MaxStringLength must be >= 0.")]
+    public int MaxStringLength { get; init; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxStringLength)
+
+    /// <summary>
     /// Validates the configuration options.
     /// </summary>
     public void Validate()
@@ -33,3 +51,4 @@ public sealed class SerializationOptions : ConfigurationLoader
         System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
     }
 }
+
