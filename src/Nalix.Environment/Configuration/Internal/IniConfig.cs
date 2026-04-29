@@ -42,6 +42,9 @@ internal sealed class IniConfig : IDisposable
     // Standard buffer sizes
     private const int DefaultBufferSize = 4096;
 
+    // Memory leak protection
+    private const int MaxCacheSize = 2048;
+
     #endregion Constants
 
     #region Fields
@@ -57,7 +60,7 @@ internal sealed class IniConfig : IDisposable
     private readonly Dictionary<string, object> _valueCache;
 
     // Track if the file has been modified
-    private bool _isDirty;
+    private volatile bool _isDirty;
 
     // Stores comments to be written above sections and keys.
     // Key format: "section" for section-level comments,
@@ -124,10 +127,11 @@ internal sealed class IniConfig : IDisposable
                 $"Configuration file path contains invalid characters: {path}", nameof(path));
         }
 
-        // Use case-insensitive keys for sections and keys
-        _iniData = new(StringComparer.OrdinalIgnoreCase);
-        _valueCache = new(StringComparer.OrdinalIgnoreCase);
-        _comments = new(StringComparer.OrdinalIgnoreCase);
+        // Use case-insensitive keys for sections
+        _path = path;
+        _iniData = new(StringComparer.Ordinal);
+        _valueCache = new(StringComparer.Ordinal);
+        _comments = new(StringComparer.Ordinal);
         _fileLock = new(LockRecursionPolicy.NoRecursion);
 
         // Load the file if it exists
@@ -148,7 +152,7 @@ internal sealed class IniConfig : IDisposable
     public void Reload() => this.Load();
 
     /// <summary>
-    /// Writes a value to the INI file if the key does not already exist.
+    /// Writes a value to the INI file.
     /// </summary>
     /// <param name="section">The section name in the INI file.</param>
     /// <param name="key">The key name in the section.</param>
@@ -192,7 +196,7 @@ internal sealed class IniConfig : IDisposable
                 try
                 {
                     sectionData = new Dictionary<
-                        string, string>(StringComparer.OrdinalIgnoreCase);
+                        string, string>(StringComparer.Ordinal);
 
                     _iniData[section] = sectionData;
                 }
@@ -202,27 +206,50 @@ internal sealed class IniConfig : IDisposable
                 }
             }
 
-            // Only write if the key doesn't exist
-            if (!sectionData.TryGetValue(key, out string? existing) || string.IsNullOrEmpty(existing))
+            _fileLock.EnterWriteLock();
+            try
             {
-                _fileLock.EnterWriteLock();
-                try
-                {
-                    string stringValue = FormatValue(value);
-                    sectionData[key] = stringValue;
+                string stringValue = FormatValue(value);
 
-                    // Dispose any cached value for this key
-                    string cacheKey = CreateCacheKey(section, key);
-                    _ = _valueCache.Remove(cacheKey);
-
-                    _isDirty = true;
-                }
-                finally
+                // Only update if the value has changed to avoid unnecessary I/O
+                if (sectionData.TryGetValue(key, out string? existing) && existing == stringValue)
                 {
-                    _fileLock.ExitWriteLock();
+                    return;
                 }
 
-                // Changes are marked dirty; will be flushed via Flush() or Dispose().
+                sectionData[key] = stringValue;
+
+                // Dispose any cached values for this key.
+                // Typed getters use "section:key:typeSuffix", so we must clear all keys starting with "section:key:".
+                string exactCacheKey = CreateCacheKey(section, key);
+                string typedCacheKeyPrefix = exactCacheKey + ":";
+
+                _ = _valueCache.Remove(exactCacheKey);
+
+                // Surgical removal of all typed cache entries
+                List<string>? keysToRemove = null;
+                foreach (string k in _valueCache.Keys)
+                {
+                    if (k.StartsWith(typedCacheKeyPrefix, StringComparison.Ordinal))
+                    {
+                        keysToRemove ??= [];
+                        keysToRemove.Add(k);
+                    }
+                }
+
+                if (keysToRemove != null)
+                {
+                    foreach (string k in keysToRemove)
+                    {
+                        _valueCache.Remove(k);
+                    }
+                }
+
+                _isDirty = true;
+            }
+            finally
+            {
+                _fileLock.ExitWriteLock();
             }
         }
         finally
@@ -376,7 +403,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "bool");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (bool?)cachedValue;
         }
@@ -410,7 +437,7 @@ internal sealed class IniConfig : IDisposable
             }
 
             // Caches the result
-            _valueCache[cacheKey] = result;
+            this.AddToCache(cacheKey, result);
         }
 
         return result;
@@ -430,7 +457,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "decimal");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (decimal?)cachedValue;
         }
@@ -445,7 +472,7 @@ internal sealed class IniConfig : IDisposable
             stringValue, NumberStyles.Number,
             CultureInfo.InvariantCulture, out decimal parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -466,7 +493,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "byte");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (byte?)cachedValue;
         }
@@ -479,7 +506,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (byte.TryParse(stringValue, out byte parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -500,7 +527,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "sbyte");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (sbyte?)cachedValue;
         }
@@ -513,7 +540,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (sbyte.TryParse(stringValue, out sbyte parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -534,7 +561,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "int16");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (short?)cachedValue;
         }
@@ -547,7 +574,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (short.TryParse(stringValue, out short parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -568,7 +595,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "uint16");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (ushort?)cachedValue;
         }
@@ -581,7 +608,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (ushort.TryParse(stringValue, out ushort parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -602,7 +629,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "int32");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (int?)cachedValue;
         }
@@ -615,7 +642,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (int.TryParse(stringValue, out int parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -636,7 +663,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "uint32");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (uint?)cachedValue;
         }
@@ -649,7 +676,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (uint.TryParse(stringValue, out uint parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -668,7 +695,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "int64");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (long?)cachedValue;
         }
@@ -681,7 +708,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (long.TryParse(stringValue, out long parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -702,7 +729,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "uint64");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (ulong?)cachedValue;
         }
@@ -715,7 +742,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (ulong.TryParse(stringValue, out ulong parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -736,7 +763,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "single");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (float?)cachedValue;
         }
@@ -751,7 +778,7 @@ internal sealed class IniConfig : IDisposable
             stringValue, NumberStyles.Float,
             CultureInfo.InvariantCulture, out float parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -770,7 +797,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "double");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (double?)cachedValue;
         }
@@ -785,7 +812,7 @@ internal sealed class IniConfig : IDisposable
             stringValue, NumberStyles.Float,
             CultureInfo.InvariantCulture, out double parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -806,7 +833,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "datetime");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (DateTime?)cachedValue;
         }
@@ -821,7 +848,7 @@ internal sealed class IniConfig : IDisposable
             stringValue, CultureInfo.InvariantCulture,
             DateTimeStyles.None, out DateTime parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -842,7 +869,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "timespan");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (TimeSpan?)cachedValue;
         }
@@ -857,7 +884,7 @@ internal sealed class IniConfig : IDisposable
             stringValue,
             CultureInfo.InvariantCulture, out TimeSpan parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -878,7 +905,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, "guid");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (Guid?)cachedValue;
         }
@@ -891,7 +918,7 @@ internal sealed class IniConfig : IDisposable
         }
         else if (Guid.TryParse(stringValue, out Guid parsedValue))
         {
-            _valueCache[cacheKey] = parsedValue;
+            this.AddToCache(cacheKey, parsedValue);
             return parsedValue;
         }
 
@@ -913,7 +940,7 @@ internal sealed class IniConfig : IDisposable
     {
         string cacheKey = CreateCacheKey(section, key, $"enum:{typeof(TEnum).FullName}");
 
-        if (_valueCache.TryGetValue(cacheKey, out object? cachedValue))
+        if (this.TryGetCache(cacheKey, out object? cachedValue))
         {
             return (TEnum?)cachedValue;
         }
@@ -931,7 +958,7 @@ internal sealed class IniConfig : IDisposable
         // Try parse name (case-insensitive)
         if (Enum.TryParse(stringValue, true, out TEnum result))
         {
-            _valueCache[cacheKey] = result;
+            this.AddToCache(cacheKey, result);
             return result;
         }
 
@@ -943,7 +970,7 @@ internal sealed class IniConfig : IDisposable
                 CultureInfo.InvariantCulture);
 
             TEnum boxed = (TEnum)Enum.ToObject(typeof(TEnum), numeric);
-            _valueCache[cacheKey] = boxed;
+            this.AddToCache(cacheKey, boxed);
             return boxed;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -977,6 +1004,39 @@ internal sealed class IniConfig : IDisposable
         string section,
         string key,
         string? typeSuffix = null) => typeSuffix == null ? $"{section}:{key}" : $"{section}:{key}:{typeSuffix}";
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool TryGetCache(string key, [NotNullWhen(true)] out object? value)
+    {
+        _fileLock.EnterReadLock();
+        try
+        {
+            return _valueCache.TryGetValue(key, out value);
+        }
+        finally
+        {
+            _fileLock.ExitReadLock();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void AddToCache(string key, object value)
+    {
+        _fileLock.EnterWriteLock();
+        try
+        {
+            if (_valueCache.Count >= MaxCacheSize)
+            {
+                _valueCache.Clear();
+            }
+
+            _valueCache[key] = value;
+        }
+        finally
+        {
+            _fileLock.ExitWriteLock();
+        }
+    }
 
     /// <summary>
     /// Formats a value for storage in the INI file.
@@ -1109,7 +1169,7 @@ internal sealed class IniConfig : IDisposable
 
                     if (!_iniData.TryGetValue(currentSection, out currentSectionData!))
                     {
-                        currentSectionData = new(StringComparer.OrdinalIgnoreCase);
+                        currentSectionData = new(StringComparer.Ordinal);
                         _iniData[currentSection] = currentSectionData;
                     }
 
@@ -1122,6 +1182,13 @@ internal sealed class IniConfig : IDisposable
                 {
                     string key = trimmedLine[..separatorIndex].Trim();
                     string value = trimmedLine[(separatorIndex + 1)..].Trim();
+
+                    // Detect duplicates ( SEC-20 )
+                    if (currentSectionData.ContainsKey(key))
+                    {
+                        throw new InvalidDataException(
+                            $"Duplicate key '{key}' found in section '{currentSection}' at line {lineNumber}.");
+                    }
 
                     currentSectionData[key] = value;
 
