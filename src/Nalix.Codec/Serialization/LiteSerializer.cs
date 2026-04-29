@@ -611,6 +611,8 @@ public static class LiteSerializer
                     $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
             }
 
+            // Calculate total data size and verify the buffer has enough bytes 
+            // BEFORE attempting any heap allocation to prevent OOM/DoS.
             long dataSizeLong = (long)size * length;
             if (dataSizeLong > int.MaxValue)
             {
@@ -624,7 +626,18 @@ public static class LiteSerializer
                 throw CodecErrors.SerializationEndOfStream;
             }
 
-            Array arr = Array.CreateInstance(elementType, length);
+            // Allocation: Using GC.AllocateUninitializedArray is safer and faster for large blocks
+            // as it avoids the zero-fill overhead (which can be a DoS vector for large MaxArray).
+            Array arr;
+            if (typeof(T) == typeof(byte[]))
+            {
+                arr = GC.AllocateUninitializedArray<byte>(length);
+            }
+            else
+            {
+                arr = Array.CreateInstance(elementType, length);
+            }
+
             ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
 
             Unsafe.CopyBlockUnaligned(
@@ -731,6 +744,8 @@ public static class LiteSerializer
                     $"Array length {length} is out of allowed range [0, {SerializerBounds.MaxArray}] for type '{typeof(T)}'.");
             }
 
+            // Safety check: Ensure the buffer actually contains the promised data size
+            // BEFORE we allocate memory on the heap.
             long dataSizeLong = (long)size * length;
             if (dataSizeLong > int.MaxValue)
             {
@@ -744,7 +759,17 @@ public static class LiteSerializer
                 throw CodecErrors.SerializationEndOfStream;
             }
 
-            Array arr = Array.CreateInstance(elementType, length);
+            // Allocation: Using uninitialized arrays to avoid zero-filling overhead.
+            Array arr;
+            if (typeof(T) == typeof(byte[]))
+            {
+                arr = GC.AllocateUninitializedArray<byte>(length);
+            }
+            else
+            {
+                arr = Array.CreateInstance(elementType, length);
+            }
+
             ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
 
             Unsafe.CopyBlockUnaligned(
