@@ -264,7 +264,19 @@ internal static class AsyncCallback
         PooledConnectEventContext? wrapper = (sender as Connection)?.AcquireContext() ?? PooledConnectEventContext.Get();
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
-        if (!ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false))
+        bool queued = false;
+        
+        try
+        {
+            queued = ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false);
+        }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            LOG_THROTTLED_ERROR_SAFE(args, "async.queue_exception", $"[NW.{nameof(AsyncCallback)}] exception-queue-work-item", ex);
+            queued = false;
+        }
+
+        if (!queued)
         {
             INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
             // Queue failure — extremely rare. Undo the increments we already applied.
