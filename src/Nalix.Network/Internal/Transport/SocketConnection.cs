@@ -71,7 +71,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     private readonly Socket _socket = socket;
     private readonly ILogger? _logger = logger;
     private FragmentAssembler? _fragmentAssembler;
-    private readonly object _sendLock = new();
+    private readonly Lock _sendLock = new();
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
