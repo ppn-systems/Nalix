@@ -389,10 +389,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 ConnectionEventArgs[]? argsPool = Interlocked.Exchange(ref _argsPool, null);
                 if (argsPool != null)
                 {
-                    for (int i = 0; i < argsPool.Length; i++)
+                    for (int i = 0; i < 8; i++)
                     {
                         argsPool[i]?.Dispose();
                     }
+                    System.Buffers.ArrayPool<ConnectionEventArgs>.Shared.Return(argsPool, clearArray: true);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "argspool"); }
@@ -402,10 +403,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 PooledConnectEventContext[]? ctxPool = Interlocked.Exchange(ref _contextPool, null);
                 if (ctxPool != null)
                 {
-                    for (int i = 0; i < ctxPool.Length; i++)
+                    for (int i = 0; i < 8; i++)
                     {
                         ctxPool[i]?.Dispose();
                     }
+                    System.Buffers.ArrayPool<PooledConnectEventContext>.Shared.Return(ctxPool, clearArray: true);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "contextpool"); }
@@ -446,7 +448,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             {
                 if (_argsPool == null)
                 {
-                    _argsPool = new ConnectionEventArgs[8];
+                    _argsPool = System.Buffers.ArrayPool<ConnectionEventArgs>.Shared.Rent(8);
                     for (int i = 0; i < 8; i++)
                     {
                         _argsPool[i] = new ConnectionEventArgs(this);
@@ -502,7 +504,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             {
                 if (_contextPool == null)
                 {
-                    _contextPool = new PooledConnectEventContext[8];
+                    _contextPool = System.Buffers.ArrayPool<PooledConnectEventContext>.Shared.Rent(8);
                     for (int i = 0; i < 8; i++)
                     {
                         _contextPool[i] = new PooledConnectEventContext { LocalOwner = this };
