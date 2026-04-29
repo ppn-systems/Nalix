@@ -42,7 +42,7 @@ namespace Nalix.Codec.Security.Hashing;
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-public struct Poly1305
+public ref struct Poly1305
 {
     #region Constants
 

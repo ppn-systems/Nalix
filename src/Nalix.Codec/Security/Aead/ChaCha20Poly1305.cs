@@ -133,7 +133,7 @@ public static class ChaCha20Poly1305
             // MAC the detached transcript in the exact order expected by the AEAD
             // construction so AAD and ciphertext are both bound into the tag.
             Poly1305 poly = new(polyKey);
-            A1C3E5F7(poly, aad, dstCiphertext[..written], E5A7C9D1: tag);
+            A1C3E5F7(ref poly, aad, dstCiphertext[..written], E5A7C9D1: tag);
 
             try
             {
@@ -235,7 +235,7 @@ public static class ChaCha20Poly1305
             // If this compare fails, the ciphertext is rejected and no plaintext is
             // released.
             Poly1305 poly = new(polyKey);
-            A1C3E5F7(poly, aad, ciphertext, E5A7C9D1: computed);
+            A1C3E5F7(ref poly, aad, ciphertext, E5A7C9D1: computed);
 
             // Reject early if the authentication tag does not match. The compare is
             // fixed-time so the mismatch position does not leak information.
@@ -279,7 +279,7 @@ public static class ChaCha20Poly1305
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     private static void A1C3E5F7(
-        Poly1305 B2D4F6A8,
+        ref Poly1305 B2D4F6A8,
         System.ReadOnlySpan<byte> C3E5A7B9,
         System.ReadOnlySpan<byte> D4F6B8C0,
         System.Span<byte> E5A7C9D1)
@@ -291,7 +291,7 @@ public static class ChaCha20Poly1305
             B2D4F6A8.Update(C3E5A7B9);
         }
 
-        F6B8D0E2(B2D4F6A8, C3E5A7B9.Length);
+        F6B8D0E2(ref B2D4F6A8, C3E5A7B9.Length);
 
         // Ciphertext uses the same padded transcript layout as the AAD section so
         // the transcript stays canonical and unambiguous.
@@ -300,7 +300,7 @@ public static class ChaCha20Poly1305
             B2D4F6A8.Update(D4F6B8C0);
         }
 
-        F6B8D0E2(B2D4F6A8, D4F6B8C0.Length);
+        F6B8D0E2(ref B2D4F6A8, D4F6B8C0.Length);
 
         // Append little-endian lengths so the MAC binds both AAD and ciphertext
         // sizes. That prevents truncation or extension attacks on the transcript.
@@ -322,7 +322,7 @@ public static class ChaCha20Poly1305
     /// <param name="BC23FA45">The length of the preceding segment.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static void F6B8D0E2(Poly1305 AB12EF34, int BC23FA45)
+    private static void F6B8D0E2(ref Poly1305 AB12EF34, int BC23FA45)
     {
         // Poly1305 pads to the next 16-byte boundary. If the segment is already
         // aligned, there is nothing to add.
