@@ -111,20 +111,18 @@ internal static class LZ4Encoder
             return 16;
         }
 
+        // Calculate bits based on input length, using a conservative jump threshold (1.5x)
+        // to avoid wasting ArrayPool resources for inputs just over a power of 2.
         int bits = System.Numerics.BitOperations.Log2((uint)inputLength);
 
-        // Clamp to avoid tiny hash tables handling too much traffic or huge tables for empty data
-        if (bits < 8)
+        if (bits > 8 && inputLength < (1 << bits) + (1 << (bits - 1)))
         {
-            bits = 8;
+            bits--;
         }
 
-        if (bits > 16)
-        {
-            bits = 16;
-        }
-
-        return bits;
+        // Minimum 8 bits (256 entries) to ensure decent match finding for small blocks.
+        // Clamped at 16 bits maximum (handled by the if check above).
+        return Math.Max(8, bits);
     }
 
     #endregion Private Methods
