@@ -407,23 +407,17 @@ public static class LiteSerializer
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
-        unsafe
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
         {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                if (value is not null && fillable is not null)
-                {
-                    fillable.Fill(ref reader, value);
-                }
-                else
-                {
-                    value = formatter.Deserialize(ref reader);
-                }
-
-                return reader.BytesRead;
-            }
+            fillable.Fill(ref reader, value);
         }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        return reader.BytesRead;
     }
 
     /// <summary>
@@ -453,16 +447,10 @@ public static class LiteSerializer
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
-        unsafe
-        {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                T result = formatter.Deserialize(ref reader);
-                value = reader.BytesRead;
-                return result;
-            }
-        }
+        DataReader reader = new(buffer);
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
     }
 
     /// <summary>
@@ -491,23 +479,17 @@ public static class LiteSerializer
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
-        unsafe
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
         {
-            fixed (byte* ptr = buffer.Span)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                if (value is not null && fillable is not null)
-                {
-                    fillable.Fill(ref reader, value);
-                }
-                else
-                {
-                    value = formatter.Deserialize(ref reader);
-                }
-
-                return reader.BytesRead;
-            }
+            fillable.Fill(ref reader, value);
         }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        return reader.BytesRead;
     }
 
     /// <summary>
@@ -535,16 +517,10 @@ public static class LiteSerializer
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
-        unsafe
-        {
-            fixed (byte* ptr = buffer.Span)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                T result = formatter.Deserialize(ref reader);
-                value = reader.BytesRead;
-                return result;
-            }
-        }
+        DataReader reader = new(buffer);
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
     }
 
     /// <summary>
@@ -653,23 +629,17 @@ public static class LiteSerializer
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable;
 
-        unsafe
+        DataReader reader = new(buffer);
+        if (value is not null && fillable is not null)
         {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                if (value is not null && fillable is not null)
-                {
-                    fillable.Fill(ref reader, value);
-                }
-                else
-                {
-                    value = formatter.Deserialize(ref reader);
-                }
-
-                return reader.BytesRead;
-            }
+            fillable.Fill(ref reader, value);
         }
+        else
+        {
+            value = formatter.Deserialize(ref reader);
+        }
+
+        return reader.BytesRead;
     }
 
     /// <summary>
@@ -783,16 +753,10 @@ public static class LiteSerializer
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
-        unsafe
-        {
-            fixed (byte* ptr = buffer)
-            {
-                DataReader reader = new(ptr, buffer.Length);
-                T result = formatter.Deserialize(ref reader);
-                value = reader.BytesRead;
-                return result;
-            }
-        }
+        DataReader reader = new(buffer);
+        T result = formatter.Deserialize(ref reader);
+        value = reader.BytesRead;
+        return result;
     }
 
     #endregion APIs
