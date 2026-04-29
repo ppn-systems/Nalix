@@ -38,22 +38,14 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void GenerateReport_WithDiagnostics_IncludesLifetimeMetrics()
     {
-        // Enable diagnostics
-        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
-        config.EnableDiagnostics = true;
+        // Use a private config instance to avoid interference with other tests using the singleton
+        ObjectPoolOptions config = new() { EnableDiagnostics = true };
 
-        try
-        {
-            ObjectPoolManager manager = new();
-            
-            // Force EnableDiagnostics on the manager's private config to bypass sync issues
-            var field = typeof(ObjectPoolManager).GetField("_config", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var managerConfig = (ObjectPoolOptions)field.GetValue(manager);
-            managerConfig.EnableDiagnostics = true;
-
-            TestPoolable item = manager.Get<TestPoolable>();
-            Thread.Sleep(50); 
-            manager.Return(item);
+        ObjectPoolManager manager = new(config);
+        
+        TestPoolable item = manager.Get<TestPoolable>();
+        Thread.Sleep(50); 
+        manager.Return(item);
 
             string report = "";
             bool found = false;
@@ -72,11 +64,6 @@ public sealed class ObjectPoolDiagnosticsTests
             Assert.Contains("Avg=", report);
             Assert.Contains("p95=", report);
             Assert.Contains("Max=", report);
-        }
-        finally
-        {
-            config.EnableDiagnostics = false;
-        }
     }
 
     [Fact]

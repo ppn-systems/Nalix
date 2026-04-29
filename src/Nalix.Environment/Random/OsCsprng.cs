@@ -14,6 +14,7 @@ using Nalix.Abstractions.Exceptions;
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Environment.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Environment.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
 #endif
 
 namespace Nalix.Environment.Random;
