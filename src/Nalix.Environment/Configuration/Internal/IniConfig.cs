@@ -364,7 +364,7 @@ internal sealed class IniConfig : IDisposable
             return _iniData.TryGetValue(section,
                 out Dictionary<string, string>? sectionData) &&
                 sectionData.TryGetValue(key, out string? value)
-                ? value.Equals("null", StringComparison.OrdinalIgnoreCase) ? null! : value
+                ? value
                 : string.Empty;
         }
         finally
@@ -1053,8 +1053,8 @@ internal sealed class IniConfig : IDisposable
         // Sanitize string to prevent INI injection via newlines (SEC-19).
         string result = value switch
         {
-            float f => f.ToString("G", CultureInfo.InvariantCulture),
-            double d => d.ToString("G", CultureInfo.InvariantCulture),
+            float f => f.ToString("R", CultureInfo.InvariantCulture),
+            double d => d.ToString("R", CultureInfo.InvariantCulture),
             decimal m => m.ToString("G", CultureInfo.InvariantCulture),
             DateTime dt => dt.ToString("O", CultureInfo.InvariantCulture),
             _ => value.ToString() ?? string.Empty
@@ -1156,7 +1156,7 @@ internal sealed class IniConfig : IDisposable
 
 
                 // Process section
-                if (trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
+                if (trimmedLine.Length >= 2 && trimmedLine[0] == SectionStart && trimmedLine[^1] == SectionEnd)
                 {
                     currentSection = trimmedLine[1..^1].Trim();
 
