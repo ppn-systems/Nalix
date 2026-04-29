@@ -25,8 +25,8 @@ internal sealed class SlidingWindow
     private readonly int _windowSize;
 
     private ushort _maxSeen;
-    private SpinLock _spinLock;
     private bool _isInitialized;
+    private readonly Lock _syncObj;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SlidingWindow"/> class.
@@ -34,6 +34,7 @@ internal sealed class SlidingWindow
     /// <param name="windowSize">The replay-protection window size in sequence numbers.</param>
     public SlidingWindow(int windowSize = 1024)
     {
+        _syncObj = new();
         _windowSize = windowSize;
         _arraySize = (windowSize + 63) / 64;
 
@@ -48,11 +49,8 @@ internal sealed class SlidingWindow
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryCheck(ushort seq)
     {
-        bool lockTaken = false;
-
-        try
+        lock (_syncObj)
         {
-            _spinLock.Enter(ref lockTaken);
             if (!_isInitialized)
             {
                 _isInitialized = true;
@@ -96,13 +94,6 @@ internal sealed class SlidingWindow
 
             this.MARK_BIT(diff);
             return true;
-        }
-        finally
-        {
-            if (lockTaken)
-            {
-                _spinLock.Exit(useMemoryBarrier: false);
-            }
         }
     }
 
