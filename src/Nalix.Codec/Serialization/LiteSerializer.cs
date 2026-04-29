@@ -298,19 +298,13 @@ public static class LiteSerializer
             }
 
             long dataSizeLong = (long)fixedSize * length;
-            if (dataSizeLong > int.MaxValue - 4)
-            {
-                throw new SerializationFailureException(
-                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds maximum.");
-            }
-
-            int dataSize = (int)dataSizeLong;
-            int totalSize = dataSize + 4; // 4-byte length prefix
-
-            if (buffer.Length < totalSize)
+            if (buffer.Length < dataSizeLong + 4)
             {
                 throw CodecErrors.SerializationBufferTooSmall;
             }
+
+            int dataSize = (int)dataSizeLong;
+            int totalSize = dataSize + 4; // Safe now because of the check above
 
             // Write the element count as a 4-byte little-endian prefix
             Unsafe.WriteUnaligned(
@@ -591,17 +585,12 @@ public static class LiteSerializer
             // Calculate total data size and verify the buffer has enough bytes 
             // BEFORE attempting any heap allocation to prevent OOM/DoS.
             long dataSizeLong = (long)size * length;
-            if (dataSizeLong > int.MaxValue)
-            {
-                throw new SerializationFailureException(
-                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds int.MaxValue.");
-            }
-
-            int dataSize = (int)dataSizeLong;
-            if (buffer.Length < dataSize + 4)
+            if (buffer.Length < dataSizeLong + 4)
             {
                 throw CodecErrors.SerializationEndOfStream;
             }
+
+            int dataSize = (int)dataSizeLong;
 
             // Allocation: Using GC.AllocateUninitializedArray is safer and faster for large blocks
             // as it avoids the zero-fill overhead (which can be a DoS vector for large MaxArray).
@@ -718,17 +707,12 @@ public static class LiteSerializer
             // Safety check: Ensure the buffer actually contains the promised data size
             // BEFORE we allocate memory on the heap.
             long dataSizeLong = (long)size * length;
-            if (dataSizeLong > int.MaxValue)
-            {
-                throw new SerializationFailureException(
-                    $"Array data size overflow for type '{typeof(T)}': {dataSizeLong} bytes exceeds int.MaxValue.");
-            }
-
-            int dataSize = (int)dataSizeLong;
-            if (buffer.Length < dataSize + 4)
+            if (buffer.Length < dataSizeLong + 4)
             {
                 throw CodecErrors.SerializationEndOfStream;
             }
+
+            int dataSize = (int)dataSizeLong;
 
             // Allocation: Using uninitialized arrays to avoid zero-filling overhead.
             Array arr;
