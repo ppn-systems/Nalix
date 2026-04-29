@@ -51,14 +51,15 @@ internal static class LZ4Encoder
         {
             fixed (int* hashTable = table)
             {
-#if DEBUG
-                Debug.Assert(hashTable is not null, "Hash table pinning failed");
-#endif
-
-                Span<byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
+                // Safety: We slice the output span to exclude the header area.
+                // This ensures LZ4BlockEncoder.EncodeBlock can only write into the remaining space.
+                Span<byte> compressedDataOutput = output.Slice(LZ4BlockHeader.Size);
+                
                 int compressedDataLength =
                     LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable, hashBits);
 
+                // If EncodeBlock returns -1, it means the output buffer was too small to hold 
+                // the compressed data. We bail out before writing the header to avoid data corruption.
                 if (compressedDataLength < 0)
                 {
                     throw CodecErrors.LZ4EncoderOutputBufferTooSmall;
@@ -66,17 +67,7 @@ internal static class LZ4Encoder
 
                 int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;
 
-#if DEBUG
-                Debug.Assert(
-                    totalCompressedLength <= output.Length,
-                    $"Compressed data ({totalCompressedLength} bytes) exceeds output buffer ({output.Length} bytes)");
-#endif
-
-                if (totalCompressedLength > output.Length)
-                {
-                    throw CodecErrors.LZ4EncoderOutputBufferTooSmall;
-                }
-
+                // Write the header only after successful compression of the data block.
                 WriteHeader(output, input.Length, totalCompressedLength);
                 return totalCompressedLength;
             }
