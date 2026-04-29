@@ -7,8 +7,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using Nalix.Codec.Internal;
+using Nalix.Codec.Options;
+using Nalix.Environment.Configuration;
 
 namespace Nalix.Codec.Memory;
 
@@ -41,6 +42,8 @@ public ref struct DataWriter
     /// True when the backing array was rented from ArrayPool and must be returned on Dispose
     /// </summary>
     private readonly bool _rent;
+    
+    private static readonly SerializationOptions s_options = ConfigurationManager.Instance.Get<SerializationOptions>();
 
     #endregion Fields
 
@@ -181,10 +184,33 @@ public ref struct DataWriter
             throw CodecErrors.SerializationFixedBufferExpansion;
         }
 
-        // Rent a larger buffer and copy committed bytes
+        // Use checked arithmetic to prevent integer overflow attacks
+        // and enforce a hard limit to prevent OOM-based DoS.
+        // The limit is read from global configuration to allow per-deployment tuning.
+        int limit = s_options.MaxWriterCapacity;
+
         int current = _owner?.Length ?? 0;
         int needed = this.WrittenCount + minimumSize;
-        int newSize = current <= 0 ? needed : Math.Max(current * 2, needed);
+        int newSize;
+
+        try
+        {
+            checked
+            {
+                newSize = current <= 0 ? needed : Math.Max(current * 2, needed);
+            }
+
+            if (newSize > limit)
+            {
+                throw new Abstractions.Exceptions.SerializationFailureException(
+                    $"DataWriter expansion failed: requested capacity {newSize} bytes exceeds the allowed limit of {limit} bytes. (Config: Serialization.MaxWriterCapacity)");
+            }
+        }
+        catch (OverflowException)
+        {
+            throw new Abstractions.Exceptions.SerializationFailureException(
+                $"DataWriter expansion failed: integer overflow when calculating new size for {needed} bytes.");
+        }
 
         byte[] newOwner = BufferLease.ByteArrayPool.Rent(newSize);
         if (this.WrittenCount > 0)
