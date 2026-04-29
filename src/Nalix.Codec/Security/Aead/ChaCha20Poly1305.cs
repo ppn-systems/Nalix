@@ -241,6 +241,8 @@ public static class ChaCha20Poly1305
             // fixed-time so the mismatch position does not leak information.
             if (!BitwiseOperations.FixedTimeEquals(computed, tag))
             {
+                poly.Clear();
+                chacha0.Clear();
                 return -1;
             }
 
