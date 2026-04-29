@@ -1122,6 +1122,7 @@ internal sealed class IniConfig : IDisposable
             // Clear existing data
             _iniData.Clear();
             _valueCache.Clear();
+            _comments.Clear();
 
             currentSectionData = new(StringComparer.OrdinalIgnoreCase);
             _iniData[currentSection] = currentSectionData;
