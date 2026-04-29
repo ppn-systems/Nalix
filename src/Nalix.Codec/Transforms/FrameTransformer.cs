@@ -37,6 +37,8 @@ public static class FrameTransformer
     /// </summary>
     public const int Offset = (int)PacketHeaderOffset.Region;
 
+    private static readonly CompressionOptions s_compressionOptions = ConfigurationManager.Instance.Get<CompressionOptions>();
+
     /// <summary>
     /// Calculates the maximum ciphertext size required for encrypting a plaintext of the given size
     /// with the specified cipher suite type.
@@ -95,8 +97,8 @@ public static class FrameTransformer
 
         // Validate OriginalLength before returning it for pre-allocation.
         // Malicious payloads can declare any value here to trigger allocation-based DoS.
-        // The limit is read from global configuration to allow per-deployment tuning.
-        int limit = ConfigurationManager.Instance.Get<CompressionOptions>().MaxDecompressedSize;
+        // The limit is read from the cached configuration instance to ensure high performance.
+        int limit = s_compressionOptions.MaxDecompressedSize;
 
         if (header.OriginalLength <= 0 || header.OriginalLength > limit)
         {
