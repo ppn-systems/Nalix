@@ -544,7 +544,7 @@ public static class LiteSerializer
             value = Unsafe.ReadUnaligned<T>(
                 ref MemoryMarshal.GetReference(buffer));
 
-            return Unsafe.SizeOf<T>();
+            return TypeMetadata.SizeOf<T>();
         }
 
         TypeKind kind = TypeMetadata.TryGetFixedOrUnmanagedSize<T>(out int size);
@@ -663,7 +663,7 @@ public static class LiteSerializer
             {
                 throw CodecErrors.SerializationEndOfStream;
             }
-            value = Unsafe.SizeOf<T>();
+            value = TypeMetadata.SizeOf<T>();
 
             return Unsafe.ReadUnaligned<T>(
                 ref MemoryMarshal.GetReference(buffer));
