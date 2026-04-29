@@ -393,6 +393,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                     {
                         argsPool[i]?.Dispose();
                     }
+                    
                     System.Buffers.ArrayPool<ConnectionEventArgs>.Shared.Return(argsPool, clearArray: true);
                 }
             }
