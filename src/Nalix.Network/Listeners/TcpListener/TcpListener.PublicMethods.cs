@@ -134,7 +134,6 @@ public abstract partial class TcpListenerBase
                                         .Activate(linkedToken);
             }
 
-            _acceptWorkerIds.Clear();
 
             // Spawn N accept-worker async tasks, where N = MaxParallel.
             // Multiple workers let the listener accept several connections in
@@ -153,8 +152,6 @@ public abstract partial class TcpListenerBase
                         RetainFor = TimeSpan.FromSeconds(30),
                     }
                 );
-
-                _acceptWorkerIds.Add(h.Id);
             }
 
             this.START_PROCESS_CHANNEL(linkedToken);

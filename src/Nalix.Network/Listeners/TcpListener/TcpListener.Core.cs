@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
@@ -36,7 +37,6 @@ public abstract partial class TcpListenerBase : IListener
     private readonly IProtocol _protocol;
     private readonly IConnectionHub _hub;
     private readonly ConnectionGuard _limiter;
-    private readonly List<ISnowflake> _acceptWorkerIds;
 
     private int _state;
     private int _isDisposed;
@@ -110,7 +110,6 @@ public abstract partial class TcpListenerBase : IListener
         _config.Validate();
 
         _lock = new SemaphoreSlim(1, 1);
-        _acceptWorkerIds = new(_config.MaxParallel);
 
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
         options.Validate();
@@ -148,7 +147,7 @@ public abstract partial class TcpListenerBase : IListener
             return;
         }
 
-        async void cb(object? state)
+        async Task cb(object? state)
         {
             if (state is not TcpListenerBase self)
             {
@@ -314,10 +313,9 @@ public abstract partial class TcpListenerBase : IListener
             }
         }
 
-        // UnsafeQueueUserWorkItem -> no capture ExecutionContext (more secure,
-        // Higher performance because it doesn't copy the context).
-        // WHY Unsafe: This is infrastructure code, no flow security context is needed.
-        _ = ThreadPool.UnsafeQueueUserWorkItem(cb, this);
+        // Use Task.Run to properly handle async state machines and exceptions,
+        // avoiding ThreadPool starvation or unobserved exception crashes caused by async void.
+        _ = Task.Run(() => cb(this));
     }
 
     #endregion Private Methods
