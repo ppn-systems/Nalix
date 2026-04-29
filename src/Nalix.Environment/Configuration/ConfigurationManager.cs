@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
-using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Security;
@@ -91,6 +90,8 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
     private volatile string _configFilePath;
     private FileSystemWatcher? _configFileWatcher;
+
+    private readonly Lock _syncLock = new();
 
     #endregion Fields
 
@@ -301,7 +302,10 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             // Set up the watcher AFTER releasing the write lock (both success and rollback paths).
             if (pathToWatch is not null)
             {
-                this.SETUP_FILE_WATCHER();
+                lock (_syncLock)
+                {
+                    this.SETUP_FILE_WATCHER();
+                }
             }
         }
         finally
@@ -438,23 +442,46 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
 
         try
         {
+            // SEC-23: Perform I/O (Reload) OUTSIDE of the global Write Lock.
+            // IniConfig.Reload is internally thread-safe. This prevents Get<T> readers
+            // from being blocked while waiting for disk I/O.
+            if (_iniFile.IsValueCreated)
+            {
+                _iniFile.Value.Reload();
+            }
+
             _configLock.EnterWriteLock();
             try
             {
-                if (_iniFile.IsValueCreated)
-                {
-                    _iniFile.Value.Reload();
-                }
+                int successCount = 0;
+                int failureCount = 0;
 
                 foreach (Lazy<ConfigurationLoader> lazy in _configContainerDict.Values)
                 {
                     if (lazy.IsValueCreated)
                     {
-                        lazy.Value.Initialize(_iniFile.Value);
+                        try
+                        {
+                            lazy.Value.Initialize(_iniFile.Value);
+                            successCount++;
+                        }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            failureCount++;
+                            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                            {
+                                _logger.LogWarning(ex, $"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] partial-reload-failed for {lazy.Value.GetType().Name}");
+                            }
+                        }
                     }
                 }
 
                 this.LastReloadTime = DateTime.UtcNow;
+
+                if (failureCount > 0 && _logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError($"[FW.{nameof(ConfigurationManager)}:{nameof(ReloadAll)}] reload-completed-with-errors success={successCount} failures={failureCount}");
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -696,20 +723,34 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
             }
 
             // Debounce: reset timer on every event so only the trailing edge triggers a reload.
-            _debounceTimer?.Dispose();
-            _debounceTimer = new Timer(
-                _ =>
-                {
-                    if (_isDisposed)
+            lock (_syncLock)
+            {
+                _debounceTimer?.Dispose();
+                _debounceTimer = new Timer(
+                    _ =>
                     {
-                        return;
-                    }
+                        try
+                        {
+                            if (_isDisposed)
+                            {
+                                return;
+                            }
 
-                    this.ReloadAll();
-                },
-                state: null,
-                dueTime: s_debounceDelay,
-                period: Timeout.InfiniteTimeSpan);
+                            this.ReloadAll();
+                        }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            // SEC-24: Prevent unhandled exceptions in the Timer callback from crashing the process.
+                            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                            {
+                                _logger.LogError(ex, $"[FW.{nameof(ConfigurationManager)}:DebounceTimer] background-reload-failed");
+                            }
+                        }
+                    },
+                    state: null,
+                    dueTime: s_debounceDelay,
+                    period: Timeout.InfiniteTimeSpan);
+            }
         };
 
         _configFileWatcher.EnableRaisingEvents = true;
@@ -729,16 +770,22 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
         string normalizedPath = Path.GetFullPath(pathToValidate);
         string normalizedBaseDir = Path.GetFullPath(_baseConfigDirectory);
 
-        if (!normalizedBaseDir.EndsWith(Path.DirectorySeparatorChar.ToString(CultureInfo.InvariantCulture), StringComparison.InvariantCulture))
+        // SEC-25: Ensure base directory check is robust against prefix-matching attacks.
+        // C:\Config vs C:\Config_Evil
+        if (!normalizedBaseDir.EndsWith(Path.DirectorySeparatorChar))
         {
             normalizedBaseDir += Path.DirectorySeparatorChar;
         }
 
         if (!normalizedPath.StartsWith(normalizedBaseDir, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InternalErrorException(
-                $"Configuration file path '{pathToValidate}' is outside the allowed " +
-                $"configuration directory '{_baseConfigDirectory}'.");
+            // Allow if the path is exactly the base directory (though it's usually a file path)
+            if (!string.Equals(normalizedPath, Path.GetFullPath(_baseConfigDirectory), StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InternalErrorException(
+                    $"Configuration file path '{pathToValidate}' is outside the allowed " +
+                    $"configuration directory '{_baseConfigDirectory}'.");
+            }
         }
     }
 
@@ -747,54 +794,62 @@ public sealed class ConfigurationManager : IDisposable, IWithLogging<Configurati
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void ENSURE_CONFIG_DIRECTORY_EXISTS()
     {
-        if (_directoryChecked) // volatile read — no lock needed
+        if (_directoryChecked)
         {
             return;
         }
 
-        string currentPath = _configFilePath; // volatile read
-        string? directory = Path.GetDirectoryName(currentPath);
-
-        if (string.IsNullOrWhiteSpace(directory))
+        lock (_syncLock)
         {
-            throw new InvalidOperationException(
-                "Configuration file path does not contain a valid directory component.");
-        }
+            if (_directoryChecked)
+            {
+                return;
+            }
 
-        if (!Directory.Exists(directory))
-        {
-            try
-            {
-                DirectoryInfo dirInfo = Directory.CreateDirectory(directory);
+            string currentPath = _configFilePath;
+            string? directory = Path.GetDirectoryName(currentPath);
 
-                if (!dirInfo.Exists)
-                {
-                    throw new InvalidOperationException($"Directory creation reported success but directory does not exist: {directory}");
-                }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                throw new UnauthorizedAccessException(
-                    $"Access denied when creating configuration directory: {directory}", ex);
-            }
-            catch (PathTooLongException ex)
-            {
-                throw new PathTooLongException(
-                    $"Configuration directory path is too long: {directory}", ex);
-            }
-            catch (IOException ex)
-            {
-                throw new IOException(
-                    $"I/O error creating configuration directory: {directory}", ex);
-            }
-            catch (Exception ex) when (ex is not InvalidOperationException)
+            if (string.IsNullOrWhiteSpace(directory))
             {
                 throw new InvalidOperationException(
-                    $"Unexpected error creating configuration directory: {directory}", ex);
+                    "Configuration file path does not contain a valid directory component.");
             }
-        }
 
-        _directoryChecked = true; // volatile write
+            if (!Directory.Exists(directory))
+            {
+                try
+                {
+                    DirectoryInfo dirInfo = Directory.CreateDirectory(directory);
+
+                    if (!dirInfo.Exists)
+                    {
+                        throw new InvalidOperationException($"Directory creation reported success but directory does not exist: {directory}");
+                    }
+                }
+                catch (UnauthorizedAccessException ex)
+                {
+                    throw new UnauthorizedAccessException(
+                        $"Access denied when creating configuration directory: {directory}", ex);
+                }
+                catch (PathTooLongException ex)
+                {
+                    throw new PathTooLongException(
+                        $"Configuration directory path is too long: {directory}", ex);
+                }
+                catch (IOException ex)
+                {
+                    throw new IOException(
+                        $"I/O error creating configuration directory: {directory}", ex);
+                }
+                catch (Exception ex) when (ex is not InvalidOperationException)
+                {
+                    throw new InvalidOperationException(
+                        $"Unexpected error creating configuration directory: {directory}", ex);
+                }
+            }
+
+            _directoryChecked = true;
+        }
     }
 
     #endregion Private Methods
