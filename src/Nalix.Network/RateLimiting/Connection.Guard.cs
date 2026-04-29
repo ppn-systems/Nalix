@@ -415,7 +415,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
             else
             {
-                int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now.Date);
+                int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now, _config.DailyResetTimeOffset);
 
                 entry.Info = entry.Info with
                 {
@@ -492,17 +492,21 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, DateTime today)
+    private static int CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, DateTime now, TimeSpan offset)
     {
         if (info.LastConnectionTime == default)
         {
             return 1;
         }
 
-        // Use Date comparison to avoid timezone issues
-        if (info.LastConnectionTime.Date < today)
+        // Apply offset to both times to determine the "logical day" for reset
+        DateTime logicalToday = (now + offset).Date;
+        DateTime logicalLastConnection = (info.LastConnectionTime + offset).Date;
+
+        // Use strict inequality (!=) to handle backward NTP syncs and forward day changes.
+        if (logicalLastConnection != logicalToday)
         {
-            return 1; // New day, reset counter
+            return 1; // Different day, reset counter
         }
 
         // Prevent overflow
@@ -676,7 +680,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
                 _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] banned-reject ip={key.Address} " +
-                               $"until={bannedUntil:HH:mm:ss}{suffix}");
+                                 $"until={bannedUntil:HH:mm:ss}{suffix}");
             }
         }
     }

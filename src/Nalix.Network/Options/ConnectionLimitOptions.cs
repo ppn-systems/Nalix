@@ -102,6 +102,14 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     public int MaxCleanupKeysPerRun { get; set; } = 0;
 
     /// <summary>
+    /// Gets or sets the UTC offset to use when determining the start of a new day for connection limits.
+    /// Default is TimeSpan.Zero (00:00 UTC).
+    /// </summary>
+    [IniComment("UTC offset for the daily connection limit reset. Example: 07:00:00 for GMT+7 (default 00:00:00)")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(System.TimeSpan), "-14:00:00", "14:00:00", ErrorMessage = "DailyResetTimeOffset must be between -14:00:00 and 14:00:00.")]
+    public System.TimeSpan DailyResetTimeOffset { get; set; } = System.TimeSpan.Zero;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
