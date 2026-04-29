@@ -37,4 +37,10 @@ public static class PacketConstants
     /// The maximum allowed total packet size, in bytes.
     /// </summary>
     public const int PacketSizeLimit = int.MaxValue - HeaderSize;
+
+    /// <summary>
+    /// The maximum allowed size for a decompressed packet payload.
+    /// Prevents allocation-based DoS attacks from malicious LZ4-framed payloads.
+    /// </summary>
+    public const int MaxDecompressedBodySize = 32 * 1024 * 1024; // 32 MB hard cap
 }

@@ -91,15 +91,14 @@ public static class FrameTransformer
 
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
 
-        // SEC-35: Validate OriginalLength before returning it for pre-allocation.
+        // Validate OriginalLength before returning it for pre-allocation.
         // Malicious payloads can declare any value here to trigger allocation-based DoS.
-        const int MaxDecompressedSize = 64 * 1024 * 1024; // 64 MB hard cap
-        if (header.OriginalLength <= 0 || header.OriginalLength > MaxDecompressedSize)
+        if (header.OriginalLength <= 0 || header.OriginalLength > PacketConstants.MaxDecompressedBodySize)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(src),
                 $"LZ4 header declares invalid OriginalLength={header.OriginalLength}. " +
-                $"Must be in range [1, {MaxDecompressedSize}].");
+                $"Must be in range [1, {PacketConstants.MaxDecompressedBodySize}].");
         }
 
         return header.OriginalLength;
