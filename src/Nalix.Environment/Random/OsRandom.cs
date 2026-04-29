@@ -9,8 +9,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
+[assembly: InternalsVisibleTo("Nalix.Environment.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Environment.Benchmarks")]
 #endif
 
 namespace Nalix.Environment.Random;
@@ -76,21 +76,22 @@ internal static class OsRandom
         MemoryMarshal.Write(seed[0..8], in ticks);
         MemoryMarshal.Write(seed[8..16], in tc64);
         MemoryMarshal.Write(seed[16..24], in mono);
-        
+
         int mix = pid ^ tid ^ (int)memory ^ (procCount << 24) ^ pageSize;
         MemoryMarshal.Write(seed[24..28], in mix);
 
         // Mix in multiple GUIDs and environment details for better initial entropy
         Span<byte> g1 = Guid.NewGuid().ToByteArray();
         Span<byte> g2 = Guid.NewGuid().ToByteArray();
-        
+
         // Add machine and user info hash (stable per-session but adds to uniqueness)
-        int infoHash = (System.Environment.MachineName.GetHashCode() ^ System.Environment.UserName.GetHashCode());
-        
+        int infoHash = System.Environment.MachineName.GetHashCode(StringComparison.Ordinal) ^
+                       System.Environment.UserName.GetHashCode(StringComparison.Ordinal);
+
         // Add a memory address to the mix (ASLR makes this very random per-run)
-        unsafe 
-        { 
-            nuint stackAddr = (nuint)(&ticks); 
+        unsafe
+        {
+            nuint stackAddr = (nuint)(&ticks);
             infoHash ^= (int)(stackAddr ^ (stackAddr >> 32));
         }
 
@@ -120,7 +121,7 @@ internal static class OsRandom
         {
             if (s_reseedTimer != null)
             {
-                s_reseedTimer.Change(interval, interval);
+                _ = s_reseedTimer.Change(interval, interval);
                 return;
             }
 
@@ -167,7 +168,7 @@ internal static class OsRandom
         ulong[] st = THREAD_STATE();
 
         int offset = 0;
-        
+
         // SEC: Check alignment to prevent crash on strict-alignment architectures (e.g. ARM32).
         // If the buffer is not 8-byte aligned, fill byte-by-byte until we reach alignment or the end.
         unsafe
@@ -178,7 +179,7 @@ internal static class OsRandom
             {
                 int alignPadding = 8 - misalign;
                 int toFill = Math.Min(alignPadding, dst.Length);
-                
+
                 ulong x = NEXT_U64(st);
                 for (int i = 0; i < toFill; i++)
                 {
@@ -188,11 +189,14 @@ internal static class OsRandom
             }
         }
 
-        if (offset >= dst.Length) return;
+        if (offset >= dst.Length)
+        {
+            return;
+        }
 
         Span<byte> alignedPart = dst[offset..];
         Span<ulong> u64 = MemoryMarshal.Cast<byte, ulong>(alignedPart);
-        
+
         for (int i = 0; i < u64.Length; i++)
         {
             u64[i] = NEXT_U64(st);
@@ -330,7 +334,7 @@ internal static class OsRandom
         ulong mono = (ulong)Stopwatch.GetTimestamp();
         ulong mem = (ulong)GC.GetTotalMemory(false);
         ulong ws = (ulong)System.Environment.WorkingSet;
-        
+
         System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(
             seed[24..32], tag0 ^ System.Numerics.BitOperations.RotateLeft(tag1, 13) ^ mono ^ ws ^ mem);
 
