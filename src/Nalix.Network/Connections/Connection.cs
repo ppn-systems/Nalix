@@ -347,9 +347,13 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         {
             this.Secret = Bytes32.Zero;
 
-            // Return pooled metadata first so the connection does not keep
-            // borrowed state alive after disposal begins.
-            _attributes?.Return();
+            try
+            {
+                // Return pooled metadata first so the connection does not keep
+                // borrowed state alive after disposal begins.
+                _attributes?.Return();
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "attributes"); }
             _attributes = null;
 
             // High-Performance Cleanup: Break the TimingWheel reference chain instantly.
@@ -362,51 +366,68 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 _timeoutTask = null;
             }
 
-            this.Socket.Dispose();
+            try { this.Socket.Dispose(); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "socket"); }
 
-            _args.Dispose();
+            try { _args.Dispose(); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "args"); }
 
-            if (this.UdpTransport != null)
+            try
             {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(this.UdpTransport);
-            }
-
-            // Return local pooled objects to global pool to prevent "leak" when connection is destroyed.
-            // Without this, every connection "steals" 8 args and 8 contexts from the global pool forever.
-            ConnectionEventArgs[]? argsPool = Interlocked.Exchange(ref _argsPool, null);
-            if (argsPool != null)
-            {
-                for (int i = 0; i < argsPool.Length; i++)
+                if (this.UdpTransport != null)
                 {
-                    // Use the default constructor-initialized state to ensure it goes to global pool
-                    argsPool[i]?.Dispose();
+                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Return(this.UdpTransport);
                 }
             }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "udptransport"); }
 
-            PooledConnectEventContext[]? ctxPool = Interlocked.Exchange(ref _contextPool, null);
-            if (ctxPool != null)
+            try
             {
-                for (int i = 0; i < ctxPool.Length; i++)
+                // Return local pooled objects to global pool to prevent "leak" when connection is destroyed.
+                // Without this, every connection "steals" 8 args and 8 contexts from the global pool forever.
+                ConnectionEventArgs[]? argsPool = Interlocked.Exchange(ref _argsPool, null);
+                if (argsPool != null)
                 {
-                    ctxPool[i]?.Dispose();
+                    for (int i = 0; i < argsPool.Length; i++)
+                    {
+                        argsPool[i]?.Dispose();
+                    }
                 }
             }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "argspool"); }
+
+            try
+            {
+                PooledConnectEventContext[]? ctxPool = Interlocked.Exchange(ref _contextPool, null);
+                if (ctxPool != null)
+                {
+                    for (int i = 0; i < ctxPool.Length; i++)
+                    {
+                        ctxPool[i]?.Dispose();
+                    }
+                }
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "contextpool"); }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
-            }
+            LOG_ERROR(ex, "general");
         }
-
         finally
         {
             _disposed = true;
         }
 
         GC.SuppressFinalize(this);
+
+        void LOG_ERROR(Exception ex, string component)
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] {component}-dispose-error msg={ex.Message}");
+            }
+        }
     }
 
     #endregion Dispose Pattern
