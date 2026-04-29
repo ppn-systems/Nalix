@@ -135,32 +135,9 @@ public static class ChaCha20Poly1305
             Poly1305 poly = new(polyKey);
             A1C3E5F7(ref poly, aad, dstCiphertext[..written], E5A7C9D1: tag);
 
-            try
-            {
-                poly.Clear();
-            }
-            catch (System.Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-            {
-                Debug.WriteLine($"[ChaCha20Poly1305] Poly1305.Clear failed: {ex}");
-            }
-
-            try
-            {
-                chacha0.Clear();
-            }
-            catch (System.Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-            {
-                Debug.WriteLine($"[ChaCha20Poly1305] ChaCha0.Clear failed: {ex}");
-            }
-
-            try
-            {
-                chacha1.Clear();
-            }
-            catch (System.Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-            {
-                Debug.WriteLine($"[ChaCha20Poly1305] ChaCha1.Clear failed: {ex}");
-            }
+            poly.Clear();
+            chacha0.Clear();
+            chacha1.Clear();
 
             return written;
         }
