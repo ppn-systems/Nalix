@@ -12,9 +12,6 @@ using Nalix.Abstractions.Networking;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -25,10 +22,7 @@ public abstract partial class TcpListenerBase
     // WHY separate thread: This thread runs continuously; using ThreadPool will occupy the thread pool
     // and compete with more important async callback I/O.
     private System.Threading.Channels.Channel<IConnection>? _processChannel;
-
-#pragma warning disable CA2213 // Disposed by STOP_PROCESS_CHANNEL via Interlocked.Exchange; partial-class analyzer does not follow this helper.
     private IWorkerHandle? _processWorker;
-#pragma warning restore CA2213
 
     #endregion Fields
 
@@ -90,8 +84,24 @@ public abstract partial class TcpListenerBase
         {
             Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelWorker(worker.Id);
+
+            int elapsed = 0;
+            int timeout = _config.ProcessChannelDrainTimeout;
+            while (worker.IsRunning && elapsed < timeout)
+            {
+                Thread.Sleep(10);
+                elapsed += 10;
+            }
+
             worker.Dispose();
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsProcessChannelFull()
+    {
+        System.Threading.Channels.Channel<IConnection>? ch = _processChannel;
+        return ch != null && ch.Reader.CanCount && ch.Reader.Count >= _config.ProcessChannelCapacity;
     }
 
     #endregion Lifecycle
@@ -202,6 +212,13 @@ public abstract partial class TcpListenerBase
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] unhandled-error port={_port}");
+            }
+        }
         finally
         {
             // Drain the remaining items

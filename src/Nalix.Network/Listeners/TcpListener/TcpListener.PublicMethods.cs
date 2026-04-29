@@ -19,9 +19,6 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Time;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.Listeners.Tcp;
 
 /// <summary>
@@ -133,7 +130,6 @@ public abstract partial class TcpListenerBase
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>()
                                         .Activate(linkedToken);
             }
-
 
             // Spawn N accept-worker async tasks, where N = MaxParallel.
             // Multiple workers let the listener accept several connections in

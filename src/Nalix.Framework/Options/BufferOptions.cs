@@ -25,7 +25,7 @@ public sealed class BufferOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Total buffers to create across all pools (minimum 1)")]
     [Range(1, int.MaxValue, ErrorMessage = "TotalBuffers must be greater than 0.")]
-    public int TotalBuffers { get; set; } = 32768;
+    public int TotalBuffers { get; set; } = 16_384;
 
     /// <summary>
     /// Enables memory trimming to periodically recover unused buffers.

@@ -7,21 +7,19 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Environment.Time;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
-using Nalix.Abstractions;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
@@ -94,9 +92,15 @@ internal sealed class TimingWheel : IActivatable
 
     /// <summary>
     /// One bucket per slot in the timing wheel. 
-    /// Uses a custom MPSC structure to avoid the overhead of ConcurrentQueue.
+    /// Uses a doubly-linked list with lock to allow O(1) removal.
     /// </summary>
-    private readonly MpscBucket[] _wheel;
+    private readonly TimingWheelBucket[] _wheel;
+
+    /// <summary>
+    /// Array of locks to synchronize connection registration without mutating IConnection.
+    /// Uses lock striping to minimize contention.
+    /// </summary>
+    private readonly Lock[] _connectionLocks;
 
     private int _activeListeners;
     private long _tick;
@@ -122,11 +126,9 @@ internal sealed class TimingWheel : IActivatable
         public int Rounds;
         public int Version;
 
-        /// <summary>
-        /// Pointer used by the MPSC bucket structure to maintain a linked list 
-        /// without per-enqueue allocations.
-        /// </summary>
         internal TimeoutTask? Next;
+        internal TimeoutTask? Prev;
+        internal TimingWheelBucket? Bucket;
 
         public void ResetForPool()
         {
@@ -134,31 +136,85 @@ internal sealed class TimingWheel : IActivatable
             Rounds = 0;
             Version = 0;
             Next = null;
+            Prev = null;
+            Bucket = null;
         }
     }
 
     /// <summary>
-    /// A lightweight, lock-free Multi-Producer Single-Consumer bucket.
-    /// Producers enqueue new tasks atomically via Interlocked.Exchange.
-    /// The timing wheel (consumer) drains the entire bucket in O(1).
+    /// A lock-based doubly-linked list bucket.
+    /// Allows O(1) removal of tasks during Unregister to prevent pool exhaustion.
     /// </summary>
-    private struct MpscBucket
+    internal sealed class TimingWheelBucket
     {
-        private TimeoutTask? _head;
+        public TimeoutTask? Head;
+        public TimeoutTask? Tail;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Enqueue(TimeoutTask task)
         {
-            TimeoutTask? oldHead;
-            do
+            lock (this)
             {
-                oldHead = Volatile.Read(ref _head);
-                task.Next = oldHead;
-            } while (Interlocked.CompareExchange(ref _head, task, oldHead) != oldHead);
+                task.Bucket = this;
+                task.Next = null;
+                task.Prev = Tail;
+
+                if (Tail != null)
+                {
+                    Tail.Next = task;
+                }
+                else
+                {
+                    Head = task;
+                }
+                Tail = task;
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public TimeoutTask? DequeueAll() => Interlocked.Exchange(ref _head, null);
+        public void Remove(TimeoutTask task)
+        {
+            // Assumes caller holds lock(this)
+            if (task.Prev != null)
+            {
+                task.Prev.Next = task.Next;
+            }
+            else
+            {
+                Head = task.Next;
+            }
+
+            if (task.Next != null)
+            {
+                task.Next.Prev = task.Prev;
+            }
+            else
+            {
+                Tail = task.Prev;
+            }
+
+            task.Next = null;
+            task.Prev = null;
+            task.Bucket = null;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public TimeoutTask? DequeueAll()
+        {
+            lock (this)
+            {
+                TimeoutTask? currentHead = Head;
+                TimeoutTask? curr = currentHead;
+                while (curr != null)
+                {
+                    curr.Bucket = null; // Detach from bucket to prevent concurrent Unregister
+                    curr = curr.Next;
+                }
+                Head = null;
+                Tail = null;
+                return currentHead;
+            }
+        }
     }
 
     #endregion Nested types
@@ -193,8 +249,17 @@ internal sealed class TimingWheel : IActivatable
         _useMask = (_wheelSize & (_wheelSize - 1)) == 0 && _wheelSize > 0;
         _mask = _useMask ? (_wheelSize - 1) : 0;
 
+        _wheel = new TimingWheelBucket[_wheelSize];
+        for (int i = 0; i < _wheelSize; i++)
+        {
+            _wheel[i] = new TimingWheelBucket();
+        }
 
-        _wheel = new MpscBucket[_wheelSize];
+        _connectionLocks = new Lock[256];
+        for (int i = 0; i < 256; i++)
+        {
+            _connectionLocks[i] = new Lock();
+        }
 
         _disposed = 0;
     }
@@ -275,6 +340,14 @@ internal sealed class TimingWheel : IActivatable
         {
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelWorker(worker.Id);
+
+            int elapsed = 0;
+            int timeout = _options.WheelDrainTimeoutMs;
+            while (worker.IsRunning && elapsed < timeout)
+            {
+                Thread.Sleep(10);
+                elapsed += 10;
+            }
         }
 
         try
@@ -368,63 +441,64 @@ internal sealed class TimingWheel : IActivatable
             return;
         }
 
-        // Fast-path: already registered or raced with another register call.
-        if (connection.IsRegisteredInWheel)
+        Lock syncLock = _connectionLocks[connection.ID.GetHashCode() & 255];
+        lock (syncLock)
         {
-            return;
-        }
-
-        connection.IsRegisteredInWheel = true;
-
-        TimeoutTask? task = null;
-        bool subscribed = false;
-        bool queued = false;
-
-        try
-        {
-            task = _poolManager.Get<TimeoutTask>();
-            task.Conn = connection;
-
-            // Set version to match current connection version.
-            // When we Register, we use the current version.
-            // When we Unregister, we increment the connection version.
-            task.Version = connection.TimeoutVersion;
-
-            long baseTick = Volatile.Read(ref _tick);
-            long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
-
-            int bucket = _useMask
-                ? (int)((baseTick + ticks) & _mask)
-                : (int)((baseTick + ticks) % _wheelSize);
-
-            task.Rounds = (int)(ticks / _wheelSize);
-
-            connection.OnCloseEvent += this.OnConnectionClosed;
-            subscribed = true;
-
-            _wheel[bucket].Enqueue(task);
-            queued = true;
-
-            // Link the task to the connection for instant cleanup during Dispose.
-            if (connection is Connection conn)
+            if (connection.IsRegisteredInWheel)
             {
-                conn._timeoutTask = task;
-            }
-        }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (task is not null && !queued)
-            {
-                _poolManager.Return(task);
+                return;
             }
 
-            if (subscribed)
-            {
-                connection.OnCloseEvent -= this.OnConnectionClosed;
-            }
+            connection.IsRegisteredInWheel = true;
 
-            connection.IsRegisteredInWheel = false;
-            throw;
+            TimeoutTask? task = null;
+            bool subscribed = false;
+            bool queued = false;
+
+            try
+            {
+                task = _poolManager.Get<TimeoutTask>();
+                task.Conn = connection;
+
+                // Set version to match current connection version.
+                task.Version = connection.TimeoutVersion;
+
+                long baseTick = Volatile.Read(ref _tick);
+                long ticks = Math.Max(1, _idleTimeoutMs / (long)_tickMs);
+
+                int bucket = _useMask
+                    ? (int)((baseTick + ticks) & _mask)
+                    : (int)((baseTick + ticks) % _wheelSize);
+
+                task.Rounds = (int)(ticks / _wheelSize);
+
+                connection.OnCloseEvent += this.OnConnectionClosed;
+                subscribed = true;
+
+                _wheel[bucket].Enqueue(task);
+                queued = true;
+
+                // Link the task to the connection for instant cleanup during Dispose.
+                if (connection is Connection conn)
+                {
+                    conn._timeoutTask = task;
+                }
+            }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (task is not null && !queued)
+                {
+                    _poolManager.Return(task);
+                }
+
+                if (subscribed)
+                {
+                    connection.OnCloseEvent -= this.OnConnectionClosed;
+                }
+
+                connection.IsRegisteredInWheel = false;
+                throw;
+            }
         }
     }
 
@@ -433,16 +507,9 @@ internal sealed class TimingWheel : IActivatable
     /// </summary>
     /// <param name="connection">The connection to stop monitoring.</param>
     /// <remarks>
-    /// <b>Important — pool ownership:</b> this method deliberately does <em>not</em> return
-    /// the <see cref="TimeoutTask"/> to the pool. The task may still be sitting in a wheel
-    /// bucket. Returning it here would let the pool reset <c>task.Conn</c> to <c>null</c>
-    /// while <see cref="RUN_LOOP"/> could be about to read it, causing a
-    /// <see cref="NullReferenceException"/>.
-    /// <para>
-    /// Instead, removing the entry from <c>_active</c> is sufficient: when the loop next
-    /// dequeues the task, <c>TryGetValue</c> returns <c>false</c> and the loop returns the
-    /// task to the pool itself — safely, after the task is no longer in any queue.
-    /// </para>
+    /// Since the wheel now uses a doubly-linked list with lock striping, this method
+    /// safely removes the task from the wheel bucket in O(1) time and returns it to the
+    /// object pool immediately, preventing memory exhaustion under high connection churn.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Unregister(IConnection connection)
@@ -452,18 +519,38 @@ internal sealed class TimingWheel : IActivatable
             return;
         }
 
-        // Remove from _active so RUN_LOOP knows this task is dead.
-        // Do NOT call s_poolManager.Return here — the task is still in the wheel queue.
-        // RUN_LOOP will Return it once it dequeues it and finds no matching _active entry.
-        if (connection.IsRegisteredInWheel)
+        Lock syncLock = _connectionLocks[connection.ID.GetHashCode() & 255];
+        lock (syncLock)
         {
-            connection.IsRegisteredInWheel = false;
+            if (connection.IsRegisteredInWheel)
+            {
+                connection.IsRegisteredInWheel = false;
+                connection.TimeoutVersion++;
+                connection.OnCloseEvent -= this.OnConnectionClosed;
 
-            // Incrementing the version logically invalidates any task for this connection
-            // currently sitting in the wheel.
-            connection.TimeoutVersion++;
+                if (connection is Connection conn && conn._timeoutTask is TimeoutTask task)
+                {
+                    TimingWheelBucket? bucket = task.Bucket;
+                    if (bucket != null)
+                    {
+                        bool removed = false;
+                        lock (bucket)
+                        {
+                            if (task.Bucket == bucket)
+                            {
+                                bucket.Remove(task);
+                                removed = true;
+                            }
+                        }
 
-            connection.OnCloseEvent -= this.OnConnectionClosed;
+                        if (removed)
+                        {
+                            conn._timeoutTask = null;
+                            _poolManager.Return(task);
+                        }
+                    }
+                }
+            }
         }
     }
 

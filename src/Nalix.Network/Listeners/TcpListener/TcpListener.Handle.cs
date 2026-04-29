@@ -391,6 +391,18 @@ public abstract partial class TcpListenerBase
                 PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context
                     ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
 
+                if (this.IsProcessChannelFull())
+                {
+                    this.Metrics.RECORD_REJECTED();
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] channel-full port={_port} - dropped socket directly");
+                    }
+                    this.SafeCloseSocket(socket);
+                    this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                    return;
+                }
+
 #pragma warning disable CA2000
                 connection = this.ProcessAcceptedSocket(socket, context);
 #pragma warning restore CA2000
@@ -835,6 +847,12 @@ public abstract partial class TcpListenerBase
             // Wait async accept:
             socket = await context.BeginAcceptAsync(_listener, cancellationToken)
                                   .ConfigureAwait(false);
+
+            if (this.IsProcessChannelFull())
+            {
+                this.SafeCloseSocket(socket);
+                throw new NetworkException("Process channel is full.");
+            }
 
             // Validate and limit checks occur BEFORE ownership transfer.
             // If a throw occurs here (invalid socket, limiter reject), contextOwned remains true.

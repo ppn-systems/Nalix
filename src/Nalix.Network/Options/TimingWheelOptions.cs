@@ -37,6 +37,14 @@ public sealed class TimingWheelOptions : ConfigurationLoader
     public int IdleTimeoutMs { get; set; } = 60_000;
 
     /// <summary>
+    /// Gets or sets the maximum time in milliseconds to wait for the timing wheel to drain
+    /// gracefully during shutdown before forceful termination.
+    /// </summary>
+    [IniComment("Maximum time in milliseconds to wait for the timing wheel to drain gracefully during shutdown (default: 5000)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 60000, ErrorMessage = "WheelDrainTimeoutMs must be between 0 and 60000 ms.")]
+    public int WheelDrainTimeoutMs { get; set; } = 5000;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
