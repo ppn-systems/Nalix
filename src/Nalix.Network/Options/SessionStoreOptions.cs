@@ -40,12 +40,15 @@ public sealed class SessionStoreOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
 
         if (this.SessionTtl <= TimeSpan.Zero)
         {
-            throw new ValidationException("SessionTtl must be a positive time duration.");
+            throw new ArgumentOutOfRangeException(nameof(this.SessionTtl), "SessionTtl must be a positive time duration.");
+        }
+
+        if (this.MinAttributesForPersistence < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(this.MinAttributesForPersistence), "MinAttributesForPersistence cannot be negative.");
         }
     }
 }

@@ -80,6 +80,7 @@ public abstract partial class TcpListenerBase
         _ = (_processChannel?.Writer.TryComplete());
 
         IWorkerHandle? worker = Interlocked.Exchange(ref _processWorker, null);
+
         if (worker != null)
         {
             Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
@@ -94,6 +95,7 @@ public abstract partial class TcpListenerBase
             }
 
             worker.Dispose();
+            _processWorker = null;
         }
     }
 

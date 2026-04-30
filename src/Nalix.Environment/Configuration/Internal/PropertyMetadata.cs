@@ -50,15 +50,7 @@ internal class PropertyMetadata
     /// </summary>
     public PropertyInfo PropertyInfo { get; init; } = null!;
 
-    /// <summary>
-    /// Gets or sets the cached getter delegate.
-    /// </summary>
-    public Func<object, object?>? Getter { get; init; }
-
-    /// <summary>
-    /// Gets or sets the cached setter delegate.
-    /// </summary>
-    public Action<object, object?>? Setter { get; init; }
+    // Removed Getter and Setter properties
 
     #endregion Properties
 
@@ -77,15 +69,7 @@ internal class PropertyMetadata
         // Only set if the types are compatible
         if (value is null || this.PropertyType.IsInstanceOfType(value))
         {
-            if (this.Setter != null)
-            {
-                this.Setter(target, value);
-            }
-            else
-            {
-                this.PropertyInfo.SetValue(target, value);
-            }
-
+            this.PropertyInfo.SetValue(target, value);
             return;
         }
 
