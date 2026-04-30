@@ -1,4 +1,4 @@
-﻿# Compression Options
+# Compression Options
 
 `CompressionOptions` controls whether outbound packet frames may be compressed and
 how large a serialized payload must be before compression is attempted.
@@ -16,6 +16,7 @@ how large a serialized payload must be before compression is attempted.
 | --- | ---: | --- | --- |
 | `Enabled` | `true` | None. | Allows outbound compression when the frame size threshold is met. |
 | `MinSizeToCompress` | `1024` | `0..int.MaxValue` | Minimum payload size, in bytes, before outbound compression is attempted. |
+| `MaxDecompressedSize` | `33554432` (32 MB) | `1024..int.MaxValue` | Maximum allowed size in bytes for a decompressed payload. Packets declaring a larger original size are rejected (zip-bomb / allocation-DoS protection). |
 
 `Validate()` uses data-annotation validation through
 `Validator.ValidateObject(..., validateAllProperties: true)`.

@@ -1,4 +1,4 @@
-# Configuration
+﻿# Configuration
 
 The `Nalix.Environment` configuration system is a high-performance, INI-based runtime that supports typed option binding, automatic reloading, and multi-thread safety.
 
@@ -72,8 +72,8 @@ Custom configuration sections are created by inheriting from `ConfigurationLoade
 
 By default, the section name is derived from the class name by removing standard suffixes like `Options`, `Config`, or `Settings`.
 
-- `ConnectionHubOptions` Ã¢â€ â€™ `[ConnectionHub]`
-- `SecuritySettings` Ã¢â€ â€™ `[Security]`
+- `ConnectionHubOptions` -> `[ConnectionHub]`
+- `SecuritySettings` -> `[Security]`
 
 ### Binding Attributes
 

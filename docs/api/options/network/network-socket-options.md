@@ -35,6 +35,7 @@ setup.
 | `MaxGroupConcurrency` | `8` | `1..1024` | Reported by UDP diagnostics as the configured group-concurrency limit. |
 | `DualMode` | `true` | none | Enables IPv4-mapped traffic on IPv6 listener sockets when `EnableIPv6` is true and the platform supports it. |
 | `ProcessChannelCapacity` | `256` | `1..int.MaxValue` | Capacity of the bounded TCP accept-processing channel. |
+| `ProcessChannelDrainTimeout` | `5000` | `0..60000` (ms) | Maximum time in milliseconds to wait for the process channel to drain gracefully during shutdown before forceful termination. |
 
 `Validate()` runs `Validator.ValidateObject(..., validateAllProperties: true)`. TCP
 listeners call validation in the static constructor and again during instance

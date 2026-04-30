@@ -60,7 +60,7 @@ Connection uses "Bridges" to handle events. Importantly, **Disconnect/Close even
 
 The connection maintains an internal `ErrorCount`.
 
-- **Threshold Enforcement**: If the count exceeds `MaxErrorThreshold` (from `NetworkSocketOptions`), the connection is automatically disconnected with the reason "Exceeded maximum error threshold."
+- **Threshold Enforcement**: If the count exceeds `MaxErrorThreshold` (from `ConnectionLimitOptions`), the connection is automatically disconnected with the reason "Exceeded maximum error threshold."
 - **Noise Mitigation**: This protects the server from malformed-packet-flood attacks or buggy clients.
 
 ### 3. UDP Replay Protection
