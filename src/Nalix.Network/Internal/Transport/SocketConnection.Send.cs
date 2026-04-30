@@ -8,15 +8,12 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Codec.Memory;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Codec.Memory;
 using Nalix.Framework.Extensions;
 using Nalix.Network.Connections;
-
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -47,14 +44,17 @@ internal sealed partial class SocketConnection
             return;
         }
 
-        int totalLength = data.Length + HeaderSize;
-        if (totalLength > ushort.MaxValue)
+        long totalLengthLong = (long)data.Length + HeaderSize;
+
+        if (totalLengthLong > ushort.MaxValue)
         {
             throw new ArgumentOutOfRangeException(
                 nameof(data),
-                totalLength,
+                totalLengthLong,
                 $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes.");
         }
+
+        int totalLength = (int)totalLengthLong;
 
         /*
          * [Fast Path: Stack Allocation]
@@ -87,25 +87,28 @@ internal sealed partial class SocketConnection
                 }
 #endif
 
-                int sent = 0;
-                while (sent < frameS.Length)
+                lock (_sendLock)
                 {
-                    int n = _socket.Send(frameS[sent..]);
-                    if (n == 0)
+                    int sent = 0;
+                    while (sent < frameS.Length)
                     {
-#if DEBUG
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        int n = _socket.Send(frameS[sent..]);
+                        if (n == 0)
                         {
-                            _logger.LogDebug(
-                                $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
-                        }
+#if DEBUG
+                            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                            {
+                                _logger.LogDebug(
+                                    $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
+                                    $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
+                            }
 #endif
-                        this.CANCEL_RECEIVE_ONCE();
-                        this.INVOKE_CLOSE_ONCE();
-                        throw NetworkErrors.SendFailed;
+                            this.CANCEL_RECEIVE_ONCE();
+                            this.INVOKE_CLOSE_ONCE();
+                            throw NetworkErrors.SendFailed;
+                        }
+                        sent += n;
                     }
-                    sent += n;
                 }
 
                 ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
@@ -171,26 +174,29 @@ internal sealed partial class SocketConnection
             }
 #endif
 
-            int sent = 0;
-            while (sent < totalLength)
+            lock (_sendLock)
             {
-                int n = _socket.Send(heapBuf, sent, totalLength - sent,
-                                              SocketFlags.None);
-                if (n == 0)
+                int sent = 0;
+                while (sent < totalLength)
                 {
-#if DEBUG
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                    int n = _socket.Send(heapBuf, sent, totalLength - sent,
+                                                  SocketFlags.None);
+                    if (n == 0)
                     {
-                        _logger.LogDebug(
-                            "[NW.{Class}:{Method}] pooled peer-closed ep={Ep}",
-                            nameof(SocketConnection), nameof(Send), _socket.RemoteEndPoint);
-                    }
+#if DEBUG
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        {
+                            _logger.LogDebug(
+                                "[NW.{Class}:{Method}] pooled peer-closed ep={Ep}",
+                                nameof(SocketConnection), nameof(Send), _socket.RemoteEndPoint);
+                        }
 #endif
-                    this.CANCEL_RECEIVE_ONCE();
-                    this.INVOKE_CLOSE_ONCE();
-                    throw NetworkErrors.SendFailed;
+                        this.CANCEL_RECEIVE_ONCE();
+                        this.INVOKE_CLOSE_ONCE();
+                        throw NetworkErrors.SendFailed;
+                    }
+                    sent += n;
                 }
-                sent += n;
             }
 
             this.InvokePostCallback();
@@ -248,14 +254,16 @@ internal sealed partial class SocketConnection
             return this.SEND_FRAGMENTED_ASYNC(data, cancellationToken);
         }
 
-        int totalLength = data.Length + HeaderSize;
-        if (totalLength > ushort.MaxValue)
+        long totalLengthLong = (long)data.Length + HeaderSize;
+        if (totalLengthLong > ushort.MaxValue)
         {
             return ValueTask.FromException(new ArgumentOutOfRangeException(
                 nameof(data),
-                totalLength,
+                totalLengthLong,
                 $"Non-fragmented frame size must not exceed {ushort.MaxValue} bytes."));
         }
+
+        int totalLength = (int)totalLengthLong;
 
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
 
@@ -401,6 +409,7 @@ internal sealed partial class SocketConnection
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = s_fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+
         if (totalChunks > ushort.MaxValue)
         {
             throw new InternalErrorException(
@@ -488,17 +497,20 @@ internal sealed partial class SocketConnection
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void SEND_RAW_FRAME(ReadOnlySpan<byte> frame)
         {
-            int sent = 0;
-            while (sent < frame.Length)
+            lock (_sendLock)
             {
-                int n = _socket.Send(frame[sent..]);
-                if (n == 0)
+                int sent = 0;
+                while (sent < frame.Length)
                 {
-                    this.CANCEL_RECEIVE_ONCE();
-                    this.INVOKE_CLOSE_ONCE();
-                    throw NetworkErrors.SendFailed;
+                    int n = _socket.Send(frame[sent..]);
+                    if (n == 0)
+                    {
+                        this.CANCEL_RECEIVE_ONCE();
+                        this.INVOKE_CLOSE_ONCE();
+                        throw NetworkErrors.SendFailed;
+                    }
+                    sent += n;
                 }
-                sent += n;
             }
         }
     }
@@ -514,6 +526,7 @@ internal sealed partial class SocketConnection
         ushort streamId = FragmentStreamId.Next();
         int chunkBodySize = s_fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
+
         if (totalChunks > ushort.MaxValue)
         {
             return ValueTask.FromException(new InternalErrorException(

@@ -1402,7 +1402,10 @@ internal sealed class IniConfig : IDisposable
                             bool hasAnyComment = hasSectionComment || hasAnyKeyComment;
 
                             // ── Opening separator ────────────────────────────────────
-                            writer.WriteLine(s_sectionSeparator);
+                            if (hasAnyComment)
+                            {
+                                writer.WriteLine(s_sectionSeparator);
+                            }
 
                             // ── Section-level comment lines ──────────────────────────
                             if (hasSectionComment)

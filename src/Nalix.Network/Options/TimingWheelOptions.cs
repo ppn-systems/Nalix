@@ -37,14 +37,39 @@ public sealed class TimingWheelOptions : ConfigurationLoader
     public int IdleTimeoutMs { get; set; } = 60_000;
 
     /// <summary>
+    /// Gets or sets the maximum time in milliseconds to wait for the timing wheel to drain
+    /// gracefully during shutdown before forceful termination.
+    /// </summary>
+    [IniComment("Maximum time in milliseconds to wait for the timing wheel to drain gracefully during shutdown (default: 5000)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 60000, ErrorMessage = "WheelDrainTimeoutMs must be between 0 and 60000 ms.")]
+    public int WheelDrainTimeoutMs { get; set; } = 5000;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
-    /// Thrown when one or more validation attributes fail.
+    /// <exception cref="System.ArgumentOutOfRangeException">
+    /// Thrown when one or more values are outside their allowed range.
     /// </exception>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        if (this.BucketCount < 1)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.BucketCount), "BucketCount must be at least 1.");
+        }
+
+        if (this.TickDuration < 1)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.TickDuration), "TickDuration must be at least 1.");
+        }
+
+        if (this.IdleTimeoutMs < 1)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.IdleTimeoutMs), "IdleTimeoutMs must be at least 1.");
+        }
+
+        if (this.WheelDrainTimeoutMs < 0 || this.WheelDrainTimeoutMs > 60000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.WheelDrainTimeoutMs), "WheelDrainTimeoutMs must be between 0 and 60000 ms.");
+        }
     }
 }

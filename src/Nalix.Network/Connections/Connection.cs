@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -34,6 +35,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 {
     #region Fields
 
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private static readonly ConnectionLimitOptions s_options = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 
     private readonly ILogger? _logger;
@@ -281,7 +283,21 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                         ConnectionEventArgs closeArgs = new(this);
                         try
                         {
-                            _onCloseEvent.Invoke(this, closeArgs);
+                            Delegate[] handlers = _onCloseEvent.GetInvocationList();
+                            foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
+                            {
+                                try
+                                {
+                                    handler(this, closeArgs);
+                                }
+                                catch (Exception handlerEx) when (ExceptionClassifier.IsNonFatal(handlerEx))
+                                {
+                                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                                    {
+                                        _logger.LogError(handlerEx, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] close-handler-error");
+                                    }
+                                }
+                            }
                         }
                         finally
                         {
@@ -333,9 +349,13 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         {
             this.Secret = Bytes32.Zero;
 
-            // Return pooled metadata first so the connection does not keep
-            // borrowed state alive after disposal begins.
-            _attributes?.Return();
+            try
+            {
+                // Return pooled metadata first so the connection does not keep
+                // borrowed state alive after disposal begins.
+                _attributes?.Return();
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "attributes"); }
             _attributes = null;
 
             // High-Performance Cleanup: Break the TimingWheel reference chain instantly.
@@ -348,51 +368,71 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                 _timeoutTask = null;
             }
 
-            this.Socket.Dispose();
+            try { this.Socket.Dispose(); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "socket"); }
 
-            _args.Dispose();
+            try { _args.Dispose(); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "args"); }
 
-            if (this.UdpTransport != null)
+            try
             {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(this.UdpTransport);
-            }
-
-            // Return local pooled objects to global pool to prevent "leak" when connection is destroyed.
-            // Without this, every connection "steals" 8 args and 8 contexts from the global pool forever.
-            ConnectionEventArgs[]? argsPool = Interlocked.Exchange(ref _argsPool, null);
-            if (argsPool != null)
-            {
-                for (int i = 0; i < argsPool.Length; i++)
+                if (this.UdpTransport != null)
                 {
-                    // Use the default constructor-initialized state to ensure it goes to global pool
-                    argsPool[i]?.Dispose();
+                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                            .Return(this.UdpTransport);
                 }
             }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "udptransport"); }
 
-            PooledConnectEventContext[]? ctxPool = Interlocked.Exchange(ref _contextPool, null);
-            if (ctxPool != null)
+            try
             {
-                for (int i = 0; i < ctxPool.Length; i++)
+                // Return local pooled objects to global pool to prevent "leak" when connection is destroyed.
+                // Without this, every connection "steals" 8 args and 8 contexts from the global pool forever.
+                ConnectionEventArgs[]? argsPool = Interlocked.Exchange(ref _argsPool, null);
+                if (argsPool != null)
                 {
-                    ctxPool[i]?.Dispose();
+                    for (int i = 0; i < 8; i++)
+                    {
+                        argsPool[i]?.Dispose();
+                    }
+
+                    System.Buffers.ArrayPool<ConnectionEventArgs>.Shared.Return(argsPool, clearArray: true);
                 }
             }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "argspool"); }
+
+            try
+            {
+                PooledConnectEventContext[]? ctxPool = Interlocked.Exchange(ref _contextPool, null);
+                if (ctxPool != null)
+                {
+                    for (int i = 0; i < 8; i++)
+                    {
+                        ctxPool[i]?.Dispose();
+                    }
+                    System.Buffers.ArrayPool<PooledConnectEventContext>.Shared.Return(ctxPool, clearArray: true);
+                }
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "contextpool"); }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] dispose-error msg={ex.Message}");
-            }
+            LOG_ERROR(ex, "general");
         }
-
         finally
         {
             _disposed = true;
         }
 
         GC.SuppressFinalize(this);
+
+        void LOG_ERROR(Exception ex, string component)
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] {component}-dispose-error msg={ex.Message}");
+            }
+        }
     }
 
     #endregion Dispose Pattern
@@ -411,10 +451,13 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             {
                 if (_argsPool == null)
                 {
-                    _argsPool = new ConnectionEventArgs[8];
+                    _argsPool = System.Buffers.ArrayPool<ConnectionEventArgs>.Shared.Rent(8);
+
                     for (int i = 0; i < 8; i++)
                     {
-                        _argsPool[i] = new ConnectionEventArgs(this);
+                        ConnectionEventArgs arg = s_pool.Get<ConnectionEventArgs>();
+                        arg.Initialize(this);
+                        _argsPool[i] = arg;
                     }
                 }
             }
@@ -467,10 +510,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             {
                 if (_contextPool == null)
                 {
-                    _contextPool = new PooledConnectEventContext[8];
+                    _contextPool = System.Buffers.ArrayPool<PooledConnectEventContext>.Shared.Rent(8);
                     for (int i = 0; i < 8; i++)
                     {
-                        _contextPool[i] = new PooledConnectEventContext { LocalOwner = this };
+                        PooledConnectEventContext ctx = s_pool.Get<PooledConnectEventContext>();
+                        ctx.LocalOwner = this;
+                        _contextPool[i] = ctx;
                     }
                 }
             }
@@ -590,7 +635,24 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         try
         {
             _ = Interlocked.Exchange(ref self._isDispatchingClose, 1);
-            self._onCloseEvent?.Invoke(self, e);
+            if (self._onCloseEvent != null)
+            {
+                Delegate[] handlers = self._onCloseEvent.GetInvocationList();
+                foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
+                {
+                    try
+                    {
+                        handler(self, e);
+                    }
+                    catch (Exception handlerEx) when (ExceptionClassifier.IsNonFatal(handlerEx))
+                    {
+                        if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
+                        {
+                            self._logger.LogError(handlerEx, $"[NW.{nameof(Connection)}:{nameof(OnCloseEventDispatchBridge)}] close-handler-error");
+                        }
+                    }
+                }
+            }
         }
         finally
         {

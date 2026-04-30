@@ -801,7 +801,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 await store.StoreAsync(connection).ConfigureAwait(false);
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // Background persistence failures (including policy violations) are ignored in fire-and-forget scenarios
             }

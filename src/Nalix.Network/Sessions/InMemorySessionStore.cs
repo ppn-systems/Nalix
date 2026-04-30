@@ -25,7 +25,9 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
 {
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
     private readonly IWorkerHandle _scavenger;
+#pragma warning disable CA2213 // Intentional: GC will handle it to avoid ObjectDisposedException on background threads
     private readonly CancellationTokenSource _cts = new();
+#pragma warning restore CA2213
     private int _disposed;
 
     /// <summary>
@@ -56,7 +58,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
             ctx.Beat();
             try
             {
-                this.Scavenge();
+                await this.ScavengeAsync(ct).ConfigureAwait(false);
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
@@ -65,17 +67,28 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
         }
     }
 
-    private void Scavenge()
+    private async ValueTask ScavengeAsync(CancellationToken ct)
     {
         long now = Clock.UnixMillisecondsNow();
+        int count = 0;
         foreach (KeyValuePair<ulong, SessionEntry> pair in _store)
         {
+            if (ct.IsCancellationRequested)
+            {
+                break;
+            }
+
             if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now)
             {
-                if (_store.TryRemove(pair.Key, out SessionEntry? expired))
+                if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(pair))
                 {
-                    expired.Return();
+                    pair.Value.Return();
                 }
+            }
+
+            if (++count % 1000 == 0)
+            {
+                await Task.Yield();
             }
         }
     }
@@ -145,9 +158,10 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
         // Lazy expiration — check TTL immediately upon retrieval because background cleanup is running
         if (entry.Snapshot.ExpiresAtUnixMilliseconds <= Clock.UnixMillisecondsNow())
         {
-            if (_store.TryRemove(sessionToken, out SessionEntry? expired))
+            // Exact reference removal to prevent race condition deleting a newer session on same ID
+            if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(new KeyValuePair<ulong, SessionEntry>(sessionToken, entry)))
             {
-                expired.Return();
+                entry.Return();
             }
 
             return ValueTask.FromResult<SessionEntry?>(null);
@@ -192,7 +206,8 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
         try
         {
             _cts.Cancel();
-            _cts.Dispose();
+            // _cts.Dispose() is intentionally omitted to avoid ObjectDisposedException
+            // if timer.WaitForNextTickAsync(ct) is still running in the background.
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {

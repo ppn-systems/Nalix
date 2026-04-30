@@ -819,9 +819,9 @@ public sealed partial class TaskManager : ITaskManager
 
         // Top N long-running workers
         _ = sb.AppendLine("Top Running Workers (by age):");
-        _ = sb.AppendLine("-------------------------------------------------------------------------------------------------------------");
-        _ = sb.AppendLine("Id             | Naming                       | Group                        | Age     | Progress | LastBeat ");
-        _ = sb.AppendLine("---------------+------------------------------+------------------------------+---------+----------+----------");
+        _ = sb.AppendLine("--------------------------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("Id               | Naming                       | Group                        | Age     | Progress | LastBeat");
+        _ = sb.AppendLine("-----------------+------------------------------+------------------------------+---------+----------+---------");
         List<WorkerState> top = new(_workers.Count);
         foreach (WorkerState worker in _workers.Values)
         {
