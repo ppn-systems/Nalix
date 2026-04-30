@@ -3,10 +3,8 @@
 
 using Microsoft.Extensions.Logging;
 using Nalix.Environment.Configuration;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Tasks;
+using Nalix.Hosting;
 using Nalix.Logging;
 using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
@@ -15,125 +13,82 @@ using Nalix.Network.Examples.Attributes;
 using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
-using Nalix.Hosting;
+using Nalix.Network.Examples.UI;
 using Nalix.Network.Options;
 using Nalix.Runtime.Options;
 
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Design",      "CA1031", Justification = "Example")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization","CA1303", Justification = "Example")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "Example")]
+
 internal class Program
 {
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "<Pending>")]
     private static async Task Main(string[] args)
     {
-        // Turn off noisy logs for peak performance testing.
-        ConfigurationManager.Instance.Get<NLogixOptions>()
-                            .MinLevel = LogLevel.Warning;
+        ConfigurationManager.Instance.Get<NLogixOptions>().MinLevel = LogLevel.Warning;
 
-        // Create one logger instance and let the hosting package register it into the shared runtime.
-        ConnectionHub hub = new();
+        ConnectionHub     hub    = new();
         BufferPoolManager buffer = new();
-        ILogger logger = new NLogix(cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
+        ILogger           logger = new NLogix(cfg =>
+            cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true)));
 
         using NetworkApplication host = NetworkApplication.CreateBuilder()
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(buffer)
-            .Configure<NetworkSocketOptions>(options =>
+            .Configure<NetworkSocketOptions>(o =>
             {
-                options.Port = 57206;
-                options.BufferSize = 1024 * 64; // 64KB buffers
-                options.Backlog = 1024;         // Increase OS backlog for high burst connection attempts
+                o.Port       = 57206;
+                o.BufferSize = 1024 * 64;
+                o.Backlog    = 1024;
             })
-            .Configure<ConnectionHubOptions>(options =>
+            .Configure<ConnectionHubOptions>(o  => o.MaxConnections              = -1)
+            .Configure<ConnectionLimitOptions>(o =>
             {
-                options.MaxConnections = -1;
+                o.MaxPacketPerSecond         = 1_000_000;
+                o.MaxConnectionsPerIpAddress = 10_000;
+                o.MaxConnectionsPerWindow    = 10_000_000;
             })
-            .Configure<ConnectionLimitOptions>(options =>
+            .Configure<NetworkCallbackOptions>(o =>
             {
-                options.MaxPacketPerSecond = 1_000_000;
-                options.MaxConnectionsPerIpAddress = 10_000;
-                options.MaxConnectionsPerWindow = 10_000_000;
+                o.MaxPerConnectionPendingPackets = 512;
+                o.MaxPendingPerIp               = 10_000;
+                o.MaxPendingNormalCallbacks      = 100_000;
             })
-            .Configure<NetworkCallbackOptions>(options =>
-            {
-                options.MaxPerConnectionPendingPackets = 512;
-                options.MaxPendingPerIp = 10000;
-                options.MaxPendingNormalCallbacks = 100000;
-            })
-            .Configure<DispatchOptions>(options =>
-            {
-                options.MaxPerConnectionQueue = 0;
-            })
+            .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddHandler<PacketCommandHandler>()
             .AddMetadataProvider<PacketTagMetadataProvider>()
-            .ConfigureDispatch(options =>
+            .ConfigureDispatch(o =>
             {
-                // Increase dispatch loops and batch processing capacity
-                options.MaxDrainPerWakeMultiplier = 16;
-                options.MaxDrainPerWake = 4096;
-
-                _ = options.WithDispatchLoopCount(8);
-                _ = options.WithMiddleware(new PacketTagMiddleware());
-                _ = options.WithErrorHandling((exception, command) => logger?.LogError(exception, $"Error handling command: {command}"));
+                o.MaxDrainPerWakeMultiplier = 16;
+                o.MaxDrainPerWake           = 4096;
+                _ = o.WithDispatchLoopCount(8);
+                _ = o.WithMiddleware(new PacketTagMiddleware());
+                _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .AddTcp<ExamplePacketProtocol>()
             .Build();
 
         using CancellationTokenSource shutdown = new();
+        Console.CancelKeyPress += (_, e) => { e.Cancel = true; shutdown.Cancel(); };
 
-        Console.CancelKeyPress += (_, eventArgs) =>
+        ServerConsole.PrintStartup("tcp://127.0.0.1:57206");
+
+        // Run server + menu concurrently
+        Task serverTask = host.RunAsync(shutdown.Token);
+        Task menuTask   = ServerConsole.RunMenuAsync(hub, shutdown);
+
+        await Task.WhenAny(serverTask, menuTask).ConfigureAwait(false);
+
+        // If menu exited, cancel the server too
+        if (!shutdown.IsCancellationRequested)
         {
-            eventArgs.Cancel = true;
             shutdown.Cancel();
-        };
-
-        Console.WriteLine("Nalix.Network example server is running on tcp://127.0.0.1:57206");
-        Console.WriteLine("Press Ctrl+C to stop.");
-        Console.WriteLine("Press Ctrl+R to print instance report.");
-
-        // Register a background task to listen for report requests (shortcuts)
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                while (!shutdown.IsCancellationRequested)
-                {
-                    if (Console.KeyAvailable)
-                    {
-                        ConsoleKeyInfo key = Console.ReadKey(true);
-                        // Trigger report on Ctrl + R or simply 'R'
-                        if (key.Modifiers == ConsoleModifiers.Control && key.Key == ConsoleKey.R)
-                        {
-                            PRINT_REPORT();
-                        }
-                    }
-
-                    await Task.Delay(100, shutdown.Token).ConfigureAwait(false);
-                }
-            }
-            catch (OperationCanceledException) { }
-            catch (Exception) { }
-        }, shutdown.Token);
-
-        static void PRINT_REPORT()
-        {
-            if (InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>() is ObjectPoolManager objectPoolManager)
-            {
-                Console.WriteLine(objectPoolManager.GenerateReport());
-            }
-
-            if (InstanceManager.Instance.GetExistingInstance<BufferPoolManager>() is BufferPoolManager bufferPoolManager)
-            {
-                Console.WriteLine(bufferPoolManager.GenerateReport());
-            }
-
-            if (InstanceManager.Instance.GetExistingInstance<TaskManager>() is TaskManager taskManager)
-            {
-                Console.WriteLine(taskManager.GenerateReport());
-            }
         }
 
-        await host.RunAsync(shutdown.Token).ConfigureAwait(false);
+        // Wait for both to finish
+        try { await Task.WhenAll(serverTask, menuTask).ConfigureAwait(false); }
+        catch (OperationCanceledException) { }
+
+        ServerConsole.PrintShutdown();
     }
 }

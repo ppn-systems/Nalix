@@ -5,23 +5,22 @@
 		<OutputType>Exe</OutputType>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TargetFramework>net10.0</TargetFramework>
-		<ServerGarbageCollection>true</ServerGarbageCollection>
+		<ServerGarbageCollection>false</ServerGarbageCollection>
 		<RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
 		<ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
 
 		<Optimize>true</Optimize>
 		<TieredCompilation>true</TieredCompilation>
+		<AssemblyName>Nalix.SDK.Client</AssemblyName>
+		<RootNamespace>Nalix.SDK.Client</RootNamespace>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
-		
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Spectre.Console" Version="0.49.1" />
 	</ItemGroup>
 
