@@ -119,67 +119,67 @@ public sealed class ConnectionLimitOptions : ConfigurationLoader
     {
         if (this.MaxConnectionsPerIpAddress < 1 || this.MaxConnectionsPerIpAddress > 10_000)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnectionsPerIpAddress), "MaxConnectionsPerIpAddress must be between 1 and 10,000.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxConnectionsPerIpAddress must be between 1 and 10,000.");
         }
 
         if (this.MaxConnectionsPerWindow < 1 || this.MaxConnectionsPerWindow > 10_000_000)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnectionsPerWindow), "MaxConnectionsPerWindow must be between 1 and 10,000,000.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxConnectionsPerWindow must be between 1 and 10,000,000.");
         }
 
         if (this.BanDuration < System.TimeSpan.FromSeconds(1) || this.BanDuration > System.TimeSpan.FromDays(1))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.BanDuration), "BanDuration must be at least 1 second and at most 1 day.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("BanDuration must be at least 1 second and at most 1 day.");
         }
 
         if (this.ConnectionRateWindow < System.TimeSpan.FromSeconds(1) || this.ConnectionRateWindow > System.TimeSpan.FromMinutes(10))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ConnectionRateWindow), "ConnectionRateWindow must be between 1 second and 10 minutes.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("ConnectionRateWindow must be between 1 second and 10 minutes.");
         }
 
         if (this.DDoSLogSuppressWindow < System.TimeSpan.FromSeconds(1) || this.DDoSLogSuppressWindow > System.TimeSpan.FromHours(1))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.DDoSLogSuppressWindow), "DDoSLogSuppressWindow must be between 1 second and 1 hour.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("DDoSLogSuppressWindow must be between 1 second and 1 hour.");
         }
 
         if (this.CleanupInterval < System.TimeSpan.FromSeconds(1) || this.CleanupInterval > System.TimeSpan.FromHours(1))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.CleanupInterval), "CleanupInterval must be between 1 second and 1 hour.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("CleanupInterval must be between 1 second and 1 hour.");
         }
 
         if (this.InactivityThreshold < System.TimeSpan.FromSeconds(1) || this.InactivityThreshold > System.TimeSpan.FromDays(1))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.InactivityThreshold), "InactivityThreshold must be at least 1 second and at most 1 day.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("InactivityThreshold must be at least 1 second and at most 1 day.");
         }
 
         if (this.MaxUdpDatagramSize < 64 || this.MaxUdpDatagramSize > 65507)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxUdpDatagramSize), "MaxUdpDatagramSize must be between 64 and 65507.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxUdpDatagramSize must be between 64 and 65507.");
         }
 
         if (this.MaxErrorThreshold < 1)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxErrorThreshold), "MaxErrorThreshold must be at least 1.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxErrorThreshold must be at least 1.");
         }
 
         if (this.UdpReplayWindowSize < 64 || this.UdpReplayWindowSize > 65536)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.UdpReplayWindowSize), "UdpReplayWindowSize must be between 64 and 65536.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("UdpReplayWindowSize must be between 64 and 65536.");
         }
 
         if (this.MaxPacketPerSecond < 1 || this.MaxPacketPerSecond > 10_000_000)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPacketPerSecond), "MaxPacketPerSecond must be between 1 and 10,000,000.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxPacketPerSecond must be between 1 and 10,000,000.");
         }
 
         if (this.MaxCleanupKeysPerRun < 0 || this.MaxCleanupKeysPerRun > 10_000_000)
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxCleanupKeysPerRun), "MaxCleanupKeysPerRun must be between 0 and 10,000,000.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxCleanupKeysPerRun must be between 0 and 10,000,000.");
         }
 
         if (this.DailyResetTimeOffset < System.TimeSpan.FromHours(-14) || this.DailyResetTimeOffset > System.TimeSpan.FromHours(14))
         {
-            throw new System.ArgumentOutOfRangeException(nameof(this.DailyResetTimeOffset), "DailyResetTimeOffset must be between -14:00:00 and 14:00:00.");
+            throw new System.ComponentModel.DataAnnotations.ValidationException("DailyResetTimeOffset must be between -14:00:00 and 14:00:00.");
         }
     }
 }
