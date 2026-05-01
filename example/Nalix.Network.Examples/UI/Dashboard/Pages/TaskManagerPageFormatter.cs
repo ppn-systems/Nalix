@@ -15,7 +15,7 @@ internal sealed class TaskManagerPageFormatter : IPageFormatter
 
     public string Format(ConnectionHub hub)
     {
-        var mgr = InstanceManager.Instance.GetExistingInstance<TaskManager>();
+        TaskManager? mgr = InstanceManager.Instance.GetExistingInstance<TaskManager>();
         return mgr is null
             ? "(TaskManager not registered)"
             : ReportDataFormatter.Format(mgr.GetReportData(), "TaskManager");

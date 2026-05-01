@@ -15,7 +15,7 @@ internal sealed class ObjectPoolPageFormatter : IPageFormatter
 
     public string Format(ConnectionHub hub)
     {
-        var mgr = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>();
+        ObjectPoolManager? mgr = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>();
         return mgr is null
             ? "(ObjectPoolManager not registered)"
             : ReportDataFormatter.Format(mgr.GetReportData(), "ObjectPoolManager");

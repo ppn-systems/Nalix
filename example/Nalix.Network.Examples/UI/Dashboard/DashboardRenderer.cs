@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Text;
 using Nalix.Network.Connections;
 using Nalix.Network.Examples.UI.Dashboard.Pages;
 using Spectre.Console;
@@ -15,17 +16,17 @@ namespace Nalix.Network.Examples.UI.Dashboard;
 internal sealed class DashboardRenderer
 {
     private readonly IPageFormatter[] _pages;
-    private readonly ConnectionHub    _hub;
+    private readonly ConnectionHub _hub;
 
     // ── Cached state ─────────────────────────────────────────────────────────
     private static readonly Style s_grey = Style.Parse("grey");
     private string[]? _cachedLines;
-    private int       _cachedPage = -1;
-    private long      _cachedTick;
+    private int _cachedPage = -1;
+    private long _cachedTick;
 
     public DashboardRenderer(ConnectionHub hub, IPageFormatter[] pages)
     {
-        _hub   = hub;
+        _hub = hub;
         _pages = pages;
     }
 
@@ -33,15 +34,15 @@ internal sealed class DashboardRenderer
     public async Task RunAsync(CancellationToken ct)
     {
         AnsiConsole.MarkupLine("[grey dim]  ↑ ↓ / PgUp PgDn scroll   ← → page   Q back[/]");
-        await Task.Delay(150).ConfigureAwait(false);
+        await Task.Delay(150, ct).ConfigureAwait(false);
 
-        int page   = 0;
+        int page = 0;
         int scroll = 0;
 
         const int Chrome = 6;
-        int viewLines() => Math.Max(5, Console.WindowHeight - Chrome);
+        static int viewLines() => Math.Max(5, Console.WindowHeight - Chrome);
 
-        using var exitCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        using CancellationTokenSource exitCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         _ = Task.Run(async () =>
         {
@@ -49,11 +50,12 @@ internal sealed class DashboardRenderer
             {
                 if (Console.KeyAvailable)
                 {
-                    var k = Console.ReadKey(intercept: true);
+                    ConsoleKeyInfo k = Console.ReadKey(intercept: true);
                     switch (k.Key)
                     {
                         case ConsoleKey.Q:
-                            exitCts.Cancel(); return;
+                            await exitCts.CancelAsync().ConfigureAwait(false);
+                            return;
                         case ConsoleKey.RightArrow:
                             page = (page + 1) % _pages.Length; scroll = 0; break;
                         case ConsoleKey.LeftArrow:
@@ -63,16 +65,292 @@ internal sealed class DashboardRenderer
                             scroll = Math.Max(0, scroll - (k.Key == ConsoleKey.PageUp ? viewLines() : 5)); break;
                         case ConsoleKey.DownArrow:
                         case ConsoleKey.PageDown:
-                            scroll += (k.Key == ConsoleKey.PageDown ? viewLines() : 5); break;
+                            scroll += k.Key == ConsoleKey.PageDown ? viewLines() : 5; break;
                         case ConsoleKey.Home:
                             scroll = 0; break;
+                        case ConsoleKey.None:
+                            break;
+                        case ConsoleKey.Backspace:
+                            break;
+                        case ConsoleKey.Tab:
+                            break;
+                        case ConsoleKey.Clear:
+                            break;
+                        case ConsoleKey.Enter:
+                            break;
+                        case ConsoleKey.Pause:
+                            break;
+                        case ConsoleKey.Escape:
+                            break;
+                        case ConsoleKey.Spacebar:
+                            break;
+                        case ConsoleKey.End:
+                            break;
+                        case ConsoleKey.Select:
+                            break;
+                        case ConsoleKey.Print:
+                            break;
+                        case ConsoleKey.Execute:
+                            break;
+                        case ConsoleKey.PrintScreen:
+                            break;
+                        case ConsoleKey.Insert:
+                            break;
+                        case ConsoleKey.Delete:
+                            break;
+                        case ConsoleKey.Help:
+                            break;
+                        case ConsoleKey.D0:
+                            break;
+                        case ConsoleKey.D1:
+                            break;
+                        case ConsoleKey.D2:
+                            break;
+                        case ConsoleKey.D3:
+                            break;
+                        case ConsoleKey.D4:
+                            break;
+                        case ConsoleKey.D5:
+                            break;
+                        case ConsoleKey.D6:
+                            break;
+                        case ConsoleKey.D7:
+                            break;
+                        case ConsoleKey.D8:
+                            break;
+                        case ConsoleKey.D9:
+                            break;
+                        case ConsoleKey.A:
+                            break;
+                        case ConsoleKey.B:
+                            break;
+                        case ConsoleKey.C:
+                            break;
+                        case ConsoleKey.D:
+                            break;
+                        case ConsoleKey.E:
+                            break;
+                        case ConsoleKey.F:
+                            break;
+                        case ConsoleKey.G:
+                            break;
+                        case ConsoleKey.H:
+                            break;
+                        case ConsoleKey.I:
+                            break;
+                        case ConsoleKey.J:
+                            break;
+                        case ConsoleKey.K:
+                            break;
+                        case ConsoleKey.L:
+                            break;
+                        case ConsoleKey.M:
+                            break;
+                        case ConsoleKey.N:
+                            break;
+                        case ConsoleKey.O:
+                            break;
+                        case ConsoleKey.P:
+                            break;
+                        case ConsoleKey.R:
+                            break;
+                        case ConsoleKey.S:
+                            break;
+                        case ConsoleKey.T:
+                            break;
+                        case ConsoleKey.U:
+                            break;
+                        case ConsoleKey.V:
+                            break;
+                        case ConsoleKey.W:
+                            break;
+                        case ConsoleKey.X:
+                            break;
+                        case ConsoleKey.Y:
+                            break;
+                        case ConsoleKey.Z:
+                            break;
+                        case ConsoleKey.LeftWindows:
+                            break;
+                        case ConsoleKey.RightWindows:
+                            break;
+                        case ConsoleKey.Applications:
+                            break;
+                        case ConsoleKey.Sleep:
+                            break;
+                        case ConsoleKey.NumPad0:
+                            break;
+                        case ConsoleKey.NumPad1:
+                            break;
+                        case ConsoleKey.NumPad2:
+                            break;
+                        case ConsoleKey.NumPad3:
+                            break;
+                        case ConsoleKey.NumPad4:
+                            break;
+                        case ConsoleKey.NumPad5:
+                            break;
+                        case ConsoleKey.NumPad6:
+                            break;
+                        case ConsoleKey.NumPad7:
+                            break;
+                        case ConsoleKey.NumPad8:
+                            break;
+                        case ConsoleKey.NumPad9:
+                            break;
+                        case ConsoleKey.Multiply:
+                            break;
+                        case ConsoleKey.Add:
+                            break;
+                        case ConsoleKey.Separator:
+                            break;
+                        case ConsoleKey.Subtract:
+                            break;
+                        case ConsoleKey.Decimal:
+                            break;
+                        case ConsoleKey.Divide:
+                            break;
+                        case ConsoleKey.F1:
+                            break;
+                        case ConsoleKey.F2:
+                            break;
+                        case ConsoleKey.F3:
+                            break;
+                        case ConsoleKey.F4:
+                            break;
+                        case ConsoleKey.F5:
+                            break;
+                        case ConsoleKey.F6:
+                            break;
+                        case ConsoleKey.F7:
+                            break;
+                        case ConsoleKey.F8:
+                            break;
+                        case ConsoleKey.F9:
+                            break;
+                        case ConsoleKey.F10:
+                            break;
+                        case ConsoleKey.F11:
+                            break;
+                        case ConsoleKey.F12:
+                            break;
+                        case ConsoleKey.F13:
+                            break;
+                        case ConsoleKey.F14:
+                            break;
+                        case ConsoleKey.F15:
+                            break;
+                        case ConsoleKey.F16:
+                            break;
+                        case ConsoleKey.F17:
+                            break;
+                        case ConsoleKey.F18:
+                            break;
+                        case ConsoleKey.F19:
+                            break;
+                        case ConsoleKey.F20:
+                            break;
+                        case ConsoleKey.F21:
+                            break;
+                        case ConsoleKey.F22:
+                            break;
+                        case ConsoleKey.F23:
+                            break;
+                        case ConsoleKey.F24:
+                            break;
+                        case ConsoleKey.BrowserBack:
+                            break;
+                        case ConsoleKey.BrowserForward:
+                            break;
+                        case ConsoleKey.BrowserRefresh:
+                            break;
+                        case ConsoleKey.BrowserStop:
+                            break;
+                        case ConsoleKey.BrowserSearch:
+                            break;
+                        case ConsoleKey.BrowserFavorites:
+                            break;
+                        case ConsoleKey.BrowserHome:
+                            break;
+                        case ConsoleKey.VolumeMute:
+                            break;
+                        case ConsoleKey.VolumeDown:
+                            break;
+                        case ConsoleKey.VolumeUp:
+                            break;
+                        case ConsoleKey.MediaNext:
+                            break;
+                        case ConsoleKey.MediaPrevious:
+                            break;
+                        case ConsoleKey.MediaStop:
+                            break;
+                        case ConsoleKey.MediaPlay:
+                            break;
+                        case ConsoleKey.LaunchMail:
+                            break;
+                        case ConsoleKey.LaunchMediaSelect:
+                            break;
+                        case ConsoleKey.LaunchApp1:
+                            break;
+                        case ConsoleKey.LaunchApp2:
+                            break;
+                        case ConsoleKey.Oem1:
+                            break;
+                        case ConsoleKey.OemPlus:
+                            break;
+                        case ConsoleKey.OemComma:
+                            break;
+                        case ConsoleKey.OemMinus:
+                            break;
+                        case ConsoleKey.OemPeriod:
+                            break;
+                        case ConsoleKey.Oem2:
+                            break;
+                        case ConsoleKey.Oem3:
+                            break;
+                        case ConsoleKey.Oem4:
+                            break;
+                        case ConsoleKey.Oem5:
+                            break;
+                        case ConsoleKey.Oem6:
+                            break;
+                        case ConsoleKey.Oem7:
+                            break;
+                        case ConsoleKey.Oem8:
+                            break;
+                        case ConsoleKey.Oem102:
+                            break;
+                        case ConsoleKey.Process:
+                            break;
+                        case ConsoleKey.Packet:
+                            break;
+                        case ConsoleKey.Attention:
+                            break;
+                        case ConsoleKey.CrSel:
+                            break;
+                        case ConsoleKey.ExSel:
+                            break;
+                        case ConsoleKey.EraseEndOfFile:
+                            break;
+                        case ConsoleKey.Play:
+                            break;
+                        case ConsoleKey.Zoom:
+                            break;
+                        case ConsoleKey.NoName:
+                            break;
+                        case ConsoleKey.Pa1:
+                            break;
+                        case ConsoleKey.OemClear:
+                            break;
+                        default:
+                            break;
                     }
                 }
                 await Task.Delay(40).ConfigureAwait(false);
             }
         }, CancellationToken.None);
 
-        await AnsiConsole.Live(Build(page, scroll, viewLines()))
+        await AnsiConsole.Live(this.Build(page, scroll, viewLines()))
             .AutoClear(false)
             .Overflow(VerticalOverflow.Ellipsis)
             .Cropping(VerticalOverflowCropping.Bottom)
@@ -80,7 +358,7 @@ internal sealed class DashboardRenderer
             {
                 while (!exitCts.Token.IsCancellationRequested)
                 {
-                    ctx.UpdateTarget(Build(page, scroll, viewLines()));
+                    ctx.UpdateTarget(this.Build(page, scroll, viewLines()));
                     ctx.Refresh();
                     try { await Task.Delay(1000, exitCts.Token).ConfigureAwait(false); }
                     catch (OperationCanceledException) { break; }
@@ -98,39 +376,51 @@ internal sealed class DashboardRenderer
     private IRenderable Build(int page, int scroll, int viewLines)
     {
         // Tab bar
-        var tabSb = new System.Text.StringBuilder(256);
+        StringBuilder tabSb = new(256);
         for (int i = 0; i < _pages.Length; i++)
         {
-            if (i > 0) tabSb.Append("[grey]|[/]");
-            tabSb.Append(i == page
+            if (i > 0)
+            {
+                _ = tabSb.Append("[grey]|[/]");
+            }
+
+            _ = tabSb.Append(i == page
                 ? $"[steelblue1 bold] {_pages[i].Label} [/]"
                 : $"[grey dim] {_pages[i].Label} [/]");
         }
-        tabSb.Append($"   [grey dim]{DateTime.Now:HH:mm:ss}[/]");
+        _ = tabSb.Append($"   [grey dim]{DateTime.Now:HH:mm:ss}[/]");
 
         // Lines (cached)
-        string[] lines = GetLines(page);
-        int totalLines  = lines.Length;
-        int maxScroll   = Math.Max(0, totalLines - viewLines);
-        if (scroll > maxScroll) scroll = maxScroll;
+        string[] lines = this.GetLines(page);
+        int totalLines = lines.Length;
+        int maxScroll = Math.Max(0, totalLines - viewLines);
+        if (scroll > maxScroll)
+        {
+            scroll = maxScroll;
+        }
+
         int start = scroll;
-        int end   = Math.Min(scroll + viewLines, totalLines);
+        int end = Math.Min(scroll + viewLines, totalLines);
 
         // Visible slice
-        var sliceSb = new System.Text.StringBuilder(2048);
+        StringBuilder sliceSb = new(2048);
         for (int i = start; i < end; i++)
         {
-            if (i > start) sliceSb.Append('\n');
-            sliceSb.Append(lines[i]);
+            if (i > start)
+            {
+                _ = sliceSb.Append('\n');
+            }
+
+            _ = sliceSb.Append(lines[i]);
         }
 
         // Scroll hint
-        bool canUp   = scroll > 0;
+        bool canUp = scroll > 0;
         bool canDown = scroll < maxScroll;
         string scrollHint = totalLines <= viewLines
             ? "[grey dim](all content visible)[/]"
             : $"[grey dim]line {scroll + 1}–{end}/{totalLines}  " +
-              $"{(canUp   ? "[white]↑[/]" : "·")} " +
+              $"{(canUp ? "[white]↑[/]" : "·")} " +
               $"{(canDown ? "[white]↓[/]" : "·")} scroll[/]";
 
         return new Rows(
@@ -138,11 +428,11 @@ internal sealed class DashboardRenderer
             new Text(""),
             new Panel(new Markup($"[grey]{sliceSb.ToString().EscapeMarkup()}[/]"))
             {
-                Header      = new PanelHeader($" {_pages[page].Label}  {DateTime.Now:HH:mm:ss} "),
-                Border      = BoxBorder.Rounded,
+                Header = new PanelHeader($" {_pages[page].Label}  {DateTime.Now:HH:mm:ss} "),
+                Border = BoxBorder.Rounded,
                 BorderStyle = s_grey,
-                Padding     = new Padding(1, 0),
-                Expand      = true
+                Padding = new Padding(1, 0),
+                Expand = true
             },
             new Markup(scrollHint));
     }
@@ -154,12 +444,14 @@ internal sealed class DashboardRenderer
         long tick = System.Environment.TickCount64;
 
         if (_cachedLines is not null && _cachedPage == page && (tick - _cachedTick) < 900)
+        {
             return _cachedLines;
+        }
 
         string text = _pages[page].Format(_hub);
         _cachedLines = text.Split('\n');
-        _cachedPage  = page;
-        _cachedTick  = tick;
+        _cachedPage = page;
+        _cachedTick = tick;
         return _cachedLines;
     }
 }

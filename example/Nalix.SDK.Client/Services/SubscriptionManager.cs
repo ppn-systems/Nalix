@@ -1,9 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.SDK.Client.Core;
 using Nalix.SDK.Client.UI;
+using Nalix.SDK.Transport.Extensions;
 
 namespace Nalix.SDK.Client.Services;
 
@@ -14,17 +16,17 @@ namespace Nalix.SDK.Client.Services;
 internal sealed class SubscriptionManager : IDisposable
 {
     private readonly ClientSession _client;
-    private readonly EventLog     _log;
+    private readonly EventLog _log;
 
     private IDisposable? _controlSub;
-    private bool         _controlSubActive;
+    private bool _controlSubActive;
 
     public bool IsControlSubActive => _controlSubActive;
 
     public SubscriptionManager(ClientSession client, EventLog log)
     {
         _client = client;
-        _log    = log;
+        _log = log;
     }
 
     /// <summary>Toggles the persistent On&lt;Control&gt; subscription.</summary>
@@ -32,7 +34,7 @@ internal sealed class SubscriptionManager : IDisposable
     {
         if (_controlSubActive)
         {
-            StopControlSubscription();
+            this.StopControlSubscription();
             _log.Info("Control frame subscription stopped.");
         }
         else
@@ -51,7 +53,7 @@ internal sealed class SubscriptionManager : IDisposable
     {
         _ = _client.Session.OnOnce<Control>(
             predicate: c => c.Type == target,
-            handler:   c => _log.Recv($"ONE-SHOT [{target}]", $"seq={c.SequenceId} reason={c.Reason}"));
+            handler: c => _log.Recv($"ONE-SHOT [{target}]", $"seq={c.SequenceId} reason={c.Reason}"));
 
         _log.Info($"One-shot subscription registered — will fire once when {target} arrives.");
     }
@@ -59,10 +61,10 @@ internal sealed class SubscriptionManager : IDisposable
     /// <summary>Stops the persistent subscription (idempotent).</summary>
     public void StopControlSubscription()
     {
-        var sub = Interlocked.Exchange(ref _controlSub, null);
+        IDisposable? sub = Interlocked.Exchange(ref _controlSub, null);
         sub?.Dispose();
         _controlSubActive = false;
     }
 
-    public void Dispose() => StopControlSubscription();
+    public void Dispose() => this.StopControlSubscription();
 }

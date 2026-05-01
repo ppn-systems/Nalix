@@ -15,7 +15,7 @@ internal sealed class BufferPoolPageFormatter : IPageFormatter
 
     public string Format(ConnectionHub hub)
     {
-        var mgr = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
+        BufferPoolManager? mgr = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
         return mgr is null
             ? "(BufferPoolManager not registered)"
             : ReportDataFormatter.Format(mgr.GetReportData(), "BufferPoolManager");

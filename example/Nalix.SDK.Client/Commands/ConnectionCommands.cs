@@ -5,6 +5,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.SDK.Client.Core;
 using Nalix.SDK.Client.Services;
 using Nalix.SDK.Client.UI;
+using Nalix.SDK.Transport.Extensions;
 using Spectre.Console;
 
 namespace Nalix.SDK.Client.Commands;
@@ -12,20 +13,20 @@ namespace Nalix.SDK.Client.Commands;
 /// <summary>Connect, graceful disconnect, and hard disconnect commands.</summary>
 internal sealed class ConnectionCommands
 {
-    private readonly ClientSession    _client;
-    private readonly StatusBar        _status;
-    private readonly EventLog         _log;
+    private readonly ClientSession _client;
+    private readonly StatusBar _status;
+    private readonly EventLog _log;
     private readonly KeepAliveService _keepAlive;
     private readonly SubscriptionManager _subs;
 
     public ConnectionCommands(ClientSession client, StatusBar status, EventLog log,
                               KeepAliveService keepAlive, SubscriptionManager subs)
     {
-        _client    = client;
-        _status    = status;
-        _log       = log;
+        _client = client;
+        _status = status;
+        _log = log;
         _keepAlive = keepAlive;
-        _subs      = subs;
+        _subs = subs;
     }
 
     public async Task ConnectAsync()
@@ -37,7 +38,7 @@ internal sealed class ConnectionCommands
             .SpinnerStyle(Style.Parse("aqua"))
             .StartAsync("Connecting...", async ctx =>
             {
-                ctx.Status("Establishing TCP connection...");
+                _ = ctx.Status("Establishing TCP connection...");
                 try
                 {
                     await _client.ConnectAsync().ConfigureAwait(false);
@@ -69,7 +70,10 @@ internal sealed class ConnectionCommands
 
     public async Task GracefulDisconnectAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         _keepAlive.Stop();
         _subs.StopControlSubscription();
@@ -96,7 +100,11 @@ internal sealed class ConnectionCommands
 
     public async Task HardDisconnectAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
+
         _keepAlive.Stop();
         _subs.StopControlSubscription();
         await _client.DisconnectAsync().ConfigureAwait(false);
@@ -106,7 +114,11 @@ internal sealed class ConnectionCommands
 
     private bool RequireConnected()
     {
-        if (_client.IsConnected) return true;
+        if (_client.IsConnected)
+        {
+            return true;
+        }
+
         _log.Error("Not connected — use [Connect] first.");
         return false;
     }
