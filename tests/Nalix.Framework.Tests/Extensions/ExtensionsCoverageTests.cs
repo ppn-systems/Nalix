@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Framework.Extensions;
 using Xunit;
 
@@ -225,36 +226,44 @@ public sealed class ExtensionsCoverageTests
         buffer[(int)PacketHeaderOffset.Priority] = (byte)PacketPriority.HIGH;
         BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.SequenceId), sequence);
 
-        Assert.Equal(magic, buffer.AsSpan().ReadMagicNumberLE());
-        Assert.Equal(opCode, buffer.AsSpan().ReadOpCodeLE());
-        Assert.Equal(PacketFlags.ENCRYPTED, buffer.AsSpan().ReadFlagsLE());
-        Assert.Equal(PacketPriority.HIGH, buffer.AsSpan().ReadPriorityLE());
-        Assert.Equal(sequence, buffer.AsSpan().ReadSequenceIdLE());
+        PacketHeader header = buffer.AsSpan().ReadHeaderLE();
+        Assert.Equal(magic, header.MagicNumber);
+        Assert.Equal(opCode, header.OpCode);
+        Assert.Equal(PacketFlags.ENCRYPTED, header.Flags);
+        Assert.Equal(PacketPriority.HIGH, header.Priority);
+        Assert.Equal(sequence, header.SequenceId);
     }
 
     [Fact]
-    public void HeaderExtensionsWriteFlagsWritesAtFlagsOffsetOnly()
+    public void HeaderExtensionsWriteHeaderWritesAllFields()
     {
         byte[] buffer = new byte[(int)PacketHeaderOffset.Region];
-        buffer[(int)PacketHeaderOffset.Priority] = 0xAA;
-        buffer.AsSpan().WriteFlagsLE(PacketFlags.RELIABLE);
+        PacketHeader header = new()
+        {
+            MagicNumber = 0xA1B2C3D4,
+            OpCode = 0x7788,
+            Flags = PacketFlags.RELIABLE,
+            Priority = PacketPriority.HIGH,
+            SequenceId = 0x1234
+        };
 
-        Assert.Equal(PacketFlags.RELIABLE, buffer.AsSpan().ReadFlagsLE());
-        Assert.Equal(0xAA, buffer[(int)PacketHeaderOffset.Priority]);
+        buffer.AsSpan().WriteHeaderLE(header);
+
+        PacketHeader read = buffer.AsSpan().ReadHeaderLE();
+        Assert.Equal(header.MagicNumber, read.MagicNumber);
+        Assert.Equal(header.OpCode, read.OpCode);
+        Assert.Equal(header.Flags, read.Flags);
+        Assert.Equal(header.Priority, read.Priority);
+        Assert.Equal(header.SequenceId, read.SequenceId);
     }
 
     [Fact]
     public void HeaderExtensionsWhenBufferTooSmallThrowsArgumentException()
     {
         byte[] small = new byte[2];
-        byte[] smallWritable = new byte[2];
 
-        Assert.Throws<ArgumentException>(() => small.AsSpan().ReadMagicNumberLE());
-        Assert.Throws<ArgumentException>(() => small.AsSpan().ReadOpCodeLE());
-        Assert.Throws<ArgumentException>(() => small.AsSpan().ReadFlagsLE());
-        Assert.Throws<ArgumentException>(() => small.AsSpan().ReadPriorityLE());
-        Assert.Throws<ArgumentException>(() => small.AsSpan().ReadSequenceIdLE());
-        Assert.Throws<ArgumentException>(() => smallWritable.AsSpan().WriteFlagsLE(PacketFlags.NONE));
+        Assert.Throws<ArgumentException>(() => small.AsSpan().ReadHeaderLE());
+        Assert.Throws<ArgumentException>(() => small.AsSpan().WriteHeaderLE(default));
     }
 
     [Fact]

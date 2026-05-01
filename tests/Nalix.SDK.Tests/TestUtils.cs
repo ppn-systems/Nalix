@@ -152,7 +152,9 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
         SendPacketCallCount++;
         if (packet is Control ping && _catalog.TryDequeue(out IPacket? response) && response is Control pong)
         {
-            pong.SequenceId = ping.SequenceId;
+            var h = pong.Header;
+            h.SequenceId = ping.Header.SequenceId;
+            pong.Header = h;
 
             byte[] data = new byte[PacketConstants.HeaderSize];
             uint magic = PacketRegistryFactory.Compute(response.GetType());

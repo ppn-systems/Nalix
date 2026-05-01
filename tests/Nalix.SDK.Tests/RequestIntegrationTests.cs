@@ -57,10 +57,10 @@ public sealed class RequestIntegrationTests : IDisposable
             Control response = await session.RequestAsync<Control>(
                 ping,
                 options: RequestOptions.Default,
-                predicate: p => p.Type == ControlType.PONG && p.SequenceId == 1234);
+                predicate: p => p.Type == ControlType.PONG && p.Header.SequenceId == 1234);
 
             Assert.Equal(ControlType.PONG, response.Type);
-            Assert.Equal(1234u, response.SequenceId);
+            Assert.Equal(1234u, response.Header.SequenceId);
         }
         finally
         {

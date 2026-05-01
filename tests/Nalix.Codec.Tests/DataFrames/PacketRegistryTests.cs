@@ -53,13 +53,13 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.NotNull(packet);
 
         Control result = Assert.IsType<Control>(packet);
-        Assert.Equal(original.OpCode, result.OpCode);
-        Assert.Equal(original.MagicNumber, result.MagicNumber);
-        Assert.Equal(original.SequenceId, result.SequenceId);
+        Assert.Equal(original.Header.OpCode, result.Header.OpCode);
+        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
+        Assert.Equal(original.Header.SequenceId, result.Header.SequenceId);
         Assert.Equal(original.Type, result.Type);
         Assert.Equal(original.Reason, result.Reason);
-        Assert.Equal(original.Flags, result.Flags);
-        Assert.Equal(original.Priority, result.Priority);
+        Assert.Equal(original.Header.Flags, result.Header.Flags);
+        Assert.Equal(original.Header.Priority, result.Header.Priority);
     }
 
     [Fact]
@@ -67,18 +67,18 @@ public sealed class PacketRegistryTests : IDisposable
     {
         Control a = new();
         Control b = new();
-        Assert.Equal(a.MagicNumber, b.MagicNumber);
+        Assert.Equal(a.Header.MagicNumber, b.Header.MagicNumber);
     }
 
     [Fact]
     public void ControlAfterResetForPoolMagicNumberPreserved()
     {
         Control packet = new();
-        uint magicBefore = packet.MagicNumber;
+        uint magicBefore = packet.Header.MagicNumber;
 
         packet.ResetForPool();
 
-        Assert.Equal(magicBefore, packet.MagicNumber);
+        Assert.Equal(magicBefore, packet.Header.MagicNumber);
     }
 
     [Fact]
@@ -94,8 +94,8 @@ public sealed class PacketRegistryTests : IDisposable
         IPacket result = _catalog.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(result);
-        Assert.Equal(0x0003, control.OpCode);
-        Assert.Equal(7u, control.SequenceId);
+        Assert.Equal(0x0003, control.Header.OpCode);
+        Assert.Equal(7u, control.Header.SequenceId);
         Assert.Equal(ControlType.PING, control.Type);
     }
 
@@ -125,9 +125,9 @@ public sealed class PacketRegistryTests : IDisposable
         IPacket packet = _catalog.Deserialize(bytes);
 
         Handshake result = Assert.IsType<Handshake>(packet);
-        Assert.Equal(original.OpCode, result.OpCode);
-        Assert.Equal(original.MagicNumber, result.MagicNumber);
-        Assert.Equal(original.Flags, result.Flags);
+        Assert.Equal(original.Header.OpCode, result.Header.OpCode);
+        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
+        Assert.Equal(original.Header.Flags, result.Header.Flags);
         Assert.Equal(original.Stage, result.Stage);
         Assert.Equal(publicKey, result.PublicKey);
         Assert.Equal(nonce, result.Nonce);
@@ -146,9 +146,9 @@ public sealed class PacketRegistryTests : IDisposable
         uint regHandshake = PacketRegistryFactory.Compute(typeof(Handshake));
         uint regDirective = PacketRegistryFactory.Compute(typeof(Directive));
 
-        Assert.Equal(regControl, control.MagicNumber);
-        Assert.Equal(regHandshake, handshake.MagicNumber);
-        Assert.Equal(regDirective, directive.MagicNumber);
+        Assert.Equal(regControl, control.Header.MagicNumber);
+        Assert.Equal(regHandshake, handshake.Header.MagicNumber);
+        Assert.Equal(regDirective, directive.Header.MagicNumber);
 
         byte[] bytes = control.Serialize();
         uint magicInBytes = System.Buffers.Binary.BinaryPrimitives
@@ -198,9 +198,9 @@ public sealed class PacketRegistryTests : IDisposable
 
         Directive result = Assert.IsType<Directive>(packet);
 
-        Assert.Equal(original.OpCode, result.OpCode);
-        Assert.Equal(original.MagicNumber, result.MagicNumber);
-        Assert.Equal(original.SequenceId, result.SequenceId);
+        Assert.Equal(original.Header.OpCode, result.Header.OpCode);
+        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
+        Assert.Equal(original.Header.SequenceId, result.Header.SequenceId);
         Assert.Equal(original.Type, result.Type);
         Assert.Equal(original.Reason, result.Reason);
         Assert.Equal(original.Action, result.Action);
@@ -208,8 +208,8 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.Equal(original.Arg0, result.Arg0);
         Assert.Equal(original.Arg1, result.Arg1);
         Assert.Equal(original.Arg2, result.Arg2);
-        Assert.Equal(original.Priority, result.Priority);
-        Assert.Equal(original.Flags, result.Flags);
+        Assert.Equal(original.Header.Priority, result.Header.Priority);
+        Assert.Equal(original.Header.Flags, result.Header.Flags);
     }
 
     [Fact]
@@ -250,9 +250,9 @@ public sealed class PacketRegistryTests : IDisposable
         IPacket packet = _catalog.Deserialize(bytes);
         Control result = Assert.IsType<Control>(packet);
 
-        Assert.Equal(original.OpCode, result.OpCode);
-        Assert.Equal(original.MagicNumber, result.MagicNumber);
-        Assert.Equal(original.SequenceId, result.SequenceId);
+        Assert.Equal(original.Header.OpCode, result.Header.OpCode);
+        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
+        Assert.Equal(original.Header.SequenceId, result.Header.SequenceId);
         Assert.Equal(original.Type, result.Type);
     }
 
@@ -271,9 +271,9 @@ public sealed class PacketRegistryTests : IDisposable
     [Fact]
     public void AllRegisteredPacketsHaveUniqueMagicNumbers()
     {
-        uint controlMagic = new Control().MagicNumber;
-        uint handshakeMagic = new Handshake().MagicNumber;
-        uint directiveMagic = new Directive().MagicNumber;
+        uint controlMagic = new Control().Header.MagicNumber;
+        uint handshakeMagic = new Handshake().Header.MagicNumber;
+        uint directiveMagic = new Directive().Header.MagicNumber;
 
         Assert.NotEqual(controlMagic, handshakeMagic);
         Assert.NotEqual(controlMagic, directiveMagic);
@@ -308,11 +308,7 @@ public sealed class PacketRegistryTests : IDisposable
     private sealed class BrokenPacket : IPacket
     {
         public int Length => PacketConstants.HeaderSize;
-        public uint MagicNumber { get; set; }
-        public ushort OpCode { get; set; }
-        public PacketFlags Flags { get; set; }
-        public PacketPriority Priority { get; set; }
-        public ushort SequenceId => 0;
+        public PacketHeader Header { get; set; }
 
         public byte[] Serialize() => new byte[PacketConstants.HeaderSize];
 

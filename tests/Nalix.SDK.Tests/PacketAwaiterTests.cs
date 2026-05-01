@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Internal;
 using Nalix.SDK.Transport.Extensions;
@@ -20,7 +21,7 @@ public sealed class PacketAwaiterTests
     public async Task AwaitAsync_WhenPredicateMatches_ReturnsPacket()
     {
         TransportSession session = Substitute.For<TransportSession>();
-        TestPacket packet = new() { OpCode = 0x100 };
+        TestPacket packet = new() { Header = new PacketHeader { OpCode = 0x100 } };
         
         session.Catalog.Returns(new ManualCatalog(packet));
 
@@ -30,7 +31,7 @@ public sealed class PacketAwaiterTests
 
         Task<TestPacket> awaitTask = PacketAwaiter.AwaitAsync<TestPacket>(
             session,
-            p => p.OpCode == 0x100,
+            p => p.Header.OpCode == 0x100,
             1000,
             ct => Task.CompletedTask,
             CancellationToken.None);
@@ -93,11 +94,7 @@ public sealed class PacketAwaiterTests
     private sealed class TestPacket : IPacket
     {
         public int Length => 0;
-        public uint MagicNumber { get; set; }
-        public ushort OpCode { get; set; }
-        public PacketFlags Flags { get; set; }
-        public PacketPriority Priority { get; set; }
-        public ushort SequenceId => 1;
+        public PacketHeader Header { get; set; }
         public byte[] Serialize() => [];
         public int Serialize(Span<byte> buffer) => 0;
     }
