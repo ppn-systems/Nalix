@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using Nalix.Framework.Environment;
-using Nalix.Framework.Security.Asymmetric;
+using Nalix.Codec.Security.Asymmetric;
+using Nalix.Environment.IO;
 
 namespace Nalix.Certificate;
 
@@ -134,7 +134,7 @@ internal static class Program
         Console.WriteLine(content);
     }
 
-    private static void ExportPrivateFile(string path, Nalix.Common.Primitives.Bytes32 privateKey)
+    private static void ExportPrivateFile(string path, Nalix.Abstractions.Primitives.Bytes32 privateKey)
     {
         var sb = new StringBuilder();
         sb.AppendLine("# NALIX PRIVATE CERTIFICATE KEY");
@@ -147,7 +147,7 @@ internal static class Program
         Console.WriteLine($"[SAVE] Private key stored to : {path}");
     }
 
-    private static void ExportPublicFile(string path, Nalix.Common.Primitives.Bytes32 publicKey)
+    private static void ExportPublicFile(string path, Nalix.Abstractions.Primitives.Bytes32 publicKey)
     {
         var sb = new StringBuilder();
         sb.AppendLine("# NALIX PUBLIC CERTIFICATE KEY");
