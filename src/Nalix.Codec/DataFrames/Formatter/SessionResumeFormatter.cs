@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames.SignalFrames;
@@ -29,7 +28,7 @@ public sealed class SessionResumeFormatter : IFillableFormatter<SessionResume> /
         writer.Expand(SessionResume.Size); //[cite: 14]
 
         // --- Header Section ---
-        writer.WriteUnmanaged(((IPacket)value).Header);
+        writer.WriteUnmanaged(value.Header);
 
         // --- Payload Section ---
         writer.WriteEnum(value.Stage);          //[cite: 14]
@@ -52,7 +51,7 @@ public sealed class SessionResumeFormatter : IFillableFormatter<SessionResume> /
     public void Fill(ref DataReader reader, SessionResume value) //[cite: 11, 14]
     {
         // --- Header Section ---
-        ((IPacket)value).Header = reader.ReadUnmanaged<PacketHeader>();
+        value.Header = reader.ReadUnmanaged<PacketHeader>();
 
         // --- Payload Section ---
         value.Stage = reader.ReadEnumByte<SessionResumeStage>();   //[cite: 14]

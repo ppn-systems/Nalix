@@ -17,8 +17,6 @@ using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -260,7 +258,7 @@ internal static class AsyncCallback
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
         bool queued = false;
-        
+
         try
         {
             queued = ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false);

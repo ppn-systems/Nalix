@@ -7,9 +7,6 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.Protocols;
 
 public abstract partial class Protocol

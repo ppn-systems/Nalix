@@ -9,9 +9,6 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.Listeners.Udp;
 
 public abstract partial class UdpListenerBase

@@ -5,7 +5,6 @@ using System;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Extensions;
 

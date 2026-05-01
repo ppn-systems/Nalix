@@ -16,9 +16,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Pooling;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.Listeners.Udp;
 
 /// <summary>

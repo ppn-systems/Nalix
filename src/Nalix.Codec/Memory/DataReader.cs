@@ -8,8 +8,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Codec.Internal;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Codec.Internal;
 
 namespace Nalix.Codec.Memory;
 

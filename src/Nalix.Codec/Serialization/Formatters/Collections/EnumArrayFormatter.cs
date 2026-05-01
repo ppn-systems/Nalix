@@ -1,12 +1,12 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal;
+using Nalix.Codec.Serialization.Internal.Types;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 

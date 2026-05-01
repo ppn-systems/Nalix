@@ -2,12 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.InteropServices;
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal;
+using Nalix.Codec.Serialization.Internal.Types;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 

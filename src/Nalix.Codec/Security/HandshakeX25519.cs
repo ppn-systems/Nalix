@@ -3,9 +3,9 @@
 
 using System;
 using System.Buffers.Binary;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Security.Primitives;
-using Nalix.Abstractions.Primitives;
 
 namespace Nalix.Codec.Security;
 

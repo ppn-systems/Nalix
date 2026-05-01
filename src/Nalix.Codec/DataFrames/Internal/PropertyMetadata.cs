@@ -5,11 +5,11 @@ using System;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using Nalix.Codec.Serialization.Internal.Types;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
-using Nalix.Abstractions;
+using Nalix.Codec.Serialization.Internal.Types;
 
 namespace Nalix.Codec.DataFrames.Internal;
 

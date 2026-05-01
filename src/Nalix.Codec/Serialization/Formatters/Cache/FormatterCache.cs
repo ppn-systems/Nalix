@@ -3,7 +3,6 @@
 
 #if DEBUG
 using System.Runtime.CompilerServices;
-using Nalix.Codec.Serialization;
 
 [assembly: InternalsVisibleTo("Nalix.Framework.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]

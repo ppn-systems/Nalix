@@ -2,9 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Codec.Memory;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 

@@ -3,12 +3,11 @@
 
 using System;
 using System.Runtime.InteropServices;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization;
-using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;

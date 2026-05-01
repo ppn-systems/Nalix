@@ -53,8 +53,8 @@ internal static class LZ4Encoder
             {
                 // Safety: We slice the output span to exclude the header area.
                 // This ensures LZ4BlockEncoder.EncodeBlock can only write into the remaining space.
-                Span<byte> compressedDataOutput = output.Slice(LZ4BlockHeader.Size);
-                
+                Span<byte> compressedDataOutput = output[LZ4BlockHeader.Size..];
+
                 int compressedDataLength =
                     LZ4BlockEncoder.EncodeBlock(input, compressedDataOutput, hashTable, hashBits);
 

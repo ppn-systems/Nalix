@@ -5,10 +5,10 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.Extensions;
-using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions;
 
 namespace Nalix.SDK.Transport.Extensions;
 

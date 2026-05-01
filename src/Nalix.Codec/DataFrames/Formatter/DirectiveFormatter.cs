@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames.SignalFrames;
@@ -29,7 +28,7 @@ public sealed class DirectiveFormatter : IFillableFormatter<Directive> //[cite: 
         writer.Expand(Directive.Size); //[cite: 12]
 
         // --- Header Section ---
-        writer.WriteUnmanaged(((IPacket)value).Header);
+        writer.WriteUnmanaged(value.Header);
 
         // --- Payload Section ---
         writer.WriteEnum(value.Type);     //[cite: 12]
@@ -55,7 +54,7 @@ public sealed class DirectiveFormatter : IFillableFormatter<Directive> //[cite: 
     public void Fill(ref DataReader reader, Directive value) //[cite: 11, 12]
     {
         // --- Header Section ---
-        ((IPacket)value).Header = reader.ReadUnmanaged<PacketHeader>();
+        value.Header = reader.ReadUnmanaged<PacketHeader>();
 
         // --- Payload Section ---
         value.Type = reader.ReadEnumByte<ControlType>();            //[cite: 12]

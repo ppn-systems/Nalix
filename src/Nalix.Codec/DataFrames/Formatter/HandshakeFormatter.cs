@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames.SignalFrames;
@@ -29,7 +28,7 @@ public sealed class HandshakeFormatter : IFillableFormatter<Handshake> //[cite: 
         writer.Expand(Handshake.Size); //[cite: 13]
 
         // --- Header Section ---
-        writer.WriteUnmanaged(((IPacket)value).Header);
+        writer.WriteUnmanaged(value.Header);
 
         // --- Payload Section ---
         writer.WriteEnum(value.Stage);                   //[cite: 13]
@@ -55,7 +54,7 @@ public sealed class HandshakeFormatter : IFillableFormatter<Handshake> //[cite: 
     public void Fill(ref DataReader reader, Handshake value) //[cite: 11, 13]
     {
         // --- Header Section ---
-        ((IPacket)value).Header = reader.ReadUnmanaged<PacketHeader>();
+        value.Header = reader.ReadUnmanaged<PacketHeader>();
 
         // --- Payload Section ---
         value.Stage = reader.ReadEnumByte<HandshakeStage>();           //[cite: 13]

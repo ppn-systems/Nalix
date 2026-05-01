@@ -7,8 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-
 namespace Nalix.Network.Protocols;
 
 public abstract partial class Protocol

@@ -2,12 +2,13 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Codec.Memory;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
+using Nalix.Codec.Memory;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
-using Nalix.Abstractions;
 
 namespace Nalix.SDK.Transport;
 
@@ -217,7 +218,7 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        var hdr = packet.Header;
+        PacketHeader hdr = packet.Header;
         hdr.Flags = (hdr.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
         packet.Header = hdr;
 

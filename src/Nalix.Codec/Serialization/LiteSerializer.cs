@@ -9,7 +9,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
-using Nalix.Codec.DataFrames.Formatter;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Formatters.Automatic;

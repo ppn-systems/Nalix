@@ -4,10 +4,9 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Nalix.Abstractions.Serialization;
-using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization.Internal;
 
 namespace Nalix.Codec.Extensions;
 
