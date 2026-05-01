@@ -129,7 +129,7 @@ public sealed class PacketRegistry : IPacketRegistry
                 $"Expected at least {PacketConstants.HeaderSize} bytes, but got {raw.Length}.", nameof(raw));
         }
 
-        uint magic = raw.ReadMagicNumberLE();
+        uint magic = raw.ReadHeaderLE().MagicNumber;
 
         if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
         {
@@ -151,7 +151,7 @@ public sealed class PacketRegistry : IPacketRegistry
             return false;
         }
 
-        uint magic = raw.ReadMagicNumberLE();
+        uint magic = raw.ReadHeaderLE().MagicNumber;
         if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer) || deserializer is null)
         {
             packet = null;

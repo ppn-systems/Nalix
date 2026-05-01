@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
@@ -40,7 +41,9 @@ public static class FrameCipher
         try
         {
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm);
-            dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().RemoveFlag(PacketFlags.ENCRYPTED));
+            PacketHeader header = dest.Span.ReadHeaderLE();
+            header.Flags = header.Flags.RemoveFlag(PacketFlags.ENCRYPTED);
+            dest.Span.WriteHeaderLE(header);
             return dest;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -63,7 +66,9 @@ public static class FrameCipher
         try
         {
             FrameTransformer.Encrypt(src, dest, key, suite);
-            dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().AddFlag(PacketFlags.ENCRYPTED));
+            PacketHeader header = dest.Span.ReadHeaderLE();
+            header.Flags = header.Flags.AddFlag(PacketFlags.ENCRYPTED);
+            dest.Span.WriteHeaderLE(header);
             return dest;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

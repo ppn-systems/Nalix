@@ -8,6 +8,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 
@@ -37,7 +38,9 @@ public static class FrameCompression
         try
         {
             FrameTransformer.Decompress(src, dest);
-            dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().RemoveFlag(PacketFlags.COMPRESSED));
+            PacketHeader header = dest.Span.ReadHeaderLE();
+            header.Flags = header.Flags.RemoveFlag(PacketFlags.COMPRESSED);
+            dest.Span.WriteHeaderLE(header);
             return dest;
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
@@ -67,7 +70,9 @@ public static class FrameCompression
         try
         {
             FrameTransformer.Compress(src, dest);
-            dest.Span.WriteFlagsLE(dest.Span.ReadFlagsLE().AddFlag(PacketFlags.COMPRESSED));
+            PacketHeader header = dest.Span.ReadHeaderLE();
+            header.Flags = header.Flags.AddFlag(PacketFlags.COMPRESSED);
+            dest.Span.WriteHeaderLE(header);
             return dest;
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
