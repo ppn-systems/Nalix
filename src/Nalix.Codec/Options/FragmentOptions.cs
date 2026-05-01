@@ -93,6 +93,11 @@ public sealed class FragmentOptions : ConfigurationLoader
             throw new ValidationException($"ReassemblyTimeoutMs={this.ReassemblyTimeoutMs} must be at most 1 hour (3600000 ms).");
         }
 
+        if (this.MaxChunkSize <= 0)
+        {
+            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be positive.");
+        }
+
         if (this.MaxPayloadSize < this.MaxChunkSize)
         {
             throw new ValidationException(
