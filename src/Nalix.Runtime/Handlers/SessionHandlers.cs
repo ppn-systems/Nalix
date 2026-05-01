@@ -122,7 +122,7 @@ public sealed class SessionHandlers
         Span<byte> responseProofBytes = stackalloc byte[32];
         HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), newTokenBytes, responseProofBytes);
 
-        using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
+        using PacketScope<SessionResume> lease = PacketFactory<SessionResume>.Acquire();
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,
@@ -168,7 +168,7 @@ public sealed class SessionHandlers
     {
         IConnection.ITransport tcp = connection.TCP;
 
-        using PacketLease<SessionResume> lease = PacketPool<SessionResume>.Rent();
+        using PacketScope<SessionResume> lease = PacketFactory<SessionResume>.Acquire();
         SessionResume ack = lease.Value;
         ack.Initialize(
             stage: SessionResumeStage.RESPONSE,

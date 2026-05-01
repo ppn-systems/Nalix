@@ -145,5 +145,15 @@ public sealed class TaskManagerOptions : ConfigurationLoader
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("CpuWarmupDuration cannot be negative.");
         }
+
+        if (this.MaxWorkers <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxWorkers must be positive.");
+        }
+
+        if (this.ObservingInterval <= TimeSpan.Zero)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("ObservingInterval must be positive.");
+        }
     }
 }

@@ -3,12 +3,12 @@
 
 using System;
 using System.Threading.Tasks;
-using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
@@ -94,7 +94,7 @@ public sealed class SystemControlHandlers
 
         connection.Algorithm = requestedSuite;
 
-        using PacketLease<Control> lease = PacketPool<Control>.Rent();
+        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control ack = lease.Value;
         ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
 
@@ -103,7 +103,7 @@ public sealed class SystemControlHandlers
 
     private static async ValueTask HandlePing(IConnection connection, Control ping)
     {
-        using PacketLease<Control> lease = PacketPool<Control>.Rent();
+        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control pong = lease.Value;
         pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ping.Flags, ProtocolReason.NONE);
 
@@ -112,7 +112,7 @@ public sealed class SystemControlHandlers
 
     private static async ValueTask HandleTimeSyncRequest(IConnection connection, Control req)
     {
-        using PacketLease<Control> lease = PacketPool<Control>.Rent();
+        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control res = lease.Value;
         res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags, ProtocolReason.NONE);
 

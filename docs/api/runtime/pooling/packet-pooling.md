@@ -1,93 +1,72 @@
 ﻿# Packet Pooling
 
-`Nalix.Framework.DataFrames.Pooling` provides packet-specific pooling helpers for reusable packet instances.
+`Nalix.Runtime.Pooling` provides packet-specific pooling helpers for reusable packet instances.
 
 ## Source mapping
 
-- `src/Nalix.Runtime/Pooling/PacketLease.cs`
-- `src/Nalix.Runtime/Pooling/PacketPool.cs`
+- `src/Nalix.Runtime/Pooling/PacketFactory.cs`
+- `src/Nalix.Runtime/Pooling/PacketScope.cs`
 
 ## Main types
 
-- `PacketLease<TPacket>`
-- `PacketPool<TPacket>`
+- `PacketFactory<TPacket>`
+- `PacketScope<TPacket>`
 
 ## Public members at a glance
 
 | Type | Public members |
 |---|---|
-| `PacketLease<TPacket>` | `Value`, `Dispose()` |
-| `PacketPool<TPacket>` | `Rent`, `Get`, `Return`, `Prealloc`, `Clear` |
+| `PacketScope<TPacket>` | `Value`, `IsValid`, `Dispose()` |
+| `PacketFactory<TPacket>` | `Acquire()` |
 
-## PacketLease<`TPacket`>
+## PacketScope<`TPacket`>
 
-`PacketLease<TPacket>` represents exclusive ownership of a pooled packet instance.
+`PacketScope<TPacket>` is a zero-allocation readonly struct that ensures a rented packet is returned to its pool upon disposal.
 
-Disposing the lease returns the packet to its originating pool.
+Disposing the scope returns the packet to its originating pool.
 
 That makes it a good fit when you want a short-lived packet object without manually returning it yourself.
 
 ### Practical notes
 
-- the lease owns exactly one packet instance
-- the packet is returned when the lease is disposed
+- the scope wraps exactly one packet instance
+- the packet is returned when the scope is disposed
 - use `using` or `using var` so the pool release happens even if later code throws
 
-## PacketPool<`TPacket`>
+## PacketFactory<`TPacket`>
 
-`PacketPool<TPacket>` is the static pool API for a specific packet type.
+`PacketFactory<TPacket>` is the static pool API for a specific packet type.
 
 It provides:
 
-- `Rent()`
-- `Get()`
-- `Return(...)`
-- `Prealloc(...)`
-- `Clear()`
+- `Acquire()` — rents a packet and wraps it in a `PacketScope<TPacket>`
 
 ### Practical notes
 
-- `Rent()` is the safest option when you want automatic return behavior
-- `Get()` is useful when you need a raw packet instance and will manage the return path yourself
-- `Prealloc(...)` is useful for startup warm-up
-- `Clear()` drops pooled instances for that packet type
+- `Acquire()` is the safest option — the returned scope automatically returns the packet on dispose
+- for startup warm-up or pool reset, use `ObjectPoolManager.Prealloc<T>()` and `ObjectPoolManager.ClearPool<T>()` directly
 
 ### Common pitfalls
 
-- forgetting to dispose a lease
-- returning a packet manually after it was already leased
+- forgetting to dispose a scope
+- using a packet reference after its scope has been disposed
 - keeping a pooled packet reference alive after it was returned
 
 ## Basic usage
 
 ```csharp
-using PacketLease<Control> lease = PacketPool<Control>.Rent();
-Control packet = lease.Value;
+using PacketScope<Control> scope = PacketFactory<Control>.Acquire();
+Control packet = scope.Value;
 packet.Type = ControlType.PING;
-```
-
-Or, if you need direct control:
-
-```csharp
-Control packet = PacketPool<Control>.Get();
-try
-{
-    packet.Type = ControlType.PONG;
-}
-finally
-{
-    PacketPool<Control>.Return(packet);
-}
 ```
 
 ## When to use which
 
 | Need | Start with |
 | --- | --- |
-| Automatic return to the pool | `PacketLease<TPacket>` |
-| Raw packet ownership | `PacketPool<TPacket>.Get()` |
-| Startup warm-up | `PacketPool<TPacket>.Prealloc(...)` |
-| Pool reset or teardown | `PacketPool<TPacket>.Clear()` |
+| Automatic return to the pool | `PacketScope<TPacket>` via `PacketFactory<T>.Acquire()` |
+| Startup warm-up | `ObjectPoolManager.Prealloc<T>(count)` |
+| Pool reset or teardown | `ObjectPoolManager.ClearPool<T>()` |
 
 ## Related APIs
 

@@ -4,9 +4,9 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
-using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Extensions;
@@ -49,7 +49,7 @@ public static class ConnectionExtensions
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        using PacketLease<Directive> lease = PacketPool<Directive>.Rent();
+        using PacketScope<Directive> lease = PacketFactory<Directive>.Acquire();
         Directive directive = lease.Value;
 
         directive.Initialize(

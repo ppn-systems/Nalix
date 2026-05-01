@@ -3,9 +3,9 @@
 
 using System;
 using System.ComponentModel.DataAnnotations;
-using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Codec.Options;
@@ -26,7 +26,6 @@ public sealed class FragmentOptions : ConfigurationLoader
     /// Default: 16 MB.
     /// </summary>
     [IniComment("Max allowed payload size in bytes before sending (default 16MB)")]
-    [Range(1, int.MaxValue, ErrorMessage = "MaxPayloadSize must be positive.")]
     public int MaxPayloadSize { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
@@ -38,7 +37,6 @@ public sealed class FragmentOptions : ConfigurationLoader
     /// Default: 1,400 bytes (fits a single Ethernet MTU after TCP/IP overhead).
     /// </summary>
     [IniComment("Max chunk size in bytes (default 1400)")]
-    [Range(1, 65000, ErrorMessage = "MaxChunkSize must be between 1 and 65000.")]
     public int MaxChunkSize { get; set; } = 1_400;
 
     /// <summary>
@@ -47,7 +45,6 @@ public sealed class FragmentOptions : ConfigurationLoader
     /// Default: 16 MB.
     /// </summary>
     [IniComment("Max reassembly buffer per stream (default 16MB)")]
-    [Range(1, int.MaxValue, ErrorMessage = "MaxReassemblyBytes must be positive.")]
     public int MaxReassemblyBytes { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
@@ -55,7 +52,6 @@ public sealed class FragmentOptions : ConfigurationLoader
     /// Default: 30,000 ms.
     /// </summary>
     [IniComment("Incomplete stream reassembly timeout in milliseconds (default 30,000)")]
-    [Range(100, 3600000, ErrorMessage = "ReassemblyTimeoutMs must be between 100ms and 1 hour.")]
     public long ReassemblyTimeoutMs { get; set; } = 30_000;
 
     /// <summary>
@@ -67,13 +63,38 @@ public sealed class FragmentOptions : ConfigurationLoader
         ValidationContext context = new(this);
         Validator.ValidateObject(this, context, validateAllProperties: true);
 
+        if (this.MaxPayloadSize <= 0)
+        {
+            throw new ValidationException($"MaxPayloadSize={this.MaxPayloadSize} must be positive.");
+        }
+
+        if (this.MaxChunkSize <= 0 || this.MaxChunkSize > 65000)
+        {
+            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be in range [1, 65000].");
+        }
+
+        if (this.MaxReassemblyBytes <= 0)
+        {
+            throw new ValidationException($"MaxReassemblyBytes={this.MaxReassemblyBytes} must be positive.");
+        }
+
+        if (this.ReassemblyTimeoutMs < 100)
+        {
+            throw new ValidationException($"ReassemblyTimeoutMs={this.ReassemblyTimeoutMs} must be at least 100 ms.");
+        }
+
+        if (this.ReassemblyTimeoutMs > 3600000)
+        {
+            throw new ValidationException($"ReassemblyTimeoutMs={this.ReassemblyTimeoutMs} must be at most 1 hour (3600000 ms).");
+        }
+
         if (this.MaxPayloadSize < this.MaxChunkSize)
         {
             throw new ValidationException(
                 $"MaxPayloadSize={this.MaxPayloadSize} must be >= MaxChunkSize={this.MaxChunkSize}.");
         }
 
-        int maxChunkCount = (this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
+        long maxChunkCount = ((long)this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
         if (maxChunkCount > ushort.MaxValue)
         {
             throw new ValidationException(

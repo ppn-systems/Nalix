@@ -90,7 +90,7 @@ The `LZ4Codec` provides pooled block compression and decompression optimized for
 
 To preserve these performance characteristics in your own handlers and middleware:
 
-1. **Always dispose `BufferLease` and `PacketLease<T>`** â€” Leaking pooled resources degrades throughput over time.
+1. **Always dispose `BufferLease` and `PacketScope<T>`** â€” Leaking pooled resources degrades throughput over time.
 2. **Avoid blocking in handlers** â€” Use `async`/`await` for I/O. For scheduled work, use `TaskManager` or `TimingWheel` instead of `Task.Delay`.
 3. **Prefer `ValueTask` for handler return types** â€” Avoids unnecessary `Task` allocations on synchronous (already-complete) code paths.
 4. **Use `IPacketContext.Packet`** â€” Access the deserialized packet from the context rather than creating new instances.

@@ -1,6 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
@@ -25,7 +26,9 @@ public sealed class SecurityOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        if (this.Pbkdf2Iterations < 1000 || this.Pbkdf2Iterations > 10_000_000)
+        {
+            throw new ValidationException("Pbkdf2Iterations must be between 1,000 and 10,000,000 for security and performance reasons.");
+        }
     }
 }

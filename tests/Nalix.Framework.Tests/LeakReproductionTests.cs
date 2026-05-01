@@ -18,7 +18,7 @@ public class LeakReproductionTests
         var poolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         
         // Ensure Handshake is registered in the pool
-        using var initialLease = PacketPool<Handshake>.Rent();
+        using var initialLease = PacketFactory<Handshake>.Acquire();
         var initialInstance = initialLease.Value;
         
         // Create a dummy buffer for Handshake
@@ -30,7 +30,7 @@ public class LeakReproductionTests
         int length = LiteSerializer.Serialize(initialInstance, buffer);
         
         // 2. The Test
-        using var testLease = PacketPool<Handshake>.Rent();
+        using var testLease = PacketFactory<Handshake>.Acquire();
         var testInstance = testLease.Value;
         var originalReference = testInstance;
         

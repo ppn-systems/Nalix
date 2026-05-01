@@ -55,7 +55,7 @@ flowchart TD
     C -- no --> D
     D --> G{"DirectiveGuard.TryAcquire unauthorized slot"}
     G -- no --> S["return without sending duplicate directive"]
-    G -- yes --> R["rent Directive from PacketPool"]
+    G -- yes --> R["acquire Directive via PacketFactory"]
     R --> I["Initialize FAIL / UNAUTHORIZED"]
     I --> X["SendAsync(directive)"]
     X --> Z["return without next"]
@@ -63,8 +63,8 @@ flowchart TD
 
 ## Rejection Directive
 
-On denial, the middleware rents a `Directive` from `PacketPool<Directive>` through a
-`PacketLease<Directive>` and initializes it as:
+On denial, the middleware acquires a `Directive` via `PacketFactory<Directive>.Acquire()` through a
+`PacketScope<Directive>` and initializes it as:
 
 | Field | Runtime value |
 | --- | --- |

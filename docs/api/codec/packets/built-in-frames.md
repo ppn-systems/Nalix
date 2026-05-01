@@ -58,10 +58,10 @@ Important public members:
 
 Packet instances are pooled through type-specific helpers:
 
-- `PacketPool<TPacket>`
-- `PacketLease<TPacket>`
+- `PacketFactory<TPacket>` — rents a packet wrapped in `PacketScope<TPacket>`
+- `PacketScope<TPacket>` — zero-allocation scope that returns the packet on dispose
 
-Use the lease-based API when you want the packet to return itself to the pool automatically.
+Use the scope-based API when you want the packet to return itself to the pool automatically.
 
 ## Related APIs
 

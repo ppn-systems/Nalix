@@ -13,21 +13,18 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Environment.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
-using Nalix.Abstractions;
-
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
 
 namespace Nalix.Network.RateLimiting;
 
@@ -386,57 +383,57 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     continue; // Retry with a fresh GetOrAdd, this one is tombstoned
                 }
 
-            if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
-            {
-                DateTime banUntil = now + _config.BanDuration;
-                _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
-
-                this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
-                shouldForceClose = true;
-
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
                 {
-                    _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
+                    DateTime banUntil = now + _config.BanDuration;
+                    _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
+
+                    this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
+                    shouldForceClose = true;
+
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
+                    }
+
+                    result = new ConnectionAllowResult
+                    {
+                        Allowed = false,
+                        CurrentConnections = entry.Info.CurrentConnections
+                    };
                 }
-
-                result = new ConnectionAllowResult
+                else if (entry.Info.CurrentConnections >= _maxPerEndpoint)
                 {
-                    Allowed = false,
-                    CurrentConnections = entry.Info.CurrentConnections
-                };
-            }
-            else if (entry.Info.CurrentConnections >= _maxPerEndpoint)
-            {
-                // Concurrent connection limit reached for this IP
-                result = new ConnectionAllowResult
+                    // Concurrent connection limit reached for this IP
+                    result = new ConnectionAllowResult
+                    {
+                        Allowed = false,
+                        CurrentConnections = entry.Info.CurrentConnections
+                    };
+                }
+                else
                 {
-                    Allowed = false,
-                    CurrentConnections = entry.Info.CurrentConnections
-                };
-            }
-            else
-            {
-                int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now, _config.DailyResetTimeOffset);
+                    int newTotalToday = CALCULATE_TOTAL_CONNECTIONS_TODAY(entry.Info, now, _config.DailyResetTimeOffset);
 
-                entry.Info = entry.Info with
+                    entry.Info = entry.Info with
+                    {
+                        CurrentConnections = entry.Info.CurrentConnections + 1,
+                        TotalConnectionsToday = newTotalToday,
+                        LastConnectionTime = now
+                    };
+
+                    entry.RecentConnectionTimestamps.Enqueue(now);
+
+                    result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
+                }
+            }
+            finally
+            {
+                if (spinLockTaken)
                 {
-                    CurrentConnections = entry.Info.CurrentConnections + 1,
-                    TotalConnectionsToday = newTotalToday,
-                    LastConnectionTime = now
-                };
-
-                entry.RecentConnectionTimestamps.Enqueue(now);
-
-                result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
+                    entry.SpinLock.Exit();
+                }
             }
-        }
-        finally
-        {
-            if (spinLockTaken)
-            {
-                entry.SpinLock.Exit();
-            }
-        }
 
             // WHY: Schedule ForceClose AFTER exiting the lock.
             // ForceClose needs to close all connections to this IP — possibly locking ConnectionHub.
@@ -858,8 +855,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             int scanned = 0;
             int removed = 0;
 
-            int maxCleanupKeys = _config.MaxCleanupKeysPerRun > 0 
-                ? _config.MaxCleanupKeysPerRun 
+            int maxCleanupKeys = _config.MaxCleanupKeysPerRun > 0
+                ? _config.MaxCleanupKeysPerRun
                 : Math.Max(1000, _map.Count / 4);
 
             List<INetworkEndpoint> keysToRemove = new(Math.Min(maxCleanupKeys, _map.Count));

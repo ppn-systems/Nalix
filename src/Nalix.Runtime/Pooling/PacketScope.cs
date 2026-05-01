@@ -11,7 +11,7 @@ namespace Nalix.Runtime.Pooling;
 /// A zero-allocation wrapper that ensures a rented packet is returned to its pool upon disposal.
 /// </summary>
 /// <typeparam name="TPacket">The packet type.</typeparam>
-public readonly struct PacketLease<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, new()
+public readonly struct PacketScope<TPacket> : IDisposable where TPacket : PacketBase<TPacket>, new()
 {
     #region Fields
 
@@ -25,7 +25,7 @@ public readonly struct PacketLease<TPacket> : IDisposable where TPacket : Packet
     /// Initializes a new lease for the specified packet.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public PacketLease(TPacket packet) => _packet = packet;
+    public PacketScope(TPacket packet) => _packet = packet;
 
     #endregion Constructor
 
@@ -55,7 +55,7 @@ public readonly struct PacketLease<TPacket> : IDisposable where TPacket : Packet
     /// Implicitly converts the lease to its underlying packet instance.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static implicit operator TPacket(PacketLease<TPacket> lease) => lease._packet;
+    public static implicit operator TPacket(PacketScope<TPacket> lease) => lease._packet;
 
     #endregion Methods
 }

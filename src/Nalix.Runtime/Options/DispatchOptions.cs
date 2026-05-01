@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration.Binding;
@@ -87,6 +88,32 @@ public sealed class DispatchOptions : ConfigurationLoader
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException(
                 $"{nameof(this.MinBucketCount)} ({this.MinBucketCount}) cannot be greater than {nameof(this.MaxBucketCount)} ({this.MaxBucketCount}).");
+        }
+
+        if (string.IsNullOrWhiteSpace(this.PriorityWeights))
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("PriorityWeights must not be empty.");
+        }
+
+        string[] parts = this.PriorityWeights.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 5)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"PriorityWeights must contain exactly 5 comma-separated values [NONE, LOW, MEDIUM, HIGH, URGENT], got {parts.Length}.");
+        }
+
+        foreach (string part in parts)
+        {
+            if (!int.TryParse(part, out int w) || w <= 0)
+            {
+                throw new System.ComponentModel.DataAnnotations.ValidationException(
+                    $"PriorityWeights contains invalid value '{part}'. All weights must be positive integers.");
+            }
+        }
+
+        if (this.BlockTimeout < TimeSpan.Zero)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("BlockTimeout cannot be negative.");
         }
     }
 }

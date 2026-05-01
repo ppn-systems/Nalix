@@ -51,8 +51,16 @@ public sealed class HostingOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public static void Validate()
+    public void Validate()
     {
-        // No validation needed for boolean flags
+        if (this.MinWorkerThreads < 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MinWorkerThreads cannot be negative.");
+        }
+
+        if (this.MinCompletionPortThreads < 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MinCompletionPortThreads cannot be negative.");
+        }
     }
 }

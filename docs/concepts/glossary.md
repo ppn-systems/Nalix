@@ -64,9 +64,9 @@ The base class for all Nalix packets. Provides system header management (magic, 
 - Cancellation token
 - A pooled sender for manual replies
 
-## PacketPool
+## PacketFactory / PacketScope
 
-`PacketPool<TPacket>` / `PacketLease<TPacket>` — Thread-safe pooling for reusable packet instances. Rent a packet, populate it, send it, then dispose the lease to return it.
+`PacketFactory<TPacket>` — Static factory that rents a packet and wraps it in a `PacketScope<TPacket>`. `PacketScope<TPacket>` is a zero-allocation struct that returns the packet to its pool on dispose.
 
 ## PacketRegistry
 

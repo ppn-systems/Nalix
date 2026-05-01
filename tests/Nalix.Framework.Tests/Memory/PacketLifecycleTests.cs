@@ -44,7 +44,7 @@ public sealed class PacketLifecycleTests : IDisposable
         Assert.Equal(1L, (long)_manager.GetTypeInfo<Handshake>()["Outstanding"]);
 
         // Create a lease
-        using (var lease = new PacketLease<Handshake>(packet))
+        using (var lease = new PacketScope<Handshake>(packet))
         {
             Assert.Same(packet, lease.Value);
         }

@@ -67,7 +67,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        using PacketLease<Directive> lease = PacketPool<Directive>.Rent();
+        using PacketScope<Directive> lease = PacketFactory<Directive>.Acquire();
         Directive directive = lease.Value;
 
         try

@@ -18,7 +18,7 @@ internal static class StringBuilderPool
     public static StringBuilder Rent()
     {
         t_sb ??= new StringBuilder(4096);
-        t_sb.Clear();
+        _ = t_sb.Clear();
         return t_sb;
     }
 }
