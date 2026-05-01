@@ -15,7 +15,7 @@ namespace Nalix.Codec.DataFrames;
 /// </summary>
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public abstract class FrameBase : IPacket
+public abstract class FrameBase : IPacket, IPacketHeader
 {
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
@@ -23,53 +23,51 @@ public abstract class FrameBase : IPacket
     [SerializeIgnore] public abstract int Length { get; }
 
     /// <inheritdoc/>
-
     [SerializeHeader(0)] private PacketHeader _header;
 
     /// <inheritdoc/>
     [SerializeIgnore]
     public PacketHeader Header { get => _header; set => _header = value; }
 
-    // --- Facade Properties ---
-    // These properties modify the Header struct directly without copying it.
+    // --- IPacketHeaderAccessor: direct field access, zero-copy ---
 
-    /// <summary>Gets or sets the magic number.</summary>
+    /// <inheritdoc/>
     [SerializeIgnore]
     public uint MagicNumber
     {
-        get => this.Header.MagicNumber;
+        get => _header.MagicNumber;
         set => _header.MagicNumber = value;
     }
 
-    /// <summary>Gets or sets the operation code.</summary>
+    /// <inheritdoc/>
     [SerializeIgnore]
     public ushort OpCode
     {
-        get => this.Header.OpCode;
+        get => _header.OpCode;
         set => _header.OpCode = value;
     }
 
-    /// <summary>Gets or sets the packet flags.</summary>
+    /// <inheritdoc/>
     [SerializeIgnore]
     public PacketFlags Flags
     {
-        get => this.Header.Flags;
+        get => _header.Flags;
         set => _header.Flags = value;
     }
 
-    /// <summary>Gets or sets the priority.</summary>
+    /// <inheritdoc/>
     [SerializeIgnore]
     public PacketPriority Priority
     {
-        get => this.Header.Priority;
+        get => _header.Priority;
         set => _header.Priority = value;
     }
 
-    /// <summary>Gets or sets the sequence identifier.</summary>
+    /// <inheritdoc/>
     [SerializeIgnore]
     public ushort SequenceId
     {
-        get => this.Header.SequenceId;
+        get => _header.SequenceId;
         set => _header.SequenceId = value;
     }
 

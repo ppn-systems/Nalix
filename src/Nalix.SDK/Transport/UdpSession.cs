@@ -11,7 +11,6 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.SDK.Options;
@@ -247,9 +246,11 @@ public class UdpSession : TransportSession
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
-        PacketHeader hdr = packet.Header;
-        hdr.Flags = (hdr.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
-        packet.Header = hdr;
+        if (packet is IPacketHeader h)
+        {
+            h.Flags = (h.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
+        }
+
         int packetLength = packet.Length;
 
         if (packetLength + ISnowflake.Size > this.Options.MaxUdpDatagramSize)

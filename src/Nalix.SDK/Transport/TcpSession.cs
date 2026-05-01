@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Memory;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
@@ -218,9 +217,10 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        PacketHeader hdr = packet.Header;
-        hdr.Flags = (hdr.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
-        packet.Header = hdr;
+        if (packet is IPacketHeader h)
+        {
+            h.Flags = (h.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
+        }
 
         BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));

@@ -22,30 +22,25 @@ public struct PacketHeader
     /// <summary>
     /// Gets the magic number that identifies the packet format or protocol.
     /// </summary>
-    [FieldOffset((int)PacketHeaderOffset.MagicNumber)]
-    public uint MagicNumber;
+    [FieldOffset((int)PacketHeaderOffset.MagicNumber)] public uint MagicNumber;
 
     /// <summary>
     /// Gets the operation code that identifies the packet handler.
     /// </summary>
-    [FieldOffset((int)PacketHeaderOffset.OpCode)]
-    public ushort OpCode;
+    [FieldOffset((int)PacketHeaderOffset.OpCode)] public ushort OpCode;
 
     /// <summary>
     /// Gets the flags associated with the packet.
     /// </summary>
-    [FieldOffset((int)PacketHeaderOffset.Flags)]
-    public PacketFlags Flags;
+    [FieldOffset((int)PacketHeaderOffset.Flags)] public PacketFlags Flags;
 
     /// <summary>
     /// Gets the priority level of the packet.
     /// </summary>
-    [FieldOffset((int)PacketHeaderOffset.Priority)]
-    public PacketPriority Priority;
+    [FieldOffset((int)PacketHeaderOffset.Priority)] public PacketPriority Priority;
 
     /// <summary>
     /// Gets the sequence identifier used to correlate requests and responses.
     /// </summary>
-    [FieldOffset((int)PacketHeaderOffset.SequenceId)]
-    public ushort SequenceId;
+    [FieldOffset((int)PacketHeaderOffset.SequenceId)] public ushort SequenceId;
 }
