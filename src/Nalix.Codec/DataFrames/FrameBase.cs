@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.DataFrames;
@@ -21,30 +22,56 @@ public abstract class FrameBase : IPacket
     /// </summary>
     [SerializeIgnore] public abstract int Length { get; }
 
-    /// <summary>
-    /// Gets the magic number used to identify the packet format.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.MagicNumber)] public uint MagicNumber { get; set; }
+    /// <inheritdoc/>
 
-    /// <summary>
-    /// Gets the operation code (OpCode) of this packet.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.OpCode)] public ushort OpCode { get; set; }
+    [SerializeHeader(0)] private PacketHeader _header;
 
-    /// <summary>
-    /// Gets the flags associated with this packet.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Flags)] public PacketFlags Flags { get; set; }
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public PacketHeader Header { get => _header; set => _header = value; }
 
-    /// <summary>
-    /// Gets the packet priority.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Priority)] public PacketPriority Priority { get; set; }
+    // --- Facade Properties ---
+    // These properties modify the Header struct directly without copying it.
 
-    /// <summary>
-    /// Gets or sets the sequence identifier used for packet correlation.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.SequenceId)] public ushort SequenceId { get; set; }
+    /// <summary>Gets or sets the magic number.</summary>
+    [SerializeIgnore]
+    public uint MagicNumber
+    {
+        get => this.Header.MagicNumber;
+        set => _header.MagicNumber = value;
+    }
+
+    /// <summary>Gets or sets the operation code.</summary>
+    [SerializeIgnore]
+    public ushort OpCode
+    {
+        get => this.Header.OpCode;
+        set => _header.OpCode = value;
+    }
+
+    /// <summary>Gets or sets the packet flags.</summary>
+    [SerializeIgnore]
+    public PacketFlags Flags
+    {
+        get => this.Header.Flags;
+        set => _header.Flags = value;
+    }
+
+    /// <summary>Gets or sets the priority.</summary>
+    [SerializeIgnore]
+    public PacketPriority Priority
+    {
+        get => this.Header.Priority;
+        set => _header.Priority = value;
+    }
+
+    /// <summary>Gets or sets the sequence identifier.</summary>
+    [SerializeIgnore]
+    public ushort SequenceId
+    {
+        get => this.Header.SequenceId;
+        set => _header.SequenceId = value;
+    }
 
     /// <inheritdoc/>
     public abstract void ResetForPool();
