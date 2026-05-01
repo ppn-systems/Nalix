@@ -246,7 +246,9 @@ public class UdpSession : TransportSession
         ArgumentNullException.ThrowIfNull(packet);
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
-        packet.Flags = (packet.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
+        var hdr = packet.Header;
+        hdr.Flags = (hdr.Flags & ~PacketFlags.RELIABLE) | PacketFlags.UNRELIABLE;
+        packet.Header = hdr;
         int packetLength = packet.Length;
 
         if (packetLength + ISnowflake.Size > this.Options.MaxUdpDatagramSize)

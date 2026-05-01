@@ -75,7 +75,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             directive.Initialize(
                 ControlType.FAIL,
                 ProtocolReason.UNAUTHORIZED, ProtocolAdvice.NONE,
-                sequenceId: context.Packet.SequenceId,
+                sequenceId: context.Packet.Header.SequenceId,
                 controlFlags: ControlFlags.NONE,
                 arg0: 0,
                 arg1: 0,

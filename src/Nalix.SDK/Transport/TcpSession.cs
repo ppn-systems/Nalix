@@ -217,7 +217,9 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        packet.Flags = (packet.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
+        var hdr = packet.Header;
+        hdr.Flags = (hdr.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
+        packet.Header = hdr;
 
         BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));

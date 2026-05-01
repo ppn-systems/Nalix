@@ -56,7 +56,7 @@ public static class TcpSessionSubscriptions
                 return;
             }
 
-            uint magic = buffer.Span.ReadMagicNumberLE();
+            uint magic = buffer.Span.ReadHeaderLE().MagicNumber;
             if (magic != targetMagic)
             {
                 return;
@@ -211,7 +211,7 @@ public static class TcpSessionSubscriptions
                 return;
             }
 
-            uint bufferMagic = buffer.Span.ReadMagicNumberLE();
+            uint bufferMagic = buffer.Span.ReadHeaderLE().MagicNumber;
             if (bufferMagic != targetMagic)
             {
                 return;
