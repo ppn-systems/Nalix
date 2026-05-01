@@ -96,7 +96,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     {
         if (this.LocalOwner is Connections.Connection owner)
         {
-            owner.ReturnContextInternal(this);
+            owner.ReturnContext(this);
             return;
         }
 
