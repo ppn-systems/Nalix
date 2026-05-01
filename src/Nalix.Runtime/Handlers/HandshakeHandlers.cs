@@ -11,7 +11,6 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
@@ -19,9 +18,8 @@ using Nalix.Codec.Security;
 using Nalix.Codec.Security.Asymmetric;
 using Nalix.Environment.IO;
 using Nalix.Environment.Random;
-using Nalix.Framework.Injection;
-using Nalix.Runtime.Pooling;
 using Nalix.Runtime.Extensions;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -268,7 +266,7 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+        using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
         Handshake reply = lease.Value;
         reply.Stage = HandshakeStage.SERVER_HELLO;
         reply.PublicKey = serverKey.PublicKey;
@@ -313,7 +311,7 @@ public sealed class HandshakeHandlers
             await hub.SessionStore.StoreAsync(connection).ConfigureAwait(false);
         }
 
-        using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+        using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
 
         Handshake reply = lease.Value;
         reply.Stage = HandshakeStage.SERVER_FINISH;
@@ -333,7 +331,7 @@ public sealed class HandshakeHandlers
 
         try
         {
-            using PacketLease<Handshake> lease = PacketPool<Handshake>.Rent();
+            using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
 
             Handshake error = lease.Value;
             error.InitializeError(reason, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);

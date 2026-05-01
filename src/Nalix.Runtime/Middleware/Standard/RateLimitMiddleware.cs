@@ -96,7 +96,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             }
 
             // Unified response format: FAIL + RETRY (consistent with RateLimitMiddleware)
-            using PacketLease<Directive> lease = PacketPool<Directive>.Rent();
+            using PacketScope<Directive> lease = PacketFactory<Directive>.Acquire();
             Directive directive = lease.Value;
 
             directive.Initialize(

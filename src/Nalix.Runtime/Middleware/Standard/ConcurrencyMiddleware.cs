@@ -73,7 +73,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                         return;
                     }
 
-                    using PacketLease<Directive> packetLease = PacketPool<Directive>.Rent();
+                    using PacketScope<Directive> packetLease = PacketFactory<Directive>.Acquire();
                     Directive directive = packetLease.Value;
 
                     directive.Initialize(
@@ -100,7 +100,7 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                 return;
             }
 
-            using PacketLease<Directive> packetLease = PacketPool<Directive>.Rent();
+            using PacketScope<Directive> packetLease = PacketFactory<Directive>.Acquire();
             Directive directive = packetLease.Value;
 
             directive.Initialize(
