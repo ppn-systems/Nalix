@@ -9,6 +9,7 @@ using Nalix.Runtime.Pooling;
 
 namespace Nalix.Framework.Tests;
 
+[Collection("Sequential Pooling Tests")]
 public class LeakReproductionTests
 {
     [Fact]
