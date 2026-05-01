@@ -140,5 +140,11 @@ public sealed class TokenBucketOptions : ConfigurationLoader
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("CapacityTokens * TokenScale is too large and may overflow Int64. Reduce values.");
         }
+
+        if (this.InitialTokens > this.CapacityTokens)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"InitialTokens ({this.InitialTokens}) must be <= CapacityTokens ({this.CapacityTokens}).");
+        }
     }
 }

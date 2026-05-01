@@ -104,4 +104,51 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     internal int RegisteredHandlerCount => Volatile.Read(ref _handlerCount);
 
     #endregion Properties
+
+    #region Validation
+
+    /// <summary>
+    /// Validates the dispatch options and throws if any values are invalid.
+    /// </summary>
+    public void Validate()
+    {
+        if (this.MaxDrainPerWakeMultiplier <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDrainPerWakeMultiplier must be positive.");
+        }
+
+        if (this.MinDrainPerWake <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MinDrainPerWake must be positive.");
+        }
+
+        if (this.MaxDrainPerWake <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDrainPerWake must be positive.");
+        }
+
+        if (this.MinDrainPerWake > this.MaxDrainPerWake)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"MinDrainPerWake ({this.MinDrainPerWake}) must be <= MaxDrainPerWake ({this.MaxDrainPerWake}).");
+        }
+
+        if (this.MinDispatchLoops <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MinDispatchLoops must be positive.");
+        }
+
+        if (this.MaxDispatchLoops <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDispatchLoops must be positive.");
+        }
+
+        if (this.MinDispatchLoops > this.MaxDispatchLoops)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"MinDispatchLoops ({this.MinDispatchLoops}) must be <= MaxDispatchLoops ({this.MaxDispatchLoops}).");
+        }
+    }
+
+    #endregion Validation
 }

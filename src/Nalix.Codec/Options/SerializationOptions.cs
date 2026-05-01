@@ -45,14 +45,14 @@ public sealed class SerializationOptions : ConfigurationLoader
             throw new ValidationException($"MaxWriterCapacity must be at least 1024 bytes.");
         }
 
-        if (this.MaxArrayLength < 0)
+        if (this.MaxArrayLength <= 0)
         {
-            throw new ValidationException($"MaxArrayLength must be >= 0.");
+            throw new ValidationException($"MaxArrayLength must be positive.");
         }
 
-        if (this.MaxStringLength < 0)
+        if (this.MaxStringLength <= 0)
         {
-            throw new ValidationException($"MaxStringLength must be >= 0.");
+            throw new ValidationException($"MaxStringLength must be positive.");
         }
     }
 }

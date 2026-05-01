@@ -61,5 +61,16 @@ public sealed class CompressionOptions : ConfigurationLoader
         {
             throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDecompressedSize must be at least 1024 bytes.");
         }
+
+        if (this.MaxDecompressedSize > 256 * 1024 * 1024)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDecompressedSize must not exceed 256 MB to prevent zip-bomb attacks.");
+        }
+
+        if (this.MinSizeToCompress > this.MaxDecompressedSize)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException(
+                $"MinSizeToCompress ({this.MinSizeToCompress}) must be <= MaxDecompressedSize ({this.MaxDecompressedSize}).");
+        }
     }
 }

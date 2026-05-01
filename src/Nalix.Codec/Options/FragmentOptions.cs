@@ -63,24 +63,19 @@ public sealed class FragmentOptions : ConfigurationLoader
         ValidationContext context = new(this);
         Validator.ValidateObject(this, context, validateAllProperties: true);
 
-        if (this.MaxPayloadSize < 0)
+        if (this.MaxPayloadSize <= 0)
         {
-            throw new ValidationException($"MaxPayloadSize={this.MaxPayloadSize} must be non-negative.");
+            throw new ValidationException($"MaxPayloadSize={this.MaxPayloadSize} must be positive.");
         }
 
-        if (this.MaxChunkSize < 0 || this.MaxChunkSize > 65000)
+        if (this.MaxChunkSize <= 0 || this.MaxChunkSize > 65000)
         {
-            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be a non-negative number and not greater than 65000.");
+            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be in range [1, 65000].");
         }
 
-        if (this.MaxReassemblyBytes < 0)
+        if (this.MaxReassemblyBytes <= 0)
         {
-            throw new ValidationException($"MaxReassemblyBytes={this.MaxReassemblyBytes} must be non-negative.");
-        }
-
-        if (this.MaxReassemblyBytes > int.MaxValue)
-        {
-            throw new ValidationException("MaxReassemblyBytes must be less than or equal to int.MaxValue.");
+            throw new ValidationException($"MaxReassemblyBytes={this.MaxReassemblyBytes} must be positive.");
         }
 
         if (this.ReassemblyTimeoutMs < 100)
@@ -93,18 +88,13 @@ public sealed class FragmentOptions : ConfigurationLoader
             throw new ValidationException($"ReassemblyTimeoutMs={this.ReassemblyTimeoutMs} must be at most 1 hour (3600000 ms).");
         }
 
-        if (this.MaxChunkSize <= 0)
-        {
-            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be positive.");
-        }
-
         if (this.MaxPayloadSize < this.MaxChunkSize)
         {
             throw new ValidationException(
                 $"MaxPayloadSize={this.MaxPayloadSize} must be >= MaxChunkSize={this.MaxChunkSize}.");
         }
 
-        int maxChunkCount = (this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
+        long maxChunkCount = ((long)this.MaxPayloadSize + this.MaxChunkSize - 1) / this.MaxChunkSize;
         if (maxChunkCount > ushort.MaxValue)
         {
             throw new ValidationException(
