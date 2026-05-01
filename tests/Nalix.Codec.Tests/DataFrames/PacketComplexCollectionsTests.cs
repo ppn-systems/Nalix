@@ -27,9 +27,9 @@ public sealed class PacketComplexCollectionsTests
             StringLongDict = new Dictionary<string, long> { ["a"] = 100L, ["b"] = 200L },
             StringQueue = new Queue<string>(["q1", "q2"]),
             FloatSet = [1.1f, 2.2f],
-            Tuple3 = (42, "hello", true),
-            Header = new PacketHeader { SequenceId = 1234 }
+            Tuple3 = (42, "hello", true)
         };
+        input.SequenceId = 1234;
 
         // 2. Measure and Serialize
         int reportedLength = input.Length;
