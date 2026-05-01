@@ -28,8 +28,6 @@ public sealed class CompressionOptions : ConfigurationLoader
     /// to benefit from compression.
     /// </remarks>
     [IniComment("Minimum data size (bytes) to trigger compression (e.g. 1024 = 1KB)")]
-    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue,
-        ErrorMessage = "MinSizeToCompress must be >= 0.")]
     public int MinSizeToCompress { get; init; } = 1024; // 1KB default
 
     /// <summary>
@@ -40,8 +38,6 @@ public sealed class CompressionOptions : ConfigurationLoader
     /// If a packet declares an original size larger than this limit, it will be rejected.
     /// </remarks>
     [IniComment("Maximum allowed size (bytes) for a decompressed packet payload (default 32MB)")]
-    [System.ComponentModel.DataAnnotations.Range(1024, int.MaxValue,
-        ErrorMessage = "MaxDecompressedSize must be at least 1024 bytes.")]
     public int MaxDecompressedSize { get; init; } = 32 * 1024 * 1024; // 32MB default
 
     /// <summary>
@@ -56,7 +52,14 @@ public sealed class CompressionOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        if (this.MinSizeToCompress <= 0)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MinSizeToCompress must be greater than 0.");
+        }
+
+        if (this.MaxDecompressedSize < 1024)
+        {
+            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDecompressedSize must be at least 1024 bytes.");
+        }
     }
 }
