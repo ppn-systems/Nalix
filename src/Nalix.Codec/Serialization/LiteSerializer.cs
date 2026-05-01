@@ -9,14 +9,13 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames.Formatter;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Formatters.Automatic;
 using Nalix.Codec.Serialization.Formatters.Primitives;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
-
-#pragma warning disable IDE0021 // Use expression body for constructor
 
 namespace Nalix.Codec.Serialization;
 
@@ -37,6 +36,7 @@ public static class LiteSerializer
          * the formatter resolution mechanism to work correctly.
          */
         Register(new Bytes32Formatter());
+        Register(new PacketHeaderFormatter());
     }
 
     #endregion Constructors

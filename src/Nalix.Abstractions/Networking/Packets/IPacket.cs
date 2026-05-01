@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Abstractions.Networking.Packets;
@@ -27,34 +28,10 @@ public interface IPacket
     int Length { get; }
 
     /// <summary>
-    /// Gets the magic number that identifies the packet format or protocol.
+    /// Gets or sets the standard 10-byte packet header.
     /// </summary>
-    [SerializeHeader(PacketHeaderOffset.MagicNumber)]
-    uint MagicNumber { get; set; }
-
-    /// <summary>
-    /// Gets the operation code that identifies the packet handler.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.OpCode)]
-    ushort OpCode { get; set; }
-
-    /// <summary>
-    /// Gets the flags associated with the packet.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Flags)]
-    PacketFlags Flags { get; set; }
-
-    /// <summary>
-    /// Gets the priority level of the packet.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Priority)]
-    PacketPriority Priority { get; set; }
-
-    /// <summary>
-    /// Gets the sequence identifier used to correlate requests and responses.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.SequenceId)]
-    ushort SequenceId { get; }
+    [SerializeHeader(0)]
+    PacketHeader Header { get; set; }
 
     #endregion Metadata
 
