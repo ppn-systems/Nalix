@@ -7,8 +7,6 @@ using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Objects;
 
 namespace Nalix.Network.Connections;
 
@@ -22,21 +20,19 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
 {
     #region Fields
 
-    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-
-    private IBufferLease? _lease;
-    private readonly bool _poolManaged;
     private int _returnedToPool;
-
+    private IBufferLease? _lease;
 
     #endregion Fields
 
     #region Constructors
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with default values.
+    /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with the specified connection.
     /// </summary>
-    public ConnectionEventArgs() => _poolManaged = true;
+    public ConnectionEventArgs()
+    {
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with the specified connection.
@@ -45,7 +41,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
     public ConnectionEventArgs(IConnection connection)
     {
-        _poolManaged = false;
+        _ = Interlocked.Exchange(ref _returnedToPool, 1);
         this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when creating ConnectionEventArgs");
     }
 
@@ -114,18 +110,11 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         }
 
         // Local pool priority
-        if (this.Connection is Connection owner && owner.ReturnEventArgsInternal(this))
+        if (this.Connection is Connection owner)
         {
+            owner.ReturnEventArgs(this);
             return;
         }
-
-        if (!_poolManaged)
-        {
-            this.ResetForPool();
-            return;
-        }
-
-        s_pool.Return(this);
     }
 
     #endregion APIs
