@@ -102,11 +102,11 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
     /// </remarks>
     protected ValueTask ExecutePacketHandlerAsync(TPacket packet, IConnection connection, CancellationToken token = default)
     {
-        if (this.Options.TryResolveHandler(packet.OpCode, out PacketHandler<TPacket> handler))
+        if (this.Options.TryResolveHandler(packet.Header.OpCode, out PacketHandler<TPacket> handler))
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Trace))
             {
-                this.Logging.LogTrace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.OpCode}");
+                this.Logging.LogTrace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.Header.OpCode}");
             }
 
             ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, token);
@@ -125,7 +125,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                     {
                         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
                         {
-                            this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.OpCode}");
+                            this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.Header.OpCode}");
                         }
                     }
                 }
@@ -133,7 +133,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 return ValueTask.CompletedTask;
             }
 
-            return AwaitHandlerAsync(this, pending, packet.OpCode);
+            return AwaitHandlerAsync(this, pending, packet.Header.OpCode);
 
             static async ValueTask AwaitHandlerAsync(PacketDispatcherBase<TPacket> owner, ValueTask operation, ushort opCode)
             {
@@ -153,7 +153,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
 
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
         {
-            this.Logging.LogWarning($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] no-handler opcode={packet.OpCode}");
+            this.Logging.LogWarning($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] no-handler opcode={packet.Header.OpCode}");
         }
         return ValueTask.CompletedTask;
     }

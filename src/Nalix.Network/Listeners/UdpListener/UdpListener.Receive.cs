@@ -298,7 +298,7 @@ public abstract partial class UdpListenerBase
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
         // Extract sequence ID cleanly from the packet header (offset 8 for the new 16-bit sequence)
-        ushort sequenceId = HeaderExtensions.ReadSequenceIdLE(payload);
+        ushort sequenceId = HeaderExtensions.ReadHeaderLE(payload).SequenceId;
         if (!connection.UdpReplayWindow.TryCheck(sequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);

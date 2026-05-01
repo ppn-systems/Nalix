@@ -14,7 +14,9 @@ using System.Threading.Channels;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Extensions;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Dispatching;
@@ -47,7 +49,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     private const int LowestPriorityIndex = (int)PacketPriority.NONE;
     private const int HighestPriorityIndex = (int)PacketPriority.URGENT;
     private const int PriorityLevels = HighestPriorityIndex + 1;
-    private const int PriorityOffset = (int)PacketHeaderOffset.Priority;
 
     #endregion Constants
 
@@ -705,12 +706,12 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private static int ClassifyPriorityIndex(ReadOnlySpan<byte> span)
     {
-        if ((uint)span.Length <= PriorityOffset)
+        if ((uint)span.Length < PacketHeader.Size)
         {
             return LowestPriorityIndex;
         }
 
-        int priority = span[PriorityOffset];
+        int priority = (int)span.ReadHeaderLE().Priority;
         return (uint)priority <= HighestPriorityIndex ? priority : LowestPriorityIndex;
     }
 
