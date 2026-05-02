@@ -65,7 +65,7 @@ manager.ScheduleRecurring(
 
 - [Instance Manager (DI)](../api/framework/instance-manager.md)
 - [Task Manager](../api/framework/task-manager.md)
-- [Timing Scope](../api/environment/time/timing-scope.md)
+- [Timing Scope](../api/environment/timing-scope.md)
 - [Snowflake](../api/framework/snowflake.md)
 - [Buffer Management](../api/framework/memory/buffer-management.md)
 - [Object Pooling](../api/framework/memory/object-pooling.md)
