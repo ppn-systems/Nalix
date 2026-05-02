@@ -1,6 +1,6 @@
 # Packet Sender
 
-`PacketSender<TPacket>` is the default runtime sender implementation used by `PacketContext<TPacket>`.
+`PacketSender` is the default runtime sender implementation used by `PacketContext<TPacket>`.
 
 ## Audit Summary
 
@@ -27,22 +27,26 @@ Handlers need a safe send API that respects runtime metadata while keeping seria
 
 ## Send Behavior
 
-`PacketSender<TPacket>` serializes packet data, then applies transforms based on payload size and encryption requirements.
+`PacketSender` serializes the packet into a pooled `BufferLease`, then delegates to `FramePipeline.ProcessOutbound()` for compression/encryption transforms, and finally sends via the selected transport.
 
 ### Decision inputs
 
 - Compression: `CompressionOptions.Enabled` and `MinSizeToCompress` threshold.
 - Encryption default: `context.Attributes.Encryption?.IsEncrypted ?? false`.
 - Encryption override: `SendAsync(packet, forceEncrypt, ...)`.
+- Transport selection: `attributes.Transport?.TransportType ?? NetworkTransport.TCP` — selects TCP or UDP per handler metadata.
 
-### Transform order
+### Flow
 
-Compression happens before encryption when both are enabled.
+1. Serialize packet into `BufferLease.Rent(packetLength)`.
+2. `FramePipeline.ProcessOutbound()` applies compression then encryption as needed.
+3. `GetTransport()` resolves TCP or UDP from handler attributes.
+4. Transport sends the final buffer.
 
 ## Core API
 
-- `SendAsync(TPacket packet, CancellationToken ct = default)`
-- `SendAsync(TPacket packet, bool forceEncrypt, CancellationToken ct = default)`
+- `SendAsync(IPacket packet, CancellationToken ct = default)`
+- `SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default)`
 
 ## Practical Example
 
@@ -55,7 +59,7 @@ await context.Sender.SendAsync(replyPacket, forceEncrypt: true, ct);
 
 - Use default `SendAsync(packet)` for normal metadata-driven behavior.
 - Use `forceEncrypt: true` only when you intentionally override handler metadata policy.
-- Do not use `PacketSender<TPacket>` without runtime initialization (`PacketContext` initializes it).
+- Do not use `PacketSender` without runtime initialization (`PacketContext` initializes it).
 
 ## Related APIs
 
