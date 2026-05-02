@@ -30,7 +30,7 @@ public static class FrameCompression
 
         if (src.Length <= FrameTransformer.Offset)
         {
-            Throw.ThrowTransformBufferTooSmallForPacket();
+            Throw.BufferTooSmallForPacket();
         }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer
@@ -62,7 +62,7 @@ public static class FrameCompression
 
         if (src.Length <= FrameTransformer.Offset)
         {
-            Throw.ThrowTransformBufferTooSmallForPacket();
+            Throw.BufferTooSmallForPacket();
         }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer

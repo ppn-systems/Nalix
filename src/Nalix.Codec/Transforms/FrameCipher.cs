@@ -33,7 +33,7 @@ public static class FrameCipher
 
         if (src.Length < FrameTransformer.Offset + EnvelopeCipher.HeaderSize)
         {
-            Throw.ThrowTransformCiphertextFrameTooShort();
+            Throw.CiphertextFrameTooShort();
         }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer

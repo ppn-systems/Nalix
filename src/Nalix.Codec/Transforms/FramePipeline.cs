@@ -32,12 +32,12 @@ public static class FramePipeline
         {
             if (algorithm == CipherSuiteType.None)
             {
-                Throw.ThrowTransformEncryptedButNoCipher();
+                Throw.EncryptedButNoCipher();
             }
 
             if (secret.IsEmpty)
             {
-                Throw.ThrowTransformEncryptedButNoKey();
+                Throw.EncryptedButNoKey();
             }
 
             try
@@ -90,7 +90,7 @@ public static class FramePipeline
         {
             if (algorithm == CipherSuiteType.None)
             {
-                Throw.ThrowTransformEncryptRequestedButNoCipher();
+                Throw.EncryptRequestedButNoCipher();
             }
 
             IBufferLease prev = current;

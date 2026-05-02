@@ -99,7 +99,7 @@ public static class FrameTransformer
     {
         if (src.Length < Unsafe.SizeOf<LZ4BlockHeader>())
         {
-            Throw.ThrowTransformSourceTooSmallForLZ4Header();
+            Throw.SourceTooSmallForLZ4Header();
         }
 
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
@@ -111,7 +111,7 @@ public static class FrameTransformer
 
         if (header.OriginalLength <= 0 || header.OriginalLength > limit)
         {
-            Throw.ThrowTransformInvalidDecompressedLength();
+            Throw.InvalidDecompressedLength();
         }
 
         return header.OriginalLength;
@@ -141,17 +141,17 @@ public static class FrameTransformer
 
         if (key.IsEmpty)
         {
-            Throw.ThrowTransformEncryptionKeyEmpty();
+            Throw.EncryptionKeyEmpty();
         }
 
         if (src.Length <= Offset)
         {
-            Throw.ThrowTransformSourceTooSmall();
+            Throw.SourceTooSmall();
         }
 
         if (dest.Capacity < Offset)
         {
-            Throw.ThrowTransformDestinationTooSmall();
+            Throw.DestinationTooSmall();
         }
 
         Span<byte> destFull = dest.SpanFull;
@@ -186,17 +186,17 @@ public static class FrameTransformer
 
         if (key.IsEmpty)
         {
-            Throw.ThrowTransformEncryptionKeyEmpty();
+            Throw.EncryptionKeyEmpty();
         }
 
         if (src.Length <= Offset)
         {
-            Throw.ThrowTransformSourceTooSmall();
+            Throw.SourceTooSmall();
         }
 
         if (dest.Capacity < Offset)
         {
-            Throw.ThrowTransformDestinationTooSmall();
+            Throw.DestinationTooSmall();
         }
 
         Span<byte> destFull = dest.SpanFull;
@@ -226,7 +226,7 @@ public static class FrameTransformer
 
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
-            Throw.ThrowTransformBufferTooSmallForPacket();
+            Throw.BufferTooSmallForPacket();
         }
 
         Span<byte> destFull = dest.SpanFull;
@@ -256,7 +256,7 @@ public static class FrameTransformer
 
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
-            Throw.ThrowTransformBufferTooSmallForPacket();
+            Throw.BufferTooSmallForPacket();
         }
 
         Span<byte> destFull = dest.SpanFull;
