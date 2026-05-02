@@ -5,8 +5,8 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
+using Nalix.Network.Internal;
 
 namespace Nalix.Network.Connections;
 
@@ -54,7 +54,19 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
 
     /// <inheritdoc />
     [AllowNull]
-    public IConnection Connection { get => field ?? throw new InternalErrorException("Connection is not available for this event."); private set; }
+    public IConnection Connection
+    {
+        get
+        {
+            if (field is null)
+            {
+                Throw.ConnectionNotAvailable();
+            }
+
+            return field;
+        }
+        private set;
+    }
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint => this.Connection.NetworkEndpoint;

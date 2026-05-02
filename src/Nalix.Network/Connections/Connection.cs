@@ -18,6 +18,7 @@ using Nalix.Environment.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
@@ -119,7 +120,18 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     public IConnection.ITransport TCP => _tcp ??= new SocketTcpTransport(this);
 
     /// <inheritdoc/>
-    public IConnection.ITransport UDP => this.UdpTransport ?? throw new InternalErrorException("UDP transport has not been created yet.");
+    public IConnection.ITransport UDP
+    {
+        get
+        {
+            if (this.UdpTransport is not { } udp)
+            {
+                Throw.UdpTransportNotCreated();
+                return default;
+            }
+            return udp;
+        }
+    }
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }
