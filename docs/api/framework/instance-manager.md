@@ -42,14 +42,42 @@ flowchart TD
 
 ## Key Members
 
-| Method | Description |
+### Registration
+
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| `Register<T>` | `void Register<T>(T instance, bool registerInterfaces = true)` | Adds an instance to the registry. If `registerInterfaces` is `true`, also registers for all implemented interfaces. |
+| `RegisterForClassOnly<T>` | `void RegisterForClassOnly<T>(T instance)` | Registers only for the concrete class type (ignores interfaces). |
+| `Lockdown` | `void Lockdown()` | Freezes the manager state. No more registrations or dynamic creations allowed. |
+
+### Resolution
+
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| `GetExistingInstance<T>` | `T? GetExistingInstance<T>()` | Fast resolution of an already registered service. Returns `null` if not found. |
+| `GetOrCreateInstance<T>` | `T GetOrCreateInstance<T>(params object?[] args)` | Resolves or dynamically creates a service (singleton-like). |
+| `GetOrCreateInstance` | `object GetOrCreateInstance(Type type, params object?[] args)` | Non-generic resolution by `Type`. |
+| `CreateInstance` | `object CreateInstance(Type type, params object?[] args)` | Creates a new instance without caching it. |
+| `HasInstance<T>` | `bool HasInstance<T>()` | Determines whether an instance of the specified type is cached. |
+
+### Removal & Cleanup
+
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| `RemoveInstance` | `bool RemoveInstance(Type type)` | Removes and disposes a cached service. Returns `true` if removed. |
+| `Clear` | `void Clear(bool dispose = true)` | Purges the entire registry. Disposes instances if `dispose` is `true`. |
+| `Dispose` | `void Dispose()` | Disposes all cached `IDisposable` instances and releases resources. |
+
+### Diagnostics
+
+| Method / Property | Description |
 | :--- | :--- |
-| `Register<T>(instance)` | Adds a global instance to the registry and maps its interfaces. |
-| `GetExistingInstance<T>()` | Fast resolution of an already registered service. Returns `null` if not found. |
-| `GetOrCreateInstance<T>(...)` | Resolves or dynamically creates a service (singleton-like). |
-| `Lockdown()` | Freezes the manager state. No more registrations or dynamic creations allowed. |
-| `RemoveInstance(type)` | Removes and disposes a cached service. |
-| `Clear(bool dispose)` | Purges the entire registry. |
+| `GenerateReport()` | Produces a human-readable report of all cached instances. |
+| `GetReportData()` | Returns a key-value summary for diagnostics/monitoring. |
+| `CachedInstanceCount` | Gets the number of cached instances. |
+| `EntryAssembly` | Gets the assembly that started the application. |
+| `ApplicationMutexName` | The OS mutex name used for single-instance detection. |
+| `IsTheOnlyInstance` | Checks if this application is the only instance currently running. |
 
 ## Basic Usage
 
