@@ -22,7 +22,7 @@ Nalix eliminates the "hidden races" common in multi-threaded networking by enfor
 The Nalix runtime treats user code as "potentially unstable" and provides a safety net to prevent cascading failures.
 
 - **Non-Stop Workers:** An exception in one handler will **never** stop the background worker loops or affect other clients.
-- **Observable Health:** Every failure is tracked via `IConnection.ErrorCount` and reported via the `Directive` signaling system. This allows your monitoring systems to identify and disconnect "poison" clients automatically.
+- **Observable Health:** Every failure is tracked via `IConnection.ErrorCount` (from the `IConnectionErrorTracked` interface) and reported via the `Directive` signaling system. This allows your monitoring systems to identify and disconnect "poison" clients automatically.
 
 !!! success "Production Confidence"
     A single bug in a handler or a malformed packet will not crash your server. The system is designed to "shed" failing work and keep the infrastructure healthy.

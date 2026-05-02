@@ -51,7 +51,7 @@ The SDK initiates by sending its ephemeral public key and a cryptographically se
 
 ### 2. SERVER_HELLO
 
-The server responds with its own ephemeral public key and a `Proof`. The proof is a HMAC computed over the handshake transcript using the derived master secret, proving the server possesses the corresponding private key without revealing it.
+The server responds with its own ephemeral public key and a `Proof`. The proof is a keyed digest computed over the handshake transcript using the derived master secret (via `HandshakeX25519.ComputeServerProof`), proving the server possesses the corresponding private key without revealing it.
 
 ### 3. CLIENT_FINISH
 
@@ -63,7 +63,7 @@ Final confirmation. The server sends a `SessionToken` which the client can use l
 
 ## Implementation Details
 
-- **Encryption**: Once established, all subsequent packets use **ChaCha20-Poly1305** AEAD.
+- **Encryption**: Once established, all subsequent packets use **ChaCha20-Poly1305** AEAD by default. **Salsa20-Poly1305** is also available as a negotiable cipher suite.
 - **Key Rotation**: Session keys are only valid for the duration of the physical connection or until a session resume occurs.
 
 ## Related Topics
