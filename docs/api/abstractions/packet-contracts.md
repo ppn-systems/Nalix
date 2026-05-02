@@ -42,23 +42,25 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 Handler context contract shared with runtime context implementations:
 
 - `Packet`, `Connection`, `Attributes`, `Sender`, `CancellationToken`
+- `IsReliable` indicates whether the transport protocol (TCP/UDP) is reliable
 - `SkipOutbound` for outbound middleware control
 
-### `IPacketSender<TPacket>`
+### `IPacketSender`
 
 Metadata-aware send contract:
 
-- `SendAsync(TPacket, CancellationToken)`
-- `SendAsync(TPacket, bool forceEncrypt, CancellationToken)`
+- `Initialize<TPacket>(IPacketContext<TPacket> context)`
+- `SendAsync(IPacket packet, CancellationToken ct = default)`
+- `SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default)`
 
 ### Supporting Contracts
 
 - `PacketDeserializer`: delegate from raw bytes to `IPacket`
+- `PacketDeserializerInto<TPacket>`: delegate that deserializes into an existing instance via `ref`
 - `IPacketDeserializer<TPacket>`:
-  - `Deserialize(ReadOnlySpan<byte>)`
-  - `Deserialize(ReadOnlySpan<byte>, ref TPacket)`
+  - `Deserialize(ReadOnlySpan<byte> buffer)` — returns a new `TPacket` instance
 - `IPacketTimestamped`: packet contract with timestamp semantics
-- `IPacketReasoned`: packet contract exposing reason/code semantics
+- `IPacketReasoned`: packet contract exposing `ProtocolReason Reason` property
 
 ## Responsibility Boundaries
 
