@@ -53,8 +53,7 @@ flowchart LR
 | `IdleTimeout` | `00:00:10` | `00:00:01..01:00:00` | Inactive source-window retention before eviction. |
 | `FailOpenWhenFull` | `false` | Boolean | When `true`, allows packets through when the tracking map is full, preventing legitimate-user lockout during spoofed-source floods. When `false` (default), the guard rejects incoming packets when the map is full (fail-closed). |
 
-Validation is implemented with `System.ComponentModel.DataAnnotations.Range` and
-`Validate()` calls `Validator.ValidateObject(..., validateAllProperties: true)`.
+`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated.
 
 ## Runtime Behavior
 

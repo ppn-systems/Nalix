@@ -34,7 +34,8 @@ tracking caps, sharded storage, cleanup, and diagnostic report sizing.
 
 - `ShardCount` must be positive;
 - `ShardCount` must be a power of two;
-- `CapacityTokens * TokenScale` must fit in `Int64`.
+- `CapacityTokens * TokenScale` must fit in `Int64`;
+- `InitialTokens` must be `<= CapacityTokens`.
 
 ## Construction and Fixed-Point Materialization
 

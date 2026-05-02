@@ -79,11 +79,16 @@ The available fixes currently cover these common workflows:
 ### Middleware and configuration fixes
 
 - `MiddlewareCodeFixProvider`
+- `NullMiddlewareCodeFixProvider`
+- `DispatchLoopCountCodeFixProvider`
 - `ConfigurationIgnoreCodeFixProvider`
+- `RequestOptionsConsistencyCodeFixProvider`
 
 ### Lifecycle fixes
 
 - `ResetForPoolCodeFixProvider`
+- `RedundantPacketCastCodeFixProvider`
+- `GenericPacketHandlerCodeFixProvider`
 
 ## Practical notes
 

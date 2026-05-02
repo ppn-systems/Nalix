@@ -52,6 +52,7 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 | --- | --- |
 | `OnConnected` | Raised when the UDP socket is initialized and bound to the remote endpoint. |
 | `OnMessageReceived` | Surfaces decrypted and decompressed payload for each inbound datagram. |
+| `OnMessageAsync` | Async event for processing received datagrams via a bounded channel; prevents high-latency handlers from blocking the receive loop. |
 | `OnError` | Reports socket or transformation faults. |
 | `OnDisconnected` | Uses `NetworkException` to report transport-level disconnects consistently. |
 

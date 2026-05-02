@@ -11,6 +11,7 @@ This is a high-level convenience page for client application code. These helpers
 - `src/Nalix.SDK/Transport/Extensions/TimeSyncExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
+- `src/Nalix.Environment/Time/TimeSyncCalculator.cs`
 
 ## Capability summary
 
@@ -24,7 +25,7 @@ This is a high-level convenience page for client application code. These helpers
 
 ```csharp
 public static ValueTask<double> PingAsync(
-    this TcpSession session,
+    this TransportSession session,
     int timeoutMs = 5000,
     CancellationToken ct = default)
 ```
@@ -97,7 +98,7 @@ Important details:
 - Request/response correlation uses the generated sequence id.
 - RTT is computed with the same monotonic clock as `PingAsync`.
 - Local clock synchronization only happens when `session.Options.TimeSyncEnabled` is true.
-- The server timestamp is adjusted using half the measured RTT.
+- The offset is computed via `TimeSyncCalculator.CalculateOffsetMs` and applied using exponential moving average: `session.Options.TimeOffsetMs = (current * 0.9) + (offset * 0.1)`.
 
 ```csharp
 var (rttMs, adjustedMs) = await session.SyncTimeAsync(timeoutMs: 5000, ct);

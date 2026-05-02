@@ -25,6 +25,9 @@ While raw enum values are efficient for transmission and logic, they often conta
 
 ## Mappings at a glance
 
+!!! note "Incomplete table"
+    The source contains 70+ `ProtocolReason` values and 8 `ProtocolAdvice` values. The table below shows a representative subset. See `ProtocolStringExtensions.cs` for the complete mapping.
+
 | Enum Value | Display String |
 | --- | --- |
 | `ProtocolAdvice.RETRY` | "Please try again." |

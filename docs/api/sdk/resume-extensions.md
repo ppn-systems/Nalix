@@ -82,7 +82,7 @@ using Nalix.Abstractions.Networking.Protocols;
 
 await session.ConnectAsync();
 
-if (!session.Options.SessionToken.IsEmpty && session.Options.Secret.Length > 0)
+if (!session.Options.SessionToken.IsEmpty && !options.Secret.IsZero)
 {
     ProtocolReason reason = await session.ResumeSessionAsync();
     if (reason == ProtocolReason.NONE)

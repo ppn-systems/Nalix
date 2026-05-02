@@ -19,9 +19,7 @@ threshold.
 | `IdleTimeoutMs` | `60000` | `1..int.MaxValue` | Idle threshold, in milliseconds, after which registered connections are force-closed. |
 | `WheelDrainTimeoutMs` | `5000` | `0..60000` (ms) | Maximum time in milliseconds to wait for the timing wheel to drain gracefully during shutdown before forceful termination. |
 
-`Validate()` uses data-annotation validation through
-`Validator.ValidateObject(..., validateAllProperties: true)` and rejects values
-below `1` for every property.
+`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated. It rejects values below `1` for `BucketCount`, `TickDuration`, and `IdleTimeoutMs`, and validates `WheelDrainTimeoutMs` is in `0..60000`.
 
 ## Hosting Initialization
 

@@ -24,10 +24,11 @@ sequenceDiagram
     S->>S: require Options.ServerPublicKey
     S->>S: derive EE + static shared secrets
     S->>S: verify server proof
+    S->>S: set Secret, Algorithm (before CLIENT_FINISH)
     S->>Server: CLIENT_FINISH via RequestAsync<Handshake>()
     Server-->>S: SERVER_FINISH or ERROR
     S->>S: Validate SERVER_FINISH + proof
-    S->>S: set Secret, Algorithm, EncryptionEnabled, SessionToken
+    S->>S: set EncryptionEnabled, SessionToken (after SERVER_FINISH)
 ```
 
 ## Role and Design

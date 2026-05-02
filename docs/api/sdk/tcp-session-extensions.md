@@ -30,6 +30,7 @@ graph TD
 - `src/Nalix.SDK/Transport/Extensions/CipherExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/TcpSessionSubscriptions.cs`
 - `src/Nalix.SDK/Extensions/SubscriptionExtensions.cs`
+- `src/Nalix.SDK/Transport/Internal/PacketAwaiter.cs`
 
 ## Core Modules
 
@@ -40,6 +41,7 @@ Facilitates the creation and awaiting of `CONTROL` frames. These are system-leve
 | Method | Target | Description |
 | --- | --- | --- |
 | `NewControl` | `TransportSession` | Starts a fluent `ControlBuilder` for pre-stamped control frames. |
+| `AwaitPacketAsync<TPkt>` | `TcpSession` | Awaits a typed packet matching a predicate. |
 | `AwaitControlAsync` | `TcpSession` | Correlates and waits for a specific control response. |
 | `SendControlAsync` | `TcpSession` | Fluent shortcut for creating and transmitting a control frame. |
 

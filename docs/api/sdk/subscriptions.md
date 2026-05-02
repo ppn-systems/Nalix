@@ -41,10 +41,13 @@ The subscription helpers provide:
 | Method | Description |
 | --- | --- |
 | `On<TPacket>` | Subscribes to a packet type and ignores non-matching packets. |
+| `On(Func<IPacket, bool>, Action<IPacket>)` | Subscribes to packets matching a predicate filter. |
 | `OnExact<TPacket>` | Strict subscription that logs unexpected packet types without stopping the receive loop. |
 | `OnOnce<TPacket>` | Fires exactly once for the first matching packet, then auto-unsubscribes. |
-| `SubscribeTemp` | Combines a typed message handler with an `OnDisconnected` hook—ideal for transient flows. |
-| `CompositeSubscription` | A container to group and dispose multiple subscriptions at once. |
+| `SubscribeTemp<TPacket>` | Combines a typed message handler with an `OnDisconnected` hook—ideal for transient flows. |
+| `SubscribeTemp<TPacket>(predicate)` | Predicate overload for filtered transient subscriptions. |
+| `Subscribe(TransportSession, params IDisposable[])` | Groups multiple subscriptions into a `CompositeSubscription`. |
+| `CompositeSubscription` | A container to group and dispose multiple subscriptions at once. Supports `Add(IDisposable)`. |
 
 ## Basic usage
 
