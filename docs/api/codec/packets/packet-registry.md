@@ -72,7 +72,7 @@ PacketRegistry registry = factory.CreateCatalog();
 ```csharp
 if (registry.TryDeserialize(buffer, out IPacket? packet))
 {
-    Console.WriteLine(packet.OpCode);
+    Console.WriteLine(packet.Header.OpCode);
 }
 ```
 

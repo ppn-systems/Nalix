@@ -20,7 +20,7 @@ This page covers the low-level helper APIs around `DataReader`, `DataWriter`, an
 |---|---|
 | `DataReaderExtensions` | `ReadByte`, `ReadUInt16`, `ReadUInt32`, `ReadInt32`, `ReadInt64`, `ReadUInt64`, `ReadBoolean`, `ReadEnumByte`, `ReadEnumUInt16`, `ReadEnumUInt32`, `ReadBytes`, `ReadRemainingBytes`, `ReadUnmanaged`, `Remaining` |
 | `DataWriterExtensions` | `Write`, `WriteEnum`, `WriteUnmanaged` overloads for primitive, span, enum, and unmanaged values |
-| `HeaderExtensions` | `ReadMagicNumberLE`, `ReadOpCodeLE`, `ReadFlagsLE`, `WriteFlagsLE`, `ReadPriorityLE`, `ReadSequenceIdLE` |
+| `HeaderExtensions` | `ReadHeaderLE`, `WriteHeaderLE` |
 
 ## When to use these helpers
 
@@ -79,12 +79,19 @@ This is useful when you want to inspect protocol information before creating a f
 
 Useful methods include:
 
-- `ReadMagicNumberLE()`
-- `ReadOpCodeLE()`
-- `ReadFlagsLE()`
-- `WriteFlagsLE(flags)`
-- `ReadPriorityLE()`
-- `ReadSequenceIdLE()` (returns `ushort`)
+- `ReadHeaderLE()` — returns a `PacketHeader` struct (10 bytes) from the span
+- `WriteHeaderLE(header)` — writes a `PacketHeader` struct (10 bytes) to the span
+
+Individual fields are accessed through the returned `PacketHeader` struct:
+
+```csharp
+PacketHeader header = span.ReadHeaderLE();
+uint magic = header.MagicNumber;
+ushort opCode = header.OpCode;
+PacketFlags flags = header.Flags;
+PacketPriority priority = header.Priority;
+ushort sequenceId = header.SequenceId;
+```
 
 ## Basic usage
 
@@ -98,7 +105,7 @@ DataReader reader = new(writer.WrittenSpan);
 ushort decodedOpcode = reader.ReadUInt16();
 PacketPriority decodedPriority = reader.ReadEnumByte<PacketPriority>();
 
-ushort headerOpcode = writer.WrittenSpan.ReadOpCodeLE();
+ushort headerOpcode = writer.WrittenSpan.ReadHeaderLE().OpCode;
 ```
 
 ## Design notes

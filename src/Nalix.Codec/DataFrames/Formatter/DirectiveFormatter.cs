@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
@@ -28,11 +28,7 @@ public sealed class DirectiveFormatter : IFillableFormatter<Directive> //[cite: 
         writer.Expand(Directive.Size); //[cite: 12]
 
         // --- Header Section ---
-        writer.Write(value.MagicNumber);
-        writer.Write(value.OpCode);
-        writer.Write((byte)value.Flags);
-        writer.Write((byte)value.Priority);
-        writer.Write(value.SequenceId);
+        writer.WriteUnmanaged(value.Header);
 
         // --- Payload Section ---
         writer.WriteEnum(value.Type);     //[cite: 12]
@@ -58,11 +54,7 @@ public sealed class DirectiveFormatter : IFillableFormatter<Directive> //[cite: 
     public void Fill(ref DataReader reader, Directive value) //[cite: 11, 12]
     {
         // --- Header Section ---
-        value.MagicNumber = reader.ReadUInt32();
-        value.OpCode = reader.ReadUInt16();
-        value.Flags = (PacketFlags)reader.ReadByte();
-        value.Priority = (PacketPriority)reader.ReadByte();
-        value.SequenceId = reader.ReadUInt16();
+        value.Header = reader.ReadUnmanaged<PacketHeader>();
 
         // --- Payload Section ---
         value.Type = reader.ReadEnumByte<ControlType>();            //[cite: 12]

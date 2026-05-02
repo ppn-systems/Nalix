@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
@@ -176,11 +177,7 @@ public sealed class RuntimeDispatchAndHandlersTests
     private sealed class TestPacket : IPacket
     {
         public int Length => 0;
-        public uint MagicNumber { get; set; }
-        public ushort OpCode { get; set; }
-        public PacketFlags Flags { get; set; }
-        public PacketPriority Priority { get; set; }
-        public ushort SequenceId { get; } = 1;
+        public PacketHeader Header { get; set; }
         public byte[] Serialize() => [];
         public int Serialize(Span<byte> buffer) => 0;
     }

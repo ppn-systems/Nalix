@@ -2,6 +2,7 @@ using Nalix.Abstractions.Serialization;
 using System;
 using System.Collections.Generic;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Serialization;
 using Nalix.Codec.DataFrames;
 using Xunit;
@@ -20,7 +21,7 @@ public sealed class PacketBaseLengthTests
         StringPacket packet = new()
         {
             Message = text,
-            SequenceId = 42
+            Header = new PacketHeader { SequenceId = 42 }
         };
 
         byte[] bytes = packet.Serialize();
@@ -42,7 +43,7 @@ public sealed class PacketBaseLengthTests
             Child = new ChildPacket
             {
                 Value = 123456789,
-                SequenceId = 7
+                Header = new PacketHeader { SequenceId = 7 }
             }
         };
 

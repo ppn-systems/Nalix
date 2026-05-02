@@ -3,11 +3,8 @@
 
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Sessions;
-using Nalix.Abstractions.Networking;
 
 namespace Nalix.Abstractions.Networking;
 

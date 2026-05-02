@@ -4,7 +4,6 @@
 using System;
 using System.ComponentModel;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;

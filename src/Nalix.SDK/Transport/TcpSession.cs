@@ -2,12 +2,12 @@ using System;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Codec.Memory;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.Memory;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
-using Nalix.Abstractions;
 
 namespace Nalix.SDK.Transport;
 
@@ -217,7 +217,10 @@ public class TcpSession : TransportSession
     {
         ArgumentNullException.ThrowIfNull(packet);
 
-        packet.Flags = (packet.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
+        if (packet is IPacketHeader h)
+        {
+            h.Flags = (h.Flags & ~PacketFlags.UNRELIABLE) | PacketFlags.RELIABLE;
+        }
 
         BufferLease lease = BufferLease.Rent(packet.Length);
         lease.CommitLength(packet.Serialize(lease.SpanFull));

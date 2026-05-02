@@ -24,7 +24,7 @@ internal sealed class ClientSession : IAsyncDisposable
     {
         // PacketRegistryFactory default ctor registers built-in packets:
         // Control, Handshake, SessionResume, Directive
-        var catalog = new PacketRegistryFactory().CreateCatalog();
+        PacketRegistry catalog = new PacketRegistryFactory().CreateCatalog();
 
         _session = new TcpSession(options, catalog);
     }

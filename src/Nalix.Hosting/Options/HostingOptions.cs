@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
@@ -47,6 +48,13 @@ public sealed class HostingOptions : ConfigurationLoader
     /// </summary>
     [IniComment("If true, timeBeginPeriod(1) will be called on Windows to improve timer resolution (recommended for low-latency)")]
     public bool EnableHighPrecisionTimer { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the minimum log level for diagnostic events emitted by Nalix.Environment and Nalix.Framework.
+    /// Events with a mapped level below this threshold will be silently dropped.
+    /// </summary>
+    [IniComment("Minimum log level for internal diagnostic events (Trace=0, Debug=1, Information=2, Warning=3, Error=4, Critical=5, None=6)")]
+    public LogLevel DiagnosticsMinLogLevel { get; set; } = LogLevel.Warning;
 
     /// <summary>
     /// Validates the configuration options.

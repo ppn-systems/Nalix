@@ -16,12 +16,13 @@ namespace Nalix.Network.Examples.UI;
 /// Thin orchestrator — owns the menu loop and delegates rendering
 /// to <see cref="DashboardRenderer"/>.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
 internal static class ServerConsole
 {
     // ── Menu labels ──────────────────────────────────────────────────────────
     private const string M_DASHBOARD = "Live dashboard (paged, real-time)";
-    private const string M_SNAPSHOT  = "Snapshot (one-shot print)";
-    private const string M_EXIT      = "Stop server";
+    private const string M_SNAPSHOT = "Snapshot (one-shot print)";
+    private const string M_EXIT = "Stop server";
 
     private static readonly Style s_highlight = Style.Parse("steelblue1 bold");
 
@@ -79,7 +80,9 @@ internal static class ServerConsole
                     break;
 
                 case M_EXIT:
-                    shutdown.Cancel();
+                    await shutdown.CancelAsync().ConfigureAwait(false);
+                    break;
+                default:
                     break;
             }
         }
@@ -99,7 +102,7 @@ internal static class ServerConsole
             new InstanceManagerPageFormatter()
         ];
 
-        var renderer = new DashboardRenderer(hub, pages);
+        DashboardRenderer renderer = new(hub, pages);
         await renderer.RunAsync(ct).ConfigureAwait(false);
     }
 
@@ -109,14 +112,23 @@ internal static class ServerConsole
     {
         PrintSection("ConnectionHub", hub.GenerateReport());
 
-        var pool = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>();
-        if (pool is not null) PrintSection("ObjectPoolManager", pool.GenerateReport());
+        ObjectPoolManager? pool = InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>();
+        if (pool is not null)
+        {
+            PrintSection("ObjectPoolManager", pool.GenerateReport());
+        }
 
-        var buf = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
-        if (buf is not null) PrintSection("BufferPoolManager", buf.GenerateReport());
+        BufferPoolManager? buf = InstanceManager.Instance.GetExistingInstance<BufferPoolManager>();
+        if (buf is not null)
+        {
+            PrintSection("BufferPoolManager", buf.GenerateReport());
+        }
 
-        var tasks = InstanceManager.Instance.GetExistingInstance<TaskManager>();
-        if (tasks is not null) PrintSection("TaskManager", tasks.GenerateReport());
+        TaskManager? tasks = InstanceManager.Instance.GetExistingInstance<TaskManager>();
+        if (tasks is not null)
+        {
+            PrintSection("TaskManager", tasks.GenerateReport());
+        }
 
         PrintSection("InstanceManager", InstanceManager.Instance.GenerateReport());
     }
@@ -125,11 +137,11 @@ internal static class ServerConsole
     {
         AnsiConsole.Write(new Panel(new Markup($"[grey]{content.EscapeMarkup()}[/]"))
         {
-            Header      = new PanelHeader($" [steelblue1 bold]{title}[/] "),
-            Border      = BoxBorder.Rounded,
+            Header = new PanelHeader($" [steelblue1 bold]{title}[/] "),
+            Border = BoxBorder.Rounded,
             BorderStyle = Style.Parse("grey"),
-            Padding     = new Padding(1, 0),
-            Expand      = true
+            Padding = new Padding(1, 0),
+            Expand = true
         });
         AnsiConsole.WriteLine();
     }

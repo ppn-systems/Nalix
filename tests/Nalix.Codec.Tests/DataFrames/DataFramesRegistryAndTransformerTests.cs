@@ -28,11 +28,11 @@ public sealed partial class DataFramesPublicApiTests
         IPacket deserialized = registry.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(deserialized);
-        Assert.Equal(packet.MagicNumber, control.MagicNumber);
+        Assert.Equal(packet.Header.MagicNumber, control.Header.MagicNumber);
         Assert.Equal(packet.Type, control.Type);
-        Assert.Equal(packet.SequenceId, control.SequenceId);
+        Assert.Equal(packet.Header.SequenceId, control.Header.SequenceId);
         Assert.True(registry.DeserializerCount >= 1);
-        Assert.True(registry.IsKnownMagic(packet.MagicNumber));
+        Assert.True(registry.IsKnownMagic(packet.Header.MagicNumber));
         Assert.True(registry.IsRegistered<Control>());
     }
 

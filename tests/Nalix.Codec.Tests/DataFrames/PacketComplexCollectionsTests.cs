@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Serialization;
 using Nalix.Codec.DataFrames;
 using Xunit;
@@ -26,9 +27,9 @@ public sealed class PacketComplexCollectionsTests
             StringLongDict = new Dictionary<string, long> { ["a"] = 100L, ["b"] = 200L },
             StringQueue = new Queue<string>(["q1", "q2"]),
             FloatSet = [1.1f, 2.2f],
-            Tuple3 = (42, "hello", true),
-            SequenceId = 1234
+            Tuple3 = (42, "hello", true)
         };
+        input.SequenceId = 1234;
 
         // 2. Measure and Serialize
         int reportedLength = input.Length;
@@ -41,7 +42,7 @@ public sealed class PacketComplexCollectionsTests
         // 4. Round-trip via Deserialize
         ComplexCollectionPacket output = ComplexCollectionPacket.Deserialize(serialized);
 
-        Assert.Equal(input.SequenceId, output.SequenceId);
+        Assert.Equal(input.Header.SequenceId, output.Header.SequenceId);
         Assert.Equal(input.IntList, output.IntList);
         Assert.Equal(input.StringLongDict, output.StringLongDict);
         Assert.Equal(input.FloatSet, output.FloatSet);

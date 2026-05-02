@@ -3,7 +3,6 @@
 
 using Nalix.SDK.Client.Core;
 using Nalix.SDK.Client.UI;
-using Nalix.SDK.Transport.Extensions;
 
 namespace Nalix.SDK.Client.Services;
 
@@ -14,26 +13,28 @@ namespace Nalix.SDK.Client.Services;
 internal sealed class KeepAliveService : IDisposable
 {
     private readonly ClientSession _client;
-    private readonly StatusBar     _status;
-    private readonly EventLog      _log;
-    private readonly PingChart     _chart;
+    private readonly StatusBar _status;
+    private readonly EventLog _log;
+    private readonly PingChart _chart;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
     private CancellationTokenSource? _cts;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
     public KeepAliveService(ClientSession client, StatusBar status, EventLog log, PingChart chart)
     {
         _client = client;
         _status = status;
-        _log    = log;
-        _chart  = chart;
+        _log = log;
+        _chart = chart;
     }
 
     /// <summary>Starts background keepalive (idempotent — stops previous if running).</summary>
     public void Start()
     {
-        Stop();
+        this.Stop();
         _cts = new CancellationTokenSource();
-        var ct = _cts.Token;
+        CancellationToken ct = _cts.Token;
 
         _ = Task.Run(async () =>
         {
@@ -42,10 +43,14 @@ internal sealed class KeepAliveService : IDisposable
 
             while (!ct.IsCancellationRequested && _client.IsConnected)
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     await Task.Delay(IntervalMs, ct).ConfigureAwait(false);
-                    if (ct.IsCancellationRequested || !_client.IsConnected) break;
+                    if (ct.IsCancellationRequested || !_client.IsConnected)
+                    {
+                        break;
+                    }
 
                     double ms = await _client.PingOnceAsync(timeoutMs: 5000, ct).ConfigureAwait(false);
                     _status.UpdatePing(ms);
@@ -58,6 +63,7 @@ internal sealed class KeepAliveService : IDisposable
                     _status.IncrementErrors();
                     _log.Warn($"[Keepalive] error: {ex.Message}");
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }
 
             _log.Info("Background keepalive stopped.");
@@ -67,11 +73,13 @@ internal sealed class KeepAliveService : IDisposable
     /// <summary>Stops the keepalive (idempotent).</summary>
     public void Stop()
     {
-        var cts = Interlocked.Exchange(ref _cts, null);
-        try   { cts?.Cancel(); }
+        CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
+#pragma warning disable CA1031 // Do not catch general exception types
+        try { cts?.Cancel(); }
         catch { /* ignore */ }
+#pragma warning restore CA1031 // Do not catch general exception types
         finally { cts?.Dispose(); }
     }
 
-    public void Dispose() => Stop();
+    public void Dispose() => this.Stop();
 }

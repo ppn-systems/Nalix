@@ -94,8 +94,6 @@ public static partial class Directories
                 {
                     Listener.Write(DiagnosticsEvents.IO.Directory, new { Action = "Created", Path = path, Caller = callerMemberName });
                 }
-
-                RAISE_DIRECTORY_CREATED(path);
             }
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
@@ -198,38 +196,6 @@ public static partial class Directories
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] HARDEN_PERMISSIONS failed for '{path}': {ex}");
-        }
-    }
-
-    /// <summary>
-    /// Invokes directory created event safely per handler.
-    /// </summary>
-    /// <param name="path">
-    /// The path that was created and will be passed to registered handlers.
-    /// </param>
-    private static void RAISE_DIRECTORY_CREATED([DisallowNull] string path)
-    {
-        lock (s_handlerLock)
-        {
-            for (int i = s_directoryCreatedHandlers.Count - 1; i >= 0; i--)
-            {
-                if (s_directoryCreatedHandlers[i].TryGetTarget(out Action<string>? handler))
-                {
-                    try
-                    {
-                        handler.Invoke(path);
-                    }
-                    catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-                    {
-                        Debug.WriteLine($"[Directories] DirectoryCreated handler failed for '{path}': {ex}");
-                    }
-                }
-                else
-                {
-                    // Remove collected handlers to prevent list growth
-                    s_directoryCreatedHandlers.RemoveAt(i);
-                }
-            }
         }
     }
 

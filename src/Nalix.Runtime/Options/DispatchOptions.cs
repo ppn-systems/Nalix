@@ -40,7 +40,7 @@ public sealed class DispatchOptions : ConfigurationLoader
     /// Block timeout in milliseconds for push operations when the queue is full and DropPolicy is BLOCK.
     /// </summary>
     [IniComment("How long to wait before timing out a blocked push when DropPolicy is Block (e.g. 00:00:01 = 1 second)")]
-    public System.TimeSpan BlockTimeout { get; set; } = System.TimeSpan.FromMilliseconds(1000);
+    public System.TimeSpan BlockTimeout { get; set; } = TimeSpan.FromMilliseconds(1000);
 
     /// <summary>
     /// Relative weights for each priority level (NONE..URGENT).

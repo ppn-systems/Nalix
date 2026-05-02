@@ -255,6 +255,7 @@ internal static partial class FieldCache<
             return null;
         }
 
+        // 1. Backing field → property mapping (existing)
         if (field.Name.Length > 2 && field.Name[0] == '<')
         {
             int end = field.Name.IndexOf('>', StringComparison.Ordinal);
@@ -264,7 +265,26 @@ internal static partial class FieldCache<
             }
         }
 
-        return propertyOrders.TryGetValue(field.Name, out (int Order, bool IsHeader) order) ? order : null;
+        // 2. Field name → property name (existing)
+        if (propertyOrders.TryGetValue(field.Name, out (int Order, bool IsHeader) order))
+        {
+            return order;
+        }
+
+        // 3. Direct attribute on field (new)
+        SerializeHeaderAttribute? header = field.GetCustomAttribute<SerializeHeaderAttribute>();
+        if (header is not null)
+        {
+            return (header.Order, true);
+        }
+
+        SerializeOrderAttribute? orderAttr = field.GetCustomAttribute<SerializeOrderAttribute>();
+        if (orderAttr is not null)
+        {
+            return (orderAttr.Order, false);
+        }
+
+        return null;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

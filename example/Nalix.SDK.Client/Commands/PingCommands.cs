@@ -11,21 +11,26 @@ namespace Nalix.SDK.Client.Commands;
 internal sealed class PingCommands
 {
     private readonly ClientSession _client;
-    private readonly StatusBar     _status;
-    private readonly EventLog      _log;
-    private readonly PingChart     _chart;
+    private readonly StatusBar _status;
+    private readonly EventLog _log;
+    private readonly PingChart _chart;
 
     public PingCommands(ClientSession client, StatusBar status, EventLog log, PingChart chart)
     {
         _client = client;
         _status = status;
-        _log    = log;
-        _chart  = chart;
+        _log = log;
+        _chart = chart;
     }
 
     public async Task PingOnceAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
+
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             double ms = await _client.PingOnceAsync().ConfigureAwait(false);
@@ -43,11 +48,15 @@ internal sealed class PingCommands
             _status.IncrementErrors();
             _log.Error($"Ping error: {ex.Message}");
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     public async Task ContinuousPingAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         int count = AnsiConsole.Prompt(
             new TextPrompt<int>("[steelblue1]How many pings?[/] [grey](1–500)[/]")
@@ -76,9 +85,10 @@ internal sealed class PingCommands
                      new PercentageColumn(), new RemainingTimeColumn(), new SpinnerColumn(Spinner.Known.Dots))
             .StartAsync(async ctx =>
             {
-                var task = ctx.AddTask("[aqua]Pinging server[/]", maxValue: count);
+                ProgressTask task = ctx.AddTask("[aqua]Pinging server[/]", maxValue: count);
                 for (int i = 0; i < count && _client.IsConnected; i++)
                 {
+#pragma warning disable CA1031 // Do not catch general exception types
                     try
                     {
                         double ms = await _client.PingOnceAsync(timeoutMs: 3000).ConfigureAwait(false);
@@ -86,10 +96,14 @@ internal sealed class PingCommands
                         total += ms; ok++;
                     }
                     catch (TimeoutException) { _status.IncrementErrors(); _log.Error($"#{i + 1} timeout"); fail++; }
-                    catch (Exception ex)     { _status.IncrementErrors(); _log.Error($"#{i + 1}: {ex.Message}"); fail++; }
+                    catch (Exception ex) { _status.IncrementErrors(); _log.Error($"#{i + 1}: {ex.Message}"); fail++; }
+#pragma warning restore CA1031 // Do not catch general exception types
 
                     task.Increment(1);
-                    if (i < count - 1) await Task.Delay(intervalMs).ConfigureAwait(false);
+                    if (i < count - 1)
+                    {
+                        await Task.Delay(intervalMs).ConfigureAwait(false);
+                    }
                 }
             }).ConfigureAwait(false);
 
@@ -100,7 +114,11 @@ internal sealed class PingCommands
 
     private bool RequireConnected()
     {
-        if (_client.IsConnected) return true;
+        if (_client.IsConnected)
+        {
+            return true;
+        }
+
         _log.Error("Not connected — use [Connect] first.");
         return false;
     }

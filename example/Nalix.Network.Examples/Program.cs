@@ -21,6 +21,7 @@ using Nalix.Runtime.Options;
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031", Justification = "Example")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1303", Justification = "Example")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2000", Justification = "Example")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Example")]
 
 internal class Program
 {
@@ -86,7 +87,7 @@ internal class Program
         // If menu exited, cancel the server too
         if (!shutdown.IsCancellationRequested)
         {
-            shutdown.Cancel();
+            await shutdown.CancelAsync().ConfigureAwait(false);
         }
 
         // Wait for both to finish

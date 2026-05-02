@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
 using Nalix.Network.Connections;
 
 namespace Nalix.Network.Examples.UI.Dashboard.Pages;
@@ -12,7 +13,7 @@ internal sealed class ProcessPageFormatter : IPageFormatter
 
     public string Format(ConnectionHub hub)
     {
-        var proc = System.Diagnostics.Process.GetCurrentProcess();
+        Process proc = Process.GetCurrentProcess();
         proc.Refresh();
         ThreadPool.GetMaxThreads(out int maxW, out int maxIO);
         ThreadPool.GetAvailableThreads(out int freeW, out int freeIO);
@@ -46,7 +47,7 @@ internal sealed class ProcessPageFormatter : IPageFormatter
 
     private static string FormatUptime()
     {
-        TimeSpan up = DateTime.Now - System.Diagnostics.Process.GetCurrentProcess().StartTime;
+        TimeSpan up = DateTime.Now - Process.GetCurrentProcess().StartTime;
         return up.TotalHours >= 1
             ? $"{(int)up.TotalHours}h {up.Minutes}m {up.Seconds}s"
             : up.TotalMinutes >= 1

@@ -11,16 +11,17 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 
 		<Description><![CDATA[
-Nalix.Framework is a high-performance foundational library that provides core building blocks for the Nalix ecosystem — including cryptography, identity, dependency injection, randomization, task orchestration, and time management.
+Nalix.Framework is a high-performance foundational library that provides core building blocks for the Nalix ecosystem — including dependency injection, task orchestration, memory pooling, identity generation, and diagnostic event infrastructure.
 
-Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) principles, emphasizing zero-allocation performance, thread safety, and secure coding practices.
+Designed for modern .NET 10, it follows SOLID and Domain-Driven Design (DDD) principles, emphasizing zero-allocation performance, thread safety, and secure coding practices.
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- High-Efficiency Serialization: Enhanced collection formatters to support complex types like Dictionary entries with minimal allocation.
-- Zero-Allocation Discovery: New PacketRegistry APIs supporting in-place deserialization (Deserialize ref) for optimized object pooling.
-- Secure Environment Management: Hardened filesystem sanitization and Unix-compatible directory permission helpers for robust cross-platform reliability.
-- Reliable Orchestration: Optimized TaskManager and Identity subsystems for predictable performance in high-concurrency environments.
+- Diagnostic Events: Centralized DiagnosticsEvents registry with strongly-typed event names for Tasks, Memory, and Injection observability.
+- Task Orchestration: Optimized TaskManager with worker lifecycle management, recurring jobs, group cancellation, and dispatcher diagnostics.
+- Memory Pooling: High-performance ObjectPoolManager and BufferPoolManager with expand/trim/sentinel leak detection.
+- Dependency Injection: Lightweight InstanceManager with diagnostic event emission for registration, resolution, and failures.
+- Identity Generation: Configurable Snowflake-based ID generation with worker-node isolation.
 		]]></PackageReleaseNotes>
 	</PropertyGroup>
 
@@ -30,7 +31,6 @@ Designed for modern .NET 9, it follows SOLID and Domain-Driven Design (DDD) prin
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Environment\Nalix.Environment.csproj" />
 		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">

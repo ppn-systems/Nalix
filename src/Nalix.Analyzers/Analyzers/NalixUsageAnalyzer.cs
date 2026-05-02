@@ -975,11 +975,22 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     private static bool IsSymbol(ISymbol? symbol, ISymbol? target)
     {
-        if (symbol is null || target is null) return false;
-        if (SymbolEqualityComparer.Default.Equals(symbol, target)) return true;
+        if (symbol is null || target is null)
+        {
+            return false;
+        }
+
+        if (SymbolEqualityComparer.Default.Equals(symbol, target))
+        {
+            return true;
+        }
+
         string s1 = symbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
         string s2 = target.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
-        if (s1 == s2) return true;
+        if (s1 == s2)
+        {
+            return true;
+        }
 
         return symbol.ToDisplayString() == target.ToDisplayString();
     }

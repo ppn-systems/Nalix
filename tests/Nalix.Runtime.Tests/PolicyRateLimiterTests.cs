@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Network.Connections;
 using Nalix.Runtime.Options;
 using Nalix.Runtime.Throttling;
@@ -103,17 +104,7 @@ public sealed class PolicyRateLimiterTests
     {
         public int Length => 0;
 
-        public uint MagicNumber { get; set; }
-
-        public ushort OpCode { get; set; } = opCode;
-
-        public PacketFlags Flags { get; set; }
-
-        public PacketPriority Priority { get; set; }
-
-        public bool IsReliable { get; set; } = true;
-
-        public ushort SequenceId { get; } = 1;
+        public PacketHeader Header { get; set; } = new PacketHeader { OpCode = opCode };
 
         public byte[] Serialize() => [];
 

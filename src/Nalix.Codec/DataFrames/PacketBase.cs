@@ -93,7 +93,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     #region Constructor
 
     /// <summary>
-    /// Assigns the automatically derived <see cref="FrameBase.MagicNumber"/>
+    /// Assigns the automatically derived <see cref="FrameBase.Header"/>.MagicNumber
     /// so that every packet is self-identifying on the wire without any attribute.
     /// </summary>
     protected PacketBase() => this.MagicNumber = s_autoMagic;
@@ -182,11 +182,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     /// <returns>A new or rented <typeparamref name="TSelf"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "Factory pattern")]
-    public static TSelf Create()
-    {
-        IObjectPoolManager? mgr = PacketRegistry.Manager;
-        return mgr == null ? new TSelf() : mgr.Get<TSelf>();
-    }
+    public static TSelf Create() => PacketRegistry.Manager == null ? new TSelf() : PacketRegistry.Manager.Get<TSelf>();
 
     /// <summary>
     /// Deserializes a <typeparamref name="TSelf"/> packet from <paramref name="buffer"/>
@@ -242,7 +238,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
                 $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={s_cache.StaticSize}.");
         }
 
-        uint bufferMagic = buffer.ReadMagicNumberLE();
+        uint bufferMagic = buffer.ReadHeaderLE().MagicNumber;
         if (bufferMagic != s_autoMagic)
         {
             throw new SerializationFailureException(
@@ -271,6 +267,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
         // These are declared in the base class so _metadata may or may not include them
         // depending on whether SerializeOrder is defined — reset them unconditionally.
         this.OpCode = 0;
+        this.SequenceId = 0;
         this.Flags = PacketFlags.SYSTEM;
         this.Priority = PacketPriority.NONE;
 
@@ -365,7 +362,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
 
     /// <inheritdoc/>
     public override string ToString() =>
-        $"{typeof(TSelf).Name}(Magic=0x{this.MagicNumber:X8}, OpCode={this.OpCode}, Flags={this.Flags}, Priority={this.Priority}, SequenceId={this.SequenceId})";
+        $"{typeof(TSelf).Name}(Magic=0x{this.Header.MagicNumber:X8}, OpCode={this.Header.OpCode}, Flags={this.Header.Flags}, Priority={this.Header.Priority}, SequenceId={this.Header.SequenceId})";
 
     #endregion Diagnostics
 

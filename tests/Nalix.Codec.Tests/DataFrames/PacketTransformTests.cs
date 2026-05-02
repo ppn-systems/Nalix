@@ -6,6 +6,7 @@ using Nalix.Codec.Memory;
 using System;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Transforms;
 using Nalix.Framework.Extensions;
@@ -34,7 +35,7 @@ public sealed class PacketTransformTests
 
         // Zero the header area and set flags
         src.Span[..FrameTransformer.Offset].Clear();
-        src.Span.WriteFlagsLE(PacketFlags.NONE);
+        src.Span.WriteHeaderLE(new PacketHeader { Flags = PacketFlags.NONE });
 
         // Copy payload
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
@@ -42,14 +43,14 @@ public sealed class PacketTransformTests
         // 2. Encrypt
         using IBufferLease encrypted = FrameCipher.EncryptFrame(src, s_testKey, CipherSuiteType.Chacha20Poly1305);
 
-        Assert.True(encrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(encrypted.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.NotEqual(0, encrypted.Length);
         Assert.True(encrypted.Length >= FrameTransformer.Offset + EnvelopeCipher.HeaderSize);
 
         // 3. Decrypt
         using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305);
 
-        Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
+        Assert.False(decrypted.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(src.Length, decrypted.Length);
 
         byte[] resultPayload = decrypted.Span[FrameTransformer.Offset..].ToArray();
@@ -67,18 +68,18 @@ public sealed class PacketTransformTests
         src.CommitLength(FrameTransformer.Offset + originalPayload.Length);
 
         src.Span[..FrameTransformer.Offset].Clear();
-        src.Span.WriteFlagsLE(PacketFlags.NONE);
+        src.Span.WriteHeaderLE(new PacketHeader { Flags = PacketFlags.NONE });
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         // 2. Compress
         using IBufferLease compressed = FrameCompression.CompressFrame(src);
 
-        Assert.True(compressed.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED));
+        Assert.True(compressed.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.COMPRESSED));
 
         // 3. Decompress
         using IBufferLease decompressed = FrameCompression.DecompressFrame(compressed);
 
-        Assert.False(decompressed.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED));
+        Assert.False(decompressed.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.COMPRESSED));
         Assert.Equal(src.Length, decompressed.Length);
 
         byte[] resultPayload = decompressed.Span[FrameTransformer.Offset..].ToArray();
@@ -96,22 +97,22 @@ public sealed class PacketTransformTests
         src.CommitLength(FrameTransformer.Offset + originalPayload.Length);
 
         src.Span[..FrameTransformer.Offset].Clear();
-        src.Span.WriteFlagsLE(PacketFlags.NONE);
+        src.Span.WriteHeaderLE(new PacketHeader { Flags = PacketFlags.NONE });
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         // 2. Encrypt then Compress
         using IBufferLease encrypted = FrameCipher.EncryptFrame(src, s_testKey, CipherSuiteType.Chacha20Poly1305);
         using IBufferLease compressed = FrameCompression.CompressFrame(encrypted);
 
-        Assert.True(compressed.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
-        Assert.True(compressed.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED));
+        Assert.True(compressed.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.True(compressed.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.COMPRESSED));
 
         // 3. Decompress then Decrypt
         using IBufferLease decompressed = FrameCompression.DecompressFrame(compressed);
         using IBufferLease decrypted = FrameCipher.DecryptFrame(decompressed, s_testKey, CipherSuiteType.Chacha20Poly1305);
 
-        Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.ENCRYPTED));
-        Assert.False(decrypted.Span.ReadFlagsLE().HasFlag(PacketFlags.COMPRESSED));
+        Assert.False(decrypted.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.False(decrypted.Span.ReadHeaderLE().Flags.HasFlag(PacketFlags.COMPRESSED));
         Assert.Equal(src.Length, decrypted.Length);
 
         byte[] resultPayload = decrypted.Span[FrameTransformer.Offset..].ToArray();

@@ -9,51 +9,6 @@ namespace Nalix.Environment.IO;
 
 public static partial class Directories
 {
-    #region Events
-
-    /// <summary>
-    /// Registers a directory creation event handler.
-    /// </summary>
-    /// <param name="handler">
-    /// The handler to invoke when a directory is created.
-    /// </param>
-    public static void SubscribeDirectoryCreated(Action<string> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        lock (s_handlerLock)
-        {
-            s_directoryCreatedHandlers.Add(new WeakReference<Action<string>>(handler));
-        }
-    }
-
-    /// <summary>
-    /// Unregisters a directory creation event handler.
-    /// </summary>
-    /// <param name="handler">
-    /// The handler to remove.
-    /// </param>
-    public static void UnsubscribeDirectoryCreated(Action<string> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        lock (s_handlerLock)
-        {
-            for (int i = s_directoryCreatedHandlers.Count - 1; i >= 0; i--)
-            {
-                if (s_directoryCreatedHandlers[i].TryGetTarget(out Action<string>? target) && target == handler)
-                {
-                    s_directoryCreatedHandlers.RemoveAt(i);
-                }
-                else if (target == null)
-                {
-                    // Cleanup dead references while we are here
-                    s_directoryCreatedHandlers.RemoveAt(i);
-                }
-            }
-        }
-    }
-
-    #endregion Events
-
     /// <summary>
     /// Returns a full file path under a given directory, ensuring the directory exists.
     /// </summary>

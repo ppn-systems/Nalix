@@ -11,9 +11,6 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
 
-#pragma warning disable CA1848 // Use the LoggerMessage delegates
-#pragma warning disable CA2254 // Template should be a static expression
-
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase

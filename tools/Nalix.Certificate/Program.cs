@@ -1,8 +1,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
-using Nalix.Framework.Environment;
-using Nalix.Framework.Security.Asymmetric;
+using Nalix.Codec.Security.Asymmetric;
+using Nalix.Environment.IO;
 
 namespace Nalix.Certificate;
 
@@ -10,8 +10,9 @@ namespace Nalix.Certificate;
 /// Industrial-grade certificate generator for the Nalix Framework.
 /// Produces separate public and private identity files.
 /// </summary>
-[SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "CLI tool output doesn't require localization.")]
+[SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>")]
 [SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "Console output uses default culture.")]
+[SuppressMessage("Globalization", "CA1303:Do not pass literals as localized parameters", Justification = "CLI tool output doesn't require localization.")]
 internal static class Program
 {
     private const string PublicFileName = "certificate.public";
@@ -56,7 +57,7 @@ internal static class Program
             }
 
             // 4. Core Logic: Generate high-entropy X25519 KeyPair
-            var pair = X25519.GenerateKeyPair();
+            X25519.X25519KeyPair pair = X25519.GenerateKeyPair();
 
             // 5. Display Technical Specs (Elite touch)
             PrintSecuritySpecs();
@@ -108,7 +109,10 @@ internal static class Program
 
     private static void CreateBackup(string path)
     {
-        if (!File.Exists(path)) return;
+        if (!File.Exists(path))
+        {
+            return;
+        }
 
         try
         {
@@ -134,27 +138,27 @@ internal static class Program
         Console.WriteLine(content);
     }
 
-    private static void ExportPrivateFile(string path, Nalix.Common.Primitives.Bytes32 privateKey)
+    private static void ExportPrivateFile(string path, Nalix.Abstractions.Primitives.Bytes32 privateKey)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("# NALIX PRIVATE CERTIFICATE KEY");
-        sb.AppendLine($"# Generated: {DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
-        sb.AppendLine("# SECURITY WARNING: KEEP THIS FILE SECRET!");
-        sb.AppendLine("###########################################");
-        sb.AppendLine(privateKey.ToString());
+        StringBuilder sb = new();
+        _ = sb.AppendLine("# NALIX PRIVATE CERTIFICATE KEY");
+        _ = sb.AppendLine($"# Generated: {DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
+        _ = sb.AppendLine("# SECURITY WARNING: KEEP THIS FILE SECRET!");
+        _ = sb.AppendLine("###########################################");
+        _ = sb.AppendLine(privateKey.ToString());
 
         File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
         Console.WriteLine($"[SAVE] Private key stored to : {path}");
     }
 
-    private static void ExportPublicFile(string path, Nalix.Common.Primitives.Bytes32 publicKey)
+    private static void ExportPublicFile(string path, Nalix.Abstractions.Primitives.Bytes32 publicKey)
     {
-        var sb = new StringBuilder();
-        sb.AppendLine("# NALIX PUBLIC CERTIFICATE KEY");
-        sb.AppendLine($"# Generated: {DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
-        sb.AppendLine("# Use this key for Client Pinning (MitM protection)");
-        sb.AppendLine("###########################################");
-        sb.AppendLine(publicKey.ToString());
+        StringBuilder sb = new();
+        _ = sb.AppendLine("# NALIX PUBLIC CERTIFICATE KEY");
+        _ = sb.AppendLine($"# Generated: {DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)}");
+        _ = sb.AppendLine("# Use this key for Client Pinning (MitM protection)");
+        _ = sb.AppendLine("###########################################");
+        _ = sb.AppendLine(publicKey.ToString());
 
         File.WriteAllText(path, sb.ToString(), Encoding.UTF8);
         Console.WriteLine($"[SAVE] Public key stored to  : {path}");

@@ -4,9 +4,9 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Environment.Time;
 using Nalix.SDK.Options;
 

@@ -5,12 +5,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Framework.Extensions;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 using Nalix.Runtime.Pooling;
@@ -75,7 +74,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
             directive.Initialize(
                 ControlType.FAIL,
                 ProtocolReason.UNAUTHORIZED, ProtocolAdvice.NONE,
-                sequenceId: context.Packet.SequenceId,
+                sequenceId: context.Packet.Header.SequenceId,
                 controlFlags: ControlFlags.NONE,
                 arg0: 0,
                 arg1: 0,

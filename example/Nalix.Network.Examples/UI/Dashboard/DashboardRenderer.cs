@@ -373,6 +373,7 @@ internal sealed class DashboardRenderer
 
     // ── Build renderable ─────────────────────────────────────────────────────
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Globalization", "CA1305:Specify IFormatProvider", Justification = "<Pending>")]
     private IRenderable Build(int page, int scroll, int viewLines)
     {
         // Tab bar

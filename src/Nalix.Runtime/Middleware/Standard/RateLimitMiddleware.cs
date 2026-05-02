@@ -5,11 +5,11 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 using Nalix.Runtime.Pooling;
@@ -68,7 +68,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             if (rl is not null)
             {
                 // Attribute-driven policy: use centralized policy-based limiter
-                decision = _policy.Evaluate(context.Packet.OpCode, context);
+                decision = _policy.Evaluate(context.Packet.Header.OpCode, context);
             }
             else
             {
@@ -101,7 +101,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
 
             directive.Initialize(
                 ControlType.FAIL, ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
-                sequenceId: context.Packet.SequenceId,
+                sequenceId: context.Packet.Header.SequenceId,
                 controlFlags: ControlFlags.IS_TRANSIENT,
                 arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
                 arg1: (uint)decision.RetryAfterMs,

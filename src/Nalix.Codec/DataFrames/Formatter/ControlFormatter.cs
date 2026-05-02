@@ -2,8 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Runtime.CompilerServices;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
@@ -31,11 +31,7 @@ public sealed class ControlFormatter : IFillableFormatter<Control> //[cite: 11]
         writer.Expand(Control.Size);
 
         // --- Header Section (10 bytes) ---
-        writer.Write(value.MagicNumber);    //[cite: 2, 5]
-        writer.Write(value.OpCode);         //[cite: 2, 5]
-        writer.Write((byte)value.Flags);    //[cite: 2, 5]
-        writer.Write((byte)value.Priority); //[cite: 2, 5]
-        writer.Write(value.SequenceId);     //[cite: 2, 5]
+        writer.WriteUnmanaged(value.Header);
 
         // --- Payload Section ---
         writer.WriteEnum(value.Reason);     //[cite: 3, 5]
@@ -58,11 +54,7 @@ public sealed class ControlFormatter : IFillableFormatter<Control> //[cite: 11]
     public void Fill(ref DataReader reader, Control value) //[cite: 11]
     {
         // --- Header Section ---
-        value.MagicNumber = reader.ReadUInt32();                //[cite: 2, 4]
-        value.OpCode = reader.ReadUInt16();                     //[cite: 2, 4]
-        value.Flags = (PacketFlags)reader.ReadByte();           //[cite: 2, 4]
-        value.Priority = (PacketPriority)reader.ReadByte();     //[cite: 2, 4]
-        value.SequenceId = reader.ReadUInt16();                 //[cite: 2, 4]
+        value.Header = reader.ReadUnmanaged<PacketHeader>();
 
         // --- Payload Section ---
         value.Reason = reader.ReadEnumUInt16<ProtocolReason>(); //[cite: 3, 4]

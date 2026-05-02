@@ -25,7 +25,7 @@ public static class FramePipeline
         ArgumentNullException.ThrowIfNull(current);
 
         IBufferLease original = current;
-        PacketFlags flags = current.Span.ReadFlagsLE();
+        PacketFlags flags = current.Span.ReadHeaderLE().Flags;
 
         if (flags.HasFlag(PacketFlags.ENCRYPTED))
         {
@@ -44,7 +44,7 @@ public static class FramePipeline
                 current = FrameCipher.DecryptFrame(current, secret, algorithm);
 
                 // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
-                flags = current.Span.ReadFlagsLE();
+                flags = current.Span.ReadHeaderLE().Flags;
             }
             catch (Exception)
             {

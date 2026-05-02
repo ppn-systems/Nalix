@@ -15,19 +15,22 @@ namespace Nalix.SDK.Client.Commands;
 internal sealed class ControlCommands
 {
     private readonly ClientSession _client;
-    private readonly StatusBar     _status;
-    private readonly EventLog      _log;
+    private readonly StatusBar _status;
+    private readonly EventLog _log;
 
     public ControlCommands(ClientSession client, StatusBar status, EventLog log)
     {
         _client = client;
         _status = status;
-        _log    = log;
+        _log = log;
     }
 
     public async Task SendControlFrameAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         ControlType type = AnsiConsole.Prompt(
             new SelectionPrompt<ControlType>()
@@ -35,6 +38,7 @@ internal sealed class ControlCommands
                 .PageSize(12)
                 .AddChoices(Enum.GetValues<ControlType>()));
 
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             await _client.Session.SendControlAsync(
@@ -48,11 +52,15 @@ internal sealed class ControlCommands
             _status.IncrementErrors();
             _log.Error($"SendControl failed: {ex.Message}");
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     public async Task AwaitControlFrameAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         ControlType sendType = AnsiConsole.Prompt(
             new SelectionPrompt<ControlType>()
@@ -67,6 +75,7 @@ internal sealed class ControlCommands
         int timeoutMs = AnsiConsole.Prompt(
             new TextPrompt<int>("[steelblue1]Timeout (ms)?[/]").DefaultValue(5000));
 
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             await _client.Session.SendControlAsync(
@@ -91,11 +100,15 @@ internal sealed class ControlCommands
             _status.IncrementErrors();
             _log.Error($"AwaitControl failed: {ex.Message}");
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     public async Task RequestResponseAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         ControlType sendType = AnsiConsole.Prompt(
             new SelectionPrompt<ControlType>()
@@ -119,12 +132,16 @@ internal sealed class ControlCommands
             .NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, sendType)
             .Build();
 
-        var opts = RequestOptions.Default
+        RequestOptions opts = RequestOptions.Default
             .WithTimeout(timeoutMs)
             .WithRetry(retries);
 
-        if (encrypt) opts = opts.WithEncrypt();
+        if (encrypt)
+        {
+            opts = opts.WithEncrypt();
+        }
 
+#pragma warning disable CA1031 // Do not catch general exception types
         try
         {
             _log.Send("REQUEST", $"type={sendType}  expect={expectType}  timeout={timeoutMs}ms  retry={retries}  enc={encrypt}");
@@ -146,11 +163,16 @@ internal sealed class ControlCommands
             _status.IncrementErrors();
             _log.Error($"RequestAsync error: {ex.Message}");
         }
+#pragma warning restore CA1031 // Do not catch general exception types
     }
 
     private bool RequireConnected()
     {
-        if (_client.IsConnected) return true;
+        if (_client.IsConnected)
+        {
+            return true;
+        }
+
         _log.Error("Not connected — use [Connect] first.");
         return false;
     }

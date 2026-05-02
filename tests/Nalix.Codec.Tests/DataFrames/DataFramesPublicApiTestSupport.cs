@@ -95,19 +95,19 @@ public sealed partial class DataFramesPublicApiTests
                 {
                     Control expectedControl = Assert.IsType<Control>(expected);
                     Control actualControl = Assert.IsType<Control>(actual);
-                    Assert.Equal(expectedControl.MagicNumber, actualControl.MagicNumber);
-                    Assert.Equal(expectedControl.OpCode, actualControl.OpCode);
+                    Assert.Equal(expectedControl.Header.MagicNumber, actualControl.Header.MagicNumber);
+                    Assert.Equal(expectedControl.Header.OpCode, actualControl.Header.OpCode);
                     Assert.Equal(expectedControl.Type, actualControl.Type);
                     Assert.Equal(expectedControl.Reason, actualControl.Reason);
-                    Assert.Equal(expectedControl.Flags, actualControl.Flags);
-                    Assert.Equal(expectedControl.SequenceId, actualControl.SequenceId);
+                    Assert.Equal(expectedControl.Header.Flags, actualControl.Header.Flags);
+                    Assert.Equal(expectedControl.Header.SequenceId, actualControl.Header.SequenceId);
                     break;
                 }
             case PacketRoundTripKind.Directive:
                 {
                     Directive expectedDirective = Assert.IsType<Directive>(expected);
                     Directive actualDirective = Assert.IsType<Directive>(actual);
-                    Assert.Equal(expectedDirective.OpCode, actualDirective.OpCode);
+                    Assert.Equal(expectedDirective.Header.OpCode, actualDirective.Header.OpCode);
                     Assert.Equal(expectedDirective.Type, actualDirective.Type);
                     Assert.Equal(expectedDirective.Reason, actualDirective.Reason);
                     Assert.Equal(expectedDirective.Action, actualDirective.Action);
@@ -115,15 +115,15 @@ public sealed partial class DataFramesPublicApiTests
                     Assert.Equal(expectedDirective.Arg0, actualDirective.Arg0);
                     Assert.Equal(expectedDirective.Arg1, actualDirective.Arg1);
                     Assert.Equal(expectedDirective.Arg2, actualDirective.Arg2);
-                    Assert.Equal(expectedDirective.SequenceId, actualDirective.SequenceId);
+                    Assert.Equal(expectedDirective.Header.SequenceId, actualDirective.Header.SequenceId);
                     break;
                 }
             case PacketRoundTripKind.Handshake:
                 {
                     Handshake expectedHandshake = Assert.IsType<Handshake>(expected);
                     Handshake actualHandshake = Assert.IsType<Handshake>(actual);
-                    Assert.Equal(expectedHandshake.OpCode, actualHandshake.OpCode);
-                    Assert.Equal(expectedHandshake.Flags, actualHandshake.Flags);
+                    Assert.Equal(expectedHandshake.Header.OpCode, actualHandshake.Header.OpCode);
+                    Assert.Equal(expectedHandshake.Header.Flags, actualHandshake.Header.Flags);
                     Assert.Equal(expectedHandshake.Stage, actualHandshake.Stage);
                     Assert.Equal(expectedHandshake.PublicKey, actualHandshake.PublicKey);
                     Assert.Equal(expectedHandshake.Nonce, actualHandshake.Nonce);

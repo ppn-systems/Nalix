@@ -18,7 +18,9 @@ internal sealed class SubscriptionManager : IDisposable
     private readonly ClientSession _client;
     private readonly EventLog _log;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
     private IDisposable? _controlSub;
+#pragma warning restore CA2213 // Disposable fields should be disposed
     private bool _controlSubActive;
 
     public bool IsControlSubActive => _controlSubActive;

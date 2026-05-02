@@ -26,7 +26,9 @@ public sealed class NetworkApplicationIntegrationTests
     {
         // 1. Create packet
         using var pkt = new HostingScan.HostingScanAttributedPacket { Value = 42 };
-        pkt.OpCode = 0x1234;
+        var h = pkt.Header;
+        h.OpCode = 0x1234;
+        pkt.Header = h;
         
         // 2. Serialize
         byte[] bytes = pkt.Serialize();
@@ -37,12 +39,12 @@ public sealed class NetworkApplicationIntegrationTests
         ushort readOpCode = BitConverter.ToUInt16(bytes, 4);
         
         Console.WriteLine($"[TEST] Serialized bytes: {BitConverter.ToString(bytes)}");
-        Console.WriteLine($"[TEST] Expected OpCode: 0x{pkt.OpCode:X4}, Read: 0x{readOpCode:X4}");
+        Console.WriteLine($"[TEST] Expected OpCode: 0x{pkt.Header.OpCode:X4}, Read: 0x{readOpCode:X4}");
         
-        Assert.Equal(pkt.OpCode, readOpCode);
+        Assert.Equal(pkt.Header.OpCode, readOpCode);
         
         uint magic = BitConverter.ToUInt32(bytes, 0);
-        Assert.Equal(pkt.MagicNumber, magic);
+        Assert.Equal(pkt.Header.MagicNumber, magic);
     }
 
     [Fact]
@@ -111,10 +113,12 @@ public sealed class NetworkApplicationIntegrationTests
             
             // 3. Send Packet
             using HostingScan.HostingScanAttributedPacket pkt = new() { Value = 42 };
-            pkt.OpCode = 0x1234; 
+            var h2 = pkt.Header;
+            h2.OpCode = 0x1234;
+            pkt.Header = h2;
             
             #if DEBUG
-            Console.WriteLine($"[TEST] Sending packet: OpCode={pkt.OpCode}, MagicNumber={pkt.MagicNumber}");
+            Console.WriteLine($"[TEST] Sending packet: OpCode={pkt.Header.OpCode}, MagicNumber={pkt.Header.MagicNumber}");
             #endif
             // Disambiguate SendAsync by specifying CancellationToken
             await client.SendAsync(pkt, ct: default);

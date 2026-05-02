@@ -13,30 +13,31 @@ internal class Program
 {
     // ── Menu groups ───────────────────────────────────────────────────────────
     // Connection
-    private const string MENU_CONNECT         = "⚡  [[Connection]]  Connect (TCP)";
-    private const string MENU_DISCONNECT      = "⛔  [[Connection]]  Disconnect (Graceful)";
+    private const string MENU_CONNECT = "⚡  [[Connection]]  Connect (TCP)";
+    private const string MENU_DISCONNECT = "⛔  [[Connection]]  Disconnect (Graceful)";
     private const string MENU_DISCONNECT_HARD = "💥  [[Connection]]  Disconnect (Hard / no frame)";
     // Security
-    private const string MENU_HANDSHAKE       = "🔐  [[Security]]    Handshake (X25519 ECDH)";
-    private const string MENU_RESUME          = "♻   [[Security]]    Resume Session";
-    private const string MENU_CIPHER          = "🔑  [[Security]]    Update Cipher Suite";
+    private const string MENU_HANDSHAKE = "🔐  [[Security]]    Handshake (X25519 ECDH)";
+    private const string MENU_RESUME = "♻   [[Security]]    Resume Session";
+    private const string MENU_CIPHER = "🔑  [[Security]]    Update Cipher Suite";
     // Ping
-    private const string MENU_PING_ONCE       = "📡  [[Ping]]        Single Ping";
-    private const string MENU_PING_MULTI      = "🔁  [[Ping]]        Continuous Ping (batch)";
+    private const string MENU_PING_ONCE = "📡  [[Ping]]        Single Ping";
+    private const string MENU_PING_MULTI = "🔁  [[Ping]]        Continuous Ping (batch)";
     // Diagnostics
-    private const string MENU_TIMESYNC        = "🕐  [[Diag]]        Time Sync";
+    private const string MENU_TIMESYNC = "🕐  [[Diag]]        Time Sync";
     // Control frames
-    private const string MENU_SEND_CTRL       = "📨  [[Control]]     SendControl (pick type)";
-    private const string MENU_AWAIT_CTRL      = "📬  [[Control]]     SendControl + AwaitControl";
-    private const string MENU_REQUEST_RESP    = "↔   [[Request]]     RequestAsync[[Control]]";
+    private const string MENU_SEND_CTRL = "📨  [[Control]]     SendControl (pick type)";
+    private const string MENU_AWAIT_CTRL = "📬  [[Control]]     SendControl + AwaitControl";
+    private const string MENU_REQUEST_RESP = "↔   [[Request]]     RequestAsync[[Control]]";
     // Subscriptions
-    private const string MENU_TOGGLE_SUB      = "📻  [[Subscribe]]   Toggle On[[Control]] subscription";
-    private const string MENU_ONESHOT_SUB     = "🎯  [[Subscribe]]   Register OnOnce[[Control]]";
+    private const string MENU_TOGGLE_SUB = "📻  [[Subscribe]]   Toggle On[[Control]] subscription";
+    private const string MENU_ONESHOT_SUB = "🎯  [[Subscribe]]   Register OnOnce[[Control]]";
     // UI
-    private const string MENU_SHOW_CHART      = "📊  [[View]]        Ping History Chart";
-    private const string MENU_SERVER_INFO     = "ℹ   [[View]]        Session / Transport Info";
-    private const string MENU_EXIT            = "🚪  Exit";
+    private const string MENU_SHOW_CHART = "📊  [[View]]        Ping History Chart";
+    private const string MENU_SERVER_INFO = "ℹ   [[View]]        Session / Transport Info";
+    private const string MENU_EXIT = "🚪  Exit";
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "<Pending>")]
     private static async Task Main()
     {
         Banner.Render();
@@ -75,25 +76,25 @@ internal class Program
         }
 
         // ── Build objects ─────────────────────────────────────────────────────
-        var options = new TransportOptions
+        TransportOptions options = new()
         {
-            Address                 = host,
-            Port                    = port,
-            EncryptionEnabled       = encrypt,
-            ServerPublicKey         = serverPublicKey,
-            ReconnectEnabled        = false,
+            Address = host,
+            Port = port,
+            EncryptionEnabled = encrypt,
+            ServerPublicKey = serverPublicKey,
+            ReconnectEnabled = false,
             KeepAliveIntervalMillis = 0   // SDK client does its own keepalive
         };
 
-        var status  = new StatusBar();
-        var log     = new EventLog();
-        var chart   = new PingChart();
+        StatusBar status = new();
+        EventLog log = new();
+        PingChart chart = new();
         status.SetServer(host, port);
 
-        await using var session = new ClientSession(options);
-        using var runner = new CommandRunner(session, status, log, chart);
+        await using ClientSession session = new(options);
+        using CommandRunner runner = new(session, status, log, chart);
 
-        using var appCts = new CancellationTokenSource();
+        using CancellationTokenSource appCts = new();
         Console.CancelKeyPress += (_, e) => { e.Cancel = true; appCts.Cancel(); };
 
         log.Info($"Client ready — {host}:{port}  enc={encrypt}");
@@ -135,23 +136,25 @@ internal class Program
 
             switch (choice)
             {
-                case MENU_CONNECT:         await runner.ConnectAsync().ConfigureAwait(false);          break;
-                case MENU_DISCONNECT:      await runner.GracefulDisconnectAsync().ConfigureAwait(false); break;
-                case MENU_DISCONNECT_HARD: await runner.HardDisconnectAsync().ConfigureAwait(false);   break;
-                case MENU_HANDSHAKE:       await runner.HandshakeAsync().ConfigureAwait(false);         break;
-                case MENU_RESUME:          await runner.ResumeSessionAsync().ConfigureAwait(false);     break;
-                case MENU_CIPHER:          await runner.UpdateCipherAsync().ConfigureAwait(false);      break;
-                case MENU_PING_ONCE:       await runner.PingOnceAsync().ConfigureAwait(false);          break;
-                case MENU_PING_MULTI:      await runner.ContinuousPingAsync().ConfigureAwait(false);   break;
-                case MENU_TIMESYNC:        await runner.TimeSyncAsync().ConfigureAwait(false);          break;
-                case MENU_SEND_CTRL:       await runner.SendControlFrameAsync().ConfigureAwait(false);  break;
-                case MENU_AWAIT_CTRL:      await runner.AwaitControlFrameAsync().ConfigureAwait(false); break;
-                case MENU_REQUEST_RESP:    await runner.RequestResponseAsync().ConfigureAwait(false);   break;
-                case MENU_TOGGLE_SUB:      runner.ToggleControlSubscription();                          break;
-                case MENU_ONESHOT_SUB:     runner.RegisterOneShotSubscription();                        break;
-                case MENU_SHOW_CHART:      runner.ShowChart();                                          break;
-                case MENU_SERVER_INFO:     runner.ShowServerInfo();                                     break;
-                case MENU_EXIT:            appCts.Cancel();                                             break;
+                case MENU_CONNECT: await runner.ConnectAsync().ConfigureAwait(false); break;
+                case MENU_DISCONNECT: await runner.GracefulDisconnectAsync().ConfigureAwait(false); break;
+                case MENU_DISCONNECT_HARD: await runner.HardDisconnectAsync().ConfigureAwait(false); break;
+                case MENU_HANDSHAKE: await runner.HandshakeAsync().ConfigureAwait(false); break;
+                case MENU_RESUME: await runner.ResumeSessionAsync().ConfigureAwait(false); break;
+                case MENU_CIPHER: await runner.UpdateCipherAsync().ConfigureAwait(false); break;
+                case MENU_PING_ONCE: await runner.PingOnceAsync().ConfigureAwait(false); break;
+                case MENU_PING_MULTI: await runner.ContinuousPingAsync().ConfigureAwait(false); break;
+                case MENU_TIMESYNC: await runner.TimeSyncAsync().ConfigureAwait(false); break;
+                case MENU_SEND_CTRL: await runner.SendControlFrameAsync().ConfigureAwait(false); break;
+                case MENU_AWAIT_CTRL: await runner.AwaitControlFrameAsync().ConfigureAwait(false); break;
+                case MENU_REQUEST_RESP: await runner.RequestResponseAsync().ConfigureAwait(false); break;
+                case MENU_TOGGLE_SUB: runner.ToggleControlSubscription(); break;
+                case MENU_ONESHOT_SUB: runner.RegisterOneShotSubscription(); break;
+                case MENU_SHOW_CHART: runner.ShowChart(); break;
+                case MENU_SERVER_INFO: runner.ShowServerInfo(); break;
+                case MENU_EXIT: await appCts.CancelAsync().ConfigureAwait(false); break;
+                default:
+                    break;
             }
         }
 

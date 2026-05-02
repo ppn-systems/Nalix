@@ -4,12 +4,12 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 using Nalix.Runtime.Pooling;
@@ -56,13 +56,13 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
         {
             if (context.Attributes.ConcurrencyLimit.Queue)
             {
-                lease = await _concurrencyGate.EnterAsync(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, context.CancellationToken)
+                lease = await _concurrencyGate.EnterAsync(context.Packet.Header.OpCode, context.Attributes.ConcurrencyLimit, context.CancellationToken)
                                               .ConfigureAwait(false);
                 acquired = true;
             }
             else
             {
-                acquired = _concurrencyGate.TryEnter(context.Packet.OpCode, context.Attributes.ConcurrencyLimit, out lease);
+                acquired = _concurrencyGate.TryEnter(context.Packet.Header.OpCode, context.Attributes.ConcurrencyLimit, out lease);
 
                 if (!acquired)
                 {
@@ -79,9 +79,9 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
                     directive.Initialize(
                         ControlType.FAIL,
                         ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
-                        sequenceId: context.Packet.SequenceId,
+                        sequenceId: context.Packet.Header.SequenceId,
                         controlFlags: ControlFlags.IS_TRANSIENT,
-                        arg0: context.Packet.OpCode);
+                        arg0: context.Packet.Header.OpCode);
 
                     await context.Sender.SendAsync(directive).ConfigureAwait(false);
 
@@ -106,9 +106,9 @@ public class ConcurrencyMiddleware : IPacketMiddleware<IPacket>
             directive.Initialize(
                 ControlType.FAIL,
                 ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
-                sequenceId: context.Packet.SequenceId,
+                sequenceId: context.Packet.Header.SequenceId,
                 controlFlags: ControlFlags.IS_TRANSIENT,
-                arg0: context.Packet.OpCode);
+                arg0: context.Packet.Header.OpCode);
 
             await context.Sender.SendAsync(directive).ConfigureAwait(false);
         }

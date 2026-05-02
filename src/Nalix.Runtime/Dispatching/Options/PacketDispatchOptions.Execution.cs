@@ -53,7 +53,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 reason: ProtocolReason.REQUEST_INVALID,
                 action: ProtocolAdvice.FIX_AND_RETRY,
                 options: new ControlDirectiveOptions(
-                    SequenceId: packet.SequenceId,
+                    SequenceId: packet.Header.SequenceId,
                     Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
             return;
@@ -79,7 +79,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 reason: ProtocolReason.MALFORMED_PACKET,
                 action: ProtocolAdvice.FIX_AND_RETRY,
                 options: new ControlDirectiveOptions(
-                    SequenceId: context.Packet.SequenceId,
+                    SequenceId: context.Packet.Header.SequenceId,
                     Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
             return;
@@ -117,7 +117,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                         action: ProtocolAdvice.RETRY,
                         options: new ControlDirectiveOptions(
                             Flags: ControlFlags.IS_TRANSIENT,
-                            SequenceId: context.Packet.SequenceId,
+                            SequenceId: context.Packet.Header.SequenceId,
                             Arg0: descriptor.OpCode)).ConfigureAwait(false);
 
                     return;
@@ -228,7 +228,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             action: action,
             options: new ControlDirectiveOptions(
                 Flags: flags,
-                SequenceId: context.Packet.SequenceId,
+                SequenceId: context.Packet.Header.SequenceId,
                 Arg0: descriptor.OpCode)).ConfigureAwait(false);
     }
 

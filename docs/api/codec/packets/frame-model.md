@@ -20,7 +20,7 @@ This page covers the core `Nalix.Codec.DataFrames` abstractions that sit underne
 
 | Type | Public members |
 | --- | --- |
-| `FrameBase` | `MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
+| `FrameBase` | `Header`, `MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
 | `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)`, `Deserialize(ReadOnlySpan<byte>, ref TSelf)` |
 | `FrameTransformer` | low-level payload transform helpers and size calculations |
 | `FrameCipher` | shared framed packet encrypt/decrypt helper |
@@ -30,13 +30,14 @@ This page covers the core `Nalix.Codec.DataFrames` abstractions that sit underne
 
 `FrameBase` is the common wire-level header contract for Nalix packets.
 
-It exposes the fields that every packet carries:
+It exposes the `Header` property (a `PacketHeader` struct) and convenience facade properties for direct field access:
 
-- `MagicNumber`
-- `OpCode`
-- `Flags`
-- `Priority`
-- `SequenceId`
+- `Header` — the full 10-byte `PacketHeader` struct
+- `MagicNumber` — facade over `Header.MagicNumber`
+- `OpCode` — facade over `Header.OpCode`
+- `Flags` — facade over `Header.Flags`
+- `Priority` — facade over `Header.Priority`
+- `SequenceId` — facade over `Header.SequenceId`
 - `Length`
 
 It also defines the common packet lifecycle methods:
@@ -45,7 +46,7 @@ It also defines the common packet lifecycle methods:
 - `Serialize(Span<byte>)`
 - `ResetForPool()`
 
-Use `FrameBase` when you want to understand the shared header layout or build infrastructure that only cares about `IPacket`-level metadata.
+`FrameBase` implements both `IPacket` and `IPacketHeader`. Use it when you want to understand the shared header layout or build infrastructure that only cares about `IPacket`-level metadata.
 
 ## PacketBase<`TSelf`>
 

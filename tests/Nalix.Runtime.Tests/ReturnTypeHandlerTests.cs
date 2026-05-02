@@ -2,6 +2,7 @@
 using System;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Results;
 using Nalix.Runtime.Internal.Results.Packet;
@@ -28,7 +29,7 @@ public sealed class ReturnTypeHandlerTests
     {
         PacketReturnHandler<TestPacket> handler = new();
         IPacket resultPacket = Substitute.For<IPacket>();
-        resultPacket.Flags.Returns(PacketFlags.RELIABLE);
+        resultPacket.Header.Returns(new PacketHeader { Flags = PacketFlags.RELIABLE });
         
         IPacketSender sender = Substitute.For<IPacketSender>();
         PacketContext<TestPacket> context = new()
@@ -58,11 +59,7 @@ public sealed class ReturnTypeHandlerTests
     private sealed class TestPacket : IPacket
     {
         public int Length => 0;
-        public uint MagicNumber { get; set; }
-        public ushort OpCode { get; set; }
-        public PacketFlags Flags { get; set; }
-        public PacketPriority Priority { get; set; }
-        public ushort SequenceId => 1;
+        public PacketHeader Header { get; set; }
         public byte[] Serialize() => [];
         public int Serialize(Span<byte> buffer) => 0;
     }

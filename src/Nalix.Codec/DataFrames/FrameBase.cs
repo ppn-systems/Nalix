@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.DataFrames;
@@ -14,37 +15,61 @@ namespace Nalix.Codec.DataFrames;
 /// </summary>
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public abstract class FrameBase : IPacket
+public abstract class FrameBase : IPacket, IPacketHeader
 {
     /// <summary>
     /// Gets the total length of the serialized packet in bytes, including header and content.
     /// </summary>
     [SerializeIgnore] public abstract int Length { get; }
 
-    /// <summary>
-    /// Gets the magic number used to identify the packet format.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.MagicNumber)] public uint MagicNumber { get; set; }
+    /// <inheritdoc/>
+    [SerializeHeader(0)] private PacketHeader _header;
 
-    /// <summary>
-    /// Gets the operation code (OpCode) of this packet.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.OpCode)] public ushort OpCode { get; set; }
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public PacketHeader Header { get => _header; set => _header = value; }
 
-    /// <summary>
-    /// Gets the flags associated with this packet.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Flags)] public PacketFlags Flags { get; set; }
+    // --- IPacketHeaderAccessor: direct field access, zero-copy ---
 
-    /// <summary>
-    /// Gets the packet priority.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.Priority)] public PacketPriority Priority { get; set; }
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public uint MagicNumber
+    {
+        get => _header.MagicNumber;
+        set => _header.MagicNumber = value;
+    }
 
-    /// <summary>
-    /// Gets or sets the sequence identifier used for packet correlation.
-    /// </summary>
-    [SerializeHeader(PacketHeaderOffset.SequenceId)] public ushort SequenceId { get; set; }
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public ushort OpCode
+    {
+        get => _header.OpCode;
+        set => _header.OpCode = value;
+    }
+
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public PacketFlags Flags
+    {
+        get => _header.Flags;
+        set => _header.Flags = value;
+    }
+
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public PacketPriority Priority
+    {
+        get => _header.Priority;
+        set => _header.Priority = value;
+    }
+
+    /// <inheritdoc/>
+    [SerializeIgnore]
+    public ushort SequenceId
+    {
+        get => _header.SequenceId;
+        set => _header.SequenceId = value;
+    }
 
     /// <inheritdoc/>
     public abstract void ResetForPool();

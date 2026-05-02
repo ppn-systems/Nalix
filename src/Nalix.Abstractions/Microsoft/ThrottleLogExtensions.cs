@@ -5,11 +5,9 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
-using Nalix.Environment.Time;
 
-namespace Nalix.Framework.Extensions;
+namespace Microsoft.Extensions.Logging;
 
 /// <inheritdoc/>
 public static partial class Log
@@ -105,25 +103,6 @@ public static class ThrottleLogExtensions
         }
     }
 
-    /// <summary>
-    /// Logs a trace message if the throttle window has passed for the given key.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrottledTrace(this IConnection connection, ILogger? logger, string key, string message)
-    {
-        if (!SHOULD_LOG(connection, key, out long suppressed))
-        {
-            return;
-        }
-
-        string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
-
-        if (logger != null && logger.IsEnabled(LogLevel.Trace))
-        {
-            Log.DataProcessingTrace(logger, message, suffix);
-        }
-    }
-
     private static bool SHOULD_LOG(IConnection connection, string key, out long suppressed)
     {
         suppressed = 0;
@@ -136,7 +115,7 @@ public static class ThrottleLogExtensions
         bool created = false;
         if (!connection.Attributes.TryGetValue(attrKey, out object? val) || val is not LogThrottleState state)
         {
-            state = new LogThrottleState { LastLogTicks = Clock.NowUtc().Ticks };
+            state = new LogThrottleState { LastLogTicks = DateTime.UtcNow.Ticks };
             // ObjectMap's Add implementation is safe (it uses TryAdd internally and ignores if exists)
             connection.Attributes.Add(attrKey, state);
 
@@ -157,7 +136,7 @@ public static class ThrottleLogExtensions
             return true;
         }
 
-        long nowTicks = Clock.NowUtc().Ticks;
+        long nowTicks = DateTime.UtcNow.Ticks;
         long lastTicks = Interlocked.Read(ref state.LastLogTicks);
 
         if (nowTicks - lastTicks >= s_defaultWindow.Ticks)

@@ -35,15 +35,15 @@ public sealed class LiteSerializerObjectTests
         _ = LiteSerializerTestHelper.RoundTrip(input, ref output);
 
         Assert.NotNull(output);
-        Assert.Equal(input.OpCode, output.OpCode);
+        Assert.Equal(input.Header.OpCode, output.Header.OpCode);
         Assert.Equal(input.Stage, output.Stage);
         Assert.Equal(input.PublicKey, output.PublicKey);
         Assert.Equal(input.Nonce, output.Nonce);
         Assert.Equal(input.Proof, output.Proof);
         Assert.Equal(input.TranscriptHash, output.TranscriptHash);
         Assert.Equal(input.SessionToken, output.SessionToken);
-        Assert.Equal(input.Flags, output.Flags);
-        Assert.Equal(input.Priority, output.Priority);
+        Assert.Equal(input.Header.Flags, output.Header.Flags);
+        Assert.Equal(input.Header.Priority, output.Header.Priority);
     }
 
     [Fact]
