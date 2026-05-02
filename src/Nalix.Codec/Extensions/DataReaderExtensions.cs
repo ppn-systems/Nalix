@@ -211,7 +211,7 @@ public static class DataReaderExtensions
 
         if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            Throw.ThrowSerializationLengthOutOfRange();
         }
 
         ref byte ptr = ref reader.GetSpanReference(count);

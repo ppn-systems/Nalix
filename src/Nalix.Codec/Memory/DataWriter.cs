@@ -139,7 +139,7 @@ public ref struct DataWriter
     {
         if (count <= 0 || (uint)(this.WrittenCount + count) > (uint)_span.Length)
         {
-            throw CodecErrors.WriterAdvanceOutOfBound;
+            Throw.ThrowWriterAdvanceOutOfBound();
         }
 
         this.WrittenCount += count;
@@ -179,7 +179,7 @@ public ref struct DataWriter
 
         if (!_rent) // external array (or external span if we ever add such ctor) cannot expand by policy
         {
-            throw CodecErrors.SerializationFixedBufferExpansion;
+            Throw.ThrowSerializationFixedBufferExpansion();
         }
 
         // Use checked arithmetic to prevent integer overflow attacks

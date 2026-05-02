@@ -62,7 +62,7 @@ internal static class LZ4Encoder
                 // the compressed data. We bail out before writing the header to avoid data corruption.
                 if (compressedDataLength < 0)
                 {
-                    throw CodecErrors.LZ4EncoderOutputBufferTooSmall;
+                    Throw.ThrowLZ4EncoderOutputBufferTooSmall();
                 }
 
                 int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;

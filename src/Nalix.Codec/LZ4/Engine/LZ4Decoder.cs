@@ -90,29 +90,29 @@ internal static class LZ4Decoder
     {
         if (input.Length < LZ4BlockHeader.Size)
         {
-            throw CodecErrors.LZ4InvalidHeader;
+            Throw.ThrowLZ4InvalidHeader();
         }
 
         header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
 
         if (header.OriginalLength < 0)
         {
-            throw CodecErrors.LZ4InvalidHeader;
+            Throw.ThrowLZ4InvalidHeader();
         }
 
         if (header.CompressedLength < LZ4BlockHeader.Size)
         {
-            throw CodecErrors.LZ4InvalidHeader;
+            Throw.ThrowLZ4InvalidHeader();
         }
 
         if (header.CompressedLength != input.Length)
         {
-            throw CodecErrors.LZ4InvalidHeader;
+            Throw.ThrowLZ4InvalidHeader();
         }
 
         if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
         {
-            throw CodecErrors.LZ4InvalidHeader;
+            Throw.ThrowLZ4InvalidHeader();
         }
     }
 
@@ -122,7 +122,7 @@ internal static class LZ4Decoder
     {
         if (header.OriginalLength > output.Length)
         {
-            throw CodecErrors.LZ4OutputBufferTooSmall;
+            Throw.ThrowLZ4OutputBufferTooSmall();
         }
 
         if (header.OriginalLength == 0)
@@ -151,7 +151,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw CodecErrors.LZ4CorruptPayload;
+                            Throw.ThrowLZ4CorruptPayload();
                         }
 
                         literalLength += extraLength;
@@ -162,7 +162,7 @@ internal static class LZ4Decoder
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw CodecErrors.LZ4CorruptPayload;
+                            Throw.ThrowLZ4CorruptPayload();
                         }
 
                         MemOps.Copy(inputPtr, outputPtr, literalLength);
@@ -178,7 +178,7 @@ internal static class LZ4Decoder
                     if (inputPtr + sizeof(ushort) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw CodecErrors.LZ4CorruptPayload;
+                        Throw.ThrowLZ4CorruptPayload();
                     }
 
                     int offset = MemOps.ReadUnaligned<ushort>(inputPtr);
@@ -186,7 +186,7 @@ internal static class LZ4Decoder
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw CodecErrors.LZ4CorruptPayload;
+                        Throw.ThrowLZ4CorruptPayload();
                     }
 
                     int matchLength = token & LZ4CompressionConstants.TokenMatchMask;
@@ -196,7 +196,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            throw CodecErrors.LZ4CorruptPayload;
+                            Throw.ThrowLZ4CorruptPayload();
                         }
 
                         matchLength += extraLength;
@@ -207,7 +207,7 @@ internal static class LZ4Decoder
                     if (outputPtr + matchLength > outputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        throw CodecErrors.LZ4CorruptPayload;
+                        Throw.ThrowLZ4CorruptPayload();
                     }
 
                     MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
@@ -217,7 +217,7 @@ internal static class LZ4Decoder
                 if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
                     MemorySecurity.ZeroMemory(output);
-                    throw CodecErrors.LZ4CorruptPayload;
+                    Throw.ThrowLZ4CorruptPayload();
                 }
 
                 return header.OriginalLength;
