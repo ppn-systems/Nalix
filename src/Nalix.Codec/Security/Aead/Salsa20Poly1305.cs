@@ -83,21 +83,21 @@ public static class Salsa20Poly1305
     {
         if (key.Length is not KEY16 and not KEY32)
         {
-            Throw.ThrowCipherInvalidKeyLength();
+            Throw.InvalidKeyLength();
         }
         if (nonce.Length != NONCE8)
         {
-            Throw.ThrowCipherInvalidNonceLength();
+            Throw.InvalidNonceLength();
         }
 
         if (dstCiphertext.Length < plaintext.Length)
         {
-            Throw.ThrowCipherOutputLengthMismatch();
+            Throw.OutputLengthMismatch();
         }
 
         if (tag.Length != TagSize)
         {
-            Throw.ThrowCipherInvalidTagLength();
+            Throw.InvalidTagLength();
         }
 
         int written = 0;
@@ -167,21 +167,21 @@ public static class Salsa20Poly1305
     {
         if (key.Length is not KEY16 and not KEY32)
         {
-            Throw.ThrowCipherInvalidKeyLength();
+            Throw.InvalidKeyLength();
         }
         if (nonce.Length != NONCE8)
         {
-            Throw.ThrowCipherInvalidNonceLength();
+            Throw.InvalidNonceLength();
         }
 
         if (tag.Length != TagSize)
         {
-            Throw.ThrowCipherInvalidTagLength();
+            Throw.InvalidTagLength();
         }
 
         if (dstPlaintext.Length < ciphertext.Length)
         {
-            Throw.ThrowCipherOutputLengthMismatch();
+            Throw.OutputLengthMismatch();
         }
 
         System.Span<byte> polyKey = stackalloc byte[32];

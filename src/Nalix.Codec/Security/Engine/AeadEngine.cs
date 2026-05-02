@@ -132,7 +132,7 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    Throw.ThrowCipherUnsupportedAlgorithm();
+                    Throw.UnsupportedAlgorithm();
                     return;
             }
 
@@ -218,13 +218,13 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    Throw.ThrowCipherUnsupportedAlgorithm();
+                    Throw.UnsupportedAlgorithm();
                     return;
             }
 
             if (result < 0)
             {
-                Throw.ThrowCipherAeadAuthenticationFailed();
+                Throw.AeadAuthenticationFailed();
             }
 
             written = result;
