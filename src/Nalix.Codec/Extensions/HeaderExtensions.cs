@@ -50,5 +50,21 @@ public static class HeaderExtensions
         MemoryMarshal.Write(@this, in header);
     }
 
+    /// <summary>
+    /// Gets a direct reference to the <see cref="PacketHeader"/> from the start of the buffer.
+    /// Modifying the returned reference directly modifies the underlying span.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref PacketHeader AsHeaderRef(this Span<byte> @this)
+    {
+        if ((uint)@this.Length < PacketHeader.Size)
+        {
+            throw new ArgumentException(
+                $"Buffer is too small for PacketHeader: length={@this.Length}, required={PacketHeader.Size}.");
+        }
+
+        return ref MemoryMarshal.AsRef<PacketHeader>(@this);
+    }
+
     #endregion Header read/write (single struct)
 }

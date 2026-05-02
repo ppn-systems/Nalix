@@ -7,6 +7,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 
 namespace Nalix.Codec.Transforms;
 
@@ -20,23 +21,23 @@ public static class FramePipeline
     /// Mutates the <paramref name="current"/> lease directly via <see langword="ref"/> to optimize performance.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ProcessInbound(ref IBufferLease current, ReadOnlySpan<byte> secret, CipherSuiteType algorithm)
+    public static void ProcessInbound([Borrowed] ref IBufferLease current, ReadOnlySpan<byte> secret, CipherSuiteType algorithm)
     {
         ArgumentNullException.ThrowIfNull(current);
 
         IBufferLease original = current;
-        PacketFlags flags = current.Span.ReadHeaderLE().Flags;
+        PacketFlags flags = current.Span.AsHeaderRef().Flags;
 
-        if (flags.HasFlag(PacketFlags.ENCRYPTED))
+        if ((flags & PacketFlags.ENCRYPTED) != 0)
         {
             if (algorithm == CipherSuiteType.None)
             {
-                throw new InvalidOperationException("Encrypted frame received but no cipher suite has been negotiated.");
+                throw CodecErrors.TransformEncryptedButNoCipher;
             }
 
             if (secret.IsEmpty)
             {
-                throw new InvalidOperationException("Encrypted frame received before session key establishment.");
+                throw CodecErrors.TransformEncryptedButNoKey;
             }
 
             try
@@ -52,7 +53,7 @@ public static class FramePipeline
             }
         }
 
-        if (flags.HasFlag(PacketFlags.COMPRESSED))
+        if ((flags & PacketFlags.COMPRESSED) != 0)
         {
             IBufferLease prev = current;
             current = FrameCompression.DecompressFrame(current);
@@ -71,7 +72,9 @@ public static class FramePipeline
     /// Mutates the <paramref name="current"/> lease directly via <see langword="ref"/> to optimize performance.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ProcessOutbound(ref IBufferLease current, bool enableCompress, int minSizeToCompress, bool enableEncrypt, ReadOnlySpan<byte> secret, CipherSuiteType algorithm)
+    public static void ProcessOutbound(
+        [Borrowed] ref IBufferLease current, bool enableCompress,
+        int minSizeToCompress, bool enableEncrypt, ReadOnlySpan<byte> secret, CipherSuiteType algorithm)
     {
         ArgumentNullException.ThrowIfNull(current);
 
@@ -87,7 +90,7 @@ public static class FramePipeline
         {
             if (algorithm == CipherSuiteType.None)
             {
-                throw new InvalidOperationException("Encryption requested but no cipher suite has been negotiated.");
+                throw CodecErrors.TransformEncryptRequestedButNoCipher;
             }
 
             IBufferLease prev = current;

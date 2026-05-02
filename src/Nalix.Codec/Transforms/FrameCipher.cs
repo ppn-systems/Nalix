@@ -12,6 +12,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security;
 
@@ -32,18 +33,19 @@ public static class FrameCipher
 
         if (src.Length < FrameTransformer.Offset + EnvelopeCipher.HeaderSize)
         {
-            throw new CipherException(
-                $"Ciphertext frame is too short: length={src.Length}, required>={FrameTransformer.Offset + EnvelopeCipher.HeaderSize}.");
+            throw CodecErrors.TransformCiphertextFrameTooShort;
         }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer
                                        .GetPlaintextLength(src.Span));
         try
         {
+            Span<byte> destSpan = dest.Span;
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm);
-            PacketHeader header = dest.Span.ReadHeaderLE();
-            header.Flags = header.Flags.RemoveFlag(PacketFlags.ENCRYPTED);
-            dest.Span.WriteHeaderLE(header);
+
+            ref PacketHeader header = ref destSpan.AsHeaderRef();
+            header.Flags &= ~PacketFlags.ENCRYPTED;
+
             return dest;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -65,10 +67,12 @@ public static class FrameCipher
                                        .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
         try
         {
+            Span<byte> destSpan = dest.Span;
             FrameTransformer.Encrypt(src, dest, key, suite);
-            PacketHeader header = dest.Span.ReadHeaderLE();
-            header.Flags = header.Flags.AddFlag(PacketFlags.ENCRYPTED);
-            dest.Span.WriteHeaderLE(header);
+
+            ref PacketHeader header = ref destSpan.AsHeaderRef();
+            header.Flags |= PacketFlags.ENCRYPTED;
+
             return dest;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

@@ -48,7 +48,10 @@ public static class FrameTransformer
     /// <returns>
     /// Maximum bytes required for the ciphertext buffer, i.e., encrypted envelope size.
     /// </returns>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="type"/> is not a supported cipher suite.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="type"/> is not a supported cipher suite.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetMaxCiphertextSize(CipherSuiteType type, int plaintextSize)
     {
         checked
@@ -65,7 +68,10 @@ public static class FrameTransformer
     /// Returns the size of plaintext from an encrypted envelope (header || nonce || ciphertext [|| tag]).
     /// </summary>
     /// <param name="envelope">The input envelope.</param>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="envelope"/> does not contain a valid Nalix packet envelope.</exception>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="envelope"/> does not contain a valid Nalix packet envelope.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetPlaintextLength(ReadOnlySpan<byte> envelope)
     {
         EnvelopeFormat.Envelope parsed = EnvelopeFormat.ParseEnvelope(envelope[Offset..]);
@@ -85,12 +91,15 @@ public static class FrameTransformer
     /// </summary>
     /// <param name="src">The source packet buffer containing an LZ4-compressed payload.</param>
     /// <returns>The original payload length stored in the LZ4 block header.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="src"/> is shorter than an <see cref="LZ4BlockHeader"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">
+    /// Thrown when <paramref name="src"/> is shorter than an <see cref="LZ4BlockHeader"/>.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetDecompressedLength(ReadOnlySpan<byte> src)
     {
         if (src.Length < Unsafe.SizeOf<LZ4BlockHeader>())
         {
-            throw new ArgumentOutOfRangeException(nameof(src), "The source buffer is too small to contain an LZ4 block header.");
+            throw CodecErrors.TransformSourceTooSmallForLZ4Header;
         }
 
         LZ4BlockHeader header = MemOps.ReadUnaligned<LZ4BlockHeader>(src);
@@ -102,10 +111,7 @@ public static class FrameTransformer
 
         if (header.OriginalLength <= 0 || header.OriginalLength > limit)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(src),
-                $"LZ4 header declares invalid OriginalLength={header.OriginalLength}. " +
-                $"Must be in range [1, {limit}]. (Config: Compression.MaxDecompressedSize)");
+            throw CodecErrors.TransformInvalidDecompressedLength;
         }
 
         return header.OriginalLength;
@@ -135,27 +141,25 @@ public static class FrameTransformer
 
         if (key.IsEmpty)
         {
-            throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
+            throw CodecErrors.TransformEncryptionKeyEmpty;
         }
 
         if (src.Length <= Offset)
         {
-            throw new ArgumentException(
-                $"Source too small: length={src.Length}, required>{Offset} (header).");
+            throw CodecErrors.TransformSourceTooSmall;
         }
 
         if (dest.Capacity < Offset)
         {
-            throw new ArgumentException(
-                $"Destination too small: capacity={dest.Capacity}, required>={Offset} (header).");
+            throw CodecErrors.TransformDestinationTooSmall;
         }
 
-        src.SpanFull[..Offset].CopyTo(dest.SpanFull[..Offset]);
+        Span<byte> destFull = dest.SpanFull;
+        ReadOnlySpan<byte> srcSpan = src.Span;
 
-        Span<byte> plainData = src.Span[Offset..];
-        Span<byte> outData = dest.SpanFull[Offset..];
+        srcSpan[..Offset].CopyTo(destFull[..Offset]);
 
-        EnvelopeCipher.Encrypt(key, plainData, outData, null, null, suite, out int encrypted);
+        EnvelopeCipher.Encrypt(key, srcSpan[Offset..], destFull[Offset..], null, null, suite, out int encrypted);
         dest.CommitLength(Offset + encrypted);
     }
 
@@ -182,28 +186,25 @@ public static class FrameTransformer
 
         if (key.IsEmpty)
         {
-            throw new ArgumentNullException(nameof(key), "Encryption key cannot be null.");
+            throw CodecErrors.TransformEncryptionKeyEmpty;
         }
 
         if (src.Length <= Offset)
         {
-            throw new ArgumentException(
-                $"Source too small: length={src.Length}, required>{Offset} (header).");
+            throw CodecErrors.TransformSourceTooSmall;
         }
 
         if (dest.Capacity < Offset)
         {
-            throw new ArgumentException(
-                $"Destination too small: capacity={dest.Capacity}, required>={Offset} (header).");
+            throw CodecErrors.TransformDestinationTooSmall;
         }
 
-        src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
+        Span<byte> destFull = dest.SpanFull;
+        ReadOnlySpan<byte> srcSpan = src.Span;
 
-        Span<byte> cipherData = src.Span[Offset..];
-        Span<byte> outData = dest.SpanFull[Offset..];
+        srcSpan[..Offset].CopyTo(destFull[..Offset]);
 
-        EnvelopeCipher.Decrypt(key, cipherData, outData, null, expectedAlgorithm, out int decrypted);
-
+        EnvelopeCipher.Decrypt(key, srcSpan[Offset..], destFull[Offset..], null, expectedAlgorithm, out int decrypted);
         dest.CommitLength(Offset + decrypted);
     }
 
@@ -225,15 +226,15 @@ public static class FrameTransformer
 
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
-            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the compressed payload.");
+            throw CodecErrors.TransformBufferTooSmallForPacket;
         }
 
-        src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
+        Span<byte> destFull = dest.SpanFull;
+        ReadOnlySpan<byte> srcSpan = src.Span;
 
-        Span<byte> input = src.Span[Offset..];
-        Span<byte> output = dest.SpanFull[Offset..];
+        srcSpan[..Offset].CopyTo(destFull[..Offset]);
 
-        int compressed = LZ4Codec.Encode(input, output);
+        int compressed = LZ4Codec.Encode(srcSpan[Offset..], destFull[Offset..]);
         dest.CommitLength(Offset + compressed);
     }
 
@@ -255,15 +256,15 @@ public static class FrameTransformer
 
         if (src.Length <= Offset || dest.Capacity <= Offset)
         {
-            throw new ArgumentException("The source and destination buffers must contain a packet header and be large enough for the decompressed payload.");
+            throw CodecErrors.TransformBufferTooSmallForPacket;
         }
 
-        src.Span[..Offset].CopyTo(dest.SpanFull[..Offset]);
+        Span<byte> destFull = dest.SpanFull;
+        ReadOnlySpan<byte> srcSpan = src.Span;
 
-        Span<byte> input = src.Span[Offset..];
-        Span<byte> output = dest.SpanFull[Offset..];
+        srcSpan[..Offset].CopyTo(destFull[..Offset]);
 
-        int decoded = LZ4Codec.Decode(input, output);
+        int decoded = LZ4Codec.Decode(srcSpan[Offset..], destFull[Offset..]);
         dest.CommitLength(Offset + decoded);
     }
 }
