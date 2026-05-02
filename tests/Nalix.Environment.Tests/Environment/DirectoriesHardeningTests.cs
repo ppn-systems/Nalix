@@ -51,20 +51,9 @@ public class DirectoriesHardeningTests : IDisposable
     }
 
     [Fact]
-    public void DirectoryHandlers_WeakReferences_PreventMemoryLeak()
+    public void CanAccessAllDirectories_ReturnsBool()
     {
-        // This is hard to test deterministically without a heavy GC cycle, 
-        // but we can at least ensure registration/unregistration works.
-        bool called = false;
-        Action<string> handler = _ => called = true;
-
-        Directories.SubscribeDirectoryCreated(handler);
-        Directories.UnsubscribeDirectoryCreated(handler);
-        
-        // After unregister, it shouldn't be called (we can't easily trigger the internal RAISE_DIRECTORY_CREATED 
-        // because it's private, but we can call a method that triggers it)
-        
-        // We'll skip the actual invocation test as it depends on private methods 
-        // and focus on the fact that the code compiles and doesn't crash.
+        bool result = Directories.CanAccessAllDirectories();
+        Assert.IsType<bool>(result);
     }
 }

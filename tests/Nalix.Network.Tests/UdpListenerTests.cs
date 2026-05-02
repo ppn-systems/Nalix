@@ -74,7 +74,6 @@ public sealed class UdpListenerTests
 
     private static ConnectionHub InitializeUdpListenerStatics()
     {
-        _ = InstanceManager.Instance.WithLogging(NullLogger.Instance);
         InstanceManager.Instance.Register<ILogger>(NullLogger.Instance);
 
         if (InstanceManager.Instance.GetExistingInstance<IConnectionHub>() is ConnectionHub existingHub)

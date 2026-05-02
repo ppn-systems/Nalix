@@ -74,14 +74,14 @@ public sealed class ConnectionLoggingExtensionsTests
     }
 
     [Fact]
-    public void ThrottledTraceWhenConnectionIsNullStillLogs()
+    public void ThrottledWarnWhenConnectionIsNullStillLogs()
     {
         TestLogger logger = new();
 
-        ThrottleLogExtensions.ThrottledTrace(null!, logger, "trace", "ping");
+        ThrottleLogExtensions.ThrottledWarn(null!, logger, "trace", "ping");
 
         _ = Assert.Single(logger.Entries);
-        Assert.Equal(LogLevel.Trace, logger.Entries[0].Level);
+        Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
         Assert.Equal("ping", logger.Entries[0].Message);
     }
 
@@ -93,7 +93,6 @@ public sealed class ConnectionLoggingExtensionsTests
         Exception? exception = Record.Exception(() =>
         {
             connection.ThrottledWarn(null, "x", "w");
-            connection.ThrottledTrace(null, "x", "t");
             connection.ThrottledError(null, "x", "e");
         });
 

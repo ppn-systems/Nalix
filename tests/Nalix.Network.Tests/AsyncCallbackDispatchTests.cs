@@ -120,7 +120,6 @@ public sealed class AsyncCallbackDispatchTests
 
     private static void EnsureLoggerRegistered()
     {
-        _ = InstanceManager.Instance.WithLogging(NullLogger.Instance);
         InstanceManager.Instance.Register<ILogger>(NullLogger.Instance);
     }
 }
