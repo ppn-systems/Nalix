@@ -132,7 +132,8 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    throw CodecErrors.CipherUnsupportedAlgorithm;
+                    Throw.ThrowCipherUnsupportedAlgorithm();
+                    return;
             }
 
             _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctDestination, tagDestination);
@@ -217,12 +218,13 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    throw CodecErrors.CipherUnsupportedAlgorithm;
+                    Throw.ThrowCipherUnsupportedAlgorithm();
+                    return;
             }
 
             if (result < 0)
             {
-                throw CodecErrors.CipherAeadAuthenticationFailed;
+                Throw.ThrowCipherAeadAuthenticationFailed();
             }
 
             written = result;

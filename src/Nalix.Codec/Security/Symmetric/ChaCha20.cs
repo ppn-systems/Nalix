@@ -162,7 +162,7 @@ public struct ChaCha20
 
         if (dst.Length < src.Length)
         {
-            throw CodecErrors.CipherOutputLengthMismatch;
+            Throw.ThrowCipherOutputLengthMismatch();
         }
 
         this.EncryptSpanInternal(src, dst, src.Length);

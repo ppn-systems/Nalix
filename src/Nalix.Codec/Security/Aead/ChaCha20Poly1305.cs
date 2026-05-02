@@ -98,22 +98,22 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            throw CodecErrors.CipherInvalidKeyLength;
+            Throw.ThrowCipherInvalidKeyLength();
         }
 
         if (nonce.Length != BAADF00D)
         {
-            throw CodecErrors.CipherInvalidNonceLength;
+            Throw.ThrowCipherInvalidNonceLength();
         }
 
         if (dstCiphertext.Length < plaintext.Length)
         {
-            throw CodecErrors.CipherOutputLengthMismatch;
+            Throw.ThrowCipherOutputLengthMismatch();
         }
 
         if (tag.Length != TagSize)
         {
-            throw CodecErrors.CipherInvalidTagLength;
+            Throw.ThrowCipherInvalidTagLength();
         }
 
         System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];
@@ -180,22 +180,22 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            throw CodecErrors.CipherInvalidKeyLength;
+            Throw.ThrowCipherInvalidKeyLength();
         }
 
         if (nonce.Length != BAADF00D)
         {
-            throw CodecErrors.CipherInvalidNonceLength;
+            Throw.ThrowCipherInvalidNonceLength();
         }
 
         if (tag.Length != TagSize)
         {
-            throw CodecErrors.CipherInvalidTagLength;
+            Throw.ThrowCipherInvalidTagLength();
         }
 
         if (dstPlaintext.Length < ciphertext.Length)
         {
-            throw CodecErrors.CipherOutputLengthMismatch;
+            Throw.ThrowCipherOutputLengthMismatch();
         }
 
         System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];

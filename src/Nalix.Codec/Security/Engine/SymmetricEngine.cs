@@ -86,7 +86,8 @@ public static class SymmetricEngine
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
             default:
-                throw CodecErrors.CipherUnsupportedAlgorithm;
+                Throw.ThrowCipherUnsupportedAlgorithm();
+                return;
         }
     }
 
