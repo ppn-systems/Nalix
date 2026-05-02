@@ -1,6 +1,6 @@
 # Timing Scope
 
-This page covers the lightweight elapsed-time helper in `Nalix.Framework.Time`.
+This page covers the lightweight elapsed-time helper in `Nalix.Environment.Time`.
 
 ## Source mapping
 

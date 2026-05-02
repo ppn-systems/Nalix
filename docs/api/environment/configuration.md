@@ -46,10 +46,21 @@ flowchart LR
 | Method | Description |
 | :--- | :--- |
 | `Get<T>()` | Resolves or creates a cached configuration instance. |
+| `Get<T>(string configFilePath, bool autoReload = true)` | Switches the active configuration source and resolves or creates a cached instance. |
+| `Remove<T>()` | Removes a specific configuration from the cache. |
+| `ClearAll()` | Clears all cached configurations. |
 | `ReloadAll()` | Forcefully re-reads the active INI file and updates all loaded instances. |
 | `SetConfigFilePath(...)` | Switches the active configuration source and optionally reloads immediately. |
 | `Flush()` | Commits any in-memory changes back to the physical INI file. |
 | `IsLoaded<T>()` | Checks if a specific config type is currently in the cache. |
+
+### Properties
+
+| Property | Description |
+| :--- | :--- |
+| `ConfigFilePath` | Gets the path to the active configuration file. |
+| `ConfigFileExists` | Gets a value indicating whether the configuration file exists on disk. |
+| `LastReloadTime` | Gets the last reload timestamp. |
 
 ### Usage Example
 
@@ -68,9 +79,22 @@ ConfigurationManager.Instance.SetConfigFilePath("prod.ini", autoReload: true);
 
 Custom configuration sections are created by inheriting from `ConfigurationLoader`. The binder automatically maps INI sections and keys to your class properties.
 
+### Properties
+
+| Property | Description |
+| :--- | :--- |
+| `IsInitialized` | Gets a value indicating whether this instance has been initialized. |
+| `LastInitializationTime` | Gets the time when this configuration was last initialized. |
+
+### Methods
+
+| Method | Description |
+| :--- | :--- |
+| `Clone<T>()` | Creates a shallow clone of this configuration instance, copying current property values and initialization state. |
+
 ### Section Naming Convention
 
-By default, the section name is derived from the class name by removing standard suffixes like `Options`, `Config`, or `Settings`.
+By default, the section name is derived from the class name by removing standard suffixes like `Options`, `Config`, `Settings`, `Option`, `Configs`, `Setting`, `Configuration`, or `Configurations`.
 
 - `ConnectionHubOptions` -> `[ConnectionHub]`
 - `SecuritySettings` -> `[Security]`
@@ -95,7 +119,7 @@ public sealed class ServerOptions : ConfigurationLoader
 
 The binder supports a wide range of types natively:
 
-- **Primitives**: `bool`, `int`, `long`, `float`, `double`, `string`, etc.
+- **Primitives**: `bool`, `int`, `long`, `short`, `byte`, `sbyte`, `ushort`, `uint`, `ulong`, `float`, `double`, `decimal`, `char`, `string`, etc.
 - **Specialized**: `DateTime`, `TimeSpan`, `Guid`, and `Enum` types.
 
 !!! warning "Collection Support"

@@ -75,37 +75,26 @@ Paths are resolved using the following priority:
 
 The helper provides several methods for building safe sub-paths:
 
-- `GetFilePath(string fileName)`: Resolves a file within the base directory.
-- `GetLogFilePath(string fileName)`: Resolves a file within the logs directory.
-- `CreateSubdirectory(string parent, string name)`: Creates a named child directory safely.
-- `CreateTimestampedDirectory(string parent, string prefix)`: Creates unique directories for exports or temporary processing.
+- `GetFilePath(string directoryPath, string fileName)`: Returns a full file path under a given directory, ensuring the directory exists.
 
 ## Management Methods
 
-- `DeleteOldFiles(string path, TimeSpan age)`: Removes files older than the specified duration.
-- `CalculateDirectorySize(string path)`: Recursively computes total size on disk.
+- `DeleteOldFiles(string directoryPath, TimeSpan maxAge, string searchPattern = "*")`: Removes files older than the specified duration. Returns the number of files deleted.
 - `CanAccessAllDirectories()`: Diagnostic check for read/write permissions across all managed paths.
+- `SetBasePathOverride(string path)`: Overrides the base path for testing. The override is not persisted across process restarts.
 
-## Event Hooks
+## Additional Properties
 
-You can monitor directory creation globally:
-
-```csharp
-Directories.RegisterDirectoryCreationHandler(path =>
-{
-    Console.WriteLine($"Infrastructure created: {path}");
-});
-```
+- `IsRunningInContainer`: Gets a value indicating whether the current process appears to be running inside a container.
 
 ## Typical usage
 
 ```csharp
-// Get paths
-string configFile = Directories.GetConfigFilePath("default.ini");
-string logFile = Directories.GetLogFilePath("server.log");
+// Override base path for testing
+Directories.SetBasePathOverride("/tmp/test-root");
 
-// Create structure
-string imports = Directories.CreateSubdirectory(Directories.DataDirectory, "imports");
+// Get a file path under a specific directory
+string dataFile = Directories.GetFilePath(Directories.DataDirectory, "app.dat");
 ```
 
 ## Related APIs
