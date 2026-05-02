@@ -4,13 +4,14 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Internal.Memory;
 
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Benchmarks")]
 #endif
 
-namespace Nalix.Codec.Internal;
+namespace Nalix.Codec.Internal.LZ4;
 
 /// <summary>
 /// Writes literal byte sequences into a destination pointer and advances that pointer
