@@ -328,7 +328,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                             _logger.LogDebug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_endpointString}");
                         }
 #endif
-                        throw NetworkErrors.ProtocolNotSupported;
+                        Throw.ProtocolNotSupportedNow();
                     }
 
                     // Check if the full frame (header + payload) is present in the buffer.
@@ -447,7 +447,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             // If the buffer is full but we haven't parsed a complete frame, it means a single 
             // frame has exceeded our buffer capacity (MaxChunkSize * 2). 
             // Since the system is configured to never send frames > 1400 bytes, this is a protocol violation.
-            return ValueTask.FromException(NetworkErrors.MessageSize);
+            return ValueTask.FromException(Throw.MessageSize);
         }
 
         /*
@@ -463,7 +463,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             int n = vt.Result;
             if (n == 0)
             {
-                return ValueTask.FromException(NetworkErrors.ConnectionReset);
+                return ValueTask.FromException(Throw.ConnectionReset);
             }
 
             _bufferDataLength += n;
@@ -478,7 +478,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             int n = await vt.ConfigureAwait(false);
             if (n == 0)
             {
-                throw NetworkErrors.ConnectionReset;
+                Throw.ConnectionResetNow();
             }
 
             self._bufferDataLength += n;

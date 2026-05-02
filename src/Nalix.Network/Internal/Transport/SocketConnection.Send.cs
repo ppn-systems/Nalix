@@ -104,7 +104,7 @@ internal sealed partial class SocketConnection
 #endif
                             this.CANCEL_RECEIVE_ONCE();
                             this.INVOKE_CLOSE_ONCE();
-                            throw NetworkErrors.SendFailed;
+                            Throw.SendFailedNow();
                         }
                         sent += n;
                     }
@@ -192,7 +192,7 @@ internal sealed partial class SocketConnection
 #endif
                         this.CANCEL_RECEIVE_ONCE();
                         this.INVOKE_CLOSE_ONCE();
-                        throw NetworkErrors.SendFailed;
+                        Throw.SendFailedNow();
                     }
                     sent += n;
                 }
@@ -359,14 +359,14 @@ internal sealed partial class SocketConnection
             BufferLease.ByteArrayPool.Return(buf);
             self.CANCEL_RECEIVE_ONCE();
             self.INVOKE_CLOSE_ONCE();
-            return ValueTask.FromException(NetworkErrors.SendFailed);
+            return ValueTask.FromException(Throw.SendFailed);
         }
 
         static Exception HANDLE_PEER_CLOSED_EXCEPTION(SocketConnection self)
         {
             self.CANCEL_RECEIVE_ONCE();
             self.INVOKE_CLOSE_ONCE();
-            return NetworkErrors.SendFailed;
+            return Throw.SendFailed;
         }
 
         static ValueTask HANDLE_SEND_ERROR(SocketConnection self, Exception ex)
@@ -506,7 +506,7 @@ internal sealed partial class SocketConnection
                     {
                         this.CANCEL_RECEIVE_ONCE();
                         this.INVOKE_CLOSE_ONCE();
-                        throw NetworkErrors.SendFailed;
+                        Throw.SendFailedNow();
                     }
                     sent += n;
                 }
@@ -599,7 +599,7 @@ internal sealed partial class SocketConnection
                     {
                         self.CANCEL_RECEIVE_ONCE();
                         self.INVOKE_CLOSE_ONCE();
-                        return ValueTask.FromException(NetworkErrors.SendFailed);
+                        return ValueTask.FromException(Throw.SendFailed);
                     }
                     sent += n;
                 }
@@ -619,7 +619,7 @@ internal sealed partial class SocketConnection
                 {
                     self.CANCEL_RECEIVE_ONCE();
                     self.INVOKE_CLOSE_ONCE();
-                    throw NetworkErrors.SendFailed;
+                    Throw.SendFailedNow();
                 }
                 sent += n;
 
@@ -630,7 +630,7 @@ internal sealed partial class SocketConnection
                     {
                         self.CANCEL_RECEIVE_ONCE();
                         self.INVOKE_CLOSE_ONCE();
-                        throw NetworkErrors.SendFailed;
+                        Throw.SendFailedNow();
                     }
                     sent += n;
                 }

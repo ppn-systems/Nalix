@@ -88,7 +88,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
             }
             else
             {
-                owner._receiveSource.SetException(NetworkErrors.GetSocketError(e.SocketError));
+                owner._receiveSource.SetException(Throw.GetSocketError(e.SocketError));
             }
         }
         finally
@@ -255,7 +255,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
 #endif
 
             return err != SocketError.Success
-                ? ValueTask.FromException<int>(NetworkErrors.GetSocketError(err))
+                ? ValueTask.FromException<int>(Throw.GetSocketError(err))
                 : ValueTask.FromResult(bytes);
         }
 
@@ -306,7 +306,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
                     {
                         try
                         {
-                            _receiveSource.SetException(NetworkErrors.PooledContextDisposed);
+                            _receiveSource.SetException(Throw.PooledContextDisposed);
                         }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
