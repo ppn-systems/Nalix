@@ -12,7 +12,6 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Codec.Memory;
-using Nalix.Framework.Extensions;
 using Nalix.Network.Connections;
 
 namespace Nalix.Network.Internal.Transport;

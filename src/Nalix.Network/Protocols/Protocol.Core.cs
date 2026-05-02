@@ -7,7 +7,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Extensions;
 
 namespace Nalix.Network.Protocols;
 

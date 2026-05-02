@@ -19,7 +19,6 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
-using Nalix.Framework.Extensions;
 using Nalix.Network.Options;
 using Nalix.Network.Sessions;
 

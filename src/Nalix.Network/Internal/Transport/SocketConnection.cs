@@ -20,7 +20,6 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
