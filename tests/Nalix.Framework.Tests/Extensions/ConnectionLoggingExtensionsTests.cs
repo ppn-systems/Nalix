@@ -14,7 +14,6 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Environment.Time;
 using Xunit;
 
 namespace Nalix.Framework.Tests.Extensions;
@@ -24,7 +23,6 @@ public sealed class ConnectionLoggingExtensionsTests
     [Fact]
     public void ThrottledWarnWhenCalledTwiceInWindowSuppressesSecondMessage()
     {
-        Clock.ResetSynchronization();
         TestConnection connection = new();
         TestLogger logger = new();
 
@@ -39,7 +37,6 @@ public sealed class ConnectionLoggingExtensionsTests
     [Fact]
     public void ThrottledWarnWhenWindowHasElapsedLogsWithSuppressedSuffix()
     {
-        Clock.ResetSynchronization();
         TestConnection connection = new();
         TestLogger logger = new();
 

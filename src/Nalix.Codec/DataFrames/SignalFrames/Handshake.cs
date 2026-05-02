@@ -9,7 +9,9 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames.Formatter;
 using Nalix.Codec.Security.Hashing;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -120,6 +122,9 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// </summary>
     [SerializeOrder(6)]
     public Bytes32 TranscriptHash { get; set; }
+
+    /// <inheritdoc/>
+    static Handshake() => LiteSerializer.Register(new HandshakeFormatter());
 
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with default transport metadata.

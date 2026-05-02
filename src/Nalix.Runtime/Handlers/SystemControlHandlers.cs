@@ -9,6 +9,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Environment.Time;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
@@ -115,6 +116,9 @@ public sealed class SystemControlHandlers
         using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control res = lease.Value;
         res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags, ProtocolReason.NONE);
+
+        res.Timestamp = Clock.UnixMillisecondsNow(); // t3
+        res.MonoTicks = req.MonoTicks;               // echo t1'
 
         await connection.TCP.SendAsync(res).ConfigureAwait(false);
     }

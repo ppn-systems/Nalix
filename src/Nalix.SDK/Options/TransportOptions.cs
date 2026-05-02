@@ -174,4 +174,10 @@ public sealed class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Allow global clock synchronization from this session (recommended: true for trusted servers)")]
     public bool TimeSyncEnabled { get; set; } = true;
+
+    /// <summary>
+    /// Gets the current time offset in milliseconds applied by the time synchronization process.
+    /// </summary>
+    [IniComment("Current time offset in milliseconds applied by the time synchronization process")]
+    public double TimeOffsetMs { get; set; }
 }
