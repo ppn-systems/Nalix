@@ -76,10 +76,17 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 
 - `Count`: The total number of live connections (uses `Volatile.Read` for accuracy).
 - `SessionStore`: Access to the underlying session persistence layer.
+- `ConnectionUnregistered`: Event raised after a connection is successfully unregistered.
+- `CapacityLimitReached`: Event raised when a limit is reached and a connection is rejected.
 - `RegisterConnection(conn)`: Enrolls a new connection (Thread-safe).
+- `UnregisterConnection(conn)`: Removes a connection from the hub.
 - `GetConnection(id)`: O(1) retrieval by Snowflake ID.
+- `ListConnections()`: Returns a read-only collection of all active connections.
 - `BroadcastAsync<T>(msg, sendFunc)`: High-performance fan-out.
+- `BroadcastWhereAsync<T>(msg, sendFunc, predicate)`: Broadcasts only to connections matching the predicate.
+- `CloseAllConnections(reason?)`: Closes all active connections with an optional reason.
 - `ForceClose(INetworkEndpoint)`: Terminates all active connections from a specific IP (used by `ConnectionGuard` during DDoS detection).
+- `Dispose()`: Releases all resources and closes all connections.
 
 ## Best Practices
 

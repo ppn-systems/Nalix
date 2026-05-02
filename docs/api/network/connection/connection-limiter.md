@@ -64,6 +64,9 @@ Settings are controlled via `ConnectionLimitOptions`:
 | `MaxConnectionsPerWindow` | Max connection attempts within rate window. | 10 per 5s |
 | `BanDuration` | How long to block a detected attacker. | 5 - 60 Minutes |
 | `ConnectionRateWindow` | The sliding window size for rate tracking. | 1 - 10 Seconds |
+| `DDoSLogSuppressWindow` | Suppresses repeated DDoS log entries from the same IP within this window. | 20 Seconds |
+| `CleanupInterval` | How often expired IP tracking entries are purged from memory. | 1 Minute |
+| `InactivityThreshold` | Idle time before a connection is considered inactive and eligible for cleanup. | 5 Minutes |
 
 ## Best Practices
 

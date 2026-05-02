@@ -93,18 +93,19 @@ To prevent "Slowloris" or blocking socket reading from exhausting the worker thr
 | Method | Description |
 | :---: | :---: |
 | `Constructor(..., IConnectionHub)` | Requires an explicit `IConnectionHub` instance for centralized connection management. |
-| `Activate()` | Binds the socket, begins listening, and spins up parallel accept loop workers. |
-| `Deactivate()` | Gracefully stops accepting new connections but allows existing connections to drain. |
+| `Activate(CancellationToken)` | Binds the socket, begins listening, and spins up parallel accept loop workers. |
+| `Deactivate(CancellationToken)` | Gracefully stops accepting new connections but allows existing connections to drain. |
 | `Dispose()` | Actively terminates the listening socket and all pending accept args. |
+| `GenerateReport()` | Creates a diagnostic summary string of the transport's real-time health. |
+| `GetReportData()` | Generates diagnostic data as key-value pairs for structured logging and automation. |
 
-### Private Members (Framework Internal)
+### Protected Members (Framework Internal)
 
 - `ProcessFrame(object? sender, IConnectEventArgs args)`: The central bridge that runs the transformation pipeline before protocol dispatch.
 
 ### Diagnostic Properties
 
-- `Metrics`: Exposes counters for `TotalConnectionsAccepted`, `DroppedConnections`, and `CurrentBacklog`.
-- `GenerateReport()`: Creates a diagnostic summary string of the transport's real-time health.
+- `Metrics`: Exposes counters for `TotalAccepted`, `TotalRejected`, and `TotalErrors`.
 
 ## 4. Tuning for Production
 

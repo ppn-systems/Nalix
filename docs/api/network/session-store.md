@@ -70,7 +70,7 @@ To keep the resumption path zero-allocation, `SessionEntry` objects are tracked 
 
 ## Public APIs
 
-- `StoreAsync(IConnection connection)`: Persists the session for the specified connection, enforcing handshake-state and minimum-attribute policies. **Preferred path for normal unregister flow.**
+- `StoreAsync(IConnection connection)`: Persists the session for the specified connection, enforcing handshake-state and minimum-attribute policies. **Preferred path for normal unregister flow.** Requires `HandshakeEstablished` attribute to be `true`; persistence is skipped when `Attributes.Count <= MinAttributesForPersistence`.
 - `StoreAsync(entry)`: Persists a `SessionEntry` directly, bypassing connection-level policy checks (low-level).
 - `RetrieveAsync(token)`: Peeks at a session without removing it (useful for diagnostics).
 - `ConsumeAsync(token)`: Atomically retrieves and removes the session. **Primary method for Resumption logic.**
@@ -84,7 +84,7 @@ Control the session lifecycle via `SessionStoreOptions`:
 | :---: | :---: | :---: |
 | `SessionTtl` | How long a session remains resumable after creation. | `00:30:00` (30 minutes) |
 | `AutoSaveOnUnregister` | Whether sessions are automatically saved when a connection is unregistered. | `true` |
-| `MinAttributesForPersistence` | Minimum attribute count required to persist a session (anti-DDoS filter). | `4` |
+| `MinAttributesForPersistence` | Minimum attribute count required to persist a session (anti-DDoS filter). Persistence is skipped when `Attributes.Count <= MinAttributesForPersistence`. | `4` |
 
 !!! tip
     For multi-node (Distributed) deployments, you should replace the default `InMemorySessionStore` with a custom implementation bridging to a persistent store like Redis or Aerospike to ensure session state is shared across all shards.

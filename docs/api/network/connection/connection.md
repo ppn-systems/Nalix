@@ -74,6 +74,17 @@ Every connection instance maintains a `SlidingWindow` (UdpReplayWindow) to track
 - `TCP / UDP`: Accessors to the underlying transport-specific send/receive primitives.
 - `Disconnect(reason)`: Safely terminates the connection with an optional reason.
 - `Attributes`: A pooled `IObjectMap` for attaching custom metadata to the connection.
+- `NetworkEndpoint`: The remote endpoint address for this connection.
+- `BytesSent`: Total number of bytes sent through this connection.
+- `UpTime`: Connection uptime in milliseconds.
+- `LastPingTime`: Timestamp (ms) of the last received ping.
+- `Level`: The permission level of the connection (`PermissionLevel`).
+- `IsRegisteredInWheel`: Whether the connection is registered in the timing wheel.
+- `TimeoutVersion`: Version counter used by the timing wheel for lazy removal.
+- `IsDisposed`: Whether the connection has been disposed.
+- `ErrorCount`: Current cumulative error count for the connection.
+- `IncrementErrorCount()`: Increments the error counter; auto-disconnects if `MaxErrorThreshold` is exceeded.
+- `Dispose()`: Releases all resources used by the connection.
 
 ## Best Practices
 

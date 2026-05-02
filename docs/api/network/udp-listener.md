@@ -103,9 +103,10 @@ Once authenticated, the UDP payload follows a standardized processing pipeline:
 | Method | Description |
 | :---: | :---: |
 | `Constructor(..., IConnectionHub)` | Requires an explicit `IConnectionHub` instance for session tracking. |
-| `Activate()` | Initializes the `Socket` and launches the continuous SAEA asynchronous receive loops. |
-| `Deactivate()` | Cancels active receive tasks safely. |
-| `IsAuthenticated` | **(Abstract)** The final application logic hook used by derived classes for custom datagram acceptance strategy. |
+| `Activate(CancellationToken)` | Initializes the `Socket` and launches the continuous SAEA asynchronous receive loops. |
+| `Deactivate(CancellationToken)` | Cancels active receive tasks safely. |
+| `Dispose()` | Releases all resources and stops the listener. |
+| `IsAuthenticated(IConnection, EndPoint, ReadOnlySpan<byte>)` | **(Protected Abstract)** The final application logic hook used by derived classes for custom datagram acceptance strategy. |
 
 !!! tip "Performance Tuning"
     For immense traffic scenarios, ensure that `NetworkSocketOptions.BufferSize` is appropriately sized (typically between `2MB` and `10MB`) to accommodate OS-level network queuing preventing datagram drop under load spikes.

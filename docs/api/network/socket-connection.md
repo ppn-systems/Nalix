@@ -1,6 +1,9 @@
 # Socket Connection
 
-`SocketConnection` is the high-performance, internal framed TCP transport implementation that powers `Connection.TCP`. It is specifically optimized for zero-allocation hotspots, capable of handling 10,000+ concurrent connections with minimal GC impact.
+`SocketConnection` is the high-performance, **internal sealed** framed TCP transport implementation that powers `Connection.TCP`. It is specifically optimized for zero-allocation hotspots, capable of handling 10,000+ concurrent connections with minimal GC impact.
+
+!!! warning "Not Public API"
+    `SocketConnection` is `internal sealed` and is not part of the public API surface. It is documented here for framework developers and contributors only. Application code should interact with connections through `IConnection` and `Connection`.
 
 ## Zero-Allocation Data Path
 

@@ -54,7 +54,14 @@ Nalix separates callbacks into two distinct lanes to maintain system stability u
 !!! important "Backpressure Enforcement"
     If the global `MaxPendingNormalCallbacks` limit is reached, Nalix will drop incoming normal-priority callbacks and log a warning. This prevents a "Callback Explosion" from crashing the server process.
 
-### 2. Zero-Allocation Pooling
+### 2. Per-IP Fairness Tracking
+
+The dispatcher enforces per-IP fairness to prevent a single attacker from monopolizing the global callback quota:
+
+- `MaxPendingPerIp`: Maximum normal-priority callbacks pending for a single remote IP (default 64). Callbacks from that IP are dropped individually once exceeded.
+- `FairnessMapSize`: Size of the fixed-size hash-map array used for per-IP tracking (default 4096). Larger values reduce hash collisions.
+
+### 3. Zero-Allocation Pooling
 
 Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recyclables.
 
@@ -65,7 +72,7 @@ Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recy
 !!! warning "Handler Safety"
     Because `ConnectionEventArgs` is pooled, **you must not cache or store references to it** outside the scope of the event handler. Any data you need for long-term use should be copied into your own state objects.
 
-### 3. Buffer Lease Reclamation
+### 4. Buffer Lease Reclamation
 
 The `ConnectionEventArgs` carries a `BufferLease`.
 
