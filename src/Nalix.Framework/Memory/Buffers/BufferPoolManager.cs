@@ -11,7 +11,6 @@ using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
@@ -31,7 +30,6 @@ public sealed class BufferPoolManager : IBufferPoolManager
 {
     #region Fields & Constants
 
-    private readonly ILogger? _logger;
     private readonly BufferOptions _config;
 
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
@@ -204,24 +202,14 @@ public sealed class BufferPoolManager : IBufferPoolManager
     /// <summary>
     /// Initializes a new instance of the <see cref="BufferPoolManager"/> class.
     /// </summary>
-    /// <param name="logger">Optional logger for emitting internal events and diagnostics.</param>
-    public BufferPoolManager(ILogger logger) : this(bufferConfig: null, logger) { }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="BufferPoolManager"/> class.
-    /// </summary>
     /// <param name="bufferConfig">
     /// The buffer configuration to use. If <see langword="null"/>, the default configuration is loaded.
     /// </param>
-    /// <param name="logger">
-    /// Optional logger for emitting internal events and diagnostics.
-    /// </param>
-    public BufferPoolManager(BufferOptions? bufferConfig = null, ILogger? logger = null)
+    public BufferPoolManager(BufferOptions? bufferConfig = null)
     {
         BufferOptions config = bufferConfig ?? ConfigurationManager.Instance.Get<BufferOptions>();
         config.Validate();
 
-        _logger = logger;
         _config = config;
 
         _suitablePoolSizeCache = new();
@@ -581,18 +569,18 @@ public sealed class BufferPoolManager : IBufferPoolManager
         {
             // If fallback is enabled, return a shared ArrayPool buffer instead of
             // failing the operation outright.
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
             {
-                _logger.LogWarning($"[FW.{nameof(BufferPoolManager)}:Internal] fallback minimumLength={size} msg={ex.Message}");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { MinimumLength = size, ex.Message, Fallback = true });
             }
             _ = Interlocked.Increment(ref _fallbackCount);
 
             return _fallbackArrayPool.Rent(size);
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
         {
-            _logger.LogError(ex, $"[FW.{nameof(BufferPoolManager)}:Internal] rent-fail minimumLength={size} msg={ex.Message}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { MinimumLength = size, ex.Message, Fallback = false });
         }
         ExceptionDispatchInfo.Capture(ex).Throw();
         throw new InvalidOperationException("Unreachable");
@@ -613,17 +601,17 @@ public sealed class BufferPoolManager : IBufferPoolManager
         if (_config.FallbackToArrayPool)
         {
             _fallbackArrayPool.Return(buffer, clearArray: false);
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.BufferReleased))
             {
-                _logger.LogDebug($"[FW.{nameof(BufferPoolManager)}:Internal] return-fallback minimumLength={buffer.Length}");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.BufferReleased, new { BufferLength = buffer.Length, Fallback = true });
             }
 
             return;
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
         {
-            _logger.LogWarning($"[FW.{nameof(BufferPoolManager)}:Internal] return-fail minimumLength={buffer.Length} msg={ex.Message}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { BufferLength = buffer.Length, ex.Message, Fallback = false });
         }
     }
 
@@ -647,9 +635,9 @@ public sealed class BufferPoolManager : IBufferPoolManager
         }
 
         _isInitialized = true;
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            _logger.LogInformation($"[SH.{nameof(BufferPoolManager)}:Internal] init-ok total={_config.TotalBuffers} buckets={_bufferAllocations.Length}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { _config.TotalBuffers, BucketCount = _bufferAllocations.Length, Phase = "Init" });
         }
     }
 
@@ -666,13 +654,13 @@ public sealed class BufferPoolManager : IBufferPoolManager
         int cycle = Interlocked.Increment(ref _trimCycleCount);
         bool deepTrim = this.SHOULD_RUN_DEEP_TRIM(cycle);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-run deep={deepTrim}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { DeepTrim = deepTrim, Phase = "TrimRun" });
         }
 
         // Compute memory budget once per cycle (cache it)
-        (long targetBudget, long currentUsage, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
+        (long _, long _, bool overBudget) = this.COMPUTE_MEMORY_BUDGET();
 
         foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
         {
@@ -847,9 +835,9 @@ public sealed class BufferPoolManager : IBufferPoolManager
             _metricsCache[info.BufferSize] = metrics;
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] trim-shrink minimumLength={info.BufferSize} step={shrinkStep} usage={usage:F2}%");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { info.BufferSize, Step = shrinkStep, Usage = usage });
         }
     }
 
@@ -897,9 +885,9 @@ public sealed class BufferPoolManager : IBufferPoolManager
             _metricsCache[poolInfo.BufferSize] = m;
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] shrink minimumLength={poolInfo.BufferSize} by={buffersToShrink}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { poolInfo.BufferSize, ShrunkBy = buffersToShrink, Phase = "Shrink" });
         }
     }
 
@@ -946,9 +934,9 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
         if (this.IS_OVER_MEMORY_BUDGET())
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
             {
-                _logger.LogWarning($"[SH.{nameof(BufferPoolManager)}:Internal] skip-increase minimumLength={poolInfo.BufferSize} over budget");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { poolInfo.BufferSize, Reason = "OverBudget" });
             }
             return;
         }
@@ -962,9 +950,9 @@ public sealed class BufferPoolManager : IBufferPoolManager
             _metricsCache[poolInfo.BufferSize] = metrics;
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            _logger.LogTrace($"[SH.{nameof(BufferPoolManager)}:Internal] increase minimumLength={poolInfo.BufferSize} by={increaseStep}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { poolInfo.BufferSize, IncreasedBy = increaseStep });
         }
     }
 
@@ -1169,9 +1157,9 @@ public sealed class BufferPoolManager : IBufferPoolManager
                                     .CleanupJobId(RecurringName, this.GetHashCode()));
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            _logger.LogInformation($"[SH.{nameof(BufferPoolManager)}:{nameof(Dispose)}] disposed");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { Phase = "Dispose" });
         }
 
         GC.SuppressFinalize(this);

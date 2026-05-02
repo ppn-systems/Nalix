@@ -8,11 +8,9 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
-using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
@@ -70,8 +68,6 @@ public sealed class ObjectPoolManager : IObjectPoolManager
     #endregion Nested Types
 
     #region Fields
-
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     /// <summary>
     /// Thread-safe storage for pools
@@ -338,9 +334,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
         if (outstandingAfter < 0)
         {
             // Log and reset to zero to avoid negative counters due to bugs
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
             {
-                s_logger.LogWarning($"[FW.{nameof(ObjectPoolManager)}:Return] outstanding-negative type={type.Name} value={outstandingAfter}");
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = "Return", Type = type.Name, Outstanding = outstandingAfter, Status = "outstanding-negative" });
             }
 
             _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
@@ -374,9 +370,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
         _ = Interlocked.Add(ref _totalCreated, allocated);
         _ = Interlocked.Add(ref metrics.TotalCreated, allocated);
 
-        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            logger.LogDebug($"[FW.{nameof(ObjectPoolManager)}:{nameof(Prealloc)}] prealloc type={typeof(T).Name} count={count} allocated={allocated}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { Manager = nameof(ObjectPoolManager), Operation = nameof(Prealloc), Type = typeof(T).Name, Requested = count, Allocated = allocated });
         }
 
         return allocated;
@@ -414,9 +410,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
             }
         } while (Interlocked.CompareExchange(ref _peakPoolCount, currentCount, observed) != observed);
 
-        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
         {
-            logger.LogDebug($"[FW.{nameof(ObjectPoolManager)}:{nameof(SetMaxCapacity)}] set-max type={typeof(T).Name} cap={maxCapacity}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new { Manager = nameof(ObjectPoolManager), Operation = nameof(SetMaxCapacity), Type = typeof(T).Name, Capacity = maxCapacity });
         }
 
         return true;
@@ -561,9 +557,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
 
         _ = Interlocked.Add(ref _totalDisposed, totalRemoved);
 
-        if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Debug))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            logger.LogDebug($"[FW.{nameof(ObjectPoolManager)}:{nameof(ClearAllPools)}] cleared-all total-removed={totalRemoved}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ClearAllPools), TotalRemoved = totalRemoved });
         }
 
         return totalRemoved;
@@ -609,9 +605,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
                 unhealthyCount++;
                 _ = Interlocked.Increment(ref metrics.ConsecutiveFailures);
 
-                if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Warning))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
                 {
-                    logger.LogWarning($"[FW.{nameof(ObjectPoolManager)}:Internal] unhealthy-pool type={kvp.Key.Name} miss-rate={missRate:F2}%");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { Manager = nameof(ObjectPoolManager), Operation = "HealthCheck", Type = kvp.Key.Name, MissRate = missRate });
                 }
             }
             else
@@ -637,14 +633,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
         long hits = Interlocked.Read(ref _totalCacheHits);
         long misses = Interlocked.Read(ref _totalCacheMisses);
 
-        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-        if (logger != null && logger.IsEnabled(LogLevel.Information))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
         {
-            logger.LogInformation($"[FW.{nameof(ObjectPoolManager)}::{nameof(ResetStatistics)}] " +
-                                  $"stats-before-reset gets={gets} returns={returns} hits={hits} misses={misses} " +
-                                  $"hit-rate={(gets > 0 ? (hits / (double)gets * 100.0) : 0):F1}% " +
-                                  $"uptime={this.Uptime.TotalSeconds:F0}s pools={this.PoolCount}");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ResetStatistics), Phase = "BeforeReset", Gets = gets, Returns = returns, Hits = hits, Misses = misses, HitRate = gets > 0 ? (hits / (double)gets * 100.0) : 0.0, UptimeSeconds = this.Uptime.TotalSeconds, this.PoolCount });
         }
 
         _ = Interlocked.Exchange(ref _totalGetOperations, 0);
@@ -659,9 +650,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
             pool.ResetStatistics();
         }
 
-        if (logger != null && logger.IsEnabled(LogLevel.Trace))
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
         {
-            logger.LogTrace($"[FW.{nameof(ObjectPoolManager)}:{nameof(ResetStatistics)}] stats-reset-complete");
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ResetStatistics), Phase = "ResetComplete" });
         }
     }
 
@@ -686,9 +677,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                if (InstanceManager.Instance.GetExistingInstance<ILogger>() is { } logger && logger.IsEnabled(LogLevel.Error))
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
                 {
-                    logger.LogError(ex, $"[FW.{nameof(ObjectPoolManager)}:{nameof(ScheduleRegularTrimming)}] trim-task-error");
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ScheduleRegularTrimming), Error = ex.Message });
                 }
             }
         }
