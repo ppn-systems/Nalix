@@ -32,12 +32,12 @@ public static class FramePipeline
         {
             if (algorithm == CipherSuiteType.None)
             {
-                throw CodecErrors.TransformEncryptedButNoCipher;
+                Throw.ThrowTransformEncryptedButNoCipher();
             }
 
             if (secret.IsEmpty)
             {
-                throw CodecErrors.TransformEncryptedButNoKey;
+                Throw.ThrowTransformEncryptedButNoKey();
             }
 
             try
@@ -45,7 +45,7 @@ public static class FramePipeline
                 current = FrameCipher.DecryptFrame(current, secret, algorithm);
 
                 // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
-                flags = current.Span.ReadHeaderLE().Flags;
+                flags = current.Span.AsHeaderRef().Flags;
             }
             catch (Exception)
             {
@@ -90,7 +90,7 @@ public static class FramePipeline
         {
             if (algorithm == CipherSuiteType.None)
             {
-                throw CodecErrors.TransformEncryptRequestedButNoCipher;
+                Throw.ThrowTransformEncryptRequestedButNoCipher();
             }
 
             IBufferLease prev = current;
