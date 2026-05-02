@@ -11,6 +11,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Internal;
+using Nalix.Codec.Internal.Memory;
 using Nalix.Codec.LZ4;
 using Nalix.Codec.Options;
 using Nalix.Codec.Security;
