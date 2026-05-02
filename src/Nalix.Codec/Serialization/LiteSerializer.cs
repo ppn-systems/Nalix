@@ -118,7 +118,7 @@ public static class LiteSerializer
             long dataSizeLong = (long)size * length;
             if (dataSizeLong > int.MaxValue - 4)
             {
-                throw CodecErrors.SerializationOverflow;
+                Throw.ThrowSerializationOverflow();
             }
 
             int dataSize = (int)dataSizeLong;
@@ -199,7 +199,7 @@ public static class LiteSerializer
             int size = TypeMetadata.SizeOf<T>();
             if (buffer.Length < size)
             {
-                throw CodecErrors.SerializationBufferTooSmall;
+                Throw.ThrowSerializationBufferTooSmall();
             }
 
             Unsafe.WriteUnaligned(
@@ -217,7 +217,7 @@ public static class LiteSerializer
 
             if (buffer.Length < required)
             {
-                throw CodecErrors.SerializationBufferTooSmall;
+                Throw.ThrowSerializationBufferTooSmall();
             }
 
             IFormatter<T> formatter = ResolveRootFormatter<T>(value);
@@ -269,7 +269,7 @@ public static class LiteSerializer
 
             if (buffer.Length < size)
             {
-                throw CodecErrors.SerializationBufferTooSmall;
+                Throw.ThrowSerializationBufferTooSmall();
             }
 
             Unsafe.WriteUnaligned(
@@ -292,7 +292,7 @@ public static class LiteSerializer
                 // Write null-array marker (4 bytes: 0xFF 0xFF 0xFF 0xFF)
                 if (buffer.Length < 4)
                 {
-                    throw CodecErrors.SerializationBufferTooSmall;
+                    Throw.ThrowSerializationBufferTooSmall();
                 }
 
                 SerializerBounds.NullArrayMarker.CopyTo(buffer);
@@ -307,7 +307,7 @@ public static class LiteSerializer
                 // Write empty-array marker (4 bytes: 0x00 0x00 0x00 0x00)
                 if (buffer.Length < 4)
                 {
-                    throw CodecErrors.SerializationBufferTooSmall;
+                    Throw.ThrowSerializationBufferTooSmall();
                 }
 
                 SerializerBounds.EmptyArrayMarker.CopyTo(buffer);
@@ -317,7 +317,7 @@ public static class LiteSerializer
             long dataSizeLong = (long)fixedSize * length;
             if (buffer.Length < dataSizeLong + 4)
             {
-                throw CodecErrors.SerializationBufferTooSmall;
+                Throw.ThrowSerializationBufferTooSmall();
             }
 
             int dataSize = (int)dataSizeLong;
@@ -344,7 +344,7 @@ public static class LiteSerializer
         {
             if (buffer.Length < fixedSize)
             {
-                throw CodecErrors.SerializationBufferTooSmall;
+                Throw.ThrowSerializationBufferTooSmall();
             }
 
             // DataWriter(Span<byte>) wraps the span directly — zero allocation, no pool renting.
@@ -412,7 +412,7 @@ public static class LiteSerializer
 
         if (buffer.Length == 0)
         {
-            throw CodecErrors.SerializationEmptyBuffer;
+            Throw.ThrowSerializationEmptyBuffer();
         }
 
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
@@ -454,7 +454,7 @@ public static class LiteSerializer
 
         if (buffer.Length == 0)
         {
-            throw CodecErrors.SerializationEmptyBuffer;
+            Throw.ThrowSerializationEmptyBuffer();
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
@@ -484,7 +484,7 @@ public static class LiteSerializer
 
         if (buffer.IsEmpty)
         {
-            throw CodecErrors.SerializationEmptyBuffer;
+            Throw.ThrowSerializationEmptyBuffer();
         }
 
         IFormatter<T> formatter = RootFormatterCache<T>.Formatter;
@@ -524,7 +524,7 @@ public static class LiteSerializer
 
         if (buffer.IsEmpty)
         {
-            throw CodecErrors.SerializationEmptyBuffer;
+            Throw.ThrowSerializationEmptyBuffer();
         }
 
         IFormatter<T> formatter = ResolveRootFormatterForRead<T>();
@@ -549,14 +549,14 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw CodecErrors.SerializationEmptyBuffer;
+            Throw.ThrowSerializationEmptyBuffer();
         }
 
         if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw CodecErrors.SerializationEndOfStream;
+                Throw.ThrowSerializationEndOfStream();
             }
             value = Unsafe.ReadUnaligned<T>(
                 ref MemoryMarshal.GetReference(buffer));
@@ -587,7 +587,7 @@ public static class LiteSerializer
 
             if (buffer.Length < 4)
             {
-                throw CodecErrors.SerializationEndOfStream;
+                Throw.ThrowSerializationEndOfStream();
             }
 
             int length = Unsafe.ReadUnaligned<int>(
@@ -604,7 +604,7 @@ public static class LiteSerializer
             long dataSizeLong = (long)size * length;
             if (buffer.Length < dataSizeLong + 4)
             {
-                throw CodecErrors.SerializationEndOfStream;
+                Throw.ThrowSerializationEndOfStream();
             }
 
             int dataSize = (int)dataSizeLong;
@@ -671,14 +671,14 @@ public static class LiteSerializer
     {
         if (buffer.IsEmpty)
         {
-            throw CodecErrors.SerializationEmptyBuffer;
+            Throw.ThrowSerializationEmptyBuffer();
         }
 
         if (TypeMetadata.IsUnmanaged<T>())
         {
             if (buffer.Length < TypeMetadata.SizeOf<T>())
             {
-                throw CodecErrors.SerializationEndOfStream;
+                Throw.ThrowSerializationEndOfStream();
             }
             value = TypeMetadata.SizeOf<T>();
 
@@ -709,7 +709,7 @@ public static class LiteSerializer
 
             if (buffer.Length < 4)
             {
-                throw CodecErrors.SerializationEndOfStream;
+                Throw.ThrowSerializationEndOfStream();
             }
 
             int length = Unsafe.ReadUnaligned<int>(
@@ -726,7 +726,7 @@ public static class LiteSerializer
             long dataSizeLong = (long)size * length;
             if (buffer.Length < dataSizeLong + 4)
             {
-                throw CodecErrors.SerializationEndOfStream;
+                Throw.ThrowSerializationEndOfStream();
             }
 
             int dataSize = (int)dataSizeLong;

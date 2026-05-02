@@ -78,7 +78,7 @@ internal sealed class ReferenceArrayFormatter<
 
         if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            Throw.ThrowSerializationLengthOutOfRange();
         }
 
         T[] array = new T[length];

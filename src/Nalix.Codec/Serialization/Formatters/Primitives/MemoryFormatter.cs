@@ -94,7 +94,8 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
 
         if (length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            Throw.ThrowSerializationLengthOutOfRange();
+            return System.Memory<T>.Empty;
         }
 
         int byteCount;
@@ -104,7 +105,8 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         }
         catch (System.OverflowException)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            Throw.ThrowSerializationLengthOutOfRange();
+            return System.Memory<T>.Empty;
         }
 
         // Allocate once and copy the raw payload block directly into the array.
