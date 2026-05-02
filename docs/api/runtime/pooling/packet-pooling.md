@@ -16,7 +16,7 @@
 
 | Type | Public members |
 |---|---|
-| `PacketScope<TPacket>` | `Value`, `IsValid`, `Dispose()` |
+| `PacketScope<TPacket>` | `Value`, `IsValid`, `Dispose()`, `implicit operator TPacket(PacketScope<TPacket>)` |
 | `PacketFactory<TPacket>` | `Acquire()` |
 
 ## PacketScope<`TPacket`>

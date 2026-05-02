@@ -39,8 +39,8 @@ Key responsibilities:
 
 - **Connection acceptance** â€” `ValidateConnection(IConnection)` controls whether new connections are accepted
 - **Receive loop management** â€” `OnAccept(IConnection)` starts listening for incoming frames
-- **Frame forwarding** â€” `ProcessMessage(object sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`
-- **Connection state** â€” `IsAccepting` controls whether the protocol accepts new connections
+- **Frame forwarding** â€” `ProcessMessage(object? sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`
+- **Connection state — `IsAccepting` controls whether the protocol accepts new connections (atomic property backed by `Interlocked`). Use `SetConnectionAcceptance(bool)` to toggle acceptance at runtime
 
 ```csharp
 public sealed class MyProtocol : Protocol
@@ -49,7 +49,7 @@ public sealed class MyProtocol : Protocol
 
     public MyProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
 
-    public override void ProcessMessage(object sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 
     protected override bool ValidateConnection(IConnection connection)
@@ -87,8 +87,8 @@ Nalix.Network provides focused option types for each transport concern:
 | `TimingWheelOptions` | Idle timeout configuration |
 | `PoolingOptions` | Buffer pool, accept context pool, receive context pool sizes |
 | `NetworkCallbackOptions` | Callback flood protection thresholds |
-| `CompressionOptions` | LZ4 compression settings |
-| `TokenBucketOptions` | Rate limiter configuration |
+| `DatagramGuardOptions` | UDP source rate limiting and cleanup |
+| `SessionStoreOptions` | Session retention TTL and persistence thresholds |
 
 All option types support `Validate()` for startup-time verification.
 

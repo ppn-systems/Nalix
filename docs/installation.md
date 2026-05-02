@@ -81,13 +81,14 @@ BlockTimeout=00:00:01
 [TransportOptions]
 Address=127.0.0.1
 Port=57206
-ConnectTimeoutMillis=7000
+ConnectTimeoutMillis=5000
 MaxPacketSize=65536
 ```
 
 !!! note "Dispatch loop scaling"
     Worker-loop count is configured on `PacketDispatchOptions<TPacket>` in code via `WithDispatchLoopCount(...)`.
     Use `WithDispatchLoopCount(null)` to keep auto-scaling behavior.
+    Note: `PacketDispatchOptions<TPacket>` (handler/middleware config) is a different type from `DispatchOptions` (queue bounds and drop policy).
 
 ## Validate Options at Startup
 

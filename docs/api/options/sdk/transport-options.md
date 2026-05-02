@@ -38,6 +38,12 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 | `AsyncQueueCapacity` | `1024` | Capacity of the internal async message queue. |
 | `MaxUdpDatagramSize` | `1400` | Maximum MTU for UDP (including 8-byte Token). |
 
+### Time Sync
+
+| Property | Default | Description |
+| --- | --- | --- |
+| `TimeOffsetMs` | `0` | Current time offset in milliseconds applied by the time synchronization process. |
+
 ### Security & Compression
 
 | Property | Default | Description |

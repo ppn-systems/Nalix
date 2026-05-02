@@ -67,9 +67,15 @@ The abstract session sits between application code and the socket layer. It keep
 | --- | --- |
 | `ConnectAsync(...)` | Initiates the connection sequence. |
 | `DisconnectAsync()` | Orchestrates a graceful shutdown. |
-| `SendAsync(IPacket)` | Serializes and frames a packet for transport. |
-| `SendAsync(payload)` | Frames and sends a raw binary payload. |
-| `RequestAsync<TResponse>(...)` | Sends a request and waits for a matching typed response. |
+| `SendAsync(IPacket, CancellationToken)` | Serializes and frames a packet for transport. |
+| `SendAsync(IPacket, bool? encrypt, CancellationToken)` | Serializes and frames a packet with optional encryption override. |
+| `SendAsync(ReadOnlyMemory<byte>, bool? encrypt, CancellationToken)` | Frames and sends a raw binary payload with optional encryption override. |
+
+### Extension Methods
+
+| Member | Description |
+| --- | --- |
+| `RequestAsync<TResponse>(...)` | Sends a request and waits for a matching typed response. Defined in `RequestExtensions`. |
 
 ## Related APIs
 

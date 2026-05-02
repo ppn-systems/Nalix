@@ -28,12 +28,15 @@ The implementation compiles the constructor once per closed generic type and the
 
 ## Main members
 
-- `Instance`
-- `IsCreated`
-- `TryGetInstance(out instance)`
-- `EnsureCreated()`
-- `Dispose()`
-- `DisposeManaged()`
+| Member | Description |
+| :--- | :--- |
+| `Instance` | Gets the singleton instance (creates on first access). |
+| `IsCreated` | Returns `true` if the instance has been created, without forcing creation. |
+| `TryGetInstance(out instance)` | Returns existing instance if created, else `false` without creating it. |
+| `EnsureCreated()` | Force-creates the instance (useful for warmup). |
+| `Dispose()` | Disposes the singleton instance. |
+| `Dispose(bool disposing)` | Protected virtual method called by `Dispose()`. Releases resources. |
+| `DisposeManaged()` | Protected virtual method. Override to release managed state. Base does nothing. |
 
 ## Basic usage
 

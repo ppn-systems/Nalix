@@ -109,14 +109,14 @@ Failures during session resumption use the `SessionResume` packet with `Stage = 
 
 ## 5. Zero-Allocation Transport Exceptions
 
-To minimize GC pressure during high-frequency network events (including failures), Nalix uses the `NetworkErrors` utility to provide cached, zero-allocation exception instances for common transport scenarios.
+To minimize GC pressure during high-frequency network events (including failures), Nalix uses the `NetworkErrors` utility (an `internal` class in `Nalix.Network.Internal.Transport`) to provide cached, zero-allocation exception instances for common transport scenarios.
 
 ### Cached Exceptions
 
 Standard .NET exceptions capture a full stack trace upon instantiation, which is a significant allocation and CPU cost. `NetworkErrors` overrides this behavior for its internal types:
 
 - **Overridden `StackTrace`**: Cached instances return a static string ("at Nalix.Network.Internal.Transport (Cached Exception)") instead of performing a stack crawl.
-- **Static Reusability**: Instances like `NetworkErrors.ConnectionReset` and `NetworkErrors.SendFailed` are pre-allocated and reused across all connections.
+- **Static Reusability**: Instances like `NetworkErrors.ConnectionReset` and `NetworkErrors.SendFailed` are pre-allocated and reused across all connections. Note that `NetworkErrors` is `internal` — these cached exceptions are consumed by the framework's transport layer, not exposed to application code.
 
 ### Socket Error Mapping
 

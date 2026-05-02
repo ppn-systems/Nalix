@@ -41,9 +41,9 @@ sequenceDiagram
 
 To prevent **Race Conditions** and **Double-Resume** attacks, Nalix uses "Atomic Consumption". When a resume request arrives:
 
-1.The server attempts to remove the token from the `ISessionStore` immediately.
-2 If the token was already used or doesn't exist, the request is rejected instantly.
-3 This ensures that a stolen token cannot be used twice, even if two requests arrive at the same millisecond.
+1. The server attempts to remove the token from the `ISessionStore` immediately.
+2. If the token was already used or doesn't exist, the request is rejected instantly.
+3. This ensures that a stolen token cannot be used twice, even if two requests arrive at the same millisecond.
 
 ## Rotation and Security
 

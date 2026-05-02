@@ -105,7 +105,7 @@ graph TD
     subgraph Base ["Nalix.Abstractions / Framework"]
         Registry["PacketRegistry"]
         Pool["BufferPoolManager"]
-        Crypto["PacketCipher / PacketCompression"]
+        Crypto["FrameCipher / FrameCompression"]
     end
 
     Session -- "TCP / UDP" --> Host

@@ -61,13 +61,38 @@ public interface IPoolable
 
 ### Key API Members
 
+| Member | Description |
+| :--- | :--- |
 | `Get<T>()` | Retrieves an item from the pool for type `T`. Creates a new one if the pool is empty. |
 | `Return<T>(obj)` | Resets and returns an object to the pool. |
-| `GetMultiple<T>(count)` | Retrieves a batch of items from the pool. |
-| `ReturnMultiple<T>(objs)` | Returns a collection of items to the pool. |
+| `GetTypedPool<T>()` | Gets or creates a type-specific `TypedObjectPool<T>` adapter. |
 | `Prealloc<T>(count)` | Force-fills the pool with a specific number of instances (useful at startup). |
-| `PerformHealthCheck()` | Identifies "unhealthy" pools (those with consistently high miss rates or leaks). |
+| `SetMaxCapacity<T>(maxCapacity)` | Sets the maximum capacity for a specific type's pool. |
+| `ResetMetrics()` | Resets all global and per-pool metrics to baseline (zero). |
+| `ClearPool<T>()` | Clears all objects from a specific type's pool. |
+| `ClearAllPools()` | Clears all objects from all pools. |
+| `TrimAllPools(percentage = 50)` | Trims all pools to their target sizes. |
+| `ScheduleRegularTrimming(interval, percentage = 50, ct)` | Schedules a background trimming loop. |
+| `PerformHealthCheck()` | Identifies "unhealthy" pools (those with consistently high miss rates). |
+| `ResetStatistics()` | Resets all statistics for the pool manager and all pools. |
+| `GetTypeInfo<T>()` | Gets detailed information about a specific type's pool. |
 | `GenerateReport()` | Produces a detailed text summary of all managed pools and their metrics. |
+| `GetReportData()` | Returns a structured dictionary for monitoring dashboards. |
+
+### Properties
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `DefaultMaxPoolSize` | `int` | Default maximum size for new pools (default 1024). |
+| `PoolCount` | `int` | Total number of pools currently managed. |
+| `PeakPoolCount` | `int` | Peak number of pools at any time. |
+| `TotalGetOperations` | `long` | Total number of get operations performed. |
+| `TotalReturnOperations` | `long` | Total number of return operations performed. |
+| `TotalCacheHits` | `long` | Total number of cache hits. |
+| `TotalCacheMisses` | `long` | Total number of cache misses. |
+| `CacheHitRate` | `double` | Overall cache hit rate as a percentage (0-100). |
+| `Uptime` | `TimeSpan` | Uptime of the pool manager. |
+| `UnhealthyPoolCount` | `int` | Number of unhealthy pools. |
 
 ## TypedObjectPool<`T`>
 

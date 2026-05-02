@@ -31,8 +31,7 @@ connection error cutoffs, and per-endpoint cleanup behavior used by
 | `MaxCleanupKeysPerRun` | `0` | `0..10_000_000` | Max endpoint keys scanned per cleanup cycle; `0` auto-scales based on tracked entry count. |
 | `DailyResetTimeOffset` | `00:00:00` | `-14:00:00..14:00:00` | UTC offset used to determine the start-of-day for daily connection-limit resets. |
 
-`Validate()` uses data annotations through
-`Validator.ValidateObject(..., validateAllProperties: true)`.
+`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated.
 
 ## Hosting Initialization
 

@@ -84,13 +84,13 @@ public async ValueTask HandleSecureAction(IPacketContext<SecureAction> context)
     catch (UnauthorizedAccessException ex)
     {
         // Log the error
-        // Rejects the request with a protocol reason
-        context.Connection.Disconnect(ProtocolReason.UNAUTHORIZED);
+        // Rejects the request with a reason string
+        context.Connection.Disconnect("Unauthorized access.");
     }
     catch (Exception ex)
     {
         // General failure
-        context.Connection.Disconnect(ProtocolReason.INTERNAL_ERROR);
+        context.Connection.Disconnect("Internal server error.");
     }
 }
 ```
@@ -132,10 +132,7 @@ var app = NetworkApplication.CreateBuilder()
     // 2. Register Middleware
     .ConfigureDispatch(options => 
     {
-        // Buffer Pipeline (Pre-deserialization)
-        options.WithBufferMiddleware(new EncryptionMiddleware());
-        
-        // Packet Pipeline (Post-deserialization)
+        options.WithMiddleware(new EncryptionMiddleware());
         options.WithMiddleware(new AuditMiddleware(logger));
         options.WithMiddleware(new RateLimitMiddleware());
     })

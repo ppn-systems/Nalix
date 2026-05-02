@@ -18,7 +18,7 @@ This page covers the low-level helper APIs around `DataReader`, `DataWriter`, an
 
 | Type | Public members |
 |---|---|
-| `DataReaderExtensions` | `ReadByte`, `ReadUInt16`, `ReadUInt32`, `ReadInt32`, `ReadInt64`, `ReadUInt64`, `ReadBoolean`, `ReadEnumByte`, `ReadEnumUInt16`, `ReadEnumUInt32`, `ReadBytes`, `ReadRemainingBytes`, `ReadUnmanaged`, `Remaining` |
+| `DataReaderExtensions` | `ReadByte`, `ReadInt16`, `ReadUInt16`, `ReadInt32`, `ReadUInt32`, `ReadInt64`, `ReadUInt64`, `ReadSByte`, `ReadChar`, `ReadSingle`, `ReadDouble`, `ReadBoolean`, `ReadEnumByte`, `ReadEnumUInt16`, `ReadEnumUInt32`, `ReadBytes`, `ReadRemainingBytes`, `ReadUnmanaged`, `Remaining` |
 | `DataWriterExtensions` | `Write`, `WriteEnum`, `WriteUnmanaged` overloads for primitive, span, enum, and unmanaged values |
 | `HeaderExtensions` | `ReadHeaderLE`, `WriteHeaderLE` |
 
@@ -39,11 +39,16 @@ These helpers sit below the usual `LiteSerializer` and `PacketBase<TSelf>` flow.
 Useful methods include:
 
 - `ReadByte()`
+- `ReadSByte()`
+- `ReadInt16()`
 - `ReadUInt16()`
-- `ReadUInt32()`
 - `ReadInt32()`
+- `ReadUInt32()`
 - `ReadInt64()`
 - `ReadUInt64()`
+- `ReadChar()`
+- `ReadSingle()`
+- `ReadDouble()`
 - `ReadBoolean()`
 - `ReadEnumByte<TEnum>()`
 - `ReadEnumUInt16<TEnum>()`
@@ -96,7 +101,7 @@ ushort sequenceId = header.SequenceId;
 ## Basic usage
 
 ```csharp
-DataWriter writer = new();
+DataWriter writer = new(256);
 writer.Write((ushort)opcode);
 writer.WriteEnum(priority);
 writer.Write(payload);

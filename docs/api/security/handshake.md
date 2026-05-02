@@ -46,10 +46,13 @@ The server-side state machine is implemented in `HandshakeHandlers`. It tracks t
 
 ### Cryptographic Methods (`HandshakeX25519`)
 
-- `ComputeServerProof`: Generates the proof for `SERVER_HELLO`.
-- `ComputeClientProof`: Generates the proof for `CLIENT_FINISH`.
-- `ComputeServerFinishProof`: Generates the final acknowledgement proof for `SERVER_FINISH`.
-- `DeriveSessionKey`: Derives the 32-byte session key from the shared secret and transcript.
+- `ComputeMasterSecret(Bytes32, Bytes32)`: Combines ephemeral-ephemeral and static-ephemeral shared secrets into the master secret.
+- `ComputeServerProof(Bytes32, Bytes32)`: Generates the proof for `SERVER_HELLO`.
+- `ComputeClientProof(Bytes32, Bytes32)`: Generates the proof for `CLIENT_FINISH`.
+- `ComputeServerFinishProof(Bytes32, Bytes32)`: Generates the final acknowledgement proof for `SERVER_FINISH`.
+- `DeriveSessionKey(Bytes32, Bytes32, Bytes32, Bytes32)`: Derives the 32-byte session key from the shared secret, client nonce, server nonce, and transcript hash.
+- `ComposeTranscriptBuffer(Bytes32, Bytes32, Bytes32, Bytes32)`: Composes the raw transcript buffer from public keys and nonces. Callers should wipe the returned buffer after hashing.
+- `ComputeTranscriptHash(Bytes32, Bytes32, Bytes32, Bytes32)`: Computes the handshake transcript hash from public keys and nonces, securely clearing the temporary buffer.
 
 ### Handling Logic
 

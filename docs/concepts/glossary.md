@@ -52,7 +52,7 @@ Logic inserted before or around handler execution using the **`MiddlewarePipelin
 
 ## PacketBase\<T\>
 
-The base class for all Nalix packets. Provides system header management (magic, opcode, protocol, priority) and pooling support via `ResetForPool()`.
+The base class for all Nalix packets. Provides system header management (magic, opcode, protocol, priority) and pooling support via `ResetForPool()`. PacketBase instances are recycled through the object pool to avoid per-packet allocations.
 
 ## PacketContext
 
@@ -86,8 +86,7 @@ An immutable, `FrozenDictionary`-backed catalog of packet deserializers built by
 The internal component that translates a handler's return type into a send action. Supported return types include:
 
 - `TPacket` / `Task<TPacket>` / `ValueTask<TPacket>`
-- `string`
-- `byte[]` / `Memory<byte>`
+- `byte[]` / `Memory<byte>` / `ReadOnlyMemory<byte>`
 - `void` / `Task` / `ValueTask` (no response)
 
 ## Snowflake

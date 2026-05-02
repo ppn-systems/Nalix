@@ -52,7 +52,7 @@ Create the shared packet contracts in the `Contracts` project. Both server and c
 === "PingRequest.cs"
 
     ```csharp
-    using Nalix.Abstractions.Networking.Packets;
+    using Nalix.Codec.DataFrames;
     using Nalix.Abstractions.Serialization;
 
     namespace Contracts;
@@ -71,7 +71,7 @@ Create the shared packet contracts in the `Contracts` project. Both server and c
 === "PingResponse.cs"
 
     ```csharp
-    using Nalix.Abstractions.Networking.Packets;
+    using Nalix.Codec.DataFrames;
     using Nalix.Abstractions.Serialization;
 
     namespace Contracts;
@@ -178,9 +178,10 @@ Nalix SDK provides a `TcpSession` that handles reconnection and type-safe reques
 
 ```csharp
 using Contracts;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
+using Nalix.SDK.Transport.Extensions;
 
 // 1. Build the packet registry (The 'Catalog')
 PacketRegistryFactory factory = new();
@@ -190,7 +191,7 @@ var registry = factory.CreateCatalog();
 
 // 2. Open the session
 var options = new TransportOptions { Address = "127.0.0.1", Port = 5000 };
-await using var client = new TcpSession(options, registry);
+using var client = new TcpSession(options, registry);
 await client.ConnectAsync();
 
 // 3. Request/Response (Type-Safe)

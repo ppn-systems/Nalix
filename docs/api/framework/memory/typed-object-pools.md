@@ -35,7 +35,10 @@ The primary high-performance wrapper for pools. It can operate in two modes:
 | `Prealloc(count)` | Warm up the pool by pre-creating instances. |
 | `GetMultiple(count)` | Batch retrieval of objects into a list. |
 | `ReturnMultiple(objs)` | Batch return of objects to the pool. |
-| `Trim(percentage)` | Releases a percentage of idle objects to the GC. |
+| `Clear()` | Clears this type's pool. Returns the number of objects removed. |
+| `GetInfo()` | Gets information about this type's pool as a dictionary. |
+| `SetMaxCapacity(int)` | Sets the maximum capacity for this type's pool. |
+| `Trim(percentage = 50)` | Releases a percentage of idle objects to the GC. |
 
 ## Recommended Performance Pattern
 

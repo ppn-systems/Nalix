@@ -19,9 +19,7 @@ persistence policy used when connections leave `ConnectionHub`.
 | `AutoSaveOnUnregister` | `true` | None | `ConnectionHub.TryUnregisterCore(...)` gates automatic persistence. |
 | `MinAttributesForPersistence` | `4` | `0..int.MaxValue` | `ConnectionHub.TryPersistSession(...)` rejects low-value sessions. |
 
-`Validate()` first runs data-annotation validation through
-`Validator.ValidateObject(..., validateAllProperties: true)`, then explicitly
-rejects non-positive `SessionTtl` values.
+`Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated. It rejects non-positive `SessionTtl` values and negative `MinAttributesForPersistence`.
 
 ## Hosting Initialization
 

@@ -52,7 +52,6 @@ Transport components should forward incoming work to a stable interface regardle
 ### Key members
 
 - `HandlePacket(IBufferLease packet, IConnection connection)`
-- `HandlePacket(IPacket packet, IConnection connection)`
 
 `IPacketDispatch` also inherits:
 
@@ -64,9 +63,6 @@ Transport components should forward incoming work to a stable interface regardle
 ```csharp
 // Raw inbound from transport
 packetDispatch.HandlePacket(lease, connection);
-
-// Typed fast-path
-packetDispatch.HandlePacket(packet, connection);
 ```
 
 ## Related APIs

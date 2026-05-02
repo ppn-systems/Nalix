@@ -6,11 +6,15 @@ This page covers the built-in packet types that Nalix ships out of the box.
 
 - `src/Nalix.Codec/DataFrames/SignalFrames/Control.cs`
 - `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`
+- `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.Codec/DataFrames/SignalFrames/Directive.cs`
 
 ## Main types
 
 - `Control`
 - `Handshake`
+- `SessionResume`
+- `Directive`
 
 ## Control
 
@@ -49,6 +53,8 @@ Important public members:
 
 - constructor `(stage, publicKey, nonce, proof, flags)`
 - `Initialize(stage, publicKey, nonce, proof, flags)`
+- `InitializeError(ProtocolReason, PacketFlags)`
+- `Validate(out string?)`
 - `ComputeTranscriptHash(...)`
 - `UpdateTranscriptHash(...)`
 - `ResetForPool()`

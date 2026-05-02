@@ -15,7 +15,7 @@ Nalix enforces strict isolation for all user-provided code (handlers, middleware
 ### Observable Behavior 1
 
 - **Logging:** An `Error` level log is emitted via the configured `ILogger`.
-- **Metrics:** The `IConnection.ErrorCount` is atomically incremented. You can monitor this to identify abusive or malfunctioning clients.
+- **Metrics:** The `IConnection.ErrorCount` (via `IConnectionErrorTracked`) is atomically incremented via `connection.IncrementErrorCount()`. You can monitor this to identify abusive or malfunctioning clients.
 - **Client Signaling:** The server attempts to send a `Directive` packet with `ControlType.FAIL` and `Reason = INTERNAL_ERROR` to the client.
 
 ---

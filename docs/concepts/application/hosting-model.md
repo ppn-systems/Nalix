@@ -31,8 +31,8 @@ var app = builder.Build();
 // 3. Configure Middleware Pipeline
 app.UseMiddleware<AuthMiddleware>();
 
-// 4. Map Handlers
-app.MapHandlers(); // Automatically discovers [PacketController] classes
+// 4. Register Handlers
+builder.AddHandlers<GameMarker>(); // Explicitly registers handlers from the assembly
 
 await app.RunAsync();
 ```
@@ -41,7 +41,7 @@ await app.RunAsync();
 
 The hosting model manages the four major stages of a server's life:
 
-1.**Bootstrap**: Loading configuration (appsettings.json), registering services in the DI container.
+1.**Bootstrap**: Loading configuration (server.ini / client.ini), registering services in the DI container.
 2.**Startup**: Opening TCP/UDP sockets, warming up object pools, and starting background worker loops.
 3.**Runtime**: Accepting connections, dispatching packets, and managing session state.
 4.**Shutdown**: Graceful disconnection of all clients, draining the packet queue, and closing listeners safely.
@@ -51,8 +51,8 @@ The hosting model manages the four major stages of a server's life:
 While you can use the low-level `Nalix.Network` APIs directly, the Hosting model provides several built-in advantages:
 
 - **Extreme Performance**: Uses the `InstanceManager` for zero-allocation service resolution.
-- **Configuration**: Automatic binding to `IConfiguration` sources (JSON, Environment variables).
-- **Discovery**: Auto-scanning for packet handlers and controllers, reducing manual boilerplate.
+- **Configuration**: Automatic binding to INI-based configuration sources (server.ini, client.ini).
+- **Explicit Registration**: Handlers are registered explicitly via `builder.AddHandlers<TMarker>()`, ensuring predictable startup behavior.
 - **Logging**: Integrated logging via `ILogger` abstractions.
 
 ## Related Topics

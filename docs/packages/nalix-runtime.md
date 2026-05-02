@@ -109,7 +109,7 @@ public sealed class AccountHandlers
 
 ### Time Synchronization
 
-`TimeSynchronizer` is an optional service that emits `TimeSynchronized` events at a default period of 16 ms, useful for periodic game logic or world updates.
+`TimeSynchronizer` is an optional service that emits `TimeSynchronized` events at a default period of 16 ms (~60 Hz), designed for clock synchronization and periodic tick consumers.
 
 ## Handler Return Types
 

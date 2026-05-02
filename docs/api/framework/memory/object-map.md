@@ -31,13 +31,32 @@ flowchart LR
 
 ## Key Members
 
+### Static
+
 | Member | Description |
 | :--- | :--- |
 | `Rent()` | Static method to retrieve a fresh, cleared map from the pool. |
+
+### Instance
+
+| Member | Description |
+| :--- | :--- |
 | `Return()` | Returns the map to the pool. **Must** be called to prevent memory leaks. |
-| `Add(key, value)` | Adds or updates an entry. |
+| `Add(key, value)` | Adds an entry (silently ignores duplicates). |
 | `TryGetValue(key, out val)` | Safely retrieves a value if the key exists. |
-| `Clear()` | Manually clears the map (also called automatically during `Return`). |
+| `ContainsKey(key)` | Determines whether the map contains the specified key. |
+| `Remove(key)` | Removes the entry with the specified key. Returns `true` if removed. |
+| `Clear()` | Removes all elements from the map. |
+| `this[key]` | Gets or sets the value associated with the specified key. Throws `KeyNotFoundException` on get if missing. |
+| `Keys` | Gets a collection containing the keys in the map. |
+| `Values` | Gets a collection containing the values in the map. |
+| `Count` | Gets the number of elements in the map. |
+| `IsReadOnly` | Gets a value indicating whether the map is read-only (always `false`). |
+| `Contains(item)` | Determines whether the map contains a specific key/value pair. |
+| `CopyTo(array, index)` | Copies elements to an array starting at the specified index. |
+| `Remove(KeyValuePair)` | Removes a specific key/value pair. Returns `true` if removed. |
+| `GetEnumerator()` | Returns an enumerator (snapshot of the collection). |
+| `ResetForPool()` | Resets internal state before returning to the pool. |
 
 ## Basic Usage
 

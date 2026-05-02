@@ -25,6 +25,9 @@ The primary entry point for generating random data.
 - `GetInt32(int max)`: Shortcut for `GetInt32(0, max)`.
 - `NextUInt32()` / `NextUInt64()`: Generates random unsigned integers.
 - `NextDouble()`: Returns a random double in the range `[0.0, 1.0)`.
+- `NextBytes(byte[] buffer)`: Fills the given byte array with cryptographically strong random values.
+- `NextBytes(Span<byte> buffer)`: Fills the given span with cryptographically strong random values.
+- `MaxByteArrayLength`: Maximum byte-array length accepted by allocation-returning CSPRNG helpers.
 
 ## Usage Example
 

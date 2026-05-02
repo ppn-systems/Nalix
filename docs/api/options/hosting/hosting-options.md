@@ -31,6 +31,7 @@ Initialization performs the following source-defined actions:
 | `MinCompletionPortThreads` | `int` | `0` | Min IOCP threads (0 = system default). |
 | `EnableGlobalExceptionHandling` | `bool` | `true` | Catch and log unhandled exceptions before process exit. |
 | `EnableHighPrecisionTimer` | `bool` | `true` | On Windows, call `timeBeginPeriod(1)` for improved timer resolution. |
+| `DiagnosticsMinLogLevel` | `LogLevel` | `Warning` | Minimum log level for internal diagnostic events. Events below this threshold are silently dropped. |
 
 ## Production Stability
 

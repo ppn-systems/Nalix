@@ -24,7 +24,6 @@
 | `MaxDrainPerWake` | Upper clamp for per-wake drain budget. | `2048` |
 | `MinDispatchLoops` | Lower clamp for auto loop selection. | `1` |
 | `MaxDispatchLoops` | Upper clamp for auto loop selection. | `64` |
-| `MaxInternalQueueSize` | Reserved tuning property on options; per-connection queue bounds are enforced by `DispatchOptions`. | `100000` |
 
 ## Fluent configuration methods
 

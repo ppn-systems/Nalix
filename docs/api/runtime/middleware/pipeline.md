@@ -171,7 +171,7 @@ not hidden by the pipeline.
 - absent: call the global `TokenBucketLimiter.Evaluate(connection.NetworkEndpoint)`.
 
 Denied requests send `Directive(ControlType.FAIL, ProtocolReason.RATE_LIMITED,
-ProtocolAdvice.RETRY)` with `IS_TRANSIENT`, `arg1 = RetryAfterMs`, and `arg2 = Credit`.
+ProtocolAdvice.RETRY)` with `IS_TRANSIENT`, `arg0 = opcode`, `arg1 = RetryAfterMs`, and `arg2 = Credit`.
 Directive spam is rate-gated by `DirectiveGuard` using
 `InboundDirectiveRateLimitedLastSentAtMs`.
 

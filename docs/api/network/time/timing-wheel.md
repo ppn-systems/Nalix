@@ -94,9 +94,10 @@ The behavior of the wheel is controlled via `TimingWheelOptions`:
 
 | Option | Description | Typical Value |
 | :---: | :---: | :---: |
-| `TickDuration` | Frequency of wheel ticks (precision). | 20-100 ms |
+| `TickDuration` | Frequency of wheel ticks in milliseconds (precision). | 1000 ms |
 | `BucketCount` | Total number of buckets in the wheel. | 512-4096 |
-| `IdleTimeoutMs` | The threshold for closing idle connections. | 30,000-60,000 ms |
+| `IdleTimeoutMs` | The threshold for closing idle connections. | 60,000 ms |
+| `WheelDrainTimeoutMs` | Maximum time to wait for the wheel to drain gracefully during shutdown. | 5000 ms |
 
 ## Best Practices
 

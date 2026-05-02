@@ -20,9 +20,9 @@ This page covers the chunking and reassembly helpers in `Nalix.Framework.DataFra
 
 | Type | Public members |
 | --- | --- |
-| `FragmentHeader` | `Magic`, `WireSize`, `StreamId`, `ChunkIndex`, `TotalChunks`, `Flags`, `IsLast`, `WriteTo(...)` |
+| `FragmentHeader` | `Magic`, `WireSize`, `StreamId`, `ChunkIndex`, `TotalChunks`, `Flags`, `IsLast`, `WriteTo(...)`, `ReadFrom(...)` |
 | `FragmentAssembler` | `IsFragmentedFrame(...)`, `Add(...)`, `EvictExpired()`, `Clear()`, `Dispose()` |
-| `FragmentOptions` | `MaxPayloadSize`, `ChunkThreshold`, `ChunkBodySize`, `MaxReassemblyBytes`, `ReassemblyTimeoutMs`, `Validate()` |
+| `FragmentOptions` | `MaxPayloadSize`, `MaxChunkSize`, `MaxReassemblyBytes`, `ReassemblyTimeoutMs`, `Validate()` |
 | `FragmentStreamId` | `Next()` |
 
 ## Why this exists
@@ -109,8 +109,7 @@ if (FragmentAssembler.IsFragmentedFrame(payload, out FragmentHeader header))
 ### Main settings
 
 - `MaxPayloadSize`
-- `ChunkThreshold`
-- `ChunkBodySize`
+- `MaxChunkSize`
 - `MaxReassemblyBytes`
 - `ReassemblyTimeoutMs`
 

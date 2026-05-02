@@ -86,9 +86,8 @@ The request helpers subscribe before sending, so they avoid the usual response r
 Source-verified bootstrap behavior:
 
 1. Switches the active configuration file to `client.ini` under `Directories.ConfigurationDirectory`.
-2. Sets `PacketOptions.EnablePooling = false` for client-side defaults.
-3. Loads `TransportOptions` so a client template exists in `client.ini`.
-4. Calls `ConfigurationManager.Instance.Flush()` to persist those defaults.
+2. Loads `TransportOptions` so a client template exists in `client.ini`.
+3. Calls `ConfigurationManager.Instance.Flush()` to persist those defaults.
 
 Call `Bootstrap.Initialize()` manually only when you need to force the same setup after custom configuration initialization.
 

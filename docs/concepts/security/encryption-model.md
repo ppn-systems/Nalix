@@ -32,8 +32,7 @@ Correct nonce management is critical to the security of any stream cipher. Nalix
 Nalix allows developers to decide which packets require encryption using attributes. This is useful for performance optimization (e.g., non-sensitive movement updates in a game).
 
 ```csharp
-using Nalix.Framework.Security.Attributes;
-using Nalix.Framework.DataFrames;
+using Nalix.Abstractions.Networking.Packets;
 
 [PacketEncryption(false)] 
 public class HeartbeatPacket : PacketBase<HeartbeatPacket> { ... }

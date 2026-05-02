@@ -19,6 +19,7 @@ Accurate internals docs prevent contributors from targeting removed or non-exist
 ## Source Mapping
 
 - `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
 
 ## `DispatchChannel<TPacket>`
 
@@ -32,8 +33,8 @@ Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection is
 
 - `TotalPackets`
 - `HasPacket`
-- `Push(IConnection, IBufferLease)`
-- `Pull(out IConnection, out IBufferLease)`
+- `Push(IConnection connection, IBufferLease raw)`
+- `Pull(out IConnection connection, out IBufferLease raw)`
 
 ### Internal diagnostics members (not part of `IDispatchChannel<TPacket>`)
 
@@ -41,7 +42,7 @@ Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection is
 - `ReadyConnections`
 - `PendingPerPriority`
 - `PendingPerConnection`
-- `PushCore(IConnection, IBufferLease)`
+- `PushCore(IConnection connection, IBufferLease raw, bool noBlock = false)`
 
 ## Architecture Notes
 
@@ -49,6 +50,26 @@ Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection is
 - Pull path prefers higher priority first.
 - Enqueue path uses `DispatchOptions` and drop policy behavior.
 - Integrates with `IConnectionHub.ConnectionUnregistered` for state cleanup.
+
+## `PacketDispatchChannel`
+
+`PacketDispatchChannel` is the public, high-performance dispatch channel that wires `DispatchChannel<IPacket>` to background worker loops. It implements `IPacketDispatch`, `IActivatable`, and `IDisposable`.
+
+### Key members
+
+- `Activate(CancellationToken)` — starts background dispatch workers.
+- `Deactivate(CancellationToken)` — stops dispatch workers.
+- `HandlePacket(IBufferLease packet, IConnection connection)` — enqueues a raw packet for async dispatch.
+- `GenerateReport()` — returns a human-readable diagnostic report.
+- `GetReportData()` — returns a key-value diagnostic snapshot.
+
+### Diagnostics
+
+`PacketDispatchChannel` exposes full diagnostics through `IReportable`:
+
+- `TotalPackets`, `TotalConnections`, `ReadyConnections`
+- `PendingPerPriority`, `PendingPerConnection`
+- `WakeSignals`, `WakeReads`, `WakeRequested`
 
 ## Related APIs
 

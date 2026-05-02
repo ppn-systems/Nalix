@@ -42,6 +42,8 @@ The context provides several critical properties for handler developers:
 | **`Sender`** | A pooled `IPacketSender` for responding to this specific context. |
 | **`Attributes`** | Read-only metadata resolved during dispatch (Ops, permissions). |
 | **`CancellationToken`** | A token linked to the dispatch loop or connection shutdown. |
+| **`IsReliable`** | `true` when the packet was received over a reliable transport (TCP). |
+| **`SkipOutbound`** | When `true`, outbound middleware is skipped for this context. |
 
 ## Memory Safety Rules
 

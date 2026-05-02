@@ -43,7 +43,7 @@ The framework serialization layer is responsible for:
 | Serialize to caller array | `Serialize<T>(in T value, byte[] buffer)` | Writes into the provided array and returns bytes written. |
 | Serialize to caller span | `Serialize<T>(in T value, Span<byte> buffer)` | Zero-copy caller-owned path. Span-backed writers cannot grow. |
 | Deserialize into existing value | `Deserialize<T>(byte[]/ReadOnlyMemory<byte>/ReadOnlySpan<byte>, ref T value)` | Uses `IFillableFormatter<T>.Fill` when available and `value` is non-null. |
-| Deserialize new value | `Deserialize<T>(byte[]/ReadOnlyMemory<byte>/ReadOnlySpan<byte>, out int bytesRead)` | Creates or returns a value and reports consumed bytes. |
+| Deserialize new value | `Deserialize<T>(byte[]/ReadOnlyMemory<byte>, out int bytesRead)` | Creates or returns a value and reports consumed bytes. |
 | Register custom formatter | `Register<T>(IFormatter<T> formatter)` | Delegates to `FormatterProvider.Register`. |
 
 ### Example

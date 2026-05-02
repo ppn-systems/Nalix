@@ -53,7 +53,7 @@ After this point, middleware and handlers can reason about:
 - connection state
 - handler metadata
 
-## Step 5. Handler metadata is resolved
+## Step 4. Handler metadata is resolved
 
 Before packet middleware runs, the runtime resolves the metadata attached to the matched handler.
 
@@ -70,7 +70,7 @@ Examples:
 - `PacketRateLimit`
 - custom tenant or feature attributes
 
-## Step 6. Packet middleware applies policy
+## Step 5. Packet middleware applies policy
 
 Packet middleware runs with a full `PacketContext<TPacket>`.
 `TPacket` can be a built-in packet or a custom packet type.
@@ -85,7 +85,7 @@ This is where application-aware checks happen:
 
 By this stage, the runtime knows both the packet and the handler metadata.
 
-## Step 7. The handler runs
+## Step 6. The handler runs
 
 If middleware allows the request through, the handler executes.
 
@@ -96,7 +96,7 @@ Handlers can:
 - send manually through the connection
 - perform side effects without replying
 
-## Step 8. The return handler decides what to send
+## Step 7. The return handler decides what to send
 
 Nalix supports multiple handler return shapes.
 

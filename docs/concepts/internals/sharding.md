@@ -71,8 +71,8 @@ You can tune the parallelism of your application by adjusting the number of shar
 | --- | --- | --- |
 | `DispatchLoopCount` | `null` (auto) | Set explicitly for deterministic loop count, or keep auto mode. |
 | `MinDispatchLoops` / `MaxDispatchLoops` | `1` / `64` | Clamp auto loop selection based on host capacity. |
-| `MaxDrainPerWake` | `2,048` | Max packets a worker processes before yielding. Higher values improve cache locality. |
-| `MaxDrainPerWakeMultiplier` | `8` | Multiplier applied to `DispatchLoopCount` for automatic batching. |
+| `MaxDrainPerWake` | `2,048` | Upper cap for drain budget. Actual drain uses `Clamp(ProcessorCount * MaxDrainPerWakeMultiplier, MinDrainPerWake, MaxDrainPerWake)`. |
+| `MaxDrainPerWakeMultiplier` | `8` | Multiplier applied to `ProcessorCount` to compute the actual drain budget per wake cycle. |
 
 ```csharp
 using Nalix.Hosting;
@@ -211,6 +211,7 @@ Per-connection queue backpressure is controlled by `DispatchOptions` (`MaxPerCon
 
 - **DropNewest**: Rejects the incoming packet. Safest for real-time latency.
 - **DropOldest**: Removes the head of the queue to make room. Ensures data freshness.
+- **Coalesce**: Drops duplicate packets (by key) and keeps only the latest. Useful for state-snapshot workloads.
 - **Block**: Stalls the calling thread (usually the protocol reader). Highest reliability, but can lead to socket timeouts if handlers are slow.
 
 !!! warning

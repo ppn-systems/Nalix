@@ -24,9 +24,9 @@ Nalix guarantees that packets arriving from the **same connection** are processe
 
 ## 2. Middleware Execution Order
 
-Nalix guarantees that the middleware pipeline executes in the exact order of registration.
+Nalix guarantees that the middleware pipeline executes in the order determined by the `[MiddlewareOrder]` attribute — ascending for inbound, descending for outbound.
 
-- **Linear Pipeline:** If you register `AuthMiddleware` then `LoggingMiddleware`, the request will hit Auth, then Logging.
+- **Ordered Pipeline:** Inbound middleware with lower `[MiddlewareOrder]` values run first. Outbound middleware with higher values run first. Registration order is secondary to the declared order.
 - **Short-circuiting:** Any middleware can terminate the request by returning a `Directive` packet (e.g., `FAIL` or `UNAUTHORIZED`).
 
 ---

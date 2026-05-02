@@ -95,13 +95,30 @@ The manager includes a background job that monitors pool utilization. It uses a 
 
 ### Dual-API Support
 
-`BufferPoolManager` provides two optimized paths for renting memory:
-
 `BufferPoolManager` provides an optimized path for renting memory:
 
 - **`Rent(size)`**: The primary API, returning a standalone `byte[]`. Optimized for maximum speed and simplicity. All buffers have a zero offset.
 
 The API is backed by the high-performance **SlabBucket** infrastructure and benefits from the same O(1) optimizations.
+
+### Key Properties
+
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `MaxBufferSize` | `int` | The largest buffer size from the buffer allocations list. |
+| `MinBufferSize` | `int` | The smallest buffer size from the buffer allocations list. |
+| `RecurringName` | `static string` | The recurring name used for buffer trimming operations. |
+
+### Key Methods
+
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| `Rent` | `byte[] Rent(int minimumLength = 256)` | Rents a buffer of at least the requested size. |
+| `Return` | `void Return(byte[]? array, bool arrayClear = false)` | Returns a buffer to the appropriate pool. |
+| `GetAllocationForSize` | `double GetAllocationForSize(int size)` | Gets the allocation ratio for a given buffer size. |
+| `GenerateReport` | `string GenerateReport()` | Generates a human-readable text report. |
+| `GetReportData` | `IDictionary<string, object> GetReportData()` | Generates a structured key-value diagnostic report. |
+| `Dispose` | `void Dispose()` | Releases all resources of the buffer pools. |
 
 ## Constructing Outgoing Packets with BufferLease
 

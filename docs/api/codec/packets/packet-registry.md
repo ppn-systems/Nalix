@@ -16,8 +16,8 @@ This page covers packet discovery and registry APIs in `Nalix.Framework.DataFram
 
 | Type | Public members |
 | --- | --- |
-| `PacketRegistryFactory` | `RegisterPacket`, `RegisterAllPackets`, `RegisterPacketAssembly`, `IncludeAssembly`, `IncludeCurrentDomain`, `RegisterCurrentDomainPackets`, `IncludeNamespace`, `IncludeNamespaceRecursive`, `CreateCatalog`, `Compute` |
-| `PacketRegistry` | `LoadFromNamespace(...)`, `LoadFromAssemblyPath(...)`, `IsKnownMagic`, `IsRegistered`, `Deserialize`, `TryDeserialize`, `DeserializerCount` |
+| `PacketRegistryFactory` | `RegisterPacket`, `RegisterAllPackets`, `RegisterPacketAssembly`, `IncludeAssembly(Assembly)`, `IncludeAssembly(string)`, `IncludeCurrentDomain`, `RegisterCurrentDomainPackets`, `IncludeNamespace`, `IncludeNamespaceRecursive`, `CreateCatalog`, `Compute` |
+| `PacketRegistry` | `Configure(IObjectPoolManager)`, `LoadFromNamespace(...)`, `LoadFromAssemblyPath(...)`, `IsKnownMagic`, `IsRegistered`, `Deserialize`, `TryDeserialize`, `DeserializerCount` |
 
 ## PacketRegistryFactory
 

@@ -1,6 +1,6 @@
 ﻿# Cryptography
 
-Nalix ships several cryptography primitives in `Nalix.Framework.Security`, but they are easier to read as separate topics than as one long page.
+Nalix ships several cryptography primitives in `Nalix.Codec.Security`, but they are easier to read as separate topics than as one long page.
 
 ## Source mapping
 
@@ -10,16 +10,21 @@ Nalix ships several cryptography primitives in `Nalix.Framework.Security`, but t
 - `src/Nalix.Codec/Security/Aead`
 - `src/Nalix.Codec/Security/Engine`
 - `src/Nalix.Abstractions/Primitives`
+- `src/Nalix.Codec/Security/Hashing/HmacKeccak256.cs`
+- `src/Nalix.Codec/Security/Hashing/Pbkdf2.cs`
 - `src/Nalix.Codec/Security/EnvelopeCipher.cs`
 - `src/Nalix.Codec/Security/HandshakeX25519.cs`
+- `src/Nalix.Abstractions/Security/CipherSuiteType.cs`
+- `src/Nalix.Abstractions/Security/DropPolicy.cs`
 
 ## What is in this package
 
 | Topic | Main types | Read next |
 | --- | --- | --- |
-| Hashing and MAC | `Keccak256`, `Poly1305` | [Hashing and MAC](./hashing-and-mac.md) |
+| Hashing and MAC | `Keccak256`, `HmacKeccak256`, `Poly1305`, `Pbkdf2` | [Hashing and MAC](./hashing-and-mac.md) |
 | AEAD and envelope encryption | `ChaCha20Poly1305`, `Salsa20Poly1305`, `EnvelopeCipher` | [AEAD and Envelope](./aead-and-envelope.md) |
 | Handshake protocol | `HandshakeHandlers`, `X25519` | [Handshake Protocol](./handshake.md) |
+| Security enums | `CipherSuiteType`, `DropPolicy` | |
 
 ## Quick guidance
 

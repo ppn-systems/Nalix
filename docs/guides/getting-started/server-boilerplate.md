@@ -164,7 +164,7 @@ dispatch.Dispose();
 - [x] **Contracts**: Keep packet POCOs in a separate project shared with the client.
 - [x] **Logging**: Always use `NLogix` or a production-ready `ILogger`.
 - [x] **Validation**: Call `.Validate()` on all Options objects before booting.
-- [x] **Protocols**: Initialize `this.SetConnectionAcceptance(true)` in the constructor if you want to skip manual handshake.
+- [x] **Protocols**: Call `this.SetConnectionAcceptance(true)` in the protocol constructor to allow new incoming connections.
 
 ## Read this next
 

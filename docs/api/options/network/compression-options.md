@@ -10,16 +10,18 @@ how large a serialized payload must be before compression is attempted.
 - `src/Nalix.Runtime/Dispatching/PacketSender.cs`
 - `src/Nalix.Hosting/Bootstrap.cs`
 
+!!! note "Package"
+    `CompressionOptions` is defined in `Nalix.Codec`, not `Nalix.Framework`.
+
 ## Defaults and Validation
 
 | Property | Default | Validation | Runtime effect |
 | --- | ---: | --- | --- |
 | `Enabled` | `true` | None. | Allows outbound compression when the frame size threshold is met. |
-| `MinSizeToCompress` | `1024` | `0..int.MaxValue` | Minimum payload size, in bytes, before outbound compression is attempted. |
-| `MaxDecompressedSize` | `33554432` (32 MB) | `1024..int.MaxValue` | Maximum allowed size in bytes for a decompressed payload. Packets declaring a larger original size are rejected (zip-bomb / allocation-DoS protection). |
+| `MinSizeToCompress` | `1024` | `1..int.MaxValue` | Minimum payload size, in bytes, before outbound compression is attempted. |
+| `MaxDecompressedSize` | `33554432` (32 MB) | `1024..268435456` (256 MB) | Maximum allowed size in bytes for a decompressed payload. Packets declaring a larger original size are rejected (zip-bomb / allocation-DoS protection). |
 
-`Validate()` uses data-annotation validation through
-`Validator.ValidateObject(..., validateAllProperties: true)`.
+`Validate()` uses manual range checks and throws `ValidationException` when constraints are violated.
 
 ## Hosting Initialization
 

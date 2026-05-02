@@ -72,9 +72,8 @@ Packet middleware is where request-level enforcement lives. Built-in middleware 
 | :---: | :---: |
 | `PermissionMiddleware` | Rejects packets from connections below the required `PermissionLevel` |
 | `TimeoutMiddleware` | Cancels handler execution exceeding the declared timeout |
-| `ConcurrencyGate` | Limits concurrent in-flight handlers |
-| `PolicyRateLimiter` | Per-opcode and per-endpoint rate limiting |
-| `TokenBucketLimiter` | Global or per-connection token-bucket throttling |
+| `ConcurrencyMiddleware` | Limits concurrent in-flight handlers via `ConcurrencyGate` |
+| `RateLimitMiddleware` | Per-opcode and per-endpoint rate limiting via `PolicyRateLimiter` and `TokenBucketLimiter` |
 
 Low-level transport rules (decryption validation, frame integrity) are enforced by the **`FramePipeline`** and **`Protocol`** layer before packet deserialization occurs.
 

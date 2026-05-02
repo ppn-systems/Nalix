@@ -33,8 +33,8 @@ The source of truth is `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs
 | ID | Title | Severity | Category | Description |
 | --- | --- | ---: | --- | --- |
 | `NALIX006` | Registered middleware type does not match dispatcher packet type | Warning | Usage | Packet middleware should be compatible with the dispatcher packet type. |
-| `NALIX007` | Network buffer middleware ignores MiddlewareStageAttribute | Info | Usage | Buffer middleware ordering uses `MiddlewareOrderAttribute` only. |
-| `NALIX019` | Registered buffer middleware does not implement INetworkBufferMiddleware | Warning | Usage | `WithBufferMiddleware` requires an `INetworkBufferMiddleware` type. |
+| `NALIX007` | Network buffer middleware ignores MiddlewareStageAttribute | Info | Usage | Buffer middleware ordering uses `MiddlewareOrderAttribute` only. **Note:** Non-functional in current source (`networkBufferMiddlewareType` is null). |
+| `NALIX019` | Registered buffer middleware does not implement INetworkBufferMiddleware | Warning | Usage | `WithBufferMiddleware` requires an `INetworkBufferMiddleware` type. **Note:** Non-functional in current source (`networkBufferMiddlewareType` is null). |
 | `NALIX025` | Packet metadata provider clears Opcode | Warning | Routing | Metadata providers should not clear `builder.Opcode`. |
 | `NALIX026` | Packet metadata provider overwrites Opcode without guard | Info | Routing | Metadata providers should usually augment rather than overwrite opcode metadata. |
 | `NALIX030` | Packet middleware should declare MiddlewareOrder | Info | Middleware | Explicit middleware order makes packet middleware chains predictable. |

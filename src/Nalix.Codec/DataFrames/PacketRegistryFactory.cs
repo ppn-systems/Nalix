@@ -310,8 +310,6 @@ public sealed class PacketRegistryFactory
             Math.Max(16, _explicitPacketTypes.Count + Math.Min(64, _assemblies.Count * 8));
 
         Dictionary<uint, PacketDeserializer> deserializers = new(estimated);
-        Dictionary<uint, PacketDeserializerInto<IPacket>> deserializersInto = new(estimated);
-        Dictionary<uint, (Func<IPacket> Rent, Action<IPacket> Return)> poolOps = new(estimated);
 
         // ── 1. Collect candidates ────────────────────────────────────────────────
         HashSet<Type> candidates = [.. _explicitPacketTypes];

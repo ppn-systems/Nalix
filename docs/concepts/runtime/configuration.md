@@ -47,7 +47,7 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 | Option | Purpose |
 | :--- | :--- |
 | `NetworkSocketOptions` | Buffer sizes, ports, and IP properties |
-| `DispatchOptions` | Worker count, middleware, and handler logic |
+| `DispatchOptions` | Per-connection queue bounds, drop policy, and block timeout |
 | `ConnectionLimitOptions` | Security thresholds for the `ConnectionGuard` |
 | `TimingWheelOptions` | O(1) timeout scheduling for idle connections |
 
@@ -67,7 +67,7 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 - **Custom Helpers**: Shared database bridges or game-state managers.
 
 !!! important "Service Availability"
-    Once `NetworkApplication.Activate()` is called, the `InstanceManager` should be treated as **frozen**. Changing primary services while traffic is flowing can lead to inconsistent handler state.
+    Once `NetworkApplication.ActivateAsync()` is called, the `InstanceManager` should be treated as **frozen**. Changing primary services while traffic is flowing can lead to inconsistent handler state.
 
 ---
 

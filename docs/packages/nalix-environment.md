@@ -6,7 +6,7 @@
 
 - **Configuration**: Loading and managing typed options from INI files.
 - **IO**: Specialized file and directory handling for Nalix applications.
-- **Time**: Monotonic clock and time-related primitives.
+- **Time**: Monotonic clock, time-related primitives, and `TimingScope` for lightweight latency measurement.
 - **Random**: Thread-safe random number generation.
 
 ## Where it fits

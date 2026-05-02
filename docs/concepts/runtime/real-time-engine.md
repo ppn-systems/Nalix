@@ -90,7 +90,7 @@ Real-time systems fail fastest when they do not control pressure. Nalix integrat
 | Component | Layer | Purpose |
 | :--- | :--- | :--- |
 | `ConnectionGuard` | Socket | Reject endpoints before resource allocation |
-| `DatagramRateLimiter` | Transport | Lock-free per-IP UDP packet throttling (UDP Flood protection) |
+| `DatagramGuard` | Transport | Lock-free per-IP UDP packet throttling (UDP Flood protection) |
 | `TokenBucketLimiter` | Dispatch | Protect against request spikes with burst budgets |
 | `PolicyRateLimiter` | Dispatch | Per-opcode and per-endpoint rate limiting |
 | `ConcurrencyGate` | Dispatch | Limit concurrent in-flight handlers |
