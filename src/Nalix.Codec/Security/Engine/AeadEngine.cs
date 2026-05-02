@@ -3,6 +3,7 @@
 
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security.Aead;
 using Nalix.Codec.Security.Internal;
@@ -131,8 +132,7 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
-                    return;
+                    throw CodecErrors.CipherUnsupportedAlgorithm;
             }
 
             _ = EnvelopeFormat.WriteEnvelope(ciphertext[..total], algorithm, 0, seqVal, nonce, ctDestination, tagDestination);
@@ -217,13 +217,12 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    ThrowHelper.ThrowNotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
-                    return;
+                    throw CodecErrors.CipherUnsupportedAlgorithm;
             }
 
             if (result < 0)
             {
-                throw new CipherException("AEAD authentication failed.");
+                throw CodecErrors.CipherAeadAuthenticationFailed;
             }
 
             written = result;

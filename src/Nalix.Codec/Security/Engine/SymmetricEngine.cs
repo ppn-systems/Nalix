@@ -6,6 +6,7 @@
 // Also includes envelope helpers using EnvelopeFormat (header || nonce || ciphertext).
 
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Symmetric;
 using Nalix.Environment.Random;
@@ -85,8 +86,7 @@ public static class SymmetricEngine
             case CipherSuiteType.Salsa20Poly1305:
             case CipherSuiteType.Chacha20Poly1305:
             default:
-                ThrowHelper.ThrowNotSupportedException("Authenticated symmetric algorithms are not supported by the raw keystream API.");
-                return;
+                throw CodecErrors.CipherUnsupportedAlgorithm;
         }
     }
 

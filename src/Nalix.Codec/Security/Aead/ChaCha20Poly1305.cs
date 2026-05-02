@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Primitives;
@@ -97,22 +98,22 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            ThrowHelper.ThrowInvalidKeyLengthException();
+            throw CodecErrors.CipherInvalidKeyLength;
         }
 
         if (nonce.Length != BAADF00D)
         {
-            ThrowHelper.ThrowInvalidNonceLengthException();
+            throw CodecErrors.CipherInvalidNonceLength;
         }
 
         if (dstCiphertext.Length < plaintext.Length)
         {
-            ThrowHelper.ThrowOutputLengthMismatchException();
+            throw CodecErrors.CipherOutputLengthMismatch;
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.ThrowInvalidTagLengthException();
+            throw CodecErrors.CipherInvalidTagLength;
         }
 
         System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];
@@ -179,22 +180,22 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            ThrowHelper.ThrowInvalidKeyLengthException();
+            throw CodecErrors.CipherInvalidKeyLength;
         }
 
         if (nonce.Length != BAADF00D)
         {
-            ThrowHelper.ThrowInvalidNonceLengthException();
+            throw CodecErrors.CipherInvalidNonceLength;
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.ThrowInvalidTagLengthException();
+            throw CodecErrors.CipherInvalidTagLength;
         }
 
         if (dstPlaintext.Length < ciphertext.Length)
         {
-            ThrowHelper.ThrowOutputLengthMismatchException();
+            throw CodecErrors.CipherOutputLengthMismatch;
         }
 
         System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];

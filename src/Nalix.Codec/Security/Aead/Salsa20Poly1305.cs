@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Primitives;
@@ -82,21 +83,21 @@ public static class Salsa20Poly1305
     {
         if (key.Length is not KEY16 and not KEY32)
         {
-            ThrowHelper.ThrowInvalidKeyLengthException();
+            throw CodecErrors.CipherInvalidKeyLength;
         }
         if (nonce.Length != NONCE8)
         {
-            ThrowHelper.ThrowInvalidNonceLengthException();
+            throw CodecErrors.CipherInvalidNonceLength;
         }
 
         if (dstCiphertext.Length < plaintext.Length)
         {
-            ThrowHelper.ThrowOutputLengthMismatchException();
+            throw CodecErrors.CipherOutputLengthMismatch;
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.ThrowInvalidTagLengthException();
+            throw CodecErrors.CipherInvalidTagLength;
         }
 
         int written = 0;
@@ -166,21 +167,21 @@ public static class Salsa20Poly1305
     {
         if (key.Length is not KEY16 and not KEY32)
         {
-            ThrowHelper.ThrowInvalidKeyLengthException();
+            throw CodecErrors.CipherInvalidKeyLength;
         }
         if (nonce.Length != NONCE8)
         {
-            ThrowHelper.ThrowInvalidNonceLengthException();
+            throw CodecErrors.CipherInvalidNonceLength;
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.ThrowInvalidTagLengthException();
+            throw CodecErrors.CipherInvalidTagLength;
         }
 
         if (dstPlaintext.Length < ciphertext.Length)
         {
-            ThrowHelper.ThrowOutputLengthMismatchException();
+            throw CodecErrors.CipherOutputLengthMismatch;
         }
 
         System.Span<byte> polyKey = stackalloc byte[32];

@@ -139,7 +139,7 @@ public ref struct DataWriter
     {
         if (count <= 0 || (uint)(this.WrittenCount + count) > (uint)_span.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
+            throw CodecErrors.WriterAdvanceOutOfBound;
         }
 
         this.WrittenCount += count;

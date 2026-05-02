@@ -76,7 +76,7 @@ internal readonly struct EnvelopeHeader
     {
         if (dest.Length < SIZE)
         {
-            ThrowHelper.DestinationTooSmall();
+            throw new System.ArgumentException("Destination too small for AEAD header.");
         }
         // magic
         System.MemoryExtensions.CopyTo(MAGIC_BYTES, dest);
@@ -133,14 +133,4 @@ internal readonly struct EnvelopeHeader
     }
 
     #endregion Methods
-
-    #region Private Helpers
-
-    private static class ThrowHelper
-    {
-        [System.Diagnostics.CodeAnalysis.DoesNotReturn]
-        public static void DestinationTooSmall() => throw new System.ArgumentException("Destination too small for AEAD header.");
-    }
-
-    #endregion Private Helpers
 }

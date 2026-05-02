@@ -70,14 +70,57 @@ internal static class CodecErrors
     public static readonly CipherException CiphertextTooShort =
         new CachedCipherException("The ciphertext buffer is too small.");
 
+    public static readonly CipherException CipherAeadAuthenticationFailed =
+        new CachedCipherException("AEAD authentication failed.");
+
+    public static readonly CipherException CipherUnsupportedAlgorithm =
+        new CachedCipherException("Unsupported cipher algorithm.");
+
     #endregion Security Errors
 
     #region Resource Errors
 
-    public static readonly InvalidOperationException SerializationFixedBufferExpansion =
-        new CachedInvalidOperationException("Cannot expand a fixed-size serialization buffer.");
+    public static readonly InternalErrorException SerializationFixedBufferExpansion =
+        new CachedInternalErrorException("Cannot expand a fixed-size serialization buffer.");
+
+    public static readonly ArgumentOutOfRangeException WriterAdvanceOutOfBound =
+        new CachedArgumentOutOfRangeException("count", "Advance out of buffer bounds.");
 
     #endregion Resource Errors
+
+    #region Transform Errors
+
+    public static readonly LZ4Exception TransformSourceTooSmallForLZ4Header =
+        new CachedLZ4Exception("The source buffer is too small to contain an LZ4 block header.");
+
+    public static readonly LZ4Exception TransformInvalidDecompressedLength =
+        new CachedLZ4Exception("LZ4 header declares an invalid OriginalLength. Must be in range [1, MaxDecompressedSize].");
+
+    public static readonly CipherException TransformEncryptionKeyEmpty =
+        new CachedCipherException("Encryption key cannot be null or empty.");
+
+    public static readonly InternalErrorException TransformSourceTooSmall =
+        new CachedInternalErrorException("Source too small: buffer must be larger than the header offset.");
+
+    public static readonly InternalErrorException TransformDestinationTooSmall =
+        new CachedInternalErrorException("Destination too small: capacity must be at least the header offset.");
+
+    public static readonly InternalErrorException TransformBufferTooSmallForPacket =
+        new CachedInternalErrorException("The source and destination buffers must contain a packet header and be large enough for the payload.");
+
+    public static readonly CipherException TransformCiphertextFrameTooShort =
+        new CachedCipherException("Ciphertext frame is too short to contain a valid envelope header.");
+
+    public static readonly CipherException TransformEncryptedButNoCipher =
+        new CachedCipherException("Encrypted frame received but no cipher suite has been negotiated.");
+
+    public static readonly CipherException TransformEncryptedButNoKey =
+        new CachedCipherException("Encrypted frame received before session key establishment.");
+
+    public static readonly CipherException TransformEncryptRequestedButNoCipher =
+        new CachedCipherException("Encryption requested but no cipher suite has been negotiated.");
+
+    #endregion Transform Errors
 
     #region Private Cached Exception Types
 
@@ -91,7 +134,7 @@ internal static class CodecErrors
         public override string? StackTrace => "   at Nalix.Codec.Security (Cached Exception)";
     }
 
-    private sealed class CachedInvalidOperationException(string message) : InvalidOperationException(message)
+    private sealed class CachedInternalErrorException(string message) : InternalErrorException(message)
     {
         public override string? StackTrace => "   at Nalix.Codec (Cached Exception)";
     }
@@ -99,6 +142,11 @@ internal static class CodecErrors
     private sealed class CachedLZ4Exception(string message) : LZ4Exception(message)
     {
         public override string? StackTrace => "   at Nalix.Codec.LZ4 (Cached Exception)";
+    }
+
+    private sealed class CachedArgumentOutOfRangeException(string paramName, string message) : ArgumentOutOfRangeException(paramName, message)
+    {
+        public override string? StackTrace => "   at Nalix.Codec.Memory (Cached Exception)";
     }
 
     #endregion Private Cached Exception Types
