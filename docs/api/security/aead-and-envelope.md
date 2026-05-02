@@ -63,6 +63,7 @@ EnvelopeCipher.Encrypt(
 ## Current runtime behavior
 
 - `GetNonceLength(...)` and `GetTagLength(...)` expose suite-dependent sizing
+- `GetNonceLength(...)` and `GetTagLength(...)` throw `CipherException` for unsupported cipher suites
 - AEAD suites route into `AeadEngine`
 - non-AEAD suites route into `SymmetricEngine`
 - decryption throws `CipherException` on parse or authentication failure

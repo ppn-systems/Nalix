@@ -22,6 +22,9 @@
 - `NLogixFx`
 - `NLogixDistributor`
 - `INLogixTarget`
+- `INLogixDistributor`
+- `INLogixFormatter`
+- `INLogixErrorHandler`
 
 ## What it does
 
@@ -90,7 +93,7 @@ It is responsible for:
 - keep one shared logger for the process when possible
 - prefer registering targets during startup, not mid-flight
 - `NLogix` applies both console and file targets by default when you construct it without a custom configuration delegate
-- `NLogix.Host.Instance` currently boots a shared logger with a console target and `Debug` minimum level
+- `NLogix.Host.Instance` currently boots a shared logger with a console target only and `Debug` minimum level
 
 ## Related APIs
 

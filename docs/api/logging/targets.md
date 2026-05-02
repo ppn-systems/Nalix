@@ -18,8 +18,8 @@ This page covers the built-in public logging targets in `Nalix.Logging.Sinks`.
 
 ### Public surface that matters
 
-- constructor with `ConsoleLogOptions`
-- constructor with `Action<ConsoleLogOptions>`
+- constructor with `ConsoleLogOptions?` and `INLogixFormatter?` (both optional)
+- constructor with `Action<ConsoleLogOptions>` and optional `INLogixFormatter?`
 - `Publish(DateTime timestampUtc, LogLevel logLevel, EventId eventId, string message, Exception? exception)`
 - `Dispose()`
 - counters: `WrittenCount`, `DroppedCount`
@@ -43,9 +43,9 @@ fileTarget.Dispose();
 
 ### Public surface that matters
 
-- constructor with `FileLogOptions` and `INLogixFormatter`
-- default constructor
-- constructor with `Action<FileLogOptions>`
+- constructor with `FileLogOptions?` and `INLogixFormatter` (formatter is required)
+- default constructor (uses `FileLogFormatter`)
+- constructor with `Action<FileLogOptions>` (uses `FileLogFormatter`)
 - `Publish(DateTime timestampUtc, LogLevel logLevel, EventId eventId, string message, Exception? exception)`
 - `Dispose()`
 
