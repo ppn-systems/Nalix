@@ -8,6 +8,8 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames.Formatter;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -73,6 +75,9 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// </summary>
     [SerializeOrder(3)]
     public Bytes32 Proof { get; set; }
+
+    /// <inheritdoc/>
+    static SessionResume() => LiteSerializer.Register(new SessionResumeFormatter());
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SessionResume"/> packet.

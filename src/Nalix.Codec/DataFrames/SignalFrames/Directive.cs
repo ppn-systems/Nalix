@@ -5,6 +5,8 @@ using System.Diagnostics;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames.Formatter;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -71,6 +73,9 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// </summary>
     [SerializeOrder(6)]
     public ushort Arg2 { get; set; }
+
+    /// <inheritdoc/>
+    static Directive() => LiteSerializer.Register(new DirectiveFormatter());
 
     /// <summary>
     /// Initializes a new instance with default values.

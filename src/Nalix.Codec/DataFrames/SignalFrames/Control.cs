@@ -6,6 +6,8 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames.Formatter;
+using Nalix.Codec.Serialization;
 using Nalix.Environment.Time;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
@@ -50,6 +52,9 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     /// </summary>
     [SerializeOrder(3)]
     public long MonoTicks { get; set; }
+
+    /// <inheritdoc/>
+    static Control() => LiteSerializer.Register(new ControlFormatter());
 
     /// <summary>
     /// Initializes a new instance of the Control class with default metadata values.
