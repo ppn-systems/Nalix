@@ -86,7 +86,7 @@ public class UserBasedRouter : IPacketDispatch
     public void HandlePacket(IBufferLease packet, IConnection connection)
     {
         // 1. Resolve logical identity (e.g., UserID stored in connection attributes)
-        if (connection.Attributes.TryGet("UserID", out long userId))
+        if (connection.Attributes.TryGetValue("UserID", out object? raw) && raw is long userId)
         {
             // 2. Retrieve the shared proxy instance from your session manager.
             // MUST return the same instance for the same UserID.

@@ -244,7 +244,7 @@ This enforces exactly 32 bytes on the Call Stack and ensures that core security 
 
 ---
 
-## 8. Fair Concurrency & Priority Management
+## 7. Fair Concurrency & Priority Management
 
 To process thousands of concurrent connections without letting high-volume packet types (like movement updates) monopolize CPU resources, Nalix uses a sharded, priority-aware dispatch system.
 
@@ -326,14 +326,14 @@ Nalix automatically tracks the error count per connection. You can implement mid
 ```csharp
 public sealed class HealthGuardMiddleware : IPacketMiddleware<IPacket>
 {
-    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, PacketMiddlewareDelegate next)
+    public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
     {
         if (context.Connection.ErrorCount > 10)
         {
             context.Connection.Disconnect("Protocol violation threshold exceeded.");
             return;
         }
-        await next(context);
+        await next(context.CancellationToken);
     }
 }
 ```

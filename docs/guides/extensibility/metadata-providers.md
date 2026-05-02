@@ -66,7 +66,7 @@ public sealed class SampleInvoiceHandlers
 {
     [PacketOpcode(0x2201)]
     [PacketTenant("billing")]
-    public ValueTask<string> GetInvoice(PacketContext<InvoicePacket> request)
+    public ValueTask<string> GetInvoice(IPacketContext<InvoicePacket> request)
         => ValueTask.FromResult("invoice");
 }
 ```

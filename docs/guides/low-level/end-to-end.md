@@ -74,10 +74,11 @@ public sealed class SampleProtocol : Protocol
 ```csharp
 public sealed class SampleTcpListener : TcpListenerBase
 {
-    public SampleTcpListener(ushort port, IProtocol protocol) : base(port, protocol) { }
+    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub) { }
 }
 
-SampleTcpListener listener = new(57206, new SampleProtocol(dispatch));
+IConnectionHub hub = new ConnectionHub();
+SampleTcpListener listener = new(57206, new SampleProtocol(dispatch), hub);
 listener.Activate();
 ```
 
