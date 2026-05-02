@@ -12,8 +12,8 @@ Nalix is composed of focused packages that can be used together or independently
 | :--- | :--- | :--- |
 | :fontawesome-solid-cube: [**Nalix.Abstractions**](./nalix-abstractions.md) | Base contracts, packet attributes, and core networking abstractions | `IPacket`, `IConnection`, `PacketOpcodeAttribute`, `PacketControllerAttribute`, `NetworkTransport` |
 | :fontawesome-solid-leaf: [**Nalix.Environment**](./nalix-environment.md) | Configuration, environment IO, random generation, and monotonic time | `ConfigurationManager`, `Directories`, `IRandomProvider`, `Clock` |
-| :fontawesome-solid-code: [**Nalix.Codec**](./nalix-codec.md) | Serialization, buffer leasing, transforms, and compression | `BufferLease`, `LiteSerializer`, `LZ4Codec`, `PacketCipher`, `PacketCompression` |
-| :fontawesome-solid-box-open: [**Nalix.Framework**](./nalix-framework.md) | Shared runtime services, instance registration, scheduling, and identifiers | `InstanceManager`, `TaskManager`, `Snowflake`, `TimingScope`, `PacketRegistryFactory` |
+| :fontawesome-solid-code: [**Nalix.Codec**](./nalix-codec.md) | Serialization, buffer leasing, transforms, and compression | `BufferLease`, `LiteSerializer`, `LZ4Codec`, `FrameCipher`, `FrameCompression` |
+| :fontawesome-solid-box-open: [**Nalix.Framework**](./nalix-framework.md) | Shared runtime services, instance registration, scheduling, and identifiers | `InstanceManager`, `TaskManager`, `Snowflake`, `TimingScope` |
 | :fontawesome-solid-gears: [**Nalix.Runtime**](./nalix-runtime.md) | Packet dispatch, built-in protection middleware, and throttling primitives | `PacketDispatchChannel`, `ConcurrencyGate`, `PolicyRateLimiter`, `TokenBucketLimiter`, `PermissionMiddleware` |
 | :fontawesome-solid-network-wired: [**Nalix.Network**](./nalix-network.md) | TCP/UDP listeners, connections, protocol bridge, and session store | `TcpListenerBase`, `UdpListenerBase`, `Protocol`, `ConnectionHub`, `SocketConnection` |
 | :fontawesome-solid-microchip: [**Nalix.Hosting**](./nalix-hosting.md) | Fluent server bootstrap, packet discovery, and application lifecycle | `NetworkApplication`, `INetworkApplicationBuilder`, `Bootstrap` |

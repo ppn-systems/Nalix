@@ -42,11 +42,20 @@ The builder exposes fluent methods for configuring the server:
 - `ConfigureLogging(...)`
 - `ConfigureConnectionHub(...)`
 - `ConfigureBufferPoolManager(...)`
+- `ConfigureObjectPoolManager(...)`
+- `ConfigureCertificate(...)`
+- `ConfigurePacketRegistry(...)`
+- `ConfigureDispatch(...)`
 - `Configure<TOptions>(...)`
 - `AddPacket<TMarker>()`
+- `AddPacketNamespace(...)`
 - `AddHandlers<TMarker>()`
+- `AddHandler<THandler>()`
+- `AddMetadataProvider<TProvider>()`
 - `AddTcp<TProtocol>(...)`
+- `AddTcp<TProtocol>(ushort port)`
 - `AddUdp<TProtocol>(...)`
+- `AddUdp<TProtocol>(Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`
 
 ### `Bootstrap`
 

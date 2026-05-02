@@ -83,14 +83,15 @@ using Nalix.Codec.Memory;
 
 // Build and register the shared catalog
 PacketRegistryFactory factory = new();
-IPacketRegistry registry = factory.CreateCatalog();
+PacketRegistry registry = factory.CreateCatalog();
+PacketRegistry.Configure(poolManager); // optional: enable packet pooling
 InstanceManager.Instance.Register<IPacketRegistry>(registry);
 
 // Handshake frame
 Handshake hs = new(
     HandshakeStage.CLIENT_HELLO,
-    Csprng.GetBytes(32),
-    Csprng.GetBytes(32),
+    new Bytes32(publicKeyBytes),
+    new Bytes32(nonceBytes),
     flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 hs.UpdateTranscriptHash("nalix-default-handshake"u8);
 byte[] bytes = hs.Serialize();
@@ -106,7 +107,7 @@ byte[] bytes = hs.Serialize();
 ```csharp
 PacketRegistryFactory factory = new();
 factory.IncludeNamespaceRecursive("MyApp.Packets");
-IPacketRegistry catalog = factory.CreateCatalog();
+PacketRegistry catalog = factory.CreateCatalog();
 ```
 
 ## Key API pages

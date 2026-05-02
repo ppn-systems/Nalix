@@ -52,13 +52,15 @@ Implement `INLogixTarget` to create custom sinks for external systems (SIEM, dat
 ```csharp
 public sealed class MyCustomTarget : INLogixTarget
 {
-    public void Write(LogEntry entry)
+    public void Publish(
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? exception)
     {
         // Forward to external system
     }
-
-    public void Flush() { }
-    public void Dispose() { }
 }
 
 // Register during logger construction

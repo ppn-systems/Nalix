@@ -38,13 +38,16 @@ public class SamplePingHandlers
 }
 ```
 
+!!! note "`PacketContext<T>` lives in `Nalix.Runtime.Dispatching`"
+    The concrete `PacketContext<T>` class is provided by `Nalix.Runtime`, not `Nalix.Abstractions`. The abstraction layer defines the `IPacketContext<T>` interface only.
+
 ### Networking Primitives
 
 `Nalix.Abstractions` defines the fundamental building blocks of the network layer.
 
 `**Key Components**`
 
-- `NetworkTransport` — Enum for TCP, UDP, and internal transports.
+- `NetworkTransport` — Enum for TCP and UDP.
 - `INetworkEndpoint` — Abstraction for network addresses.
 - `IProtocol` — Interface for custom communication protocols.
 - `IListener` — Base interface for server-side listeners.
@@ -64,9 +67,9 @@ Middleware runs over packet contexts and can short-circuit outbound flows.
 ```csharp
 public sealed class SamplePacketMiddleware : IPacketMiddleware<IPacket>
 {
-    public async Task InvokeAsync(
-        PacketContext<IPacket> context,
-        Func<CancellationToken, Task> next)
+    public async ValueTask InvokeAsync(
+        IPacketContext<IPacket> context,
+        Func<CancellationToken, ValueTask> next)
     {
         // Pre-processing
         await next(context.CancellationToken);
@@ -81,9 +84,8 @@ Base interfaces for encryption, hashing, and permission management.
 
 `**Key Components**`
 
-- `IPermissionLevel`
-- `ICryptoProvider`
-- `IHandshake`
+- `PermissionLevel` — Enum defining access levels (e.g. `USER`, `ADMIN`).
+- `IPacketPermission` — Metadata contract for packet-level permission checks.
 
 ## Key API pages
 

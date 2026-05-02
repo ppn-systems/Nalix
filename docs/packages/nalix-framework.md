@@ -17,7 +17,7 @@ flowchart LR
 - `InstanceManager` for registering and resolving shared services and infrastructure.
 - `TaskManager` for managing named background workers and recurring jobs.
 - `Snowflake` for generating 64-bit compact, sortable identifiers.
-- `TimingScope` for lightweight, high-precision latency measurement.
+- `TimingScope` (in `Nalix.Environment`) for lightweight, high-precision latency measurement.
 - `BufferPoolManager` and `ObjectPoolManager` for managing shared resource pools.
 
 ## Instance Registration
@@ -65,7 +65,7 @@ manager.ScheduleRecurring(
 
 - [Instance Manager (DI)](../api/framework/instance-manager.md)
 - [Task Manager](../api/framework/task-manager.md)
-- [Timing Scope](../api/environment/timing-scope.md)
+- [Timing Scope](../api/environment/time/timing-scope.md)
 - [Snowflake](../api/framework/snowflake.md)
 - [Buffer Management](../api/framework/memory/buffer-management.md)
 - [Object Pooling](../api/framework/memory/object-pooling.md)
