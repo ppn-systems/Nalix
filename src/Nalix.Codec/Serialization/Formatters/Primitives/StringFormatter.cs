@@ -75,7 +75,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         if (bytesWritten != byteCount)
         {
-            Throw.ThrowSerializationDataMismatch();
+            Throw.DataMismatch();
         }
 
         writer.Advance(byteCount);

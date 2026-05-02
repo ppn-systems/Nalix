@@ -94,7 +94,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
 
         if (length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            Throw.ThrowSerializationLengthOutOfRange();
+            Throw.LengthOutOfRange();
             return System.Memory<T>.Empty;
         }
 
@@ -105,7 +105,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         }
         catch (System.OverflowException)
         {
-            Throw.ThrowSerializationLengthOutOfRange();
+            Throw.LengthOutOfRange();
             return System.Memory<T>.Empty;
         }
 
