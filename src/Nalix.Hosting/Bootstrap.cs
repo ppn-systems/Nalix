@@ -14,6 +14,7 @@ using Nalix.Environment.IO;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Hosting.Internal;
 using Nalix.Hosting.Options;
 using Nalix.Network.Options;
 using Nalix.Runtime.Options;
@@ -28,6 +29,7 @@ public static partial class Bootstrap
     private static readonly Lock s_lock;
     private static readonly string s_serverGC;
     private static bool s_isHighPrecisionTimerEnabled;
+    private static DiagnosticChannel? s_diagnosticChannel;
 
     static Bootstrap()
     {
@@ -58,6 +60,9 @@ public static partial class Bootstrap
                 _ = TimeEndPeriod(1);
                 s_isHighPrecisionTimerEnabled = false;
             }
+
+            s_diagnosticChannel?.Dispose();
+            s_diagnosticChannel = null;
         }
     }
 
@@ -122,7 +127,10 @@ public static partial class Bootstrap
             REGISTER_GLOBAL_EXCEPTION_HANDLERS();
         }
 
-        // 3.3. High-precision timer for low-latency networking
+        // 3.3. Bridge DiagnosticListener events (Environment/Framework) into ILogger
+        SUBSCRIBE_DIAGNOSTICS(hostingOptions.DiagnosticsMinLogLevel);
+
+        // 3.4. High-precision timer for low-latency networking
         if (hostingOptions.EnableHighPrecisionTimer && OperatingSystem.IsWindows())
         {
             if (TimeBeginPeriod(1) == 0)
@@ -134,7 +142,7 @@ public static partial class Bootstrap
         // Persist all server-side defaults to server.ini
         ConfigurationManager.Instance.Flush();
 
-        // 4. Show high-end startup diagnostics if running in interactive mode
+        // 5. Show high-end startup diagnostics if running in interactive mode
         if (System.Environment.UserInteractive && !hostingOptions.DisableStartupBanner)
         {
             PRINT_STARTUP_BANNER(hostingOptions);
@@ -202,6 +210,12 @@ public static partial class Bootstrap
             logger?.LogError(e.Exception, "[BOOTSTRAP] Unobserved task exception occurred.");
             e.SetObserved();
         };
+    }
+
+    private static void SUBSCRIBE_DIAGNOSTICS(LogLevel minLevel)
+    {
+        s_diagnosticChannel = new DiagnosticChannel(minLevel);
+        s_diagnosticChannel.Subscribe();
     }
 
     [LibraryImport("winmm.dll", EntryPoint = "timeBeginPeriod")]
