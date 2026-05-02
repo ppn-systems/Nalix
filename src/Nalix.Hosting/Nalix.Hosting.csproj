@@ -14,11 +14,12 @@
 	<PropertyGroup>
 
 		<Description><![CDATA[
-Nalix.Network.Hosting provides Microsoft-style host and builder APIs for Nalix.Network. It wires packet registry discovery, packet dispatch, configuration application, and TCP listener lifecycle into a familiar builder/build/start workflow for quickly bootstrapping Nalix-based servers.
+Nalix.Hosting provides Microsoft-style host and builder APIs for the Nalix ecosystem. It wires configuration loading, diagnostic event bridging, packet dispatch, and TCP/UDP listener lifecycle into a familiar builder/build/start workflow for quickly bootstrapping Nalix-based servers.
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
 - Unified Server Bootstrapping: Simplified Microsoft-style host builder APIs for seamless TCP and UDP transport orchestration.
+- Diagnostic Event Bridge: Automatic bridging of DiagnosticListener events from Nalix.Environment and Nalix.Framework into ILogger with configurable minimum log level.
 - Pluggable Security Hooks: Added support for custom UDP authentication predicates and security filtering directly during the build phase.
 - Coordinated Lifecycle: Advanced management of configuration reloads, dispatch activation, and listener startup for robust service availability.
 - Dependency-Injection Integration: Streamlined registration of core network services into the standard Nalix InstanceManager.
