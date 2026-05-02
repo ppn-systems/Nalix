@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
 
 namespace Nalix.Codec.DataFrames;
@@ -168,6 +169,20 @@ public sealed class PacketRegistry : IPacketRegistry
             packet = null;
             return false;
         }
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public bool TryReadHeader(ReadOnlySpan<byte> raw, out PacketHeader header)
+    {
+        if (raw.Length < PacketConstants.HeaderSize)
+        {
+            header = default;
+            return false;
+        }
+
+        header = raw.ReadHeaderLE();
+        return true;
     }
 
     #endregion Public API

@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Results;
@@ -39,6 +40,10 @@ namespace Nalix.Runtime.Internal.Compilation;
 /// <param name="returnHandler">
 /// Cached outbound return handler resolved for <paramref name="returnType"/>.
 /// </param>
+/// <param name="rawInvoker">
+/// Compiled delegate for raw handlers that receive <see cref="BufferContext"/> instead
+/// of a deserialized packet. <see langword="null"/> for standard handlers.
+/// </param>
 [StructLayout(LayoutKind.Sequential)]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [method: MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -47,7 +52,8 @@ internal readonly struct PacketHandler<TPacket>(
     object controllerInstance, MethodInfo method, Type returnType,
     Func<object, PacketContext<TPacket>, ValueTask<object>> compiledInvoker,
     Type? expectedPacketType,
-    IReturnHandler<TPacket> returnHandler) where TPacket : IPacket
+    IReturnHandler<TPacket> returnHandler,
+    Func<object, BufferContext, ValueTask<object>>? rawInvoker = null) where TPacket : IPacket
 {
     #region Fields
 
@@ -81,8 +87,7 @@ internal readonly struct PacketHandler<TPacket>(
     /// This is the performance-critical entry point used every time a packet is dispatched.
     /// It avoids reflection, parameter boxing, and per-call delegate allocation.
     /// </summary>
-    public readonly Func<object, PacketContext<TPacket>,
-                    ValueTask<object>> Invoker = compiledInvoker;
+    public readonly Func<object, PacketContext<TPacket>, ValueTask<object>> Invoker = compiledInvoker;
 
     /// <summary>
     /// Concrete packet type expected by this handler, or <see langword="null"/>
@@ -95,6 +100,19 @@ internal readonly struct PacketHandler<TPacket>(
     /// </summary>
     public readonly IReturnHandler<TPacket> ReturnHandler = returnHandler;
 
+    /// <summary>
+    /// Compiled delegate for raw handlers that receive <see cref="BufferContext"/> and
+    /// the original wire bytes directly, bypassing packet deserialization.
+    /// <see langword="null"/> for standard handlers.
+    /// </summary>
+    public readonly Func<object, BufferContext, ValueTask<object>>? RawInvoker = rawInvoker;
+
+    /// <summary>
+    /// Returns <see langword="true"/> when this handler operates on raw bytes
+    /// (<see cref="ReadOnlyMemory{T}"/>) instead of a deserialized <typeparamref name="TPacket"/>.
+    /// </summary>
+    public readonly bool IsRawHandler => RawInvoker is not null;
+
     #endregion Fields
 
     #region Methods
@@ -105,10 +123,26 @@ internal readonly struct PacketHandler<TPacket>(
     /// </summary>
     /// <param name="context">The packet context containing the request and metadata.</param>
     /// <returns>
-    /// A <see cref="ValueTask{TResult}"/> that completes with the handler’s result.
+    /// A <see cref="ValueTask{TResult}"/> that completes with the handler's result.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public ValueTask<object> ExecuteAsync(PacketContext<TPacket> context) => Invoker(Instance, context);
+
+    /// <summary>
+    /// Executes a raw handler using the compiled delegate. The handler receives
+    /// a <see cref="BufferContext"/> containing the original wire bytes.
+    /// </summary>
+    /// <param name="context">The buffer context with raw data and connection.</param>
+    /// <returns>A <see cref="ValueTask{TResult}"/> that completes with the handler's result.</returns>
+    /// <exception cref="InvalidOperationException">
+    /// Thrown when this handler is not a raw handler (<see cref="IsRawHandler"/> is <see langword="false"/>).
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public ValueTask<object> ExecuteRawAsync(BufferContext context)
+        => RawInvoker is not null
+            ? RawInvoker(Instance, context)
+            : throw new InvalidOperationException(
+                $"Handler 0x{OpCode:X4} is not a raw handler. Use ExecuteAsync instead.");
 
     /// <summary>
     /// Determines whether this handler can be executed for the specified packet context.
@@ -130,7 +164,24 @@ internal readonly struct PacketHandler<TPacket>(
         // Middleware is still recommended for logging and more complex policies,
         // but this provides a fail-closed baseline in the dispatcher itself.
         if (Metadata.Permission is { } permission &&
-            permission.Level > context.Connection.Level)
+        permission.Level > context.Connection.Level)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Determines whether this raw handler can be executed for the specified connection.
+    /// </summary>
+    /// <param name="connection">The connection to validate.</param>
+    /// <returns><see langword="true"/> if the handler can be executed; otherwise, <see langword="false"/>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public bool CanExecuteRaw(IConnection connection)
+    {
+        if (Metadata.Permission is { } permission &&
+            permission.Level > connection.Level)
         {
             return false;
         }

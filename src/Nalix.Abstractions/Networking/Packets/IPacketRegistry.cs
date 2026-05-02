@@ -51,4 +51,13 @@ public interface IPacketRegistry
     /// <param name="packet">The resolved packet when successful.</param>
     /// <returns><see langword="true"/> when deserialization succeeds.</returns>
     bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet);
+
+    /// <summary>
+    /// Attempts to read only the packet header from the raw buffer without full deserialization.
+    /// This enables raw handler dispatch where the handler receives the original bytes.
+    /// </summary>
+    /// <param name="raw">Raw incoming packet bytes (must be at least <see cref="PacketConstants.HeaderSize"/> bytes).</param>
+    /// <param name="header">When this method returns <see langword="true"/>, contains the parsed header.</param>
+    /// <returns><see langword="true"/> when the header was successfully read.</returns>
+    bool TryReadHeader(ReadOnlySpan<byte> raw, out Primitives.PacketHeader header);
 }

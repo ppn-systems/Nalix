@@ -31,5 +31,23 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             await context.Connection.UDP.SendAsync(packet).ConfigureAwait(false);
         }
     }
+
+    /// <inheritdoc/>
+    public async ValueTask HandleAsync(object? result, BufferContext context)
+    {
+        if (result is not IPacket packet)
+        {
+            return;
+        }
+
+        if (context.IsReliable)
+        {
+            await context.Connection.TCP.SendAsync(packet).ConfigureAwait(false);
+        }
+        else
+        {
+            await context.Connection.UDP.SendAsync(packet).ConfigureAwait(false);
+        }
+    }
 }
 

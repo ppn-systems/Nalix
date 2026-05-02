@@ -154,6 +154,16 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         /// The dispatcher will perform a runtime type-check and cast before invoking.
         /// </summary>
         LegacyConcreteWithToken = 5,
+
+        /// <summary>
+        /// (ReadOnlyMemory&lt;byte&gt;, IConnection) — raw handler receives wire bytes directly.
+        /// </summary>
+        RawMemoryNoToken = 6,
+
+        /// <summary>
+        /// (ReadOnlyMemory&lt;byte&gt;, IConnection, CancellationToken) — raw handler receives wire bytes directly.
+        /// </summary>
+        RawMemoryWithToken = 7,
     }
 
     [StackTraceHidden]
@@ -245,6 +255,31 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private static PacketHandlerDescriptor<TPacket> CompileHandlerMethod(MethodInfo x22)
     {
+        // Detect which of the 4 supported signatures this method uses.
+        // Supported forms:
+        //   Legacy  (a) (TPacket, IConnection)
+        //   Legacy  (b) (TPacket, IConnection, CancellationToken)
+        //   New     (c) (PacketContext<TPacket>)
+        //   New     (d) (PacketContext<TPacket>, CancellationToken)
+        ParameterInfo[] parms = x22.GetParameters();
+        SignatureKind kind = ResolveSignatureKind(x22, parms);
+
+        // ---- raw handler path ----
+        // Raw signatures (ReadOnlyMemory<byte>, IConnection[, CancellationToken])
+        // use a different invoker type and bypass the standard PacketContext<TPacket> path.
+        if (kind is SignatureKind.RawMemoryNoToken or SignatureKind.RawMemoryWithToken)
+        {
+            Func<object, BufferContext, ValueTask<object>> rawInvoker =
+                BuildRawMemoryInvoker(x22, kind);
+
+            string methodName = x22.Name;
+            ValueTask<object> dummyInvoker(object _, PacketContext<TPacket> __) => throw new InvalidOperationException(
+                    $"Raw handler '{methodName}' cannot be invoked via ExecuteAsync. Use ExecuteRawAsync.");
+
+            return new PacketHandlerDescriptor<TPacket>(x22, x22.ReturnType, dummyInvoker, rawInvoker);
+        }
+
+        // ---- standard handler path ----
         // Shared expression nodes — always built regardless of signature kind.
         // x00 = boxed controller instance
         // x01 = PacketContext<TPacket> (the single source-of-truth arg the
@@ -269,16 +304,6 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         MemberExpression x04 =
             Expression.Property(x01, cancellationTokenProperty);
-
-        // Detect which of the 4 supported signatures this method uses.
-        // Supported forms:
-        //   Legacy  (a) (TPacket, IConnection)
-        //   Legacy  (b) (TPacket, IConnection, CancellationToken)
-        //   New     (c) (PacketContext<TPacket>)
-        //   New     (d) (PacketContext<TPacket>, CancellationToken)
-        ParameterInfo[] parms = x22.GetParameters();
-
-        SignatureKind kind = ResolveSignatureKind(x22, parms);
 
         // Context-style with a DIFFERENT concrete PacketContext<T>
         //
@@ -407,6 +432,33 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
         }
 
+        // ---- raw-style: first param is ReadOnlyMemory<byte> ----
+        if (parms.Length >= 1 && parms[0].ParameterType == typeof(ReadOnlyMemory<byte>))
+        {
+            if (parms.Length < 2 || !typeof(IConnection).IsAssignableFrom(parms[1].ParameterType))
+            {
+                throw new InternalErrorException(
+                    $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                    "raw memory signature requires (ReadOnlyMemory<byte>, IConnection[, CancellationToken]). " +
+                    "Second parameter must implement IConnection.");
+            }
+
+            if (parms.Length == 2)
+            {
+                return SignatureKind.RawMemoryNoToken;
+            }
+
+            if (parms.Length == 3 && parms[2].ParameterType == typeof(CancellationToken))
+            {
+                return SignatureKind.RawMemoryWithToken;
+            }
+
+            throw new InternalErrorException(
+                $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                "raw memory signature only supports 2 or 3 parameters " +
+                $"(ReadOnlyMemory<byte>, IConnection[, CancellationToken]). Found {parms.Length}.");
+        }
+
         throw new InternalErrorException(
             $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
             "unrecognised signature. " +
@@ -416,7 +468,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             "(TConcretePacket, IConnection), " +
             "(TConcretePacket, IConnection, CancellationToken), " +
             "(PacketContext<T>), " +
-            "(PacketContext<T>, CancellationToken).");
+            "(PacketContext<T>, CancellationToken), " +
+            "(ReadOnlyMemory<byte>, IConnection), " +
+            "(ReadOnlyMemory<byte>, IConnection, CancellationToken).");
     }
 
     /// <summary>
@@ -439,6 +493,32 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     private static bool IsPacketContextType(Type type)
         => type.IsGenericType
         && (type.GetGenericTypeDefinition() == typeof(PacketContext<>) || type.GetGenericTypeDefinition() == typeof(IPacketContext<>));
+
+    /// <summary>
+    /// Builds a compiled invoker for raw memory handler methods using reflection.
+    /// Raw handlers receive <see cref="BufferContext"/> containing the original wire bytes,
+    /// bypassing packet deserialization.
+    /// </summary>
+    [Pure]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Func<object, BufferContext, ValueTask<object>> BuildRawMemoryInvoker(
+        MethodInfo method, SignatureKind kind)
+    {
+        Func<object?, ValueTask<object>> normalizer = CreateResultNormalizer(method.ReturnType);
+        bool withToken = kind == SignatureKind.RawMemoryWithToken;
+
+        return (instance, ctx) =>
+        {
+            object? result = withToken
+                ? method.IsStatic
+                    ? method.Invoke(null, [ctx.RawData, ctx.Connection, ctx.CancellationToken])
+                    : method.Invoke(instance, [ctx.RawData, ctx.Connection, ctx.CancellationToken])
+                : method.IsStatic
+                    ? method.Invoke(null, [ctx.RawData, ctx.Connection])
+                    : method.Invoke(instance, [ctx.RawData, ctx.Connection]);
+            return normalizer(result);
+        };
+    }
 
     /// <summary>
     /// Builds the argument expression array for the compiled method-call expression.
@@ -553,6 +633,13 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
                     return [pktArg, connArg, ctExpr];
                 }
+
+            case SignatureKind.RawMemoryNoToken:
+            case SignatureKind.RawMemoryWithToken:
+                // Raw handlers bypass expression-tree compilation entirely.
+                // This code path should never be reached.
+                throw new InvalidOperationException(
+                    $"Raw signature '{kind}' should not reach BuildArgExpressions.");
 
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
@@ -683,7 +770,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                         : method.Invoke(instance, [pkt, conn, context.CancellationToken])!;
                 }
             ,
-
+            SignatureKind.RawMemoryNoToken => throw new NotImplementedException(),
+            SignatureKind.RawMemoryWithToken => throw new NotImplementedException(),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }

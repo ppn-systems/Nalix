@@ -30,5 +30,23 @@ internal sealed class MemoryReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             await context.Connection.UDP.SendAsync(memory).ConfigureAwait(false);
         }
     }
+
+    /// <inheritdoc/>
+    public async ValueTask HandleAsync(object? result, BufferContext context)
+    {
+        if (result is not Memory<byte> memory)
+        {
+            return;
+        }
+
+        if (context.IsReliable)
+        {
+            await context.Connection.TCP.SendAsync(memory).ConfigureAwait(false);
+        }
+        else
+        {
+            await context.Connection.UDP.SendAsync(memory).ConfigureAwait(false);
+        }
+    }
 }
 

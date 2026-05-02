@@ -29,5 +29,23 @@ internal sealed class ByteArrayReturnHandler<TPacket> : IReturnHandler<TPacket> 
             await context.Connection.UDP.SendAsync(data).ConfigureAwait(false);
         }
     }
+
+    /// <inheritdoc/>
+    public async ValueTask HandleAsync(object? result, BufferContext context)
+    {
+        if (result is not byte[] data)
+        {
+            return;
+        }
+
+        if (context.IsReliable)
+        {
+            await context.Connection.TCP.SendAsync(data).ConfigureAwait(false);
+        }
+        else
+        {
+            await context.Connection.UDP.SendAsync(data).ConfigureAwait(false);
+        }
+    }
 }
 

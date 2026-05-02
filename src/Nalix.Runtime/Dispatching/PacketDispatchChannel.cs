@@ -16,10 +16,12 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Routing;
+using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Routing;
 
 namespace Nalix.Runtime.Dispatching;
@@ -143,7 +145,7 @@ public sealed class PacketDispatchChannel
                 });
         }
 
-        this.RequestWake();
+        this.WakeDispatchWorkers();
     }
 
     /// <summary>
@@ -247,7 +249,7 @@ public sealed class PacketDispatchChannel
         }
 
         // Signal a worker to wake up and process the newly queued packet.
-        this.RequestWake();
+        this.WakeDispatchWorkers();
     }
 
     #endregion Public Methods
@@ -389,9 +391,17 @@ public sealed class PacketDispatchChannel
                 while (processed < _maxDrainPerWake &&
                        _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
                 {
+                    // 1. Check for raw handler BEFORE deserializing.
+                    //    If a raw handler is registered for this opcode, skip deserialization entirely.
+                    if (_catalog.TryReadHeader(lease.Span, out PacketHeader header) &&
+                        this.Options.TryResolveHandler(header.OpCode, out PacketHandler<IPacket> handler) && handler.IsRawHandler)
+                    {
+                        await DispatchPacketAsync(this, connection, lease, lease.Memory, in header, in handler, ct).ConfigureAwait(false);
+                    }
+
                     // Dispatch directly using await. 
                     // Zero-allocation for sync completion; Pooled for async.
-                    await this.ExecutePacketAsync(connection, lease, ct).ConfigureAwait(false);
+                    await this.DispatchPacketAsync(connection, lease, ct).ConfigureAwait(false);
                     processed++;
                 }
 #pragma warning restore CA2000
@@ -475,10 +485,9 @@ public sealed class PacketDispatchChannel
 
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
+    private ValueTask DispatchPacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
-        // 1. Acquire pooled packet via registry (zero alloc)
-        // If TryDeserialize fails, the packet is already handled.
+        // 2. Standard path: Acquire pooled packet via registry (zero alloc)
         if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
         {
             connection.IncrementErrorCount();
@@ -509,7 +518,7 @@ public sealed class PacketDispatchChannel
             }
 
             // 4. Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
-            return AwaitPacketHandlerCompletionAsync(this, connection, lease, packet, pending, ct);
+            return AwaitHandlerAsync(this, connection, lease, packet, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -520,7 +529,7 @@ public sealed class PacketDispatchChannel
             connection.IncrementErrorCount();
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
             {
-                this.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                this.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(DispatchPacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
             }
         }
 
@@ -532,42 +541,125 @@ public sealed class PacketDispatchChannel
 
         lease.Dispose();
         return ValueTask.CompletedTask;
+
+        static async ValueTask AwaitHandlerAsync(
+            PacketDispatchChannel owner, IConnection connection,
+            IBufferLease lease, IPacket packet, ValueTask pending, CancellationToken ct)
+        {
+            try
+            {
+                await pending.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                // Async cancellation
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                connection.IncrementErrorCount();
+                if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
+                {
+                    owner.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(DispatchPacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                }
+            }
+            finally
+            {
+                // Guaranteed release for async path
+                if (packet is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+
+                lease.Dispose();
+            }
+        }
     }
 
-    private static async ValueTask AwaitPacketHandlerCompletionAsync(
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static ValueTask DispatchPacketAsync(
         PacketDispatchChannel owner, IConnection connection,
-        IBufferLease lease, IPacket packet, ValueTask pending, CancellationToken ct)
+        IBufferLease lease, ReadOnlyMemory<byte> raw,
+        in PacketHeader header, in PacketHandler<IPacket> handler, CancellationToken ct)
     {
+        bool isReliable = !header.Flags.HasFlag(PacketFlags.UNRELIABLE);
+        BufferContext bufferCtx = new(raw, connection, isReliable, ct);
+
         try
         {
-            await pending.ConfigureAwait(false);
+            ValueTask pending = InvokeHandlerAsync(handler, bufferCtx);
+
+            if (pending.IsCompletedSuccessfully)
+            {
+                try
+                {
+#pragma warning disable CA1849
+                    pending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                }
+                finally
+                {
+                    lease.Dispose();
+                }
+
+                return ValueTask.CompletedTask;
+            }
+
+            return AwaitHandlerAsync(lease, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Async cancellation
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
+
             if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
             {
-                owner.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                owner.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(DispatchPacketAsync)}] raw-handler-error opcode=0x{header.OpCode:X4} ep={connection.NetworkEndpoint}");
             }
         }
-        finally
+
+        lease.Dispose();
+        return ValueTask.CompletedTask;
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        static async ValueTask InvokeHandlerAsync(
+            PacketHandler<IPacket> handler,
+            BufferContext bufferCtx)
         {
-            // Guaranteed release for async path
-            if (packet is IDisposable disposable)
+            if (!handler.CanExecuteRaw(bufferCtx.Connection))
             {
-                disposable.Dispose();
+                return;
             }
 
-            lease.Dispose();
+            object result = await handler.ExecuteRawAsync(bufferCtx).ConfigureAwait(false);
+
+            if (result is not null)
+            {
+                await handler.ReturnHandler.HandleAsync(result, bufferCtx).ConfigureAwait(false);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        static async ValueTask AwaitHandlerAsync(
+            IBufferLease lease, ValueTask pending, CancellationToken ct)
+        {
+            try
+            {
+                await pending.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+            }
+            finally
+            {
+                lease.Dispose();
+            }
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void RequestWake()
+    private void WakeDispatchWorkers()
     {
         if (Interlocked.Exchange(ref _wakeRequested, 1) != 0)
         {

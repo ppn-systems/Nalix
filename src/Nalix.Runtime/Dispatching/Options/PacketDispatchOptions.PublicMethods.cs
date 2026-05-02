@@ -224,7 +224,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         for (int i = 0; i < compiledHandlers.Length; i++)
         {
             PacketHandler<TPacket> descriptor = compiledHandlers[i];
-            Type? concretePacketType = ResolveConcretePacketType(descriptor.MethodInfo, contextType);
+            Type? concretePacketType = descriptor.IsRawHandler ? null : ResolveConcretePacketType(descriptor.MethodInfo, contextType);
             IReturnHandler<TPacket> returnHandler = ReturnTypeHandlerFactory<TPacket>.ResolveHandler(descriptor.ReturnType);
 
             PacketHandler<TPacket> runtimeHandler = new(
@@ -235,7 +235,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 descriptor.ReturnType,
                 descriptor.Invoker,
                 concretePacketType,
-                returnHandler);
+                returnHandler,
+                descriptor.RawInvoker);
 
             if (!_handlerTable.TryAdd(descriptor.OpCode, runtimeHandler))
             {
@@ -244,7 +245,16 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             _ = Interlocked.Increment(ref _handlerCount);
 
-            if (concretePacketType is not null && concretePacketType != typeof(TPacket))
+            if (descriptor.IsRawHandler)
+            {
+                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+                {
+                    this.Logging.LogDebug(
+                        $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
+                        $"raw-handler opcode=0x{descriptor.OpCode:X4} method={descriptor.MethodInfo.Name}");
+                }
+            }
+            else if (concretePacketType is not null && concretePacketType != typeof(TPacket))
             {
                 if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
                 {

@@ -22,5 +22,13 @@ internal interface IReturnHandler<TPacket> where TPacket : IPacket
     /// <param name="result">The method return value, may be null.</param>
     /// <param name="context">The context associated with the packet and connection.</param>
     ValueTask HandleAsync(object? result, PacketContext<TPacket> context);
+
+    /// <summary>
+    /// Handles the result of a raw handler method call asynchronously.
+    /// The default implementation does nothing; override in handlers that support raw context.
+    /// </summary>
+    /// <param name="result">The method return value, may be null.</param>
+    /// <param name="context">The buffer context containing raw data and connection.</param>
+    ValueTask HandleAsync(object? result, BufferContext context);
 }
 
