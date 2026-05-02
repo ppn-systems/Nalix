@@ -11,22 +11,26 @@ namespace Nalix.SDK.Client.Commands;
 internal sealed class DiagnosticCommands
 {
     private readonly ClientSession _client;
-    private readonly StatusBar     _status;
-    private readonly EventLog      _log;
+    private readonly StatusBar _status;
+    private readonly EventLog _log;
 
     public DiagnosticCommands(ClientSession client, StatusBar status, EventLog log)
     {
         _client = client;
         _status = status;
-        _log    = log;
+        _log = log;
     }
 
     public async Task TimeSyncAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
+
         try
         {
-            var (rtt, adj) = await _client.Session.SyncTimeAsync().ConfigureAwait(false);
+            (double rtt, double adj) = await _client.Session.SyncTimeAsync().ConfigureAwait(false);
             _log.Success($"Time sync: RTT={rtt:F2}ms  ClockAdjust={adj:F2}ms");
         }
         catch (TimeoutException)
@@ -43,7 +47,11 @@ internal sealed class DiagnosticCommands
 
     private bool RequireConnected()
     {
-        if (_client.IsConnected) return true;
+        if (_client.IsConnected)
+        {
+            return true;
+        }
+
         _log.Error("Not connected — use [Connect] first.");
         return false;
     }

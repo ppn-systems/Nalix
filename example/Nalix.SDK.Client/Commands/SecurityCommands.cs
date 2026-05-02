@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.SDK.Client.Core;
 using Nalix.SDK.Client.UI;
@@ -13,19 +14,22 @@ namespace Nalix.SDK.Client.Commands;
 internal sealed class SecurityCommands
 {
     private readonly ClientSession _client;
-    private readonly StatusBar     _status;
-    private readonly EventLog      _log;
+    private readonly StatusBar _status;
+    private readonly EventLog _log;
 
     public SecurityCommands(ClientSession client, StatusBar status, EventLog log)
     {
         _client = client;
         _status = status;
-        _log    = log;
+        _log = log;
     }
 
     public async Task HandshakeAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         string? pinnedKey = _client.Session.Options.ServerPublicKey;
         if (string.IsNullOrEmpty(pinnedKey))
@@ -39,6 +43,7 @@ internal sealed class SecurityCommands
             .SpinnerStyle(Style.Parse("mediumpurple1"))
             .StartAsync("Performing X25519 handshake...", async _ =>
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     await _client.Session.HandshakeAsync().ConfigureAwait(false);
@@ -49,12 +54,16 @@ internal sealed class SecurityCommands
                     _status.IncrementErrors();
                     _log.Error($"Handshake failed: {ex.Message}");
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }).ConfigureAwait(false);
     }
 
     public async Task ResumeSessionAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         await AnsiConsole.Status()
             .Spinner(Spinner.Known.Dots2)
@@ -63,11 +72,15 @@ internal sealed class SecurityCommands
             {
                 try
                 {
-                    var reason = await _client.Session.ResumeSessionAsync().ConfigureAwait(false);
-                    if (reason == Nalix.Abstractions.Networking.Protocols.ProtocolReason.NONE)
+                    ProtocolReason reason = await _client.Session.ResumeSessionAsync().ConfigureAwait(false);
+                    if (reason == ProtocolReason.NONE)
+                    {
                         _log.Success("Session resumed successfully! Encryption active.");
+                    }
                     else
+                    {
                         _log.Warn($"Resume failed: {reason}. You may need to do a full handshake.");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -79,7 +92,10 @@ internal sealed class SecurityCommands
 
     public async Task UpdateCipherAsync()
     {
-        if (!RequireConnected()) return;
+        if (!this.RequireConnected())
+        {
+            return;
+        }
 
         CipherSuiteType chosen = AnsiConsole.Prompt(
             new SelectionPrompt<CipherSuiteType>()
@@ -106,7 +122,11 @@ internal sealed class SecurityCommands
 
     private bool RequireConnected()
     {
-        if (_client.IsConnected) return true;
+        if (_client.IsConnected)
+        {
+            return true;
+        }
+
         _log.Error("Not connected — use [Connect] first.");
         return false;
     }

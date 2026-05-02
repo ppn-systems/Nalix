@@ -39,6 +39,7 @@ internal sealed class ConnectionCommands
             .StartAsync("Connecting...", async ctx =>
             {
                 _ = ctx.Status("Establishing TCP connection...");
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     await _client.ConnectAsync().ConfigureAwait(false);
@@ -65,6 +66,7 @@ internal sealed class ConnectionCommands
                     _status.IncrementErrors();
                     _log.Error($"Connection failed: {ex.Message}");
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }).ConfigureAwait(false);
     }
 
@@ -83,6 +85,7 @@ internal sealed class ConnectionCommands
             .SpinnerStyle(Style.Parse("grey"))
             .StartAsync("Disconnecting gracefully...", async _ =>
             {
+#pragma warning disable CA1031 // Do not catch general exception types
                 try
                 {
                     await _client.Session.DisconnectGracefullyAsync(ProtocolReason.NONE).ConfigureAwait(false);
@@ -95,6 +98,7 @@ internal sealed class ConnectionCommands
                     await _client.DisconnectAsync().ConfigureAwait(false);
                     _status.SetConnected(false);
                 }
+#pragma warning restore CA1031 // Do not catch general exception types
             }).ConfigureAwait(false);
     }
 
