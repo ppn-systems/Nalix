@@ -45,7 +45,6 @@ It acts as the bridge between application logic and the Nalix.Network layer, sim
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Codec\Nalix.Codec.csproj" />
 		<ProjectReference Include="..\Nalix.Environment\Nalix.Environment.csproj" />
-		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(Configuration)' == 'Release'">
