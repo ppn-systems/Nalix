@@ -56,7 +56,6 @@ The provider registers built-in formatters for:
 - `bool`
 - `Guid`
 - `DateOnly`, `DateTime`, `TimeOnly`, `TimeSpan`, `DateTimeOffset`
-- `ulong`
 
 ## Collection behavior
 

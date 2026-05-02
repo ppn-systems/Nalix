@@ -21,8 +21,8 @@ Unlike a standard `byte[]`, a `BufferLease` can represent a specific **slice** o
 ### Renting & Creating
 
 - `Rent(int capacity, bool zeroOnDispose = false)`: Auto-rents a buffer and returns an empty slice. You write to `SpanFull` and then call `CommitLength()`.
-- `CopyFrom(ReadOnlySpan<byte> src)`: Creates a lease by copying source data into a newly rented buffer.
-- `TakeOwnership(byte[] buffer, int start, int length)`: Wraps a slice of an already rented array, taking ownership of it.
+- `CopyFrom(ReadOnlySpan<byte> src, bool zeroOnDispose = false)`: Creates a lease by copying source data into a newly rented buffer.
+- `TakeOwnership(byte[] buffer, int start, int length, bool zeroOnDispose = false)`: Wraps a slice of an already rented array, taking ownership of it.
 - `FromRented(byte[] buffer, int length)`: Wraps an entire rented array.
 
 ### Buffer Access
@@ -38,7 +38,7 @@ Unlike a standard `byte[]`, a `BufferLease` can represent a specific **slice** o
 - `CommitLength(int length)`: Sets the valid payload length (used after writing to `SpanFull`).
 - `Retain()`: Increments the reference count.
 - `Dispose()`: Decrements the reference count and returns the buffer to the pool when it reaches zero.
-- `ReleaseOwnership(out byte[]? buffer, out int start, out int length)`: Detaches the underlying array, transferring ownership to the caller. Disposing the lease afterward does nothing.
+- `ReleaseOwnership(out byte[]? buffer, out int start, out int length)`: Detaches the underlying array, transferring ownership to the caller. Returns `true` if the buffer was successfully detached; `false` if the lease has already been detached or has multiple references. Disposing the lease afterward does nothing.
 
 ## Example Usage
 

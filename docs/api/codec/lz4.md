@@ -1,6 +1,6 @@
 # LZ4
 
-This page covers the public compression surface in `Nalix.Framework.LZ4`.
+This page covers the public compression surface in `Nalix.Codec.LZ4`.
 
 ## Source mapping
 
