@@ -14,7 +14,7 @@ namespace Nalix.Abstractions;
 /// pruning, or state-reset logic. When applied, it indicates that the
 /// annotated class must be preserved and skipped during these operations.
 /// </remarks>
-[AttributeUsage(AttributeTargets.Property, Inherited = true)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true)]
 public sealed class SkipCleanAttribute : Attribute
 {
 }
