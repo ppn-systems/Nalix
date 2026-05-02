@@ -52,7 +52,18 @@ internal sealed class PooledAcceptContext : IPoolable
 
     /// <summary>The SAEA currently bound to this context.</summary>
     /// <exception cref="InvalidOperationException"></exception>
-    public SocketAsyncEventArgs Args => _args ?? throw new InternalErrorException("Args not bound.");
+    public SocketAsyncEventArgs Args
+    {
+        get
+        {
+            if (_args is null)
+            {
+                Throw.ArgsNotBound();
+            }
+
+            return _args;
+        }
+    }
 
     /// <summary>
     /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.

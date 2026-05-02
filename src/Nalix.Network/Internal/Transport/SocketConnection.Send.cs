@@ -359,14 +359,14 @@ internal sealed partial class SocketConnection
             BufferLease.ByteArrayPool.Return(buf);
             self.CANCEL_RECEIVE_ONCE();
             self.INVOKE_CLOSE_ONCE();
-            return ValueTask.FromException(Throw.SendFailed);
+            return ValueTask.FromException(Throw.GetSendFailed());
         }
 
         static Exception HANDLE_PEER_CLOSED_EXCEPTION(SocketConnection self)
         {
             self.CANCEL_RECEIVE_ONCE();
             self.INVOKE_CLOSE_ONCE();
-            return Throw.SendFailed;
+            return Throw.GetSendFailed();
         }
 
         static ValueTask HANDLE_SEND_ERROR(SocketConnection self, Exception ex)
@@ -599,7 +599,7 @@ internal sealed partial class SocketConnection
                     {
                         self.CANCEL_RECEIVE_ONCE();
                         self.INVOKE_CLOSE_ONCE();
-                        return ValueTask.FromException(Throw.SendFailed);
+                        return ValueTask.FromException(Throw.GetSendFailed());
                     }
                     sent += n;
                 }

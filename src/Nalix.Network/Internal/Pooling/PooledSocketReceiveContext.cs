@@ -138,7 +138,18 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="EnsureArgsBound"/> has not been called yet.
     /// </exception>
-    public SocketAsyncEventArgs Args => _args ?? throw new InternalErrorException("Args not bound.");
+    public SocketAsyncEventArgs Args
+    {
+        get
+        {
+            if (_args is null)
+            {
+                Throw.ArgsNotBound();
+            }
+
+            return _args;
+        }
+    }
 
     /// <summary>
     /// Ensures this context has a bound SAEA, acquiring one from
@@ -305,7 +316,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
                     {
                         try
                         {
-                            _receiveSource.SetException(Throw.PooledContextDisposed);
+                            _receiveSource.SetException(Throw.GetPooledContextDisposed());
                         }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {

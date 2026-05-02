@@ -16,6 +16,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Codec.Transforms;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 
@@ -847,7 +848,7 @@ public abstract partial class TcpListenerBase
             if (this.IsProcessChannelFull())
             {
                 this.SafeCloseSocket(socket);
-                throw new NetworkException("Process channel is full.");
+                Throw.ProcessChannelFull();
             }
 
             // Validate and limit checks occur BEFORE ownership transfer.
@@ -856,13 +857,13 @@ public abstract partial class TcpListenerBase
             if (!socket.Connected || socket.Handle.ToInt64() == -1)
             {
                 this.SafeCloseSocket(socket);
-                throw new NetworkException("Invalid socket.");
+                Throw.InvalidSocket();
             }
 
             if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
             {
                 this.SafeCloseSocket(socket);
-                throw new NetworkException("Connection rejected by limiter.");
+                Throw.ConnectionRejectedByLimiter();
             }
 
             // Transfer ownership: InitializeConnection will return the inner context.
@@ -969,7 +970,7 @@ public abstract partial class TcpListenerBase
         if (!socket.Connected || socket.Handle.ToInt64() == -1)
         {
             this.SafeCloseSocket(socket);
-            throw new NetworkException("Invalid socket.");
+            Throw.InvalidSocket();
         }
 
         // Check the connection limiter before proceeding.
@@ -977,7 +978,7 @@ public abstract partial class TcpListenerBase
         if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
         {
             this.SafeCloseSocket(socket);
-            throw new NetworkException("Connection rejected by limiter.");
+            Throw.ConnectionRejectedByLimiter();
         }
 
         IConnection connection = this.InitializeConnection(socket, context);

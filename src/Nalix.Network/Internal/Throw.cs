@@ -17,38 +17,30 @@ namespace Nalix.Network.Internal;
 /// </summary>
 internal static class Throw
 {
-    /// <inheritdoc/>
-    public static readonly SocketException Shutdown = new CachedSocketException((int)SocketError.Shutdown);
+    #region Cached Exceptions (private)
 
-    /// <inheritdoc/>
-    public static readonly SocketException MessageSize = new CachedSocketException((int)SocketError.MessageSize);
+    private static readonly SocketException s_shutdown = new CachedSocketException((int)SocketError.Shutdown);
+    private static readonly SocketException s_messageSize = new CachedSocketException((int)SocketError.MessageSize);
+    private static readonly SocketException s_operationAborted = new CachedSocketException((int)SocketError.OperationAborted);
+    private static readonly SocketException s_connectionAborted = new CachedSocketException((int)SocketError.ConnectionAborted);
+    private static readonly SocketException s_connectionResetInternal = new CachedSocketException((int)SocketError.ConnectionReset);
+    private static readonly SocketException s_protocolNotSupported = new CachedSocketException((int)SocketError.ProtocolNotSupported);
 
-    /// <inheritdoc/>
-    public static readonly NetworkException UdpSendFailed = new CachedNetworkException("UDP transmission failed.");
+    private static readonly NetworkException s_connectionReset = new CachedNetworkException("Connection closed by peer.", s_connectionResetInternal);
+    private static readonly NetworkException s_sendFailed = new CachedNetworkException("The socket closed while sending.");
+    private static readonly NetworkException s_udpPayloadTooLarge = new CachedNetworkException("UDP payload too large. Use TCP for large data.");
+    private static readonly NetworkException s_udpPartialSend = new CachedNetworkException("UDP partial send occurred.");
+    private static readonly NetworkException s_udpSendFailed = new CachedNetworkException("UDP transmission failed.");
+    private static readonly NetworkException s_processChannelFull = new CachedNetworkException("Process channel is full.");
+    private static readonly NetworkException s_invalidSocket = new CachedNetworkException("Invalid socket.");
+    private static readonly NetworkException s_connectionRejectedByLimiter = new CachedNetworkException("Connection rejected by limiter.");
 
-    /// <inheritdoc/>
-    public static readonly NetworkException UdpPartialSend = new CachedNetworkException("UDP partial send occurred.");
+    private static readonly ObjectDisposedException s_pooledContextDisposed = new CachedObjectDisposedException(nameof(PooledSocketReceiveContext));
+    private static readonly InternalErrorException s_argsNotBound = new CachedInternalErrorException("Args not bound.");
 
-    /// <inheritdoc/>
-    public static readonly NetworkException SendFailed = new CachedNetworkException("The socket closed while sending.");
+    #endregion Cached Exceptions (private)
 
-    /// <inheritdoc/>
-    public static readonly SocketException OperationAborted = new CachedSocketException((int)SocketError.OperationAborted);
-
-    /// <inheritdoc/>
-    public static readonly SocketException ConnectionAborted = new CachedSocketException((int)SocketError.ConnectionAborted);
-
-    /// <inheritdoc/>
-    public static readonly SocketException ConnectionResetInternal = new CachedSocketException((int)SocketError.ConnectionReset);
-
-    /// <inheritdoc/>
-    public static readonly SocketException ProtocolNotSupported = new CachedSocketException((int)SocketError.ProtocolNotSupported);
-
-    /// <inheritdoc/>
-    public static readonly NetworkException UdpPayloadTooLarge = new CachedNetworkException("UDP payload too large. Use TCP for large data.");
-
-    /// <inheritdoc/>
-    public static readonly NetworkException ConnectionReset = new CachedNetworkException("Connection closed by peer.", ConnectionResetInternal);
+    #region Getters (return exception, do not throw)
 
     /// <summary>
     /// Returns a cached <see cref="SocketException"/> for the given error code if available, 
@@ -57,55 +49,86 @@ internal static class Throw
     [SuppressMessage("Style", "IDE0072:Add missing cases", Justification = "<Pending>")]
     public static SocketException GetSocketError(SocketError error) => error switch
     {
-        SocketError.Shutdown => Shutdown,
-        SocketError.MessageSize => MessageSize,
-        SocketError.OperationAborted => OperationAborted,
-        SocketError.ConnectionAborted => ConnectionAborted,
-        SocketError.ConnectionReset => ConnectionResetInternal,
-        SocketError.ProtocolNotSupported => ProtocolNotSupported,
+        SocketError.Shutdown => s_shutdown,
+        SocketError.MessageSize => s_messageSize,
+        SocketError.OperationAborted => s_operationAborted,
+        SocketError.ConnectionAborted => s_connectionAborted,
+        SocketError.ConnectionReset => s_connectionResetInternal,
+        SocketError.ProtocolNotSupported => s_protocolNotSupported,
         _ => new SocketException((int)error)
     };
 
-    public static readonly ObjectDisposedException PooledContextDisposed = new CachedObjectDisposedException(nameof(PooledSocketReceiveContext));
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NetworkException GetConnectionReset() => s_connectionReset;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NetworkException GetSendFailed() => s_sendFailed;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static NetworkException GetMessageSize() => s_messageSize is SocketException se
+        ? new CachedNetworkException("Message size exceeded.", se)
+        : s_sendFailed;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ObjectDisposedException GetPooledContextDisposed() => s_pooledContextDisposed;
+
+    #endregion Getters (return exception, do not throw)
 
     #region Throw Helpers
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ConnectionResetNow() => throw ConnectionReset;
+    public static void ConnectionResetNow() => throw s_connectionReset;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void SendFailedNow() => throw SendFailed;
+    public static void SendFailedNow() => throw s_sendFailed;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void UdpPayloadTooLargeNow() => throw UdpPayloadTooLarge;
+    public static void UdpPayloadTooLargeNow() => throw s_udpPayloadTooLarge;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void UdpPartialSendNow() => throw UdpPartialSend;
+    public static void UdpPartialSendNow() => throw s_udpPartialSend;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void UdpSendFailedNow() => throw UdpSendFailed;
+    public static void UdpSendFailedNow() => throw s_udpSendFailed;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ProtocolNotSupportedNow() => throw ProtocolNotSupported;
+    public static void ProtocolNotSupportedNow() => throw s_protocolNotSupported;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void PooledContextDisposedNow() => throw PooledContextDisposed;
+    public static void ProcessChannelFull() => throw s_processChannelFull;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void InvalidSocket() => throw s_invalidSocket;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ConnectionRejectedByLimiter() => throw s_connectionRejectedByLimiter;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ArgsNotBound() => throw s_argsNotBound;
 
     #endregion Throw Helpers
+
+    #region Private Cached Exception Types
 
     private sealed class CachedObjectDisposedException(string objectName) : ObjectDisposedException(objectName)
     {
@@ -125,4 +148,11 @@ internal static class Throw
     {
         public override string? StackTrace => "   at Nalix.Network.Internal.Transport (Cached Exception)";
     }
+
+    private sealed class CachedInternalErrorException(string message) : InternalErrorException(message)
+    {
+        public override string? StackTrace => "   at Nalix.Network.Internal.Transport (Cached Exception)";
+    }
+
+    #endregion Private Cached Exception Types
 }

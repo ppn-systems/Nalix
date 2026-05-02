@@ -447,7 +447,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             // If the buffer is full but we haven't parsed a complete frame, it means a single 
             // frame has exceeded our buffer capacity (MaxChunkSize * 2). 
             // Since the system is configured to never send frames > 1400 bytes, this is a protocol violation.
-            return ValueTask.FromException(Throw.MessageSize);
+            return ValueTask.FromException(Throw.GetMessageSize());
         }
 
         /*
@@ -463,7 +463,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             int n = vt.Result;
             if (n == 0)
             {
-                return ValueTask.FromException(Throw.ConnectionReset);
+                return ValueTask.FromException(Throw.GetConnectionReset());
             }
 
             _bufferDataLength += n;
