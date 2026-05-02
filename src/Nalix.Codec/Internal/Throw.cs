@@ -15,137 +15,121 @@ namespace Nalix.Codec.Internal;
 /// </summary>
 internal static class Throw
 {
-    #region LZ4 Errors
+    #region Cached Exceptions (private)
 
-    public static readonly LZ4Exception LZ4InvalidHeader =
+    private static readonly LZ4Exception s_lz4InvalidHeader =
         new CachedLZ4Exception("The LZ4 block header is invalid or corrupt.");
 
-    public static readonly LZ4Exception LZ4CorruptPayload =
+    private static readonly LZ4Exception s_lz4CorruptPayload =
         new CachedLZ4Exception("The LZ4 payload is malformed or corrupt.");
 
-    public static readonly LZ4Exception LZ4OutputBufferTooSmall =
+    private static readonly LZ4Exception s_lz4OutputBufferTooSmall =
         new CachedLZ4Exception("The output buffer is too small for the decompressed LZ4 payload.");
 
-    public static readonly LZ4Exception LZ4EncoderOutputBufferTooSmall =
+    private static readonly LZ4Exception s_lz4EncoderOutputBufferTooSmall =
         new CachedLZ4Exception("LZ4 compression failed: the destination buffer is too small.");
 
-    #endregion LZ4 Errors
-
-    #region Serialization Errors
-
-    public static readonly SerializationFailureException SerializationEmptyBuffer =
+    private static readonly SerializationFailureException s_serializationEmptyBuffer =
         new CachedSerializationException("Cannot deserialize from an empty buffer.");
 
-    public static readonly SerializationFailureException SerializationBufferTooSmall =
+    private static readonly SerializationFailureException s_serializationBufferTooSmall =
         new CachedSerializationException("The provided buffer is too small for the operation.");
 
-    public static readonly SerializationFailureException SerializationEndOfStream =
+    private static readonly SerializationFailureException s_serializationEndOfStream =
         new CachedSerializationException("The end of the stream was reached prematurely.");
 
-    public static readonly SerializationFailureException SerializationOverflow =
+    private static readonly SerializationFailureException s_serializationOverflow =
         new CachedSerializationException("Serialization data size overflow.");
 
-    public static readonly SerializationFailureException SerializationStringTooLong =
+    private static readonly SerializationFailureException s_serializationStringTooLong =
         new CachedSerializationException("The string exceeds the allowed limit.");
 
-    public static readonly SerializationFailureException SerializationLengthOutOfRange =
+    private static readonly SerializationFailureException s_serializationLengthOutOfRange =
         new CachedSerializationException("The provided length is out of range.");
 
-    public static readonly SerializationFailureException SerializationDataMismatch =
+    private static readonly SerializationFailureException s_serializationDataMismatch =
         new CachedSerializationException("Serialization data mismatch.");
 
-    #endregion Serialization Errors
-
-    #region Security Errors
-
-    public static readonly CipherException CipherOutputLengthMismatch =
+    private static readonly CipherException s_cipherOutputLengthMismatch =
         new CachedCipherException("The output length does not match the input length.");
 
-    public static readonly CipherException CipherInvalidKeyLength =
+    private static readonly CipherException s_cipherInvalidKeyLength =
         new CachedCipherException("The key length is invalid.");
 
-    public static readonly CipherException CipherInvalidNonceLength =
+    private static readonly CipherException s_cipherInvalidNonceLength =
         new CachedCipherException("The nonce length is invalid.");
 
-    public static readonly CipherException CipherInvalidTagLength =
+    private static readonly CipherException s_cipherInvalidTagLength =
         new CachedCipherException("The authentication tag length is invalid.");
 
-    public static readonly CipherException CiphertextTooShort =
+    private static readonly CipherException s_ciphertextTooShort =
         new CachedCipherException("The ciphertext buffer is too small.");
 
-    public static readonly CipherException CipherAeadAuthenticationFailed =
+    private static readonly CipherException s_cipherAeadAuthenticationFailed =
         new CachedCipherException("AEAD authentication failed.");
 
-    public static readonly CipherException CipherUnsupportedAlgorithm =
+    private static readonly CipherException s_cipherUnsupportedAlgorithm =
         new CachedCipherException("Unsupported cipher algorithm.");
 
-    #endregion Security Errors
-
-    #region Resource Errors
-
-    public static readonly InternalErrorException SerializationFixedBufferExpansion =
+    private static readonly InternalErrorException s_serializationFixedBufferExpansion =
         new CachedInternalErrorException("Cannot expand a fixed-size serialization buffer.");
 
-    public static readonly ArgumentOutOfRangeException WriterAdvanceOutOfBound =
+    private static readonly ArgumentOutOfRangeException s_writerAdvanceOutOfBound =
         new CachedArgumentOutOfRangeException("count", "Advance out of buffer bounds.");
 
-    #endregion Resource Errors
-
-    #region Transform Errors
-
-    public static readonly LZ4Exception TransformSourceTooSmallForLZ4Header =
+    private static readonly LZ4Exception s_transformSourceTooSmallForLZ4Header =
         new CachedLZ4Exception("The source buffer is too small to contain an LZ4 block header.");
 
-    public static readonly LZ4Exception TransformInvalidDecompressedLength =
+    private static readonly LZ4Exception s_transformInvalidDecompressedLength =
         new CachedLZ4Exception("LZ4 header declares an invalid OriginalLength. Must be in range [1, MaxDecompressedSize].");
 
-    public static readonly CipherException TransformEncryptionKeyEmpty =
+    private static readonly CipherException s_transformEncryptionKeyEmpty =
         new CachedCipherException("Encryption key cannot be null or empty.");
 
-    public static readonly InternalErrorException TransformSourceTooSmall =
+    private static readonly InternalErrorException s_transformSourceTooSmall =
         new CachedInternalErrorException("Source too small: buffer must be larger than the header offset.");
 
-    public static readonly InternalErrorException TransformDestinationTooSmall =
+    private static readonly InternalErrorException s_transformDestinationTooSmall =
         new CachedInternalErrorException("Destination too small: capacity must be at least the header offset.");
 
-    public static readonly InternalErrorException TransformBufferTooSmallForPacket =
+    private static readonly InternalErrorException s_transformBufferTooSmallForPacket =
         new CachedInternalErrorException("The source and destination buffers must contain a packet header and be large enough for the payload.");
 
-    public static readonly CipherException TransformCiphertextFrameTooShort =
+    private static readonly CipherException s_transformCiphertextFrameTooShort =
         new CachedCipherException("Ciphertext frame is too short to contain a valid envelope header.");
 
-    public static readonly CipherException TransformEncryptedButNoCipher =
+    private static readonly CipherException s_transformEncryptedButNoCipher =
         new CachedCipherException("Encrypted frame received but no cipher suite has been negotiated.");
 
-    public static readonly CipherException TransformEncryptedButNoKey =
+    private static readonly CipherException s_transformEncryptedButNoKey =
         new CachedCipherException("Encrypted frame received before session key establishment.");
 
-    public static readonly CipherException TransformEncryptRequestedButNoCipher =
+    private static readonly CipherException s_transformEncryptRequestedButNoCipher =
         new CachedCipherException("Encryption requested but no cipher suite has been negotiated.");
 
-    #endregion Transform Errors
+    #endregion Cached Exceptions (private)
 
     #region Throw Helpers — LZ4
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidHeader() => throw LZ4InvalidHeader;
+    public static void InvalidHeader() => throw s_lz4InvalidHeader;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void CorruptPayload() => throw LZ4CorruptPayload;
+    public static void CorruptPayload() => throw s_lz4CorruptPayload;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void OutputBufferTooSmall() => throw LZ4OutputBufferTooSmall;
+    public static void OutputBufferTooSmall() => throw s_lz4OutputBufferTooSmall;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void EncoderOutputBufferTooSmall() => throw LZ4EncoderOutputBufferTooSmall;
+    public static void EncoderOutputBufferTooSmall() => throw s_lz4EncoderOutputBufferTooSmall;
 
     #endregion Throw Helpers — LZ4
 
@@ -154,37 +138,37 @@ internal static class Throw
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void EmptyBuffer() => throw SerializationEmptyBuffer;
+    public static void EmptyBuffer() => throw s_serializationEmptyBuffer;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void BufferTooSmall() => throw SerializationBufferTooSmall;
+    public static void BufferTooSmall() => throw s_serializationBufferTooSmall;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void EndOfStream() => throw SerializationEndOfStream;
+    public static void EndOfStream() => throw s_serializationEndOfStream;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void Overflow() => throw SerializationOverflow;
+    public static void Overflow() => throw s_serializationOverflow;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void StringTooLong() => throw SerializationStringTooLong;
+    public static void StringTooLong() => throw s_serializationStringTooLong;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void LengthOutOfRange() => throw SerializationLengthOutOfRange;
+    public static void LengthOutOfRange() => throw s_serializationLengthOutOfRange;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void DataMismatch() => throw SerializationDataMismatch;
+    public static void DataMismatch() => throw s_serializationDataMismatch;
 
     #endregion Throw Helpers — Serialization
 
@@ -193,37 +177,37 @@ internal static class Throw
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void OutputLengthMismatch() => throw CipherOutputLengthMismatch;
+    public static void OutputLengthMismatch() => throw s_cipherOutputLengthMismatch;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidKeyLength() => throw CipherInvalidKeyLength;
+    public static void InvalidKeyLength() => throw s_cipherInvalidKeyLength;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidNonceLength() => throw CipherInvalidNonceLength;
+    public static void InvalidNonceLength() => throw s_cipherInvalidNonceLength;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidTagLength() => throw CipherInvalidTagLength;
+    public static void InvalidTagLength() => throw s_cipherInvalidTagLength;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void CiphertextBufferTooShort() => throw CiphertextTooShort;
+    public static void CiphertextBufferTooShort() => throw s_ciphertextTooShort;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void AeadAuthenticationFailed() => throw CipherAeadAuthenticationFailed;
+    public static void AeadAuthenticationFailed() => throw s_cipherAeadAuthenticationFailed;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void UnsupportedAlgorithm() => throw CipherUnsupportedAlgorithm;
+    public static void UnsupportedAlgorithm() => throw s_cipherUnsupportedAlgorithm;
 
     #endregion Throw Helpers — Security
 
@@ -232,12 +216,12 @@ internal static class Throw
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void FixedBufferExpansion() => throw SerializationFixedBufferExpansion;
+    public static void FixedBufferExpansion() => throw s_serializationFixedBufferExpansion;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void AdvanceOutOfBound() => throw WriterAdvanceOutOfBound;
+    public static void AdvanceOutOfBound() => throw s_writerAdvanceOutOfBound;
 
     #endregion Throw Helpers — Resource
 
@@ -246,52 +230,52 @@ internal static class Throw
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void SourceTooSmallForLZ4Header() => throw TransformSourceTooSmallForLZ4Header;
+    public static void SourceTooSmallForLZ4Header() => throw s_transformSourceTooSmallForLZ4Header;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void InvalidDecompressedLength() => throw TransformInvalidDecompressedLength;
+    public static void InvalidDecompressedLength() => throw s_transformInvalidDecompressedLength;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void EncryptionKeyEmpty() => throw TransformEncryptionKeyEmpty;
+    public static void EncryptionKeyEmpty() => throw s_transformEncryptionKeyEmpty;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void SourceTooSmall() => throw TransformSourceTooSmall;
+    public static void SourceTooSmall() => throw s_transformSourceTooSmall;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void DestinationTooSmall() => throw TransformDestinationTooSmall;
+    public static void DestinationTooSmall() => throw s_transformDestinationTooSmall;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void BufferTooSmallForPacket() => throw TransformBufferTooSmallForPacket;
+    public static void BufferTooSmallForPacket() => throw s_transformBufferTooSmallForPacket;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void CiphertextFrameTooShort() => throw TransformCiphertextFrameTooShort;
+    public static void CiphertextFrameTooShort() => throw s_transformCiphertextFrameTooShort;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void EncryptedButNoCipher() => throw TransformEncryptedButNoCipher;
+    public static void EncryptedButNoCipher() => throw s_transformEncryptedButNoCipher;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void EncryptedButNoKey() => throw TransformEncryptedButNoKey;
+    public static void EncryptedButNoKey() => throw s_transformEncryptedButNoKey;
 
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void EncryptRequestedButNoCipher() => throw TransformEncryptRequestedButNoCipher;
+    public static void EncryptRequestedButNoCipher() => throw s_transformEncryptRequestedButNoCipher;
 
     #endregion Throw Helpers — Transform
 
