@@ -41,8 +41,12 @@ public static class TimeSyncExtensions
 
         ushort seq = unchecked((ushort)Interlocked.Increment(ref s_syncSequence));
 
-        Control req = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCREQUEST).WithSeq(seq).Build();
-        long startTicks = req.MonoTicks;
+        Control req = session
+            .NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCREQUEST)
+            .WithSeq(seq)
+            .Build();
+
+        long t1Mono = req.MonoTicks;
 
         Control res = await session.RequestAsync<Control>(
             req,
@@ -50,15 +54,18 @@ public static class TimeSyncExtensions
             predicate: p => p.Type == ControlType.TIMESYNCRESPONSE && p.SequenceId == seq,
             ct: ct).ConfigureAwait(false);
 
-        long endTicks = Clock.MonoTicksNow();
-        double rttMs = Clock.MonoTicksToMilliseconds(endTicks - startTicks);
+        long t4Mono = Clock.MonoTicksNow();
 
-        // Synchronize the local client clock with the server's timestamp,
-        // accounting for half the round-trip latency, ONLY if allowed for this session.
+        double rttMs = Clock.MonoTicksToMilliseconds(t4Mono - t1Mono);
+
         double adjustedMs = 0;
+
         if (session.Options.TimeSyncEnabled)
         {
-            adjustedMs = Clock.SynchronizeUnixMilliseconds(res.Timestamp, rttMs);
+            double offset = TimeSyncCalculator.CalculateOffsetMs(res.Timestamp, rttMs);
+            session.Options.TimeOffsetMs = (session.Options.TimeOffsetMs * 0.9) + (offset * 0.1);
+
+            adjustedMs = session.Options.TimeOffsetMs;
         }
 
         return (rttMs, adjustedMs);
