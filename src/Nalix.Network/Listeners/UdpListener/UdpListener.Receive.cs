@@ -19,6 +19,7 @@ using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.Framework.Identifiers;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Transport;
 
@@ -466,7 +467,11 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
+        if (args.Lease is not { } lease)
+        {
+            Throw.EventArgsMustHaveLease();
+            return;
+        }
         IBufferLease current = lease;
         bool exchanged = false;
 

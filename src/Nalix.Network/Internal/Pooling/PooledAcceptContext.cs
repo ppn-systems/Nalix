@@ -69,7 +69,6 @@ internal sealed class PooledAcceptContext : IPoolable
     /// Ensures that this context has a bound SAEA, acquiring one from the pool if necessary.
     /// </summary>
     /// <exception cref="InvalidOperationException"></exception>
-    [SuppressMessage("Style", "IDE0270:Use coalesce expression", Justification = "<Pending>")]
     public void EnsureArgsBound()
     {
         if (_args == null)
@@ -80,7 +79,7 @@ internal sealed class PooledAcceptContext : IPoolable
 
             if (pooledArgs == null)
             {
-                throw new InternalErrorException("Failed to acquire PooledSocketAsyncEventArgs.");
+                Throw.FailedToAcquirePooledArgs();
             }
 
             this.BindArgs(pooledArgs);

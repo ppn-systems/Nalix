@@ -104,7 +104,11 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
+        if (args.Lease is not { } lease)
+        {
+            Throw.EventArgsMustHaveLease();
+            return;
+        }
         IBufferLease current = lease;
         bool exchanged = false;
 
@@ -385,8 +389,11 @@ public abstract partial class TcpListenerBase
             try
             {
                 // Create and process connection similar to async version
-                PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context
-                    ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
+                if (((PooledSocketAsyncEventArgs)args).Context is not { } context)
+                {
+                    Throw.TryAcceptContextNotBound();
+                    return;
+                }
 
                 if (this.IsProcessChannelFull())
                 {

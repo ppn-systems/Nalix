@@ -38,6 +38,12 @@ internal static class Throw
     private static readonly ObjectDisposedException s_pooledContextDisposed = new CachedObjectDisposedException(nameof(PooledSocketReceiveContext));
     private static readonly InternalErrorException s_argsNotBound = new CachedInternalErrorException("Args not bound.");
 
+    private static readonly InternalErrorException s_tryAcceptContextNotBound = new CachedInternalErrorException("TryAccept context was not bound to pooled socket args.");
+    private static readonly InternalErrorException s_failedToAcquirePooledArgs = new CachedInternalErrorException("Failed to acquire PooledSocketAsyncEventArgs.");
+    private static readonly InternalErrorException s_connectionNotAvailable = new CachedInternalErrorException("Connection is not available for this event.");
+    private static readonly InternalErrorException s_udpTransportNotCreated = new CachedInternalErrorException("UDP transport has not been created yet.");
+    private static readonly InternalErrorException s_eventArgsMustHaveLease = new CachedInternalErrorException("Event args must have Lease.");
+
     #endregion Cached Exceptions (private)
 
     #region Getters (return exception, do not throw)
@@ -126,6 +132,31 @@ internal static class Throw
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void ArgsNotBound() => throw s_argsNotBound;
 
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void EventArgsMustHaveLease() => throw s_eventArgsMustHaveLease;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void TryAcceptContextNotBound() => throw s_tryAcceptContextNotBound;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void FailedToAcquirePooledArgs() => throw s_failedToAcquirePooledArgs;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void ConnectionNotAvailable() => throw s_connectionNotAvailable;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void UdpTransportNotCreated() => throw s_udpTransportNotCreated;
+
     #endregion Throw Helpers
 
     #region Private Cached Exception Types
@@ -150,6 +181,11 @@ internal static class Throw
     }
 
     private sealed class CachedInternalErrorException(string message) : InternalErrorException(message)
+    {
+        public override string? StackTrace => "   at Nalix.Network.Internal.Transport (Cached Exception)";
+    }
+
+    private sealed class CachedInvalidOperationException(string message) : InvalidOperationException(message)
     {
         public override string? StackTrace => "   at Nalix.Network.Internal.Transport (Cached Exception)";
     }
