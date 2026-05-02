@@ -3,7 +3,6 @@
 
 using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Internal;
-using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Primitives;
 
 namespace Nalix.Codec.Security.Symmetric;

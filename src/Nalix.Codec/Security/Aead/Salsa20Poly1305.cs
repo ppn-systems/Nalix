@@ -4,7 +4,6 @@
 using System.Diagnostics;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Hashing;
-using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Primitives;
 using Nalix.Codec.Security.Symmetric;
 
