@@ -16,6 +16,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -218,15 +219,21 @@ public sealed class PacketDispatchChannel
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void HandlePacket(IBufferLease packet, IConnection connection)
+    public void HandlePacket(IBufferLease lease, IConnection connection)
     {
-        if (packet is null || connection is null)
+        if (lease is null || connection is null)
         {
             return;
         }
 
-        if (packet.Length <= 0)
+        if (lease.Length <= 0)
         {
+            return;
+        }
+
+        if (_catalog.IsKnownMagic(lease.Span.ReadHeaderLE().MagicNumber))
+        {
+            connection.IncrementErrorCount();
             return;
         }
 
@@ -236,13 +243,13 @@ public sealed class PacketDispatchChannel
          * To safely process the packet asynchronously in a worker thread, 
          * we MUST take an additional reference (Retain).
          */
-        packet.Retain();
+        lease.Retain();
 
-        if (!_dispatch.PushCore(connection, packet, noBlock: true))
+        if (!_dispatch.PushCore(connection, lease, noBlock: true))
         {
             // If the channel is full or the connection is inactive, we must
             // release the reference we just took to avoid a memory leak.
-            packet.Dispose();
+            lease.Dispose();
             return;
         }
 

@@ -19,11 +19,11 @@ public interface IPacketDispatch : IActivatable, IReportable
     /// <summary>
     /// Handles an incoming packet represented as a pooled buffer lease.
     /// </summary>
-    /// <param name="packet">
+    /// <param name="lease">
     /// The pooled buffer containing the raw packet data.
     /// </param>
     /// <param name="connection">
     /// The connection from which the packet was received.
     /// </param>
-    void HandlePacket(IBufferLease packet, IConnection connection);
+    void HandlePacket(IBufferLease lease, IConnection connection);
 }

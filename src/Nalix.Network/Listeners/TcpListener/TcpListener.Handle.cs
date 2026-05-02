@@ -122,7 +122,7 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
+            if (ex is CipherException or InternalErrorException or SerializationFailureException or LZ4Exception)
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
