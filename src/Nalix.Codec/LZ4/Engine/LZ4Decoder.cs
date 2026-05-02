@@ -90,29 +90,29 @@ internal static class LZ4Decoder
     {
         if (input.Length < LZ4BlockHeader.Size)
         {
-            Throw.ThrowLZ4InvalidHeader();
+            Throw.InvalidHeader();
         }
 
         header = MemOps.ReadUnaligned<LZ4BlockHeader>(input);
 
         if (header.OriginalLength < 0)
         {
-            Throw.ThrowLZ4InvalidHeader();
+            Throw.InvalidHeader();
         }
 
         if (header.CompressedLength < LZ4BlockHeader.Size)
         {
-            Throw.ThrowLZ4InvalidHeader();
+            Throw.InvalidHeader();
         }
 
         if (header.CompressedLength != input.Length)
         {
-            Throw.ThrowLZ4InvalidHeader();
+            Throw.InvalidHeader();
         }
 
         if (header.OriginalLength > LZ4CompressionConstants.MaxBlockSize)
         {
-            Throw.ThrowLZ4InvalidHeader();
+            Throw.InvalidHeader();
         }
     }
 
@@ -122,7 +122,7 @@ internal static class LZ4Decoder
     {
         if (header.OriginalLength > output.Length)
         {
-            Throw.ThrowLZ4OutputBufferTooSmall();
+            Throw.OutputBufferTooSmall();
         }
 
         if (header.OriginalLength == 0)
@@ -151,7 +151,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            Throw.ThrowLZ4CorruptPayload();
+                            Throw.CorruptPayload();
                         }
 
                         literalLength += extraLength;
@@ -162,7 +162,7 @@ internal static class LZ4Decoder
                         if (inputPtr + literalLength > inputEnd || outputPtr + literalLength > outputEnd)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            Throw.ThrowLZ4CorruptPayload();
+                            Throw.CorruptPayload();
                         }
 
                         MemOps.Copy(inputPtr, outputPtr, literalLength);
@@ -178,7 +178,7 @@ internal static class LZ4Decoder
                     if (inputPtr + sizeof(ushort) > inputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        Throw.ThrowLZ4CorruptPayload();
+                        Throw.CorruptPayload();
                     }
 
                     int offset = MemOps.ReadUnaligned<ushort>(inputPtr);
@@ -186,7 +186,7 @@ internal static class LZ4Decoder
                     if (offset == 0 || offset > (outputPtr - outputBase))
                     {
                         MemorySecurity.ZeroMemory(output);
-                        Throw.ThrowLZ4CorruptPayload();
+                        Throw.CorruptPayload();
                     }
 
                     int matchLength = token & LZ4CompressionConstants.TokenMatchMask;
@@ -196,7 +196,7 @@ internal static class LZ4Decoder
                         if (bytesRead == -1 || extraLength < 0)
                         {
                             MemorySecurity.ZeroMemory(output);
-                            Throw.ThrowLZ4CorruptPayload();
+                            Throw.CorruptPayload();
                         }
 
                         matchLength += extraLength;
@@ -207,7 +207,7 @@ internal static class LZ4Decoder
                     if (outputPtr + matchLength > outputEnd)
                     {
                         MemorySecurity.ZeroMemory(output);
-                        Throw.ThrowLZ4CorruptPayload();
+                        Throw.CorruptPayload();
                     }
 
                     MemOps.Copy(matchSourcePtr, outputPtr, matchLength);
@@ -217,7 +217,7 @@ internal static class LZ4Decoder
                 if (outputPtr != outputEnd || inputPtr != inputEnd)
                 {
                     MemorySecurity.ZeroMemory(output);
-                    Throw.ThrowLZ4CorruptPayload();
+                    Throw.CorruptPayload();
                 }
 
                 return header.OriginalLength;

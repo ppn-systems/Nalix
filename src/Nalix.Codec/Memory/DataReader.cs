@@ -110,7 +110,7 @@ public ref struct DataReader
         int remaining = this.BytesRemaining;
         if (sizeHint < 0 || sizeHint > remaining)
         {
-            Throw.ThrowSerializationEndOfStream();
+            Throw.EndOfStream();
         }
 
         return ref MemoryMarshal.GetReference(_buffer[_pos..]);
@@ -129,7 +129,7 @@ public ref struct DataReader
         int remaining = this.BytesRemaining;
         if (count > remaining)
         {
-            Throw.ThrowSerializationEndOfStream();
+            Throw.EndOfStream();
         }
 
         _pos += count;

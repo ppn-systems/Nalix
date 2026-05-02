@@ -130,22 +130,22 @@ internal static class Throw
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowLZ4InvalidHeader() => throw LZ4InvalidHeader;
+    public static void InvalidHeader() => throw LZ4InvalidHeader;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowLZ4CorruptPayload() => throw LZ4CorruptPayload;
+    public static void CorruptPayload() => throw LZ4CorruptPayload;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowLZ4OutputBufferTooSmall() => throw LZ4OutputBufferTooSmall;
+    public static void OutputBufferTooSmall() => throw LZ4OutputBufferTooSmall;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowLZ4EncoderOutputBufferTooSmall() => throw LZ4EncoderOutputBufferTooSmall;
+    public static void EncoderOutputBufferTooSmall() => throw LZ4EncoderOutputBufferTooSmall;
 
     #endregion Throw Helpers — LZ4
 
@@ -154,37 +154,37 @@ internal static class Throw
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationEmptyBuffer() => throw SerializationEmptyBuffer;
+    public static void EmptyBuffer() => throw SerializationEmptyBuffer;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationBufferTooSmall() => throw SerializationBufferTooSmall;
+    public static void BufferTooSmall() => throw SerializationBufferTooSmall;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationEndOfStream() => throw SerializationEndOfStream;
+    public static void EndOfStream() => throw SerializationEndOfStream;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationOverflow() => throw SerializationOverflow;
+    public static void Overflow() => throw SerializationOverflow;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationStringTooLong() => throw SerializationStringTooLong;
+    public static void StringTooLong() => throw SerializationStringTooLong;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationLengthOutOfRange() => throw SerializationLengthOutOfRange;
+    public static void LengthOutOfRange() => throw SerializationLengthOutOfRange;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationDataMismatch() => throw SerializationDataMismatch;
+    public static void DataMismatch() => throw SerializationDataMismatch;
 
     #endregion Throw Helpers — Serialization
 
@@ -193,37 +193,37 @@ internal static class Throw
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowCipherOutputLengthMismatch() => throw CipherOutputLengthMismatch;
+    public static void OutputLengthMismatch() => throw CipherOutputLengthMismatch;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowCipherInvalidKeyLength() => throw CipherInvalidKeyLength;
+    public static void InvalidKeyLength() => throw CipherInvalidKeyLength;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowCipherInvalidNonceLength() => throw CipherInvalidNonceLength;
+    public static void InvalidNonceLength() => throw CipherInvalidNonceLength;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowCipherInvalidTagLength() => throw CipherInvalidTagLength;
+    public static void InvalidTagLength() => throw CipherInvalidTagLength;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowCiphertextTooShort() => throw CiphertextTooShort;
+    public static void CiphertextBufferTooShort() => throw CiphertextTooShort;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowCipherAeadAuthenticationFailed() => throw CipherAeadAuthenticationFailed;
+    public static void AeadAuthenticationFailed() => throw CipherAeadAuthenticationFailed;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowCipherUnsupportedAlgorithm() => throw CipherUnsupportedAlgorithm;
+    public static void UnsupportedAlgorithm() => throw CipherUnsupportedAlgorithm;
 
     #endregion Throw Helpers — Security
 
@@ -232,12 +232,12 @@ internal static class Throw
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowSerializationFixedBufferExpansion() => throw SerializationFixedBufferExpansion;
+    public static void FixedBufferExpansion() => throw SerializationFixedBufferExpansion;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowWriterAdvanceOutOfBound() => throw WriterAdvanceOutOfBound;
+    public static void AdvanceOutOfBound() => throw WriterAdvanceOutOfBound;
 
     #endregion Throw Helpers — Resource
 
@@ -246,52 +246,52 @@ internal static class Throw
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformSourceTooSmallForLZ4Header() => throw TransformSourceTooSmallForLZ4Header;
+    public static void SourceTooSmallForLZ4Header() => throw TransformSourceTooSmallForLZ4Header;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformInvalidDecompressedLength() => throw TransformInvalidDecompressedLength;
+    public static void InvalidDecompressedLength() => throw TransformInvalidDecompressedLength;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformEncryptionKeyEmpty() => throw TransformEncryptionKeyEmpty;
+    public static void EncryptionKeyEmpty() => throw TransformEncryptionKeyEmpty;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformSourceTooSmall() => throw TransformSourceTooSmall;
+    public static void SourceTooSmall() => throw TransformSourceTooSmall;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformDestinationTooSmall() => throw TransformDestinationTooSmall;
+    public static void DestinationTooSmall() => throw TransformDestinationTooSmall;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformBufferTooSmallForPacket() => throw TransformBufferTooSmallForPacket;
+    public static void BufferTooSmallForPacket() => throw TransformBufferTooSmallForPacket;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformCiphertextFrameTooShort() => throw TransformCiphertextFrameTooShort;
+    public static void CiphertextFrameTooShort() => throw TransformCiphertextFrameTooShort;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformEncryptedButNoCipher() => throw TransformEncryptedButNoCipher;
+    public static void EncryptedButNoCipher() => throw TransformEncryptedButNoCipher;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformEncryptedButNoKey() => throw TransformEncryptedButNoKey;
+    public static void EncryptedButNoKey() => throw TransformEncryptedButNoKey;
 
     [StackTraceHidden]
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public static void ThrowTransformEncryptRequestedButNoCipher() => throw TransformEncryptRequestedButNoCipher;
+    public static void EncryptRequestedButNoCipher() => throw TransformEncryptRequestedButNoCipher;
 
     #endregion Throw Helpers — Transform
 
