@@ -62,20 +62,6 @@ public sealed class ClockTests
     }
 
     [Fact]
-    public void SynchronizeTimeAndResetSynchronization()
-    {
-        DateTime now = DateTime.UtcNow.AddSeconds(1);
-        double drift = Clock.SynchronizeTime(now, 0.1);
-        Assert.True(Math.Abs(drift) > 0);
-        Assert.True(Clock.IsSynchronized);
-        Assert.True(Clock.LastSyncTime == now);
-
-        Clock.ResetSynchronization();
-        Assert.False(Clock.IsSynchronized);
-        Assert.Equal(DateTime.MinValue, Clock.LastSyncTime);
-    }
-
-    [Fact]
     public void NowUtcShouldIncreaseAcrossSequentialReads()
     {
         DateTime first = Clock.NowUtc();

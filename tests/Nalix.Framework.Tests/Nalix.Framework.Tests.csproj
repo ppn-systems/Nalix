@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
     <ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
     <ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
+    <ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
   </ItemGroup>
 
 </Project>
