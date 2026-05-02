@@ -7,7 +7,8 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Codec.Internal;
+using Nalix.Codec.Internal.LZ4;
+using Nalix.Codec.Internal.Memory;
 
 namespace Nalix.Codec.LZ4;
 

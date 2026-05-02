@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Codec.Internal;
+using Nalix.Codec.Internal.Memory;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security.Primitives;
 
