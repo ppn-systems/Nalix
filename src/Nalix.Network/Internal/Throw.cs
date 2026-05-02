@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Network.Internal.Pooling;
 
-namespace Nalix.Network.Internal.Transport;
+namespace Nalix.Network.Internal;
 
 /// <summary>
 /// Provides cached, zero-allocation exception instances for Abstractions transport errors.
@@ -17,26 +17,37 @@ namespace Nalix.Network.Internal.Transport;
 /// </summary>
 internal static class Throw
 {
+    /// <inheritdoc/>
     public static readonly SocketException Shutdown = new CachedSocketException((int)SocketError.Shutdown);
 
+    /// <inheritdoc/>
     public static readonly SocketException MessageSize = new CachedSocketException((int)SocketError.MessageSize);
 
+    /// <inheritdoc/>
     public static readonly NetworkException UdpSendFailed = new CachedNetworkException("UDP transmission failed.");
 
+    /// <inheritdoc/>
     public static readonly NetworkException UdpPartialSend = new CachedNetworkException("UDP partial send occurred.");
 
+    /// <inheritdoc/>
     public static readonly NetworkException SendFailed = new CachedNetworkException("The socket closed while sending.");
 
+    /// <inheritdoc/>
     public static readonly SocketException OperationAborted = new CachedSocketException((int)SocketError.OperationAborted);
 
+    /// <inheritdoc/>
     public static readonly SocketException ConnectionAborted = new CachedSocketException((int)SocketError.ConnectionAborted);
 
+    /// <inheritdoc/>
     public static readonly SocketException ConnectionResetInternal = new CachedSocketException((int)SocketError.ConnectionReset);
 
+    /// <inheritdoc/>
     public static readonly SocketException ProtocolNotSupported = new CachedSocketException((int)SocketError.ProtocolNotSupported);
 
+    /// <inheritdoc/>
     public static readonly NetworkException UdpPayloadTooLarge = new CachedNetworkException("UDP payload too large. Use TCP for large data.");
 
+    /// <inheritdoc/>
     public static readonly NetworkException ConnectionReset = new CachedNetworkException("Connection closed by peer.", ConnectionResetInternal);
 
     /// <summary>

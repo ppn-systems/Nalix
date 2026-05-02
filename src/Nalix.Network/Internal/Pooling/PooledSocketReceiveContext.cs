@@ -14,7 +14,6 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Internal.Pooling;
 
