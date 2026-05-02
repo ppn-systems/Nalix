@@ -4,7 +4,6 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
 namespace Nalix.Environment.Time;
 
@@ -36,22 +35,9 @@ public static partial class Clock
     public static DateTime NowUtc()
     {
         long swTicks = s_utcStopwatch.ElapsedTicks;
+        long ticks = s_utcBaseTicks + (long)(swTicks * s_swToDateTimeTicks);
 
-        if (!IsSynchronized)
-        {
-            long ticks = s_utcBaseTicks + (long)(swTicks * s_swToDateTimeTicks);
-            return new DateTime(ticks, DateTimeKind.Utc);
-        }
-
-        // Use volatile reads so synchronization updates become visible without
-        // locking every time query.
-        double dc = Volatile.Read(ref s_driftCorrection);
-        long offset = Volatile.Read(ref s_timeOffset);
-
-        // Apply drift correction to the elapsed stopwatch span, then add the
-        // stored offset to recover the current UTC estimate.
-        long corrected = (long)(swTicks * s_swToDateTimeTicks * dc) + offset;
-        return new DateTime(s_utcBaseTicks + corrected, DateTimeKind.Utc);
+        return new DateTime(ticks, DateTimeKind.Utc);
     }
 
     /// <summary>
@@ -125,6 +111,5 @@ public static partial class Clock
     /// Converts a monotonic tick delta into milliseconds.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public static double MonoTicksToMilliseconds(
-        long tickDelta) => tickDelta * 1000.0 / Stopwatch.Frequency;
+    public static double MonoTicksToMilliseconds(long tickDelta) => tickDelta * 1000.0 / Stopwatch.Frequency;
 }
