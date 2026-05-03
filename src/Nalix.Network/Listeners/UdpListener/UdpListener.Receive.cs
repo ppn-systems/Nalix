@@ -14,6 +14,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
@@ -298,8 +299,8 @@ public abstract partial class UdpListenerBase
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
         // Extract sequence ID cleanly from the packet header (offset 8 for the new 16-bit sequence)
-        ushort sequenceId = HeaderExtensions.ReadHeaderLE(payload).SequenceId;
-        if (!connection.UdpReplayWindow.TryCheck(sequenceId))
+        ref readonly PacketHeader header = ref payload.AsHeaderRef();
+        if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             lease.Dispose();

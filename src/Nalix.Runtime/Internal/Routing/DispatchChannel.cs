@@ -711,8 +711,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             return LowestPriorityIndex;
         }
 
-        int priority = (int)span.ReadHeaderLE().Priority;
-        return (uint)priority <= HighestPriorityIndex ? priority : LowestPriorityIndex;
+        ref readonly PacketHeader header = ref span.AsHeaderRef();
+        return (uint)header.Priority <= HighestPriorityIndex ? (int)header.Priority : LowestPriorityIndex;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

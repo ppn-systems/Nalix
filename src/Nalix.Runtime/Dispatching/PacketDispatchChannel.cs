@@ -16,6 +16,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
@@ -231,7 +232,8 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        if (!_catalog.IsKnownMagic(lease.Span.ReadHeaderLE().MagicNumber))
+        ref readonly PacketHeader header = ref lease.Span.AsHeaderRef();
+        if (!_catalog.IsKnownMagic(header.MagicNumber))
         {
             connection.IncrementErrorCount();
             return;
