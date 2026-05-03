@@ -57,7 +57,7 @@ internal sealed class NullableFormatter<
     /// <param name="value">The nullable value to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T? value)
+    public void Serialize(ref DataWriter writer, in T? value)
     {
         // Emit a compact presence marker before any payload bytes.
         writer.Write(value.HasValue ? HasValueFlag : NoValueFlag);

@@ -45,23 +45,25 @@ internal sealed partial class UnmanagedFormatter<
     /// <exception cref="SerializationFailureException">Thrown when the writer cannot expand to fit the unmanaged payload.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T value)
+    public void Serialize(ref DataWriter writer, in T value)
     {
         int size = System.Runtime.CompilerServices.Unsafe.SizeOf<T>();
         writer.Expand(size);
+
+        ref T valueRef = ref System.Runtime.CompilerServices.Unsafe.AsRef(in value);
 
         if (size == sizeof(byte))
         {
             Span<byte> dst = writer.FreeBuffer[..sizeof(byte)];
             // Bit-preserving cast for byte/sbyte/bool
-            dst[0] = System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref value);
+            dst[0] = System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref valueRef);
             writer.Advance(sizeof(byte));
             return;
         }
 
         if (size == sizeof(ushort))
         {
-            ushort v = System.Runtime.CompilerServices.Unsafe.As<T, ushort>(ref value);
+            ushort v = System.Runtime.CompilerServices.Unsafe.As<T, ushort>(ref valueRef);
             Span<byte> dst = writer.FreeBuffer[..sizeof(ushort)];
             System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(dst, v);
             writer.Advance(sizeof(ushort));
@@ -71,7 +73,7 @@ internal sealed partial class UnmanagedFormatter<
         if (size == sizeof(uint))
         {
             // Works for int/uint/float via bit reinterpret
-            uint v = System.Runtime.CompilerServices.Unsafe.As<T, uint>(ref value);
+            uint v = System.Runtime.CompilerServices.Unsafe.As<T, uint>(ref valueRef);
             Span<byte> dst = writer.FreeBuffer[..sizeof(uint)];
             System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(dst, v);
             writer.Advance(sizeof(uint));
@@ -81,7 +83,7 @@ internal sealed partial class UnmanagedFormatter<
         if (size == sizeof(ulong))
         {
             // Works for long/ulong/double via bit reinterpret
-            ulong v = System.Runtime.CompilerServices.Unsafe.As<T, ulong>(ref value);
+            ulong v = System.Runtime.CompilerServices.Unsafe.As<T, ulong>(ref valueRef);
             Span<byte> dst = writer.FreeBuffer[..sizeof(ulong)];
             System.Buffers.Binary.BinaryPrimitives.WriteUInt64LittleEndian(dst, v);
             writer.Advance(sizeof(ulong));
@@ -92,7 +94,7 @@ internal sealed partial class UnmanagedFormatter<
         {
             if (typeof(T) == typeof(decimal))
             {
-                decimal dec = System.Runtime.CompilerServices.Unsafe.As<T, decimal>(ref value);
+                decimal dec = System.Runtime.CompilerServices.Unsafe.As<T, decimal>(ref valueRef);
                 int[] parts = decimal.GetBits(dec); // length = 4
 
                 Span<byte> dst = writer.FreeBuffer[..sizeof(decimal)];

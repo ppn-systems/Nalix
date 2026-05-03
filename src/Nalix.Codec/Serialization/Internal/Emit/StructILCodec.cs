@@ -22,7 +22,7 @@ internal static class StructILCodec<T> where T : struct
     public static readonly SerializeDelegate Serialize;
     public static readonly DeserializeDelegate Deserialize;
 
-    public delegate void SerializeDelegate(ref DataWriter writer, T value);
+    public delegate void SerializeDelegate(ref DataWriter writer, in T value);
     public delegate T DeserializeDelegate(ref DataReader reader);
 
     // Reflection and method resolution are done once per closed struct type.

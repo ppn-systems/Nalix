@@ -15,7 +15,7 @@ public sealed class Bytes32Formatter : IFormatter<Bytes32>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, Bytes32 value) => writer.WriteUnmanaged(value);
+    public void Serialize(ref DataWriter writer, in Bytes32 value) => writer.WriteUnmanaged(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

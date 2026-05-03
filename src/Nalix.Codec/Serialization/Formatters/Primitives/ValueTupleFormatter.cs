@@ -30,7 +30,7 @@ internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, (T1, T2) value)
+    public void Serialize(ref DataWriter writer, in (T1, T2) value)
     {
         _f1.Serialize(ref writer, value.Item1);
         _f2.Serialize(ref writer, value.Item2);
@@ -72,7 +72,7 @@ internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, (T1, T2, T3) value)
+    public void Serialize(ref DataWriter writer, in (T1, T2, T3) value)
     {
         _f1.Serialize(ref writer, value.Item1);
         _f2.Serialize(ref writer, value.Item2);
@@ -118,7 +118,7 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, 
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, (T1, T2, T3, T4) value)
+    public void Serialize(ref DataWriter writer, in (T1, T2, T3, T4) value)
     {
         _f1.Serialize(ref writer, value.Item1);
         _f2.Serialize(ref writer, value.Item2);
@@ -169,7 +169,7 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4, T5>
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, (T1, T2, T3, T4, T5) value)
+    public void Serialize(ref DataWriter writer, in (T1, T2, T3, T4, T5) value)
     {
         _f1.Serialize(ref writer, value.Item1);
         _f2.Serialize(ref writer, value.Item2);

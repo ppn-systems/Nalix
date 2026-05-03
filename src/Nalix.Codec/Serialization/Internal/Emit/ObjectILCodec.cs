@@ -17,9 +17,10 @@ namespace Nalix.Codec.Serialization.Internal.Emit;
 /// </summary>
 internal static class ObjectILCodec<T> where T : class, new()
 {
-    public delegate void SerializeDelegate(ref DataWriter writer, T value);
-    public delegate T DeserializeDelegate(ref DataReader reader);
+    public delegate void SerializeDelegate(ref DataWriter writer, in T value);
     public delegate void FillDelegate(ref DataReader reader, T value);
+
+    public delegate T DeserializeDelegate(ref DataReader reader);
 
     public static readonly SerializeDelegate Serialize;
     public static readonly DeserializeDelegate Deserialize;

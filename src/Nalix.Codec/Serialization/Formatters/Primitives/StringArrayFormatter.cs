@@ -43,7 +43,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     /// <exception cref="InvalidOperationException">Thrown when the writer cannot expand or a required nested formatter is unavailable.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, string[] value)
+    public void Serialize(ref DataWriter writer, in string[] value)
     {
         // Null array is represented by the reserved sentinel value.
         if (value is null)
