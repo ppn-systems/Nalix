@@ -37,10 +37,9 @@ public static class FrameCompression
                                        .GetDecompressedLength(src.Span[FrameTransformer.Offset..]) + FrameTransformer.Offset);
         try
         {
-            Span<byte> destSpan = dest.Span;
             FrameTransformer.Decompress(src, dest);
 
-            ref PacketHeader header = ref destSpan.AsHeaderRef();
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
             header.Flags &= ~PacketFlags.COMPRESSED;
 
             return dest;
@@ -70,10 +69,9 @@ public static class FrameCompression
 
         try
         {
-            Span<byte> destSpan = dest.Span;
             FrameTransformer.Compress(src, dest);
 
-            ref PacketHeader header = ref destSpan.AsHeaderRef();
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
             header.Flags |= PacketFlags.COMPRESSED;
 
             return dest;

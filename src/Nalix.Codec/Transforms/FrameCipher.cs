@@ -40,10 +40,9 @@ public static class FrameCipher
                                        .GetPlaintextLength(src.Span));
         try
         {
-            Span<byte> destSpan = dest.Span;
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm);
 
-            ref PacketHeader header = ref destSpan.AsHeaderRef();
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
             header.Flags &= ~PacketFlags.ENCRYPTED;
 
             return dest;
@@ -67,10 +66,9 @@ public static class FrameCipher
                                        .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
         try
         {
-            Span<byte> destSpan = dest.Span;
             FrameTransformer.Encrypt(src, dest, key, suite);
 
-            ref PacketHeader header = ref destSpan.AsHeaderRef();
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
             header.Flags |= PacketFlags.ENCRYPTED;
 
             return dest;
