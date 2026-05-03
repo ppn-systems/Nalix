@@ -122,7 +122,11 @@ public ref struct DataWriter
     /// Gets a span representing the remaining unwritten segment of the buffer.
     /// </summary>
     [Pure]
-    public readonly Span<byte> FreeBuffer => _span[this.WrittenCount..];
+    public readonly Span<byte> FreeBuffer
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _span[this.WrittenCount..];
+    }
 
     #endregion Properties
 

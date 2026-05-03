@@ -36,8 +36,7 @@ internal static unsafe class MemOps
     /// <param name="source">A pointer to the source memory location.</param>
     /// <returns>The value read from the specified memory location.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static T ReadUnaligned<T>(byte* source) where T : unmanaged
-        => Unsafe.ReadUnaligned<T>(source);
+    public static T ReadUnaligned<T>(byte* source) where T : unmanaged => Unsafe.ReadUnaligned<T>(source);
 
     /// <summary>
     /// Reads an unaligned value from a span of memory.
@@ -47,12 +46,7 @@ internal static unsafe class MemOps
     /// <returns>The value read from the specified memory location.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static T ReadUnaligned<T>(ReadOnlySpan<byte> source) where T : unmanaged
-    {
-        fixed (byte* pSource = &MemoryMarshal.GetReference(source))
-        {
-            return Unsafe.ReadUnaligned<T>(pSource);
-        }
-    }
+        => Unsafe.ReadUnaligned<T>(ref MemoryMarshal.GetReference(source));
 
     /// <summary>
     /// Writes an unaligned value to a memory location.
@@ -72,12 +66,7 @@ internal static unsafe class MemOps
     /// <param name="value">The value to write.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static void WriteUnaligned<T>(Span<byte> destination, T value) where T : unmanaged
-    {
-        fixed (byte* pDest = &MemoryMarshal.GetReference(destination))
-        {
-            Unsafe.WriteUnaligned(pDest, value);
-        }
-    }
+        => Unsafe.WriteUnaligned<T>(ref MemoryMarshal.GetReference(destination), value);
 
     /// <summary>
     /// Copies memory from source to destination, handling potential overlaps.
@@ -125,9 +114,7 @@ internal static unsafe class MemOps
     /// <param name="destination">A pointer to the destination memory location.</param>
     [SkipLocalsInit]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static void Copy(
-        ReadOnlySpan<byte> source,
-        byte* destination)
+    public static void Copy(ReadOnlySpan<byte> source, byte* destination)
     {
         if (source.IsEmpty)
         {
@@ -149,10 +136,7 @@ internal static unsafe class MemOps
     /// <param name="maxLength">The maximum number of bytes to compare.</param>
     /// <returns>The number of matching bytes.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static int CountEqualBytes(
-        byte* p1,
-        byte* p2,
-        int maxLength)
+    public static int CountEqualBytes(byte* p1, byte* p2, int maxLength)
     {
         int count = 0;
         if (maxLength <= 0)
