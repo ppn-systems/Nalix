@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Diagnostics;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Security.Primitives;
@@ -36,6 +35,7 @@ namespace Nalix.Codec.Security.Aead;
 /// </remarks>
 [System.Diagnostics.StackTraceHidden]
 [System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Salsa20-Poly1305 AEAD")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -126,7 +126,7 @@ public static class Salsa20Poly1305
             }
             catch (System.Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                Debug.WriteLine($"[Salsa20Poly1305] Poly1305.Clear failed: {ex}");
+                System.Diagnostics.Debug.WriteLine($"[Salsa20Poly1305] Poly1305.Clear failed: {ex}");
             }
 
             return written;

@@ -26,6 +26,7 @@ namespace Nalix.Codec.Security.Symmetric;
 /// See <see href="https://tools.ietf.org/html/rfc7539">RFC 7539</see> for the full specification.
 /// </para>
 /// </remarks>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public struct ChaCha20
 {

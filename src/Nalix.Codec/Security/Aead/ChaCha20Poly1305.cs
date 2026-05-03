@@ -49,6 +49,7 @@ namespace Nalix.Codec.Security.Aead;
 /// </threadsafety>
 /// <seealso href="https://www.rfc-editor.org/rfc/rfc8439">RFC 8439</seealso>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Chacha20-Poly1305 AEAD")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]

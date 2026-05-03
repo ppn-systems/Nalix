@@ -101,7 +101,9 @@ public static class AeadEngine
         System.Span<byte> ctDestination = ciphertext.Slice(ctOffset, plaintext.Length);
         System.Span<byte> tagDestination = ciphertext.Slice(ctOffset + plaintext.Length, EnvelopeFormat.TagSize);
         System.Span<byte> header = stackalloc byte[EnvelopeFormat.HeaderSize];
-        EnvelopeHeader.Encode(header, new EnvelopeHeader(EnvelopeFormat.CurrentVersion, algorithm, 0, (byte)nonce.Length, seqVal));
+
+        EnvelopeHeader headerStruct = new(EnvelopeFormat.CurrentVersion, algorithm, 0, (byte)nonce.Length, seqVal);
+        EnvelopeHeader.Encode(header, in headerStruct);
 
         byte[]? rentedAad = null;
         int authenticatedDataLength;

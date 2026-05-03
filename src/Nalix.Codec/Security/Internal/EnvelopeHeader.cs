@@ -72,7 +72,7 @@ internal readonly struct EnvelopeHeader
         MethodImplOptions.AggressiveOptimization)]
     internal static void Encode(
         [System.Diagnostics.CodeAnalysis.NotNull] System.Span<byte> dest,
-        [System.Diagnostics.CodeAnalysis.NotNull] EnvelopeHeader header)
+        [System.Diagnostics.CodeAnalysis.NotNull] in EnvelopeHeader header)
     {
         if (dest.Length < SIZE)
         {
@@ -81,7 +81,7 @@ internal readonly struct EnvelopeHeader
         // magic
         System.MemoryExtensions.CopyTo(MAGIC_BYTES, dest);
         dest[4] = header.VERSION;
-        dest[5] = (byte)header.TYPE;
+        dest[5] = Unsafe.As<CipherSuiteType, byte>(ref Unsafe.AsRef(in header.TYPE));
         dest[6] = header.FLAGS;
         dest[7] = header.NONCE_LEN;
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(dest.Slice(8, 4), header.SEQ);
@@ -122,7 +122,7 @@ internal readonly struct EnvelopeHeader
             return false;
         }
 
-        CipherSuiteType type = (CipherSuiteType)typeByte;
+        CipherSuiteType type = Unsafe.As<byte, CipherSuiteType>(ref typeByte);
 
         byte flags = src[6];
         byte nonceLen = src[7];
