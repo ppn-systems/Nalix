@@ -25,7 +25,7 @@ public sealed class HandshakeFormatter : IFillableFormatter<Handshake> //[cite: 
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, Handshake value) //[cite: 11, 13]
+    public void Serialize(ref DataWriter writer, in Handshake value) //[cite: 11, 13]
     {
         if (value is null)
         {

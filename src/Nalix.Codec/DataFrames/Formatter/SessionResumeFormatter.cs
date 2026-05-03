@@ -25,7 +25,7 @@ public sealed class SessionResumeFormatter : IFillableFormatter<SessionResume> /
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, SessionResume value) //[cite: 11, 14]
+    public void Serialize(ref DataWriter writer, in SessionResume value) //[cite: 11, 14]
     {
         if (value is null)
         {

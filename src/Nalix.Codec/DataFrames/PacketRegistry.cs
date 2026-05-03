@@ -123,7 +123,7 @@ public sealed class PacketRegistry : IPacketRegistry
             return packet;
         }
 
-        if (raw.Length < PacketConstants.HeaderSize)
+        if ((uint)raw.Length < PacketConstants.HeaderSize)
         {
             throw new ArgumentException(
                 $"Raw packet data is too short to contain a valid header. " +
@@ -145,14 +145,14 @@ public sealed class PacketRegistry : IPacketRegistry
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
     {
-        if (raw.Length < PacketConstants.HeaderSize)
+        if ((uint)raw.Length < PacketConstants.HeaderSize)
         {
             packet = null;
             return false;
         }
 
         ref readonly PacketHeader header = ref raw.AsHeaderRef();
-        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer) || deserializer is null)
+        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
         {
             packet = null;
             return false;
@@ -160,7 +160,7 @@ public sealed class PacketRegistry : IPacketRegistry
 
         try
         {
-            packet = deserializer(raw);
+            packet = Unsafe.As<PacketDeserializer>(deserializer).Invoke(raw);
             return packet is not null;
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)

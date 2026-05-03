@@ -25,7 +25,7 @@ public sealed class DirectiveFormatter : IFillableFormatter<Directive> //[cite: 
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, Directive value) //[cite: 11, 12]
+    public void Serialize(ref DataWriter writer, in Directive value) //[cite: 11, 12]
     {
         if (value is null)
         {

@@ -28,7 +28,7 @@ public sealed class ControlFormatter : IFillableFormatter<Control> //[cite: 11]
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, Control value) //[cite: 11]
+    public void Serialize(ref DataWriter writer, in Control value) //[cite: 11]
     {
         if (value is null)
         {
