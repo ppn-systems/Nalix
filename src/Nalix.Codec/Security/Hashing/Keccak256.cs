@@ -238,7 +238,8 @@ public static class Keccak256
         ReadOnlySpan<byte> data,
         Span<byte> output)
     {
-        Span<ulong> state = stackalloc ulong[Lanes]; // zeroed by CLR
+        Span<ulong> state = stackalloc ulong[Lanes];
+        state.Clear();
         Span<byte> block = stackalloc byte[RateBytes];
 
         data.CopyTo(block);

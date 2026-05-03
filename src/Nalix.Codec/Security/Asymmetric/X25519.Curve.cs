@@ -113,7 +113,7 @@ internal static class Curve25519
             x2 += z2;
             z2 = x3 + z3;
 
-            z3.Multiply(in x2, out z3);   // z3 = tmp0 * x2
+            tmp0.Multiply(in x2, out z3);   // z3 = tmp0 * x2
             z2.Multiply(in tmp1, out z2); // z2 = z2 * tmp1
 
             tmp1.Square(out tmp0);        // tmp0 = tmp1^2
