@@ -490,8 +490,9 @@ public sealed class PacketDispatchChannel
         // If TryDeserialize fails, the packet is already handled.
         if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
         {
-            connection.IncrementErrorCount();
             lease.Dispose();
+            connection.IncrementErrorCount();
+
             return ValueTask.CompletedTask;
         }
 
