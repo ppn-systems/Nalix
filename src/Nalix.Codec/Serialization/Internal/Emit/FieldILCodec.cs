@@ -69,7 +69,7 @@ internal static class FieldILCodec
 
     #region Public API
 
-    public static void EmitWriteField(ILGenerator il, FieldSchema field, MethodInfo? directWrite)
+    public static void EmitWriteField(ILGenerator il, FieldSchema field, MethodInfo? directWrite, bool derefArg1)
     {
         FieldInfo fi = field.FieldInfo;
 
@@ -77,12 +77,16 @@ internal static class FieldILCodec
         {
             il.Emit(OpCodes.Ldarg_0);
             il.Emit(OpCodes.Ldarg_1);
+            if (derefArg1)
+            {
+                il.Emit(OpCodes.Ldind_Ref);
+            }
             il.Emit(OpCodes.Ldfld, fi);
             il.Emit(OpCodes.Call, directWrite);
             return;
         }
 
-        EMIT_WRITE_WITH_FORMATTER(il, field);
+        EMIT_WRITE_WITH_FORMATTER(il, field, derefArg1);
     }
 
     public static void EmitReadFieldRef(ILGenerator il, FieldSchema field, MethodInfo? directRead, LocalBuilder objLocal)
@@ -173,7 +177,7 @@ internal static class FieldILCodec
 
             return new FormatterEmitMethods(
                 cacheType.GetField("Instance", BindingFlags.Public | BindingFlags.Static)!,
-                formatterType.GetMethod("Serialize", [typeof(DataWriter).MakeByRefType(), ft])!,
+                formatterType.GetMethod("Serialize", [typeof(DataWriter).MakeByRefType(), ft.MakeByRefType()])!,
                 formatterType.GetMethod("Deserialize", [typeof(DataReader).MakeByRefType()])!);
         });
 
@@ -363,7 +367,7 @@ internal static class FieldILCodec
 
     #region Private Methods
 
-    private static void EMIT_WRITE_WITH_FORMATTER(ILGenerator il, FieldSchema field)
+    private static void EMIT_WRITE_WITH_FORMATTER(ILGenerator il, FieldSchema field, bool derefArg1)
     {
         FieldInfo fi = field.FieldInfo;
         FormatterEmitMethods emitMethods = ResolveFormatterMethods(field.FieldType);
@@ -371,7 +375,11 @@ internal static class FieldILCodec
         il.Emit(OpCodes.Ldsfld, emitMethods.InstanceField);
         il.Emit(OpCodes.Ldarg_0);
         il.Emit(OpCodes.Ldarg_1);
-        il.Emit(OpCodes.Ldfld, fi);
+        if (derefArg1)
+        {
+            il.Emit(OpCodes.Ldind_Ref);
+        }
+        il.Emit(OpCodes.Ldflda, fi);
         il.Emit(OpCodes.Callvirt, emitMethods.SerializeMethod);
     }
 

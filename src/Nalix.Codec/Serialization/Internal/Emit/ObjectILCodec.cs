@@ -63,7 +63,7 @@ internal static class ObjectILCodec<T> where T : class, new()
         DynamicMethod dm = new(
             $"ObjectSerialize_{typeof(T).Name}",
             typeof(void),
-            [typeof(DataWriter).MakeByRefType(), typeof(T)],
+            [typeof(DataWriter).MakeByRefType(), typeof(T).MakeByRefType()],
             typeof(ObjectILCodec<T>).Module,
             skipVisibility: true);
 
@@ -71,7 +71,7 @@ internal static class ObjectILCodec<T> where T : class, new()
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            FieldILCodec.EmitWriteField(il, s_fields[i], s_directWriteMethods[i]);
+            FieldILCodec.EmitWriteField(il, s_fields[i], s_directWriteMethods[i], derefArg1: true);
         }
 
         il.Emit(OpCodes.Ret);

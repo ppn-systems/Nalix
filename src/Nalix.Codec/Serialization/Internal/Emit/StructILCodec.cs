@@ -59,14 +59,14 @@ internal static class StructILCodec<T> where T : struct
         // but the owner value is passed by value because serialization does not
         // need to mutate the original instance.
         DynamicMethod dm = new($"StructSerialize_{typeof(T).Name}",
-            typeof(void), [typeof(DataWriter).MakeByRefType(), typeof(T)],
+            typeof(void), [typeof(DataWriter).MakeByRefType(), typeof(T).MakeByRefType()],
             typeof(StructILCodec<T>).Module, skipVisibility: true);
 
         ILGenerator il = dm.GetILGenerator();
 
         for (int i = 0; i < s_fields.Length; i++)
         {
-            FieldILCodec.EmitWriteField(il, s_fields[i], s_directWriteMethods[i]);
+            FieldILCodec.EmitWriteField(il, s_fields[i], s_directWriteMethods[i], derefArg1: false);
         }
 
         il.Emit(OpCodes.Ret);
