@@ -74,7 +74,10 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     [SerializeOrder(6)]
     public ushort Arg2 { get; set; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Registers the <see cref="DirectiveFormatter"/> to optimize serialization performance.
+    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
+    /// </summary>
     static Directive() => LiteSerializer.Register(new DirectiveFormatter());
 
     /// <summary>

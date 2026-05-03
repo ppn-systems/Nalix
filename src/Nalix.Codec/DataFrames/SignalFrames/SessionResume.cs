@@ -76,7 +76,11 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     [SerializeOrder(3)]
     public Bytes32 Proof { get; set; }
 
-    /// <inheritdoc/>
+
+    /// <summary>
+    /// Registers the <see cref="SessionResumeFormatter"/> to optimize serialization performance.
+    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
+    /// </summary>
     static SessionResume() => LiteSerializer.Register(new SessionResumeFormatter());
 
     /// <summary>
