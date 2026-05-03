@@ -196,7 +196,7 @@ internal struct FieldElement
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldElement operator +(FieldElement f, FieldElement g) => new()
+    public static FieldElement operator +(in FieldElement f, in FieldElement g) => new()
     {
         E0 = f.E0 + g.E0,
         E1 = f.E1 + g.E1,
@@ -212,7 +212,7 @@ internal struct FieldElement
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldElement operator -(FieldElement f, FieldElement g) => new()
+    public static FieldElement operator -(in FieldElement f, in FieldElement g) => new()
     {
         E0 = f.E0 - g.E0,
         E1 = f.E1 - g.E1,
@@ -233,7 +233,7 @@ internal struct FieldElement
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public readonly FieldElement Multiply(FieldElement g)
+    public readonly FieldElement Multiply(in FieldElement g)
     {
         int f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
         int f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
@@ -499,7 +499,7 @@ internal struct FieldElement
     /// <param name="src"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Copy(ref FieldElement dst, FieldElement src)
+    public static void Copy(ref FieldElement dst, in FieldElement src)
     {
         dst.E0 = src.E0; dst.E1 = src.E1; dst.E2 = src.E2;
         dst.E3 = src.E3; dst.E4 = src.E4; dst.E5 = src.E5;

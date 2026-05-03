@@ -281,29 +281,34 @@ internal static class Throw
 
     #region Private Cached Exception Types
 
+    [StackTraceHidden]
     private sealed class CachedSerializationException(string message) : SerializationFailureException(message)
     {
-        public override string? StackTrace => "   at Nalix.Codec.Serialization (Cached Exception)";
+        public override string StackTrace => "   at Nalix.Codec.Serialization (Cached Exception)";
     }
 
+    [StackTraceHidden]
     private sealed class CachedCipherException(string message) : CipherException(message)
     {
-        public override string? StackTrace => "   at Nalix.Codec.Security (Cached Exception)";
+        public override string StackTrace => "   at Nalix.Codec.Security (Cached Exception)";
     }
 
+    [StackTraceHidden]
     private sealed class CachedInternalErrorException(string message) : InternalErrorException(message)
     {
-        public override string? StackTrace => "   at Nalix.Codec (Cached Exception)";
+        public override string StackTrace => "   at Nalix.Codec (Cached Exception)";
     }
 
+    [StackTraceHidden]
     private sealed class CachedLZ4Exception(string message) : LZ4Exception(message)
     {
-        public override string? StackTrace => "   at Nalix.Codec.LZ4 (Cached Exception)";
+        public override string StackTrace => "   at Nalix.Codec.LZ4 (Cached Exception)";
     }
 
+    [StackTraceHidden]
     private sealed class CachedArgumentOutOfRangeException(string paramName, string message) : ArgumentOutOfRangeException(paramName, message)
     {
-        public override string? StackTrace => "   at Nalix.Codec.Memory (Cached Exception)";
+        public override string StackTrace => "   at Nalix.Codec.Memory (Cached Exception)";
     }
 
     #endregion Private Cached Exception Types
