@@ -18,6 +18,7 @@ namespace Nalix.Codec.Internal.LZ4;
 /// as bytes are copied.
 /// The helper keeps the hot path small by delegating the actual copy to <see cref="MemOps"/>.
 /// </summary>
+[SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class LiteralWriter
 {

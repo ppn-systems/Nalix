@@ -13,6 +13,7 @@ namespace Nalix.Codec.LZ4.Engine;
 /// <summary>
 /// Provides functionality to compress data using the LZ4 algorithm, optimized for zero-allocation and high efficiency.
 /// </summary>
+[SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static class LZ4Encoder

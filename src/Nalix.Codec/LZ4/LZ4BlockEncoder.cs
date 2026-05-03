@@ -16,6 +16,7 @@ namespace Nalix.Codec.LZ4;
 /// Provides methods for compressing data using the LZ4 greedy compression algorithm.
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
+[SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class LZ4BlockEncoder

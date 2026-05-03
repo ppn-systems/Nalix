@@ -6,9 +6,6 @@ using System.Runtime.CompilerServices;
 using Nalix.Codec.LZ4;
 using Nalix.Codec.Internal.Memory;
 
-
-
-
 #if DEBUG
 using System.Diagnostics;
 
@@ -22,6 +19,7 @@ namespace Nalix.Codec.Internal.LZ4;
 /// Provides functionality for finding matches in input data using a hash table.
 /// Optimized for high performance in LZ4 compression.
 /// </summary>
+[SkipLocalsInit]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static unsafe class MatchFinder
 {

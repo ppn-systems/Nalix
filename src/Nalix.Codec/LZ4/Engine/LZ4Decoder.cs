@@ -16,6 +16,7 @@ namespace Nalix.Codec.LZ4.Engine;
 /// <summary>
 /// Provides decompression functionality for the LZ4 format.
 /// </summary>
+[SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static class LZ4Decoder
