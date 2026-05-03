@@ -30,7 +30,7 @@ internal sealed class NullableValueListFormatter<
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, System.Collections.Generic.List<T?> value)
+    public void Serialize(ref DataWriter writer, in System.Collections.Generic.List<T?> value)
     {
         if (value == null)
         {

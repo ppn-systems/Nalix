@@ -35,7 +35,7 @@ internal sealed class ArrayFormatter<
     /// <param name="value">The array to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T[] value)
+    public void Serialize(ref DataWriter writer, in T[] value)
     {
         if (value == null)
         {

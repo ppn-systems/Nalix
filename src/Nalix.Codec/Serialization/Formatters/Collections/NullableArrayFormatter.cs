@@ -32,7 +32,7 @@ internal sealed class NullableArrayFormatter<
     /// <param name="value">The array of nullable value type elements to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T?[] value)
+    public void Serialize(ref DataWriter writer, in T?[] value)
     {
         if (value == null)
         {
