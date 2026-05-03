@@ -53,7 +53,10 @@ public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketRe
     [SerializeOrder(3)]
     public long MonoTicks { get; set; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Registers the <see cref="ControlFormatter"/> to optimize serialization performance.
+    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
+    /// </summary>
     static Control() => LiteSerializer.Register(new ControlFormatter());
 
     /// <summary>

@@ -122,7 +122,11 @@ public ref struct DataWriter
     /// Gets a span representing the remaining unwritten segment of the buffer.
     /// </summary>
     [Pure]
-    public readonly Span<byte> FreeBuffer => _span[this.WrittenCount..];
+    public readonly Span<byte> FreeBuffer
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _span[this.WrittenCount..];
+    }
 
     #endregion Properties
 
@@ -139,7 +143,7 @@ public ref struct DataWriter
     {
         if (count <= 0 || (uint)(this.WrittenCount + count) > (uint)_span.Length)
         {
-            throw new ArgumentOutOfRangeException(nameof(count), "Advance out of buffer bounds.");
+            Throw.AdvanceOutOfBound();
         }
 
         this.WrittenCount += count;
@@ -179,7 +183,7 @@ public ref struct DataWriter
 
         if (!_rent) // external array (or external span if we ever add such ctor) cannot expand by policy
         {
-            throw CodecErrors.SerializationFixedBufferExpansion;
+            Throw.FixedBufferExpansion();
         }
 
         // Use checked arithmetic to prevent integer overflow attacks

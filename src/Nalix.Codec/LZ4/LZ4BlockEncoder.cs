@@ -7,7 +7,8 @@ using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Codec.Internal;
+using Nalix.Codec.Internal.LZ4;
+using Nalix.Codec.Internal.Memory;
 
 namespace Nalix.Codec.LZ4;
 
@@ -15,6 +16,7 @@ namespace Nalix.Codec.LZ4;
 /// Provides methods for compressing data using the LZ4 greedy compression algorithm.
 /// This encoder is designed to achieve high performance and efficient compression.
 /// </summary>
+[SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class LZ4BlockEncoder

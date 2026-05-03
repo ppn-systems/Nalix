@@ -39,7 +39,7 @@ internal sealed class NullableStructFormatter<
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T? value)
+    public void Serialize(ref DataWriter writer, in T? value)
     {
         if (!value.HasValue)
         {

@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
@@ -23,6 +24,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeIgnore] public abstract int Length { get; }
 
     /// <inheritdoc/>
+    [SkipCleanAttribute]
     [SerializeHeader(0)] private PacketHeader _header;
 
     /// <inheritdoc/>
@@ -32,6 +34,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     // --- IPacketHeaderAccessor: direct field access, zero-copy ---
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public uint MagicNumber
     {
@@ -40,6 +43,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public ushort OpCode
     {
@@ -48,6 +52,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public PacketFlags Flags
     {
@@ -56,6 +61,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public PacketPriority Priority
     {
@@ -64,6 +70,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public ushort SequenceId
     {

@@ -104,7 +104,7 @@ internal sealed class StackFormatter<
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, System.Collections.Generic.Stack<T>? value)
+    public void Serialize(ref DataWriter writer, in System.Collections.Generic.Stack<T>? value)
     {
         if (value is null)
         {

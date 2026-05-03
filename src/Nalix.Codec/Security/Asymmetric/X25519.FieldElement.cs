@@ -196,7 +196,7 @@ internal struct FieldElement
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldElement operator +(FieldElement f, FieldElement g) => new()
+    public static FieldElement operator +(in FieldElement f, in FieldElement g) => new()
     {
         E0 = f.E0 + g.E0,
         E1 = f.E1 + g.E1,
@@ -212,7 +212,7 @@ internal struct FieldElement
 
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static FieldElement operator -(FieldElement f, FieldElement g) => new()
+    public static FieldElement operator -(in FieldElement f, in FieldElement g) => new()
     {
         E0 = f.E0 - g.E0,
         E1 = f.E1 - g.E1,
@@ -230,10 +230,11 @@ internal struct FieldElement
 
     /// <summary>h = this * g  (schoolbook multiplication mod p)</summary>
     /// <param name="g"></param>
+    /// <param name="result"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public readonly FieldElement Multiply(FieldElement g)
+    public readonly void Multiply(in FieldElement g, out FieldElement result)
     {
         int f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
         int f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
@@ -287,7 +288,7 @@ internal struct FieldElement
                         + ((long)f6 * g3) + ((long)f7 * g2) + ((long)f8 * g1)
                         + ((long)f9 * g0);
 
-        return ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9);
+        ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, out result);
     }
 
     // ── Square ───────────────────────────────────────────────────────────────
@@ -296,7 +297,7 @@ internal struct FieldElement
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining |
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public readonly FieldElement Square()
+    public readonly void Square(out FieldElement result)
     {
         int f0 = E0, f1 = E1, f2 = E2, f3 = E3, f4 = E4;
         int f5 = E5, f6 = E6, f7 = E7, f8 = E8, f9 = E9;
@@ -327,7 +328,7 @@ internal struct FieldElement
         long h9 = ((long)f0_2 * f9) + ((long)f1_2 * f8) + ((long)f2_2 * f7)
                         + ((long)f3_2 * f6) + ((long)f4_2 * f5);
 
-        return ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9);
+        ReduceCarry(h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, out result);
     }
 
     // ── Mul121666 ─────────────────────────────────────────────────────────────
@@ -335,7 +336,7 @@ internal struct FieldElement
     /// <summary>h = this * 121666  (Montgomery ladder constant)</summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public readonly FieldElement Mul121666()
+    public readonly void Mul121666(out FieldElement result)
     {
         long h0 = (long)E0 * 121666, h1 = (long)E1 * 121666;
         long h2 = (long)E2 * 121666, h3 = (long)E3 * 121666;
@@ -356,114 +357,137 @@ internal struct FieldElement
         long c6 = (h6 + (1 << 25)) >> 26; h7 += c6; h6 -= c6 << 26;
         long c8 = (h8 + (1 << 25)) >> 26; h9 += c8; h8 -= c8 << 26;
 
-        return new FieldElement
-        {
-            E0 = (int)h0,
-            E1 = (int)h1,
-            E2 = (int)h2,
-            E3 = (int)h3,
-            E4 = (int)h4,
-            E5 = (int)h5,
-            E6 = (int)h6,
-            E7 = (int)h7,
-            E8 = (int)h8,
-            E9 = (int)h9
-        };
+        result.E0 = (int)h0;
+        result.E1 = (int)h1;
+        result.E2 = (int)h2;
+        result.E3 = (int)h3;
+        result.E4 = (int)h4;
+        result.E5 = (int)h5;
+        result.E6 = (int)h6;
+        result.E7 = (int)h7;
+        result.E8 = (int)h8;
+        result.E9 = (int)h9;
     }
 
     // ── Invert ───────────────────────────────────────────────────────────────
 
     /// <summary>h = this^(-1) mod p  (via Fermat: p-2 exponentiation)</summary>
+    /// <remarks>
+    /// Optimized with 'out' parameters to ensure zero-copy of the 40-byte FieldElement struct
+    /// across the extensive exponentiation chain.
+    /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    public readonly FieldElement Invert()
+    public readonly void Invert(out FieldElement result)
     {
-        FieldElement t0 = this.Square();
+        // t0 = this²
+        this.Square(out FieldElement t0);
 
-        FieldElement t1 = t0.Square();
-        t1 = t1.Square();
-        t1 = this.Multiply(t1);
-        t0 = t0.Multiply(t1);
+        // t1 = (t0²)² = t0⁴
+        t0.Square(out FieldElement t1);
+        t1.Square(out t1);
 
-        FieldElement t2 = t0.Square();
-        t1 = t1.Multiply(t2);
+        // t1 = this * t1 = this⁵
+        this.Multiply(in t1, out t1);
 
-        // 5 squares unrolled
-        t2 = t1.Square(); t2 = t2.Square()
-            .Square()
-            .Square()
-            .Square();
-        t1 = t2.Multiply(t1);
+        // t0 = t0 * t1
+        t0.Multiply(in t1, out t0);
 
-        // 10 squares unrolled
-        t2 = t1.Square(); t2 = t2.Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Multiply(t1);
+        // t2 = t0²
+        t0.Square(out FieldElement t2);
 
-        // 20 squares
-        FieldElement t3 = t2.Square();
+        // t1 = t1 * t2
+        t1.Multiply(in t2, out t1);
+
+        // 5 squares unrolled: t2 = t1^(2^5)
+        t1.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+
+        // t1 = t2 * t1
+        t2.Multiply(in t1, out t1);
+
+        // 10 squares unrolled: t2 = t1^(2^10)
+        t1.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+
+        // t1 = t2 * t1
+        t2.Multiply(in t1, out t1);
+
+        // 20 squares: t3 = t1^(2^20)
+        t1.Square(out FieldElement t3);
         for (int i = 1; i < 20; i++)
         {
-            t3 = t3.Square();
+            t3.Square(out t3);
         }
 
-        t2 = t3.Multiply(t2);
+        // t2 = t3 * t2
+        t3.Multiply(in t2, out t2);
 
         // 10 squares unrolled
-        t2 = t2.Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square();
-        t1 = t2.Multiply(t1);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+        t2.Square(out t2);
+
+        // t1 = t2 * t1
+        t2.Multiply(in t1, out t1);
 
         // 50 squares
-        t2 = t1.Square();
+        t1.Square(out t2);
         for (int i = 1; i < 50; i++)
         {
-            t2 = t2.Square();
+            t2.Square(out t2);
         }
 
-        t2 = t2.Multiply(t1);
+        // t2 = t2 * t1
+        t2.Multiply(in t1, out t2);
 
         // 100 squares
-        t3 = t2.Square();
+        t2.Square(out t3);
         for (int i = 1; i < 100; i++)
         {
-            t3 = t3.Square();
+            t3.Square(out t3);
         }
 
-        t2 = t3.Multiply(t2);
+        // t2 = t3 * t2
+        t3.Multiply(in t2, out t2);
 
         // 50 squares
-        t2 = t2.Square();
+        t2.Square(out t2);
         for (int i = 1; i < 50; i++)
         {
-            t2 = t2.Square();
+            t2.Square(out t2);
         }
 
-        t1 = t2.Multiply(t1);
+        // t1 = t2 * t1
+        t2.Multiply(in t1, out t1);
 
         // 5 squares unrolled
-        t1 = t1.Square()
-            .Square()
-            .Square()
-            .Square()
-            .Square();
+        t1.Square(out t1);
+        t1.Square(out t1);
+        t1.Square(out t1);
+        t1.Square(out t1);
+        t1.Square(out t1);
 
-        return t1.Multiply(t0);
+        // result = t1 * t0
+        t1.Multiply(in t0, out result);
     }
 
     // ── Constant-time helpers ─────────────────────────────────────────────────
@@ -499,7 +523,7 @@ internal struct FieldElement
     /// <param name="src"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public static void Copy(ref FieldElement dst, FieldElement src)
+    public static void Copy(ref FieldElement dst, in FieldElement src)
     {
         dst.E0 = src.E0; dst.E1 = src.E1; dst.E2 = src.E2;
         dst.E3 = src.E3; dst.E4 = src.E4; dst.E5 = src.E5;
@@ -524,11 +548,12 @@ internal struct FieldElement
     /// <param name="h7"></param>
     /// <param name="h8"></param>
     /// <param name="h9"></param>
+    /// <param name="result"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    private static FieldElement ReduceCarry(
+    private static void ReduceCarry(
         long h0, long h1, long h2, long h3, long h4,
-        long h5, long h6, long h7, long h8, long h9)
+        long h5, long h6, long h7, long h8, long h9, out FieldElement result)
     {
         long c0, c1, c2, c3, c4, c5, c6, c7, c8, c9;
 
@@ -545,19 +570,16 @@ internal struct FieldElement
         c9 = (h9 + (1 << 24)) >> 25; h0 += c9 * 19; h9 -= c9 << 25;
         c0 = (h0 + (1 << 25)) >> 26; h1 += c0; h0 -= c0 << 26;
 
-        return new FieldElement
-        {
-            E0 = (int)h0,
-            E1 = (int)h1,
-            E2 = (int)h2,
-            E3 = (int)h3,
-            E4 = (int)h4,
-            E5 = (int)h5,
-            E6 = (int)h6,
-            E7 = (int)h7,
-            E8 = (int)h8,
-            E9 = (int)h9
-        };
+        result.E0 = (int)h0;
+        result.E1 = (int)h1;
+        result.E2 = (int)h2;
+        result.E3 = (int)h3;
+        result.E4 = (int)h4;
+        result.E5 = (int)h5;
+        result.E6 = (int)h6;
+        result.E7 = (int)h7;
+        result.E8 = (int)h8;
+        result.E9 = (int)h9;
     }
 
     /// <summary>Reads 3 bytes little-endian from <paramref name="src"/> at <paramref name="offset"/>.</summary>

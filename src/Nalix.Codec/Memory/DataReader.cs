@@ -36,12 +36,20 @@ public ref struct DataReader
     /// <summary>
     /// Gets the number of bytes that have been consumed from the buffer.
     /// </summary>
-    public readonly int BytesRead => _pos;
+    public readonly int BytesRead
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _pos;
+    }
 
     /// <summary>
     /// Gets the number of bytes remaining in the buffer.
     /// </summary>
-    public readonly int BytesRemaining => _buffer.Length - _pos;
+    public readonly int BytesRemaining
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _buffer.Length - _pos;
+    }
 
     #endregion Properties
 
@@ -107,10 +115,9 @@ public ref struct DataReader
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public readonly ref byte GetSpanReference(int sizeHint)
     {
-        int remaining = this.BytesRemaining;
-        if (sizeHint < 0 || sizeHint > remaining)
+        if ((uint)sizeHint > (uint)this.BytesRemaining)
         {
-            throw CodecErrors.SerializationEndOfStream;
+            Throw.EndOfStream();
         }
 
         return ref MemoryMarshal.GetReference(_buffer[_pos..]);
@@ -126,10 +133,9 @@ public ref struct DataReader
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
 
-        int remaining = this.BytesRemaining;
-        if (count > remaining)
+        if (count > this.BytesRemaining)
         {
-            throw CodecErrors.SerializationEndOfStream;
+            Throw.EndOfStream();
         }
 
         _pos += count;

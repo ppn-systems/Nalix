@@ -14,6 +14,7 @@ using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Extensions;
@@ -238,11 +239,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
                 $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={s_cache.StaticSize}.");
         }
 
-        uint bufferMagic = buffer.ReadHeaderLE().MagicNumber;
-        if (bufferMagic != s_autoMagic)
+        ref readonly PacketHeader header = ref buffer.AsHeaderRef();
+        if (header.MagicNumber != s_autoMagic)
         {
             throw new SerializationFailureException(
-                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{bufferMagic:X8}, expected=0x{s_autoMagic:X8}. " +
+                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{header.MagicNumber:X8}, expected=0x{s_autoMagic:X8}. " +
                 "The received packet type does not match the target deserialization type.");
         }
     }
@@ -251,8 +252,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override void ResetForPool()
     {
-        Volatile.Write(ref _isRented, 0);
-
         // Reset all user-defined serializable properties via compiled delegates.
         // No GetCustomAttribute calls in this path.
         foreach (PropertyMetadata meta in s_metadata.Value)
@@ -273,9 +272,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
 
         // Restore type identity — never reset to 0.
         this.MagicNumber = s_autoMagic;
-
-        // Reset the rental flag so it doesn't immediately return itself when put back in pool.
-        Volatile.Write(ref _isRented, 0);
     }
 
     /// <inheritdoc/>
@@ -285,11 +281,9 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Dispose()
-    {
-        this.Dispose(true);
-        GC.SuppressFinalize(this);
-    }
+    [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "<Pending>")]
+    [SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "<Pending>")]
+    public void Dispose() => this.Dispose(true);
 
     /// <summary>
     /// Returns rented packets to their pool once; non-rented packet instances are left alone.
@@ -310,8 +304,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
             this.ResetForPool();
 
             // Use the concrete type TSelf to call the fast generic Return path.
-            IObjectPoolManager? mgr = PacketRegistry.Manager;
-            mgr?.Return((TSelf)this);
+            PacketRegistry.Manager?.Return((TSelf)this);
         }
     }
 
@@ -562,7 +555,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int MEASURE_SERIALIZED_SIZE<TValue>(IFormatter<TValue> formatter, TValue value)
     {
-        DataWriter writer = new(64);
+        DataWriter writer = new(256);
         try
         {
             formatter.Serialize(ref writer, value);

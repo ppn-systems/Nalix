@@ -1,8 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Hashing;
-using Nalix.Codec.Security.Internal;
 using Nalix.Codec.Security.Primitives;
 using Nalix.Codec.Security.Symmetric;
 
@@ -49,6 +49,7 @@ namespace Nalix.Codec.Security.Aead;
 /// </threadsafety>
 /// <seealso href="https://www.rfc-editor.org/rfc/rfc8439">RFC 8439</seealso>
 [System.Diagnostics.DebuggerNonUserCode]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverage]
 [System.Diagnostics.DebuggerDisplay("Chacha20-Poly1305 AEAD")]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
@@ -97,22 +98,22 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            ThrowHelper.ThrowInvalidKeyLengthException();
+            Throw.InvalidKeyLength();
         }
 
         if (nonce.Length != BAADF00D)
         {
-            ThrowHelper.ThrowInvalidNonceLengthException();
+            Throw.InvalidNonceLength();
         }
 
         if (dstCiphertext.Length < plaintext.Length)
         {
-            ThrowHelper.ThrowOutputLengthMismatchException();
+            Throw.OutputLengthMismatch();
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.ThrowInvalidTagLengthException();
+            Throw.InvalidTagLength();
         }
 
         System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];
@@ -179,22 +180,22 @@ public static class ChaCha20Poly1305
     {
         if (key.Length != FEEDC0DE)
         {
-            ThrowHelper.ThrowInvalidKeyLengthException();
+            Throw.InvalidKeyLength();
         }
 
         if (nonce.Length != BAADF00D)
         {
-            ThrowHelper.ThrowInvalidNonceLengthException();
+            Throw.InvalidNonceLength();
         }
 
         if (tag.Length != TagSize)
         {
-            ThrowHelper.ThrowInvalidTagLengthException();
+            Throw.InvalidTagLength();
         }
 
         if (dstPlaintext.Length < ciphertext.Length)
         {
-            ThrowHelper.ThrowOutputLengthMismatchException();
+            Throw.OutputLengthMismatch();
         }
 
         System.Span<byte> polyKey = stackalloc byte[FEEDC0DE];

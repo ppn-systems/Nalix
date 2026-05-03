@@ -320,6 +320,7 @@ public sealed class FragmentAssembler : IDisposable
     /// <remarks>
     /// Parsing failures are swallowed and reported as <see langword="false"/> instead of escaping to the caller.
     /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static bool IsFragmentedFrame(ReadOnlySpan<byte> payload, [NotNullWhen(true)] out FragmentHeader header)
     {
         header = default;

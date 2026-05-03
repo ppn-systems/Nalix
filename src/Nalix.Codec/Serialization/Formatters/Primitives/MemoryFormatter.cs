@@ -49,7 +49,7 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, System.Memory<T> value)
+    public void Serialize(ref DataWriter writer, in System.Memory<T> value)
     {
         int length = value.Length;
         writer.Write(length);
@@ -94,7 +94,8 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
 
         if (length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            Throw.LengthOutOfRange();
+            return System.Memory<T>.Empty;
         }
 
         int byteCount;
@@ -104,7 +105,8 @@ internal sealed class MemoryFormatter<T> : IFormatter<System.Memory<T>>
         }
         catch (System.OverflowException)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            Throw.LengthOutOfRange();
+            return System.Memory<T>.Empty;
         }
 
         // Allocate once and copy the raw payload block directly into the array.
@@ -150,7 +152,7 @@ internal sealed class ReadOnlyMemoryFormatter<T> : IFormatter<System.ReadOnlyMem
     /// <param name="value">The memory value to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, System.ReadOnlyMemory<T> value) => s_inner.Serialize(ref writer, System.Runtime.InteropServices.MemoryMarshal.AsMemory(value));
+    public void Serialize(ref DataWriter writer, in System.ReadOnlyMemory<T> value) => s_inner.Serialize(ref writer, System.Runtime.InteropServices.MemoryMarshal.AsMemory(value));
 
     /// <summary>
     /// Deserializes a <see cref="System.ReadOnlyMemory{T}"/> from the specified <see cref="DataReader"/>.

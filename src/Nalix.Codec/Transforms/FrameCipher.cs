@@ -12,6 +12,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security;
 
@@ -32,8 +33,7 @@ public static class FrameCipher
 
         if (src.Length < FrameTransformer.Offset + EnvelopeCipher.HeaderSize)
         {
-            throw new CipherException(
-                $"Ciphertext frame is too short: length={src.Length}, required>={FrameTransformer.Offset + EnvelopeCipher.HeaderSize}.");
+            Throw.CiphertextFrameTooShort();
         }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer.Offset + FrameTransformer
@@ -41,9 +41,10 @@ public static class FrameCipher
         try
         {
             FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm);
-            PacketHeader header = dest.Span.ReadHeaderLE();
-            header.Flags = header.Flags.RemoveFlag(PacketFlags.ENCRYPTED);
-            dest.Span.WriteHeaderLE(header);
+
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
+            header.Flags &= ~PacketFlags.ENCRYPTED;
+
             return dest;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -66,9 +67,10 @@ public static class FrameCipher
         try
         {
             FrameTransformer.Encrypt(src, dest, key, suite);
-            PacketHeader header = dest.Span.ReadHeaderLE();
-            header.Flags = header.Flags.AddFlag(PacketFlags.ENCRYPTED);
-            dest.Span.WriteHeaderLE(header);
+
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
+            header.Flags |= PacketFlags.ENCRYPTED;
+
             return dest;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

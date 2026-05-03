@@ -14,11 +14,13 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.Framework.Identifiers;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Transport;
 
@@ -297,8 +299,8 @@ public abstract partial class UdpListenerBase
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
         // Extract sequence ID cleanly from the packet header (offset 8 for the new 16-bit sequence)
-        ushort sequenceId = HeaderExtensions.ReadHeaderLE(payload).SequenceId;
-        if (!connection.UdpReplayWindow.TryCheck(sequenceId))
+        ref readonly PacketHeader header = ref payload.AsHeaderRef();
+        if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
             lease.Dispose();
@@ -466,7 +468,11 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
+        if (args.Lease is not { } lease)
+        {
+            Throw.EventArgsMustHaveLease();
+            return;
+        }
         IBufferLease current = lease;
         bool exchanged = false;
 

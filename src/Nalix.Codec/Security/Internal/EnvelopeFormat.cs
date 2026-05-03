@@ -143,7 +143,7 @@ internal static class EnvelopeFormat
         }
 
         EnvelopeHeader header = new(CurrentVersion, type, flags, (byte)nonceLen, seq);
-        EnvelopeHeader.Encode(dest[..HeaderSize], header);
+        EnvelopeHeader.Encode(dest[..HeaderSize], in header);
 
         int pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;
@@ -181,7 +181,7 @@ internal static class EnvelopeFormat
         }
 
         EnvelopeHeader header = new(CurrentVersion, type, flags, (byte)nonceLen, seq);
-        EnvelopeHeader.Encode(dest[..HeaderSize], header);
+        EnvelopeHeader.Encode(dest[..HeaderSize], in header);
 
         int pos = HeaderSize;
         nonce.CopyTo(dest.Slice(pos, nonceLen)); pos += nonceLen;

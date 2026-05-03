@@ -107,7 +107,7 @@ internal sealed class QueueFormatter<
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, System.Collections.Generic.Queue<T>? value)
+    public void Serialize(ref DataWriter writer, in System.Collections.Generic.Queue<T>? value)
     {
         if (value is null)
         {

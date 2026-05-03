@@ -11,6 +11,7 @@ namespace Nalix.Codec.Security.Symmetric;
 /// <remarks>
 /// See <see href="https://cr.yp.to/snuffle/spec.pdf">Salsa20 Specification</see> for details.
 /// </remarks>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public static class Salsa20
 {

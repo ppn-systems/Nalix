@@ -21,7 +21,7 @@ public interface IFormatter<[
     /// </summary>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>
     /// <param name="value">The value to serialize.</param>
-    void Serialize(ref DataWriter writer, T value);
+    void Serialize(ref DataWriter writer, in T value);
 
     /// <summary>
     /// Deserializes a value from the provided serialization reader.

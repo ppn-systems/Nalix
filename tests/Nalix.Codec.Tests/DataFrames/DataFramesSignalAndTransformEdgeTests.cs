@@ -158,13 +158,13 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         using BufferLease src = BufferLease.Rent(FrameTransformer.Offset + payload.Length);
         src.CommitLength(FrameTransformer.Offset + payload.Length);
         src.Span[..FrameTransformer.Offset].Clear();
-        src.Span.WriteHeaderLE(new PacketHeader { Flags = PacketFlags.COMPRESSED });
+        src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.COMPRESSED };
         payload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         using var encrypted = FrameCipher.EncryptFrame(src, key, CipherSuiteType.Chacha20Poly1305);
         using var decrypted = FrameCipher.DecryptFrame(encrypted, key, CipherSuiteType.Chacha20Poly1305);
 
-        PacketFlags flags = decrypted.Span.ReadHeaderLE().Flags;
+        PacketFlags flags = decrypted.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.COMPRESSED));
         Assert.False(flags.HasFlag(PacketFlags.ENCRYPTED));
     }
@@ -181,13 +181,13 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         using BufferLease src = BufferLease.Rent(FrameTransformer.Offset + payload.Length);
         src.CommitLength(FrameTransformer.Offset + payload.Length);
         src.Span[..FrameTransformer.Offset].Clear();
-        src.Span.WriteHeaderLE(new PacketHeader { Flags = PacketFlags.ENCRYPTED });
+        src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.ENCRYPTED };
         payload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         using var compressed = FrameCompression.CompressFrame(src);
         using var decompressed = FrameCompression.DecompressFrame(compressed);
 
-        PacketFlags flags = decompressed.Span.ReadHeaderLE().Flags;
+        PacketFlags flags = decompressed.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.False(flags.HasFlag(PacketFlags.COMPRESSED));
     }
@@ -199,7 +199,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         using BufferLease shortFrame = BufferLease.Rent(FrameTransformer.Offset);
         shortFrame.CommitLength(FrameTransformer.Offset);
 
-        _ = Assert.Throws<CipherException>(() => FrameCipher.DecryptFrame(shortFrame, key, CipherSuiteType.Chacha20));
+        _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(shortFrame, key, CipherSuiteType.Chacha20));
     }
 }
 

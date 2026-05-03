@@ -44,8 +44,8 @@ public sealed class EnvelopeCipherTests
     {
         CipherSuiteType invalid = (CipherSuiteType)255;
 
-        _ = Assert.Throws<CipherException>(() => EnvelopeCipher.GetNonceLength(invalid));
-        _ = Assert.Throws<CipherException>(() => EnvelopeCipher.GetTagLength(invalid));
+        _ = Assert.ThrowsAny<CipherException>(() => EnvelopeCipher.GetNonceLength(invalid));
+        _ = Assert.ThrowsAny<CipherException>(() => EnvelopeCipher.GetTagLength(invalid));
     }
 
     [Theory]
@@ -79,7 +79,7 @@ public sealed class EnvelopeCipherTests
 
         EnvelopeCipher.Encrypt(key, plaintext, envelope, seq: 1u, CipherSuiteType.Chacha20, out _);
 
-        _ = Assert.Throws<CipherException>(() =>
+        _ = Assert.ThrowsAny<CipherException>(() =>
             EnvelopeCipher.Decrypt(key, envelope, decrypted, CipherSuiteType.Salsa20, out _));
     }
 

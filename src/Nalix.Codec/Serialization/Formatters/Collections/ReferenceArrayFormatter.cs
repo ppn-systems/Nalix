@@ -33,7 +33,7 @@ internal sealed class ReferenceArrayFormatter<
     /// <param name="value">The array of reference type objects to serialize.</param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T[] value)
+    public void Serialize(ref DataWriter writer, in T[] value)
     {
         if (value == null)
         {
@@ -78,7 +78,7 @@ internal sealed class ReferenceArrayFormatter<
 
         if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw CodecErrors.SerializationLengthOutOfRange;
+            Throw.LengthOutOfRange();
         }
 
         T[] array = new T[length];

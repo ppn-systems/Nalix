@@ -85,7 +85,7 @@ public sealed class FormatterProviderTests
     private sealed class StubFormatter : IFormatter<StubType>
     {
         public StubType Deserialize(ref DataReader reader) => new();
-        public void Serialize(ref DataWriter writer, StubType value) { }
+        public void Serialize(ref DataWriter writer, in StubType value) { }
     }
 
     private interface IUnsupported
@@ -95,7 +95,7 @@ public sealed class FormatterProviderTests
     private sealed class UnsupportedFormatter : IFormatter<IUnsupported>
     {
         public IUnsupported Deserialize(ref DataReader reader) => throw new NotSupportedException();
-        public void Serialize(ref DataWriter writer, IUnsupported value) { }
+        public void Serialize(ref DataWriter writer, in IUnsupported value) { }
     }
 }
 

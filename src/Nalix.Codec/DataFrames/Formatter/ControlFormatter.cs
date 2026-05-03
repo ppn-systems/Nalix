@@ -1,6 +1,13 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+/* 
+ * PERFORMANCE NOTE:
+ * This formatter is pre-registered in the static constructor of the Control class 
+ * to eliminate runtime lookups and bypass dynamic delegate loops. 
+ * This ensures maximum throughput and zero-allocation during serialization.
+ */
+
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
@@ -8,8 +15,6 @@ using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
-
-#pragma warning disable CA1062 // Validate arguments of public methods
 
 namespace Nalix.Codec.DataFrames.Formatter;
 
@@ -21,7 +26,7 @@ public sealed class ControlFormatter : IFillableFormatter<Control> //[cite: 11]
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, Control value) //[cite: 11]
+    public void Serialize(ref DataWriter writer, in Control value) //[cite: 11]
     {
         if (value is null)
         {

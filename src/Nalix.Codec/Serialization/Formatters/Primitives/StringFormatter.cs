@@ -40,7 +40,7 @@ public sealed class StringFormatter : IFormatter<string>
     /// <exception cref="InvalidOperationException">Thrown when the target writer cannot expand and no formatter is available for the length prefix.</exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, string value)
+    public void Serialize(ref DataWriter writer, in string value)
     {
         // Null is encoded with a sentinel length so the reader can distinguish it from an empty string.
         if (value == null)
@@ -75,7 +75,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         if (bytesWritten != byteCount)
         {
-            throw CodecErrors.SerializationDataMismatch;
+            Throw.DataMismatch();
         }
 
         writer.Advance(byteCount);

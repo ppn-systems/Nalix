@@ -16,6 +16,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Codec.Transforms;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 
@@ -103,7 +104,11 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        IBufferLease lease = args.Lease ?? throw new InvalidOperationException("Event args must have Lease.");
+        if (args.Lease is not { } lease)
+        {
+            Throw.EventArgsMustHaveLease();
+            return;
+        }
         IBufferLease current = lease;
         bool exchanged = false;
 
@@ -122,7 +127,7 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
+            if (ex is CipherException or InternalErrorException or SerializationFailureException or LZ4Exception)
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
@@ -384,8 +389,11 @@ public abstract partial class TcpListenerBase
             try
             {
                 // Create and process connection similar to async version
-                PooledAcceptContext? context = ((PooledSocketAsyncEventArgs)args).Context
-                    ?? throw new InternalErrorException("TryAccept context was not bound to pooled socket args.");
+                if (((PooledSocketAsyncEventArgs)args).Context is not { } context)
+                {
+                    Throw.TryAcceptContextNotBound();
+                    return;
+                }
 
                 if (this.IsProcessChannelFull())
                 {
@@ -847,7 +855,7 @@ public abstract partial class TcpListenerBase
             if (this.IsProcessChannelFull())
             {
                 this.SafeCloseSocket(socket);
-                throw new NetworkException("Process channel is full.");
+                Throw.ProcessChannelFull();
             }
 
             // Validate and limit checks occur BEFORE ownership transfer.
@@ -856,13 +864,13 @@ public abstract partial class TcpListenerBase
             if (!socket.Connected || socket.Handle.ToInt64() == -1)
             {
                 this.SafeCloseSocket(socket);
-                throw new NetworkException("Invalid socket.");
+                Throw.InvalidSocket();
             }
 
             if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
             {
                 this.SafeCloseSocket(socket);
-                throw new NetworkException("Connection rejected by limiter.");
+                Throw.ConnectionRejectedByLimiter();
             }
 
             // Transfer ownership: InitializeConnection will return the inner context.
@@ -969,7 +977,7 @@ public abstract partial class TcpListenerBase
         if (!socket.Connected || socket.Handle.ToInt64() == -1)
         {
             this.SafeCloseSocket(socket);
-            throw new NetworkException("Invalid socket.");
+            Throw.InvalidSocket();
         }
 
         // Check the connection limiter before proceeding.
@@ -977,7 +985,7 @@ public abstract partial class TcpListenerBase
         if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))
         {
             this.SafeCloseSocket(socket);
-            throw new NetworkException("Connection rejected by limiter.");
+            Throw.ConnectionRejectedByLimiter();
         }
 
         IConnection connection = this.InitializeConnection(socket, context);

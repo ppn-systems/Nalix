@@ -181,11 +181,11 @@ public sealed partial class DataFramesPublicApiTests
 
         if (useEmptyKey)
         {
-            _ = Assert.Throws<ArgumentNullException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
+            _ = Assert.ThrowsAny<CipherException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
         }
         else
         {
-            _ = Assert.Throws<ArgumentException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
+            _ = Assert.ThrowsAny<InternalErrorException>(() => FrameTransformer.Encrypt(source, destination, key, CipherSuiteType.Chacha20));
         }
     }
 
@@ -229,7 +229,7 @@ public sealed partial class DataFramesPublicApiTests
         byte[] key = [.. Enumerable.Range(1, 32).Select(static x => (byte)x)];
         using BufferLease source = BufferLease.CopyFrom(new byte[FrameTransformer.Offset + 1]);
 
-        _ = Assert.Throws<CipherException>(() => FrameCipher.DecryptFrame(source, key, CipherSuiteType.Chacha20));
+        _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(source, key, CipherSuiteType.Chacha20));
     }
 }
 

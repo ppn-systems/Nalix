@@ -476,7 +476,7 @@ public sealed class AeadEngineTests
 
         envelope[0] ^= 0xFF;
 
-        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(s_key32, envelope, ptBuf, s_aad, out _));
+        _ = Assert.ThrowsAny<CipherException>(() => AeadEngine.Decrypt(s_key32, envelope, ptBuf, s_aad, out _));
     }
 
     [Fact]
@@ -493,7 +493,7 @@ public sealed class AeadEngineTests
 
         int ctOffset = HeaderSize + nLen;
         envelope[ctOffset] ^= 0x01;
-        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(
+        _ = Assert.ThrowsAny<CipherException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
     }
 
@@ -510,7 +510,7 @@ public sealed class AeadEngineTests
 
         envelope[encWritten - 1] ^= 0xFF;
 
-        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(
+        _ = Assert.ThrowsAny<CipherException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf, s_aad, out _));
     }
 
@@ -524,7 +524,7 @@ public sealed class AeadEngineTests
         AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 3u, CipherSuiteType.Chacha20Poly1305, out int encWritten);
 
-        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(
+        _ = Assert.ThrowsAny<CipherException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..encWritten], ptBuf,
             System.Text.Encoding.UTF8.GetBytes("wrong-aad"), out _));
     }
@@ -545,7 +545,7 @@ public sealed class AeadEngineTests
 
         envelope[8] ^= 0xFF;
 
-        _ = Assert.Throws<CipherException>(() =>
+        _ = Assert.ThrowsAny<CipherException>(() =>
             AeadEngine.Decrypt(s_key32, envelope.AsSpan()[..written], plaintext, s_aad, out _));
     }
 
@@ -553,7 +553,7 @@ public sealed class AeadEngineTests
     public void AeadEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {
         byte[] ptBuf = new byte[10];
-        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(s_key32, [], ptBuf, s_aad, out _));
+        _ = Assert.ThrowsAny<CipherException>(() => AeadEngine.Decrypt(s_key32, [], ptBuf, s_aad, out _));
     }
 
     [Fact]
@@ -566,7 +566,7 @@ public sealed class AeadEngineTests
         AeadEngine.Encrypt(s_key32, s_plaintextShort, envelope, s_nonce12,
             s_aad, seq: 2u, CipherSuiteType.Chacha20Poly1305, out _);
 
-        _ = Assert.Throws<CipherException>(() => AeadEngine.Decrypt(
+        _ = Assert.ThrowsAny<CipherException>(() => AeadEngine.Decrypt(
             s_key32, envelope.AsSpan()[..HeaderSize], ptBuf, s_aad, out _));
     }
 

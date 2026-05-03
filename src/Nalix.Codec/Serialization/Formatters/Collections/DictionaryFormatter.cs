@@ -120,7 +120,7 @@ internal sealed class DictionaryFormatter<
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, System.Collections.Generic.Dictionary<TKey, TValue>? value)
+    public void Serialize(ref DataWriter writer, in System.Collections.Generic.Dictionary<TKey, TValue>? value)
     {
         if (value is null)
         {

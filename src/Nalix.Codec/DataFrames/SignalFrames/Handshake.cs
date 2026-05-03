@@ -10,46 +10,11 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Formatter;
+using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
-
-/// <summary>
-/// Identifies the current phase of the default Nalix handshake flow.
-/// </summary>
-public enum HandshakeStage : byte
-{
-    /// <summary>
-    /// No handshake stage is assigned.
-    /// </summary>
-    NONE = 0x00,
-
-    /// <summary>
-    /// Client starts the handshake and sends its ephemeral public key.
-    /// </summary>
-    CLIENT_HELLO = 0x01,
-
-    /// <summary>
-    /// Server responds with its ephemeral public key and proof.
-    /// </summary>
-    SERVER_HELLO = 0x02,
-
-    /// <summary>
-    /// Client confirms the derived transcript and proves possession.
-    /// </summary>
-    CLIENT_FINISH = 0x03,
-
-    /// <summary>
-    /// Server acknowledges handshake completion.
-    /// </summary>
-    SERVER_FINISH = 0x04,
-
-    /// <summary>
-    /// Handshake failed and the payload carries failure proof or diagnostics.
-    /// </summary>
-    ERROR = 0xFF
-}
 
 /// <summary>
 /// Represents the default protocol handshake packet for key exchange and transcript verification.
@@ -123,7 +88,10 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     [SerializeOrder(6)]
     public Bytes32 TranscriptHash { get; set; }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Registers the <see cref="HandshakeFormatter"/> to optimize serialization performance.
+    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
+    /// </summary>
     static Handshake() => LiteSerializer.Register(new HandshakeFormatter());
 
     /// <summary>
@@ -162,7 +130,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         Bytes32? proof = null,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
+        this.OpCode = OpCodeCache.Handshake;
         this.Stage = stage;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
@@ -180,7 +148,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// </summary>
     public void InitializeError(ProtocolReason reason, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
+        this.OpCode = OpCodeCache.Handshake;
         this.Stage = HandshakeStage.ERROR;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
@@ -196,12 +164,6 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// <inheritdoc/>
     public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
-        if (this == null)
-        {
-            failureReason = "Handshake packet is null.";
-            return false;
-        }
-
         bool isValid = this.Stage switch
         {
             HandshakeStage.CLIENT_HELLO =>
@@ -272,4 +234,40 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         this.SessionToken = 0;
         this.Priority = PacketPriority.URGENT;
     }
+}
+
+/// <summary>
+/// Identifies the current phase of the default Nalix handshake flow.
+/// </summary>
+public enum HandshakeStage : byte
+{
+    /// <summary>
+    /// No handshake stage is assigned.
+    /// </summary>
+    NONE = 0x00,
+
+    /// <summary>
+    /// Client starts the handshake and sends its ephemeral public key.
+    /// </summary>
+    CLIENT_HELLO = 0x01,
+
+    /// <summary>
+    /// Server responds with its ephemeral public key and proof.
+    /// </summary>
+    SERVER_HELLO = 0x02,
+
+    /// <summary>
+    /// Client confirms the derived transcript and proves possession.
+    /// </summary>
+    CLIENT_FINISH = 0x03,
+
+    /// <summary>
+    /// Server acknowledges handshake completion.
+    /// </summary>
+    SERVER_FINISH = 0x04,
+
+    /// <summary>
+    /// Handshake failed and the payload carries failure proof or diagnostics.
+    /// </summary>
+    ERROR = 0xFF
 }

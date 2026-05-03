@@ -217,18 +217,30 @@ public sealed class BufferLease : IBufferLease
     /// Writable span over the valid payload slice.
     /// </summary>
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
-    public Span<byte> Span => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, this.Length);
+    public Span<byte> Span
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, this.Length);
+    }
 
     /// <summary>
     /// Writable span over the full owned slice (capacity).
     /// </summary>
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
-    public Span<byte> SpanFull => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, this.Capacity);
+    public Span<byte> SpanFull
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _buffer is null ? Span<byte>.Empty : new Span<byte>(_buffer, _start, this.Capacity);
+    }
 
     /// <summary>
     /// Read-only view of the valid payload slice.
     /// </summary>
-    public ReadOnlyMemory<byte> Memory => _buffer is null ? ReadOnlyMemory<byte>.Empty : new ReadOnlyMemory<byte>(_buffer, _start, this.Length);
+    public ReadOnlyMemory<byte> Memory
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => _buffer is null ? ReadOnlyMemory<byte>.Empty : new ReadOnlyMemory<byte>(_buffer, _start, this.Length);
+    }
 
     #endregion Properties
 

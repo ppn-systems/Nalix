@@ -1,10 +1,12 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+
 namespace Nalix.Codec.Security.Asymmetric;
 
-
 [System.Diagnostics.StackTraceHidden]
+[System.Runtime.CompilerServices.SkipLocalsInit]
 internal static class Curve25519
 {
     #region Constants
@@ -45,7 +47,7 @@ internal static class Curve25519
         }
 
         // Exactly one heap allocation: the 32-byte result array.
-        byte[] result = System.GC.AllocateUninitializedArray<byte>(32);
+        byte[] result = GC.AllocateUninitializedArray<byte>(32);
         ScalarMult(scalar[..32], point[..32], result);
 
         // Constant-time low-order-point check.
@@ -76,25 +78,27 @@ internal static class Curve25519
     /// <param name="output"></param>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveOptimization)]
-    private static void ScalarMult(System.ReadOnlySpan<byte> scalar, System.ReadOnlySpan<byte> baseIn, System.Span<byte> output)
+    private static void ScalarMult(ReadOnlySpan<byte> scalar, ReadOnlySpan<byte> baseIn, Span<byte> output)
     {
-        // Clamp a copy of the scalar.
-        System.Span<byte> e = stackalloc byte[32];
+        // 1. Clamp a copy of the scalar (keep stackalloc to zero-heap)
+        Span<byte> e = stackalloc byte[32];
         scalar.CopyTo(e);
         e[0] &= 248;
         e[31] &= 127;
         e[31] |= 64;
 
-        // All FieldElement locals live on the stack — struct semantics, zero heap.
+        // 2. Initialize FieldElements on the stack
         FieldElement x1 = new(baseIn);
         FieldElement x2 = default; x2.One();
-        FieldElement z2 = default;          // zero-initialized by default
-        FieldElement x3 = default; FieldElement.Copy(ref x3, x1);
+        FieldElement z2 = default;
+        FieldElement x3 = default; FieldElement.Copy(ref x3, in x1);
         FieldElement z3 = default; z3.One();
+
         FieldElement tmp0, tmp1;
 
         int swap = 0;
 
+        // 3. Main computation loop (255 iterations)
         for (int pos = 254; pos >= 0; pos--)
         {
             byte b = (byte)(e[pos / 8] >> (pos & 7));
@@ -108,29 +112,36 @@ internal static class Curve25519
             tmp1 = x2 - z2;
             x2 += z2;
             z2 = x3 + z3;
-            z3 = tmp0.Multiply(x2);
-            z2 = z2.Multiply(tmp1);
-            tmp0 = tmp1.Square();
-            tmp1 = x2.Square();
+
+            tmp0.Multiply(in x2, out z3);   // z3 = tmp0 * x2
+            z2.Multiply(in tmp1, out z2); // z2 = z2 * tmp1
+
+            tmp1.Square(out tmp0);        // tmp0 = tmp1^2
+            x2.Square(out tmp1);          // tmp1 = x2^2
+
             x3 = z3 + z2;
             z2 = z3 - z2;
-            x2 = tmp1.Multiply(tmp0);
+
+            tmp1.Multiply(in tmp0, out x2); // x2 = tmp1 * tmp0
             tmp1 -= tmp0;
-            z2 = z2.Square();
-            z3 = tmp1.Mul121666();
-            x3 = x3.Square();
+
+            z2.Square(out z2);              // z2 = z2^2
+            tmp1.Mul121666(out z3);         // z3 = tmp1 * 121666
+            x3.Square(out x3);              // x3 = x3^2
+
             tmp0 += z3;
-            z3 = x1.Multiply(z2);
-            z2 = tmp1.Multiply(tmp0);
+            x1.Multiply(in z2, out z3);     // z3 = x1 * z2
+            tmp1.Multiply(in tmp0, out z2); // z2 = tmp1 * tmp0
         }
 
         FieldElement.CSwap(ref x2, ref x3, swap);
         FieldElement.CSwap(ref z2, ref z3, swap);
 
-        z2 = z2.Invert();
-        x2 = x2.Multiply(z2);
+        // 4. Invert and multiply the final result (using out)
+        z2.Invert(out z2);               // z2 = z2^-1
+        x2.Multiply(in z2, out x2);      // x2 = x2 * z2
 
-        // Write result directly into caller-supplied span — no extra byte[] alloc.
+        // 5. Serialize directly to output
         x2.ToBytes(output);
     }
 

@@ -9,6 +9,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Formatter;
+using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
@@ -76,7 +77,11 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     [SerializeOrder(3)]
     public Bytes32 Proof { get; set; }
 
-    /// <inheritdoc/>
+
+    /// <summary>
+    /// Registers the <see cref="SessionResumeFormatter"/> to optimize serialization performance.
+    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
+    /// </summary>
     static SessionResume() => LiteSerializer.Register(new SessionResumeFormatter());
 
     /// <summary>
@@ -89,7 +94,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// </summary>
     public void Initialize(SessionResumeStage stage, ulong sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
+        this.OpCode = OpCodeCache.SessionSignal;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.Stage = stage;
@@ -102,7 +107,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
+        this.OpCode = OpCodeCache.SessionSignal;
         this.Priority = PacketPriority.URGENT;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = SessionResumeStage.NONE;
@@ -114,12 +119,6 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// <inheritdoc/>
     public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
-        if (this == null)
-        {
-            failureReason = "SessionResume packet is null.";
-            return false;
-        }
-
         bool isValid = this.Stage switch
         {
             SessionResumeStage.REQUEST =>

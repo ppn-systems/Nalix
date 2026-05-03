@@ -14,7 +14,6 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Transport;
 
 namespace Nalix.Network.Internal.Pooling;
 
@@ -88,7 +87,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
             }
             else
             {
-                owner._receiveSource.SetException(NetworkErrors.GetSocketError(e.SocketError));
+                owner._receiveSource.SetException(Throw.GetSocketError(e.SocketError));
             }
         }
         finally
@@ -139,7 +138,18 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     /// <exception cref="InvalidOperationException">
     /// Thrown when <see cref="EnsureArgsBound"/> has not been called yet.
     /// </exception>
-    public SocketAsyncEventArgs Args => _args ?? throw new InternalErrorException("Args not bound.");
+    public SocketAsyncEventArgs Args
+    {
+        get
+        {
+            if (_args is null)
+            {
+                Throw.ArgsNotBound();
+            }
+
+            return _args;
+        }
+    }
 
     /// <summary>
     /// Ensures this context has a bound SAEA, acquiring one from
@@ -255,7 +265,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
 #endif
 
             return err != SocketError.Success
-                ? ValueTask.FromException<int>(NetworkErrors.GetSocketError(err))
+                ? ValueTask.FromException<int>(Throw.GetSocketError(err))
                 : ValueTask.FromResult(bytes);
         }
 
@@ -306,7 +316,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
                     {
                         try
                         {
-                            _receiveSource.SetException(NetworkErrors.PooledContextDisposed);
+                            _receiveSource.SetException(Throw.GetPooledContextDisposed());
                         }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {

@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Benchmarks")]
 #endif
 
-namespace Nalix.Codec.Internal;
+namespace Nalix.Codec.Internal.Memory;
 
 /// <summary>
 /// Low-level span helpers used by the encoders and decoders that need

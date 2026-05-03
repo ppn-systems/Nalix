@@ -1,7 +1,8 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Codec.Security.Internal;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Primitives;
 
 namespace Nalix.Codec.Security.Symmetric;
@@ -25,6 +26,7 @@ namespace Nalix.Codec.Security.Symmetric;
 /// See <see href="https://tools.ietf.org/html/rfc7539">RFC 7539</see> for the full specification.
 /// </para>
 /// </remarks>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
 public struct ChaCha20
 {
@@ -160,7 +162,7 @@ public struct ChaCha20
 
         if (dst.Length < src.Length)
         {
-            ThrowHelper.ThrowOutputLengthMismatchException();
+            Throw.OutputLengthMismatch();
         }
 
         this.EncryptSpanInternal(src, dst, src.Length);
@@ -230,7 +232,7 @@ public struct ChaCha20
     {
         if (key.Length != KeySize)
         {
-            ThrowHelper.ThrowInvalidKeyLengthException($"Key length must be {KeySize}. Actual: {key.Length}");
+            throw new CipherException($"Key length must be {KeySize}. Actual: {key.Length}");
         }
 
         System.Span<uint> s = _state;
@@ -249,7 +251,7 @@ public struct ChaCha20
     {
         if (nonce.Length != NonceSize)
         {
-            ThrowHelper.ThrowInvalidNonceLengthException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
+            throw new CipherException($"Nonce length must be {NonceSize}. Actual: {nonce.Length}");
         }
 
         System.Span<uint> s = _state;

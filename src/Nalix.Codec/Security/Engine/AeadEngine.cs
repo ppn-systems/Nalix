@@ -3,6 +3,7 @@
 
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Security.Aead;
 using Nalix.Codec.Security.Internal;
@@ -100,7 +101,9 @@ public static class AeadEngine
         System.Span<byte> ctDestination = ciphertext.Slice(ctOffset, plaintext.Length);
         System.Span<byte> tagDestination = ciphertext.Slice(ctOffset + plaintext.Length, EnvelopeFormat.TagSize);
         System.Span<byte> header = stackalloc byte[EnvelopeFormat.HeaderSize];
-        EnvelopeHeader.Encode(header, new EnvelopeHeader(EnvelopeFormat.CurrentVersion, algorithm, 0, (byte)nonce.Length, seqVal));
+
+        EnvelopeHeader headerStruct = new(EnvelopeFormat.CurrentVersion, algorithm, 0, (byte)nonce.Length, seqVal);
+        EnvelopeHeader.Encode(header, in headerStruct);
 
         byte[]? rentedAad = null;
         int authenticatedDataLength;
@@ -131,7 +134,7 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    ThrowHelper.ThrowNotSupportedException("Unsupported aead algorithm");
+                    Throw.UnsupportedAlgorithm();
                     return;
             }
 
@@ -217,13 +220,13 @@ public static class AeadEngine
                 case CipherSuiteType.Salsa20:
                 case CipherSuiteType.Chacha20:
                 default:
-                    ThrowHelper.ThrowNotSupportedException("Authenticated decryption is not supported for the selected non-AEAD algorithm.");
+                    Throw.UnsupportedAlgorithm();
                     return;
             }
 
             if (result < 0)
             {
-                throw new CipherException("AEAD authentication failed.");
+                Throw.AeadAuthenticationFailed();
             }
 
             written = result;

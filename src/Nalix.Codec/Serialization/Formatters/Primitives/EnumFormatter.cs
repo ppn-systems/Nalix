@@ -53,7 +53,7 @@ public sealed class EnumFormatter<
     /// </exception>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, T value) => s_serialize(ref writer, value);
+    public void Serialize(ref DataWriter writer, in T value) => s_serialize(ref writer, value);
 
     /// <summary>
     /// Deserializes an enum value from the provided reader using its underlying type.

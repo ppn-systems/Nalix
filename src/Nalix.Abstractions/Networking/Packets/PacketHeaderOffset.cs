@@ -14,34 +14,29 @@ public enum PacketHeaderOffset
     /// Represents the magic number field, which uniquely identifies the packet format or protocol.
     /// This field comes first in the serialized data.
     /// </summary>
-    [DataType(typeof(int))]
     MagicNumber = 0,
 
     /// <summary>
     /// Represents the operation code (OpCode) field, specifying the command or type of the packet.
     /// This field comes second in the serialized data.
     /// </summary>
-    [DataType(typeof(ushort))]
     OpCode = MagicNumber + sizeof(uint),
 
     /// <summary>
     /// Represents the flags field, which contains state or processing options for the packet.
     /// This field comes third in the serialized data.
     /// </summary>
-    [DataType(typeof(byte))]
     Flags = OpCode + sizeof(ushort),
 
     /// <summary>
     /// Represents the priority field, indicating the processing priority of the packet.
     /// This field comes fourth in the serialized data.
     /// </summary>
-    [DataType(typeof(byte))]
     Priority = Flags + sizeof(byte),
 
     /// <summary>
     /// SequenceId field: Used for packet sequence correlation.
     /// </summary>
-    [DataType(typeof(ushort))]
     SequenceId = Priority + sizeof(byte),
 
     /// <summary>

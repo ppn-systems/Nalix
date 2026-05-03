@@ -218,7 +218,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
         if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
         {
-            throw NetworkErrors.UdpPayloadTooLarge;
+            Throw.UdpPayloadTooLargeNow();
         }
 
         try
@@ -226,12 +226,12 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             int sent = _socket.SendTo(message, SocketFlags.None, _endPoint);
             if (sent != message.Length)
             {
-                throw NetworkErrors.UdpPartialSend;
+                Throw.UdpPartialSendNow();
             }
         }
         catch (Exception ex) when (ex is not NetworkException)
         {
-            throw NetworkErrors.UdpSendFailed;
+            Throw.UdpSendFailedNow();
         }
     }
 
@@ -262,7 +262,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
         if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
         {
-            throw NetworkErrors.UdpPayloadTooLarge;
+            Throw.UdpPayloadTooLargeNow();
         }
 
         try
@@ -270,13 +270,13 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             int sentBytes = await _socket.SendToAsync(message, SocketFlags.None, _endPoint, cancellationToken).ConfigureAwait(false);
             if (sentBytes != message.Length)
             {
-                throw NetworkErrors.UdpPartialSend;
+                Throw.UdpPartialSendNow();
             }
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            throw NetworkErrors.UdpSendFailed;
+            Throw.UdpSendFailedNow();
         }
     }
 

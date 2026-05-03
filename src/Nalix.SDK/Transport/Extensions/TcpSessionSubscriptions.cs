@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.Extensions;
 
@@ -56,8 +57,8 @@ public static class TcpSessionSubscriptions
                 return;
             }
 
-            uint magic = buffer.Span.ReadHeaderLE().MagicNumber;
-            if (magic != targetMagic)
+            ref readonly PacketHeader header = ref buffer.Span.AsHeaderRef();
+            if (header.MagicNumber != targetMagic)
             {
                 return;
             }
@@ -211,8 +212,8 @@ public static class TcpSessionSubscriptions
                 return;
             }
 
-            uint bufferMagic = buffer.Span.ReadHeaderLE().MagicNumber;
-            if (bufferMagic != targetMagic)
+            ref readonly PacketHeader header = ref buffer.Span.AsHeaderRef();
+            if (header.MagicNumber != targetMagic)
             {
                 return;
             }

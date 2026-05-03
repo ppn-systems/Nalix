@@ -137,14 +137,17 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
     // ── Equality ─────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool Equals(FragmentHeader other)
         => StreamId == other.StreamId && ChunkIndex == other.ChunkIndex
         && TotalChunks == other.TotalChunks && Flags == other.Flags;
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public override bool Equals(object? obj) => obj is FragmentHeader h && this.Equals(h);
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public override int GetHashCode() => HashCode.Combine(StreamId, ChunkIndex, TotalChunks, Flags);
 
     /// <inheritdoc/>

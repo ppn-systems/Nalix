@@ -16,7 +16,7 @@ public sealed class PacketHeaderFormatter : IFormatter<PacketHeader>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, PacketHeader value) => writer.WriteUnmanaged(value);
+    public void Serialize(ref DataWriter writer, in PacketHeader value) => writer.WriteUnmanaged(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

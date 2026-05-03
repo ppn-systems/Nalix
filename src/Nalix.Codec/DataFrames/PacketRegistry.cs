@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
 
 namespace Nalix.Codec.DataFrames;
@@ -122,19 +123,18 @@ public sealed class PacketRegistry : IPacketRegistry
             return packet;
         }
 
-        if (raw.Length < PacketConstants.HeaderSize)
+        if ((uint)raw.Length < PacketConstants.HeaderSize)
         {
             throw new ArgumentException(
                 $"Raw packet data is too short to contain a valid header. " +
                 $"Expected at least {PacketConstants.HeaderSize} bytes, but got {raw.Length}.", nameof(raw));
         }
 
-        uint magic = raw.ReadHeaderLE().MagicNumber;
-
-        if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
+        ref readonly PacketHeader header = ref raw.AsHeaderRef();
+        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
         {
             throw new InvalidOperationException(
-                $"Cannot deserialize packet: Magic 0x{magic:X8} is not registered. " +
+                $"Cannot deserialize packet: Magic 0x{header.MagicNumber:X8} is not registered. " +
                 $"Check your PacketRegistryFactory configuration.");
         }
 
@@ -145,14 +145,14 @@ public sealed class PacketRegistry : IPacketRegistry
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
     {
-        if (raw.Length < PacketConstants.HeaderSize)
+        if ((uint)raw.Length < PacketConstants.HeaderSize)
         {
             packet = null;
             return false;
         }
 
-        uint magic = raw.ReadHeaderLE().MagicNumber;
-        if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer) || deserializer is null)
+        ref readonly PacketHeader header = ref raw.AsHeaderRef();
+        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
         {
             packet = null;
             return false;
@@ -160,7 +160,7 @@ public sealed class PacketRegistry : IPacketRegistry
 
         try
         {
-            packet = deserializer(raw);
+            packet = Unsafe.As<PacketDeserializer>(deserializer).Invoke(raw);
             return packet is not null;
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)

@@ -6,12 +6,14 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Nalix.Codec.Internal;
+using Nalix.Codec.Internal.Memory;
 
 namespace Nalix.Codec.LZ4.Engine;
 
 /// <summary>
 /// Provides functionality to compress data using the LZ4 algorithm, optimized for zero-allocation and high efficiency.
 /// </summary>
+[SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal static class LZ4Encoder
@@ -62,7 +64,7 @@ internal static class LZ4Encoder
                 // the compressed data. We bail out before writing the header to avoid data corruption.
                 if (compressedDataLength < 0)
                 {
-                    throw CodecErrors.LZ4EncoderOutputBufferTooSmall;
+                    Throw.EncoderOutputBufferTooSmall();
                 }
 
                 int totalCompressedLength = LZ4BlockHeader.Size + compressedDataLength;

@@ -1,3 +1,4 @@
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using System;
 using System.Collections.Generic;
@@ -81,9 +82,9 @@ public sealed class PacketBaseLengthTests
         };
 
         byte[] buffer = new byte[packet.Length - 1];
-        ArgumentException ex = Assert.Throws<ArgumentException>(() => packet.Serialize(buffer));
+        InternalErrorException ex = Assert.ThrowsAny<InternalErrorException>(() => packet.Serialize(buffer));
 
-        Assert.Contains("Buffer too small", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("fixed-size", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

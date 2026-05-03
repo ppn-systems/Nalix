@@ -106,7 +106,7 @@ internal sealed class HashSetFormatter<
     /// </remarks>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public void Serialize(ref DataWriter writer, System.Collections.Generic.HashSet<T>? value)
+    public void Serialize(ref DataWriter writer, in System.Collections.Generic.HashSet<T>? value)
     {
         if (value is null)
         {

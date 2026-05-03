@@ -48,6 +48,7 @@ namespace Nalix.Codec.Security.Hashing;
 /// or use the static <see cref="HashData(ReadOnlySpan{byte})"/> overload
 /// which is stateless and safe to call concurrently.
 /// </threadsafety>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 public static class Keccak256
 {
     #region Constants
@@ -237,7 +238,8 @@ public static class Keccak256
         ReadOnlySpan<byte> data,
         Span<byte> output)
     {
-        Span<ulong> state = stackalloc ulong[Lanes]; // zeroed by CLR
+        Span<ulong> state = stackalloc ulong[Lanes];
+        state.Clear();
         Span<byte> block = stackalloc byte[RateBytes];
 
         data.CopyTo(block);
@@ -649,16 +651,20 @@ public static class Keccak256
 // Zero-cost value types that give the Sponge ref struct its stack-allocated
 // state and buffer without needing heap arrays or unsafe fixed buffers.
 
-/// <summary>Stack-allocated inline array of 25 × <typeparamref name="T"/> (200 B for ulong).</summary>
-/// <typeparam name="T"></typeparam>
+/// <summary>
+/// Stack-allocated inline array of 25 × <typeparamref name="T"/> (200 B for ulong).
+/// </summary>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Runtime.CompilerServices.InlineArray(25)]
 internal struct InlineArray25<T>
 {
     private T _element0;
 }
 
-/// <summary>Stack-allocated inline array of 136 × <typeparamref name="T"/> (136 B for byte).</summary>
-/// <typeparam name="T"></typeparam>
+/// <summary>
+/// Stack-allocated inline array of 136 × <typeparamref name="T"/> (136 B for byte).
+/// </summary>
+[System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Runtime.CompilerServices.InlineArray(136)]
 internal struct InlineArray136<T>
 {

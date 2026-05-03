@@ -10,6 +10,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 
 namespace Nalix.Codec.Transforms;
@@ -29,8 +30,7 @@ public static class FrameCompression
 
         if (src.Length <= FrameTransformer.Offset)
         {
-            throw new ArgumentException(
-                $"Source too small for decompression: {src.Length}. Min required is {FrameTransformer.Offset + 1}.", nameof(src));
+            Throw.BufferTooSmallForPacket();
         }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer
@@ -38,9 +38,10 @@ public static class FrameCompression
         try
         {
             FrameTransformer.Decompress(src, dest);
-            PacketHeader header = dest.Span.ReadHeaderLE();
-            header.Flags = header.Flags.RemoveFlag(PacketFlags.COMPRESSED);
-            dest.Span.WriteHeaderLE(header);
+
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
+            header.Flags &= ~PacketFlags.COMPRESSED;
+
             return dest;
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
@@ -60,8 +61,7 @@ public static class FrameCompression
 
         if (src.Length <= FrameTransformer.Offset)
         {
-            throw new ArgumentException(
-                $"Source too small for compression: {src.Length}. Min required is {FrameTransformer.Offset + 1}.", nameof(src));
+            Throw.BufferTooSmallForPacket();
         }
 
         IBufferLease dest = BufferLease.Rent(FrameTransformer
@@ -70,9 +70,10 @@ public static class FrameCompression
         try
         {
             FrameTransformer.Compress(src, dest);
-            PacketHeader header = dest.Span.ReadHeaderLE();
-            header.Flags = header.Flags.AddFlag(PacketFlags.COMPRESSED);
-            dest.Span.WriteHeaderLE(header);
+
+            ref PacketHeader header = ref dest.Span.AsHeaderRef();
+            header.Flags |= PacketFlags.COMPRESSED;
+
             return dest;
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
