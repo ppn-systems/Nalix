@@ -14,6 +14,15 @@ namespace Nalix.Codec.Extensions;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public static class DataWriterExtensions
 {
+    #region Cache
+
+    private static class EnumCache<TEnum> where TEnum : Enum
+    {
+        public static readonly int Size = Unsafe.SizeOf<TEnum>();
+    }
+
+    #endregion Cache
+
     #region Primitive Types
 
     /// <inheritdoc/>
@@ -144,28 +153,35 @@ public static class DataWriterExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteEnum<TEnum>(this ref DataWriter writer, TEnum value) where TEnum : Enum
     {
-        Type underlyingType = Enum.GetUnderlyingType(typeof(TEnum));
+        int size = EnumCache<TEnum>.Size;
 
-        if (underlyingType == typeof(byte))
+        ref TEnum valRef = ref value;
+
+        if (size == sizeof(byte))
         {
-            writer.Write(Unsafe.As<TEnum, byte>(ref value));
+            writer.Write(Unsafe.As<TEnum, byte>(ref valRef));
+            return;
         }
-        else if (underlyingType == typeof(ushort))
+
+        if (size == sizeof(ushort))
         {
-            writer.Write(Unsafe.As<TEnum, ushort>(ref value));
+            writer.Write(Unsafe.As<TEnum, ushort>(ref valRef));
+            return;
         }
-        else if (underlyingType == typeof(uint))
+
+        if (size == sizeof(uint))
         {
-            writer.Write(Unsafe.As<TEnum, uint>(ref value));
+            writer.Write(Unsafe.As<TEnum, uint>(ref valRef));
+            return;
         }
-        else if (underlyingType == typeof(int))
+
+        if (size == sizeof(int))
         {
-            writer.Write(Unsafe.As<TEnum, int>(ref value));
+            writer.Write(Unsafe.As<TEnum, int>(ref valRef));
+            return;
         }
-        else
-        {
-            throw new NotSupportedException($"Enum underlying type {underlyingType.Name} not supported.");
-        }
+
+        throw new NotSupportedException($"Enum size {size} is not supported.");
     }
 
     #endregion Enum Types
@@ -239,10 +255,17 @@ public static class DataWriterExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void WriteUnmanaged<T>(this ref DataWriter writer, T value) where T : unmanaged
     {
-        writer.Expand(Unsafe.SizeOf<T>());
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(Unsafe.SizeOf<T>());
+        int size = Unsafe.SizeOf<T>();
+
+        writer.Expand(size);
+
+        Unsafe.CopyBlockUnaligned(
+            ref writer.GetFreeBufferReference(),
+            ref Unsafe.As<T, byte>(ref value),
+            (uint)size
+        );
+
+        writer.Advance(size);
     }
 
     #endregion Generic Unmanaged

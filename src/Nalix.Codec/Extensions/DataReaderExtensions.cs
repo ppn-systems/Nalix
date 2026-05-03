@@ -250,9 +250,13 @@ public static class DataReaderExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static T ReadUnmanaged<T>(this ref DataReader reader) where T : unmanaged
     {
-        ref byte ptr = ref reader.GetSpanReference(Unsafe.SizeOf<T>());
-        T value = Unsafe.ReadUnaligned<T>(ref ptr);
-        reader.Advance(Unsafe.SizeOf<T>());
+        int size = Unsafe.SizeOf<T>();
+
+        ref byte srcPtr = ref reader.GetSpanReference(size);
+        T value = Unsafe.ReadUnaligned<T>(ref srcPtr);
+
+        reader.Advance(size);
+
         return value;
     }
 
