@@ -10,6 +10,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Formatter;
+using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Serialization;
 
@@ -129,7 +130,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         Bytes32? proof = null,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
+        this.OpCode = OpCodeCache.Handshake;
         this.Stage = stage;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
@@ -147,7 +148,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// </summary>
     public void InitializeError(ProtocolReason reason, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
+        this.OpCode = OpCodeCache.Handshake;
         this.Stage = HandshakeStage.ERROR;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
@@ -163,12 +164,6 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// <inheritdoc/>
     public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
-        if (this == null)
-        {
-            failureReason = "Handshake packet is null.";
-            return false;
-        }
-
         bool isValid = this.Stage switch
         {
             HandshakeStage.CLIENT_HELLO =>

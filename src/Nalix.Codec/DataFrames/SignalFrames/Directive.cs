@@ -6,6 +6,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Formatter;
+using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
@@ -85,7 +86,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// </summary>
     public Directive()
     {
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+        this.OpCode = OpCodeCache.SystemControl;
         this.Priority = PacketPriority.HIGH;
     }
 
@@ -113,7 +114,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.Action = action;
         this.Control = controlFlags;
         this.SequenceId = sequenceId;
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+        this.OpCode = OpCodeCache.SystemControl;
         this.Flags = flags;
 
         this.Priority = PacketPriority.HIGH;
@@ -155,7 +156,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+        this.OpCode = OpCodeCache.SystemControl;
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
     }

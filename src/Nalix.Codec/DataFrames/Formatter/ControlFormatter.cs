@@ -16,8 +16,6 @@ using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization;
 
-#pragma warning disable CA1062 // Validate arguments of public methods
-
 namespace Nalix.Codec.DataFrames.Formatter;
 
 /// <summary>
