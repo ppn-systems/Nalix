@@ -226,7 +226,7 @@ public sealed class ExtensionsCoverageTests
         buffer[(int)PacketHeaderOffset.Priority] = (byte)PacketPriority.HIGH;
         BinaryPrimitives.WriteUInt16LittleEndian(buffer.AsSpan((int)PacketHeaderOffset.SequenceId), sequence);
 
-        PacketHeader header = buffer.AsSpan().ReadHeaderLE();
+        PacketHeader header = buffer.AsSpan().AsHeaderRef();
         Assert.Equal(magic, header.MagicNumber);
         Assert.Equal(opCode, header.OpCode);
         Assert.Equal(PacketFlags.ENCRYPTED, header.Flags);
@@ -247,9 +247,9 @@ public sealed class ExtensionsCoverageTests
             SequenceId = 0x1234
         };
 
-        buffer.AsSpan().WriteHeaderLE(header);
+        buffer.AsSpan().AsHeaderRef() = header;
 
-        PacketHeader read = buffer.AsSpan().ReadHeaderLE();
+        PacketHeader read = buffer.AsSpan().AsHeaderRef();
         Assert.Equal(header.MagicNumber, read.MagicNumber);
         Assert.Equal(header.OpCode, read.OpCode);
         Assert.Equal(header.Flags, read.Flags);
@@ -262,8 +262,8 @@ public sealed class ExtensionsCoverageTests
     {
         byte[] small = new byte[2];
 
-        Assert.Throws<ArgumentException>(() => small.AsSpan().ReadHeaderLE());
-        Assert.Throws<ArgumentException>(() => small.AsSpan().WriteHeaderLE(default));
+        Assert.Throws<ArgumentException>(() => small.AsSpan().AsHeaderRef());
+        Assert.Throws<ArgumentException>(() => { small.AsSpan().AsHeaderRef() = default; });
     }
 
     [Fact]
