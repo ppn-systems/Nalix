@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Primitives;
@@ -18,44 +17,26 @@ public static class HeaderExtensions
     #region Header read/write (single struct)
 
     /// <summary>
-    /// Reads the full <see cref="PacketHeader"/> (10 bytes) from the start of the buffer
-    /// in one shot using <see cref="MemoryMarshal.Read{T}"/>.
-    /// </summary>
-    [Pure]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static PacketHeader ReadHeaderLE(this ReadOnlySpan<byte> @this)
-    {
-        if ((uint)@this.Length < PacketHeader.Size)
-        {
-            throw new ArgumentException(
-                $"Buffer is too small to read PacketHeader: length={@this.Length}, required={PacketHeader.Size}.");
-        }
-
-        return MemoryMarshal.Read<PacketHeader>(@this);
-    }
-
-    /// <summary>
-    /// Writes the full <see cref="PacketHeader"/> (10 bytes) to the start of the buffer
-    /// in one shot using <see cref="MemoryMarshal.Write{T}"/>.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void WriteHeaderLE(this Span<byte> @this, PacketHeader header)
-    {
-        if ((uint)@this.Length < PacketHeader.Size)
-        {
-            throw new ArgumentException(
-                $"Buffer is too small to write PacketHeader: length={@this.Length}, required={PacketHeader.Size}.");
-        }
-
-        MemoryMarshal.Write(@this, in header);
-    }
-
-    /// <summary>
     /// Gets a direct reference to the <see cref="PacketHeader"/> from the start of the buffer.
     /// Modifying the returned reference directly modifies the underlying span.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ref PacketHeader AsHeaderRef(this Span<byte> @this)
+    {
+        if ((uint)@this.Length < PacketHeader.Size)
+        {
+            throw new ArgumentException(
+                $"Buffer is too small for PacketHeader: length={@this.Length}, required={PacketHeader.Size}.");
+        }
+
+        return ref MemoryMarshal.AsRef<PacketHeader>(@this);
+    }
+
+    /// <summary>
+    /// Gets a readonly reference to the <see cref="PacketHeader"/> from the start of the buffer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static ref readonly PacketHeader AsHeaderRef(this ReadOnlySpan<byte> @this)
     {
         if ((uint)@this.Length < PacketHeader.Size)
         {

@@ -14,6 +14,7 @@ using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Extensions;
@@ -238,11 +239,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
                 $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={s_cache.StaticSize}.");
         }
 
-        uint bufferMagic = buffer.ReadHeaderLE().MagicNumber;
-        if (bufferMagic != s_autoMagic)
+        ref readonly PacketHeader header = ref buffer.AsHeaderRef();
+        if (header.MagicNumber != s_autoMagic)
         {
             throw new SerializationFailureException(
-                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{bufferMagic:X8}, expected=0x{s_autoMagic:X8}. " +
+                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{header.MagicNumber:X8}, expected=0x{s_autoMagic:X8}. " +
                 "The received packet type does not match the target deserialization type.");
         }
     }

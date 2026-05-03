@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
 
 namespace Nalix.Codec.DataFrames;
@@ -129,12 +130,11 @@ public sealed class PacketRegistry : IPacketRegistry
                 $"Expected at least {PacketConstants.HeaderSize} bytes, but got {raw.Length}.", nameof(raw));
         }
 
-        uint magic = raw.ReadHeaderLE().MagicNumber;
-
-        if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
+        ref readonly PacketHeader header = ref raw.AsHeaderRef();
+        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
         {
             throw new InvalidOperationException(
-                $"Cannot deserialize packet: Magic 0x{magic:X8} is not registered. " +
+                $"Cannot deserialize packet: Magic 0x{header.MagicNumber:X8} is not registered. " +
                 $"Check your PacketRegistryFactory configuration.");
         }
 
@@ -151,8 +151,8 @@ public sealed class PacketRegistry : IPacketRegistry
             return false;
         }
 
-        uint magic = raw.ReadHeaderLE().MagicNumber;
-        if (!_deserializers.TryGetValue(magic, out PacketDeserializer? deserializer) || deserializer is null)
+        ref readonly PacketHeader header = ref raw.AsHeaderRef();
+        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer) || deserializer is null)
         {
             packet = null;
             return false;
