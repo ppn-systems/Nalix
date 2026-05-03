@@ -311,8 +311,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
             this.ResetForPool();
 
             // Use the concrete type TSelf to call the fast generic Return path.
-            IObjectPoolManager? mgr = PacketRegistry.Manager;
-            mgr?.Return((TSelf)this);
+            PacketRegistry.Manager?.Return((TSelf)this);
         }
     }
 

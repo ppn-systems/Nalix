@@ -34,8 +34,8 @@ public abstract class FrameBase : IPacket, IPacketHeader
     // --- IPacketHeaderAccessor: direct field access, zero-copy ---
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
-    [SkipCleanAttribute]
     public uint MagicNumber
     {
         get => _header.MagicNumber;
@@ -43,8 +43,8 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
-    [SkipCleanAttribute]
     public ushort OpCode
     {
         get => _header.OpCode;
@@ -52,8 +52,8 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
-    [SkipCleanAttribute]
     public PacketFlags Flags
     {
         get => _header.Flags;
@@ -61,6 +61,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public PacketPriority Priority
     {
@@ -69,8 +70,8 @@ public abstract class FrameBase : IPacket, IPacketHeader
     }
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
-    [SkipCleanAttribute]
     public ushort SequenceId
     {
         get => _header.SequenceId;
