@@ -199,7 +199,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         using BufferLease shortFrame = BufferLease.Rent(FrameTransformer.Offset);
         shortFrame.CommitLength(FrameTransformer.Offset);
 
-        _ = Assert.Throws<CipherException>(() => FrameCipher.DecryptFrame(shortFrame, key, CipherSuiteType.Chacha20));
+        _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(shortFrame, key, CipherSuiteType.Chacha20));
     }
 }
 

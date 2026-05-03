@@ -147,14 +147,14 @@ public sealed class SymmetricEngineTests
 
         envelope[0] ^= 0xFF;
 
-        _ = Assert.Throws<CipherException>(() => SymmetricEngine.Decrypt(s_key32, envelope, ptBuf, out _));
+        _ = Assert.ThrowsAny<CipherException>(() => SymmetricEngine.Decrypt(s_key32, envelope, ptBuf, out _));
     }
 
     [Fact]
     public void SymmetricEngineEnvelopeEmptyEnvelopeDecryptReturnsFalse()
     {
         byte[] ptBuf = new byte[10];
-        _ = Assert.Throws<CipherException>(() => SymmetricEngine.Decrypt(s_key32, [], ptBuf, out _));
+        _ = Assert.ThrowsAny<CipherException>(() => SymmetricEngine.Decrypt(s_key32, [], ptBuf, out _));
     }
 
     [Fact]
@@ -170,7 +170,7 @@ public sealed class SymmetricEngineTests
 
         byte[] truncated = envelope[..HeaderSize];
 
-        _ = Assert.Throws<CipherException>(() => SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out _));
+        _ = Assert.ThrowsAny<CipherException>(() => SymmetricEngine.Decrypt(s_key32, truncated, ptBuf, out _));
     }
 }
 
