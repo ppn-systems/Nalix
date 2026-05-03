@@ -231,7 +231,7 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        if (_catalog.IsKnownMagic(lease.Span.ReadHeaderLE().MagicNumber))
+        if (!_catalog.IsKnownMagic(lease.Span.ReadHeaderLE().MagicNumber))
         {
             connection.IncrementErrorCount();
             return;
