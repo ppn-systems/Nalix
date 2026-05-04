@@ -154,6 +154,13 @@ public sealed class SystemControlHandlers
 
     private static void HandleError(IConnection connection, Control packet)
     {
+        connection.Disconnect($"Client reported ERROR: {packet.Reason}");
+
+        if (connection.Level < PermissionLevel.USER)
+        {
+            return;
+        }
+
         if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
         {
             return;
@@ -164,12 +171,17 @@ public sealed class SystemControlHandlers
         {
             Logging.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
-
-        connection.Disconnect($"Client reported ERROR: {packet.Reason}");
     }
 
     private static void HandleFail(IConnection connection, Control packet)
     {
+        connection.Disconnect($"Client reported FAIL: {packet.Reason}");
+
+        if (connection.Level < PermissionLevel.USER)
+        {
+            return;
+        }
+
         if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
         {
             return;
@@ -180,12 +192,15 @@ public sealed class SystemControlHandlers
         {
             Logging.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
-
-        connection.Disconnect($"Client reported FAIL: {packet.Reason}");
     }
 
     private static void HandleNotice(IConnection connection, Control packet)
     {
+        if (connection.Level < PermissionLevel.USER)
+        {
+            return;
+        }
+
         if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
         {
             return;
