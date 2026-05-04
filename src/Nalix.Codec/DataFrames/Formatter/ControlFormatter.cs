@@ -56,6 +56,7 @@ public sealed class ControlFormatter : IFillableFormatter<Control> //[cite: 11]
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1062:Validate arguments of public methods", Justification = "<Pending>")]
     public void Fill(ref DataReader reader, Control value) //[cite: 11]
     {
         // --- Header Section ---

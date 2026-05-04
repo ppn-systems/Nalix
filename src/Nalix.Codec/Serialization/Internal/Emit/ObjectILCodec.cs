@@ -51,9 +51,9 @@ internal static class ObjectILCodec<T> where T : class, new()
             s_directWriteMethods[i] = FieldILCodec.TryResolveWriteMethod(ft);
         }
 
+        Fill = GenerateFill();
         Serialize = GenerateSerialize();
         Deserialize = GenerateDeserialize();
-        Fill = GenerateFill();
     }
 
     private static SerializeDelegate GenerateSerialize()

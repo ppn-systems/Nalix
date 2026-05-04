@@ -30,13 +30,25 @@ namespace Nalix.Hosting;
 /// </summary>
 public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 {
-    private static readonly MethodInfo s_applyOptionsMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(ApplyOptionsCore), BindingFlags.NonPublic | BindingFlags.Static)
-        ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(ApplyOptionsCore));
+    #region Fields
 
-    private static readonly MethodInfo s_registerHandlerMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(RegisterHandlerCore), BindingFlags.NonPublic | BindingFlags.Static)
-        ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(RegisterHandlerCore));
+    private static readonly MethodInfo s_applyOptionsMethod;
+    private static readonly MethodInfo s_registerHandlerMethod;
 
     private readonly HostingBuilderContext _state;
+
+    #endregion Fields
+
+    #region Constructors
+
+    static NetworkApplicationBuilder()
+    {
+        s_applyOptionsMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(ApplyOptionsCore), BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(ApplyOptionsCore));
+
+        s_registerHandlerMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(RegisterHandlerCore), BindingFlags.NonPublic | BindingFlags.Static)
+            ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(RegisterHandlerCore));
+    }
 
     internal NetworkApplicationBuilder(HostingBuilderContext state)
     {
@@ -45,6 +57,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 .AddHandler<HandshakeHandlers>()
                 .AddHandler<SystemControlHandlers>();
     }
+
+    #endregion Constructors
+
+    #region Configuration Methods
 
     /// <inheritdoc />
     public INetworkApplicationBuilder Configure<TOptions>(Action<TOptions> configure)
@@ -117,6 +133,17 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _state.IdentityCertificatePath = certificatePath;
         return this;
     }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        _state.PacketDispatchConfigurators.Add(configure);
+        return this;
+    }
+
+    #endregion Configuration Methods
 
     /// <inheritdoc />
     public INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false)
@@ -214,15 +241,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(TProvider),
             () => factory()));
 
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        _state.PacketDispatchConfigurators.Add(configure);
         return this;
     }
 
