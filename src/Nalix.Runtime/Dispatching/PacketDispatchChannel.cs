@@ -187,7 +187,7 @@ public sealed class PacketDispatchChannel
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
             {
-                this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] deactivate-error");
+                this.Logging.LogError(ex, $"[RT.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] deactivate-error");
             }
         }
         finally
@@ -200,7 +200,7 @@ public sealed class PacketDispatchChannel
             {
                 if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logging.LogWarning(ex, $"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] linked-cts-dispose-failed");
+                    this.Logging.LogWarning(ex, $"[RT.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] linked-cts-dispose-failed");
                 }
             }
 
@@ -212,7 +212,7 @@ public sealed class PacketDispatchChannel
             {
                 if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logging.LogWarning(ex, $"[NW.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] local-cts-dispose-failed");
+                    this.Logging.LogWarning(ex, $"[RT.{nameof(PacketDispatchChannel)}:{nameof(Deactivate)}] local-cts-dispose-failed");
                 }
             }
         }
@@ -470,7 +470,7 @@ public sealed class PacketDispatchChannel
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
             {
-                this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatchChannel)}:DispatchWorkerLoopAsync] fatal-loop-error index={index}");
+                this.Logging.LogError(ex, $"[RT.{nameof(PacketDispatchChannel)}:DispatchWorkerLoopAsync] fatal-loop-error index={index}");
             }
         }
         finally
