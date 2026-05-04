@@ -63,14 +63,14 @@ public sealed partial class DataFramesPublicApiTests
     private static Control CreateControlPacket()
     {
         Control packet = new();
-        packet.Initialize(14, ControlType.HEARTBEAT, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
+        packet.Initialize(14, ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
         return packet;
     }
 
     private static Directive CreateDirectivePacket()
     {
         Directive packet = new();
-        packet.Initialize(91, ControlType.THROTTLE, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
+        packet.Initialize(91, ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
         return packet;
     }
 
