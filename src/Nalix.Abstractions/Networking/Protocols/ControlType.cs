@@ -24,11 +24,6 @@ public enum ControlType : byte
     PONG = 0x02,
 
     /// <summary>
-    /// Acknowledgement confirming receipt.
-    /// </summary>
-    ACK = 0x03,
-
-    /// <summary>
     /// Disconnect request or notification.
     /// </summary>
     DISCONNECT = 0x04,
@@ -37,16 +32,6 @@ public enum ControlType : byte
     /// Error message describing a failure.
     /// </summary>
     ERROR = 0x05,
-
-    /// <summary>
-    /// Heartbeat message used to keep a connection active.
-    /// </summary>
-    HEARTBEAT = 0x07,
-
-    /// <summary>
-    /// Negative acknowledgement indicating that processing failed.
-    /// </summary>
-    NACK = 0x08,
 
     /// <summary>
     /// Resume a previously interrupted connection or session.
@@ -62,11 +47,6 @@ public enum ControlType : byte
     /// Instruct the client to redirect to another endpoint.
     /// </summary>
     REDIRECT = 0x0B,
-
-    /// <summary>
-    /// Request the client to reduce its rate.
-    /// </summary>
-    THROTTLE = 0x0C,
 
     /// <summary>
     /// Maintenance notice sent by the server.
