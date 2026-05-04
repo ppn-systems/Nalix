@@ -55,7 +55,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
             _logger.LogTrace(
-                $"[NW.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
+                $"[RT.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
                 $"need={context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)"} have={context.Connection.Level}");
         }
 
@@ -84,7 +84,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            context.Connection.ThrottledError(_logger, "middleware.permission.send_error", $"[NW.{nameof(PermissionMiddleware)}] send-error-failed", ex);
+            context.Connection.ThrottledError(_logger, "middleware.permission.send_error", $"[RT.{nameof(PermissionMiddleware)}] send-error-failed", ex);
         }
     }
 }
