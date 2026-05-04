@@ -26,7 +26,7 @@ public sealed class SystemControlHandlers
 {
     #region Fields
 
-    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     #endregion Fields
     /// <summary>
@@ -159,10 +159,10 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null &&
-            s_logger.IsEnabled(LogLevel.Error))
+        if (Logging != null &&
+            Logging.IsEnabled(LogLevel.Error))
         {
-            s_logger.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            Logging.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
 
         connection.Disconnect($"Client reported ERROR: {packet.Reason}");
@@ -175,10 +175,10 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null &&
-            s_logger.IsEnabled(LogLevel.Warning))
+        if (Logging != null &&
+            Logging.IsEnabled(LogLevel.Warning))
         {
-            s_logger.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            Logging.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
 
         connection.Disconnect($"Client reported FAIL: {packet.Reason}");
@@ -191,10 +191,10 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (s_logger != null &&
-            s_logger.IsEnabled(LogLevel.Debug))
+        if (Logging != null &&
+            Logging.IsEnabled(LogLevel.Debug))
         {
-            s_logger.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            Logging.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
     }
 
