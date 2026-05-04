@@ -428,6 +428,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
 
         IPacketDispatch DispatchFactory() => CreatePacketDispatch(_state);
+
         List<Func<IPacketDispatch, ListenerBinding>> serverFactories = [];
 
         foreach (TcpProtocolBinding registration in _state.TcpBindings)
