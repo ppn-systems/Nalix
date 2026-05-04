@@ -232,8 +232,8 @@ public sealed partial class DataFramesPublicApiTests
         Handshake handshake = Handshake.Deserialize(handshakeBytes.AsSpan());
         SessionResume sessionResume = SessionResume.Deserialize(sessionResumeBytes.AsSpan());
 
-        Assert.Equal(ControlType.HEARTBEAT, control.Type);
-        Assert.Equal(ControlType.THROTTLE, directive.Type);
+        Assert.Equal(ControlType.PING, control.Type);
+        Assert.Equal(ControlType.REDIRECT, directive.Type);
         Assert.Equal(HandshakeStage.SERVER_HELLO, handshake.Stage);
         Assert.Equal(SessionResumeStage.REQUEST, sessionResume.Stage);
     }

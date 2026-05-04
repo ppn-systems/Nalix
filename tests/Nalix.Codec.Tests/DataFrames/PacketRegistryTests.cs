@@ -183,7 +183,7 @@ public sealed class PacketRegistryTests : IDisposable
         Directive original = new();
         original.Initialize(
             opCode: 0x0020,
-            type: ControlType.ACK,
+            type: ControlType.NOTICE,
             reason: ProtocolReason.NONE,
             action: ProtocolAdvice.RETRY,
             sequenceId: 123,

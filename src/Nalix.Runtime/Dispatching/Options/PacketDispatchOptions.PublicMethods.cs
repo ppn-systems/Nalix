@@ -35,7 +35,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         this.Logging = logger;
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
+            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
         }
 
         return this;
@@ -58,7 +58,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
+            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
         }
         _errorHandler = errorHandler;
 
@@ -81,7 +81,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
         }
 
         _pipeline.Use(middleware);
@@ -111,7 +111,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         this.DispatchLoopCount = loopCount;
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
+            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
         }
         return this;
     }
@@ -249,7 +249,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
                 {
                     this.Logging.LogDebug(
-                        $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
+                        $"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
                         $"type-map opcode=0x{descriptor.OpCode:X4} -> {concretePacketType.Name}");
                 }
             }
@@ -257,7 +257,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Information))
         {
-            this.Logging.LogInformation($"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
+            this.Logging.LogInformation($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
                                $"reg-handlers count={compiledHandlers.Length} controller={controllerType.Name}");
         }
 

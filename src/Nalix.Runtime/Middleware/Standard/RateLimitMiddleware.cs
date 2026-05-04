@@ -81,7 +81,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             // If the limiter has been disposed (e.g., during shutdown), deny the packet (fail-closed)
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-denied");
+                _logger.LogWarning($"[RT.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-denied");
             }
             return;
         }

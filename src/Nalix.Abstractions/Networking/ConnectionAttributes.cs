@@ -43,4 +43,10 @@ public static class ConnectionAttributes
     /// Stores the last monotonic timestamp (ms) when an UNAUTHORIZED directive was sent.
     /// </summary>
     public const string InboundDirectiveUnauthorizedLastSentAtMs = "nalix.inbound.directive.unauthorized.last_sent_at_ms";
+
+    /// <summary>
+    /// Stores the last monotonic timestamp (ms) when a control log entry was emitted.
+    /// Prevents log flooding from repeated ERROR/FAIL/NOTICE packets.
+    /// </summary>
+    public const string InboundControlLogLastSentAtMs = "nalix.inbound.control.log.last_sent_at_ms";
 }

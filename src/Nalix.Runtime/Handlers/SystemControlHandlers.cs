@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -10,6 +12,8 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Environment.Time;
+using Nalix.Framework.Injection;
+using Nalix.Runtime.Internal.RateLimiting;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
@@ -20,6 +24,11 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("SystemControl")]
 public sealed class SystemControlHandlers
 {
+    #region Fields
+
+    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    #endregion Fields
     /// <summary>
     /// Handles incoming system control packets.
     /// </summary>
@@ -48,22 +57,27 @@ public sealed class SystemControlHandlers
             case ControlType.TIMESYNCREQUEST:
                 await HandleTimeSyncRequest(context.Connection, packet).ConfigureAwait(false);
                 break;
+            case ControlType.ERROR:
+                HandleError(context.Connection, packet);
+                break;
+            case ControlType.FAIL:
+                HandleFail(context.Connection, packet);
+                break;
+            case ControlType.NOTICE:
+                HandleNotice(context.Connection, packet);
+                break;
             // Server generally does not need to send back automatic replies for these
-            case ControlType.HEARTBEAT:         // Transport layer might track last-seen
             case ControlType.PONG:              // PONG received if Server pings Client
             case ControlType.CIPHER_UPDATE_ACK: // Client ACK (if Server inititated)
-            case ControlType.ERROR:
-            case ControlType.FAIL:
-            case ControlType.NOTICE:
             case ControlType.SHUTDOWN:          // Ignored by default unless admin system handles it
 
-            // Unused or reserved types return null
+            // These types are not implemented on the server side:
+            // 1.Incorrect protocol direction(e.g., TIMESYNCRESPONSE is sent by the server).
+            // 2.Processed at a lower layer(Transport/ Session Layer).
+            // 3.These are types reserved for the future.
             case ControlType.NONE:
-            case ControlType.ACK:
-            case ControlType.NACK:
             case ControlType.RESUME:
             case ControlType.REDIRECT:
-            case ControlType.THROTTLE:
             case ControlType.TIMEOUT:
             case ControlType.TIMESYNCRESPONSE:
             case ControlType.RESERVED1:
@@ -105,9 +119,17 @@ public sealed class SystemControlHandlers
     private static async ValueTask HandlePing(IConnection connection, Control ping)
     {
         using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
-        Control pong = lease.Value;
-        pong.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PONG, ping.SequenceId, ping.Flags, ProtocolReason.NONE);
 
+        // Prepare PONG response using pooled instance (zero allocation pattern)
+        Control pong = lease.Value;
+        pong.Initialize(
+            (ushort)ProtocolOpCode.SYSTEM_CONTROL,
+            ControlType.PONG,
+            ping.SequenceId,   // Echo back for latency tracking
+            ping.Flags,        // Preserve flags (protocol-specific behavior)
+            ProtocolReason.NONE);
+
+        // Send immediately to minimize RTT (no buffering / batching)
         await connection.TCP.SendAsync(pong).ConfigureAwait(false);
     }
 
@@ -123,7 +145,73 @@ public sealed class SystemControlHandlers
         await connection.TCP.SendAsync(res).ConfigureAwait(false);
     }
 
-    private static void HandleDisconnect(IConnection connection, Control _) => connection.Disconnect("Client requested disconnect via Control frame.");
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    [SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]
+    private static void HandleDisconnect(IConnection connection, Control packet)
+    {
+        connection.Disconnect("Client requested disconnect via Control frame.");
+    }
+
+    private static void HandleError(IConnection connection, Control packet)
+    {
+        connection.Disconnect($"Client reported ERROR: {packet.Reason}");
+
+        if (connection.Level < PermissionLevel.USER)
+        {
+            return;
+        }
+
+        if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
+        {
+            return;
+        }
+
+        if (Logging != null &&
+            Logging.IsEnabled(LogLevel.Error))
+        {
+            Logging.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+        }
+    }
+
+    private static void HandleFail(IConnection connection, Control packet)
+    {
+        connection.Disconnect($"Client reported FAIL: {packet.Reason}");
+
+        if (connection.Level < PermissionLevel.USER)
+        {
+            return;
+        }
+
+        if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
+        {
+            return;
+        }
+
+        if (Logging != null &&
+            Logging.IsEnabled(LogLevel.Warning))
+        {
+            Logging.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+        }
+    }
+
+    private static void HandleNotice(IConnection connection, Control packet)
+    {
+        if (connection.Level < PermissionLevel.USER)
+        {
+            return;
+        }
+
+        if (!DirectiveGuard.TryAcquire(connection, ConnectionAttributes.InboundControlLogLastSentAtMs))
+        {
+            return;
+        }
+
+        if (Logging != null &&
+            Logging.IsEnabled(LogLevel.Debug))
+        {
+            Logging.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+        }
+    }
 
     #endregion Private Methods
 }

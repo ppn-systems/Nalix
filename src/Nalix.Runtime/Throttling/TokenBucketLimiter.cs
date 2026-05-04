@@ -377,7 +377,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
+                _logger.LogWarning($"[RT.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
             }
 
             return new EndpointStateResult
@@ -413,7 +413,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
+            _logger.LogDebug($"[RT.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
         }
 
         return new EndpointStateResult { State = newState, IsNew = true };
@@ -556,7 +556,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace($"[NW.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
+                _logger.LogTrace($"[RT.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
             }
 
             decision = new RateLimitDecision
@@ -594,7 +594,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         if (credit <= 1 && _logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace($"[NW.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
+            _logger.LogTrace($"[RT.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
         }
 
         return new RateLimitDecision
@@ -677,7 +677,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
         {
-            _logger.LogWarning("[NW.{Name}:Internal] escalate-to-hard-lock endpoint={Address} retry_ms={RetryMs}", nameof(TokenBucketLimiter), key.Address, retryMs);
+            _logger.LogWarning("[RT.{Name}:Internal] escalate-to-hard-lock endpoint={Address} retry_ms={RetryMs}", nameof(TokenBucketLimiter), key.Address, retryMs);
         }
 
         return new RateLimitDecision
@@ -1254,7 +1254,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
+                    _logger.LogDebug($"[RT.{nameof(TokenBucketLimiter)}:Internal] " +
                                   $"Cleanup removed={removed}");
                 }
             }
@@ -1263,14 +1263,14 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(TokenBucketLimiter)}:Internal] Cleanup was cancelled due to timeout");
+                _logger.LogWarning($"[RT.{nameof(TokenBucketLimiter)}:Internal] Cleanup was cancelled due to timeout");
             }
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(TokenBucketLimiter)}:Internal] cleanup-error");
+                _logger.LogError(ex, $"[RT.{nameof(TokenBucketLimiter)}:Internal] cleanup-error");
             }
         }
     }
@@ -1393,7 +1393,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(TokenBucketLimiter)}:Internal] " +
+                _logger.LogWarning($"[RT.{nameof(TokenBucketLimiter)}:Internal] " +
                             $"Evicted {removed} endpoints to enforce MaxTrackedEndpoints limit");
             }
         }
@@ -1591,7 +1591,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
+            _logger.LogDebug($"[RT.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
         }
     }
 
