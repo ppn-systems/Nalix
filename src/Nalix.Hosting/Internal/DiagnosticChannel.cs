@@ -76,7 +76,11 @@ internal sealed class DiagnosticChannel :
 
     public DiagnosticChannel(LogLevel minLevel) => _minLevel = minLevel;
 
-    public void Subscribe() => _allListenersSubscription = DiagnosticListener.AllListeners.Subscribe(this);
+    public void Subscribe()
+    {
+        _allListenersSubscription?.Dispose();
+        _allListenersSubscription = DiagnosticListener.AllListeners.Subscribe(this);
+    }
 
     #region IObserver<DiagnosticListener>
 

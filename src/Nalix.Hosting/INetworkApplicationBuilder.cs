@@ -77,6 +77,13 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigurePacketRegistry(IPacketRegistry packetRegistry);
 
     /// <summary>
+    /// Configures the packet dispatcher used by the host.
+    /// </summary>
+    /// <param name="configure">The callback used to configure dispatcher options.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure);
+
+    /// <summary>
     /// Adds packet types discovered from the specified assembly.
     /// </summary>
     /// <param name="assembly">The assembly to scan for packet types.</param>
@@ -173,13 +180,6 @@ public interface INetworkApplicationBuilder
     /// <param name="factory">The factory used to create provider instances.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddMetadataProvider<TProvider>(Func<TProvider> factory) where TProvider : class, IPacketMetadataProvider;
-
-    /// <summary>
-    /// Configures the packet dispatcher used by the host.
-    /// </summary>
-    /// <param name="configure">The callback used to configure dispatcher options.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure);
 
     /// <summary>
     /// Adds a TCP protocol using the default Nalix activator.

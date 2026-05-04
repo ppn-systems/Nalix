@@ -24,7 +24,7 @@ namespace Nalix.Hosting;
 /// or the lifecycle methods inherited from <see cref="IActivatable"/> and
 /// <see cref="IActivatableAsync"/>.
 /// </remarks>
-public sealed class NetworkApplication : IActivatableAsync
+public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 {
     #region Static Fields
 
@@ -73,6 +73,7 @@ public sealed class NetworkApplication : IActivatableAsync
     private readonly IReadOnlyList<IActivatableAsync> _hostedServices;
 
     private bool _isStarted;
+    private bool _isDisposed;
     private IPacketDispatch? _packetDispatch;
 
     #endregion Fields
@@ -138,6 +139,13 @@ public sealed class NetworkApplication : IActivatableAsync
 
             _prepareCallbacks();
 
+            if (_packetDispatch is not null)
+            {
+                try { _packetDispatch.Deactivate(cancellationToken); }
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+                _packetDispatch = null;
+            }
+
             _packetDispatch = _dispatchFactory();
 
             try
@@ -146,32 +154,41 @@ public sealed class NetworkApplication : IActivatableAsync
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
+                _logger.LogDebug(ex, "IPacketDispatch registration replaced existing instance.");
             }
 
             _packetDispatch.Activate(cancellationToken);
 
-            for (int i = 0; i < _serverFactories.Count; i++)
+            try
             {
-                ListenerBinding server = _serverFactories[i](_packetDispatch);
-
-                _protocols.Add(server.Protocol);
-                _listeners.Add(server.Listener);
-
-                server.Listener.Activate(cancellationToken);
-
-                if (server.IsUdp)
+                for (int i = 0; i < _serverFactories.Count; i++)
                 {
-                    s_startedUdpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    ListenerBinding server = _serverFactories[i](_packetDispatch);
+
+                    _protocols.Add(server.Protocol);
+                    _listeners.Add(server.Listener);
+
+                    server.Listener.Activate(cancellationToken);
+
+                    if (server.IsUdp)
+                    {
+                        s_startedUdpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    }
+                    else
+                    {
+                        s_startedTcpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    }
                 }
-                else
+
+                for (int i = 0; i < _hostedServices.Count; i++)
                 {
-                    s_startedTcpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    await _hostedServices[i].ActivateAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
-
-            for (int i = 0; i < _hostedServices.Count; i++)
+            catch
             {
-                await _hostedServices[i].ActivateAsync(cancellationToken).ConfigureAwait(false);
+                this.CleanupPartialActivation(cancellationToken);
+                throw;
             }
 
             _isStarted = true;
@@ -180,6 +197,29 @@ public sealed class NetworkApplication : IActivatableAsync
         {
             _ = _gate.Release();
         }
+    }
+
+    private void CleanupPartialActivation(CancellationToken cancellationToken)
+    {
+        for (int i = _listeners.Count - 1; i >= 0; i--)
+        {
+            try { _listeners[i].Deactivate(cancellationToken); }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+            try { _listeners[i].Dispose(); }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+        }
+        _listeners.Clear();
+
+        for (int i = _protocols.Count - 1; i >= 0; i--)
+        {
+            try { _protocols[i].Dispose(); }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+        }
+        _protocols.Clear();
+
+        try { _packetDispatch?.Deactivate(cancellationToken); }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+        _packetDispatch = null;
     }
 
     /// <inheritdoc />
@@ -230,7 +270,7 @@ public sealed class NetworkApplication : IActivatableAsync
                 }
                 catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    if (_logger.IsEnabled(LogLevel.Warning))
                     {
                         _logger.LogWarning(ex, "Failed to stop hosted service cleanly.");
                     }
@@ -243,13 +283,15 @@ public sealed class NetworkApplication : IActivatableAsync
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (_logger.IsEnabled(LogLevel.Error))
                 {
                     s_stopDispatcherFailedMessage(_logger, ex);
                 }
             }
 
             _packetDispatch = null;
+
+            _isStarted = false;
 
             // BUG-Fix: Ensure all background workers are fully stopped before returning.
             // Without this, "zombie" tasks from Test A might interfere with Test B's resources.
@@ -258,11 +300,16 @@ public sealed class NetworkApplication : IActivatableAsync
             {
                 // Wait for all network and time-related workers (listeners, dispatchers, timing wheels, etc.)
                 // These groups usually start with 'net/' or 'time/'
-                await taskManager.WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
-                await taskManager.WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await taskManager.WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
+                    await taskManager.WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                {
+                    _logger.LogWarning(ex, "Failed to wait for background workers during shutdown.");
+                }
             }
-
-            _isStarted = false;
         }
         finally
         {
@@ -271,15 +318,43 @@ public sealed class NetworkApplication : IActivatableAsync
     }
 
     /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _isDisposed, true))
+        {
+            return;
+        }
+
+        try
+        {
+            await this.DeactivateAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex, "Failed to stop Nalix application during dispose.");
+            }
+        }
+
+        _gate.Dispose();
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _isDisposed, true))
+        {
+            return;
+        }
+
         Task deactivateTask = this.DeactivateAsync(CancellationToken.None);
 
         if (deactivateTask.IsCompleted)
         {
             if (deactivateTask.Exception?.GetBaseException() is Exception ex)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (_logger.IsEnabled(LogLevel.Warning))
                 {
                     _logger.LogWarning(ex, "Failed to stop Nalix application during dispose.");
                 }
@@ -287,26 +362,20 @@ public sealed class NetworkApplication : IActivatableAsync
         }
         else
         {
-            _ = deactivateTask.ContinueWith(static (task, state) =>
+            try
             {
-                if (state is not ILogger logger)
+                deactivateTask.GetAwaiter().GetResult();
+            }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
                 {
-                    return;
+                    _logger.LogWarning(ex, "Failed to stop Nalix application during dispose.");
                 }
-
-                Exception? ex = task.Exception?.GetBaseException();
-                if (ex is not null)
-                {
-                    if (logger != null && logger.IsEnabled(LogLevel.Warning))
-                    {
-                        logger.LogWarning(ex, "Failed to stop Nalix application during deferred dispose.");
-                    }
-                }
-            }, _logger, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
         }
 
         _gate.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     #endregion APIs

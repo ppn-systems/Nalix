@@ -5,11 +5,6 @@ using System;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Listeners.Udp;
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
 namespace Nalix.Hosting.Internal;
 
 /// <inheritdoc />

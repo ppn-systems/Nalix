@@ -78,8 +78,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureLogging(ILogger logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+
         InstanceManager.Instance.Register<ILogger>(logger);
-        _state.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _state.Logger = logger;
 
         return this;
     }
@@ -89,6 +91,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(connectionHub);
 
+        _state.HasCustomConnectionHub = true;
         InstanceManager.Instance.Register<IConnectionHub>(connectionHub);
         return this;
     }
@@ -106,6 +109,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
     {
         ArgumentNullException.ThrowIfNull(manager);
+
+        _state.HasCustomBufferPoolManager = true;
         InstanceManager.Instance.Register<BufferPoolManager>(manager);
         BufferLease.ByteArrayPool.Configure(manager);
 
@@ -397,8 +402,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public NetworkApplication Build()
     {
-        bool metadataRegistered = false;
-        void prepareCallbacks()
+        void PrepareCallbacks()
         {
             RegisterLogger(_state);
             ApplyOptions(_state);
@@ -416,22 +420,19 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 HandshakeHandlers.Initialize();
             }
 
-            if (!metadataRegistered)
-            {
-                RegisterMetadataProviders(_state);
-                metadataRegistered = true;
-            }
+            RegisterMetadataProviders(_state);
         }
 
-        IPacketDispatch dispatchFactory() => CreatePacketDispatch(_state);
+        IPacketDispatch DispatchFactory() => CreatePacketDispatch(_state);
+
         List<Func<IPacketDispatch, ListenerBinding>> serverFactories = [];
 
         foreach (TcpProtocolBinding registration in _state.TcpBindings)
         {
             serverFactories.Add(dispatch =>
             {
-                this.EnsureConnectionHubRegistered();
-                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
+                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
                 TcpServerListener listener = registration.Port.HasValue
                     ? new(registration.Port.Value, protocol, hub)
@@ -445,8 +446,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
-                this.EnsureConnectionHubRegistered();
-                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
+                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
                 UdpServerListener listener = registration.Authentication != null
                     ? (registration.Port.HasValue
@@ -466,7 +467,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             hostedServices.Add(factory());
         }
 
-        return new NetworkApplication(_state.Logger, prepareCallbacks, dispatchFactory, serverFactories, hostedServices);
+        return new NetworkApplication(_state.Logger, PrepareCallbacks, DispatchFactory, serverFactories, hostedServices);
     }
 
     #region Factory Methods
@@ -561,8 +562,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         Justification = "On successful registration InstanceManager owns the ConnectionHub lifetime; registration failure disposes the local instance.")]
     private void EnsureConnectionHubRegistered()
     {
-        // Always register a new hub to ensure isolation between application instances.
-        // If a user wants to share a hub, they should use ConfigureConnectionHub.
+        if (_state.HasCustomConnectionHub)
+        {
+            return;
+        }
 
         ConnectionHub hub = new(logger: _state.Logger);
         try
@@ -580,7 +583,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         Justification = "On successful registration InstanceManager and BufferLease.ByteArrayPool own the manager lifetime; failure disposes the local instance.")]
     private void EnsureBufferPoolManagerRegistered()
     {
-        // Always register a new manager to ensure isolation.
+        if (_state.HasCustomBufferPoolManager)
+        {
+            return;
+        }
 
         BufferPoolManager manager = new();
         try
