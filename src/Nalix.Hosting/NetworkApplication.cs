@@ -139,6 +139,13 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
             _prepareCallbacks();
 
+            if (_packetDispatch is not null)
+            {
+                try { _packetDispatch.Deactivate(cancellationToken); }
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+                _packetDispatch = null;
+            }
+
             _packetDispatch = _dispatchFactory();
 
             try
@@ -151,28 +158,36 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
             _packetDispatch.Activate(cancellationToken);
 
-            for (int i = 0; i < _serverFactories.Count; i++)
+            try
             {
-                ListenerBinding server = _serverFactories[i](_packetDispatch);
-
-                _protocols.Add(server.Protocol);
-                _listeners.Add(server.Listener);
-
-                server.Listener.Activate(cancellationToken);
-
-                if (server.IsUdp)
+                for (int i = 0; i < _serverFactories.Count; i++)
                 {
-                    s_startedUdpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    ListenerBinding server = _serverFactories[i](_packetDispatch);
+
+                    _protocols.Add(server.Protocol);
+                    _listeners.Add(server.Listener);
+
+                    server.Listener.Activate(cancellationToken);
+
+                    if (server.IsUdp)
+                    {
+                        s_startedUdpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    }
+                    else
+                    {
+                        s_startedTcpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    }
                 }
-                else
+
+                for (int i = 0; i < _hostedServices.Count; i++)
                 {
-                    s_startedTcpServerMessage(_logger, server.ProtocolType.FullName, null);
+                    await _hostedServices[i].ActivateAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
-
-            for (int i = 0; i < _hostedServices.Count; i++)
+            catch
             {
-                await _hostedServices[i].ActivateAsync(cancellationToken).ConfigureAwait(false);
+                CleanupPartialActivation(cancellationToken);
+                throw;
             }
 
             _isStarted = true;
@@ -181,6 +196,29 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         {
             _ = _gate.Release();
         }
+    }
+
+    private void CleanupPartialActivation(CancellationToken cancellationToken)
+    {
+        for (int i = _listeners.Count - 1; i >= 0; i--)
+        {
+            try { _listeners[i].Deactivate(cancellationToken); }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+            try { _listeners[i].Dispose(); }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+        }
+        _listeners.Clear();
+
+        for (int i = _protocols.Count - 1; i >= 0; i--)
+        {
+            try { _protocols[i].Dispose(); }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+        }
+        _protocols.Clear();
+
+        try { _packetDispatch?.Deactivate(cancellationToken); }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+        _packetDispatch = null;
     }
 
     /// <inheritdoc />
