@@ -24,7 +24,7 @@ namespace Nalix.Hosting;
 /// or the lifecycle methods inherited from <see cref="IActivatable"/> and
 /// <see cref="IActivatableAsync"/>.
 /// </remarks>
-public sealed class NetworkApplication : IActivatableAsync
+public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 {
     #region Static Fields
 
@@ -73,6 +73,7 @@ public sealed class NetworkApplication : IActivatableAsync
     private readonly IReadOnlyList<IActivatableAsync> _hostedServices;
 
     private bool _isStarted;
+    private bool _isDisposed;
     private IPacketDispatch? _packetDispatch;
 
     #endregion Fields
@@ -230,7 +231,7 @@ public sealed class NetworkApplication : IActivatableAsync
                 }
                 catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    if (_logger.IsEnabled(LogLevel.Warning))
                     {
                         _logger.LogWarning(ex, "Failed to stop hosted service cleanly.");
                     }
@@ -243,7 +244,7 @@ public sealed class NetworkApplication : IActivatableAsync
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (_logger.IsEnabled(LogLevel.Error))
                 {
                     s_stopDispatcherFailedMessage(_logger, ex);
                 }
@@ -271,15 +272,43 @@ public sealed class NetworkApplication : IActivatableAsync
     }
 
     /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _isDisposed, true))
+        {
+            return;
+        }
+
+        try
+        {
+            await this.DeactivateAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (_logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex, "Failed to stop Nalix application during dispose.");
+            }
+        }
+
+        _gate.Dispose();
+    }
+
+    /// <inheritdoc />
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _isDisposed, true))
+        {
+            return;
+        }
+
         Task deactivateTask = this.DeactivateAsync(CancellationToken.None);
 
         if (deactivateTask.IsCompleted)
         {
             if (deactivateTask.Exception?.GetBaseException() is Exception ex)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (_logger.IsEnabled(LogLevel.Warning))
                 {
                     _logger.LogWarning(ex, "Failed to stop Nalix application during dispose.");
                 }
@@ -287,26 +316,20 @@ public sealed class NetworkApplication : IActivatableAsync
         }
         else
         {
-            _ = deactivateTask.ContinueWith(static (task, state) =>
+            try
             {
-                if (state is not ILogger logger)
+                deactivateTask.GetAwaiter().GetResult();
+            }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (_logger.IsEnabled(LogLevel.Warning))
                 {
-                    return;
+                    _logger.LogWarning(ex, "Failed to stop Nalix application during dispose.");
                 }
-
-                Exception? ex = task.Exception?.GetBaseException();
-                if (ex is not null)
-                {
-                    if (logger != null && logger.IsEnabled(LogLevel.Warning))
-                    {
-                        logger.LogWarning(ex, "Failed to stop Nalix application during deferred dispose.");
-                    }
-                }
-            }, _logger, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
+            }
         }
 
         _gate.Dispose();
-        GC.SuppressFinalize(this);
     }
 
     #endregion APIs
