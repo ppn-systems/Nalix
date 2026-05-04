@@ -4,11 +4,6 @@
 using System;
 using Nalix.Abstractions.Networking;
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
-#endif
-
 namespace Nalix.Hosting.Internal;
 
 /// <summary>
