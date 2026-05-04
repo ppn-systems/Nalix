@@ -437,7 +437,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
-                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
+                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
                 TcpServerListener listener = registration.Port.HasValue
                     ? new(registration.Port.Value, protocol, hub)
@@ -451,7 +452,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             serverFactories.Add(dispatch =>
             {
-                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
+                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
                 UdpServerListener listener = registration.Authentication != null
                     ? (registration.Port.HasValue
