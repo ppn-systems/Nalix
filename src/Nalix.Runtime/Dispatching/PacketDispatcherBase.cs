@@ -106,7 +106,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Trace))
             {
-                this.Logging.LogTrace($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.Header.OpCode}");
+                this.Logging.LogTrace($"[RT.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handle opcode={packet.Header.OpCode}");
             }
 
             ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, token);
@@ -125,7 +125,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                     {
                         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
                         {
-                            this.Logging.LogError(ex, $"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.Header.OpCode}");
+                            this.Logging.LogError(ex, $"[RT.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={packet.Header.OpCode}");
                         }
                     }
                 }
@@ -145,7 +145,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
                 {
                     if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
                     {
-                        owner.Logging.LogError(ex, $"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={opCode}");
+                        owner.Logging.LogError(ex, $"[RT.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] handler-error opcode={opCode}");
                     }
                 }
             }
@@ -153,7 +153,7 @@ public abstract class PacketDispatcherBase<TPacket> where TPacket : IPacket
 
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
         {
-            this.Logging.LogWarning($"[NW.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] no-handler opcode={packet.Header.OpCode}");
+            this.Logging.LogWarning($"[RT.{nameof(PacketDispatcherBase<>)}:{nameof(ExecutePacketHandlerAsync)}] no-handler opcode={packet.Header.OpCode}");
         }
         return ValueTask.CompletedTask;
     }
