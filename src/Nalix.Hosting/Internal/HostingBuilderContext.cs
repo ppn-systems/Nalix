@@ -103,6 +103,20 @@ internal sealed class HostingBuilderContext
     /// automatic packet discovery and registration.
     /// </summary>
     public IPacketRegistry? PacketRegistryOverride { get; set; }
+
+    /// <summary>
+    /// Indicates whether the user has explicitly configured a custom
+    /// <see cref="IConnectionHub"/> via <c>ConfigureConnectionHub</c>.
+    /// When <c>true</c>, the host will not create a default hub.
+    /// </summary>
+    public bool HasCustomConnectionHub { get; set; }
+
+    /// <summary>
+    /// Indicates whether the user has explicitly configured a custom
+    /// <see cref="Nalix.Framework.Memory.Buffers.BufferPoolManager"/> via <c>ConfigureBufferPoolManager</c>.
+    /// When <c>true</c>, the host will not create a default manager.
+    /// </summary>
+    public bool HasCustomBufferPoolManager { get; set; }
 }
 
 /// <summary>
