@@ -105,9 +105,9 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     public void ControlInitializeOverloadWithoutOpcodeUpdatesCoreProperties()
     {
         Control packet = new();
-        packet.Initialize(ControlType.HEARTBEAT, sequenceId: 44, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, sequenceId: 44, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
 
-        Assert.Equal(ControlType.HEARTBEAT, packet.Type);
+        Assert.Equal(ControlType.PING, packet.Type);
         Assert.Equal(44u, packet.Header.SequenceId);
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
         Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
@@ -119,10 +119,10 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     public void DirectiveInitializeOverloadWithoutOpcodeKeepsSystemControlOpcode()
     {
         Directive packet = new();
-        packet.Initialize(ControlType.THROTTLE, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, sequenceId: 9, controlFlags: ControlFlags.SLOW_DOWN, arg0: 1, arg1: 2, arg2: 3);
+        packet.Initialize(ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, sequenceId: 9, controlFlags: ControlFlags.SLOW_DOWN, arg0: 1, arg1: 2, arg2: 3);
 
         Assert.Equal((ushort)ProtocolOpCode.SYSTEM_CONTROL, packet.Header.OpCode);
-        Assert.Equal(ControlType.THROTTLE, packet.Type);
+        Assert.Equal(ControlType.REDIRECT, packet.Type);
         Assert.Equal(ProtocolReason.THROTTLED, packet.Reason);
         Assert.Equal(ProtocolAdvice.SLOW_DOWN, packet.Action);
         Assert.Equal(ControlFlags.SLOW_DOWN, packet.Control);
