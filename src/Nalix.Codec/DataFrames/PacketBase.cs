@@ -87,7 +87,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     private static readonly int s_fixedSize = s_isFixedSize ? FETCH_FIXED_SIZE() : 0;
 
     [SerializeIgnore]
-    private static readonly Cache s_cache = InitializeCache();
+    private static readonly Cache s_cache = INITIALIZE_CACHE();
 
     #endregion Static Cache
 
@@ -225,29 +225,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
         return packet;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void VALIDATE_BUFFER_HEADER(ReadOnlySpan<byte> buffer)
-    {
-        if (buffer.IsEmpty)
-        {
-            throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
-        }
-
-        if (buffer.Length < s_cache.StaticSize)
-        {
-            throw new SerializationFailureException(
-                $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={s_cache.StaticSize}.");
-        }
-
-        ref readonly PacketHeader header = ref buffer.AsHeaderRef();
-        if (header.MagicNumber != s_autoMagic)
-        {
-            throw new SerializationFailureException(
-                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{header.MagicNumber:X8}, expected=0x{s_autoMagic:X8}. " +
-                "The received packet type does not match the target deserialization type.");
-        }
-    }
-
     /// <inheritdoc/>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override void ResetForPool()
@@ -265,7 +242,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
         // Explicitly reset all FrameBase header fields to well-known defaults.
         // These are declared in the base class so _metadata may or may not include them
         // depending on whether SerializeOrder is defined — reset them unconditionally.
-        this.OpCode = 0;
         this.SequenceId = 0;
         this.Flags = PacketFlags.SYSTEM;
         this.Priority = PacketPriority.NONE;
@@ -375,8 +351,31 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void VALIDATE_BUFFER_HEADER(ReadOnlySpan<byte> buffer)
+    {
+        if (buffer.IsEmpty)
+        {
+            throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
+        }
+
+        if (buffer.Length < s_cache.StaticSize)
+        {
+            throw new SerializationFailureException(
+                $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={s_cache.StaticSize}.");
+        }
+
+        ref readonly PacketHeader header = ref buffer.AsHeaderRef();
+        if (header.MagicNumber != s_autoMagic)
+        {
+            throw new SerializationFailureException(
+                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{header.MagicNumber:X8}, expected=0x{s_autoMagic:X8}. " +
+                "The received packet type does not match the target deserialization type.");
+        }
+    }
+
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Cache InitializeCache()
+    private static Cache INITIALIZE_CACHE()
     {
         PropertyMetadata[] all = s_metadata.Value;
 
