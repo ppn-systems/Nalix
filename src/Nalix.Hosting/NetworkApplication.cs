@@ -154,6 +154,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
+                _logger.LogDebug(ex, "IPacketDispatch registration replaced existing instance.");
             }
 
             _packetDispatch.Activate(cancellationToken);

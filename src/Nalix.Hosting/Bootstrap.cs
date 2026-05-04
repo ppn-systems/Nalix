@@ -195,7 +195,7 @@ public static partial class Bootstrap
             if (logger != null)
             {
                 Exception? ex = e.ExceptionObject as Exception;
-                logger?.LogCritical(ex, "[BOOTSTRAP] Unhandled exception occurred. IsTerminating: {IsTerminating}", e.IsTerminating);
+                logger.LogCritical(ex, "[BOOTSTRAP] Unhandled exception occurred. IsTerminating: {IsTerminating}", e.IsTerminating);
             }
 
             if (e.IsTerminating)
