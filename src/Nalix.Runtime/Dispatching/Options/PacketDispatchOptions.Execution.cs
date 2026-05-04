@@ -41,7 +41,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
             {
                 this.Logging.LogDebug(
-                    $"[NW.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
+                    $"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
                     $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
                     $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
             }
