@@ -98,7 +98,7 @@ public sealed class PacketSender : IPacketSender, IPoolable
 #if DEBUG
         if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
         {
-            s_logger.LogDebug($"[NW.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packetLength}, NeedEncrypt={needEncrypt}");
+            s_logger.LogDebug($"[RT.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packetLength}, NeedEncrypt={needEncrypt}");
         }
 #endif
 
