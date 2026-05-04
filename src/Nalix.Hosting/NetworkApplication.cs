@@ -186,7 +186,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             }
             catch
             {
-                CleanupPartialActivation(cancellationToken);
+                this.CleanupPartialActivation(cancellationToken);
                 throw;
             }
 
@@ -290,6 +290,8 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
             _packetDispatch = null;
 
+            _isStarted = false;
+
             // BUG-Fix: Ensure all background workers are fully stopped before returning.
             // Without this, "zombie" tasks from Test A might interfere with Test B's resources.
             ITaskManager? taskManager = InstanceManager.Instance.GetExistingInstance<ITaskManager>();
@@ -297,11 +299,16 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             {
                 // Wait for all network and time-related workers (listeners, dispatchers, timing wheels, etc.)
                 // These groups usually start with 'net/' or 'time/'
-                await taskManager.WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
-                await taskManager.WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
+                try
+                {
+                    await taskManager.WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
+                    await taskManager.WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                {
+                    _logger.LogWarning(ex, "Failed to wait for background workers during shutdown.");
+                }
             }
-
-            _isStarted = false;
         }
         finally
         {
