@@ -78,8 +78,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureLogging(ILogger logger)
     {
+        ArgumentNullException.ThrowIfNull(logger);
+
         InstanceManager.Instance.Register<ILogger>(logger);
-        _state.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _state.Logger = logger;
 
         return this;
     }
