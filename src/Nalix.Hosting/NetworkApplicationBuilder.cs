@@ -402,8 +402,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public NetworkApplication Build()
     {
-        bool metadataRegistered = false;
-
         void PrepareCallbacks()
         {
             RegisterLogger(_state);
@@ -422,11 +420,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 HandshakeHandlers.Initialize();
             }
 
-            if (!metadataRegistered)
-            {
-                RegisterMetadataProviders(_state);
-                metadataRegistered = true;
-            }
+            RegisterMetadataProviders(_state);
         }
 
         IPacketDispatch DispatchFactory() => CreatePacketDispatch(_state);
