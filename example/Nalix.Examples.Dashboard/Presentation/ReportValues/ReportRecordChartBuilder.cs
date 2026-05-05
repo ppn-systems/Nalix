@@ -1,5 +1,3 @@
-using Nalix.Examples.Dashboard.Presentation;
-
 namespace Nalix.Examples.Dashboard.Presentation.ReportValues;
 
 internal sealed record ReportRecordChartRow(
@@ -8,12 +6,12 @@ internal sealed record ReportRecordChartRow(
     double Current,
     double Maximum)
 {
-    public double Percent => Maximum <= 0
+    public double Percent => this.Maximum <= 0
         ? 0
-        : Math.Clamp(Current / Maximum * 100d, 0d, 100d);
+        : Math.Clamp(this.Current / this.Maximum * 100d, 0d, 100d);
 
     public string ValueText =>
-        $"{NumberDisplayFormatter.Format(Current)} / {NumberDisplayFormatter.Format(Maximum)}";
+        $"{NumberDisplayFormatter.Format(this.Current)} / {NumberDisplayFormatter.Format(this.Maximum)}";
 }
 
 internal static class ReportRecordChartBuilder

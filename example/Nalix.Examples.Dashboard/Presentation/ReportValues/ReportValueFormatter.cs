@@ -28,6 +28,16 @@ internal static class ReportValueFormatter
             : trimmed;
     }
 
+    public static string FormatTypeName(string value)
+    {
+        string formatted = Format(value);
+        int lastNamespaceSeparator = formatted.LastIndexOf('.');
+
+        return lastNamespaceSeparator >= 0 && lastNamespaceSeparator + 1 < formatted.Length
+            ? formatted[(lastNamespaceSeparator + 1)..]
+            : formatted;
+    }
+
     public static bool IsDateValue(string value)
         => value.Contains('T', StringComparison.Ordinal) &&
            DateTimeOffset.TryParse(
