@@ -77,7 +77,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         // Reuse cached method metadata when possible; otherwise compile once and
         // freeze the result so dispatch stays allocation-free at runtime.
-        FrozenDictionary<ushort, PacketHandlerDescriptor<TPacket>> compiledMethods = CompileControllerHandlers(controllerType);
+        FrozenDictionary<ushort, PacketHandlerDescriptor<TPacket>> compiledMethods = COMPILE_CONTROLLER_HANDLERS(controllerType);
 
         // Create one controller instance up front and reuse it for every handler.
         TController controllerInstance = factory();
@@ -88,7 +88,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         foreach ((ushort opCode, PacketHandlerDescriptor<TPacket> compiledMethod) in compiledMethods)
         {
-            PacketMetadata attributes = GetPacketMetadata(compiledMethod.MethodInfo);
+            PacketMetadata attributes = GET_PACKET_METADATA(compiledMethod.MethodInfo);
 
             descriptors[index++] = new PacketHandler<TPacket>(
                 opCode,
@@ -158,7 +158,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static FrozenDictionary<ushort, PacketHandlerDescriptor<TPacket>> CompileControllerHandlers([DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
+    private static FrozenDictionary<ushort, PacketHandlerDescriptor<TPacket>> COMPILE_CONTROLLER_HANDLERS(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicMethods)] Type x03)
     {
         // Get methods with [PacketOpcode] attribute
         MethodInfo[] methodInfos = Enumerable.ToArray(
@@ -200,7 +201,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
                 if (compiled.ContainsKey(opcodeAttr.OpCode))
                 {
-                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FORMAT_HANDLER_INFO(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
                     ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
                     if (logger != null && logger.IsEnabled(LogLevel.Warning))
@@ -213,9 +214,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
                 try
                 {
-                    compiled[opcodeAttr.OpCode] = CompileHandlerMethod(method);
+                    compiled[opcodeAttr.OpCode] = COMPILE_HANDLER_METHOD(method);
 
-                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FORMAT_HANDLER_INFO(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
                     ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
                     if (logger != null && logger.IsEnabled(LogLevel.Trace))
@@ -225,7 +226,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    string x01 = FormatHandlerInfo(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
+                    string x01 = FORMAT_HANDLER_INFO(method.DeclaringType?.Name ?? "None", opcodeAttr.OpCode, method, method.ReturnType);
 
                     ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
                     if (logger != null && logger.IsEnabled(LogLevel.Error))
@@ -243,7 +244,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static PacketHandlerDescriptor<TPacket> CompileHandlerMethod(MethodInfo x22)
+    private static PacketHandlerDescriptor<TPacket> COMPILE_HANDLER_METHOD(MethodInfo x22)
     {
         // Shared expression nodes — always built regardless of signature kind.
         // x00 = boxed controller instance
@@ -257,9 +258,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             Expression.Parameter(typeof(PacketContext<TPacket>), "context");
 
         Type contextType = typeof(PacketContext<TPacket>);
-        PropertyInfo packetProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.Packet));
-        PropertyInfo connectionProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.Connection));
-        PropertyInfo cancellationTokenProperty = GetRequiredProperty(contextType, nameof(PacketContext<>.CancellationToken));
+        PropertyInfo packetProperty = GET_REQUIRED_PROPERTY(contextType, nameof(PacketContext<>.Packet));
+        PropertyInfo connectionProperty = GET_REQUIRED_PROPERTY(contextType, nameof(PacketContext<>.Connection));
+        PropertyInfo cancellationTokenProperty = GET_REQUIRED_PROPERTY(contextType, nameof(PacketContext<>.CancellationToken));
 
         MemberExpression x02 =
             Expression.Property(x01, packetProperty);
@@ -278,7 +279,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         //   New     (d) (PacketContext<TPacket>, CancellationToken)
         ParameterInfo[] parms = x22.GetParameters();
 
-        SignatureKind kind = ResolveSignatureKind(x22, parms);
+        SignatureKind kind = RESOLVE_SIGNATURE_KIND(x22, parms);
 
         // Context-style with a DIFFERENT concrete PacketContext<T>
         //
@@ -299,7 +300,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         if (needsContextBridge)
         {
-            x20 = BuildContextBridgeInvoker(x22, parms, kind);
+            x20 = BUILD_CONTEXT_BRIDGE_INVOKER(x22, parms, kind);
         }
         else
         {
@@ -308,7 +309,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             if (RuntimeFeature.IsDynamicCodeSupported)
             {
                 // Normal expression-tree path — types match exactly.
-                Expression[] x09 = BuildArgExpressions(kind, parms, x01, x02, x03, x04);
+                Expression[] x09 = BUILD_ARG_EXPRESSIONS(kind, parms, x01, x02, x03, x04);
 
                 Expression x10 = x22.IsStatic
                     ? Expression.Call(x22, x09)
@@ -327,10 +328,10 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             else
             {
                 // AOT fallback — build invoke args at call-time from context fields.
-                x12 = BuildAotInvoker(x22, parms, kind);
+                x12 = BUILD_AOT_INVOKER(x22, parms, kind);
             }
 
-            x20 = WrapReturnType(x12, x22.ReturnType);
+            x20 = WRAP_RETURN_TYPE(x12, x22.ReturnType);
         }
 
         return new PacketHandlerDescriptor<TPacket>(x22, x22.ReturnType, x20);
@@ -345,12 +346,12 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// <exception cref="InternalErrorException"></exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SignatureKind ResolveSignatureKind(MethodInfo method, ParameterInfo[] parms)
+    private static SignatureKind RESOLVE_SIGNATURE_KIND(MethodInfo method, ParameterInfo[] parms)
     {
         // ---- new-style: first param is PacketContext<T> for any T : IPacket ----
         // Use generic-definition comparison instead of exact-type equality so that
         // PacketContext<LoginPacket> is recognised when TPacket = IPacket.
-        if (parms.Length >= 1 && IsPacketContextType(parms[0].ParameterType))
+        if (parms.Length >= 1 && IS_PACKET_CONTEXT_TYPE(parms[0].ParameterType))
         {
             // When the declared context type argument differs from TPacket, the
             // needsContextBridge path in CompileHandlerMethod will handle the
@@ -436,7 +437,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsPacketContextType(Type type)
+    private static bool IS_PACKET_CONTEXT_TYPE(Type type)
         => type.IsGenericType
         && (type.GetGenericTypeDefinition() == typeof(PacketContext<>) || type.GetGenericTypeDefinition() == typeof(IPacketContext<>));
 
@@ -452,13 +453,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Expression[] BuildArgExpressions(
-        SignatureKind kind,
-        ParameterInfo[] parms,
-        ParameterExpression context,
-        MemberExpression packetExpr,
-        MemberExpression connectionExpr,
-        MemberExpression ctExpr)
+    private static Expression[] BUILD_ARG_EXPRESSIONS(
+        SignatureKind kind, ParameterInfo[] parms, ParameterExpression context,
+        MemberExpression packetExpr, MemberExpression connectionExpr, MemberExpression ctExpr)
     {
         switch (kind)
         {
@@ -561,21 +558,26 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<object, PacketContext<TPacket>, ValueTask<object>> BuildContextBridgeInvoker(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
+    private static Func<object, PacketContext<TPacket>, ValueTask<object>> BUILD_CONTEXT_BRIDGE_INVOKER(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
     {
         // This path is only used when a dispatcher registered with a broad packet type
         // (for example IPacket) needs to invoke a handler that declared a concrete
         // PacketContext<TConcrete>/IPacketContext<TConcrete>.
         Type bridgePacketType = parms[0].ParameterType.GetGenericArguments()[0];
         bool withToken = kind == SignatureKind.ContextWithToken;
-        Func<object?, ValueTask<object>> normalizer = CreateResultNormalizer(method.ReturnType);
-        MethodInfo bridgeMethod = GetRequiredMethod(
+        Func<object?, ValueTask<object>> normalizer = CREATE_RESULT_NORMALIZER(method.ReturnType);
+        MethodInfo bridgeMethod = GET_REQUIRED_METHOD(
             typeof(PacketHandlerCompiler<TController, TPacket>),
-            nameof(InvokeContextBridgeAsync),
+            nameof(INVOKE_CONTEXT_BRIDGE_ASYNC),
             BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(bridgePacketType);
 
+        // Use CreateDelegate to avoid per-call params object[] allocation.
+        Func<MethodInfo, object, PacketContext<TPacket>, bool, Func<object?, ValueTask<object>>, ValueTask<object>> bridgeInvoker = bridgeMethod.CreateDelegate<
+            Func<MethodInfo, object, PacketContext<TPacket>, bool,
+                 Func<object?, ValueTask<object>>, ValueTask<object>>>();
+
         return (instance, context) =>
-            (ValueTask<object>)bridgeMethod.Invoke(null, [method, instance, context, withToken, normalizer])!;
+            bridgeInvoker(method, instance, context, withToken, normalizer);
     }
 
     /// <summary>
@@ -600,97 +602,228 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<object, PacketContext<TPacket>, object> BuildAotInvoker(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
+    private static Func<object, PacketContext<TPacket>, object> BUILD_AOT_INVOKER(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
     {
+        // Use MethodInfo.CreateDelegate to create strongly-typed delegates once,
+        // avoiding per-call params object[] allocation and argument boxing that
+        // MethodInfo.Invoke requires. The delegate is cached in the closure and
+        // invoked directly on subsequent calls.
+        bool isVoid = method.ReturnType == typeof(void);
+
         return kind switch
         {
-            // AOT path: reflection.Invoke accepts the context object as-is because
-            // MethodInfo.Invoke boxes arguments to System.Object and performs the
-            // runtime assignability check itself — no explicit cast needed here.
-            // This differs from the expression-tree path where the IL cast must be
-            // explicit (see BuildArgExpressions / IsPacketContextType).
-            SignatureKind.ContextOnly =>
-                (instance, context) => method.IsStatic
-                    ? method.Invoke(null, [context])!
-                    : method.Invoke(instance, [context])!,
+            SignatureKind.ContextOnly => BUILD_CONTEXT_ONLY_INVOKER(method, isVoid),
 
-            SignatureKind.ContextWithToken =>
-                (instance, context) => method.IsStatic
-                    ? method.Invoke(null, [context, context.CancellationToken])!
-                    : method.Invoke(instance, [context, context.CancellationToken])!,
+            SignatureKind.ContextWithToken => BUILD_CONTEXT_WITH_TOKEN_INVOKER(method, isVoid),
 
-            SignatureKind.LegacyNoToken =>
-                (instance, context) =>
-                {
-                    Type p0 = parms[0].ParameterType;
-                    Type p1 = parms[1].ParameterType;
+            SignatureKind.LegacyNoToken => BUILD_LEGACY_INVOKER(method, parms, withToken: false),
 
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
-
-                    return method.IsStatic
-                        ? method.Invoke(null, [pkt, conn])!
-                        : method.Invoke(instance, [pkt, conn])!;
-                }
-            ,
-
-            SignatureKind.LegacyWithToken =>
-                (instance, context) =>
-                {
-                    Type p0 = parms[0].ParameterType;
-                    Type p1 = parms[1].ParameterType;
-
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
-
-                    return method.IsStatic
-                        ? method.Invoke(null, [pkt, conn, context.CancellationToken])!
-                        : method.Invoke(instance, [pkt, conn, context.CancellationToken])!;
-                }
-            ,
+            SignatureKind.LegacyWithToken => BUILD_LEGACY_INVOKER(method, parms, withToken: true),
 
             // Concrete packet subtype — cast context.Packet to the declared concrete type.
             // The ExpectedPacketType guard in ExecuteHandlerAsync ensures the runtime packet
             // is actually that concrete type before this invoker is reached.
-            SignatureKind.LegacyConcreteNoToken =>
-                (instance, context) =>
-                {
-                    Type p0 = parms[0].ParameterType;
-                    Type p1 = parms[1].ParameterType;
+            SignatureKind.LegacyConcreteNoToken => BUILD_LEGACY_INVOKER(method, parms, withToken: false),
 
-                    // Best-effort cast: if the packet is already the right type use it directly,
-                    // otherwise let Convert.ChangeType attempt a coercion (rare path).
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
-
-                    return method.IsStatic
-                        ? method.Invoke(null, [pkt, conn])!
-                        : method.Invoke(instance, [pkt, conn])!;
-                }
-            ,
-
-            SignatureKind.LegacyConcreteWithToken =>
-                (instance, context) =>
-                {
-                    Type p0 = parms[0].ParameterType;
-                    Type p1 = parms[1].ParameterType;
-
-                    object pkt = p0.IsInstanceOfType(context.Packet) ? context.Packet : Convert.ChangeType(context.Packet, p0, provider: null)!;
-                    object conn = p1.IsInstanceOfType(context.Connection) ? context.Connection : Convert.ChangeType(context.Connection, p1, provider: null)!;
-
-                    return method.IsStatic
-                        ? method.Invoke(null, [pkt, conn, context.CancellationToken])!
-                        : method.Invoke(instance, [pkt, conn, context.CancellationToken])!;
-                }
-            ,
+            SignatureKind.LegacyConcreteWithToken => BUILD_LEGACY_INVOKER(method, parms, withToken: true),
 
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Func<object, PacketContext<TPacket>, object> BUILD_CONTEXT_ONLY_INVOKER(MethodInfo method, bool isVoid)
+    {
+        if (method.IsStatic)
+        {
+            if (isVoid)
+            {
+                Action<PacketContext<TPacket>> invoker = method.CreateDelegate<Action<PacketContext<TPacket>>>();
+                return (_, context) => { invoker(context); return null!; };
+            }
+            else
+            {
+                Func<PacketContext<TPacket>, object> invoker = method.CreateDelegate<Func<PacketContext<TPacket>, object>>();
+                return (_, context) => invoker(context);
+            }
+        }
+        else
+        {
+            if (isVoid)
+            {
+                Action<TController, PacketContext<TPacket>> invoker = method.CreateDelegate<Action<TController, PacketContext<TPacket>>>();
+                return (instance, context) => { invoker((TController)instance, context); return null!; };
+            }
+            else
+            {
+                Func<TController, PacketContext<TPacket>, object> invoker = method.CreateDelegate<Func<TController, PacketContext<TPacket>, object>>();
+                return (instance, context) => invoker((TController)instance, context);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Func<object, PacketContext<TPacket>, object> BUILD_CONTEXT_WITH_TOKEN_INVOKER(MethodInfo method, bool isVoid)
+    {
+        if (method.IsStatic)
+        {
+            if (isVoid)
+            {
+                Action<PacketContext<TPacket>, CancellationToken> invoker = method.CreateDelegate<Action<PacketContext<TPacket>, CancellationToken>>();
+                return (_, context) => { invoker(context, context.CancellationToken); return null!; };
+            }
+            else
+            {
+                Func<PacketContext<TPacket>, CancellationToken, object> invoker = method.CreateDelegate<Func<PacketContext<TPacket>, CancellationToken, object>>();
+                return (_, context) => invoker(context, context.CancellationToken);
+            }
+        }
+        else
+        {
+            if (isVoid)
+            {
+                Action<TController, PacketContext<TPacket>, CancellationToken> invoker = method.CreateDelegate<Action<TController, PacketContext<TPacket>, CancellationToken>>();
+                return (instance, context) => { invoker((TController)instance, context, context.CancellationToken); return null!; };
+            }
+            else
+            {
+                Func<TController, PacketContext<TPacket>, CancellationToken, object> invoker = method.CreateDelegate<Func<TController, PacketContext<TPacket>, CancellationToken, object>>();
+                return (instance, context) => invoker((TController)instance, context, context.CancellationToken);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Func<object, PacketContext<TPacket>, object> BUILD_LEGACY_INVOKER(MethodInfo method, ParameterInfo[] parms, bool withToken)
+    {
+        // Cache parameter types outside the lambda to avoid repeated reflection.
+        Type packetType = parms[0].ParameterType;
+
+        // When the handler's packet type matches TPacket exactly, we can use
+        // CreateDelegate for a zero-allocation direct call. Otherwise, fall back
+        // to MethodInfo.Invoke with a reused object[] buffer.
+        bool typesMatch = packetType == typeof(TPacket);
+
+        if (typesMatch)
+        {
+            return BUILD_LEGACY_TYPED_INVOKER(method);
+        }
+
+        // Types don't match (e.g. handler expects LoginPacket but TPacket = IPacket).
+        // Cache MethodInfo and param types to minimize reflection overhead per call.
+        return BUILD_LEGACY_FALLBACK_INVOKER(method, withToken);
+    }
+
+    /// <summary>
+    /// Fast path: handler's packet type matches TPacket exactly.
+    /// Uses CreateDelegate for zero-allocation direct invocation.
+    /// </summary>
+    private static Func<object, PacketContext<TPacket>, object> BUILD_LEGACY_TYPED_INVOKER(MethodInfo method)
+    {
+        bool isVoid = method.ReturnType == typeof(void);
+        bool isStatic = method.IsStatic;
+
+        // Build delegate type: Func<TController, TPacket, IConnection[, CancellationToken], object>
+        // or static: Func<TPacket, IConnection[, CancellationToken], object>
+        bool withToken = method.GetParameters().Length == 3;
+
+        if (!withToken)
+        {
+            if (isStatic)
+            {
+                if (isVoid)
+                {
+                    Action<TPacket, IConnection> invoker = method.CreateDelegate<Action<TPacket, IConnection>>();
+                    return (_, context) => { invoker(context.Packet, context.Connection); return null!; };
+                }
+                else
+                {
+                    Func<TPacket, IConnection, object> invoker = method.CreateDelegate<Func<TPacket, IConnection, object>>();
+                    return (_, context) => invoker(context.Packet, context.Connection);
+                }
+            }
+            else
+            {
+                if (isVoid)
+                {
+                    Action<TController, TPacket, IConnection> invoker = method.CreateDelegate<Action<TController, TPacket, IConnection>>();
+                    return (instance, context) => { invoker((TController)instance, context.Packet, context.Connection); return null!; };
+                }
+                else
+                {
+                    Func<TController, TPacket, IConnection, object> invoker = method.CreateDelegate<Func<TController, TPacket, IConnection, object>>();
+                    return (instance, context) => invoker((TController)instance, context.Packet, context.Connection);
+                }
+            }
+        }
+        else
+        {
+            if (isStatic)
+            {
+                if (isVoid)
+                {
+                    Action<TPacket, IConnection, CancellationToken> invoker = method.CreateDelegate<Action<TPacket, IConnection, CancellationToken>>();
+                    return (_, context) => { invoker(context.Packet, context.Connection, context.CancellationToken); return null!; };
+                }
+                else
+                {
+                    Func<TPacket, IConnection, CancellationToken, object> invoker = method.CreateDelegate<Func<TPacket, IConnection, CancellationToken, object>>();
+                    return (_, context) => invoker(context.Packet, context.Connection, context.CancellationToken);
+                }
+            }
+            else
+            {
+                if (isVoid)
+                {
+                    Action<TController, TPacket, IConnection, CancellationToken> invoker = method.CreateDelegate<Action<TController, TPacket, IConnection, CancellationToken>>();
+                    return (instance, context) => { invoker((TController)instance, context.Packet, context.Connection, context.CancellationToken); return null!; };
+                }
+                else
+                {
+                    Func<TController, TPacket, IConnection, CancellationToken, object> invoker = method.CreateDelegate<Func<TController, TPacket, IConnection, CancellationToken, object>>();
+                    return (instance, context) => invoker((TController)instance, context.Packet, context.Connection, context.CancellationToken);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Fallback path: handler's packet type differs from TPacket.
+    /// Uses MethodInfo.Invoke with a reused object[] buffer to minimize allocations.
+    /// The array contents are overwritten each call instead of allocating a new array.
+    /// </summary>
+    private static Func<object, PacketContext<TPacket>, object> BUILD_LEGACY_FALLBACK_INVOKER(MethodInfo method, bool withToken)
+    {
+        // Allocate the args buffer once and reuse it for every call.
+        // This is safe because each invocation is sequential per dispatch worker.
+        object[] args = withToken ? new object[4] : new object[3]; // max: [instance, packet, conn, ct]
+
+        if (!withToken)
+        {
+            return (instance, context) =>
+            {
+                args[0] = instance;
+                args[1] = context.Packet;
+                args[2] = context.Connection;
+                return method.Invoke(instance, args)!;
+            };
+        }
+        else
+        {
+            return (instance, context) =>
+            {
+                args[0] = instance;
+                args[1] = context.Packet;
+                args[2] = context.Connection;
+                args[3] = context.CancellationToken;
+                return method.Invoke(instance, args)!;
+            };
+        }
+    }
+
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private static Func<object, PacketContext<TPacket>, ValueTask<object>> WrapReturnType(
+    private static Func<object, PacketContext<TPacket>, ValueTask<object>> WRAP_RETURN_TYPE(
         Func<object, PacketContext<TPacket>, object> x00,
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type x01)
     {
@@ -698,25 +831,25 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         // dispatcher can treat sync, Task, and ValueTask handlers uniformly.
         if (x01 == typeof(Task))
         {
-            return (instance, context) => AwaitTaskVoidAsync(x00(instance, context));
+            return (instance, context) => AWAIT_TASK_VOID_ASYNC(x00(instance, context));
         }
 
         if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(Task<>))
         {
             Type resultType = x01.GetGenericArguments()[0];
-            Func<object, ValueTask<object>> converter = CreateTaskConverter(resultType);
+            Func<object, ValueTask<object>> converter = CREATE_TASK_CONVERTER(resultType);
             return (instance, context) => converter(x00(instance, context));
         }
 
         if (x01 == typeof(ValueTask))
         {
-            return (instance, context) => AwaitValueTaskVoidAsync(x00(instance, context));
+            return (instance, context) => AWAIT_VALUE_TASK_VOID_ASYNC(x00(instance, context));
         }
 
         if (x01.IsGenericType && x01.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             Type resultType = x01.GetGenericArguments()[0];
-            Func<object, ValueTask<object>> converter = CreateValueTaskConverter(resultType);
+            Func<object, ValueTask<object>> converter = CREATE_VALUE_TASK_CONVERTER(resultType);
             return (instance, context) => converter(x00(instance, context));
         }
 
@@ -724,29 +857,29 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Func<object?, ValueTask<object>> CreateResultNormalizer(Type returnType)
+    private static Func<object?, ValueTask<object>> CREATE_RESULT_NORMALIZER(Type returnType)
     {
         if (returnType == typeof(Task))
         {
-            return result => AwaitTaskVoidAsync(result!);
+            return result => AWAIT_TASK_VOID_ASYNC(result!);
         }
 
         if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(Task<>))
         {
             Type resultType = returnType.GetGenericArguments()[0];
-            Func<object, ValueTask<object>> converter = CreateTaskConverter(resultType);
+            Func<object, ValueTask<object>> converter = CREATE_TASK_CONVERTER(resultType);
             return result => converter(result!);
         }
 
         if (returnType == typeof(ValueTask))
         {
-            return result => AwaitValueTaskVoidAsync(result!);
+            return result => AWAIT_VALUE_TASK_VOID_ASYNC(result!);
         }
 
         if (returnType.IsGenericType && returnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
             Type resultType = returnType.GetGenericArguments()[0];
-            Func<object, ValueTask<object>> converter = CreateValueTaskConverter(resultType);
+            Func<object, ValueTask<object>> converter = CREATE_VALUE_TASK_CONVERTER(resultType);
             return result => converter(result!);
         }
 
@@ -754,12 +887,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private static async ValueTask<object> InvokeContextBridgeAsync<TConcretePacket>(
-        MethodInfo method,
-        object instance,
-        PacketContext<TPacket> context,
-        bool withToken,
-        Func<object?, ValueTask<object>> normalizer)
+    private static async ValueTask<object> INVOKE_CONTEXT_BRIDGE_ASYNC<TConcretePacket>(
+        MethodInfo method, object instance, PacketContext<TPacket> context,
+        bool withToken, Func<object?, ValueTask<object>> normalizer)
         where TConcretePacket : IPacket
     {
         if (context.Packet is not TConcretePacket concretePacket)
@@ -795,31 +925,31 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Func<object, ValueTask<object>> CreateTaskConverter(Type resultType)
+    private static Func<object, ValueTask<object>> CREATE_TASK_CONVERTER(Type resultType)
     {
         // Reuse the generic async helper instead of building a new wrapper per type.
-        MethodInfo method = GetRequiredMethod(
+        MethodInfo method = GET_REQUIRED_METHOD(
             typeof(PacketHandlerCompiler<TController, TPacket>),
-            nameof(AwaitTaskResultAsync),
+            nameof(AWAIT_TASK_RESULT_ASYNC),
             BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(resultType);
 
         return (Func<object, ValueTask<object>>)Delegate.CreateDelegate(typeof(Func<object, ValueTask<object>>), method);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Func<object, ValueTask<object>> CreateValueTaskConverter(Type resultType)
+    private static Func<object, ValueTask<object>> CREATE_VALUE_TASK_CONVERTER(Type resultType)
     {
         // Same idea for ValueTask<T>: bind the generic helper once, then cache the delegate.
-        MethodInfo method = GetRequiredMethod(
+        MethodInfo method = GET_REQUIRED_METHOD(
             typeof(PacketHandlerCompiler<TController, TPacket>),
-            nameof(AwaitValueTaskResultAsync),
+            nameof(AWAIT_VALUE_TASK_RESULT_ASYNC),
             BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(resultType);
 
         return (Func<object, ValueTask<object>>)Delegate.CreateDelegate(typeof(Func<object, ValueTask<object>>), method);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static async ValueTask<object> AwaitTaskVoidAsync(object result)
+    private static async ValueTask<object> AWAIT_TASK_VOID_ASYNC(object result)
     {
         // Await the task for its side effects, then normalize the result to null.
         if (result is Task task)
@@ -831,7 +961,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static async ValueTask<object> AwaitTaskResultAsync<TResult>(object result)
+    private static async ValueTask<object> AWAIT_TASK_RESULT_ASYNC<TResult>(object result)
     {
         // Return the typed task result as object so the outer pipeline stays generic.
         if (result is Task<TResult> task)
@@ -844,7 +974,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static async ValueTask<object> AwaitValueTaskVoidAsync(object result)
+    private static async ValueTask<object> AWAIT_VALUE_TASK_VOID_ASYNC(object result)
     {
         // Await the ValueTask for completion and normalize the result to null.
         if (result is ValueTask valueTask)
@@ -856,7 +986,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static async ValueTask<object> AwaitValueTaskResultAsync<TResult>(object result)
+    private static async ValueTask<object> AWAIT_VALUE_TASK_RESULT_ASYNC<TResult>(object result)
     {
         // Same normalization step for ValueTask<T>.
         if (result is ValueTask<TResult> valueTask)
@@ -870,7 +1000,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static PacketMetadata GetPacketMetadata(MethodInfo method)
+    private static PacketMetadata GET_PACKET_METADATA(MethodInfo method)
     {
         return s_attributeCache.GetOrAdd(method, static m =>
         {
@@ -898,7 +1028,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private static string FormatHandlerInfo(string x00, ushort x01, MethodInfo? x02 = null, Type? x03 = null)
+    private static string FORMAT_HANDLER_INFO(string x00, ushort x01, MethodInfo? x02 = null, Type? x03 = null)
     {
         string op = $"opcode=0x{x01:X4}";
         string ctrl = $"controller={x00}";
@@ -912,13 +1042,13 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static PropertyInfo GetRequiredProperty(Type type, string name)
+    private static PropertyInfo GET_REQUIRED_PROPERTY(Type type, string name)
         => type.GetProperty(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static)
         ?? throw new InternalErrorException($"Required property '{type.FullName}.{name}' was not found.");
 
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static MethodInfo GetRequiredMethod(Type type, string name, BindingFlags bindingFlags)
+    private static MethodInfo GET_REQUIRED_METHOD(Type type, string name, BindingFlags bindingFlags)
         => type.GetMethod(name, bindingFlags)
         ?? throw new InternalErrorException($"Required method '{type.FullName}.{name}' was not found.");
 
