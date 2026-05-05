@@ -1,6 +1,6 @@
 ﻿# Custom Serialization Provider
 
-This guide shows how to register a custom serialization provider in `Nalix.Framework` using `IFormatter<T>` and `LiteSerializer.Register(...)`.
+This guide shows how to register a custom serialization provider using `Nalix.Codec.Serialization`, `IFormatter<T>`, and `LiteSerializer.Register(...)`.
 
 ## When to use a custom formatter
 
@@ -14,8 +14,8 @@ Use a custom formatter when:
 ## Step 1. Implement `IFormatter<T>`
 
 ```csharp
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Serialization;
+using Nalix.Codec.Memory;
+using Nalix.Codec.Serialization;
 
 public sealed class UserProfileFormatter : IFormatter<UserProfile>
 {
@@ -41,7 +41,7 @@ public sealed class UserProfileFormatter : IFormatter<UserProfile>
 Register once during application startup, before hot-path serialization begins.
 
 ```csharp
-using Nalix.Framework.Serialization;
+using Nalix.Codec.Serialization;
 
 LiteSerializer.Register(new UserProfileFormatter());
 ```

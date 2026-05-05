@@ -45,8 +45,8 @@ sequenceDiagram
 High performance starts with how you define your data. Use `SerializeLayout.Explicit` to ensure the framework can use specialized bit-blitting deserializers.
 
 ```csharp
-using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.Serialization;
+using Nalix.Codec.DataFrames;
+using Nalix.Abstractions.Serialization;
 
 [Packet]
 [SerializePackable(SerializeLayout.Explicit)]
