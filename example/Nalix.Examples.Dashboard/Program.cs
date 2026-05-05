@@ -1,7 +1,12 @@
 #pragma warning disable IDE0211 // Convert to 'Program.Main' style program
 using MudBlazor.Services;
+using Nalix.Examples.Dashboard.Application.Abstractions;
+using Nalix.Examples.Dashboard.Application.Options;
+using Nalix.Examples.Dashboard.Application.Polling;
+using Nalix.Examples.Dashboard.Application.State;
 using Nalix.Examples.Dashboard.Components;
-using Nalix.Examples.Dashboard.Services;
+using Nalix.Examples.Dashboard.Infrastructure.Security;
+using Nalix.Examples.Dashboard.Infrastructure.Tcp;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +17,10 @@ _ = builder.Services.AddRazorComponents()
 _ = builder.Services.AddMudServices();
 _ = builder.Services.Configure<DashboardOptions>(builder.Configuration.GetSection("Dashboard"));
 _ = builder.Services.AddSingleton<DashboardState>();
-_ = builder.Services.AddSingleton<DashboardTcpClient>();
+_ = builder.Services.AddSingleton<IDashboardStateReader>(sp => sp.GetRequiredService<DashboardState>());
+_ = builder.Services.AddSingleton<IDashboardStateWriter>(sp => sp.GetRequiredService<DashboardState>());
+_ = builder.Services.AddSingleton<IServerPublicKeyResolver, ServerPublicKeyResolver>();
+_ = builder.Services.AddSingleton<IDashboardClient, DashboardTcpClient>();
 _ = builder.Services.AddHostedService<DashboardPollingService>();
 
 WebApplication app = builder.Build();
