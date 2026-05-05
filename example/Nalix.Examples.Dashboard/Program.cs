@@ -1,10 +1,10 @@
 #pragma warning disable IDE0211 // Convert to 'Program.Main' style program
 using MudBlazor.Services;
+using Nalix.Examples.Dashboard.Components;
 using Nalix.Examples.Dashboard.Application.Abstractions;
 using Nalix.Examples.Dashboard.Application.Options;
 using Nalix.Examples.Dashboard.Application.Polling;
 using Nalix.Examples.Dashboard.Application.State;
-using Nalix.Examples.Dashboard.Components;
 using Nalix.Examples.Dashboard.Infrastructure.Security;
 using Nalix.Examples.Dashboard.Infrastructure.Tcp;
 
