@@ -58,7 +58,7 @@ Review handlers for:
 - correct packet type
 - appropriate return type
 - no hidden expensive blocking work
-- explicit use of `PacketContext<TPacket>` only where needed
+- explicit use of `IPacketContext<TPacket>` in handlers, and direct `PacketContext<TPacket>` discussion only where runtime internals truly matter
 
 If a handler performs slow I/O or expensive computation, decide whether it needs:
 

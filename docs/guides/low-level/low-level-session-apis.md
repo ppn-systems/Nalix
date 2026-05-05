@@ -16,7 +16,7 @@ Instead of using `session.On<MyPacket>(...)`, which dynamically deserializes cla
 
 ### Purely Synchronous Parsing (`OnMessageReceived`)
 
-Fires directly in the I/O socket read loop. You are provided with an `IBufferLease`. The framework will automatically dispose of the lease (reclaiming the buffer) after your inline function exits.
+You are provided with an `IBufferLease` for each decoded frame. In the current SDK implementation, `TcpSession` raises `OnMessageReceived` from `HandleReceiveMessage(...)` after `FrameReader` finishes a frame, while `UdpSession` raises it after decrypt/decompress work in its receive loop. The SDK still owns the lease lifecycle and disposes it automatically after the callback path completes unless you explicitly call `Retain()`.
 
 ```csharp
 // WARNING: Do NOT execute heavy CPU loops or blocking await tasks here.

@@ -150,7 +150,7 @@ Start with:
 
 For the simplest path, return `TPacket` or `Task<TPacket>`.
 
-If you need manual control, switch to `PacketContext<TPacket>` and send through `context.Sender`.
+If you need manual control, use `IPacketContext<TPacket>` and send through `context.Sender`.
 That recommendation applies to custom packet handlers too, not just the built-in packet set.
 
 ## Good runtime reports to call
