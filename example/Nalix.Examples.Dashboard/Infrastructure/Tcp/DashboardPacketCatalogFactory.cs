@@ -1,4 +1,3 @@
-using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.DataFrames;
 using Nalix.Examples.Contracts.Packets;
 

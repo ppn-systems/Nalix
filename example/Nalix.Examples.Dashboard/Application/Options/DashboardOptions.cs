@@ -12,7 +12,7 @@ internal sealed class DashboardOptions
 
     public int PollIntervalMilliseconds { get; set; } = 2000;
 
-    public int PingIntervalMilliseconds { get; set; } = 15000;
+    public int PingIntervalMilliseconds { get; set; } = 2000;
 
     public int RequestTimeoutMilliseconds { get; set; } = 5000;
 }
