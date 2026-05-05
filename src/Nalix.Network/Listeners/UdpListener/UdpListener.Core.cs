@@ -226,6 +226,4 @@ public abstract partial class UdpListenerBase
     }
 
     #endregion IDisposable
-
-
 }
