@@ -212,10 +212,10 @@ Per-connection queue backpressure is controlled by `DispatchOptions` (`MaxPerCon
 - **DropNewest**: Rejects the incoming packet. Safest for real-time latency.
 - **DropOldest**: Removes the head of the queue to make room. Ensures data freshness.
 - **Coalesce**: Drops duplicate packets (by key) and keeps only the latest. Useful for state-snapshot workloads.
-- **Block**: Stalls the calling thread (usually the protocol reader). Highest reliability, but can lead to socket timeouts if handlers are slow.
+- **Block**: Waits for queue space only on code paths that call `PushCore(..., noBlock: false)`. The current `PacketDispatchChannel.HandlePacket(...)` path uses `noBlock: true`, so block-mode overflow there fails fast instead of stalling the listener thread.
 
 !!! warning
-    Use `DropPolicy.Block` with caution. If a background worker stalls, it can trigger a backpressure ripple that eventually blocks the TCP accept loop.
+    `DropPolicy.Block` is still a risky policy for custom dispatch integrations that call the blocking path directly. On the normal packet-dispatch entrypoint, however, the current source chooses fail-fast semantics rather than blocking the transport reader.
 
 ---
 
