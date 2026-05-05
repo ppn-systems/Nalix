@@ -56,7 +56,7 @@ The base class for all Nalix packets. Provides system header management (magic, 
 
 ## PacketContext
 
-`PacketContext<TPacket>` is the per-request object passed to context-aware handlers and packet middleware. It provides access to:
+`PacketContext<TPacket>` is the pooled concrete per-request runtime object behind `IPacketContext<TPacket>`. It provides access to:
 
 - The deserialized packet
 - The current connection
@@ -111,4 +111,3 @@ The idle-timeout scheduler used by the network layer. Manages connection timeout
 - [Selecting Building Blocks](./runtime/building-blocks.md) — Decision guide for component selection
 - [Architecture](./fundamentals/architecture.md) — Layered component overview
 - [Middleware](./runtime/middleware-pipeline.md) — Middleware Pipeline and handler policy
-

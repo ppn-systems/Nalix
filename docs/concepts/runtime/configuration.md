@@ -7,13 +7,19 @@
 
 This page explains how configuration becomes a running Nalix server. It covers the startup wiring sequence, option validation, service registration, and the relationship between configuration, dispatch, and transport.
 
+## Source Mapping
+
+- `src/Nalix.Environment/Configuration/ConfigurationManager.cs`
+- `src/Nalix.Hosting/Bootstrap.cs`
+- `src/Nalix.Hosting/NetworkApplicationBuilder.cs`
+
 ## The Short Version
 
 Nalix startup follows a strict deterministic sequence to ensure that shared infrastructure is ready before traffic starts.
 
 ### Environment-Aware Bootstrapping
 
-Nalix configuration is centered around `ConfigurationManager` and the active INI file under `Directories.ConfigurationDirectory`. The exact file path can be changed with `SetConfigFilePath(...)`, but it must remain inside that configuration directory.
+Nalix configuration is centered around `ConfigurationManager` and the active INI file under `Directories.ConfigurationDirectory`. The exact file path can be changed with `SetConfigFilePath(...)`, and the current implementation constrains that path to the configuration directory.
 
 ```mermaid
 flowchart LR

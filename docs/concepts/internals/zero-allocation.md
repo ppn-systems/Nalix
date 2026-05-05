@@ -18,7 +18,7 @@ The following diagram illustrates how a raw network buffer is transformed into a
 sequenceDiagram
     participant OS as Network Stack
     participant LP as Slab Pool (SlabPoolManager)
-    participant DC as Dispatch Loop (OS Thread)
+    participant DC as Dispatch Loop (Worker)
     participant FR as Frozen Registry (O(1))
     participant CH as Compiled Handler (Expression Trees)
     participant CP as Context Pool (ObjectPoolManager)
@@ -26,7 +26,7 @@ sequenceDiagram
     OS->>LP: Receive raw bytes
     LP-->>OS: Return IBufferLease (Slab Segment)
     OS->>DC: Push(Lease)
-    DC->>DC: Affinity to Dedicated CPU Core
+    DC->>DC: Worker drain loop
     DC->>FR: TryDeserialize(Lease.Span)
     FR-->>DC: IPacket (Pooled Deserialization)
     DC->>CP: Get<PacketContext<T>>()
@@ -91,14 +91,13 @@ This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ looku
 
 ### Buffer Leasing (Standalone Slabs)
 
-Incoming data is always stored in a `BufferLease` backed by standalone pinned `byte[]` arrays allocated on the **Pinned Object Heap (POH)**. This eliminates slicing overhead and ensures zero-offset access for all frames.
+Incoming data is stored in a `BufferLease` backed by pooled pinned `byte[]` arrays managed by the framework's slab buckets. Each lease can still represent a slice of the underlying array, which is how the runtime keeps zero-copy handoffs possible without reallocating payload buffers.
 
 To further eliminate overhead, `BufferLease` instances (shells) are themselves pooled using a lock-free free-list with an **O(1) atomic counter**.
 
 ```csharp
 // Optimized buffer rental
-byte[] buffer = bufferPool.Rent(1024);
-// Always starts at index 0
+using BufferLease lease = BufferLease.Rent(1024);
 ```
 
 ### Pattern: High-Performance Handler
@@ -198,7 +197,7 @@ using Nalix.Hosting;
 var app = NetworkApplication.CreateBuilder()
     .ScanHandlers<GameMarker>() // Triggers handler compilation
     .ConfigureDispatch(options => {
-        // Match shards to CPU cores for maximum affinity
+        // Scale dispatch loops to the current machine's logical CPU count
         options.WithDispatchLoopCount(Environment.ProcessorCount);
         // Increase per-wake drain budget for burst workloads
         options.MaxDrainPerWakeMultiplier = 12;

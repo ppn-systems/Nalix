@@ -41,7 +41,7 @@ Connection state includes:
 | :--- | :--- |
 | Connection ID | Unique identifier for the session |
 | Remote endpoint | Source IP and port |
-| Permission level | Authorization level (`NONE`, `USER`, `ADMINISTRATOR`, etc.) |
+| Permission level | Authorization level (`NONE`, `USER`, `TENANT_ADMINISTRATOR`, `SYSTEM_ADMINISTRATOR`, etc.) |
 | Cipher state | Active encryption algorithm and shared secret |
 | Diagnostics | Bytes sent/received, uptime, ping time, error count |
 

@@ -18,7 +18,7 @@ flowchart LR
 
 ### Middleware Pipeline
 
-The `MiddlewarePipeline` runs with a full `PacketContext<TPacket>`. This context provides the deserialized packet, connection state, and cached handler metadata.
+The `MiddlewarePipeline` runs with the full packet execution context. Middleware usually consumes that state through `IPacketContext<TPacket>`, while the runtime backs it with a pooled `PacketContext<TPacket>` instance carrying the deserialized packet, connection state, and cached handler metadata.
 
 Use it when:
 
