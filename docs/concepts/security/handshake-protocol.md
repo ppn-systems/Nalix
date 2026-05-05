@@ -6,12 +6,12 @@ Nalix implements a high-security, zero-trust handshake protocol based on **X2551
 
 - **Mutual Agreement**: Both client and server contribute to the final session key.
 - **Perfect Forward Secrecy (PFS)**: Ephemeral keys are used for every session.
-- [x] **Identity Verification**: Requires pinned server public keys to prevent Man-in-the-Middle (MitM) attacks. Anonymous handshakes are strictly forbidden; both the client and server must load valid identities from standardized storage.
+- [x] **Identity Verification**: Requires pinned server public keys to prevent Man-in-the-Middle (MitM) attacks. Anonymous server handshakes are not supported.
 
 !!! critical "Mandatory Identity"
-    Every Nalix server must possess a `certificate.private` file. By default, the server looks for this file in the standardized configuration directory. You can override this path using `builder.ConfigureCertificate("path/to/identity")` during host construction.
+    Every Nalix server must possess a `certificate.private` file. By default, the host loads it from `Directories.ConfigurationDirectory`. You can override this path using `builder.ConfigureCertificate("path/to/certificate.private")` during host construction.
 
-    Clients must be configured with the server's `certificate.public` hash (or the full key) during the connection setup to enable public key pinning.
+    Clients should load the hex public key from `certificate.public` into `TransportOptions.ServerPublicKey` to enable public-key pinning.
 
 - [x] **Transcript Integrity**: All handshake messages are hashed into a transcript to prevent tampering or replay attacks.
 
@@ -59,7 +59,7 @@ The SDK validates the server's proof. If valid, it computes its own `ClientProof
 
 ### 4. SERVER_FINISH
 
-Final confirmation. The server sends a `SessionToken` which the client can use later for [Session Resumption](./session-resumption.md). The connection is now fully encrypted using the derived session key.
+Final confirmation. The server sends a `SessionToken`. The SDK uses that token for UDP datagram authentication, and the connection is now fully encrypted using the derived session key.
 
 ## Implementation Details
 

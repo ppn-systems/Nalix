@@ -9,7 +9,7 @@ Nalix is built to be a resilient foundation for real-time systems. Our reliabili
 
 Nalix eliminates the "hidden races" common in multi-threaded networking by enforcing strict execution invariants.
 
-- **Connection Affinity:** You can trust that packets from one client are handled sequentially. This prevents race conditions in your business logic without requiring complex synchronization code.
+- **Connection Affinity:** Per-connection queueing and dispatch ordering are designed to keep one client's backlog from turning into arbitrary cross-connection races.
 - **Fixed Pipeline:** The order in which security, throttling, and logic are applied is deterministic and based on your startup configuration.
 
 !!! success "Production Confidence"
@@ -22,7 +22,7 @@ Nalix eliminates the "hidden races" common in multi-threaded networking by enfor
 The Nalix runtime treats user code as "potentially unstable" and provides a safety net to prevent cascading failures.
 
 - **Non-Stop Workers:** An exception in one handler will **never** stop the background worker loops or affect other clients.
-- **Observable Health:** Every failure is tracked via `IConnection.ErrorCount` (from the `IConnectionErrorTracked` interface) and reported via the `Directive` signaling system. This allows your monitoring systems to identify and disconnect "poison" clients automatically.
+- **Observable Health:** Every failure is tracked via `IConnection.ErrorCount` (from the `IConnectionErrorTracked` interface). Runtime and middleware layers can use that signal to identify and disconnect "poison" clients automatically.
 
 !!! success "Production Confidence"
     A single bug in a handler or a malformed packet will not crash your server. The system is designed to "shed" failing work and keep the infrastructure healthy.
@@ -34,7 +34,7 @@ The Nalix runtime treats user code as "potentially unstable" and provides a safe
 Memory leaks and pool exhaustion are the silent killers of long-running servers. Nalix enforces strict resource management.
 
 - **Guaranteed Cleanup:** Using `try-finally` internally, Nalix ensures that every byte of memory leased from a pool is returned, even if a handler crashes or a network connection is lost mid-request.
-- **Backpressure Ready:** Our MPMC dispatch rings provide natural backpressure. If your handlers are too slow, the ingestion buffers will fill up, eventually signaling the OS to throttle the TCP window, rather than growing the heap indefinitely.
+- **Backpressure Ready:** Bounded queues and drop/block policies provide explicit pressure control instead of allowing unbounded growth by default.
 
 !!! success "Production Confidence"
     Nalix can run for months without memory drift or GC-related latency spikes, provided you follow the simple rule of disposing of any objects you manually lease.

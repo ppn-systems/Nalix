@@ -5,20 +5,20 @@
     - :fontawesome-solid-clock: **Time**: 15 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Architecture](architecture.md)
 
-The Packet System is the foundation of Nalix's networking model. It provides a declarative way to define network messages that are high-performance, version-safe, and zero-allocation.
+The Packet System is the foundation of Nalix's networking model. It provides a declarative way to define network messages that are compatible with the packet registry and serializer used by the runtime and SDK.
 
 ## 1. Defining Packets
 
-### The Mandatory Attribute Pair
+### The Common Attribute Pair
 
-For a standard network packet, you must apply both of the following attributes:
+For a standard user packet, the common pattern is to apply:
 
-1. **`[Packet]`**: Registers the class in the `PacketRegistry` catalog for automatic discovery. Without this, the dispatcher will not know how to map an incoming OpCode to this class.
-2. **`[SerializePackable]`**: Configures the wire layout. Without this, the serializer will fail with an `InvalidOperationException`.
+1. **`[Packet]`** when you want attribute-based discovery.
+2. **`[SerializePackable]`** to opt the type into Nalix serialization.
 
 ```csharp
-using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.Serialization;
+using Nalix.Codec.DataFrames;
+using Nalix.Abstractions.Serialization;
 
 [Packet] // Discovery & Registration
 [SerializePackable] // Defaults to SerializeLayout.Auto
@@ -37,7 +37,7 @@ public sealed class TradePacket : PacketBase<TradePacket>
 
 | Attribute | Purpose |
 | :--- | :-- |
-| `[Packet]` | Marks a class for automatic discovery and registration. Recommended for all user packets. |
+| `[Packet]` | Marks a class for attribute-based discovery. |
 | `[SerializePackable]` | Marks a class for serialization. Required on all packet types. |
 | `[SerializeOrder(int)]` | Sets the explicit position of a field in the byte stream (Explicit layout only). |
 | `[SerializeDynamicSize(int)]` | Defines the maximum byte limit for variable-length strings or arrays. |
@@ -135,11 +135,11 @@ public sealed class RegionalPacket : PacketBase<RegionalPacket>
 
 ## 4. Packet Versioning
 
-Nalix supports versioning through **additive evolution**:
+For long-lived public wire contracts, treat versioning as an application-level compatibility discipline and prefer additive evolution:
 
 1. **Use Explicit layout.** Never change the order of existing fields.
 2. **Append new fields.** Add new fields with a higher `[SerializeOrder]` value.
-3. **Backward compatibility.** Older clients reading newer packets will ignore trailing bytes. Newer clients reading older packets will receive default values for missing fields.
+3. **Compatibility discipline.** Avoid reordering or retyping existing fields if older and newer builds must interoperate.
 
 ```csharp
 // Version 1
@@ -266,9 +266,8 @@ If your data type is not supported by the built-in serializer (e.g., a third-par
 In this scenario, we have a `UserProfile` class that we want to shared between server and client, but it requires a specialized serialization format (e.g., to handle legacy bit-flags or custom string encoding).
 
 ```csharp
-```csharp
 using System;
-using Nalix.Framework.Serialization;
+using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Serialization;
 
 // 1. Define your data contract (shared)
@@ -308,7 +307,7 @@ LiteSerializer.Register<UserProfile>(new UserProfileFormatter());
 2. Register it using `LiteSerializer.Register<T>(formatter)`.
 
 ```csharp
-using Nalix.Framework.Serialization;
+using Nalix.Codec.Serialization;
 using Nalix.Abstractions.Serialization;
 
 public class GeoLocationFormatter : IFormatter<GeoLocation>

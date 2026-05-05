@@ -52,7 +52,7 @@ This is why `Connection` and `ConnectionHub` sit at the center of the real-time 
 A typical TCP request follows this path:
 
 1. Socket accepted by `TcpListenerBase`.
-2. `TcpListenerBase` registers the connection with the `ConnectionHub` and initiates the asynchronous receive loop.
+2. The listener and protocol bring the connection into the active receive path.
 3. The **Listener** receives a frame and executes the `FramePipeline` (decrypt/decompress).
 4. The resolved **Protocol** receives the processed message via `ProcessMessage(...)`.
 5. Messages are forwarded into `PacketDispatchChannel`.
@@ -81,7 +81,7 @@ The UDP path still requires session identity and authentication. Think of it as 
 - Session must be established over TCP first
 - Each datagram includes a session token prefix
 - Connection secret must be initialized
-- `IsAuthenticated(...)` validates each datagram
+- `IsAuthenticated(...)` can apply application-specific datagram checks after token, endpoint, and replay validation
 
 ## Throttling and Protection
 
