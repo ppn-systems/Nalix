@@ -1,0 +1,73 @@
+@using Nalix.Examples.Contracts.Packets
+@using Nalix.Examples.Dashboard.Domain.Reports
+@using Nalix.Examples.Dashboard.Presentation
+
+<aside class="@NavClass">
+    <div class="report-nav-head">
+        <div>
+            <span>Reports</span>
+            <strong>@DashboardDisplay.TargetLabel(SelectedReportTarget)</strong>
+        </div>
+    </div>
+
+    <div class="report-nav-list">
+        @foreach (GenerationReportTarget target in Targets)
+        {
+            <button type="button"
+                    class="@ReportNavButtonClass(target)"
+                    @onclick="() => ReportSelected.InvokeAsync(target)">
+                <span>
+                    <strong>@DashboardDisplay.TargetLabel(target)</strong>
+                    <small>@ReportSummary(target)</small>
+                </span>
+            </button>
+        }
+
+        <button type="button"
+                class="@LogsNavButtonClass"
+                @onclick="() => LogsSelected.InvokeAsync()">
+            <span>
+                <strong>Logs</strong>
+                <small>@LogsCount entries</small>
+            </span>
+        </button>
+    </div>
+</aside>
+
+@code {
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<GenerationReportTarget> Targets { get; set; } = [];
+
+    [Parameter]
+    public GenerationReportTarget? SelectedReportTarget { get; set; }
+
+    [Parameter]
+    public IReadOnlyDictionary<GenerationReportTarget, DashboardReportSnapshot> Reports { get; set; } =
+        new Dictionary<GenerationReportTarget, DashboardReportSnapshot>();
+
+    [Parameter]
+    public int LogsCount { get; set; }
+
+    [Parameter]
+    public EventCallback<GenerationReportTarget> ReportSelected { get; set; }
+
+    [Parameter]
+    public EventCallback LogsSelected { get; set; }
+
+    private string NavClass => IsOpen ? "report-nav is-open" : "report-nav is-closed";
+
+    private string LogsNavButtonClass => SelectedReportTarget is null ? "report-nav-button is-active" : "report-nav-button";
+
+    private string ReportNavButtonClass(GenerationReportTarget target)
+        => SelectedReportTarget == target
+            ? "report-nav-button is-active"
+            : "report-nav-button";
+
+    private string ReportSummary(GenerationReportTarget target)
+        => Reports.TryGetValue(target, out DashboardReportSnapshot? report)
+            ? $"{report.Data.Count} fields | {DashboardDisplay.FormatTime(report.ReceivedAt)}"
+            : "Waiting for data";
+}

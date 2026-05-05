@@ -1,0 +1,21 @@
+<div class="@TileClass">
+    <span>@Label</span>
+    <strong>@Value</strong>
+    <small>@Detail</small>
+</div>
+
+@code {
+    [Parameter]
+    public string StateClass { get; set; } = "is-muted";
+
+    [Parameter]
+    public string Label { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Value { get; set; } = string.Empty;
+
+    [Parameter]
+    public string Detail { get; set; } = string.Empty;
+
+    private string TileClass => $"metric-tile {StateClass}";
+}

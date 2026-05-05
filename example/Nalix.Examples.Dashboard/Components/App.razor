@@ -10,12 +10,13 @@
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Nalix.Examples.Dashboard.styles.css"]" />
     <ImportMap />
-    <link rel="icon" type="image/png" href="favicon.png" />
-    <HeadOutlet />
+    <link rel="icon" type="image/x-icon" href="@Assets["assets/brand/dashboard.ico"]" />
+    <link rel="icon" type="image/png" href="@Assets["assets/brand/dashboard.png"]" />
+    <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 
 <body>
-    <Routes />
+    <Routes @rendermode="InteractiveServer" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["_content/MudBlazor/MudBlazor.min.js"]"></script>

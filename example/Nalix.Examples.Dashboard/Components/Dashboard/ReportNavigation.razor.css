@@ -1,0 +1,99 @@
+.report-nav {
+    background: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    border-radius: 6px;
+    box-shadow: var(--dash-shadow);
+    min-width: 0;
+    overflow: hidden;
+    transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.report-nav.is-closed {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-10px);
+}
+
+.report-nav-head {
+    background: var(--dash-surface-raised);
+    border-bottom: 1px solid var(--dash-border);
+    padding: 13px 12px;
+}
+
+.report-nav-head span {
+    color: var(--dash-text-muted);
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.report-nav-head strong {
+    color: var(--dash-text);
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.report-nav-list {
+    display: grid;
+    gap: 4px;
+    padding: 8px;
+}
+
+.report-nav-button {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--dash-text-muted);
+    cursor: pointer;
+    min-height: 52px;
+    padding: 9px 10px;
+    text-align: left;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    width: 100%;
+}
+
+.report-nav-button:hover {
+    background: var(--dash-control-hover);
+    border-color: var(--dash-border);
+    color: var(--dash-text);
+}
+
+.report-nav-button.is-active {
+    background: color-mix(in srgb, var(--dash-blue) 16%, transparent);
+    border-color: color-mix(in srgb, var(--dash-blue) 44%, transparent);
+    color: var(--dash-text);
+}
+
+.report-nav-button strong,
+.report-nav-button small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.report-nav-button strong {
+    color: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.report-nav-button small {
+    color: var(--dash-text-muted);
+    font-size: 0.75rem;
+    margin-top: 2px;
+}
+
+@media (max-width: 900px) {
+    .report-nav.is-closed {
+        display: none;
+    }
+
+    .report-nav.is-open {
+        display: block;
+    }
+}

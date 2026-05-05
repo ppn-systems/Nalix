@@ -1,21 +1,39 @@
 @inherits LayoutComponentBase
+@inject IDashboardStateReader State
+@inject IDashboardStateWriter StateActions
 
-<MudThemeProvider Theme="_theme" />
+<MudThemeProvider Theme="_theme"
+                  @bind-IsDarkMode="_isDarkMode"
+                  ObserveSystemDarkModeChange="true" />
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
 
-<MudLayout>
-    <MudAppBar Elevation="0" Dense="true" Class="dashboard-appbar">
-        <MudText Typo="Typo.h6">Nalix Examples Dashboard</MudText>
-        <MudSpacer />
-        <MudText Typo="Typo.body2">local runtime console</MudText>
-    </MudAppBar>
+<div class="@LayoutClass">
+    <header class="dashboard-appbar">
+        <button type="button"
+                class="nav-toggle"
+                aria-label="@NavigationToggleLabel"
+                aria-expanded="@State.IsReportNavigationOpen.ToString().ToLowerInvariant()"
+                @onclick="ToggleNavigation">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
 
-    <MudMainContent Class="dashboard-main">
+        <a class="appbar-title" href="">
+            <img class="appbar-logo"
+                 src="assets/brand/dashboard.png"
+                 alt=""
+                 aria-hidden="true" />
+            <span>Dashboard</span>
+        </a>
+    </header>
+
+    <main class="dashboard-main">
         @Body
-    </MudMainContent>
-</MudLayout>
+    </main>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -24,22 +42,55 @@
 </div>
 
 @code {
+    private bool _isDarkMode = true;
+
+    private string LayoutClass => _isDarkMode ? "dashboard-root is-dark" : "dashboard-root";
+    private string NavigationToggleLabel => State.IsReportNavigationOpen ? "Hide navigation" : "Show navigation";
+
     private readonly MudTheme _theme = new()
     {
         PaletteLight = new PaletteLight
         {
-            Primary = "#2563eb",
-            Secondary = "#0f766e",
+            Primary = "#0969da",
+            Secondary = "#1f883d",
+            Tertiary = "#8250df",
+            Success = "#1a7f37",
+            Warning = "#9a6700",
+            Error = "#cf222e",
+            Info = "#0969da",
             AppbarBackground = "#ffffff",
-            AppbarText = "#172033",
-            Background = "#f4f6f8",
+            AppbarText = "#1f2328",
+            Background = "#f6f8fa",
             Surface = "#ffffff",
-            TextPrimary = "#172033",
-            TextSecondary = "#64748b"
+            DrawerBackground = "#ffffff",
+            TextPrimary = "#1f2328",
+            TextSecondary = "#57606a",
+            Divider = "#d0d7de"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#2f81f7",
+            Secondary = "#3fb950",
+            Tertiary = "#a371f7",
+            Success = "#3fb950",
+            Warning = "#d29922",
+            Error = "#f85149",
+            Info = "#58a6ff",
+            AppbarBackground = "#010409",
+            AppbarText = "#f0f6fc",
+            Background = "#0d1117",
+            Surface = "#161b22",
+            DrawerBackground = "#0d1117",
+            TextPrimary = "#f0f6fc",
+            TextSecondary = "#8b949e",
+            Divider = "#30363d"
         },
         LayoutProperties = new LayoutProperties
         {
-            DefaultBorderRadius = "6px"
+            DefaultBorderRadius = "8px"
         }
     };
+
+    private void ToggleNavigation()
+        => StateActions.SetReportNavigationOpen(!State.IsReportNavigationOpen);
 }

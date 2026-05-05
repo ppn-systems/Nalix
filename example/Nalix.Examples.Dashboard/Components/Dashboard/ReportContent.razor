@@ -1,0 +1,100 @@
+@using Nalix.Examples.Contracts.Packets
+@using Nalix.Examples.Dashboard.Domain.Logs
+@using Nalix.Examples.Dashboard.Domain.Reports
+@using Nalix.Examples.Dashboard.Presentation
+@using Nalix.Examples.Dashboard.Presentation.ReportValues
+
+<section class="report-content">
+    <div class="report-content-head">
+        <div>
+            <span class="section-label">Selected view</span>
+            <h2>@DashboardDisplay.TargetLabel(SelectedReportTarget)</h2>
+        </div>
+    </div>
+
+    @if (SelectedReportTarget is { } selectedTarget)
+    {
+        @if (Reports.TryGetValue(selectedTarget, out DashboardReportSnapshot? report))
+        {
+            <div class="report-panel">
+                <div class="report-meta-grid">
+                    <div>
+                        <span>Reason</span>
+                        <strong>@report.Reason</strong>
+                    </div>
+                    <div>
+                        <span>Received</span>
+                        <strong>@DashboardDisplay.FormatTime(report.ReceivedAt)</strong>
+                    </div>
+                    <div>
+                        <span>Fields</span>
+                        <strong>@report.Data.Count</strong>
+                    </div>
+                </div>
+
+                @if (report.Data.Count == 0)
+                {
+                    <div class="empty-inline">No report fields returned.</div>
+                }
+                else
+                {
+                    <div class="report-rows">
+                        @foreach (KeyValuePair<string, object?> row in OrderedRows(report))
+                        {
+                            ParsedReportValue parsed = ReportValueParser.Parse(row.Key, row.Value);
+                            <section class="@ReportRowClass(parsed)">
+                                <div class="report-row-key">@ReportValueParser.DisplayName(row.Key)</div>
+                                <div class="report-row-value">
+                                    <ReportValueView Model="parsed" />
+                                </div>
+                            </section>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="empty-panel">Waiting for @DashboardDisplay.TargetLabel(selectedTarget) data...</div>
+        }
+    }
+    else
+    {
+        <div class="log-panel" id="logs">
+            <div class="log-toolbar">
+                <span class="muted">@Logs.Count log entries</span>
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Default"
+                           Size="Size.Small"
+                           OnClick="() => ClearLogs.InvokeAsync()">
+                    Clear
+                </MudButton>
+            </div>
+            <textarea class="log-output" readonly>@LogText</textarea>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public GenerationReportTarget? SelectedReportTarget { get; set; }
+
+    [Parameter]
+    public IReadOnlyDictionary<GenerationReportTarget, DashboardReportSnapshot> Reports { get; set; } =
+        new Dictionary<GenerationReportTarget, DashboardReportSnapshot>();
+
+    [Parameter]
+    public IReadOnlyList<DashboardLogEntry> Logs { get; set; } = [];
+
+    [Parameter]
+    public EventCallback ClearLogs { get; set; }
+
+    private string LogText => string.Join(Environment.NewLine, Logs.Select(static entry =>
+        $"[{entry.Timestamp.ToLocalTime():HH:mm:ss.fff}] [{entry.Level}] {entry.Message}"));
+
+    private static IEnumerable<KeyValuePair<string, object?>> OrderedRows(DashboardReportSnapshot report)
+        => report.Data.OrderBy(static x => x.Key, StringComparer.Ordinal);
+
+    private static string ReportRowClass(ParsedReportValue value)
+        => value.IsWide ? "report-row is-wide" : "report-row";
+}

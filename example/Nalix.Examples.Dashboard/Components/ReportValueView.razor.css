@@ -1,0 +1,115 @@
+.value-empty {
+    color: var(--dash-text-muted);
+}
+
+.report-value {
+    color: var(--dash-text);
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.report-value.is-date,
+.report-value.is-code {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0;
+}
+
+.report-value.is-bool {
+    color: var(--dash-green);
+    text-transform: lowercase;
+}
+
+.kv-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin: 0;
+}
+
+.kv-item,
+.text-list-item {
+    background: color-mix(in srgb, var(--dash-surface-muted) 82%, var(--dash-bg));
+    border: 1px solid var(--dash-border-soft);
+    border-radius: 6px;
+    min-width: 0;
+    padding: 10px 12px;
+}
+
+.kv-name,
+.record-name {
+    color: color-mix(in srgb, var(--dash-text-muted) 84%, var(--dash-text));
+    display: block;
+    font-size: 0.73rem;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 5px;
+}
+
+.record-list,
+.text-list {
+    display: grid;
+    gap: 10px;
+}
+
+.record-card {
+    background: color-mix(in srgb, var(--dash-surface-muted) 76%, var(--dash-bg));
+    border: 1px solid var(--dash-border-soft);
+    border-left: 3px solid var(--dash-blue);
+    border-radius: 6px;
+    min-width: 0;
+    padding: 12px 14px;
+}
+
+.record-header {
+    border-bottom: 1px solid var(--dash-border-soft);
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+}
+
+.record-title {
+    color: var(--dash-text);
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.record-fields {
+    display: grid;
+    gap: 12px 18px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    margin: 0;
+}
+
+.record-field {
+    min-width: 0;
+}
+
+.record-field.is-wide {
+    grid-column: span 2;
+}
+
+.record-field dd,
+.kv-item dd {
+    margin: 0;
+}
+
+.text-list-item {
+    color: var(--dash-text);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .record-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .record-field.is-wide {
+        grid-column: auto;
+    }
+}
