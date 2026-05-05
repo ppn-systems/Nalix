@@ -100,11 +100,6 @@ jobs:
           dotnet restore "${{ inputs.project }}"
           dotnet restore "${{ inputs.test }}"
 
-      - name: Restore trim smoke project
-        if: inputs.os == 'ubuntu-latest'
-        shell: bash
-        run: dotnet restore "${{ inputs.trim_project }}" -r linux-x64
-
       - name: Build all projects
         shell: bash
         timeout-minutes: 15
