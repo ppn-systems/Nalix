@@ -189,6 +189,7 @@ nav:
   - Packages:
       - Overview: packages/index.md
       - Nalix.Abstractions: packages/nalix-abstractions.md
+      - Nalix.Environment: packages/nalix-environment.md
       - Nalix.Framework: packages/nalix-framework.md
       - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
@@ -216,6 +217,7 @@ nav:
         - Environment:
           - Directories: api/environment/directories.md
           - Clock: api/environment/clock.md
+          - Random: api/environment/random.md
           - Timing Scope: api/environment/timing-scope.md
           - Configuration: api/environment/configuration.md
         - Runtime:
@@ -229,6 +231,10 @@ nav:
         - Codec:
           - Overview: packages/nalix-codec.md
           - LZ4: api/codec/lz4.md
+          - Memory:
+            - BufferLease: api/codec/memory/buffer-lease.md
+            - DataReader: api/codec/memory/data-reader.md
+            - DataWriter: api/codec/memory/data-writer.md
           - Packets:
             - Frame Model: api/codec/packets/frame-model.md
             - Fragmentation: api/codec/packets/fragmentation.md
