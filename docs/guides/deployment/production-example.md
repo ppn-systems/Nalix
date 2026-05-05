@@ -23,7 +23,7 @@ dotnet new console -n MyNet.Client
 
 ## 2. Shared Contracts (`MyNet.Contracts`)
 
-Use `[SerializePackable]` to define your packets. This ensures the source generator can create allocation-free deserializers.
+Use `[SerializePackable]` to define your packets and keep the contract shared between server and client.
 
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
@@ -95,8 +95,10 @@ public sealed class DataHandlers
 ### Server Host
 
 ```csharp
+using Nalix.Abstractions.Networking;
 using Nalix.Hosting;
 using Nalix.Logging;
+using Nalix.Network.Protocols;
 using Nalix.Network.Options;
 using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Dispatching;
@@ -125,13 +127,13 @@ using var app = NetworkApplication.CreateBuilder()
 
 await app.RunAsync();
 
-public sealed class ProductionProtocol : IProtocol
+public sealed class ProductionProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
 
     public ProductionProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
 
-    public void ProcessMessage(object sender, IConnectEventArgs args)
+    public override void ProcessMessage(object? sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 }
 ```
@@ -150,8 +152,9 @@ IPacketRegistry catalog = new PacketRegistryFactory()
     .RegisterPacket<DataResponse>()
     .CreateCatalog();
 
-await using var session = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 }, catalog);
+using var session = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 }, catalog);
 await session.ConnectAsync();
+await session.HandshakeAsync();
 
 var response = await session.RequestAsync<DataResponse>(new DataRequest 
 { 
@@ -167,7 +170,7 @@ Console.WriteLine($"Server said: {response.Message}");
 - [ ] **Logging**: Ensure `NLogix` is configured with a high-performance sink (e.g., `BatchConsoleLogTarget`).
 - [ ] **Timeouts**: Set `TimeoutMs` on all client calls via `RequestOptions`.
 - [ ] **Backpressure**: Configure `NetworkSocketOptions.Backlog` and `DispatchOptions` (`MaxPerConnectionQueue`, `DropPolicy`).
-- [ ] **Health Checks**: Use `IConnectionHub` to monitor live sessions.
+- [ ] **Health Checks**: Use listener / hub / dispatch reports to monitor live sessions.
 - [ ] **Resource Cleanup**: Ensure all `IBufferLease` objects are disposed (handled automatically if using `IPacketContext<T>`).
 
 ## Next Steps

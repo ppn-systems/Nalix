@@ -15,7 +15,7 @@ The steps are:
 1. Register shared services
 2. Build a packet dispatcher
 3. Forward messages from `Protocol` into dispatch
-4. Start a `TcpListenerBase`
+4. Start a custom `TcpListenerBase`
 5. Send one request and receive one response
 
 The sample stays intentionally small so you can copy the structure first and optimize later.
@@ -84,13 +84,16 @@ SampleTcpListener listener = new(57206, new SampleProtocol(dispatch), hub);
 listener.Activate();
 ```
 
+`TcpListenerBase.Activate(...)` is synchronous. Use `NetworkApplication.RunAsync()` only when you want the hosting layer to own startup and shutdown for you.
+
 !!! warning "Manual hub ownership"
-    Current `TcpListenerBase` constructors require an `IConnectionHub`. The hosting
+Current `TcpListenerBase` constructors require an `IConnectionHub`. The hosting
     builder creates and wires this dependency for you. In manual mode, create the
     hub explicitly and dispose it when your server shuts down.
 
+## Client
 
-The client uses the `Nalix.SDK` to connect and perform type-safe request/response operations:
+The client uses `Nalix.SDK` to connect and perform type-safe request/response operations:
 
 ```csharp
 using Contracts;

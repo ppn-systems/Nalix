@@ -88,8 +88,6 @@ Use the fluent builder to assemble your server layers:
 
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Framework.DataFrames.SignalFrames;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Hosting;
 using Nalix.Network.Options;
@@ -107,14 +105,9 @@ using var app = NetworkApplication.CreateBuilder()
 
 await app.RunAsync();
 
-public sealed class MyProtocol : IProtocol
+public sealed class MyProtocol : DefaultProtocol
 {
-    private readonly IPacketDispatch _dispatch;
-
-    public MyProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
-
-    public void ProcessMessage(object sender, IConnectEventArgs args)
-        => _dispatch.HandlePacket(args.Lease, args.Connection);
+    public MyProtocol(IPacketDispatch dispatch) : base(dispatch) { }
 }
 ```
 
@@ -125,6 +118,7 @@ public sealed class MyProtocol : IProtocol
 - `AddHandler<THandler>()` registers one handler type directly.
 - `ConfigureConnectionHub(...)` and `ConfigureBufferPoolManager(...)` are optional, but make host wiring explicit.
 - `ConfigureBufferPoolManager(...)` is recommended for high-throughput servers to keep receive/send buffers on pooled paths end-to-end.
+- If you only need the standard "forward to dispatch" behavior, inheriting `DefaultProtocol` is the simplest host-friendly protocol shape.
 
 ---
 

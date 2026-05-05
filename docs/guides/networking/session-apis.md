@@ -8,7 +8,7 @@
     - :fontawesome-solid-clock: **Time**: 15 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Client Session Initialization](./connecting-clients.md)
 
-The primary `./connecting-clients.md` guide focuses on high-level workflows like strongly-typed packet subscriptions and automatic connection wrappers. However, for maximum pipeline control, custom proxy applications, or extreme hot-path optimization, developers can interact with the lowest-level APIs inside a `TransportSession`.
+The primary [Client Session Guide](./connecting-clients.md) focuses on high-level workflows like strongly-typed packet subscriptions and reconnect helpers. This page covers the lower-level transport surface exposed by `TransportSession`, `TcpSession`, and `UdpSession`.
 
 ## 1. Raw Message Hooks (Zero-Allocation Paths)
 
@@ -36,7 +36,7 @@ session.OnMessageReceived += (sender, lease) =>
 
 ### Purely Asynchronous Queuing (`OnMessageAsync`)
 
-Provides an asynchronous backpressure pipeline. The framework safely copies the buffer or manages its persistence automatically via `TransportOptions.AsyncQueueCapacity`.
+Provides an asynchronous receive pipeline. For `TcpSession`, the lease is retained while the async handler runs; for `UdpSession`, async handlers are drained through a bounded queue sized by `TransportOptions.AsyncQueueCapacity`.
 
 ```csharp
 session.OnMessageAsync += async (payload) => 
@@ -58,7 +58,7 @@ When orchestrating connections manually using `ConnectAsync()`, it is extremely 
 await session.ConnectAsync();
 
 // 2. Check if this is a Reconnection (We still have the old Identity State)
-if (!options.SessionToken.IsEmpty && options.Secret.Length > 0)
+if (options.SessionToken != 0 && !options.Secret.IsZero)
 {
     // Fast path: Tell the server we dropped connection but still have our keys.
     ProtocolReason resumeResult = await session.ResumeSessionAsync();
@@ -98,14 +98,14 @@ await session.SendAsync(precomputedLoginPacket.AsMemory());
 
 While `TransportOptions.EncryptionEnabled` strictly governs global cryptographic enforcement across the `TransportSession`, there are scenarios where a highly specific internal frame must bypass the global rules (e.g. sending a `Handshake` packet before encryption keys are actually finalized).
 
-If utilizing a `TcpSession` directly, you can access an intense `encrypt: bool?` override on `SendAsync`:
+If you are working directly with a `TcpSession`, you can override encryption per send:
 
 ```csharp
-TcpSession session = (TcpSession)mySession;
+TcpSession session = myTcpSession;
 
-// Forces this specific HandshakePacket to travel in absolute plaintext
-// ignoring `EncryptionEnabled = true` safely to avoid race conditions.
-await session.SendAsync(new HandshakePacket(), encrypt: false);
+// Example: force this one packet to travel in plaintext even if the
+// session would normally encrypt payloads.
+await session.SendAsync(new Handshake(), encrypt: false);
 ```
 
 !!! danger

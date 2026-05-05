@@ -5,34 +5,39 @@
     - :fontawesome-solid-clock: **Time**: 5 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Security Architecture](../../concepts/security/security-architecture.md)
 
-The `Nalix.Certificate` tool is a high-performance CLI utility designed to generate and manage asymmetric identity keys for the Nalix Framework. It exclusively uses the **X25519** (Curve25519) algorithm for all operations.
+The `Nalix.Certificate` tool is the identity bootstrap utility currently shipped in the repository. It generates the X25519 key material used by the server handshake and the client-side public-key pinning flow.
 
 ---
 
-## 🔑 Overview
+## Overview
 
-In the Nalix security model, each server and client identity is represented by a 264-bit X25519 key pair. These keys are fundamental for:
+In the current source tree, the tool writes a paired identity into `Directories.ConfigurationDirectory`:
 
-- **Server Identity**: Proving the authenticity of the server to clients.
-- **Perfect Forward Secrecy**: Deriving session keys during the protocol handshake.
-- **Client Pinning**: Preventing Man-in-the-Middle (MitM) attacks by hardcoding public keys in clients.
+- `certificate.private`: the server-side private identity loaded by `HandshakeHandlers`
+- `certificate.public`: the public key that clients pin through `TransportOptions.ServerPublicKey`
+
+Those files support:
+
+- server identity verification during the handshake
+- client-side pinning against MitM attacks
+- fresh session-key derivation on every handshake
 
 ---
 
-## 🏗️ Key Generation
+## Key Generation
 
-To generate a new identity, run the tool from the `tools/Nalix.Certificate` directory:
+Run it from the repo root or point `dotnet run` at the project explicitly:
 
 ```powershell
-dotnet run --project Nalix.Certificate.csproj
+dotnet run --project tools/Nalix.Certificate/Nalix.Certificate.csproj
 ```
 
 ### Output Files
 
-By default, the tool saves two files to your application's identity directory:
+By default, the tool saves two files into the shared Nalix configuration directory:
 
 1. **`certificate.private`**: Contains the private key. **KEEP THIS SECRET.**
-2. **`certificate.public`**: Contains the public key hash. This is used for server identity validation.
+2. **`certificate.public`**: Contains the X25519 public key in hex. This is what clients pin.
 
 !!! tip "Standard Paths (Framework Directories API)"
     Nalix uses a standardized path resolution strategy based on the `Directories` API:
@@ -44,12 +49,12 @@ By default, the tool saves two files to your application's identity directory:
 If certificates already exist, the tool will ask for confirmation and create automatic timestamped backups before proceeding. To skip confirmation:
 
 ```powershell
-dotnet run --project Nalix.Certificate.csproj -- --force
+dotnet run --project tools/Nalix.Certificate/Nalix.Certificate.csproj -- --force
 ```
 
 ---
 
-## 🛡️ Security Specifications
+## Security Specifications
 
 | Feature | Specification |
 | :--- | :--- |
@@ -60,19 +65,20 @@ dotnet run --project Nalix.Certificate.csproj -- --force
 
 ---
 
-## ⚙️ Server Configuration
+## Server Configuration
 
-Once generated, the Nalix server's `HandshakeHandlers` will automatically attempt to load the identity from the standard path. You do not typically need to configure this manually unless using a custom path:
+If you do nothing, `NetworkApplicationBuilder.Build()` initializes `HandshakeHandlers` with:
+
+- `Directories.ConfigurationDirectory/certificate.private`
+
+If your private identity lives somewhere else, configure the host builder explicitly:
 
 ```csharp
-builder.ConfigureHandshake(options => {
-    // Optional: Overwrite default identity path
-    options.IdentityPath = "/custom/path/certificate.private";
-});
+builder.ConfigureCertificate("/custom/path/certificate.private");
 ```
 
 !!! info "Security Enforcement"
-    If no identity is found, the server will throw a `NetworkException` at startup. Anonymous handshakes are not permitted.
+    If the private identity file is missing or malformed, handshake initialization throws during host startup. Anonymous server handshakes are not supported.
 
 ---
 
@@ -83,5 +89,5 @@ builder.ConfigureHandshake(options => {
 
 - **Rotation**: Rotate your keys regularly if you suspect a compromise.
 - **Backups**: The tool automatically creates backups with `.bak` extensions. Keep these secure or delete them if no longer needed.
-- **Client Pinning**: Hardcode the value from `certificate.public` directly in your client’s `ConnectionOptions.ServerPublicKey` for maximum security.
+- **Client Pinning**: Load the value from `certificate.public` into `TransportOptions.ServerPublicKey` on the client.
 

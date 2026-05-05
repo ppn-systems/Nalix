@@ -140,9 +140,9 @@ Managing the **Activation** and **Shutdown** order is critical for preventing co
 
 A production-ready blueprint always includes a way to query the internal health.
 
-- `listener.GenerateReport()` — Socket backpressure and accept counts.
-- `protocol.GenerateReport()` — Decryption/Decompression success rates.
-- `dispatch.GenerateReport()` — Queue lengths and worker latency.
+- `listener.GenerateReport()` - Listener state, config, metrics, and accept/reject counts.
+- `protocol.GenerateReport()` - Decryption and decompression success rates.
+- `dispatch.GenerateReport()` - Queue lengths and worker latency.
 
 !!! info "Pro-Tip"
     Even if you don't have an Admin API, ensure your logs occasionally output these reports during periods of high traffic.

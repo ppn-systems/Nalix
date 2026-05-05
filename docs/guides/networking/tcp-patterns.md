@@ -142,11 +142,12 @@ When using the transport layer directly (outside of the Hosting builder), you mu
 ```csharp
 // Setup dependencies
 InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IConnectionHub>(new ConnectionHub());
+IConnectionHub hub = new ConnectionHub();
+InstanceManager.Instance.Register(hub);
 InstanceManager.Instance.Register<TaskManager>(new TaskManager());
 
 // Initialize and Activate
-SampleTcpListener listener = new(57206, new SampleProtocol(dispatch, logger));
+SampleTcpListener listener = new(57206, new SampleProtocol(dispatch, logger), hub);
 listener.Activate();
 ```
 
@@ -207,7 +208,7 @@ Use this style when:
 ## What clients should remember
 
 - returning `Control` is the simplest normal request/response model
-- `Protocol` just forwards messages (not raw frames) into dispatch
+- `Protocol` forwards decrypted and decompressed messages into dispatch
 - the **Listener** is the bridge that handles raw transformation before calling the protocol handler
 - `PacketDispatchChannel` owns middleware, deserialization, handler invocation, and result handling
 - the same pattern works for custom packet types if you swap `Control` for your own packet contract

@@ -18,7 +18,7 @@ Start by confirming that the important option types are loaded and validated dur
 - `TimingWheelOptions`
 - `NetworkCallbackOptions`
 
-If you skip validation, bad values usually fail later and less clearly.
+If you skip validation on types that expose it, bad values usually fail later and less clearly.
 
 ## 2. Shared services
 
@@ -36,7 +36,6 @@ Before launch, check:
 
 - `TcpListenerBase` or `UdpListenerBase` starts cleanly
 - `GenerateReport()` works
-- `IsTimeSyncEnabled` is set intentionally
 - listen port and backlog are correct
 - `EnableTimeout` and `TimingWheelOptions.IdleTimeoutMs` match your real idle behavior expectations
 
@@ -124,7 +123,6 @@ Too high:
 
 If you expect internet-facing traffic, review:
 
-- `MaxPerConnectionPendingPackets`
 - `MaxPendingNormalCallbacks`
 - `MaxPendingPerIp`
 - `CallbackWarningThreshold`
@@ -186,13 +184,15 @@ Use one short smoke test before release:
 NetworkSocketOptions socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 socket.Validate();
 
-await listener.Activate(ct);
+listener.Activate(ct);
 Console.WriteLine(listener.GenerateReport());
 Console.WriteLine(dispatch.GenerateReport());
 Console.WriteLine(connectionHub.GenerateReport());
 
-await listener.Deactivate(ct);
+listener.Deactivate(ct);
 ```
+
+`Activate(...)` and `Deactivate(...)` on listeners are synchronous lifecycle calls. The async host-facing entrypoint is `NetworkApplication.RunAsync(...)`.
 
 ## Recommended Next Pages
 
