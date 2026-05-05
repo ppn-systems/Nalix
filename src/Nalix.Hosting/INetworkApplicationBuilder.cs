@@ -84,7 +84,7 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure);
 
     /// <summary>
-    /// Adds packet types discovered from the specified assembly.
+    /// Scans the specified assembly for packet types and registers them.
     /// </summary>
     /// <param name="assembly">The assembly to scan for packet types.</param>
     /// <param name="requirePacketAttribute">
@@ -92,10 +92,10 @@ public interface INetworkApplicationBuilder
     /// otherwise, all concrete packet types are considered.
     /// </param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false);
+    INetworkApplicationBuilder ScanPackets(Assembly assembly, bool requirePacketAttribute = false);
 
     /// <summary>
-    /// Adds packet types discovered from the specified assembly path.
+    /// Scans the specified assembly path for packet types and registers them.
     /// </summary>
     /// <param name="assemblyPath">The .dll path to scan for packet types.</param>
     /// <param name="requirePacketAttribute">
@@ -103,10 +103,10 @@ public interface INetworkApplicationBuilder
     /// otherwise, all concrete packet types are considered.
     /// </param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacket(string assemblyPath, bool requirePacketAttribute = false);
+    INetworkApplicationBuilder ScanPackets(string assemblyPath, bool requirePacketAttribute = false);
 
     /// <summary>
-    /// Adds packet types discovered from the assembly that contains <typeparamref name="TMarker"/>.
+    /// Scans the assembly that contains <typeparamref name="TMarker"/> for packet types and registers them.
     /// </summary>
     /// <typeparam name="TMarker">A marker type used to resolve the target assembly.</typeparam>
     /// <param name="requirePacketAttribute">
@@ -114,7 +114,21 @@ public interface INetworkApplicationBuilder
     /// otherwise, all concrete packet types are considered.
     /// </param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false);
+    INetworkApplicationBuilder ScanPackets<TMarker>(bool requirePacketAttribute = false);
+
+    /// <summary>
+    /// Scans the specified assembly for packet controller types and registers them.
+    /// </summary>
+    /// <param name="assembly">The assembly to scan for packet controllers.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ScanHandlers(Assembly assembly);
+
+    /// <summary>
+    /// Scans the assembly that contains <typeparamref name="TMarker"/> for packet controller types and registers them.
+    /// </summary>
+    /// <typeparam name="TMarker">A marker type used to resolve the target assembly.</typeparam>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ScanHandlers<TMarker>();
 
     /// <summary>
     /// Adds packet types discovered by matching packet namespaces in the current AppDomain.
@@ -136,20 +150,6 @@ public interface INetworkApplicationBuilder
     /// </param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder AddPacketNamespace(string assemblyPath, string packetNamespace, bool recursive = true);
-
-    /// <summary>
-    /// Adds packet controller types discovered from the specified assembly.
-    /// </summary>
-    /// <param name="assembly">The assembly to scan for packet controllers.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandlers(Assembly assembly);
-
-    /// <summary>
-    /// Adds packet controller types discovered from the assembly that contains <typeparamref name="TMarker"/>.
-    /// </summary>
-    /// <typeparam name="TMarker">A marker type used to resolve the target assembly.</typeparam>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddHandlers<TMarker>();
 
     /// <summary>
     /// Adds a packet controller type using the default Nalix activator.
@@ -182,102 +182,16 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder AddMetadataProvider<TProvider>(Func<TProvider> factory) where TProvider : class, IPacketMetadataProvider;
 
     /// <summary>
-    /// Adds a TCP protocol using the default Nalix activator.
+    /// Binds a TCP protocol using a fluent builder for port and factory configuration.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddTcp<TProtocol>() where TProtocol : class, IProtocol;
+    /// <returns>A fluent builder to configure the binding.</returns>
+    IProtocolBindingBuilder BindTcp<TProtocol>() where TProtocol : class, IProtocol;
 
     /// <summary>
-    /// Adds a TCP protocol using an explicit factory.
+    /// Binds a UDP protocol using a fluent builder for port, factory, and authentication configuration.
     /// </summary>
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="factory">The factory used to create the protocol instance.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a TCP protocol using the default Nalix activator on a specific port.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="port">The port to listen on.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddTcp<TProtocol>(ushort port) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a TCP protocol using an explicit factory on a specific port.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="port">The port to listen on.</param>
-    /// <param name="factory">The factory used to create the protocol instance.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddTcp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using the default Nalix activator.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>() where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using the default Nalix activator and a custom authentication predicate.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>(Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using an explicit factory.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="factory">The factory used to create the protocol instance.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using an explicit factory and a custom authentication predicate.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="factory">The factory used to create the protocol instance.</param>
-    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using the default Nalix activator on a specific port.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="port">The port to listen on.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using the default Nalix activator on a specific port with a custom authentication predicate.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="port">The port to listen on.</param>
-    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using an explicit factory on a specific port.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="port">The port to listen on.</param>
-    /// <param name="factory">The factory used to create the protocol instance.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory) where TProtocol : class, IProtocol;
-
-    /// <summary>
-    /// Adds a UDP protocol using an explicit factory on a specific port with a custom authentication predicate.
-    /// </summary>
-    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
-    /// <param name="port">The port to listen on.</param>
-    /// <param name="factory">The factory used to create the protocol instance.</param>
-    /// <param name="authen">The authentication predicate used to validate incoming datagrams.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen) where TProtocol : class, IProtocol;
+    /// <returns>A fluent builder to configure the binding.</returns>
+    IProtocolBindingBuilder BindUdp<TProtocol>() where TProtocol : class, IProtocol;
 }

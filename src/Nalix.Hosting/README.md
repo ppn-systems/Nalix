@@ -23,12 +23,22 @@ dotnet add package Nalix.Network.Hosting
 using Nalix.Network.Hosting;
 
 using var app = NetworkApplication.CreateBuilder()
-    .AddTcp<MyProtocol>(port: 8080)
-    .AddPacket<MyPacket>()
-    .AddHandlers<MyHandlers>()
+    .BindTcp<MyProtocol>().OnPort(8080).Bind()
+    .ScanPackets<MyPacket>()
+    .ScanHandlers<MyHandlers>()
     .Build();
 
 await app.RunAsync();
+```
+
+For simple scenarios, use the built-in `DefaultProtocol` instead of creating your own:
+
+```csharp
+using var app = NetworkApplication.CreateBuilder()
+    .BindTcp<DefaultProtocol>().OnPort(8080).Bind()
+    .ScanPackets<MyPacket>()
+    .ScanHandlers<MyHandlers>()
+    .Build();
 ```
 
 ## Documentation

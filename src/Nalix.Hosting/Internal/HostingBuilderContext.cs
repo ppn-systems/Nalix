@@ -207,10 +207,15 @@ internal sealed record PacketMetadataProviderDescriptor(
 /// <param name="Port">
 /// Optional explicit port to listen on. If null, the default configured port is used.
 /// </param>
+/// <param name="BindingBuilder">
+/// Optional mutable builder populated by <c>BindTcp</c> fluent API.
+/// When present, <see cref="Port"/> is resolved from this builder at build time.
+/// </param>
 internal sealed record TcpProtocolBinding(
     Type ProtocolType,
     Func<IPacketDispatch, IProtocol> Factory,
-    ushort? Port = null);
+    ushort? Port = null,
+    object? BindingBuilder = null);
 
 /// <summary>
 /// Represents a binding between a protocol type and its creation factory for UDP.
@@ -219,8 +224,13 @@ internal sealed record TcpProtocolBinding(
 /// <param name="Factory">The factory used to create the protocol instance.</param>
 /// <param name="Port">The optional port to listen on.</param>
 /// <param name="Authentication">The optional authentication predicate used to validate incoming datagrams.</param>
+/// <param name="BindingBuilder">
+/// Optional mutable builder populated by <c>BindUdp</c> fluent API.
+/// When present, <see cref="Port"/> and <see cref="Authentication"/> are resolved from this builder at build time.
+/// </param>
 internal sealed record UdpProtocolBinding(
     Type ProtocolType,
     Func<IPacketDispatch, IProtocol> Factory,
     ushort? Port = null,
-    Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? Authentication = null);
+    Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? Authentication = null,
+    object? BindingBuilder = null);
