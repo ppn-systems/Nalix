@@ -43,6 +43,32 @@ public sealed class ReturnTypeHandlerTests
     }
 
     [Fact]
+    public async Task PacketReturnHandler_Reliable_DisposesPacketAfterSend()
+    {
+        PacketReturnHandler<TestPacket> handler = new();
+        DisposablePacket resultPacket = new()
+        {
+            Header = new PacketHeader { Flags = PacketFlags.RELIABLE }
+        };
+
+        IPacketSender sender = Substitute.For<IPacketSender>();
+        sender.SendAsync(resultPacket).Returns(_ =>
+        {
+            Assert.False(resultPacket.IsDisposed);
+            return ValueTask.CompletedTask;
+        });
+
+        PacketContext<TestPacket> context = new()
+        {
+            Sender = sender
+        };
+
+        await handler.HandleAsync(resultPacket, context);
+
+        Assert.True(resultPacket.IsDisposed);
+    }
+
+    [Fact]
     public void ReturnTypeHandlerFactory_GetHandler_ReturnsCorrectHandlerForVoid()
     {
         IReturnHandler<TestPacket> handler = ReturnTypeHandlerFactory<TestPacket>.ResolveHandler(typeof(void));
@@ -95,9 +121,18 @@ public sealed class ReturnTypeHandlerTests
         public byte[] Serialize() => [];
         public int Serialize(Span<byte> buffer) => 0;
     }
+
+    private sealed class DisposablePacket : IPacket, IDisposable
+    {
+        public int Length => 0;
+        public PacketHeader Header { get; set; }
+        public bool IsDisposed { get; private set; }
+        public byte[] Serialize() => [];
+        public int Serialize(Span<byte> buffer) => 0;
+        public void Dispose() => this.IsDisposed = true;
+    }
 }
 #endif
-
 
 
 
