@@ -13,12 +13,19 @@
     <div class="report-nav-list">
         @foreach (GenerationReportTarget target in Targets)
         {
+            bool hasReport = Reports.TryGetValue(target, out DashboardReportSnapshot? report);
             <button type="button"
                     class="@ReportNavButtonClass(target)"
                     @onclick="() => ReportSelected.InvokeAsync(target)">
-                <span>
+                <span class="report-nav-text">
                     <strong>@DashboardDisplay.TargetLabel(target)</strong>
-                    <small>@ReportSummary(target)</small>
+                    <small class="@ReportMetaClass(hasReport)">
+                        <span>@ReportCountText(report)</span>
+                        @if (report is not null)
+                        {
+                            <time>@DashboardDisplay.FormatTime(report.ReceivedAt)</time>
+                        }
+                    </small>
                 </span>
             </button>
         }
@@ -26,9 +33,11 @@
         <button type="button"
                 class="@LogsNavButtonClass"
                 @onclick="() => LogsSelected.InvokeAsync()">
-            <span>
+            <span class="report-nav-text">
                 <strong>Logs</strong>
-                <small>@LogsCount entries</small>
+                <small class="report-nav-meta is-waiting">
+                    <span>@LogsCount entries</span>
+                </small>
             </span>
         </button>
     </div>
@@ -66,8 +75,9 @@
             ? "report-nav-button is-active"
             : "report-nav-button";
 
-    private string ReportSummary(GenerationReportTarget target)
-        => Reports.TryGetValue(target, out DashboardReportSnapshot? report)
-            ? $"{report.Data.Count} fields | {DashboardDisplay.FormatTime(report.ReceivedAt)}"
-            : "Waiting for data";
+    private static string ReportMetaClass(bool hasReport)
+        => hasReport ? "report-nav-meta" : "report-nav-meta is-waiting";
+
+    private static string ReportCountText(DashboardReportSnapshot? report)
+        => report is null ? "Waiting for data" : $"{report.Data.Count} fields";
 }

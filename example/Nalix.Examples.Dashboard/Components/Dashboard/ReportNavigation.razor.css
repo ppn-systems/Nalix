@@ -39,12 +39,12 @@
 
 .report-nav-list {
     display: grid;
-    gap: 4px;
-    padding: 8px;
+    gap: 6px;
+    padding: 10px;
 }
 
 .report-nav-button {
-    align-items: flex-start;
+    align-items: center;
     background: transparent;
     border: 1px solid transparent;
     border-radius: 6px;
@@ -52,14 +52,14 @@
     cursor: pointer;
     display: flex;
     justify-content: flex-start;
-    min-height: 52px;
-    padding: 9px 10px;
+    min-height: 58px;
+    padding: 10px 12px;
     text-align: left;
     transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
     width: 100%;
 }
 
-.report-nav-button > span {
+.report-nav-text {
     display: block;
     min-width: 0;
     text-align: left;
@@ -79,7 +79,8 @@
 }
 
 .report-nav-button strong,
-.report-nav-button small {
+.report-nav-meta span,
+.report-nav-meta time {
     display: block;
     overflow: hidden;
     text-align: left;
@@ -91,12 +92,35 @@
     color: inherit;
     font-size: 0.9rem;
     font-weight: 700;
+    line-height: 1.25;
 }
 
-.report-nav-button small {
+.report-nav-meta {
+    align-items: center;
     color: var(--dash-text-muted);
+    display: flex;
     font-size: 0.75rem;
-    margin-top: 2px;
+    gap: 8px;
+    justify-content: space-between;
+    line-height: 1.25;
+    margin-top: 5px;
+    min-width: 0;
+}
+
+.report-nav-meta.is-waiting {
+    justify-content: flex-start;
+}
+
+.report-nav-meta span {
+    min-width: 0;
+}
+
+.report-nav-meta time {
+    color: color-mix(in srgb, var(--dash-text-muted) 86%, var(--dash-text));
+    flex: 0 0 auto;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 0.72rem;
+    text-align: right;
 }
 
 @media (max-width: 900px) {

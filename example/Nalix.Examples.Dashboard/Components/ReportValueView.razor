@@ -27,7 +27,7 @@
             {
                 <article class="record-card">
                     <header class="record-header">
-                        <span class="record-title">@FormatValue(record.Title)</span>
+                        <span class="record-title">@FormatRecordTitle(record)</span>
                     </header>
                     <dl class="record-fields">
                         @foreach (ParsedReportField field in record.Fields)
@@ -36,7 +36,7 @@
                             {
                                 <div class="@FieldClass(field)">
                                     <dt class="record-name">@ReportValueParser.DisplayName(field.Name)</dt>
-                                    <dd class="@ValueClass(field.Value)">@FormatValue(field.Value)</dd>
+                                    <dd class="@ValueClass(field.Value)">@FormatFieldValue(field)</dd>
                                 </div>
                             }
                         }
@@ -63,12 +63,12 @@
     public ParsedReportValue Model { get; set; } = ParsedReportValue.Empty;
 
     private static bool ShouldRenderField(ParsedReportRecord record, ParsedReportField field)
-        => !IsDuplicateRecordTitle(record.Title, field);
+        => !IsDuplicateRecordTitle(record, field);
 
     private static string FieldClass(ParsedReportField field)
     {
         string name = field.Name;
-        return IsLongValue(FormatValue(field.Value)) || IsDateField(name, field.Value)
+        return IsLongValue(FormatFieldValue(field)) || IsDateField(name, field.Value)
             ? "record-field is-wide"
             : "record-field";
     }
@@ -96,9 +96,29 @@
     private static string FormatValue(string value)
         => ReportValueFormatter.Format(value);
 
-    private static bool IsDuplicateRecordTitle(string title, ParsedReportField field)
-        => field.Name is "Name" or "Id" or "ID" &&
-           title.Equals(field.Value, StringComparison.OrdinalIgnoreCase);
+    private static string FormatFieldValue(ParsedReportField field)
+        => IsTypeField(field)
+            ? ReportValueFormatter.FormatTypeName(field.Value)
+            : FormatValue(field.Value);
+
+    private static string FormatRecordTitle(ParsedReportRecord record)
+        => record.Fields.Any(IsTypeField)
+            ? ReportValueFormatter.FormatTypeName(record.Title)
+            : FormatValue(record.Title);
+
+    private static bool IsDuplicateRecordTitle(ParsedReportRecord record, ParsedReportField field)
+    {
+        if (field.Name is "Name" or "Id" or "ID")
+        {
+            return record.Title.Equals(field.Value, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return IsTypeField(field) &&
+               FormatRecordTitle(record).Equals(FormatFieldValue(field), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsTypeField(ParsedReportField field)
+        => field.Name.Equals("Type", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsDateField(string name, string value)
         => name.Contains("Utc", StringComparison.OrdinalIgnoreCase) || ReportValueFormatter.IsDateValue(value);
