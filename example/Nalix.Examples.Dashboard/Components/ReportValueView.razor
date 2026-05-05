@@ -20,7 +20,7 @@
         </dl>
         break;
     case ParsedReportValueKind.Records:
-        <ReportRecordChart ReportKey="ReportKey"
+        <ReportRecordChart ReportKey="@ReportKey"
                            Records="Model.Records" />
         <div class="record-list">
             @foreach (ParsedReportRecord record in Model.Records)
