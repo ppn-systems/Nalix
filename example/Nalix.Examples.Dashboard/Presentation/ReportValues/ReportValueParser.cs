@@ -123,6 +123,7 @@ public static partial class ReportValueParser
         return new ParsedReportValue(ParsedReportValueKind.Scalar, raw, [], [], []);
     }
 
+    [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     private static ParsedReportValue ParseDictionary(string key, System.Collections.IDictionary dictionary)
     {
         if (dictionary.Count == 0)

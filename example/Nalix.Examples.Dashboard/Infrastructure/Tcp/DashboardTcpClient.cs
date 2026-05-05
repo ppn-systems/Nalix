@@ -84,7 +84,7 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger.LogWarning(ex, "Dashboard refresh failed for target {Target}.", target);
-            _state.Log("WARN", $"Report refresh failed target={target} elapsed_ms={elapsed.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture)} {FormatException(ex)}.");
+            _state.Log("WARN", $"Report refresh failed target={target} elapsed_ms={elapsed.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture)}.");
             _state.MarkDisconnected(ex.Message);
             await this.ResetSessionAsync().ConfigureAwait(false);
         }
@@ -96,11 +96,14 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
 
     public async Task RefreshAllAsync(CancellationToken ct)
     {
+        _state.Log("INFO", $"Report refresh-all started targets={DashboardReportTargets.Count.ToString(CultureInfo.InvariantCulture)}.");
         foreach (GenerationReportTarget target in DashboardReportTargets.All)
         {
             ct.ThrowIfCancellationRequested();
             await this.RefreshAsync(target, ct).ConfigureAwait(false);
         }
+
+        _state.Log("INFO", "Report refresh-all completed.");
     }
 
     public async Task PingAsync(CancellationToken ct)
