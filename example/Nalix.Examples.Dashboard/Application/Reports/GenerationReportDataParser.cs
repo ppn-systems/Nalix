@@ -5,7 +5,12 @@ namespace Nalix.Examples.Dashboard.Application.Reports;
 internal static class GenerationReportDataParser
 {
     public static IReadOnlyDictionary<string, object?> Parse(string dataJson)
+        => Parse(dataJson, out _);
+
+    public static IReadOnlyDictionary<string, object?> Parse(string dataJson, out bool usedRawFallback)
     {
+        usedRawFallback = false;
+
         if (string.IsNullOrWhiteSpace(dataJson))
         {
             return new Dictionary<string, object?>(StringComparer.Ordinal);
@@ -16,6 +21,7 @@ internal static class GenerationReportDataParser
             using JsonDocument document = JsonDocument.Parse(dataJson);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
             {
+                usedRawFallback = true;
                 return CreateRawData(dataJson);
             }
 
@@ -29,6 +35,7 @@ internal static class GenerationReportDataParser
         }
         catch (JsonException)
         {
+            usedRawFallback = true;
             return CreateRawData(dataJson);
         }
     }

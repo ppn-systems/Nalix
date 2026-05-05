@@ -74,6 +74,7 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
         lock (_gate)
         {
             this.BackendEndpoint = endpoint;
+            this.EnqueueLogUnsafe("INFO", $"Dashboard endpoint configured endpoint={endpoint}.");
         }
 
         this.NotifyChanged();
@@ -83,7 +84,15 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
     {
         lock (_gate)
         {
+            if (this.IsPollingPaused == paused)
+            {
+                return;
+            }
+
             this.IsPollingPaused = paused;
+            this.EnqueueLogUnsafe("INFO", paused
+                ? "Report polling paused; keepalive ping remains active."
+                : "Report polling resumed.");
         }
 
         this.NotifyChanged();
@@ -93,7 +102,13 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
     {
         lock (_gate)
         {
+            if (this.IsReportNavigationOpen == open)
+            {
+                return;
+            }
+
             this.IsReportNavigationOpen = open;
+            this.EnqueueLogUnsafe("DEBUG", open ? "Report navigation opened." : "Report navigation collapsed.");
         }
 
         this.NotifyChanged();
@@ -103,7 +118,15 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
     {
         lock (_gate)
         {
+            if (this.ActiveReportTarget == target)
+            {
+                return;
+            }
+
             this.ActiveReportTarget = target;
+            this.EnqueueLogUnsafe("DEBUG", target is null
+                ? "Active view changed view=logs."
+                : $"Active report target changed target={target}.");
         }
 
         this.NotifyChanged();
@@ -129,11 +152,7 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
     {
         lock (_gate)
         {
-            _logs.Enqueue(new DashboardLogEntry(DateTimeOffset.Now, level, message));
-            while (_logs.Count > MaxLogEntries)
-            {
-                _ = _logs.Dequeue();
-            }
+            this.EnqueueLogUnsafe(level, message);
         }
 
         this.NotifyChanged();
@@ -205,4 +224,35 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
     }
 
     private void NotifyChanged() => this.Changed?.Invoke();
+
+    private void EnqueueLogUnsafe(string level, string message)
+    {
+        _logs.Enqueue(new DashboardLogEntry(
+            DateTimeOffset.Now,
+            NormalizeLevel(level),
+            NormalizeMessage(message)));
+
+        while (_logs.Count > MaxLogEntries)
+        {
+            _ = _logs.Dequeue();
+        }
+    }
+
+    private static string NormalizeLevel(string? level)
+    {
+        string normalized = string.IsNullOrWhiteSpace(level)
+            ? "INFO"
+            : level.Trim().ToUpperInvariant();
+
+        return normalized switch
+        {
+            "TRACE" or "DEBUG" or "INFO" or "WARN" or "ERROR" or "CRITICAL" => normalized,
+            "INFORMATION" => "INFO",
+            "WARNING" => "WARN",
+            _ => "INFO"
+        };
+    }
+
+    private static string NormalizeMessage(string? message)
+        => string.IsNullOrWhiteSpace(message) ? "(empty log message)" : message.Trim();
 }
