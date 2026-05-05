@@ -20,7 +20,7 @@ namespace Nalix.Framework.Memory.Objects;
 /// <summary>
 /// Provides thread-safe access to a collection of object pools.
 /// </summary>
-public sealed class ObjectPoolManager : IObjectPoolManager
+public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
 {
     #region Nested Types
 
@@ -846,7 +846,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager
     /// Generates a key-value diagnostic report of the object pool manager and all pools.
     /// </summary>
     /// <returns>A dictionary describing the state of the ObjectPoolManager.</returns>
-    public Dictionary<string, object> GetReportData()
+    public IDictionary<string, object> GetReportData()
     {
         Dictionary<string, object> data = new(13, StringComparer.Ordinal)
         {
