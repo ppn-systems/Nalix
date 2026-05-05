@@ -108,12 +108,14 @@ listener also creates a bounded process channel with:
 capacity = ProcessChannelCapacity
 SingleReader = true
 SingleWriter = false
-FullMode = BoundedChannelFullMode.DropWrite
+FullMode = BoundedChannelFullMode.Wait
 ```
 
-This means accept workers drop newly accepted sockets instead of blocking when the
-process channel is full. Tune `ProcessChannelCapacity` with `Backlog`, accept-worker
-count, and protocol handshake latency.
+The producer still uses `TryWrite(...)`, so the `Wait` full mode is used for
+fail-fast overflow detection rather than blocking. When the process channel is
+full, the listener explicitly records the rejection and closes the newly accepted
+connection. Tune `ProcessChannelCapacity` with `Backlog`, accept-worker count, and
+protocol handshake latency.
 
 When `EnableTimeout` is true, TCP connections are registered with the shared
 `TimingWheel` after initialization and removed from it during shutdown/cleanup. The

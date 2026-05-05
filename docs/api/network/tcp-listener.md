@@ -85,7 +85,7 @@ Before a `Socket` is promoted to a `Connection` object, it traverses the `Connec
 To prevent slow acceptance-side work from exhausting accept workers, `TcpListenerBase` routes accepted `IConnection` instances through a bounded internal process channel.
 
 - The channel capacity comes from `NetworkSocketOptions.ProcessChannelCapacity`.
-- Full mode is `DropWrite`, so saturation drops newly accepted connections instead of blocking producers.
+- Full mode is `Wait`, but producers still call `TryWrite(...)`; saturation fails fast so the listener can explicitly reject and close newly accepted connections.
 - A dedicated `TaskManager` worker drains the channel and calls `ProcessConnection(...)`.
 - `Protocol.OnAccept(...)` then decides whether to validate and start `connection.TCP.BeginReceive(...)`.
 
@@ -102,7 +102,7 @@ To prevent slow acceptance-side work from exhausting accept workers, `TcpListene
 
 ### Internal Notes
 
-- The listener creates a bounded process channel with `SingleReader = true` and `DropWrite` backpressure in `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`.
+- The listener creates a bounded process channel with `SingleReader = true` and `Wait` full mode in `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`; producers use `TryWrite(...)` so overflow remains non-blocking and observable.
 - Accept workers are scheduled through `TaskManager.ScheduleWorker(...)` under the `net/tcp/{port}` worker group in `src/Nalix.Network/Listeners/TcpListener/TcpListener.PublicMethods.cs`.
 - Listener shutdown closes the socket, stops the process channel, cancels grouped tasks, and deactivates the `TimingWheel` when timeout support is enabled.
 
