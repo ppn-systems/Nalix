@@ -20,25 +20,23 @@
         </dl>
         break;
     case ParsedReportValueKind.Records:
+        ReportRecordLayout recordLayout = ReportRecordLayoutBuilder.Build(Model.Records);
         <ReportRecordChart ReportKey="@ReportKey"
                            Records="Model.Records" />
-        <div class="record-list">
-            @foreach (ParsedReportRecord record in Model.Records)
+        <div class="@RecordListClass(recordLayout)">
+            @foreach (ReportRecordItem record in recordLayout.Records)
             {
-                <article class="record-card">
+                <article class="@RecordCardClass(record)">
                     <header class="record-header">
-                        <span class="record-title">@FormatRecordTitle(record)</span>
+                        <span class="record-title">@record.Title</span>
                     </header>
                     <dl class="record-fields">
-                        @foreach (ParsedReportField field in record.Fields)
+                        @foreach (ReportRecordFieldItem field in record.Fields)
                         {
-                            @if (ShouldRenderField(record, field))
-                            {
-                                <div class="@FieldClass(field)">
-                                    <dt class="record-name">@ReportValueParser.DisplayName(field.Name)</dt>
-                                    <dd class="@ValueClass(field.Value)">@FormatFieldValue(field)</dd>
-                                </div>
-                            }
+                            <div class="@FieldClass(field)">
+                                <dt class="record-name">@field.Label</dt>
+                                <dd class="@ValueClass(field.RawValue)">@field.Value</dd>
+                            </div>
                         }
                     </dl>
                 </article>
@@ -62,16 +60,20 @@
     [Parameter, EditorRequired]
     public ParsedReportValue Model { get; set; } = ParsedReportValue.Empty;
 
-    private static bool ShouldRenderField(ParsedReportRecord record, ParsedReportField field)
-        => !IsDuplicateRecordTitle(record, field);
+    private static string RecordListClass(ReportRecordLayout layout)
+        => layout.HasCompactRecords
+            ? "record-list has-compact-records"
+            : "record-list";
 
-    private static string FieldClass(ParsedReportField field)
-    {
-        string name = field.Name;
-        return IsLongValue(FormatFieldValue(field)) || IsDateField(name, field.Value)
+    private static string RecordCardClass(ReportRecordItem record)
+        => record.IsCompact
+            ? "record-card is-compact"
+            : "record-card";
+
+    private static string FieldClass(ReportRecordFieldItem field)
+        => field.IsWide
             ? "record-field is-wide"
             : "record-field";
-    }
 
     private static string ValueClass(string value)
     {
@@ -95,34 +97,4 @@
 
     private static string FormatValue(string value)
         => ReportValueFormatter.Format(value);
-
-    private static string FormatFieldValue(ParsedReportField field)
-        => IsTypeField(field)
-            ? ReportValueFormatter.FormatTypeName(field.Value)
-            : FormatValue(field.Value);
-
-    private static string FormatRecordTitle(ParsedReportRecord record)
-        => record.Fields.Any(IsTypeField)
-            ? ReportValueFormatter.FormatTypeName(record.Title)
-            : FormatValue(record.Title);
-
-    private static bool IsDuplicateRecordTitle(ParsedReportRecord record, ParsedReportField field)
-    {
-        if (field.Name is "Name" or "Id" or "ID")
-        {
-            return record.Title.Equals(field.Value, StringComparison.OrdinalIgnoreCase);
-        }
-
-        return IsTypeField(field) &&
-               FormatRecordTitle(record).Equals(FormatFieldValue(field), StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsTypeField(ParsedReportField field)
-        => field.Name.Equals("Type", StringComparison.OrdinalIgnoreCase);
-
-    private static bool IsDateField(string name, string value)
-        => name.Contains("Utc", StringComparison.OrdinalIgnoreCase) || ReportValueFormatter.IsDateValue(value);
-
-    private static bool IsLongValue(string value)
-        => value.Length > 28;
 }

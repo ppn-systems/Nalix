@@ -38,19 +38,47 @@
                 }
                 else
                 {
-                    <div class="report-rows">
-                        @foreach (KeyValuePair<string, object?> row in OrderedRows(report))
-                        {
-                            ParsedReportValue parsed = ReportValueParser.Parse(row.Key, row.Value);
-                            <section class="@ReportRowClass(parsed)">
-                                <div class="report-row-key">@ReportValueParser.DisplayName(row.Key)</div>
-                                <div class="report-row-value">
-                                    <ReportValueView ReportKey="@row.Key"
-                                                     Model="parsed" />
-                                </div>
-                            </section>
-                        }
-                    </div>
+                    ReportMetricLayout layout = ReportMetricLayoutBuilder.Build(OrderedRows(report));
+
+                    @if (layout.MetricGroups.Count > 0)
+                    {
+                        <div class="metric-groups">
+                            @foreach (ReportMetricGroup group in layout.MetricGroups)
+                            {
+                                <section class="metric-group" aria-label="@group.Name">
+                                    <header class="metric-group-head">
+                                        <span>@group.Name</span>
+                                        <strong>@group.Items.Count</strong>
+                                    </header>
+                                    <div class="metric-grid">
+                                        @foreach (ReportMetricItem metric in group.Items)
+                                        {
+                                            <article class="metric-card">
+                                                <span class="metric-label">@metric.Label</span>
+                                                <strong class="@MetricValueClass(metric)">@metric.Value</strong>
+                                            </article>
+                                        }
+                                    </div>
+                                </section>
+                            }
+                        </div>
+                    }
+
+                    @if (layout.DetailRows.Count > 0)
+                    {
+                        <div class="report-rows">
+                            @foreach (ReportDetailRow row in layout.DetailRows)
+                            {
+                                <section class="@ReportRowClass(row.ParsedValue)">
+                                    <div class="report-row-key">@ReportValueParser.DisplayName(row.Key)</div>
+                                    <div class="report-row-value">
+                                        <ReportValueView ReportKey="@row.Key"
+                                                         Model="row.ParsedValue" />
+                                    </div>
+                                </section>
+                            }
+                        </div>
+                    }
                 }
             </div>
         }
@@ -98,4 +126,19 @@
 
     private static string ReportRowClass(ParsedReportValue value)
         => value.IsWide ? "report-row is-wide" : "report-row";
+
+    private static string MetricValueClass(ReportMetricItem metric)
+    {
+        string cssClass = "metric-value";
+        cssClass += " is-" + metric.Kind.ToString().ToLowerInvariant();
+
+        if (metric.Kind == ReportMetricKind.Boolean)
+        {
+            cssClass += metric.RawValue.Equals("true", StringComparison.OrdinalIgnoreCase)
+                ? " is-true"
+                : " is-false";
+        }
+
+        return cssClass;
+    }
 }

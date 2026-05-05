@@ -6,7 +6,7 @@
 
 @if (rows.Count > 0)
 {
-    <section class="record-chart" aria-label="Report record chart">
+    <section class="@ChartClass(rows)" aria-label="Report record chart">
         <div class="record-chart-head">
             <span>Usage chart</span>
             <strong>@rows.Count records</strong>
@@ -41,4 +41,9 @@
         => string.Create(
             System.Globalization.CultureInfo.InvariantCulture,
             $"width: {row.Percent:0.###}%;");
+
+    private static string ChartClass(IReadOnlyList<ReportRecordChartRow> rows)
+        => rows.Count > 8
+            ? "record-chart is-compact"
+            : "record-chart";
 }

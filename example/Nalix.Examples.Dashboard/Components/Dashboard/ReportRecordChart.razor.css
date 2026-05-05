@@ -34,12 +34,23 @@
     padding: 12px;
 }
 
+.record-chart.is-compact .record-chart-rows {
+    gap: 8px 14px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    padding: 10px 12px;
+}
+
 .record-chart-row {
     align-items: center;
     display: grid;
     gap: 10px;
     grid-template-columns: minmax(120px, 180px) minmax(160px, 1fr) minmax(76px, auto);
     min-width: 0;
+}
+
+.record-chart.is-compact .record-chart-row {
+    gap: 8px;
+    grid-template-columns: minmax(104px, 148px) minmax(90px, 1fr) minmax(66px, auto);
 }
 
 .record-chart-label {
@@ -61,10 +72,18 @@
     font-weight: 700;
 }
 
+.record-chart.is-compact .record-chart-label strong {
+    font-size: 0.78rem;
+}
+
 .record-chart-label span {
     color: var(--dash-text-muted);
     font-size: 0.72rem;
     margin-top: 2px;
+}
+
+.record-chart.is-compact .record-chart-label span {
+    font-size: 0.68rem;
 }
 
 .record-chart-track {
@@ -94,6 +113,11 @@
 }
 
 @media (max-width: 760px) {
+    .record-chart.is-compact .record-chart-rows {
+        grid-template-columns: 1fr;
+    }
+
+    .record-chart.is-compact .record-chart-row,
     .record-chart-row {
         grid-template-columns: 1fr;
     }

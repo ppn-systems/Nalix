@@ -64,6 +64,108 @@
     overflow-wrap: anywhere;
 }
 
+.metric-groups {
+    display: grid;
+    gap: 14px;
+}
+
+.metric-groups + .report-rows {
+    margin-top: 16px;
+}
+
+.metric-group {
+    border-top: 1px solid var(--dash-border-soft);
+    padding-top: 12px;
+}
+
+.metric-group-head {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.metric-group-head span {
+    color: var(--dash-text-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.metric-group-head strong {
+    color: var(--dash-text-subtle);
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.metric-grid {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+}
+
+.metric-card {
+    background: color-mix(in srgb, var(--dash-surface-muted) 82%, var(--dash-bg));
+    border: 1px solid var(--dash-border-soft);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    justify-content: space-between;
+    min-height: 74px;
+    min-width: 0;
+    padding: 10px 12px;
+}
+
+.metric-label {
+    color: color-mix(in srgb, var(--dash-text-muted) 88%, var(--dash-text));
+    display: -webkit-box;
+    font-size: 0.72rem;
+    font-weight: 650;
+    line-height: 1.25;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.metric-value {
+    color: var(--dash-text);
+    display: block;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.metric-value.is-date,
+.metric-value.is-code {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+.metric-value.is-boolean {
+    align-self: flex-start;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    line-height: 1;
+    padding: 5px 8px;
+    text-transform: lowercase;
+}
+
+.metric-value.is-boolean.is-true {
+    background: color-mix(in srgb, var(--dash-green) 16%, transparent);
+    color: var(--dash-green);
+}
+
+.metric-value.is-boolean.is-false {
+    background: color-mix(in srgb, var(--dash-red) 14%, transparent);
+    color: var(--dash-red);
+}
+
 .report-rows {
     border-top: 1px solid var(--dash-border-soft);
 }
@@ -165,6 +267,12 @@
 @media (max-width: 900px) {
     .report-meta-grid,
     .report-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .metric-grid {
         grid-template-columns: 1fr;
     }
 }
