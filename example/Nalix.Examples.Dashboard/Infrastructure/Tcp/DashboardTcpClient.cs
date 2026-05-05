@@ -6,25 +6,23 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
 using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Dashboard.Application.Abstractions;
+using Nalix.Examples.Dashboard.Application.Options;
+using Nalix.Examples.Dashboard.Application.Reports;
+using Nalix.Examples.Dashboard.Application.State;
+using Nalix.Examples.Dashboard.Domain.Reports;
+using Nalix.Examples.Dashboard.Infrastructure.Security;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-namespace Nalix.Examples.Dashboard.Services;
+namespace Nalix.Examples.Dashboard.Infrastructure.Tcp;
 
-internal sealed class DashboardTcpClient : IAsyncDisposable
+internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
 {
-    private static readonly GenerationReportTarget[] s_targets =
-    [
-        GenerationReportTarget.DISPATCH,
-        GenerationReportTarget.TASKS,
-        GenerationReportTarget.BUFFERS,
-        GenerationReportTarget.CONNECTIONS,
-        GenerationReportTarget.INSTANCES
-    ];
-
     private readonly DashboardOptions _options;
-    private readonly DashboardState _state;
+    private readonly IDashboardStateWriter _state;
+    private readonly IServerPublicKeyResolver _publicKeyResolver;
     private readonly ILogger<DashboardTcpClient> _logger;
     private readonly SemaphoreSlim _sync = new(1, 1);
     [SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Disposed through ResetSessionAsync using Interlocked.Exchange.")]
@@ -35,11 +33,13 @@ internal sealed class DashboardTcpClient : IAsyncDisposable
 
     public DashboardTcpClient(
         IOptions<DashboardOptions> options,
-        DashboardState state,
+        IDashboardStateWriter state,
+        IServerPublicKeyResolver publicKeyResolver,
         ILogger<DashboardTcpClient> logger)
     {
         _options = options.Value;
         _state = state;
+        _publicKeyResolver = publicKeyResolver;
         _logger = logger;
         _state.SetEndpoint($"{_options.BackendAddress}:{_options.BackendPort.ToString(CultureInfo.InvariantCulture)}");
     }
@@ -60,24 +60,16 @@ internal sealed class DashboardTcpClient : IAsyncDisposable
         }
     }
 
-    public async Task RefreshAllAsync(CancellationToken ct)
+    public async Task RefreshAsync(GenerationReportTarget target, CancellationToken ct)
     {
         await _sync.WaitAsync(ct).ConfigureAwait(false);
-        GenerationReportTarget? currentTarget = null;
         try
         {
-            _state.Log("DEBUG", "Refreshing dashboard reports.");
+            _state.Log("DEBUG", $"Refreshing dashboard report: {target}.");
             TcpSession session = await this.EnsureConnectedAsync(ct).ConfigureAwait(false);
-
-            foreach (GenerationReportTarget target in s_targets)
-            {
-                ct.ThrowIfCancellationRequested();
-                currentTarget = target;
-                _state.Log("DEBUG", $"Requesting report: {target}.");
-                DashboardReportSnapshot snapshot = await this.RequestReportAsync(session, target, ct).ConfigureAwait(false);
-                _state.UpdateReport(snapshot);
-                _state.Log("DEBUG", $"Report received: {target} reason={snapshot.Reason} fields={snapshot.Data.Count.ToString(CultureInfo.InvariantCulture)}.");
-            }
+            DashboardReportSnapshot snapshot = await this.RequestReportAsync(session, target, ct).ConfigureAwait(false);
+            _state.UpdateReport(snapshot);
+            _state.Log("DEBUG", $"Report received: {target} reason={snapshot.Reason} fields={snapshot.Data.Count.ToString(CultureInfo.InvariantCulture)}.");
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -86,14 +78,22 @@ internal sealed class DashboardTcpClient : IAsyncDisposable
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _logger.LogWarning(ex, "Dashboard refresh failed.");
-            string targetScope = currentTarget is null ? string.Empty : $" target={currentTarget.Value}";
-            _state.Log("WARN", $"Dashboard refresh failed{targetScope}: {ex.GetType().Name}: {ex.Message}");
+            _state.Log("WARN", $"Dashboard refresh failed target={target}: {ex.GetType().Name}: {ex.Message}");
             _state.MarkDisconnected(ex.Message);
             await this.ResetSessionAsync().ConfigureAwait(false);
         }
         finally
         {
             _ = _sync.Release();
+        }
+    }
+
+    public async Task RefreshAllAsync(CancellationToken ct)
+    {
+        foreach (GenerationReportTarget target in DashboardReportTargets.All)
+        {
+            ct.ThrowIfCancellationRequested();
+            await this.RefreshAsync(target, ct).ConfigureAwait(false);
         }
     }
 
@@ -147,12 +147,8 @@ internal sealed class DashboardTcpClient : IAsyncDisposable
 
         await this.ResetSessionAsync().ConfigureAwait(false);
 
-        PacketRegistry catalog = new PacketRegistryFactory()
-            .RegisterPacket<AuthorityGrant>()
-            .RegisterPacket<GenerationReport>()
-            .CreateCatalog();
-
-        string serverPublicKey = this.ResolveServerPublicKey();
+        PacketRegistry catalog = DashboardPacketCatalogFactory.Create();
+        string serverPublicKey = _publicKeyResolver.Resolve(_options);
 
         TransportOptions transport = new()
         {
@@ -234,9 +230,7 @@ internal sealed class DashboardTcpClient : IAsyncDisposable
             predicate: p => p.Stage == GenerationReportStage.RESPONSE && p.Target == target,
             ct).ConfigureAwait(false);
 
-        IReadOnlyDictionary<string, object?> data = response.Data is null
-            ? new Dictionary<string, object?>()
-            : response.Data.ToDictionary(static x => x.Key, static x => (object?)x.Value, StringComparer.Ordinal);
+        IReadOnlyDictionary<string, object?> data = GenerationReportDataParser.Parse(response.DataJson);
 
         return new DashboardReportSnapshot(target, response.Reason, data, DateTimeOffset.Now);
     }
@@ -267,63 +261,5 @@ internal sealed class DashboardTcpClient : IAsyncDisposable
     {
         await this.ResetSessionAsync().ConfigureAwait(false);
         _sync.Dispose();
-    }
-
-    private string ResolveServerPublicKey()
-    {
-        if (!string.IsNullOrWhiteSpace(_options.ServerPublicKey))
-        {
-            _state.Log("DEBUG", "Using inline configured server public key for handshake.");
-            return _options.ServerPublicKey.Trim();
-        }
-
-        string path = ResolveSharedFile(_options.ServerPublicKeyPath, "certificate.public");
-        foreach (string line in File.ReadLines(path))
-        {
-            string trimmed = line.Trim();
-            if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith('#'))
-            {
-                _state.Log("DEBUG", $"Loaded server public key from {path}.");
-                return trimmed;
-            }
-        }
-
-        throw new NetworkException($"No public key was found in '{path}'.");
-    }
-
-    private static string ResolveSharedFile(string configuredPath, string fileName)
-    {
-        foreach (string root in EnumerateSearchRoots())
-        {
-            string configuredCandidate = Path.IsPathRooted(configuredPath)
-                ? configuredPath
-                : Path.Combine(root, configuredPath);
-
-            if (File.Exists(configuredCandidate))
-            {
-                return configuredCandidate;
-            }
-
-            string sharedCandidate = Path.Combine(root, "shared", fileName);
-            if (File.Exists(sharedCandidate))
-            {
-                return sharedCandidate;
-            }
-        }
-
-        return Path.GetFullPath(configuredPath);
-    }
-
-    private static IEnumerable<string> EnumerateSearchRoots()
-    {
-        foreach (string seed in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
-        {
-            DirectoryInfo? current = new(seed);
-            while (current is not null)
-            {
-                yield return current.FullName;
-                current = current.Parent;
-            }
-        }
     }
 }

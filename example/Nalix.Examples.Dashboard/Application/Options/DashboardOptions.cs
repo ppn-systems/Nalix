@@ -1,4 +1,4 @@
-namespace Nalix.Examples.Dashboard.Services;
+namespace Nalix.Examples.Dashboard.Application.Options;
 
 internal sealed class DashboardOptions
 {

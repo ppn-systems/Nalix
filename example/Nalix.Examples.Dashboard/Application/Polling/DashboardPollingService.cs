@@ -1,16 +1,19 @@
 using Microsoft.Extensions.Options;
+using Nalix.Examples.Dashboard.Application.Abstractions;
+using Nalix.Examples.Dashboard.Application.Options;
+using Nalix.Examples.Dashboard.Application.State;
 
-namespace Nalix.Examples.Dashboard.Services;
+namespace Nalix.Examples.Dashboard.Application.Polling;
 
 internal sealed class DashboardPollingService : BackgroundService
 {
-    private readonly DashboardTcpClient _client;
-    private readonly DashboardState _state;
+    private readonly IDashboardClient _client;
+    private readonly IDashboardStateReader _state;
     private readonly DashboardOptions _options;
 
     public DashboardPollingService(
-        DashboardTcpClient client,
-        DashboardState state,
+        IDashboardClient client,
+        IDashboardStateReader state,
         IOptions<DashboardOptions> options)
     {
         _client = client;
@@ -28,9 +31,11 @@ internal sealed class DashboardPollingService : BackgroundService
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (!_state.IsPollingPaused && _state.HasApiKey)
+                if (!_state.IsPollingPaused &&
+                    _state.HasApiKey &&
+                    _state.ActiveReportTarget is { } activeTarget)
                 {
-                    await _client.RefreshAllAsync(stoppingToken).ConfigureAwait(false);
+                    await _client.RefreshAsync(activeTarget, stoppingToken).ConfigureAwait(false);
                 }
 
                 if (!_state.HasApiKey)
@@ -43,7 +48,7 @@ internal sealed class DashboardPollingService : BackgroundService
                     nextPingAt = DateTimeOffset.UtcNow.Add(pingInterval);
                 }
 
-                await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false);
+                _ = await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)

@@ -1,9 +1,9 @@
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Examples.Contracts.Packets;
 
-namespace Nalix.Examples.Dashboard.Services;
+namespace Nalix.Examples.Dashboard.Domain.Reports;
 
-internal sealed record DashboardReportSnapshot(
+public sealed record DashboardReportSnapshot(
     GenerationReportTarget Target,
     ProtocolReason Reason,
     IReadOnlyDictionary<string, object?> Data,

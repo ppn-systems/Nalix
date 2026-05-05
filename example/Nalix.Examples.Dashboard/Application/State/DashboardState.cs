@@ -1,19 +1,28 @@
 using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Dashboard.Domain.Logs;
+using Nalix.Examples.Dashboard.Domain.Metrics;
+using Nalix.Examples.Dashboard.Domain.Reports;
 
-namespace Nalix.Examples.Dashboard.Services;
+namespace Nalix.Examples.Dashboard.Application.State;
 
-internal sealed class DashboardState
+internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWriter
 {
     private readonly Lock _gate = new();
     private readonly Dictionary<GenerationReportTarget, DashboardReportSnapshot> _reports = [];
     private readonly Queue<DashboardLogEntry> _logs = [];
+    private readonly Queue<DashboardPingSample> _pingSamples = [];
     private const int MaxLogEntries = 250;
+    private const int MaxPingSamples = 48;
 
     public event Action? Changed;
 
     public bool IsConnected { get; private set; }
 
     public bool IsPollingPaused { get; private set; }
+
+    public bool IsReportNavigationOpen { get; private set; } = true;
+
+    public GenerationReportTarget? ActiveReportTarget { get; private set; } = GenerationReportTarget.DISPATCH;
 
     public string BackendEndpoint { get; private set; } = "127.0.0.1:57206";
 
@@ -34,6 +43,17 @@ internal sealed class DashboardState
             lock (_gate)
             {
                 return new Dictionary<GenerationReportTarget, DashboardReportSnapshot>(_reports);
+            }
+        }
+    }
+
+    public IReadOnlyList<DashboardPingSample> PingSamples
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _pingSamples];
             }
         }
     }
@@ -64,6 +84,26 @@ internal sealed class DashboardState
         lock (_gate)
         {
             this.IsPollingPaused = paused;
+        }
+
+        this.NotifyChanged();
+    }
+
+    public void SetReportNavigationOpen(bool open)
+    {
+        lock (_gate)
+        {
+            this.IsReportNavigationOpen = open;
+        }
+
+        this.NotifyChanged();
+    }
+
+    public void SetActiveReportTarget(GenerationReportTarget? target)
+    {
+        lock (_gate)
+        {
+            this.ActiveReportTarget = target;
         }
 
         this.NotifyChanged();
@@ -141,6 +181,11 @@ internal sealed class DashboardState
             this.LastError = null;
             this.LastPingMilliseconds = milliseconds;
             this.LastPingAt = DateTimeOffset.Now;
+            _pingSamples.Enqueue(new DashboardPingSample(this.LastPingAt.Value, milliseconds));
+            while (_pingSamples.Count > MaxPingSamples)
+            {
+                _ = _pingSamples.Dequeue();
+            }
         }
 
         this.NotifyChanged();
