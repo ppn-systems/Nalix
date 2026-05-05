@@ -68,7 +68,8 @@ internal class Program
                 _ = o.WithMiddleware(new PacketTagMiddleware());
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
-            .AddTcp<ExamplePacketProtocol>()
+            .BindTcp<ExamplePacketProtocol>()
+            .Bind()
             .Build();
 
         using CancellationTokenSource shutdown = new();
