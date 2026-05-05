@@ -32,7 +32,7 @@ _ = app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePa
 _ = app.UseAntiforgery();
 
 _ = app.MapStaticAssets();
-_ = app.MapRazorComponents<App>()
+_ = app.MapRazorComponents<Nalix.Examples.Dashboard.Components.App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
