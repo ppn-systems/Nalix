@@ -24,7 +24,7 @@ namespace Nalix.Runtime.Dispatching;
 /// Default packet sender that serializes a packet, optionally compresses it,
 /// optionally encrypts it, and then forwards the final buffer to the connection.
 /// </summary>
-public sealed class PacketSender : IPacketSender, IPoolable
+public sealed class PacketSender : IPacketSender
 {
     #region Fields
 
@@ -43,7 +43,7 @@ public sealed class PacketSender : IPacketSender, IPoolable
     /// <summary>
     /// Initializes a new instance of the <see cref="PacketSender"/> class.
     /// </summary>
-    public PacketSender()
+    internal PacketSender()
     {
     }
 
@@ -52,18 +52,18 @@ public sealed class PacketSender : IPacketSender, IPoolable
     #region APIs
 
     /// <inheritdoc/>
-    public void ResetForPool()
-    {
-        _connection = null;
-        _attributes = default;
-    }
-
-    /// <inheritdoc/>
     public void Initialize<TPacket>(IPacketContext<TPacket> context) where TPacket : IPacket
     {
         ArgumentNullException.ThrowIfNull(context);
         _connection = context.Connection;
         _attributes = context.Attributes;
+    }
+
+    /// <inheritdoc/>
+    public void ResetForPool()
+    {
+        _connection = null;
+        _attributes = default;
     }
 
     /// <inheritdoc/>

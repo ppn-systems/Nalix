@@ -173,6 +173,26 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     #region IDisposable
 
     /// <summary>
+    /// Returns the context to the object pool once dispatch has finished with it.
+    /// </summary>
+    /// <remarks>
+    /// The state transition prevents double-return and makes the pool handoff idempotent
+    /// if multiple cleanup paths race to dispose the same context.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal void Return()
+    {
+        if (Interlocked.Exchange(
+            ref _state, (int)PacketContextState.Returned) != (int)PacketContextState.InUse)
+        {
+            return;
+        }
+
+        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                .Return(this);
+    }
+
+    /// <summary>
     /// Resets the context so it can be safely reused by the object pool.
     /// </summary>
     /// <remarks>
@@ -199,26 +219,6 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
         }
 
         _ = Interlocked.Exchange(ref _state, (int)PacketContextState.Pooled);
-    }
-
-    /// <summary>
-    /// Returns the context to the object pool once dispatch has finished with it.
-    /// </summary>
-    /// <remarks>
-    /// The state transition prevents double-return and makes the pool handoff idempotent
-    /// if multiple cleanup paths race to dispose the same context.
-    /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Return()
-    {
-        if (Interlocked.Exchange(
-            ref _state, (int)PacketContextState.Returned) != (int)PacketContextState.InUse)
-        {
-            return;
-        }
-
-        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                .Return(this);
     }
 
     /// <summary>
