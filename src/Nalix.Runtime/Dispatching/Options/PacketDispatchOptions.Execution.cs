@@ -17,6 +17,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Internal.Compilation;
+using Nalix.Runtime.Internal.Pooling;
 
 namespace Nalix.Network.Routing;
 
@@ -151,12 +152,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 return pending.Result;
             }
 
-            if (token.CanBeCanceled)
-            {
-                return await pending.AsTask().WaitAsync(token).ConfigureAwait(false);
-            }
-
-            return await pending.ConfigureAwait(false);
+            return await CancellableValueTaskSource<object>.Await(pending, token)
+                                                           .ConfigureAwait(false);
         }
 
         static async ValueTask AwaitReturnAsync(ValueTask pending, CancellationToken token)
@@ -172,13 +169,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
                 return;
             }
 
-            if (token.CanBeCanceled)
-            {
-                await pending.AsTask().WaitAsync(token).ConfigureAwait(false);
-                return;
-            }
-
-            await pending.ConfigureAwait(false);
+            await CancellableValueTaskSource.Await(pending, token)
+                                            .ConfigureAwait(false);
         }
     }
 
