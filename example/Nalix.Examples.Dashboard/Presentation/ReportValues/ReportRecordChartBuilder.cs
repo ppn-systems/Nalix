@@ -99,14 +99,7 @@ internal static class ReportRecordChartBuilder
     }
 
     private static string NormalizeLabel(string label)
-    {
-        string formatted = ReportValueFormatter.Format(label);
-        int typeSeparator = formatted.LastIndexOf('.');
-
-        return typeSeparator >= 0 && typeSeparator + 1 < formatted.Length
-            ? formatted[(typeSeparator + 1)..]
-            : formatted;
-    }
+        => ReportValueFormatter.FormatTypeName(label);
 
     private sealed record ChartMetric(
         string CurrentField,
