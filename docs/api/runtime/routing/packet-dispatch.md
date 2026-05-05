@@ -3,7 +3,7 @@
 `PacketDispatchChannel` is the runtime bridge between retained transport buffers and
 application packet handlers. It owns the background worker loops, wakes workers when
 new packets are queued, deserializes packets through the registered packet registry,
-and guarantees that packet and buffer leases are disposed after dispatch completes.
+and disposes packet and buffer leases after dispatch completes.
 
 ## Source Mapping
 
@@ -68,7 +68,8 @@ Math.Clamp(
     Options.MaxDrainPerWake)
 ```
 
-Default option values make this clamp resolve within `64..2048` with multiplier `8`.
+Default option values make this clamp resolve within a bounded range derived from
+`Environment.ProcessorCount` and the configured drain multipliers in `PacketDispatchOptions`.
 
 ## DispatchChannel Queue Behavior
 

@@ -40,10 +40,10 @@ sequenceDiagram
 
 ## Role and Design
 
-`TcpSession` acts as a high-level wrapper around a raw socket, providing a packet-oriented interface. It integrates with `Nalix.Framework.Memory` to use pooled buffers, minimizing GC pressure for high-throughput clients.
+`TcpSession` acts as a high-level wrapper around a raw socket, providing a packet-oriented interface. It uses pooled `BufferLease` memory and the shared frame helpers to minimize GC pressure for high-throughput clients.
 
 - **Asynchronous Loop**: A background task continuously monitors the socket for incoming frames.
-- **Unified Framing**: Shared with the server to ensure consistent `MagicNumber` and `Opcode` processing.
+- **Unified Framing**: Outbound and inbound payloads go through `FrameSender`, `FrameReader`, and `FramePipeline`.
 - **Error Handling**: Centralized `OnError` and `OnDisconnected` events for resilient client behavior.
 - **Request Helpers**: `RequestAsync<TResponse>()` and the higher-level extension helpers handle subscribe-before-send request flows.
 
@@ -74,20 +74,21 @@ sequenceDiagram
 
 ```csharp
 var options = ConfigurationManager.Instance.Get<TransportOptions>();
-var catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>();
+var catalog = new PacketRegistryFactory()
+    .RegisterPacket<LoginPacket>()
+    .RegisterPacket<LoginResponse>()
+    .CreateCatalog();
 
 using var client = new TcpSession(options, catalog);
 
 client.OnConnected += (s, e) => Console.WriteLine("Connected!");
 client.OnMessageReceived += (s, lease) => 
 {
-    using (lease) // Ensure lease return to pool
-    {
-        Console.WriteLine($"Received {lease.Length} bytes");
-    }
+    Console.WriteLine($"Received {lease.Length} bytes");
 };
 
 await client.ConnectAsync();
+await client.HandshakeAsync();
 await client.SendAsync(new LoginPacket { Username = "Ghost" });
 
 var loginResponse = await client.RequestAsync<LoginResponse>(
@@ -97,7 +98,7 @@ var loginResponse = await client.RequestAsync<LoginResponse>(
 
 ## Notes
 
-- `OnMessageReceived` provides raw `IBufferLease` access. If you need typed packet handling, use the subscription helpers in [Subscriptions](./subscriptions.md).
+- `OnMessageReceived` provides raw `IBufferLease` access. Do not dispose the lease inside the handler unless you called `Retain()` first; the transport owns the original lifetime.
 - `RequestAsync<TResponse>()` subscribes before sending the packet, which avoids losing fast responses on low-latency servers.
 - `OnMessageAsync` is optional and is best for fire-and-forget processing that can safely run on the background receive flow.
 

@@ -32,14 +32,15 @@ flowchart LR
 
 ## ConfigurationManager
 
-`ConfigurationManager` is the central singleton orchestrator. It manages the active file path, handles file-system watches, and maintains a thread-safe cache of bound configuration objects.
+`ConfigurationManager` is the central singleton orchestrator. It manages the active INI file path, file watching with debounce, and a thread-safe cache of bound configuration objects.
 
 ### Core Features
 
-- **Exclusive Access**: Uses a `SemaphoreSlim` gate and `ReaderWriterLockSlim` to ensure that reloads and path changes do not conflict with active reads.
+- **Exclusive Access**: Uses a `SemaphoreSlim` gate and `ReaderWriterLockSlim` so reloads and path changes do not overlap with active reads.
 - **Debounced Watcher**: Automatically detects file changes and reloads configurations after a 300ms silence period to avoid processing partial writes.
 - **Lazy Initialization**: Config instances are created and bound only when first requested via `Get<T>()`.
-- **Atomic Rollback**: If an auto-reload fails (e.g., due to a malformed INI), the manager rolls back to the previous stable state.
+- **Path Validation**: `SetConfigFilePath(...)` validates that the resolved path stays inside `Directories.ConfigurationDirectory`.
+- **Context Cache**: Recently used configuration contexts are cached per file path.
 
 ### Key API Members
 
@@ -69,11 +70,16 @@ flowchart LR
 var network = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
 // Changing source at runtime
-ConfigurationManager.Instance.SetConfigFilePath("prod.ini", autoReload: true);
+ConfigurationManager.Instance.SetConfigFilePath(
+    Path.Combine(Directories.ConfigurationDirectory, "prod.ini"),
+    autoReload: true);
 ```
 
 !!! important "Persistence"
     Changes made to configuration properties in code are **not** automatically saved to disk. You must call `ConfigurationManager.Instance.Flush()` to persist updates.
+
+!!! warning "Path scope"
+    The current implementation rejects config paths outside `Directories.ConfigurationDirectory`. Use a file inside that directory instead of pointing at an arbitrary location on disk.
 
 ## ConfigurationLoader
 
@@ -131,4 +137,3 @@ The binder supports a wide range of types natively:
 - [Task Manager](../framework/task-manager.md)
 - [Directories](./directories.md)
 - [Network Options](../options/network/options.md)
-

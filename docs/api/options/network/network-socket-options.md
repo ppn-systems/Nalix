@@ -108,11 +108,11 @@ listener also creates a bounded process channel with:
 capacity = ProcessChannelCapacity
 SingleReader = true
 SingleWriter = false
-FullMode = BoundedChannelFullMode.Wait
+FullMode = BoundedChannelFullMode.DropWrite
 ```
 
-This means accept workers apply backpressure instead of dropping accepted sockets when
-the process channel is full. Tune `ProcessChannelCapacity` with `Backlog`, accept-worker
+This means accept workers drop newly accepted sockets instead of blocking when the
+process channel is full. Tune `ProcessChannelCapacity` with `Backlog`, accept-worker
 count, and protocol handshake latency.
 
 When `EnableTimeout` is true, TCP connections are registered with the shared

@@ -75,7 +75,9 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 
 ### 3. Startup Validation
 
-All Nalix options implement `Validate()`. The framework strongly recommends calling `options.Validate()` during your application's bootstrap phase to catch configuration errors (like negative timeouts or zero-capacity pools) before the network starts.
+Many network/runtime option types in the current source tree expose a `Validate()` method, including `NetworkSocketOptions`, `ConnectionLimitOptions`, `DatagramGuardOptions`, `DispatchOptions`, `ConcurrencyOptions`, and `DirectiveGuardOptions`.
+
+Do not assume every Nalix option type has a validation method. Validate the specific option class you are using when the type actually exposes one.
 
 !!! tip "Operational Recommendation"
     In production deployments, prioritize tuning `NetworkCallbackOptions` and `ConnectionLimitOptions` first. These provide the highest protection against noisy or malicious traffic.

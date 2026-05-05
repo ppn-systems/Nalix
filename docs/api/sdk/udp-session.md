@@ -1,6 +1,6 @@
 # UDP Session
 
-`UdpSession` is a high-performance, datagram-oriented client transport in `Nalix.SDK`. It is designed for low-latency scenarios where packet loss is acceptable but speed is critical. It uses a 8-byte session token mechanism to allow the server to multiplex thousands of concurrent UDP streams.
+`UdpSession` is a high-performance, datagram-oriented client transport in `Nalix.SDK`. It is designed for low-latency scenarios where packet loss is acceptable but speed is critical. It uses an 8-byte session token mechanism so the server can associate outbound datagrams with an authenticated session.
 
 !!! important "Client-side datagram transport"
     `UdpSession` is a client-side datagram transport. Server UDP receive paths should use `Nalix.Network` UDP listeners, not SDK sessions.
@@ -21,7 +21,7 @@ graph TD
     subgraph Inbound["Inbound server-to-client"]
         R["Socket.ReceiveAsync raw datagram"] --> B["BufferLease.TakeOwnership"]
         B --> I["FramePipeline.ProcessInbound"]
-        I --> A["OnMessageAsync via bounded channel"]
+        I --> A["queue OnMessageAsync work when subscribed"]
         I --> H["OnMessageReceived sync event"]
         H --> D["dispose datagram lease"]
         A --> D
@@ -37,11 +37,11 @@ graph TD
 
 ## Role and Design
 
-Unlike TCP, `UdpSession` is connectionless at the socket level but "session-aware" at the framework level. Every outbound datagram is prepended with a 8-byte `Snowflake` identifier, which the server uses to map the packet to a trusted session.
+Unlike TCP, `UdpSession` is connectionless at the socket level but "session-aware" at the framework level. Every outbound datagram is prepended with an 8-byte `ulong` session token, which the server uses to map the packet to a trusted session.
 
 - **Zero-Allocation Receive**: Uses pooled `BufferLease` memory and direct `ReceiveAsync` to eliminate per-datagram allocations.
 - **MTU Enforcement**: Automatically prevents sending datagrams larger than `MaxUdpDatagramSize` (default: 1400 bytes) to avoid IP fragmentation.
-- **AEAD Integrated**: Automatically applies encryption if configured, utilizing the shared `FramePipeline` (Framework layer).
+- **AEAD Integrated**: Automatically applies encryption if configured, utilizing the shared `FramePipeline`.
 - **Fail-Safe Cleanup**: Socket or receive-loop errors force a disconnect so the session never stays half-open.
 
 ## Public API
@@ -52,7 +52,7 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 | --- | --- |
 | `OnConnected` | Raised when the UDP socket is initialized and bound to the remote endpoint. |
 | `OnMessageReceived` | Surfaces decrypted and decompressed payload for each inbound datagram. |
-| `OnMessageAsync` | Async event for processing received datagrams via a bounded channel; prevents high-latency handlers from blocking the receive loop. |
+| `OnMessageAsync` | Async event for processing received datagrams. When subscribed, callbacks are drained through the internal bounded queue so slow handlers do not block the receive loop. |
 | `OnError` | Reports socket or transformation faults. |
 | `OnDisconnected` | Uses `NetworkException` to report transport-level disconnects consistently. |
 

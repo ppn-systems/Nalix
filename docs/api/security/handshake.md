@@ -1,6 +1,6 @@
 # Handshake
 
-Nalix implements a high-performance **Static-Ephemeral DH (Noise Protocol inspired)** handshake protocol based on **X25519** and **Keccak-256**. This protocol provides robust **Server Identity Authentication** and protections against Man-in-the-Middle (MitM) attacks while maintaining 100% zero-allocation performance and fixed-size packet overhead.
+Nalix implements an authenticated X25519-based handshake using the built-in `Handshake` signal packet, `HandshakeHandlers` on the server, and `HandshakeExtensions` on the SDK side.
 
 ## Source Mapping
 
@@ -24,11 +24,14 @@ The handshake consists of 4 stages managed by the `Handshake` packet and `Handsh
 
 ## 2. Cryptographic Construction
 
-Nalix uses a labeled digest construction to derive proofs and session keys. This prevents cross-protocol attacks and ensures that the handshake state is tied to the specific "nalix-handshake" domain.
+`HandshakeX25519` is the helper used to derive the shared secret, transcript hash, proofs, and final session key used by the transport after a successful handshake.
 
 ### Hashing Strategy (`HandshakeX25519`)
 
-All digests are computed using **Keccak-256** over length-prefixed segments. The protocol uses a **Master Secret** derived from both ephemeral-ephemeral (EE) and static-ephemeral (SE) shared secrets for identity verification.
+The protocol derives its master secret from:
+
+- ephemeral-ephemeral agreement
+- static-ephemeral agreement against the pinned server key
 
 | Purpose | Label | Components |
 | --- | --- | --- |
@@ -60,10 +63,9 @@ Upon `CLIENT_FINISH` verification, the handler:
 
 1. Derives the 32-byte session key.
 2. Sets `connection.Secret` and `connection.Algorithm` (ChaCha20Poly1305).
-3. Marks the connection as established via `connection.Attributes["nalix.handshake.established"]`.
+3. Marks the connection as established through the built-in connection attribute key.
 4. Creates a resumable session snapshot through `ISessionStore` and persists it through the network session store.
 5. Returns a `SessionToken` to the client in `SERVER_FINISH`.
-6. Clears all ephemeral sensitive data (shared secrets, private keys) from memory.
 
 ---
 
@@ -88,11 +90,10 @@ await session.SendAsync(new SecurePacket());
 
 ## 5. Security Notes
 
-- **Identity Authentication**: By configuring `ServerPublicKey` on the client and `Identity` on the server, the handshake performs a dual-layer key agreement that identifies the server pinned by the client. **Anonymous handshakes are strictly forbidden** to prevent MitM attacks.
-- **Mandatory Identity**: Both server and client must be configured with their respective identity keys. On the server, this can be provided via config or automatically loaded from `certificate.private` in the configuration directory. If missing, the server rejects the connection with `ProtocolReason.UNAUTHENTICATED`.
+- **Identity Authentication**: By configuring `ServerPublicKey` on the client and a server certificate path on the server, the handshake performs a key agreement that lets the client pin the server identity. **Anonymous handshakes are strictly forbidden** to prevent MitM attacks.
+- **Mandatory Identity**: The client must be configured with `TransportOptions.ServerPublicKey` to pin the server identity. On the server, the identity key is loaded from `certificate.private` in the configuration directory by default, or from a custom path supplied through hosting configuration.
 - **Structural Validation**: All stages are strictly validated via `IPacketValidatable` to prevent malformed packets or stage confusion attacks before any cryptography is performed.
 - **Zero-Allocation**: Handshake packets are pooled via `PacketBase`.
-- **Memory Safety**: Private keys and shared secrets are passed as `ReadOnlySpan<byte>` and zeroed out explicitly using `MemorySecurity.ZeroMemory` after use.
 - **Transcript Integrity**: Any modification to keys or nonces during transit will cause a `TranscriptHash` mismatch, resulting in an immediate `ProtocolReason.CHECKSUM_FAILED` rejection.
 - **Resume Token**: The session token now comes from the session store and can be rotated on resume. Treat the token as resumable session state, not as a cryptographic secret by itself.
 

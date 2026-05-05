@@ -77,7 +77,7 @@ The hosted pipeline remains generic-friendly, so the same builder flow works for
 
 - `ActivateAsync(...)`: Acquires the lifecycle gate, runs builder preparation callbacks, creates packet dispatch, best-effort registers it as `IPacketDispatch`, activates packet dispatch, creates and starts each TCP/UDP listener, activates hosted services, then marks the application started.
 !!! note
-    Middleware in context is registered globally but executed in the sharded dispatch loop. Ensure your custom middleware is thread-safe or uses localized state.
+    Middleware is registered globally but executed inside the sharded dispatch loop. Ensure your custom middleware is thread-safe or uses localized state.
 - `RunAsync(...)`: Calls `ActivateAsync(...)`, waits until cancellation, then calls `DeactivateAsync(CancellationToken.None)` in a `finally` block.
 - `DeactivateAsync(...)`: Stops and disposes listeners in reverse order, disposes protocols in reverse order, deactivates hosted services in reverse order, deactivates the packet dispatcher, waits for background task groups (`net/*` and `time/*`) via `ITaskManager.WaitGroupAsync`, clears runtime lists, then marks the application stopped.
 - `Dispose()`: Starts `DeactivateAsync(CancellationToken.None)`, logs deferred failures, disposes the lifecycle gate, and suppresses finalization.
@@ -91,7 +91,7 @@ The builder uses a fluent API to configure the host before it is built.
 - `ConfigureLogging(ILogger)`: Registers the logger into the `InstanceManager` immediately and stores it for later host construction.
 - `ConfigureConnectionHub(IConnectionHub)`: Registers the shared connection hub into the `InstanceManager`. If omitted, the builder creates a default `ConnectionHub` during activation.
 - `ConfigureBufferPoolManager(BufferPoolManager)`: Explicitly registers a custom buffer pool manager and binds `BufferLease.ByteArrayPool` to that manager for pooled receive/send paths. If omitted, the builder creates and binds a default manager during activation.
-- `ConfigureObjectPoolManager(ObjectPoolManager)`: Explicitly registers a custom object pool manager for pooled object paths. If omitted, the builder creates and binds a default manager during activation.
+- `ConfigureObjectPoolManager(ObjectPoolManager)`: Explicitly registers a custom object pool manager for pooled object paths.
 - `ConfigureCertificate(string path)`: Stores the certificate path for activation; the path is passed to `HandshakeHandlers.SetCertificatePath(...)` during builder preparation.
 - `Configure<TOptions>(Action<TOptions>)`: Configures a specific options type during activation by mutating `ConfigurationManager.Instance.Get<TOptions>()`.
 
@@ -139,7 +139,7 @@ The `Nalix.Hosting` namespace provides a built-in `DefaultProtocol` that can be 
 - `BindUdp<TProtocol>().OnPort(port).WithFactory(factory).Bind()`: Registers an explicit-port UDP server with a custom protocol factory.
 - `BindUdp<TProtocol>().OnPort(port).WithFactory(factory).WithAuthentication(authen).Bind()`: Registers an explicit-port UDP server with both a custom factory and authentication predicate.
 
-Protocol types can expose a constructor that accepts `IPacketDispatch`; otherwise the builder uses the default Nalix activator path without dispatch constructor injection.
+Protocol types can expose a constructor that accepts `IPacketDispatch`; otherwise the builder uses the default activator path.
 
 ## Basic usage
 
@@ -178,4 +178,3 @@ To keep message reading allocation-free on the server hot path:
 - [Packet Registry](../codec/packets/packet-registry.md)
 - [Configuration](../environment/configuration.md)
 - [Instance Manager (DI)](../framework/instance-manager.md)
-

@@ -1,6 +1,6 @@
 ﻿# Packet Registry
 
-This page covers packet discovery and registry APIs in `Nalix.Framework.DataFrames`.
+This page covers packet discovery and registry APIs in `Nalix.Codec.DataFrames`.
 
 ## Source mapping
 
