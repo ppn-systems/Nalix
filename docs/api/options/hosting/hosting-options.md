@@ -12,14 +12,13 @@ The Hosting assembly calls `Bootstrap.Initialize()` from a module initializer, s
 
 Initialization performs the following source-defined actions:
 
-1. sets the configuration file to `server.ini` under `Directories.ConfigurationDirectory`
-2. enables `PacketOptions.EnablePooling` for server throughput
-3. loads framework, network, runtime, and hosting options so templates are present in `server.ini`
-4. applies configured ThreadPool minimums when either value is greater than `0`
-5. registers global exception handlers when enabled
-6. enables `timeBeginPeriod(1)` on Windows when high-precision timers are enabled
-7. flushes configuration to disk
-8. prints startup diagnostics only when `Environment.UserInteractive` is `true` and the banner is not disabled
+1. initializes hosting-side bootstrap logic
+2. loads framework, network, runtime, and hosting options
+3. applies configured ThreadPool minimums when either value is greater than `0`
+4. registers global exception handlers when enabled
+5. enables `timeBeginPeriod(1)` on Windows when high-precision timers are enabled
+6. flushes configuration to disk
+7. prints startup diagnostics only when `Environment.UserInteractive` is `true` and the banner is not disabled
 
 ## Properties
 
@@ -63,7 +62,7 @@ On startup, Nalix prints an initialization report including:
 - **OS**: Operating system version string.
 - **Arch**: Process architecture (for example, X64 or Arm64).
 - **Runtime**: .NET runtime description.
-- **Config**: The active configuration file path, normally `server.ini`.
+- **Config**: The active configuration file path.
 - **GC Mode**: Server GC or Workstation GC.
 - **Processors**: `Environment.ProcessorCount`.
 

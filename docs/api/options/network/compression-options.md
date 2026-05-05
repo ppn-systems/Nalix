@@ -26,7 +26,7 @@ how large a serialized payload must be before compression is attempted.
 ## Hosting Initialization
 
 `Bootstrap.Initialize()` loads `CompressionOptions` during server startup so the
-configuration template is materialized into `server.ini`:
+configuration template is materialized into the active configuration file:
 
 ```csharp
 _ = ConfigurationManager.Instance.Get<CompressionOptions>();

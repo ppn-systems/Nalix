@@ -29,8 +29,8 @@ persistence policy used when connections leave `ConnectionHub`.
 _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 ```
 
-This ensures `server.ini` contains the resumable-session retention and persistence
-policy alongside the other network-level options.
+This ensures the active configuration file contains the resumable-session retention
+and persistence policy alongside the other network-level options.
 
 ## Session Creation Flow
 
@@ -142,4 +142,3 @@ finalization. Cleanup errors are handled best-effort for non-fatal exceptions.
 - [Session Store](../../network/session-store.md)
 - [Session Resume](../../security/session-resume.md)
 - [Network Options](./options.md)
-

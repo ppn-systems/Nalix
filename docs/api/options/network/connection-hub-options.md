@@ -33,8 +33,8 @@ mode or a positive value for an explicit limit.
 _ = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
 ```
 
-This ensures the generated `server.ini` includes the connection-hub capacity and
-concurrency policy.
+This ensures the generated active configuration file includes the connection-hub
+capacity and concurrency policy.
 
 ## Construction and Sharding
 
