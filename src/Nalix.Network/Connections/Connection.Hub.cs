@@ -458,9 +458,6 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public string GenerateReport()
     {
-        const int Limit = 15;
-
-        int count = 0;
         long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
         StringBuilder sb = new(1024);
@@ -524,47 +521,6 @@ public sealed class ConnectionHub : IConnectionHub
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-15} | {kvp.Value,5}");
         }
 
-        _ = sb.AppendLine("----------------------------------------");
-        _ = sb.AppendLine();
-        _ = sb.AppendLine("Algorithm Summary:");
-        _ = sb.AppendLine("----------------------------------------");
-        _ = sb.AppendLine("Algorithm         | Count");
-        _ = sb.AppendLine("----------------------------------------");
-        foreach (KeyValuePair<string, int> kvp in algoCounts)
-        {
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-16} | {kvp.Value,5}");
-        }
-
-        _ = sb.AppendLine("----------------------------------------");
-        _ = sb.AppendLine();
-        _ = sb.AppendLine("Active Connections:");
-        _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine("ID             | Username");
-        _ = sb.AppendLine("------------------------------------------------------------");
-
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
-        {
-            foreach (KeyValuePair<ulong, IConnection> kvp in shard)
-            {
-                ulong id = kvp.Key;
-                string username = kvp.Value.Attributes.TryGetValue("username", out object? name) && name is string s
-                    ? s
-                    : "N/A";
-                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{id,-14} | {username}");
-
-                if (++count >= Limit)
-                {
-                    break;
-                }
-            }
-
-            if (count >= Limit)
-            {
-                break;
-            }
-        }
-
-        _ = sb.AppendLine("------------------------------------------------------------");
         return sb.ToString();
     }
 
