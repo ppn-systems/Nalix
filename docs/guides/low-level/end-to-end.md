@@ -17,7 +17,7 @@ The steps are:
 4. Start a `TcpListenerBase`
 5. Send one request and receive one response
 
-The sample stays intentionally small so you can copy the structure first and optimize later.
+The sample stays intentionally small so you can copy the structure first and optimize later. Each step below maps directly to the runtime shape in `src/Nalix.Network/Protocols/Protocol.PublicMethods.cs` and `src/Nalix.Hosting/NetworkApplicationBuilder.cs`.
 
 ## Server
 
@@ -124,8 +124,8 @@ The same end-to-end structure works with a custom packet type if you replace `Co
 
 - add middleware
 - add packet attributes such as timeout, permission, or rate limit
-- switch some handlers to `PacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
-- remember that the **Listener** handles raw frame transformation (Pipeline) while the **Protocol** handles pure messages via `ProcessMessage(...)`
+- switch some handlers to `IPacketContext<TPacket>` when you need explicit manual sending or when you are working with custom packets
+- remember that the **Listener** handles raw frame transformation while the **Protocol** handles pure messages via `ProcessMessage(...)`
 
 ## Recommended Next Pages
 

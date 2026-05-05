@@ -63,10 +63,10 @@ InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 public sealed class SamplePingHandlers
 {
     [PacketOpcode(0x1001)]
-    public ValueTask<Control> Handle(Control request, IConnection connection)
+    public ValueTask<Control> HandleAsync(IPacketContext<Control> context)
     {
-        request.Type = ControlType.PONG;
-        return ValueTask.FromResult(request);
+        context.Packet.Type = ControlType.PONG;
+        return ValueTask.FromResult(context.Packet);
     }
 }
 ```
@@ -99,24 +99,14 @@ public sealed class SampleProtocol : Protocol
         _logger = logger;
     }
 
-    /// <summary>
-    /// Triggered when a raw frame has been decrypted and decompressed.
-    /// This is where you route the payload to the dispatcher.
-    /// </summary>
     public override void ProcessMessage(object? sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 
-    /// <summary>
-    /// Custom hook to observe connection failures (e.g., handshake timeouts).
-    /// </summary>
     protected override void OnConnectionError(IConnection connection, Exception ex)
     {
-        _logger.Error($"Transport error on connection {connection.ID}: {ex.Message}");
+        _logger.LogError(ex, "Transport error on connection {ConnectionId}", connection.ID);
     }
 
-    /// <summary>
-    /// Custom hook for admission control before frame processing begins.
-    /// </summary>
     protected override bool ValidateConnection(IConnection connection)
     {
         // Add custom IP blacklisting or state checks here
@@ -127,7 +117,7 @@ public sealed class SampleProtocol : Protocol
 
 ### 5. Start listener
 
-When using the transport layer directly (outside of the Hosting builder), you must ensure that all required services are registered in the `InstanceManager`.
+When using the transport layer directly (outside of the Hosting builder), you must ensure that all required services are registered in the `InstanceManager`. This is the manual equivalent of what `src/Nalix.Hosting/NetworkApplicationBuilder.cs` wires for you automatically.
 
 #### Required Dependencies (InstanceManager)
 
@@ -142,8 +132,8 @@ When using the transport layer directly (outside of the Hosting builder), you mu
 ```csharp
 // Setup dependencies
 InstanceManager.Instance.Register<ILogger>(logger);
-IConnectionHub hub = new ConnectionHub();
-InstanceManager.Instance.Register(hub);
+IConnectionHub hub = new ConnectionHub(logger);
+InstanceManager.Instance.Register<IConnectionHub>(hub);
 InstanceManager.Instance.Register<TaskManager>(new TaskManager());
 
 // Initialize and Activate
@@ -208,8 +198,9 @@ Use this style when:
 ## What clients should remember
 
 - returning `Control` is the simplest normal request/response model
-- `Protocol` forwards decrypted and decompressed messages into dispatch
-- the **Listener** is the bridge that handles raw transformation before calling the protocol handler
+- `Protocol.ProcessMessage(...)` is the message-level handoff into dispatch
+- `src/Nalix.Network/Protocols/Protocol.PublicMethods.cs` shows that `OnAccept(...)` is where TCP receive starts after `ValidateConnection(...)` passes
+- the **Listener** owns the raw frame path before `Protocol` sees a processed message
 - `PacketDispatchChannel` owns middleware, deserialization, handler invocation, and result handling
 - the same pattern works for custom packet types if you swap `Control` for your own packet contract
 

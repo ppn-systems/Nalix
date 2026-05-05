@@ -18,14 +18,12 @@ The following pages either map to a bundled tool or explain the equivalent workf
     ---
     Bundled CLI utility for generating X25519 identity keys for servers and client pinning.
     [:octicons-arrow-right-24: Generate Keys](certificate-tool.md)
--   :material-matrix:{ .lg .middle } [**Serialization Inspector**](packet-visualizer.md)
+-   :material-matrix:{ .lg .middle } **Serialization Inspector**
     ---
-    Serialization inspection workflow for the current codebase. The historical desktop visualizer is not present in this repo snapshot.
-    [:octicons-arrow-right-24: Inspect Serialization](packet-visualizer.md)
--   :material-toolbox:{ .lg .middle } [**SDK Developer Tools**](sdk-tools.md)
+    Serialization inspection workflow for the current codebase. The historical desktop visualizer is not present in this repo snapshot; use the codec and packet docs as the maintained reference.
+-   :material-toolbox:{ .lg .middle } **SDK Developer Tools**
     ---
-    Status page for the historical desktop toolbox, with supported alternatives for the current repo.
-    [:octicons-arrow-right-24: View Status](sdk-tools.md)
+    Historical desktop toolbox references were removed from this repo snapshot. Use `Nalix.SDK` transport extensions and the API pages under `docs/api/sdk/` for the supported workflows.
 
 </div>
 
