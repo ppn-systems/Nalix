@@ -211,8 +211,11 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
 
             this.Packet = default!;
             this.IsReliable = false;
+            this.SkipOutbound = false;
             this.Attributes = default!;
             this.Connection = default!;
+            this.CancellationToken = default;
+
             this.Sender.ResetForPool();
 
             _isInitialized = false;
