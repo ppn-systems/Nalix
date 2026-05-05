@@ -2,6 +2,14 @@
 
 `TcpListenerBase` is the low-level TCP listener foundation in Nalix. It owns socket activation, accept throttling, connection admission, a bounded processing channel for accepted connections, and the handoff into `Protocol.OnAccept(...)`.
 
+## Source Mapping
+
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.PublicMethods.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.Core.cs`
+- `src/Nalix.Network/Options/NetworkSocketOptions.cs`
+- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
+
 !!! note "Use Case"
     Application developers should use `NetworkApplicationBuilder` (the Hosting layer) which automatically orchestrates the TCP Listener. `TcpListenerBase` is primarily manipulated by framework developers building middleware or transport hooks.
 
@@ -94,9 +102,9 @@ To prevent slow acceptance-side work from exhausting accept workers, `TcpListene
 
 ### Internal Notes
 
-- The listener creates a bounded process channel with `SingleReader=true` and `DropWrite` backpressure.
-- The process worker is scheduled through `TaskManager` with `WorkerOptions` and `ThreadPriority.BelowNormal`.
-- Listener shutdown closes the socket, cancels grouped tasks, and drains or stops the process channel.
+- The listener creates a bounded process channel with `SingleReader = true` and `DropWrite` backpressure in `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`.
+- Accept workers are scheduled through `TaskManager.ScheduleWorker(...)` under the `net/tcp/{port}` worker group in `src/Nalix.Network/Listeners/TcpListener/TcpListener.PublicMethods.cs`.
+- Listener shutdown closes the socket, stops the process channel, cancels grouped tasks, and deactivates the `TimingWheel` when timeout support is enabled.
 
 ## 4. Tuning for Production
 

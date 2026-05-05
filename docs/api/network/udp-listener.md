@@ -2,14 +2,22 @@
 
 `UdpListenerBase` orchestrates high-performance datagram reception. Unlike TCP, UDP is connectionless, so Nalix resolves each datagram back to an existing TCP-backed `Connection` using the 8-byte session token prefix.
 
+## Source Mapping
+
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.PublicMethods.cs`
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.Core.cs`
+- `src/Nalix.Network/Options/DatagramGuardOptions.cs`
+- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
+
 !!! danger "Security Prerequisite"
-    Nalix strictly enforces that UDP communication cannot exist without an active TCP connection. All UDP packets must leverage the `SessionToken` issued by the successful TCP handshake.
+    In the built-in secured flow, UDP datagrams are associated with an existing connection through the 8-byte `SessionToken` prefix and then subjected to endpoint, replay, and authentication checks.
 
 ---
 
 ## 1. Zero-Allocation Receive Loop
 
-The UDP listener avoids heap allocations on its hot path by coupling `SocketAsyncEventArgs` with internal pooling (`BufferLease` and the internal rate-limiter state).
+The UDP listener avoids heap allocations on its hot path by coupling `SocketAsyncEventArgs` with internal pooling (`BufferLease`, pooled receive args, and datagram-guard state).
 
 ```mermaid
 flowchart TD
@@ -74,9 +82,9 @@ UDP is vulnerable to spoofing and reflection attacks. Nalix hardens the listener
 - **Flag Verification**: The listener validates `payload[6]` (the `PacketFlags` byte) to ensure it carries the `PacketFlags.UNRELIABLE` mask identifying a UDP frame.
 - **Session Lookup**: The first 8 bytes (`SessionToken`) are resolved through `TryResolveConnection(...)` against the active `IConnectionHub`.
 
-### Stage 2: IP Pinning (SEC-30)
+### Stage 2: EndPoint Pinning (SEC-30)
 
-Even if an attacker steals a `SessionToken`, the listener verifies that the source endpoint matches the pinned TCP-side `Connection.NetworkEndpoint`. Address mismatch, and port mismatch when a pinned port exists, are both rejected.
+Even if an attacker steals a `SessionToken`, the listener verifies that the source endpoint matches the pinned connection endpoint. Address mismatch, and port mismatch when a pinned port exists, are both rejected.
 
 ### Stage 3: Sliding Replay Window (SEC-27)
 
