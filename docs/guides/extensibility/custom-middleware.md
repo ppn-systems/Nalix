@@ -102,7 +102,7 @@ using NetworkApplication app = NetworkApplication.CreateBuilder()
     {
         _ = options.WithMiddleware(new SessionAuthorizationMiddleware());
     })
-    .AddTcp<MyProtocol>()
+    .BindTcp<MyProtocol>().Bind()
     .Build();
 ```
 

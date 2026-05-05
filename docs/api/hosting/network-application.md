@@ -28,8 +28,8 @@ The public API surface revolves around two main types:
 graph LR
     subgraph Configuration ["Phase 1: Configuration"]
         Create["CreateBuilder()"] --> Config["Configure Loggers, Options, Hubs"]
-        Config --> Discover["AddPacket()/AddPacketNamespace() & AddHandlers()"]
-        Discover --> Bind["AddTcp() / AddUdp()"]
+        Config --> Discover["ScanPackets()/AddPacketNamespace() & ScanHandlers()"]
+        Discover --> Bind["BindTcp() / BindUdp()"]
     end
 
     subgraph Composition ["Phase 2: Composition"]
@@ -50,7 +50,7 @@ graph LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigurePacketRegistry(...)`, `AddPacket(...)`, `AddPacketNamespace(...)`, `AddHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `AddTcp(...)`, `AddUdp(...)`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigurePacketRegistry(...)`, `ScanPackets(...)`, `AddPacketNamespace(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `Build()` |
 
 ## Builder composition details
 
@@ -101,14 +101,14 @@ The builder uses a fluent API to configure the host before it is built.
 
 ### Packet and Handler Discovery
 
-- `AddPacket(assembly, requirePacketAttribute)`: Scans an assembly for packet types.
-- `AddPacket(assemblyPath, requirePacketAttribute)`: Loads a `.dll` path and scans it for packet types.
-- `AddPacket<TMarker>(...)`: Marker-type shortcut for scanning packets.
+- `ScanPackets(assembly, requirePacketAttribute)`: Scans an assembly for packet types.
+- `ScanPackets(assemblyPath, requirePacketAttribute)`: Loads a `.dll` path and scans it for packet types.
+- `ScanPackets<TMarker>(...)`: Marker-type shortcut for scanning packets.
 - `AddPacketNamespace(packetNamespace, recursive)`: Scans currently loaded assemblies and includes matching packet namespaces.
 - `AddPacketNamespace(assemblyPath, packetNamespace, recursive)`: Scopes namespace discovery to one assembly path.
 - `ConfigurePacketRegistry(IPacketRegistry)`: Uses a pre-built registry and skips hosting auto-registration.
-- `AddHandlers(assembly)`: Scans an assembly for `[PacketController]` classes. Handler-scanned assemblies are also registered for packet discovery with `requireAttribute: false`.
-- `AddHandlers<TMarker>()`: Marker-type shortcut for scanning handlers.
+- `ScanHandlers(assembly)`: Scans an assembly for `[PacketController]` classes. Handler-scanned assemblies are also registered for packet discovery with `requireAttribute: false`.
+- `ScanHandlers<TMarker>()`: Marker-type shortcut for scanning handlers.
 - `AddHandler<THandler>()`: Manually registers a handler type.
 - `AddHandler<THandler>(Func<THandler> factory)`: Registers a handler type with a custom factory.
 
@@ -124,18 +124,20 @@ When dispatch is created, the builder applies logging first, then all `Configure
 
 ### Server Bindings
 
-- `AddTcp<TProtocol>()`: Registers a TCP server for the specified protocol using the configured `NetworkSocketOptions.Port`.
-- `AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a TCP server with a custom protocol factory.
-- `AddTcp<TProtocol>(ushort port)`: Registers a TCP server for an explicit port, overriding the socket option for that binding.
-- `AddTcp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)`: Registers an explicit-port TCP server with a custom protocol factory.
-- `AddUdp<TProtocol>()`: Registers a UDP server for the specified protocol using the configured `NetworkSocketOptions.Port`.
-- `AddUdp<TProtocol>(Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with a custom authentication predicate.
-- `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)`: Registers a UDP server with a custom protocol factory.
-- `AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers a UDP server with both a custom factory and an authentication predicate.
-- `AddUdp<TProtocol>(ushort port)`: Registers a UDP server for an explicit port.
-- `AddUdp<TProtocol>(ushort port, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers an explicit-port UDP server with an authentication predicate.
-- `AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)`: Registers an explicit-port UDP server with a custom protocol factory.
-- `AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory, Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`: Registers an explicit-port UDP server with both a custom factory and authentication predicate.
+The `Nalix.Hosting` namespace provides a built-in `DefaultProtocol` that can be used instead of creating a custom protocol class. Use `.BindTcp<DefaultProtocol>().Bind()` for simple scenarios where custom protocol logic is not needed.
+
+- `BindTcp<TProtocol>().Bind()`: Registers a TCP server for the specified protocol using the configured `NetworkSocketOptions.Port`.
+- `BindTcp<TProtocol>().WithFactory(factory).Bind()`: Registers a TCP server with a custom protocol factory.
+- `BindTcp<TProtocol>().OnPort(port).Bind()`: Registers a TCP server for an explicit port, overriding the socket option for that binding.
+- `BindTcp<TProtocol>().OnPort(port).WithFactory(factory).Bind()`: Registers an explicit-port TCP server with a custom protocol factory.
+- `BindUdp<TProtocol>().Bind()`: Registers a UDP server for the specified protocol using the configured `NetworkSocketOptions.Port`.
+- `BindUdp<TProtocol>().WithAuthentication(authen).Bind()`: Registers a UDP server with a custom authentication predicate.
+- `BindUdp<TProtocol>().WithFactory(factory).Bind()`: Registers a UDP server with a custom protocol factory.
+- `BindUdp<TProtocol>().WithFactory(factory).WithAuthentication(authen).Bind()`: Registers a UDP server with both a custom factory and an authentication predicate.
+- `BindUdp<TProtocol>().OnPort(port).Bind()`: Registers a UDP server for an explicit port.
+- `BindUdp<TProtocol>().OnPort(port).WithAuthentication(authen).Bind()`: Registers an explicit-port UDP server with an authentication predicate.
+- `BindUdp<TProtocol>().OnPort(port).WithFactory(factory).Bind()`: Registers an explicit-port UDP server with a custom protocol factory.
+- `BindUdp<TProtocol>().OnPort(port).WithFactory(factory).WithAuthentication(authen).Bind()`: Registers an explicit-port UDP server with both a custom factory and authentication predicate.
 
 Protocol types can expose a constructor that accepts `IPacketDispatch`; otherwise the builder uses the default Nalix activator path without dispatch constructor injection.
 
@@ -150,9 +152,9 @@ var app = NetworkApplication.CreateBuilder()
     {
         options.Port = 57206;
     })
-    .AddPacket<Handshake>()
-    .AddHandlers<SampleHandlers>()
-    .AddTcp<SampleProtocol>()
+    .ScanPackets<Handshake>()
+    .ScanHandlers<SampleHandlers>()
+    .BindTcp<SampleProtocol>().Bind()
     .Build();
 
 await app.RunAsync(cancellationToken);

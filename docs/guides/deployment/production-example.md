@@ -110,9 +110,9 @@ using var app = NetworkApplication.CreateBuilder()
         opt.Backlog = 1024;
     })
     // 1. Register contracts assembly for auto-discovery
-    .AddPacket<DataRequest>() 
+    .ScanPackets<DataRequest>() 
     // 2. Add Handlers (resolved via InstanceManager)
-    .AddHandlers<DataHandlers>()
+    .ScanHandlers<DataHandlers>()
     // 3. Configure Dispatch Middleware
     .ConfigureDispatch(dispatch => {
         dispatch.WithLogging(logger)
@@ -120,7 +120,7 @@ using var app = NetworkApplication.CreateBuilder()
                 .WithErrorHandling((ex, cmd) => logger.Error("Unhandled!", ex));
     })
     // 4. Bind Transport
-    .AddTcp<ProductionProtocol>()
+    .BindTcp<ProductionProtocol>().Bind()
     .Build();
 
 await app.RunAsync();

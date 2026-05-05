@@ -154,6 +154,9 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     }
     ```
 
+    !!! tip
+        If you don't need custom protocol logic, you can use the built-in `DefaultProtocol` from the `Nalix.Hosting` namespace instead of creating your own class: `.BindTcp<DefaultProtocol>().Bind()`
+
 === "Program.cs"
 
     ```csharp
@@ -161,10 +164,10 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     using Nalix.Network.Options;
 
     using var app = NetworkApplication.CreateBuilder()
-        .AddPacket<Contracts.PingRequest>()
+        .ScanPackets<Contracts.PingRequest>()
         .AddHandler<PingHandler>()
         .Configure<NetworkSocketOptions>(opt => opt.Port = 5000)
-        .AddTcp<PingProtocol>()
+        .BindTcp<PingProtocol>().Bind()
         .Build();
 
     await app.RunAsync();

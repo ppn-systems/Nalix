@@ -47,15 +47,15 @@ The builder exposes fluent methods for configuring the server:
 - `ConfigurePacketRegistry(...)`
 - `ConfigureDispatch(...)`
 - `Configure<TOptions>(...)`
-- `AddPacket<TMarker>()`
+- `ScanPackets<TMarker>()`
 - `AddPacketNamespace(...)`
-- `AddHandlers<TMarker>()`
+- `ScanHandlers<TMarker>()`
 - `AddHandler<THandler>()`
 - `AddMetadataProvider<TProvider>()`
-- `AddTcp<TProtocol>(...)`
-- `AddTcp<TProtocol>(ushort port)`
-- `AddUdp<TProtocol>(...)`
-- `AddUdp<TProtocol>(Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool> authen)`
+- `BindTcp<TProtocol>().Bind()`
+- `BindTcp<TProtocol>().OnPort(port).Bind()`
+- `BindUdp<TProtocol>().Bind()`
+- `BindUdp<TProtocol>().WithAuthentication(authen).Bind()`
 
 ### `Bootstrap`
 
@@ -73,9 +73,9 @@ var app = NetworkApplication.CreateBuilder()
     {
         options.Port = 57206;
     })
-    .AddPacket<MyPacket>()
-    .AddHandlers<MyHandlers>()
-    .AddTcp<MyProtocol>()
+    .ScanPackets<MyPacket>()
+    .ScanHandlers<MyHandlers>()
+    .BindTcp<MyProtocol>().Bind()
     .Build();
 
 await app.RunAsync();

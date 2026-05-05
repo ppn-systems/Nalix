@@ -93,12 +93,6 @@ public sealed class TransportOptions : ConfigurationLoader
     public int BufferSize { get; set; } = 65536;
 
     /// <summary>
-    /// Gets the encryption key used for secure communication.
-    /// </summary>
-    [ConfiguredIgnore]
-    public Bytes32 Secret { get; set; }
-
-    /// <summary>
     /// Gets the encryption mode for the connection.
     /// </summary>
     [IniComment("Cipher suite used for packet encryption (e.g., Chacha20, Salsa20, Chacha20Poly1305, Salsa20Poly1305)")]
@@ -117,12 +111,6 @@ public sealed class TransportOptions : ConfigurationLoader
     public int CompressionThreshold { get; set; } = 512;
 
     /// <summary>
-    /// When true, AEAD encryption is applied to all outbound packets.
-    /// </summary>
-    [IniComment("Enable packet encryption (secure by default — disable only for unencrypted dev/test environments)")]
-    public bool EncryptionEnabled { get; set; } = true;
-
-    /// <summary>
     /// Gets or sets the capacity of the asynchronous message processing queue.
     /// SEC-56, SEC-59: Provides backpressure to prevent memory exhaustion under high load.
     /// </summary>
@@ -136,12 +124,6 @@ public sealed class TransportOptions : ConfigurationLoader
     [IniComment("Maximum allowed UDP datagram size in bytes (including header). Default 1400.")]
     [Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
     public int MaxUdpDatagramSize { get; set; } = 1400;
-
-    /// <summary>
-    /// Gets the unique session token assigned by the server for UDP communication.
-    /// </summary>
-    [ConfiguredIgnore]
-    public ulong SessionToken { get; set; } = 0;
 
     /// <summary>
     /// Gets or sets the pinned Server Identity Public Key (required for protecting against MitM attacks).
@@ -180,4 +162,22 @@ public sealed class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Current time offset in milliseconds applied by the time synchronization process")]
     public double TimeOffsetMs { get; set; }
+
+    /// <summary>
+    /// Gets the encryption key used for secure communication.
+    /// </summary>
+    [ConfiguredIgnore]
+    public Bytes32 Secret { get; set; }
+
+    /// <summary>
+    /// Gets the unique session token assigned by the server for UDP communication.
+    /// </summary>
+    [ConfiguredIgnore]
+    public ulong SessionToken { get; set; } = 0;
+
+    /// <summary>
+    /// When true, AEAD encryption is applied to all outbound packets.
+    /// </summary>
+    [ConfiguredIgnore]
+    public bool EncryptionEnabled { get; set; } = false;
 }

@@ -85,7 +85,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
         builder.ConfigurePacketRegistry(_registry);
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -127,7 +127,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         {
             opt.MinAttributesForPersistence = 0;
         });
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();

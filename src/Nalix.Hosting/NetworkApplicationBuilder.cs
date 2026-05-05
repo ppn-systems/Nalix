@@ -151,7 +151,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     #endregion Configuration Methods
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacket(Assembly assembly, bool requirePacketAttribute = false)
+    public INetworkApplicationBuilder ScanPackets(Assembly assembly, bool requirePacketAttribute = false)
     {
         ArgumentNullException.ThrowIfNull(assembly);
 
@@ -160,7 +160,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacket(string assemblyPath, bool requirePacketAttribute = false)
+    public INetworkApplicationBuilder ScanPackets(string assemblyPath, bool requirePacketAttribute = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
 
@@ -169,8 +169,30 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacket<TMarker>(bool requirePacketAttribute = false)
-        => this.AddPacket(typeof(TMarker).Assembly, requirePacketAttribute);
+    public INetworkApplicationBuilder ScanPackets<TMarker>(bool requirePacketAttribute = false)
+        => this.ScanPackets(typeof(TMarker).Assembly, requirePacketAttribute);
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ScanHandlers(Assembly assembly)
+    {
+        ArgumentNullException.ThrowIfNull(assembly);
+
+        _ = _state.HandlerAssemblies.Add(assembly);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ScanHandlers<TMarker>() => this.ScanHandlers(typeof(TMarker).Assembly);
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
+    {
+        _state.Handlers.Add(new HandlerDescriptor(
+            typeof(THandler),
+            () => InstanceManager.Instance.CreateInstance(typeof(THandler))));
+
+        return this;
+    }
 
     /// <inheritdoc />
     public INetworkApplicationBuilder AddPacketNamespace(string packetNamespace, bool recursive = true)
@@ -188,28 +210,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         ArgumentException.ThrowIfNullOrWhiteSpace(packetNamespace);
 
         _state.PacketNamespaces.Add(new PacketNamespaceDescriptor(packetNamespace, recursive, assemblyPath));
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandlers(Assembly assembly)
-    {
-        ArgumentNullException.ThrowIfNull(assembly);
-
-        _ = _state.HandlerAssemblies.Add(assembly);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandlers<TMarker>() => this.AddHandlers(typeof(TMarker).Assembly);
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
-    {
-        _state.Handlers.Add(new HandlerDescriptor(
-            typeof(THandler),
-            () => InstanceManager.Instance.CreateInstance(typeof(THandler))));
-
         return this;
     }
 
@@ -250,153 +250,36 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddTcp<TProtocol>() where TProtocol : class, IProtocol
+    public IProtocolBindingBuilder BindTcp<TProtocol>() where TProtocol : class, IProtocol
     {
-        _state.TcpBindings.Add(new TcpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => CreateProtocol(typeof(TProtocol), dispatch)));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddTcp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)
-        where TProtocol : class, IProtocol
-    {
-        ArgumentNullException.ThrowIfNull(factory);
+        ProtocolBindingBuilder builder = new(this);
 
         _state.TcpBindings.Add(new TcpProtocolBinding(
             typeof(TProtocol),
-            dispatch => factory(dispatch)));
+            dispatch => builder.Factory is not null
+                ? builder.Factory(dispatch)
+                : CreateProtocol(typeof(TProtocol), dispatch),
+            Port: null,
+            BindingBuilder: builder));
 
-        return this;
+        return builder;
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>() where TProtocol : class, IProtocol
+    public IProtocolBindingBuilder BindUdp<TProtocol>() where TProtocol : class, IProtocol
     {
-        _state.UdpBindings.Add(new UdpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => CreateProtocol(typeof(TProtocol), dispatch)));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        where TProtocol : class, IProtocol
-    {
-        _state.UdpBindings.Add(new UdpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
-            Authentication: authen));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory)
-        where TProtocol : class, IProtocol
-    {
-        ArgumentNullException.ThrowIfNull(factory);
+        ProtocolBindingBuilder builder = new(this);
 
         _state.UdpBindings.Add(new UdpProtocolBinding(
             typeof(TProtocol),
-            dispatch => factory(dispatch)));
+            dispatch => builder.Factory is not null
+                ? builder.Factory(dispatch)
+                : CreateProtocol(typeof(TProtocol), dispatch),
+            Port: null,
+            Authentication: null,
+            BindingBuilder: builder));
 
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>(Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        where TProtocol : class, IProtocol
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-
-        _state.UdpBindings.Add(new UdpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => factory(dispatch),
-            Authentication: authen));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddTcp<TProtocol>(ushort port) where TProtocol : class, IProtocol
-    {
-        _state.TcpBindings.Add(new TcpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
-            port));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddTcp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)
-        where TProtocol : class, IProtocol
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-
-        _state.TcpBindings.Add(new TcpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => factory(dispatch),
-            port));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port) where TProtocol : class, IProtocol
-    {
-        _state.UdpBindings.Add(new UdpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
-            port));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        where TProtocol : class, IProtocol
-    {
-        _state.UdpBindings.Add(new UdpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => CreateProtocol(typeof(TProtocol), dispatch),
-            port,
-            authen));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory)
-        where TProtocol : class, IProtocol
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-
-        _state.UdpBindings.Add(new UdpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => factory(dispatch),
-            port));
-
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddUdp<TProtocol>(ushort port, Func<IPacketDispatch, TProtocol> factory, Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool> authen)
-        where TProtocol : class, IProtocol
-    {
-        ArgumentNullException.ThrowIfNull(factory);
-
-        _state.UdpBindings.Add(new UdpProtocolBinding(
-            typeof(TProtocol),
-            dispatch => factory(dispatch),
-            port,
-            authen));
-
-        return this;
+        return builder;
     }
 
     /// <inheritdoc />
@@ -434,8 +317,15 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
                     ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
-                TcpServerListener listener = registration.Port.HasValue
-                    ? new(registration.Port.Value, protocol, hub)
+
+                ushort? port = registration.Port;
+                if (registration.BindingBuilder is ProtocolBindingBuilder tcpBuilder)
+                {
+                    port = tcpBuilder.Port ?? port;
+                }
+
+                TcpServerListener listener = port.HasValue
+                    ? new(port.Value, protocol, hub)
                     : new(protocol, hub);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
@@ -449,12 +339,22 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
                     ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
                 IProtocol protocol = registration.Factory(dispatch);
-                UdpServerListener listener = registration.Authentication != null
-                    ? (registration.Port.HasValue
-                        ? new(registration.Port.Value, protocol, hub, registration.Authentication)
-                        : new(protocol, hub, registration.Authentication))
-                    : (registration.Port.HasValue
-                        ? new(registration.Port.Value, protocol, hub)
+
+                ushort? port = registration.Port;
+                Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? authen = registration.Authentication;
+
+                if (registration.BindingBuilder is ProtocolBindingBuilder udpBuilder)
+                {
+                    port = udpBuilder.Port ?? port;
+                    authen = udpBuilder.Authen ?? authen;
+                }
+
+                UdpServerListener listener = authen != null
+                    ? (port.HasValue
+                        ? new(port.Value, protocol, hub, authen)
+                        : new(protocol, hub, authen))
+                    : (port.HasValue
+                        ? new(port.Value, protocol, hub)
                         : new(protocol, hub));
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);

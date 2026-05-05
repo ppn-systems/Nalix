@@ -33,7 +33,7 @@ public sealed class RequestIntegrationTests : IDisposable
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
         builder.ConfigurePacketRegistry(_registry);
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();

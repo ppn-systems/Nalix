@@ -85,11 +85,11 @@ public sealed class NetworkApplicationIntegrationTests
         builder.ConfigureLogging(logger);
         
         // Listen on loopback with our test protocol
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         // Add current assembly for scanning controllers and packets
         builder.AddPacketNamespace("Nalix.Network.Tests", recursive: true);
-        builder.AddHandlers<NetworkApplicationIntegrationTests>();
+        builder.ScanHandlers<NetworkApplicationIntegrationTests>();
         
         using NetworkApplication app = builder.Build();
         

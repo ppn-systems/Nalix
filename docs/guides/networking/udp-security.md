@@ -68,8 +68,8 @@ public sealed class SampleUdpListener : UdpListenerBase
     calling `Build()`:
     ```csharp
     using var app = NetworkApplication.CreateBuilder()
-        .AddUdp<MyProtocol>((conn, ep, data) =>
-            conn.Level >= PermissionLevel.USER)
+        .BindUdp<MyProtocol>().WithAuthentication((conn, ep, data) =>
+            conn.Level >= PermissionLevel.USER).Bind()
         .Build();
     ```
 

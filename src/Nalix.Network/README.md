@@ -42,7 +42,7 @@ and lifecycle orchestration for you:
 
 ```csharp
 using var app = NetworkApplication.CreateBuilder()
-    .AddTcp<MyProtocol>(5000)
+    .BindTcp<MyProtocol>().OnPort(5000).Bind()
     .Build();
 
 await app.RunAsync();

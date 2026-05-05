@@ -35,7 +35,7 @@ public sealed class CipherExtensionsTests : IDisposable
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
         builder.ConfigurePacketRegistry(_registry);
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         // Server handles CIPHER_UPDATE by default in Handshake/Control logic?
         // Actually, CIPHER_UPDATE needs to be handled by the server to switch its own cipher.
 

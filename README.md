@@ -160,7 +160,7 @@ using Nalix.Network.Hosting;
 
 // Initialize and configure the application host
 using var host = NetworkApplication.CreateBuilder()
-    .AddTcp<MyPacketProtocol>()
+    .BindTcp<MyPacketProtocol>().Bind()
     .AddHandler<MyPacketHandler>()
     .Configure<NetworkSocketOptions>(opt => opt.Port = 8080)
     .Build();

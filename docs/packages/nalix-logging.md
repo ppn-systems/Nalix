@@ -88,7 +88,7 @@ When using the hosting builder, register the logger via `ConfigureLogging`:
 ```csharp
 var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)
-    .AddTcp<MyProtocol>()
+    .BindTcp<MyProtocol>().Bind()
     .Build();
 ```
 

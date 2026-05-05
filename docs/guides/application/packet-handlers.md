@@ -126,7 +126,7 @@ using Nalix.Abstractions.Networking.Packets;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Register Handlers
-    .AddHandlers<MyGameMarker>() // Scans entire assembly
+    .ScanHandlers<MyGameMarker>() // Scans entire assembly
     .AddHandler<ChatHandlers>()  // Explicit registration
     
     // 2. Register Middleware

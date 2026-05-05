@@ -69,7 +69,7 @@ public sealed class HighFreqUpdate : PacketBase<HighFreqUpdate>
 
 ## 2. Compiled Handler Execution
 
-Nalix does not use reflection at runtime. When you call `.AddHandlers<T>()`, the `PacketHandlerCompiler` generates optimized IL via expression trees.
+Nalix does not use reflection at runtime. When you call `.ScanHandlers<T>()`, the `PacketHandlerCompiler` generates optimized IL via expression trees.
 
 ### Behind the Scenes
 
@@ -196,7 +196,7 @@ using System;
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    .AddHandlers<GameMarker>() // Triggers handler compilation
+    .ScanHandlers<GameMarker>() // Triggers handler compilation
     .ConfigureDispatch(options => {
         // Match shards to CPU cores for maximum affinity
         options.WithDispatchLoopCount(Environment.ProcessorCount);

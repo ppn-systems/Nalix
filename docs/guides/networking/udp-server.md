@@ -51,8 +51,8 @@ Use it to:
     If you are using `NetworkApplication` (Hosting layer), you don't need to subclass `UdpListenerBase` just for authentication. Provide a predicate while configuring the builder, before `Build()`:
     ```csharp
     using var app = NetworkApplication.CreateBuilder()
-        .AddUdp<MyProtocol>((connection, endpoint, payload) =>
-            connection.Level >= PermissionLevel.USER)
+        .BindUdp<MyProtocol>().WithAuthentication((connection, endpoint, payload) =>
+            connection.Level >= PermissionLevel.USER).Bind()
         .Build();
     ```
 
@@ -119,7 +119,7 @@ receive datagram
   -> resolve the connection through IConnectionHub
   -> verify pinned endpoint
   -> check the UDP replay window sequence
-  -> run IsAuthenticated(...) or the Hosting AddUdp predicate
+  -> run IsAuthenticated(...) or the Hosting WithAuthentication predicate
   -> bind UDP transport and dispatch payload to the protocol
 ```
 
