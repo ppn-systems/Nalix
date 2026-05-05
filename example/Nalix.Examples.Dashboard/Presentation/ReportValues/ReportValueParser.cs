@@ -381,10 +381,9 @@ public static partial class ReportValueParser
             return false;
         }
 
-        string[] parts = raw
+        string[] parts = [.. raw
             .Split(", ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Where(static part => !string.IsNullOrWhiteSpace(part))
-            .ToArray();
+            .Where(static part => !string.IsNullOrWhiteSpace(part))];
 
         if (parts.Length < 3)
         {

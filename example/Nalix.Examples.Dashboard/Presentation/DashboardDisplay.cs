@@ -14,6 +14,7 @@ internal static class DashboardDisplay
         GenerationReportTarget.CONNECTIONS => "Connections",
         GenerationReportTarget.CONNECTION_GUARD => "Connection Guard",
         GenerationReportTarget.INSTANCES => "Instances",
+        GenerationReportTarget.NONE => throw new NotImplementedException(),
         _ => target.ToString()
     };
 
@@ -26,7 +27,7 @@ internal static class DashboardDisplay
     public static string FormatPing(double? milliseconds)
         => milliseconds is null
             ? "-- ms"
-            : $"{milliseconds.Value.ToString("F1", CultureInfo.InvariantCulture)} ms";
+            : $"{NumberDisplayFormatter.Format(milliseconds.Value)} ms";
 
     public static string PingStateClass(double? milliseconds) => milliseconds switch
     {
