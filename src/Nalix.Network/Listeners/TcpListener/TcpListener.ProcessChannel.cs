@@ -43,11 +43,9 @@ public abstract partial class TcpListenerBase
                 SingleReader = true,   // only the consumer worker reads
                 SingleWriter = false,  // many accept-loop workers write
 
-                // DropWrite = TryWrite returns false when the channel is full (no block producer).
-                // WHY DropWrite instead of Wait: If block producer -> accept-worker is held
-                // -> Cannot accept new connection -> latency increases and may fail.
-                // DropWrite + log -> DDoS protection: new connection dropped, old connection secure.
-                FullMode = System.Threading.Channels.BoundedChannelFullMode.DropWrite,
+                // Wait + TryWrite gives a non-blocking failure when the channel is full.
+                // This lets us drop and close the new connection explicitly below.
+                FullMode = System.Threading.Channels.BoundedChannelFullMode.Wait,
 
                 // AllowSynchronousContinuations = false -> continuation is always scheduled
                 // Go to ThreadPool instead of running inline on the writer's thread.
@@ -147,7 +145,7 @@ public abstract partial class TcpListenerBase
             return;
         }
 
-        // Channel full (FullMode = DropWrite) -> drop new connection.
+        // Channel full (FullMode = Wait + TryWrite) -> drop new connection.
         // WHY drop new instead of drop old:
         // - The old connection in the channel has been accepted and may be legitimate user.
         // - The new connection (dropped) could be part of a DDoS burst -> drop is correct.
