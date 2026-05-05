@@ -120,7 +120,6 @@ nav:
       - Quick Start: quickstart.md
       - Introduction: introduction.md
       - Installation: installation.md
-      - Full Sitemap: sitemap.md
   - Concepts:
       - Overview: concepts/index.md
       - Fundamentals:
@@ -186,8 +185,6 @@ nav:
           - Dynamic Concurrency Adjustment: guides/advanced/dynamic-concurrency-adjustment.md
       - Tools:
         - Overview: guides/tools/index.md
-        - SDK Tools: guides/tools/sdk-tools.md
-        - Packet Visualizer: guides/tools/packet-visualizer.md
         - Identity Certificate Tool: guides/tools/certificate-tool.md
   - Packages:
       - Overview: packages/index.md
