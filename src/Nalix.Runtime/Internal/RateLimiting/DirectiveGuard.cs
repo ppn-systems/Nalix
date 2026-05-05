@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
@@ -51,15 +52,23 @@ internal static class DirectiveGuard
             state.SpinLock.Enter(ref lockTaken);
             long nowMs = System.Environment.TickCount64;
 
-            if (attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed)
-                && boxed is long lastSentAtMs
-                && unchecked(nowMs - lastSentAtMs) < resolvedCooldownMs)
+            if (!attributes.TryGetValue(lastSentAtAttributeKey, out object? boxed))
             {
-                return false;
+                StrongBox<long> box = new(nowMs);
+                attributes[lastSentAtAttributeKey] = box;
+                return true;
             }
+            else
+            {
+                StrongBox<long> box = (StrongBox<long>)boxed;
+                if (unchecked(nowMs - box.Value) < resolvedCooldownMs)
+                {
+                    return false;
+                }
 
-            attributes[lastSentAtAttributeKey] = nowMs;
-            return true;
+                box.Value = nowMs;
+                return true;
+            }
         }
         finally
         {
