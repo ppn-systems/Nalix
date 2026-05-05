@@ -81,7 +81,7 @@ The request helpers subscribe before sending, so they avoid the usual response r
 
 ## Client Bootstrap
 
-`Bootstrap.AutoInitialize()` is a module initializer, so loading `Nalix.SDK` calls `Bootstrap.Initialize()` automatically.
+`src/Nalix.SDK/Bootstrap.cs` uses a module initializer, so loading `Nalix.SDK` calls `Bootstrap.Initialize()` automatically.
 
 Source-verified bootstrap behavior:
 
@@ -110,7 +110,7 @@ Call `Bootstrap.Initialize()` manually only when you need to force the same setu
 | `Algorithm` | `Chacha20Poly1305` | Cipher suite selection. |
 | `CompressionEnabled` | `true` | Outbound compression toggle. |
 | `CompressionThreshold` | `512` | Compression trigger size in bytes. |
-| `EncryptionEnabled` | `true` | Packet encryption toggle. |
+| `EncryptionEnabled` | `false` | Runtime packet encryption toggle; enabled by handshake or resume flows. |
 | `AsyncQueueCapacity` | `1024` | `1..65536`. |
 | `MaxUdpDatagramSize` | `1400` | `64..65507`; includes the 8-byte token/header. |
 | `ServerPublicKey` | `null` | Optional pinned X25519 public key string. |

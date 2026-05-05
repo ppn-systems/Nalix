@@ -33,7 +33,7 @@ public class SamplePingHandlers
 {
     [PacketOpcode(1)]
     [PacketTransport(NetworkTransport.TCP)]
-    public Control HandlePing(PacketContext<Control> request)
+    public Control HandlePing(IPacketContext<Control> request)
         => request.Packet;
 }
 ```
@@ -95,4 +95,3 @@ Base interfaces for encryption, hashing, and permission management.
 - [Packet Attributes](../api/abstractions/packet-attributes.md)
 - [Packet Metadata](../api/abstractions/packet-metadata.md)
 - [Concurrency Contracts](../api/abstractions/concurrency-contracts.md)
-

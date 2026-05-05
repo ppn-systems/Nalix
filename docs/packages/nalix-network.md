@@ -64,7 +64,7 @@ public sealed class MyProtocol : Protocol
 
 - **`IConnection`** â€” Abstract representation of a client connection with identity, transport adapters, permission level, and cipher state.
 - **`SocketConnection`** â€” Concrete socket-based implementation.
-- **`ConnectionHub`** - In-memory registry of active connections. Supports lookup by ID, username mapping, forced disconnects, bulk broadcast, and `GenerateReport()`.
+- **`ConnectionHub`** - In-memory registry of active connections. Supports lookup by ID, forced disconnects, bulk broadcast, and `GenerateReport()`.
 - **`ConnectionGuard`** â€” Socket-level admission control that rejects endpoints before application resources are allocated.
 
 ### Session Store

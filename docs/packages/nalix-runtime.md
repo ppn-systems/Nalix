@@ -2,8 +2,16 @@
 
 `Nalix.Runtime` is the high-performance orchestration layer of the Nalix framework, specifically designed to power **Server-Side** packet processing. It provides the multi-threaded dispatch pipeline, middleware execution engine, handler compilation, and session state infrastructure.
 
+## Source Mapping
+
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
+- `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
+- `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
+
 !!! info "The Engine of the Server"
-    While `Nalix.SDK` is designed for client-side consumption, `Nalix.Runtime` is the engine that handles the heavy lifting on the server, managing worker affinity, request routing, and industrial-grade session persistence.
+    While `Nalix.SDK` is designed for client-side consumption, `Nalix.Runtime` is the engine that handles the heavy lifting on the server, managing dispatch workers, request routing, and session-resume infrastructure.
 
 !!! note "Typically consumed via Nalix.Hosting"
     Most projects consume `Nalix.Runtime` indirectly through `Nalix.Hosting`, which wires up the dispatcher and middleware automatically. Use `Nalix.Runtime` directly only when you need full control over the dispatch pipeline.
@@ -39,7 +47,7 @@ PacketDispatchChannel dispatch = new(options =>
     options.WithLogging(logger)
            .WithErrorHandling((ex, opcode) =>
            {
-               logger.Error($"dispatch-error opcode=0x{opcode:X4}", ex);
+               logger.LogError(ex, "dispatch-error opcode=0x{Opcode:X4}", opcode);
            })
            .WithMiddleware(new MyAuditMiddleware<IPacket>())
            .WithHandler(() => new AccountHandlers())
@@ -88,6 +96,8 @@ The built-in session resume flow is handled by `SessionHandlers` and backed by `
 2. Server validates the token against `ISessionStore`
 3. Server restores connection state and sends `SessionResume` with `Stage = RESPONSE`
 
+In the current source, `src/Nalix.Runtime/Handlers/SessionHandlers.cs` validates proof-of-possession with `HmacKeccak256`, restores the snapshot onto the live connection, stores the connection back into the session store, and returns a fresh session token for the next reconnect.
+
 ### Routing
 
 Attribute-based routing maps opcodes to handler methods:
@@ -119,8 +129,7 @@ The dispatch pipeline supports multiple return shapes. The internal return handl
 | :--- | :--- |
 | `TPacket` | Serializes and sends the packet to the caller |
 | `Task<TPacket>` / `ValueTask<TPacket>` | Awaits, then serializes and sends |
-| `string` | Sends as a text response |
-| `byte[]` / `Memory<byte>` | Sends as raw bytes |
+| `byte[]` / `Memory<byte>` / `ReadOnlyMemory<byte>` | Sends as raw bytes |
 | `void` / `Task` / `ValueTask` | No response; side-effect only |
 
 ## Diagnostics
@@ -128,9 +137,9 @@ The dispatch pipeline supports multiple return shapes. The internal return handl
 Call `dispatch.GenerateReport()` to inspect runtime state:
 
 - Number of active workers
-- Queue depth
-- Registered handler count
-- Middleware chain and limiter statistics
+- Queue depth and ready-connection state
+- Wake-signal counters
+- Top pending connections and per-priority readiness
 
 ## Related Packages
 

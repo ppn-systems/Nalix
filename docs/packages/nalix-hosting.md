@@ -2,6 +2,14 @@
 
 `Nalix.Hosting` provides Microsoft-style host and builder APIs for Nalix servers. It wires packet registry discovery, packet dispatch, configuration application, and transport lifecycle into a familiar builder/build/run workflow.
 
+## Source Mapping
+
+- `src/Nalix.Hosting/NetworkApplication.cs`
+- `src/Nalix.Hosting/NetworkApplicationBuilder.cs`
+- `src/Nalix.Hosting/INetworkApplicationBuilder.cs`
+- `src/Nalix.Hosting/Bootstrap.cs`
+- `src/Nalix.Hosting/DefaultProtocol.cs`
+
 ## Hosting Flow
 
 ```mermaid
@@ -59,7 +67,7 @@ The builder exposes fluent methods for configuring the server:
 
 ### `Bootstrap`
 
-The `Bootstrap` static class provides global initialization, tuning the ThreadPool for server workloads and setting up high-precision timers on Windows.
+The `Bootstrap` static class provides global initialization, including server-side configuration defaults, optional ThreadPool tuning, diagnostic subscription, and high-precision timers on Windows.
 
 ## Minimal example
 
@@ -92,4 +100,3 @@ await app.RunAsync();
 1. [Network Application API](../api/hosting/network-application.md)
 2. [Hosting Options](../api/options/hosting/hosting-options.md)
 3. [Nalix.Network](./nalix-network.md)
-
