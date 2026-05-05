@@ -28,11 +28,6 @@ on:
         required: false
         type: boolean
         default: false
-      trim_project:
-        description: "Executable project used for trim/self-contained publish smoke tests"
-        required: false
-        type: string
-        default: example/Nalix.Network.Examples/Nalix.Network.Examples.csproj
 
 jobs:
   check-label:
