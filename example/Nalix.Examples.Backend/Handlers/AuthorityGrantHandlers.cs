@@ -1,13 +1,13 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using System.Text;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Examples.Contracts.Packets;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Examples.Backend.Handlers;
 
@@ -19,36 +19,44 @@ public sealed class AuthorityGrantHandlers
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(AuthorityGrant.OpCodeValue)]
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned packet is sent and disposed by the Nalix return handler.")]
     public static ValueTask<AuthorityGrant> HandleAsync(IPacketContext<AuthorityGrant> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        AuthorityGrant response = AuthorityGrant.Create();
-        AuthorityGrant request = context.Packet;
-
-        if (request.Stage != AuthorityGrantStage.REQUEST || !request.Validate(out _))
+        if (context.Packet.Stage != AuthorityGrantStage.REQUEST || !context.Packet.Validate(out _))
         {
-            response.Initialize(AuthorityGrantStage.RESPONSE, ProtocolReason.MALFORMED_PACKET);
-            return ValueTask.FromResult(response);
+            return CreateResponse(ProtocolReason.MALFORMED_PACKET);
         }
 
         string key = LoadOrCreateSharedKey();
 
-        if (!FixedTimeEquals(request.Key, key))
+        if (!FixedTimeEquals(context.Packet.Key, key))
         {
-            response.Initialize(AuthorityGrantStage.RESPONSE, ProtocolReason.UNAUTHORIZED);
-            return ValueTask.FromResult(response);
+            return CreateResponse(ProtocolReason.UNAUTHORIZED);
         }
 
         context.Connection.Level = PermissionLevel.SYSTEM_ADMINISTRATOR;
 
-        response.Initialize(
-            AuthorityGrantStage.RESPONSE,
-            ProtocolReason.NONE,
-            PermissionLevel.SYSTEM_ADMINISTRATOR);
+        return CreateResponse(ProtocolReason.NONE, PermissionLevel.SYSTEM_ADMINISTRATOR);
+    }
 
-        return ValueTask.FromResult(response);
+    private static ValueTask<AuthorityGrant> CreateResponse(
+        ProtocolReason reason,
+        PermissionLevel grantedLevel = PermissionLevel.NONE)
+    {
+        PacketScope<AuthorityGrant> lease = PacketFactory<AuthorityGrant>.Acquire();
+
+        try
+        {
+            AuthorityGrant response = lease.Value;
+            response.Initialize(AuthorityGrantStage.RESPONSE, reason, grantedLevel);
+            return ValueTask.FromResult(response);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 
     private static string LoadOrCreateSharedKey()

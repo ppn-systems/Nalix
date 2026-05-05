@@ -1,7 +1,6 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json;
 using Nalix.Abstractions;
@@ -16,6 +15,7 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
 using Nalix.Network.RateLimiting;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Examples.Backend.Handlers;
 
@@ -29,36 +29,46 @@ public sealed class GenerationReportHandlers
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
     [PacketOpcode(GenerationReport.OpCodeValue)]
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned packet is sent and disposed by the Nalix return handler.")]
     public static ValueTask<GenerationReport> HandleAsync(IPacketContext<GenerationReport> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         GenerationReport request = context.Packet;
-        GenerationReport response = GenerationReport.Create();
 
         if (request.Stage != GenerationReportStage.REQUEST || !request.Validate(out _))
         {
-            response.Initialize(GenerationReportStage.RESPONSE, request.Target, ProtocolReason.MALFORMED_PACKET);
-            return ValueTask.FromResult(response);
+            return CreateResponse(request.Target, ProtocolReason.MALFORMED_PACKET);
         }
 
         if (!TryResolveReportable(request.Target, out IReportable? reportable))
         {
-            response.Initialize(GenerationReportStage.RESPONSE, request.Target, ProtocolReason.NOT_FOUND);
-            return ValueTask.FromResult(response);
+            return CreateResponse(request.Target, ProtocolReason.NOT_FOUND);
         }
 
         IDictionary<string, object> raw = reportable!.GetReportData();
         string dataJson = NormalizeReportData(raw);
 
-        response.Initialize(
-            GenerationReportStage.RESPONSE,
-            request.Target,
-            ProtocolReason.NONE,
-            dataJson);
+        return CreateResponse(request.Target, ProtocolReason.NONE, dataJson);
+    }
 
-        return ValueTask.FromResult(response);
+    private static ValueTask<GenerationReport> CreateResponse(
+        GenerationReportTarget target,
+        ProtocolReason reason,
+        string? dataJson = null)
+    {
+        PacketScope<GenerationReport> lease = PacketFactory<GenerationReport>.Acquire();
+
+        try
+        {
+            GenerationReport response = lease.Value;
+            response.Initialize(GenerationReportStage.RESPONSE, target, reason, dataJson);
+            return ValueTask.FromResult(response);
+        }
+        catch
+        {
+            lease.Dispose();
+            throw;
+        }
     }
 
     private static bool TryResolveReportable(GenerationReportTarget target, out IReportable? reportable)
