@@ -49,7 +49,7 @@ public sealed class ResumeExtensionsTests : IDisposable
         // 1. Setup Server with real SessionStore
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigurePacketRegistry(_registry);
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
         using NetworkApplication app = builder.Build();
@@ -113,7 +113,7 @@ public sealed class ResumeExtensionsTests : IDisposable
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigurePacketRegistry(_registry);
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
         using NetworkApplication app = builder.Build();
@@ -168,7 +168,7 @@ public sealed class ResumeExtensionsTests : IDisposable
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigurePacketRegistry(_registry);
-        builder.AddTcp<IntegrationTestProtocol>((ushort)port);
+        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
         using NetworkApplication app = builder.Build();
