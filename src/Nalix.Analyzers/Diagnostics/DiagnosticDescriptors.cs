@@ -397,7 +397,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingMissingTcpBinding = new(
         id: "NALIX044",
         title: "NetworkApplicationBuilder should configure a TCP binding",
-        messageFormat: "NetworkApplicationBuilder.Build() is called without AddTcp(...); a host without TCP bindings may be incomplete",
+        messageFormat: "NetworkApplicationBuilder.Build() is called without BindTcp(...); a host without TCP bindings may be incomplete",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
@@ -406,7 +406,7 @@ internal static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor NetworkHostingUdpWithoutTcpBinding = new(
         id: "NALIX045",
         title: "NetworkApplicationBuilder should configure TCP before UDP",
-        messageFormat: "NetworkApplicationBuilder.Build() configures UDP bindings without any AddTcp(...); UDP bindings are expected to run alongside TCP in this host setup",
+        messageFormat: "NetworkApplicationBuilder.Build() configures UDP bindings without any BindTcp(...); UDP bindings are expected to run alongside TCP in this host setup",
         category: "Usage",
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
