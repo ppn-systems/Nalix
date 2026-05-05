@@ -242,9 +242,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
         this.Emit("Locked", "Lockdown", new { }, isFailure: false);
     }
 
-
-
-
     /// <summary>
     /// Registers an instance of the specified type in the instance cache.
     /// If the instance implements <see cref="IDisposable"/>, it will be tracked for disposal.
@@ -285,7 +282,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
                 // Skip Abstractions infrastructure interfaces that many objects implement.
                 // Registrations for these would clobber each other and cause accidental disposal
                 // of previously registered objects (e.g. ConnectionHub clobbered by BufferPoolManager).
-                if (itf.Name is "IDisposable" or "IAsyncDisposable" or "IReportable")
+                if (itf.Name is "IReportable" or
+                    "IPoolable" or "IPoolRentable" or
+                    "IDisposable" or "IAsyncDisposable" or
+                    "IActivatable" or "IActivatableAsync")
                 {
                     continue;
                 }

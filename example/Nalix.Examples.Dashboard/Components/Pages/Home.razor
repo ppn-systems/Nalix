@@ -1,0 +1,69 @@
+@page "/"
+@inject IDashboardStateReader State
+@inject IDashboardStateWriter StateActions
+@inject IDashboardClient Client
+
+<PageTitle>Nalix Dashboard</PageTitle>
+
+<div class="dashboard-shell">
+    <div class="dashboard-header">
+        <DashboardHeader IsConnected="State.IsConnected"
+                         BackendEndpoint="@State.BackendEndpoint"
+                         SelectedReportTarget="SelectedReportTarget" />
+        <DashboardConfigPanel @bind-ApiKey="_apiKey"
+                              SavingKey="_savingKey"
+                              IsPollingPaused="State.IsPollingPaused"
+                              Refreshing="_refreshing"
+                              HasApiKey="State.HasApiKey"
+                              SelectedReportTarget="SelectedReportTarget"
+                              SaveRequested="SaveApiKey"
+                              PauseToggled="TogglePolling"
+                              RefreshRequested="RefreshNow" />
+    </div>
+
+    <StatusOverview IsConnected="State.IsConnected"
+                    IsPollingPaused="State.IsPollingPaused"
+                    LastPingMilliseconds="State.LastPingMilliseconds"
+                    LastPingAt="State.LastPingAt"
+                    HasApiKey="State.HasApiKey"
+                    LastRefreshAt="State.LastRefreshAt"
+                    SelectedReportTarget="SelectedReportTarget"
+                    ReportCount="Reports.Count"
+                    TargetCount="Targets.Count" />
+
+    <PingLatencyChart Samples="State.PingSamples"
+                      LastPingMilliseconds="State.LastPingMilliseconds" />
+
+    @if (!State.HasApiKey)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" NoIcon="true" Class="status-alert">
+            Enter the backend API key, then click Use key to authorize the TCP dashboard session.
+        </MudAlert>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(State.LastError))
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" NoIcon="true" Class="status-alert">
+            @State.LastError
+        </MudAlert>
+    }
+
+    @{
+        IReadOnlyDictionary<GenerationReportTarget, DashboardReportSnapshot> reports = Reports;
+    }
+
+    <div class="@ReportShellClass" id="reports">
+        <ReportNavigation IsOpen="State.IsReportNavigationOpen"
+                          Targets="Targets"
+                          SelectedReportTarget="SelectedReportTarget"
+                          Reports="@reports"
+                          LogsCount="State.Logs.Count"
+                          ReportSelected="SelectReportAsync"
+                          LogsSelected="SelectLogsAsync" />
+
+        <ReportContent SelectedReportTarget="SelectedReportTarget"
+                       Reports="@reports"
+                       Logs="State.Logs"
+                       ClearLogs="ClearLogs" />
+    </div>
+</div>

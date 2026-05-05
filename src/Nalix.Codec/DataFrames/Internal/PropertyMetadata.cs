@@ -203,8 +203,9 @@ internal sealed class PropertyMetadata
             return sizeof(byte);
         }
 
-        // Strings and arrays use an Int32 sentinel (-1) in the current wire format.
-        if (declaredType == typeof(string) || declaredType.IsArray)
+        // Strings, arrays, and collection formatters use an Int32 sentinel (-1)
+        // in the current wire format.
+        if (declaredType == typeof(string) || declaredType.IsArray || UsesInt32NullSentinel(declaredType))
         {
             return sizeof(int);
         }
@@ -217,6 +218,21 @@ internal sealed class PropertyMetadata
 
         // Value types do not use a null marker, but keep the legacy fallback for unsupported cases.
         return sizeof(int);
+    }
+
+    private static bool UsesInt32NullSentinel(Type declaredType)
+    {
+        if (!declaredType.IsGenericType)
+        {
+            return false;
+        }
+
+        Type definition = declaredType.GetGenericTypeDefinition();
+        return definition == typeof(System.Collections.Generic.Dictionary<,>)
+            || definition == typeof(System.Collections.Generic.List<>)
+            || definition == typeof(System.Collections.Generic.HashSet<>)
+            || definition == typeof(System.Collections.Generic.Queue<>)
+            || definition == typeof(System.Collections.Generic.Stack<>);
     }
 
     private static (DynamicWireKind kind, int elementSize) ComputeDynamicKind(Type declaredType)

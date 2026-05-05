@@ -1,0 +1,186 @@
+.value-empty {
+    color: var(--dash-text-muted);
+}
+
+.report-value {
+    color: var(--dash-text);
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 700;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.report-value.is-date,
+.report-value.is-code {
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 0.82rem;
+    letter-spacing: 0;
+}
+
+.report-value.is-bool {
+    color: var(--dash-green);
+    text-transform: lowercase;
+}
+
+.kv-grid {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin: 0;
+}
+
+.kv-item,
+.text-list-item {
+    background: color-mix(in srgb, var(--dash-surface-muted) 82%, var(--dash-bg));
+    border: 1px solid var(--dash-border-soft);
+    border-radius: 6px;
+    min-width: 0;
+    padding: 10px 12px;
+}
+
+.kv-name,
+.record-name {
+    color: color-mix(in srgb, var(--dash-text-muted) 84%, var(--dash-text));
+    display: block;
+    font-size: 0.73rem;
+    font-weight: 600;
+    line-height: 1.25;
+    margin-bottom: 5px;
+}
+
+.record-list,
+.text-list {
+    display: grid;
+    gap: 10px;
+}
+
+.record-list.has-compact-records {
+    align-items: stretch;
+    grid-template-columns: repeat(auto-fill, minmax(228px, 1fr));
+}
+
+.record-card {
+    background: color-mix(in srgb, var(--dash-surface-muted) 76%, var(--dash-bg));
+    border: 1px solid var(--dash-border-soft);
+    border-left: 3px solid var(--dash-blue);
+    border-radius: 6px;
+    min-width: 0;
+    padding: 12px 14px;
+}
+
+.record-list.has-compact-records .record-card:not(.is-compact) {
+    grid-column: 1 / -1;
+}
+
+.record-list.has-compact-records .record-card.is-compact {
+    border-left-width: 2px;
+    display: flex;
+    flex-direction: column;
+    min-height: 96px;
+    padding: 10px 12px;
+}
+
+.record-header {
+    border-bottom: 1px solid var(--dash-border-soft);
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+}
+
+.record-list.has-compact-records .record-card.is-compact .record-header {
+    margin-bottom: 8px;
+    padding-bottom: 7px;
+}
+
+.record-title {
+    color: var(--dash-text);
+    display: block;
+    font-size: 0.92rem;
+    font-weight: 700;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.record-list.has-compact-records .record-card.is-compact .record-title {
+    font-size: 0.86rem;
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.record-fields {
+    display: grid;
+    gap: 12px 18px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    margin: 0;
+}
+
+.record-list.has-compact-records .record-card.is-compact .record-fields {
+    gap: 8px 12px;
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+}
+
+.record-field {
+    min-width: 0;
+}
+
+.record-field.is-wide {
+    grid-column: span 2;
+}
+
+.record-list.has-compact-records .record-card.is-compact .record-field.is-wide {
+    grid-column: auto;
+}
+
+.record-list.has-compact-records .record-card.is-compact .record-name {
+    font-size: 0.68rem;
+    margin-bottom: 3px;
+}
+
+.record-list.has-compact-records .record-card.is-compact .report-value {
+    font-size: 0.82rem;
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.record-list.has-compact-records .record-card.is-compact .report-value.is-bool {
+    background: color-mix(in srgb, var(--dash-green) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--dash-green) 36%, transparent);
+    border-radius: 999px;
+    display: inline-block;
+    justify-self: start;
+    padding: 1px 7px;
+}
+
+.record-field dd,
+.kv-item dd {
+    margin: 0;
+}
+
+.text-list-item {
+    color: var(--dash-text);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+    .record-list.has-compact-records {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    }
+
+    .record-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .record-field.is-wide {
+        grid-column: auto;
+    }
+}
+
+@media (max-width: 520px) {
+    .record-list.has-compact-records {
+        grid-template-columns: 1fr;
+    }
+}

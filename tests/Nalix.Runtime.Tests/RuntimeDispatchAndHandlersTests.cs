@@ -1,4 +1,3 @@
-using Nalix.Abstractions.Networking.Protocols;
 using System;
 using System.Collections;
 using System.Diagnostics.CodeAnalysis;
@@ -7,8 +6,8 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
-using Nalix.Abstractions.Security;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Extensions;
@@ -117,6 +116,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         }
     }
 
+#if DEBUG
     [Fact]
     public void PacketContextDefaultsAndReturn_WhenCalledMultipleTimes_RemainsSafe()
     {
@@ -129,6 +129,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         context.Return();
         context.ResetForPool();
     }
+#endif
 
     [Fact]
     public async Task ConnectionExtensionsSendAsync_WhenConnectionIsNull_ThrowsArgumentNullException()

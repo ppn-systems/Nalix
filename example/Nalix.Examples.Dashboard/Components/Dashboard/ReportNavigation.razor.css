@@ -1,0 +1,134 @@
+.report-nav {
+    background: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    border-radius: 6px;
+    box-shadow: var(--dash-shadow);
+    min-width: 0;
+    overflow: hidden;
+    transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.report-nav.is-closed {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-10px);
+}
+
+.report-nav-head {
+    background: var(--dash-surface-raised);
+    border-bottom: 1px solid var(--dash-border);
+    padding: 13px 12px;
+}
+
+.report-nav-head span {
+    color: var(--dash-text-muted);
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.report-nav-head strong {
+    color: var(--dash-text);
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.report-nav-list {
+    display: grid;
+    gap: 6px;
+    padding: 10px;
+}
+
+.report-nav-button {
+    align-items: center;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--dash-text-muted);
+    cursor: pointer;
+    display: flex;
+    justify-content: flex-start;
+    min-height: 58px;
+    padding: 10px 12px;
+    text-align: left;
+    transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    width: 100%;
+}
+
+.report-nav-text {
+    display: block;
+    min-width: 0;
+    text-align: left;
+    width: 100%;
+}
+
+.report-nav-button:hover {
+    background: var(--dash-control-hover);
+    border-color: var(--dash-border);
+    color: var(--dash-text);
+}
+
+.report-nav-button.is-active {
+    background: color-mix(in srgb, var(--dash-blue) 16%, transparent);
+    border-color: color-mix(in srgb, var(--dash-blue) 44%, transparent);
+    color: var(--dash-text);
+}
+
+.report-nav-button strong,
+.report-nav-meta span,
+.report-nav-meta time {
+    display: block;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.report-nav-button strong {
+    color: inherit;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.report-nav-meta {
+    align-items: center;
+    color: var(--dash-text-muted);
+    display: flex;
+    font-size: 0.75rem;
+    gap: 8px;
+    justify-content: space-between;
+    line-height: 1.25;
+    margin-top: 5px;
+    min-width: 0;
+}
+
+.report-nav-meta.is-waiting {
+    justify-content: flex-start;
+}
+
+.report-nav-meta span {
+    min-width: 0;
+}
+
+.report-nav-meta time {
+    color: color-mix(in srgb, var(--dash-text-muted) 86%, var(--dash-text));
+    flex: 0 0 auto;
+    font-family: "Cascadia Mono", Consolas, monospace;
+    font-size: 0.72rem;
+    text-align: right;
+}
+
+@media (max-width: 900px) {
+    .report-nav.is-closed {
+        display: none;
+    }
+
+    .report-nav.is-open {
+        display: block;
+    }
+}

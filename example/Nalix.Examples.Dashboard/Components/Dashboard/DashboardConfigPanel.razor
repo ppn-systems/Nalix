@@ -1,0 +1,68 @@
+@using Nalix.Examples.Contracts.Packets
+
+<div class="dashboard-actions action-panel" id="dashboard-config">
+    <div class="action-panel-heading">
+        <span>Config</span>
+        <strong>Backend access</strong>
+    </div>
+    <MudTextField T="string"
+                  Value="@ApiKey"
+                  ValueChanged="OnApiKeyChanged"
+                  Placeholder="API key"
+                  Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  InputType="InputType.Password"
+                  Immediate="true"
+                  Class="api-key-input" />
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Secondary"
+               Disabled="SavingKey"
+               OnClick="() => SaveRequested.InvokeAsync()">
+        Use key
+    </MudButton>
+    <MudButton Variant="Variant.Outlined"
+               Color="@(IsPollingPaused ? Color.Primary : Color.Default)"
+               OnClick="() => PauseToggled.InvokeAsync()">
+        @(IsPollingPaused ? "Resume" : "Pause")
+    </MudButton>
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               Disabled="Refreshing || !HasApiKey || SelectedReportTarget is null"
+               OnClick="() => RefreshRequested.InvokeAsync()">
+        Refresh
+    </MudButton>
+</div>
+
+@code {
+    [Parameter]
+    public string? ApiKey { get; set; }
+
+    [Parameter]
+    public EventCallback<string?> ApiKeyChanged { get; set; }
+
+    [Parameter]
+    public bool SavingKey { get; set; }
+
+    [Parameter]
+    public bool IsPollingPaused { get; set; }
+
+    [Parameter]
+    public bool Refreshing { get; set; }
+
+    [Parameter]
+    public bool HasApiKey { get; set; }
+
+    [Parameter]
+    public GenerationReportTarget? SelectedReportTarget { get; set; }
+
+    [Parameter]
+    public EventCallback SaveRequested { get; set; }
+
+    [Parameter]
+    public EventCallback PauseToggled { get; set; }
+
+    [Parameter]
+    public EventCallback RefreshRequested { get; set; }
+
+    private Task OnApiKeyChanged(string? value) => ApiKeyChanged.InvokeAsync(value);
+}

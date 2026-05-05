@@ -15,13 +15,17 @@ internal sealed class ValueTaskReturnHandler<TPacket, TResult>(IReturnHandler<TP
     /// <inheritdoc/>
     public async ValueTask HandleAsync(object? result, PacketContext<TPacket> context)
     {
-        if (result is not ValueTask<TResult> valueTask)
+        if (result is TResult unwrappedResult)
         {
+            await innerHandler.HandleAsync(unwrappedResult, context).ConfigureAwait(false);
             return;
         }
 
-        TResult taskResult = await valueTask.ConfigureAwait(false);
-        await innerHandler.HandleAsync(taskResult, context).ConfigureAwait(false);
+        if (result is ValueTask<TResult> valueTask)
+        {
+            TResult taskResult = await valueTask.ConfigureAwait(false);
+            await innerHandler.HandleAsync(taskResult, context).ConfigureAwait(false);
+        }
     }
 }
 

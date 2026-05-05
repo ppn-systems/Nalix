@@ -143,6 +143,46 @@ public sealed class PacketBaseLengthTests
         Assert.Equal(bytes, buffer);
     }
 
+    [Fact]
+    public void LengthWhenPacketContainsNullDictionaryMatchesSerializedByteCount()
+    {
+        DictionaryPacket packet = new()
+        {
+            Values = null
+        };
+
+        byte[] bytes = packet.Serialize();
+        Assert.Equal(bytes.Length, packet.Length);
+
+        byte[] buffer = new byte[packet.Length];
+        int written = packet.Serialize(buffer);
+        Assert.Equal(packet.Length, written);
+        Assert.Equal(bytes, buffer);
+    }
+
+    [Fact]
+    public void LengthWhenPacketContainsLargeStringDictionaryMatchesSerializedByteCount()
+    {
+        StringDictionaryPacket packet = new()
+        {
+            Values = new Dictionary<string, string>(StringComparer.Ordinal)
+        };
+
+        for (int i = 0; i < 80; i++)
+        {
+            packet.Values["Field" + i.ToString("D2", System.Globalization.CultureInfo.InvariantCulture)] =
+                new string((char)('a' + (i % 26)), 512);
+        }
+
+        byte[] bytes = packet.Serialize();
+        Assert.Equal(bytes.Length, packet.Length);
+
+        byte[] buffer = new byte[packet.Length];
+        int written = packet.Serialize(buffer);
+        Assert.Equal(packet.Length, written);
+        Assert.Equal(bytes, buffer);
+    }
+
     [SerializePackable(SerializeLayout.Sequential)]
     private sealed class StringPacket : PacketBase<StringPacket>
     {
@@ -185,6 +225,14 @@ public sealed class PacketBaseLengthTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
+    private sealed class StringDictionaryPacket : PacketBase<StringDictionaryPacket>
+    {
+        public Dictionary<string, string>? Values { get; set; }
+
+        public static new StringDictionaryPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<StringDictionaryPacket>.Deserialize(buffer);
+    }
+
+    [SerializePackable(SerializeLayout.Sequential)]
     private sealed class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>
     {
         [SerializeDynamicSize(64)]
@@ -193,8 +241,6 @@ public sealed class PacketBaseLengthTests
         public static new DynamicHintStringPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DynamicHintStringPacket>.Deserialize(buffer);
     }
 }
-
-
 
 
 
