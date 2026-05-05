@@ -17,7 +17,7 @@ persistence policy used when connections leave `ConnectionHub`.
 | --- | ---: | --- | --- |
 | `SessionTtl` | `00:30:00` | Required and `> TimeSpan.Zero` | `SessionStoreBase.CreateSession(...)` sets `ExpiresAtUnixMilliseconds`. |
 | `AutoSaveOnUnregister` | `true` | None | `ConnectionHub.TryUnregisterCore(...)` gates automatic persistence. |
-| `MinAttributesForPersistence` | `4` | `0..int.MaxValue` | `ConnectionHub.TryPersistSession(...)` rejects low-value sessions. |
+| `MinAttributesForPersistence` | `4` | `0..int.MaxValue` | `SessionStoreBase.StoreAsync(IConnection)` skips low-value sessions. |
 
 `Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated. It rejects non-positive `SessionTtl` values and negative `MinAttributesForPersistence`.
 
@@ -38,16 +38,14 @@ and persistence policy alongside the other network-level options.
 flowchart TD
     A["ConnectionHub unregisters connection"] --> B{"AutoSaveOnUnregister?"}
     B -->|No| Z["Skip session persistence"]
-    B -->|Yes| C["TryPersistSession(connection)"]
-    C --> D{"Hub or connection disposed?"}
-    D -->|Yes| Z
-    D -->|No| E{"HandshakeEstablished attribute == true?"}
+    B -->|Yes| C["TryUnregisterCore(...) starts background StoreAsync(connection)"]
+    C --> D{"HandshakeEstablished attribute == true?"}
+    D -->|No| Z
+    D -->|Yes| E{"Attributes.Count > MinAttributesForPersistence?"}
     E -->|No| Z
-    E -->|Yes| F{"Attributes.Count > MinAttributesForPersistence?"}
-    F -->|No| Z
-    F -->|Yes| G["CreateSession copies connection attributes"]
-    G --> H["ExpiresAt = now + SessionTtl"]
-    H --> I["StoreAsync(session)"]
+    E -->|Yes| F["CreateSession copies connection attributes"]
+    F --> G["ExpiresAt = now + SessionTtl"]
+    G --> H["StoreAsync(session)"]
 ```
 
 `SessionStoreBase.CreateSession(...)` snapshots the connection into a `SessionEntry`:

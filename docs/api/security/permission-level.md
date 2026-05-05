@@ -26,7 +26,7 @@ The `[PacketPermission]` attribute uses these levels to enforce security early i
 ```csharp
 [PacketOpcode(0x1001)]
 [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
-public void ResetServer(PacketContext<Control> context)
+public void ResetServer(IPacketContext<Control> context)
 {
     // Only users with Level >= SYSTEM_ADMINISTRATOR can reach here
 }

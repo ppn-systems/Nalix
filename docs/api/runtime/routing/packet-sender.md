@@ -1,6 +1,6 @@
 # Packet Sender
 
-`PacketSender` is the default runtime sender implementation used by `PacketContext<TPacket>`.
+`PacketSender` is the default runtime sender implementation bound to the pooled `PacketContext<TPacket>` used during dispatch and exposed to application code through `IPacketContext<TPacket>.Sender`.
 
 ## Audit Summary
 

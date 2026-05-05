@@ -23,7 +23,7 @@ is populated from `PacketTimeoutAttribute` on the handler method.
 
 ```csharp
 [PacketTimeout(5000)]
-public async Task ProcessHeavyData(PacketContext<WorkPacket> request)
+public async Task ProcessHeavyData(IPacketContext<WorkPacket> request)
 {
     // This handler is expected to finish within 5 seconds.
 }
