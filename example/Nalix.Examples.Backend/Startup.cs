@@ -25,7 +25,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogix(
         cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true))
-                  .SetMinimumLevel(LogLevel.Trace)
+                  .SetMinimumLevel(LogLevel.Debug)
     );
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
@@ -37,6 +37,8 @@ internal class Startup
         ObjectPoolManager objectPool = new();
 
         NetworkApplication host = NetworkApplication.CreateBuilder()
+            .ConfigureCertificate(ResolveSharedFile("certificate.private"))
+            .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
@@ -77,5 +79,22 @@ internal class Startup
             .Build();
 
         return host;
+    }
+
+    private static string ResolveSharedFile(string fileName)
+    {
+        DirectoryInfo? current = new(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            string candidate = Path.Combine(current.FullName, "shared", fileName);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        return Path.GetFullPath(Path.Combine("shared", fileName));
     }
 }

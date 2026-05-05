@@ -34,6 +34,7 @@ public sealed class AuthorityGrantHandlers
         }
 
         string key = LoadOrCreateSharedKey();
+
         if (!FixedTimeEquals(request.Key, key))
         {
             response.Initialize(AuthorityGrantStage.RESPONSE, ProtocolReason.UNAUTHORIZED);
@@ -41,6 +42,7 @@ public sealed class AuthorityGrantHandlers
         }
 
         context.Connection.Level = PermissionLevel.SYSTEM_ADMINISTRATOR;
+
         response.Initialize(
             AuthorityGrantStage.RESPONSE,
             ProtocolReason.NONE,
@@ -67,6 +69,7 @@ public sealed class AuthorityGrantHandlers
     private static string GetSharedKeyPath()
     {
         DirectoryInfo? current = new(AppContext.BaseDirectory);
+
         while (current is not null)
         {
             string candidate = Path.Combine(current.FullName, "shared");

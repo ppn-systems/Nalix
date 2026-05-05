@@ -45,8 +45,8 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
     public ProtocolReason Reason { get; set; }
 
     [SerializeOrder(3)]
-    [SerializeDynamicSize(4096)]
-    public Dictionary<string, object>? Data { get; set; }
+    [SerializeDynamicSize(32 * 1024)]
+    public Dictionary<string, string>? Data { get; set; }
 
     public GenerationReport() => this.ResetForPool();
 
@@ -54,7 +54,7 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
         GenerationReportStage stage,
         GenerationReportTarget target,
         ProtocolReason reason = ProtocolReason.NONE,
-        Dictionary<string, object>? data = null,
+        Dictionary<string, string>? data = null,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = OpCodeValue;
@@ -63,7 +63,7 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
         this.Stage = stage;
         this.Target = target;
         this.Reason = reason;
-        this.Data = data;
+        this.Data = data ?? new Dictionary<string, string>(StringComparer.Ordinal);
     }
 
     public override void ResetForPool()
