@@ -83,7 +83,7 @@ It maintains per-connection state and priority-ready queues.
 | Default priority weights | If `DispatchOptions.PriorityWeights` is absent or short, each missing weight uses `1 << priorityIndex`. |
 | Per-connection bounds | Enabled when `DispatchOptions.MaxPerConnectionQueue > 0`. |
 | Overflow handling | Uses `DropPolicy.DropNewest`, `DropOldest`, `Coalesce`, or `Block`; packet dispatch calls `PushCore(..., noBlock: true)`, so block-mode enqueue fails fast from `HandlePacket`. |
-| Cleanup | Subscribes to `IConnectionHub.ConnectionUnregistered` and drains/disposes queued leases for removed connections. |
+| Cleanup | `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs` subscribes to `IConnectionHub.ConnectionUnregistered` and drains/disposes queued leases for removed connections. |
 
 ## Execution and Disposal Guarantees
 
