@@ -35,7 +35,7 @@ The primary role of these extensions is to orchestrate the `SESSION_SIGNAL` flow
 - **State Awareness**: The SDK automatically determines if enough state (Token + Secret) exists to attempt a resume.
 - **Atomic Transition**: On a successful resume, the `TcpSession` immediately updates its restored security state and any rotated token returned by the server.
 - **Fallback Integrity**: In environments with short-lived session caches, the extensions provide a seamless transition from a failed resume to a fresh full handshake.
-- **Stable State**: If resume fails, the SDK preserves the session token so the caller can inspect or retry without losing reconnect state.
+- **Failure Signaling**: `ResumeSessionAsync(...)` returns a `ProtocolReason`, mapping timeout, cancellation, invalid state, and network failures into protocol-friendly result codes.
 
 ## 2. API Reference
 
@@ -99,6 +99,7 @@ if (session.Options.SessionToken != 0 && !session.Options.Secret.IsZero)
 - **Encryption Switch**: Upon a successful resume, the SDK automatically sets `Options.EncryptionEnabled = true`.
 - **Structural Validation**: Receiving a malformed or out-of-sequence resume response now throws a `NetworkException` thanks to strict structural validation via `IPacketValidatable`.
 - **Handshake Fallback**: `ConnectWithResumeAsync()` reconnects before falling back to a fresh handshake when resume fails.
+- **Resume State Check**: `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs` treats resume state as present only when `SessionToken != 0` and `Secret` is non-zero.
 - **MTU Considerations**: `SESSION_SIGNAL` packets are fixed at 52 bytes and are designed to fit within standard MTU windows.
 - **UDP Specifics**: These extensions target `TcpSession`, but a successful TCP handshake or resume also refreshes the `SessionToken` later used by `UdpSession`.
 
