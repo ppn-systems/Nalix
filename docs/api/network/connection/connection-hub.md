@@ -6,6 +6,7 @@
 
 - `src/Nalix.Abstractions/Networking/IConnection.Hub.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.cs`
+- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
 
 ## Why This Type Exists
 
@@ -62,9 +63,9 @@ When `MaxConnections` is enabled:
 
 To protect the server from memory exhaustion and ensure reliable state recovery:
 
-- **Auto-Persist on Unregister**: When a connection is closed or unregistered, the Hub automatically attempts to save its cryptographic state to the `ISessionStore`.
-- **DDoS Protection**: Persistence only occurs if the connection meets a minimum complexity threshold (`MinAttributesForPersistence`). This prevents attackers from filling the session store with millions of empty, "dead" sessions from incomplete handshakes.
-- **Fire-and-Forget Storage**: The storage operation is offloaded to the `ThreadPool` to ensure that unregistering a connection remains a low-latency operation.
+- **Auto-Persist on Unregister**: When `_sessionOptions.AutoSaveOnUnregister` is enabled, `TryUnregisterCore(...)` starts a background `StoreAsync(connection)` call on the configured `ISessionStore`.
+- **Policy lives in the session store**: The "only persist established, meaningful sessions" rule is enforced by `SessionStoreBase.StoreAsync(IConnection)`, including the handshake-established check and `MinAttributesForPersistence` threshold.
+- **Fire-and-forget storage**: Unregister stays low-latency because persistence failures are swallowed in the background helper instead of blocking removal.
 
 ### 4. Batched Broadcasting
 
@@ -102,4 +103,3 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 - [Connection Hub Options](../../options/network/connection-hub-options.md)
 - [Timing Wheel](../time/timing-wheel.md)
 - [Session Store](../session-store.md)
-

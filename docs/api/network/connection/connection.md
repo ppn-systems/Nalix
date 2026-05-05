@@ -6,6 +6,7 @@
 
 - `src/Nalix.Abstractions/Networking/IConnection.cs`
 - `src/Nalix.Network/Connections/Connection.cs`
+- `src/Nalix.Network/Internal/Transport/AsyncCallback.cs`
 
 ## Why This Type Exists
 
@@ -14,7 +15,7 @@ The `Connection` type provides a unified interface for specialized transport pro
 - **Identity**: Every connection is assigned a unique `Snowflake` ID.
 - **Security Context**: Stores the `Secret` and active `Algorithm` derived during handshake.
 - **Event Orchestration**: Bridges low-level socket-read events into structured `OnProcess` and `OnPostProcess` hooks.
-- **Resource Lifecycle**: Manages the cleanup of buffers, pooled metadata, and transport sockets.
+- **Resource Lifecycle**: Manages pooled event args, attribute state, transport sockets, and teardown sequencing.
 
 ## Architectural Pipeline
 
@@ -54,7 +55,10 @@ flowchart TD
 
 ### 1. High-Priority Event Bridging
 
-Connection uses "Bridges" to handle events. Importantly, **Disconnect/Close events are treated as high-priority** and bypass standard backpressure queues to ensure that system resources are released immediately, even if the processing thread pool is saturated.
+`Connection` wires socket callbacks into bridge methods and forwards packet/close work through `AsyncCallback`.
+
+- **High-priority close lane**: `OnCloseEventBridge(...)` uses `AsyncCallback.InvokeHighPriority(...)` so close/disconnect callbacks are not blocked by the normal packet queue.
+- **Normal packet lane**: `OnProcessEvent` and `OnPostProcessEvent` are still asynchronous work items, then each bridge disposes the pooled event args in `finally`.
 
 ### 2. Error Tracking (SEC-54)
 
@@ -65,7 +69,7 @@ The connection maintains an internal `ErrorCount`.
 
 ### 3. UDP Replay Protection
 
-Every connection instance maintains a `SlidingWindow` (UdpReplayWindow) to track sequence numbers for incoming UDP datagrams. This prevents replay attacks by immediately rejecting any packet with a sequence ID that has already been observed or falls outside the current window.
+The connection exposes a lazily-created `UdpReplayWindow` used by UDP receive paths when replay protection is enabled. This window tracks seen sequence numbers for incoming UDP datagrams and lets the UDP pipeline reject stale or replayed packets.
 
 ## Public APIs
 
@@ -92,7 +96,7 @@ Every connection instance maintains a `SlidingWindow` (UdpReplayWindow) to track
     Use `connection.Attributes` to store per-client state (e.g., UserId). These attributes use a pooled object map, meaning you can store and clear data without generating GC garbage.
 
 !!! warning "Avoid Blocking Handlers"
-    `OnProcessEvent` handlers are called directly from the receive loop. To maintain high throughput and low latency, heavy processing should be offloaded using `Task.Run` or handled via `AsyncCallback` configuration.
+    `OnProcessEvent` and `OnPostProcessEvent` are queued through `AsyncCallback` onto the `ThreadPool`, not invoked inline on the socket receive loop. Even so, blocking handlers still hold onto callback capacity and pooled resources longer than necessary, so keep handlers short and offload heavyweight work when needed.
 
 ## Related Information Paths
 

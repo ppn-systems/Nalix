@@ -67,14 +67,14 @@ Both `ConnectionEventArgs` and the internal `PooledConnectEventContext` are recy
 
 - **Two-Level Pooling**: `ConnectionEventArgs` are first attempted to be returned to a high-speed **local pool** on the `Connection` instance itself to minimize global lock contention. If the local pool is full, they fallback to the `ObjectPoolManager`.
 - They are rented before being sent to the `ThreadPool`.
-- They are strictly returned to the pool in a `finally` block after the user handler completes (or if the callback is throttled/dropped).
+- The normal and high-priority dispatcher paths both clean up in `finally`, while each bridge (`OnProcessEventBridge`, `OnPostProcessEventBridge`) also disposes the args after invoking the subscribed handlers.
 
 !!! warning "Handler Safety"
     Because `ConnectionEventArgs` is pooled, **you must not cache or store references to it** outside the scope of the event handler. Any data you need for long-term use should be copied into your own state objects.
 
-### 4. Buffer Lease Reclamation
+### 4. Lease Reclamation
 
-The `ConnectionEventArgs` carries a `BufferLease`.
+`ConnectionEventArgs` carries an `IBufferLease` through its `Lease` property.
 
 - For `OnProcess` events, the lease is automatically managed.
 - Once the callback completes throughout the entire pipeline (Normal lane), the dispatcher calls `connection.ReleasePendingPacket()`, which decrements the connection's "pending callback" counter and signals the transport layer that the next packet can be processed.
