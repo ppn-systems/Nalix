@@ -44,15 +44,25 @@
 }
 
 .report-nav-button {
+    align-items: flex-start;
     background: transparent;
     border: 1px solid transparent;
     border-radius: 6px;
     color: var(--dash-text-muted);
     cursor: pointer;
+    display: flex;
+    justify-content: flex-start;
     min-height: 52px;
     padding: 9px 10px;
     text-align: left;
     transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+    width: 100%;
+}
+
+.report-nav-button > span {
+    display: block;
+    min-width: 0;
+    text-align: left;
     width: 100%;
 }
 
@@ -72,6 +82,7 @@
 .report-nav-button small {
     display: block;
     overflow: hidden;
+    text-align: left;
     text-overflow: ellipsis;
     white-space: nowrap;
 }

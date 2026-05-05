@@ -45,7 +45,8 @@
                             <section class="@ReportRowClass(parsed)">
                                 <div class="report-row-key">@ReportValueParser.DisplayName(row.Key)</div>
                                 <div class="report-row-value">
-                                    <ReportValueView Model="parsed" />
+                                    <ReportValueView ReportKey="@row.Key"
+                                                     Model="parsed" />
                                 </div>
                             </section>
                         }

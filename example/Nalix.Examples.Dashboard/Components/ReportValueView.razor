@@ -20,6 +20,8 @@
         </dl>
         break;
     case ParsedReportValueKind.Records:
+        <ReportRecordChart ReportKey="ReportKey"
+                           Records="Model.Records" />
         <div class="record-list">
             @foreach (ParsedReportRecord record in Model.Records)
             {
@@ -54,6 +56,9 @@
 }
 
 @code {
+    [Parameter]
+    public string ReportKey { get; set; } = string.Empty;
+
     [Parameter, EditorRequired]
     public ParsedReportValue Model { get; set; } = ParsedReportValue.Empty;
 
@@ -63,7 +68,7 @@
     private static string FieldClass(ParsedReportField field)
     {
         string name = field.Name;
-        return IsLongValue(field.Value) || IsDateField(name, field.Value)
+        return IsLongValue(FormatValue(field.Value)) || IsDateField(name, field.Value)
             ? "record-field is-wide"
             : "record-field";
     }
@@ -72,15 +77,15 @@
     {
         string cssClass = "report-value";
 
-        if (IsDateValue(value))
+        if (ReportValueFormatter.IsDateValue(value))
         {
             cssClass += " is-date";
         }
-        else if (IsBooleanValue(value))
+        else if (ReportValueFormatter.IsBooleanValue(value))
         {
             cssClass += " is-bool";
         }
-        else if (IsCodeValue(value))
+        else if (ReportValueFormatter.IsCodeValue(value))
         {
             cssClass += " is-code";
         }
@@ -89,47 +94,14 @@
     }
 
     private static string FormatValue(string value)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return "-";
-        }
-
-        string trimmed = value.Trim();
-        if (DateTimeOffset.TryParse(
-            trimmed,
-            System.Globalization.CultureInfo.InvariantCulture,
-            System.Globalization.DateTimeStyles.AssumeUniversal,
-            out DateTimeOffset parsed))
-        {
-            return parsed.ToUniversalTime().ToString(
-                "yyyy-MM-dd HH:mm:ss 'UTC'",
-                System.Globalization.CultureInfo.InvariantCulture);
-        }
-
-        return trimmed;
-    }
+        => ReportValueFormatter.Format(value);
 
     private static bool IsDuplicateRecordTitle(string title, ParsedReportField field)
         => field.Name is "Name" or "Id" or "ID" &&
            title.Equals(field.Value, StringComparison.OrdinalIgnoreCase);
 
     private static bool IsDateField(string name, string value)
-        => name.Contains("Utc", StringComparison.OrdinalIgnoreCase) || IsDateValue(value);
-
-    private static bool IsDateValue(string value)
-        => value.Contains('T', StringComparison.Ordinal) &&
-           DateTimeOffset.TryParse(
-               value,
-               System.Globalization.CultureInfo.InvariantCulture,
-               System.Globalization.DateTimeStyles.AssumeUniversal,
-               out _);
-
-    private static bool IsBooleanValue(string value)
-        => bool.TryParse(value, out _);
-
-    private static bool IsCodeValue(string value)
-        => value.Length >= 12 && value.All(static c => Uri.IsHexDigit(c));
+        => name.Contains("Utc", StringComparison.OrdinalIgnoreCase) || ReportValueFormatter.IsDateValue(value);
 
     private static bool IsLongValue(string value)
         => value.Length > 28;

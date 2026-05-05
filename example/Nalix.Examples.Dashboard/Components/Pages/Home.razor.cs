@@ -44,12 +44,12 @@ public sealed partial class Home : IDisposable
 
     private async Task RefreshNow()
     {
-        if (SelectedReportTarget is not { } target)
+        if (this.SelectedReportTarget is not { } target)
         {
             return;
         }
 
-        await RefreshTargetAsync(target).ConfigureAwait(false);
+        await this.RefreshTargetAsync(target).ConfigureAwait(false);
     }
 
     private async Task RefreshTargetAsync(GenerationReportTarget target)
@@ -73,20 +73,20 @@ public sealed partial class Home : IDisposable
 
         if (target is not null && State.HasApiKey)
         {
-            await RefreshTargetAsync(target.Value).ConfigureAwait(false);
+            await this.RefreshTargetAsync(target.Value).ConfigureAwait(false);
         }
     }
 
     private Task SelectReportAsync(GenerationReportTarget target)
     {
         StateActions.SetReportNavigationOpen(true);
-        return SelectIndexAsync(DashboardReportTargets.IndexOf(target));
+        return this.SelectIndexAsync(DashboardReportTargets.IndexOf(target));
     }
 
     private Task SelectLogsAsync()
     {
         StateActions.SetReportNavigationOpen(true);
-        return SelectIndexAsync(DashboardReportTargets.Count);
+        return this.SelectIndexAsync(DashboardReportTargets.Count);
     }
 
     private void TogglePolling() => StateActions.SetPaused(!State.IsPollingPaused);

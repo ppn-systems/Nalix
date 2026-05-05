@@ -56,13 +56,13 @@
         <ReportNavigation IsOpen="State.IsReportNavigationOpen"
                           Targets="Targets"
                           SelectedReportTarget="SelectedReportTarget"
-                          Reports="reports"
+                          Reports="@reports"
                           LogsCount="State.Logs.Count"
                           ReportSelected="SelectReportAsync"
                           LogsSelected="SelectLogsAsync" />
 
         <ReportContent SelectedReportTarget="SelectedReportTarget"
-                       Reports="reports"
+                       Reports="@reports"
                        Logs="State.Logs"
                        ClearLogs="ClearLogs" />
     </div>

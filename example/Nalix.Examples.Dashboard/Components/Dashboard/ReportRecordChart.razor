@@ -1,0 +1,44 @@
+@using Nalix.Examples.Dashboard.Presentation.ReportValues
+
+@{
+    IReadOnlyList<ReportRecordChartRow> rows = ReportRecordChartBuilder.Build(ReportKey, Records);
+}
+
+@if (rows.Count > 0)
+{
+    <section class="record-chart" aria-label="Report record chart">
+        <div class="record-chart-head">
+            <span>Usage chart</span>
+            <strong>@rows.Count records</strong>
+        </div>
+
+        <div class="record-chart-rows">
+            @foreach (ReportRecordChartRow row in rows)
+            {
+                <div class="record-chart-row">
+                    <div class="record-chart-label">
+                        <strong>@row.Label</strong>
+                        <span>@row.MetricLabel</span>
+                    </div>
+                    <div class="record-chart-track" aria-hidden="true">
+                        <span style="@BarStyle(row)"></span>
+                    </div>
+                    <div class="record-chart-value">@row.ValueText</div>
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter]
+    public string ReportKey { get; set; } = string.Empty;
+
+    [Parameter]
+    public IReadOnlyList<ParsedReportRecord> Records { get; set; } = [];
+
+    private static string BarStyle(ReportRecordChartRow row)
+        => string.Create(
+            System.Globalization.CultureInfo.InvariantCulture,
+            $"width: {row.Percent:0.###}%;");
+}
