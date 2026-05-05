@@ -1,13 +1,13 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Security.Cryptography;
 using System.Diagnostics.CodeAnalysis;
+using System.Security.Cryptography;
 using System.Text;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
-using Nalix.Examples.Packets;
+using Nalix.Examples.Contracts.Packets;
 
 namespace Nalix.Examples.Backend.Handlers;
 
@@ -52,7 +52,7 @@ public sealed class AuthorityGrantHandlers
     private static string LoadOrCreateSharedKey()
     {
         string path = GetSharedKeyPath();
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        _ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
         if (File.Exists(path))
         {

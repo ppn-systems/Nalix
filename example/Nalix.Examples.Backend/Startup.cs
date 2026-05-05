@@ -3,16 +3,16 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
+using Nalix.Examples.Backend.Attributes;
+using Nalix.Examples.Backend.Handlers;
+using Nalix.Examples.Backend.Middleware;
+using Nalix.Examples.Contracts.Packets;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting;
 using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
-using Nalix.Examples.Backend.Attributes;
-using Nalix.Examples.Backend.Handlers;
-using Nalix.Examples.Backend.Middleware;
-using Nalix.Examples.Packets;
 using Nalix.Network.Options;
 using Nalix.Runtime.Options;
 
@@ -20,8 +20,8 @@ namespace Nalix.Examples.Backend;
 
 internal class Startup
 {
-    public const string ListenAddress = "0.0.0.0";
     public const ushort ListenPort = 57206;
+    public const string ListenAddress = "0.0.0.0";
 
     public static ILogger CreateBootstrapLogger() => new NLogix(
         cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true))

@@ -1,16 +1,16 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
-using System.Diagnostics.CodeAnalysis;
+using Nalix.Examples.Contracts.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Tasks;
-using Nalix.Examples.Packets;
 using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Examples.Backend.Handlers;
@@ -65,6 +65,7 @@ public sealed class GenerationReportHandlers
             GenerationReportTarget.BUFFERS => instances.GetExistingInstance<BufferPoolManager>(),
             GenerationReportTarget.CONNECTIONS => instances.GetExistingInstance<IConnectionHub>(),
             GenerationReportTarget.INSTANCES => instances,
+            GenerationReportTarget.NONE => throw new NotImplementedException(),
             _ => null
         };
 
