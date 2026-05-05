@@ -16,7 +16,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\..\shared\Nalix.Examples.Packets\Nalix.Examples.Packets.csproj" />
+		<ProjectReference Include="..\Nalix.Examples.Contracts\Nalix.Examples.Contracts.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
 	</ItemGroup>
