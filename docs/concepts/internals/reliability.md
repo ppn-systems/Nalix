@@ -5,6 +5,14 @@
 
 Nalix is built to be a resilient foundation for real-time systems. Our reliability model is built on three pillars: **Deterministic Execution**, **Fault Isolation**, and **Resource Discipline**.
 
+## Source Mapping
+
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
+- `src/Nalix.Abstractions/Networking/IConnectionErrorTracked.cs`
+- `tests/Nalix.Framework.Tests/Memory/BufferPoolTests.cs`
+
 ## 🛡️ Pillar 1: Deterministic Execution
 
 Nalix eliminates the "hidden races" common in multi-threaded networking by enforcing strict execution invariants.
@@ -47,10 +55,10 @@ Architects can verify these claims by auditing the following core components:
 
 | Component | Source Reference | Responsibility |
 |:---|:---|:---|
-| **Dispatch Channel** | [DispatchChannel.cs](https://github.com/ppn-systems/nalix/blob/master/src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs) | Ordering and Affinity |
-| **Worker Loop** | [PacketDispatchChannel.cs](https://github.com/ppn-systems/nalix/blob/master/src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs) | Fault Isolation & Cleanup |
-| **ErrorHandler** | [PacketDispatcherBase.cs](https://github.com/ppn-systems/nalix/blob/master/src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs) | Client Signaling (FAIL) |
-| **Pools** | [BufferPoolTests.cs](https://github.com/ppn-systems/nalix/blob/master/tests/Nalix.Framework.Tests/Memory/BufferPoolTests.cs) | Buffer Integrity |
+| **Dispatch Channel** | `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs` | Ordering and Affinity |
+| **Worker Loop** | `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs` | Fault Isolation & Cleanup |
+| **ErrorHandler** | `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs` | Client Signaling (FAIL) |
+| **Pools** | `tests/Nalix.Framework.Tests/Memory/BufferPoolTests.cs` | Buffer Integrity |
 
 ## Summary Decision
 

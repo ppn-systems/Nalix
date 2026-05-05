@@ -5,6 +5,12 @@
 
 When building high-concurrency networked systems, developers need to know exactly what the platform guarantees and what is left to the application logic. This page defines the operational contracts of the Nalix framework.
 
+## Source Mapping
+
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
+
 ## 1. Sequential Connection Processing
 
 Nalix guarantees that packets arriving from the **same connection** are processed strictly in order.
@@ -62,6 +68,6 @@ To avoid common pitfalls, be aware of what Nalix does **NOT** guarantee:
 
 ## Related Source Code
 
-- [PacketDispatchChannel.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs) — Worker loop and wake-up signaling.
-- [DispatchChannel.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs) — Connection-affinity and priority queuing.
-- [PacketDispatcherBase.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs) — Internal handler execution and error wrap.
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs` — Worker loop and wake-up signaling.
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs` — Connection-affinity and priority queuing.
+- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs` — Internal handler execution and error wrap.
