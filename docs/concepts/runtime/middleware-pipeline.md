@@ -32,7 +32,7 @@ Use it when:
 
 ## Low-Level Transformations
 
-Low-level buffer operations that were previously handled by "Buffer Middleware" (such as decryption, decompression, and raw frame validation) are now integrated into the **`FramePipeline`**. This pipeline is executed directly by the **Listeners** (TCP/UDP) at the transport layer to ensure maximum performance and zero-allocation processing of raw bytes.
+Low-level buffer operations such as decryption, decompression, and raw frame validation are integrated into the **`FramePipeline`**. This pipeline is executed directly by the **Listeners** (TCP/UDP) at the transport layer before the packet reaches runtime middleware.
 
 ## Execution Order
 

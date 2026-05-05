@@ -83,6 +83,8 @@ The UDP path still requires session identity and authentication. Think of it as 
 - Connection secret must be initialized
 - `IsAuthenticated(...)` can apply application-specific datagram checks after token, endpoint, and replay validation
 
+These points reflect the built-in listener flow in `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`, where datagrams are resolved by token first and then checked against the live connection state.
+
 ## Throttling and Protection
 
 Real-time systems fail fastest when they do not control pressure. Nalix integrates protection at multiple levels:
