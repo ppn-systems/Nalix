@@ -68,7 +68,7 @@ TransportOptions manualOptions = new()
 
 ## 3. Create and Connect a TCP Session
 
-A `TcpSession` uses the configured `TransportOptions` to establish TCP streams. After instantiating, you **must hook up the required events prior to calling `ConnectAsync()`**.
+A `TcpSession` uses the configured `TransportOptions` to establish TCP streams. In practice, you will usually register events before calling `ConnectAsync()` so you do not miss early connection or error signals.
 
 ```csharp
 using System;
@@ -107,16 +107,16 @@ async Task ConnectTcpStandardAsync()
         Console.WriteLine($"Received strongly-typed data: {packet.StatusMessage}");
     });
 
-    // 3. Initiate Connection Loop with Auto-Resume
-    // Automatically attempts to reconnect to the Socket. If you have an active SessionToken, 
-    // it performs a fast ResumeSessionAsync. If this is a fresh connection, it securely falls 
-    // back to a full HandshakeAsync.
+    // 3. Connect, try resume, then fall back to handshake when needed
+    // `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs` connects first,
+    // attempts resume only when ResumeEnabled + SessionToken + Secret are present,
+    // and reconnects before falling back to HandshakeAsync when configured to do so.
     Console.WriteLine("Connecting to server...");
     bool resumed = await session.ConnectWithResumeAsync();
     Console.WriteLine(resumed ? "Session resumed." : "Fresh handshake completed.");
     
     // At this point, the shared TransportOptions object contains the negotiated
-    // encryption state and the UDP session token assigned by the server.
+    // encryption state and the current session token assigned by the server.
     // ---------------------------------------------------------
 
     // 4. Ship Payloads
@@ -129,7 +129,7 @@ async Task ConnectTcpStandardAsync()
 ```
 
 !!! tip "Performance Edge-case Options"
-    The `On<T>` extension is designed for highest developer velocity. However, if you are looking to squeeze the literal maximum throughput bypassing C# class boxing, see our [Session APIs Guide](./session-apis.md) for dealing with raw byte buffer event loops (`OnMessageReceived`).
+    The `On<T>` extension is designed for highest developer velocity. If you need lower-level control, see our [Session APIs Guide](./session-apis.md) for raw `OnMessageReceived` / `OnMessageAsync` flows.
 
 !!! note "Performance Recommendation"
     While the SDK is mostly platform-agnostic, specialized socket options like `TCP_NODELAY` are enabled by default for gaming workloads.
@@ -137,7 +137,7 @@ async Task ConnectTcpStandardAsync()
 ## 4. Create and Connect a UDP Session (Auxiliary Channel)
 
 !!! note "TCP is Primary, UDP is Auxiliary"
-    In the Nalix architecture, **TCP is always the primary, stateful connection**. The `UdpSession` acts purely as an **auxiliary (secondary) channel** used strictly for high-frequency, unreliable data (like player movement coordinates or voice frames). A UDP session inherently depends on the TCP channel to authenticate and provide the mandated `SessionToken` before it can transmit anything!
+    In the Nalix architecture, **TCP is typically the primary, stateful connection**. The `UdpSession` acts as an auxiliary channel for high-frequency, unreliable data. In the common secured flow, the UDP session reuses the `SessionToken` established by the TCP handshake or resume path.
 
 `UdpSession` follows the same base transport contract, but handles datagrams instead of framed TCP streams. Because the primary TCP session already completed handshake or resume, the shared `options` object already holds the required `SessionToken`.
 
@@ -159,8 +159,7 @@ async Task ConnectUdpStandardAsync()
     // Connect to setup targeted UDP Socket (binding against Server IP and Port)
     await udp.ConnectAsync();
 
-    // Send UDP packets out naturally (Flags will automatically drop to UNRELIABLE)
-    // UDP internally prefixes the established SessionToken to all outbound datagrams.
+    // UDP internally prefixes the current SessionToken to all outbound datagrams.
     // await udp.SendAsync(new PlayerMovementPacket { X = 1, Y = 2, Z = 5 });
     
     await Task.Delay(-1);
@@ -171,7 +170,7 @@ async Task ConnectUdpStandardAsync()
     UDP payloads plus the 8-byte `SessionToken` prefix cannot exceed `TransportOptions.MaxUdpDatagramSize` (Default `1400` bytes). Large chunks of data must be routed through TCP protocols. Violating the MTU triggers local `NetworkException` halts.
 
 !!! info
-    The `Bytes32` primitive is used for the cryptographic secret to ensure zero-allocation memory pinned security during the entire lifecycle.
+    `TransportOptions.Secret` uses the `Bytes32` primitive in the current SDK source.
 
 ## 5. Common SDK Extensions
 
