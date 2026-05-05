@@ -24,7 +24,9 @@ public enum GenerationReportTarget : byte
     TASKS = 0x02,
     BUFFERS = 0x03,
     CONNECTIONS = 0x04,
-    INSTANCES = 0x05
+    INSTANCES = 0x05,
+    OBJECT_POOLS = 0x06,
+    CONNECTION_GUARD = 0x07
 }
 
 [Packet]
@@ -45,8 +47,8 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
     public ProtocolReason Reason { get; set; }
 
     [SerializeOrder(3)]
-    [SerializeDynamicSize(32 * 1024)]
-    public Dictionary<string, string>? Data { get; set; }
+    [SerializeDynamicSize(64 * 1024)]
+    public string DataJson { get; set; } = string.Empty;
 
     public GenerationReport() => this.ResetForPool();
 
@@ -54,7 +56,7 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
         GenerationReportStage stage,
         GenerationReportTarget target,
         ProtocolReason reason = ProtocolReason.NONE,
-        Dictionary<string, string>? data = null,
+        string? dataJson = null,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = OpCodeValue;
@@ -63,7 +65,7 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
         this.Stage = stage;
         this.Target = target;
         this.Reason = reason;
-        this.Data = data ?? new Dictionary<string, string>(StringComparer.Ordinal);
+        this.DataJson = dataJson ?? "{}";
     }
 
     public override void ResetForPool()
@@ -75,7 +77,7 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
         this.Stage = GenerationReportStage.NONE;
         this.Target = GenerationReportTarget.NONE;
         this.Reason = ProtocolReason.NONE;
-        this.Data = null;
+        this.DataJson = string.Empty;
     }
 
     public bool Validate([NotNullWhen(false)] out string? failureReason)
@@ -84,7 +86,7 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
         {
             GenerationReportStage.REQUEST => this.Target != GenerationReportTarget.NONE,
             GenerationReportStage.RESPONSE => this.Target != GenerationReportTarget.NONE &&
-                                              (this.Reason != ProtocolReason.NONE || this.Data is not null),
+                                              (this.Reason != ProtocolReason.NONE || !string.IsNullOrWhiteSpace(this.DataJson)),
             GenerationReportStage.NONE or _ => false
         };
 

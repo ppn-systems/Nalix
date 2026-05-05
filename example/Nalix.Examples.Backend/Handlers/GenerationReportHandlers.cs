@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Text;
+using System.Text.Json;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -12,7 +12,9 @@ using Nalix.Abstractions.Security;
 using Nalix.Examples.Contracts.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
+using Nalix.Network.RateLimiting;
 using Nalix.Runtime.Dispatching;
 
 namespace Nalix.Examples.Backend.Handlers;
@@ -22,7 +24,7 @@ public sealed class GenerationReportHandlers
 {
     private const int MaxDepth = 4;
     private const int MaxItemsPerCollection = 24;
-    private const int MaxValueLength = 2048;
+    private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web);
 
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
@@ -48,13 +50,13 @@ public sealed class GenerationReportHandlers
         }
 
         IDictionary<string, object> raw = reportable!.GetReportData();
-        Dictionary<string, string> data = NormalizeReportData(raw);
+        string dataJson = NormalizeReportData(raw);
 
         response.Initialize(
             GenerationReportStage.RESPONSE,
             request.Target,
             ProtocolReason.NONE,
-            data);
+            dataJson);
 
         return ValueTask.FromResult(response);
     }
@@ -70,6 +72,8 @@ public sealed class GenerationReportHandlers
             GenerationReportTarget.BUFFERS => instances.GetExistingInstance<BufferPoolManager>(),
             GenerationReportTarget.CONNECTIONS => instances.GetExistingInstance<IConnectionHub>(),
             GenerationReportTarget.INSTANCES => instances,
+            GenerationReportTarget.OBJECT_POOLS => instances.GetExistingInstance<ObjectPoolManager>(),
+            GenerationReportTarget.CONNECTION_GUARD => instances.GetExistingInstance<ConnectionGuard>(),
             GenerationReportTarget.NONE => throw new NotImplementedException(),
             _ => null
         };
@@ -77,23 +81,23 @@ public sealed class GenerationReportHandlers
         return reportable is not null;
     }
 
-    private static Dictionary<string, string> NormalizeReportData(IDictionary<string, object> raw)
+    private static string NormalizeReportData(IDictionary<string, object> raw)
     {
-        Dictionary<string, string> data = new(raw.Count, StringComparer.Ordinal);
+        Dictionary<string, object?> data = new(raw.Count, StringComparer.Ordinal);
 
         foreach (KeyValuePair<string, object> row in raw)
         {
-            data[row.Key] = Limit(FormatReportValue(row.Value, depth: 0));
+            data[row.Key] = NormalizeJsonValue(row.Value, depth: 0);
         }
 
-        return data;
+        return JsonSerializer.Serialize(data, s_jsonOptions);
     }
 
-    private static string FormatReportValue(object? value, int depth)
+    private static object? NormalizeJsonValue(object? value, int depth)
     {
         if (value is null)
         {
-            return string.Empty;
+            return null;
         }
 
         if (depth >= MaxDepth)
@@ -101,83 +105,89 @@ public sealed class GenerationReportHandlers
             return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
         }
 
-        if (value is string text)
+        if (value is string or bool or byte or sbyte or short or ushort or int or uint or long or ulong or decimal)
         {
-            return text;
+            return value;
         }
 
-        if (value is IFormattable formattable)
+        if (value is double doubleValue)
         {
-            return formattable.ToString(null, CultureInfo.InvariantCulture);
+            return double.IsFinite(doubleValue)
+                ? doubleValue
+                : doubleValue.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (value is float floatValue)
+        {
+            return float.IsFinite(floatValue)
+                ? floatValue
+                : floatValue.ToString(CultureInfo.InvariantCulture);
+        }
+
+        if (value is DateTime or DateTimeOffset)
+        {
+            return value;
+        }
+
+        if (value is DateOnly or TimeOnly or TimeSpan)
+        {
+            return Convert.ToString(value, CultureInfo.InvariantCulture);
+        }
+
+        if (value is Enum)
+        {
+            return value.ToString();
         }
 
         if (value is System.Collections.IDictionary dictionary)
         {
-            return FormatDictionary(dictionary, depth);
+            return NormalizeDictionary(dictionary, depth);
         }
 
         if (value is System.Collections.IEnumerable sequence)
         {
-            return FormatSequence(sequence, depth);
+            return NormalizeSequence(sequence, depth);
         }
 
         return Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
     }
 
-    private static string FormatDictionary(System.Collections.IDictionary dictionary, int depth)
+    private static Dictionary<string, object?> NormalizeDictionary(System.Collections.IDictionary dictionary, int depth)
     {
-        StringBuilder builder = new();
+        Dictionary<string, object?> data = new(dictionary.Count, StringComparer.Ordinal);
         int count = 0;
 
         foreach (System.Collections.DictionaryEntry entry in dictionary)
         {
             if (count >= MaxItemsPerCollection)
             {
-                _ = builder.Append(", ...");
                 break;
             }
 
-            if (count > 0)
-            {
-                _ = builder.Append(", ");
-            }
-
-            _ = builder.Append(Convert.ToString(entry.Key, CultureInfo.InvariantCulture));
-            _ = builder.Append(": ");
-            _ = builder.Append(FormatReportValue(entry.Value, depth + 1));
+            string key = Convert.ToString(entry.Key, CultureInfo.InvariantCulture) ?? string.Empty;
+            data[key] = NormalizeJsonValue(entry.Value, depth + 1);
             count++;
         }
 
-        return builder.ToString();
+        return data;
     }
 
-    private static string FormatSequence(System.Collections.IEnumerable sequence, int depth)
+    private static List<object?> NormalizeSequence(System.Collections.IEnumerable sequence, int depth)
     {
-        StringBuilder builder = new();
+        List<object?> data = [];
         int count = 0;
 
         foreach (object? item in sequence)
         {
             if (count >= MaxItemsPerCollection)
             {
-                _ = builder.Append(", ...");
                 break;
             }
 
-            if (count > 0)
-            {
-                _ = builder.Append(", ");
-            }
-
-            _ = builder.Append(FormatReportValue(item, depth + 1));
+            data.Add(NormalizeJsonValue(item, depth + 1));
             count++;
         }
 
-        return builder.ToString();
+        return data;
     }
-
-    private static string Limit(string value)
-        => value.Length <= MaxValueLength
-            ? value
-            : string.Concat(value.AsSpan(0, MaxValueLength), "...");
 }
