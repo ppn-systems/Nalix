@@ -24,7 +24,7 @@ The handshake consists of 4 stages managed by the `Handshake` packet and `Handsh
 
 ## 2. Cryptographic Construction
 
-`HandshakeX25519` is the helper used to derive the shared secret, transcript hash, proofs, and final session key used by the transport after a successful handshake.
+`HandshakeX25519` is the helper used to derive the master secret, transcript hash, proofs, and final session key used by the transport after a successful handshake.
 
 ### Hashing Strategy (`HandshakeX25519`)
 
@@ -45,7 +45,7 @@ The protocol derives its master secret from:
 
 ## 3. Server Implementation
 
-The server-side state machine is implemented in `HandshakeHandlers`. It tracks the handshake state using the connection's `Attributes` during the negotiation phase.
+The server-side state machine is implemented in `HandshakeHandlers`. It tracks negotiation state through `connection.Attributes`, specifically `ConnectionAttributes.HandshakeState` during the handshake and `ConnectionAttributes.HandshakeEstablished` once the handshake completes.
 
 ### Cryptographic Methods (`HandshakeX25519`)
 
@@ -64,7 +64,7 @@ Upon `CLIENT_FINISH` verification, the handler:
 1. Derives the 32-byte session key.
 2. Sets `connection.Secret` and `connection.Algorithm` (ChaCha20Poly1305).
 3. Marks the connection as established through the built-in connection attribute key.
-4. Creates a resumable session snapshot through `ISessionStore` and persists it through the network session store.
+4. Persists resumable session state through `IConnectionHub.SessionStore.StoreAsync(connection)` when a hub is available.
 5. Returns a `SessionToken` to the client in `SERVER_FINISH`.
 
 ---
@@ -93,9 +93,9 @@ await session.SendAsync(new SecurePacket());
 - **Identity Authentication**: By configuring `ServerPublicKey` on the client and a server certificate path on the server, the handshake performs a key agreement that lets the client pin the server identity. **Anonymous handshakes are strictly forbidden** to prevent MitM attacks.
 - **Mandatory Identity**: The client must be configured with `TransportOptions.ServerPublicKey` to pin the server identity. On the server, the identity key is loaded from `certificate.private` in the configuration directory by default, or from a custom path supplied through hosting configuration.
 - **Structural Validation**: All stages are strictly validated via `IPacketValidatable` to prevent malformed packets or stage confusion attacks before any cryptography is performed.
-- **Zero-Allocation**: Handshake packets are pooled via `PacketBase`.
+- **Pooled packets**: Both server replies are created through `PacketFactory<Handshake>.Acquire()` in `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`.
 - **Transcript Integrity**: Any modification to keys or nonces during transit will cause a `TranscriptHash` mismatch, resulting in an immediate `ProtocolReason.CHECKSUM_FAILED` rejection.
-- **Resume Token**: The session token now comes from the session store and can be rotated on resume. Treat the token as resumable session state, not as a cryptographic secret by itself.
+- **Resume Token**: The initial handshake finish sets `SessionToken = connection.ID.ToUInt64()` in `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`. Treat the token as resumable session state, not as a cryptographic secret by itself.
 
 ---
 
