@@ -230,8 +230,8 @@ When using `Nalix.Hosting`, use the builder to scan assemblies:
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    .AddPacket<PingRequest>()        // Scans the assembly containing PingRequest
-    .AddHandlers<PingHandler>()
+    .ScanPackets<PingRequest>()        // Scans the assembly containing PingRequest
+    .ScanHandlers<PingHandler>()
     .Build();
 ```
 

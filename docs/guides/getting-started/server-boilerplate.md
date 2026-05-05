@@ -39,11 +39,11 @@ using var app = NetworkApplication.CreateBuilder()
     // 2.5. Configure Zero-Allocation Buffer Pooling
     .ConfigureBufferPoolManager(new BufferPoolManager(NLogix.Host.Instance))
     // Add your packet contracts
-    .AddPacket<MyPingPacket>()
+    .ScanPackets<MyPingPacket>()
     // Register your logic controllers
     .AddHandler<MyPingHandler>()
     // Attach the transport protocol
-    .AddTcp<MyProtocol>()
+    .BindTcp<MyProtocol>().Bind()
     .Build();
 
 // 3. Start the event loops

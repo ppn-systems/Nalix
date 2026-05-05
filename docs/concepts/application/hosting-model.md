@@ -22,9 +22,9 @@ InstanceManager.Instance.Register<IDatabase>(new MyMongoDatabase());
 
 // 2. Configure Listeners
 builder.ConfigureCertificate("path/to/certificate.private")
-       .AddTcpListener(options => {
-           options.Port = 8080;
-       });
+       .BindTcp<MyProtocol>()
+       .OnPort(8080)
+       .Bind();
 
 var app = builder.Build();
 
@@ -32,7 +32,7 @@ var app = builder.Build();
 app.UseMiddleware<AuthMiddleware>();
 
 // 4. Register Handlers
-builder.AddHandlers<GameMarker>(); // Explicitly registers handlers from the assembly
+builder.ScanHandlers<GameMarker>(); // Explicitly registers handlers from the assembly
 
 await app.RunAsync();
 ```
@@ -52,7 +52,7 @@ While you can use the low-level `Nalix.Network` APIs directly, the Hosting model
 
 - **Extreme Performance**: Uses the `InstanceManager` for zero-allocation service resolution.
 - **Configuration**: Automatic binding to INI-based configuration sources (server.ini, client.ini).
-- **Explicit Registration**: Handlers are registered explicitly via `builder.AddHandlers<TMarker>()`, ensuring predictable startup behavior.
+- **Explicit Registration**: Handlers are registered explicitly via `builder.ScanHandlers<TMarker>()`, ensuring predictable startup behavior.
 - **Logging**: Integrated logging via `ILogger` abstractions.
 
 ## Related Topics

@@ -100,9 +100,9 @@ BufferPoolManager pool = new();
 using var app = NetworkApplication.CreateBuilder()
     .ConfigureBufferPoolManager(pool)
     .Configure<NetworkSocketOptions>(options => options.Port = 57206)
-    .AddPacket<JoinRequest>() // Scans the marker assembly for contracts
-    .AddHandlers<MyHandlers>() // Scans the marker assembly for controllers
-    .AddTcp<MyProtocol>()
+    .ScanPackets<JoinRequest>() // Scans the marker assembly for contracts
+    .ScanHandlers<MyHandlers>() // Scans the marker assembly for controllers
+    .BindTcp<MyProtocol>().Bind()
     .Build();
 
 await app.RunAsync();
@@ -120,8 +120,8 @@ public sealed class MyProtocol : IProtocol
 
 ### Builder Semantics
 
-- `AddPacket<TMarker>()` scans the assembly that contains `TMarker`.
-- `AddHandlers<TMarker>()` scans the assembly that contains `TMarker`.
+- `ScanPackets<TMarker>()` scans the assembly that contains `TMarker`.
+- `ScanHandlers<TMarker>()` scans the assembly that contains `TMarker`.
 - `AddHandler<THandler>()` registers one handler type directly.
 - `ConfigureConnectionHub(...)` and `ConfigureBufferPoolManager(...)` are optional, but make host wiring explicit.
 - `ConfigureBufferPoolManager(...)` is recommended for high-throughput servers to keep receive/send buffers on pooled paths end-to-end.
