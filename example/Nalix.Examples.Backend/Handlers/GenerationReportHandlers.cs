@@ -67,14 +67,14 @@ public sealed class GenerationReportHandlers
 
         reportable = target switch
         {
-            GenerationReportTarget.DISPATCH => instances.GetExistingInstance<IPacketDispatch>(),
+            GenerationReportTarget.INSTANCES => instances,
+            GenerationReportTarget.NONE => throw new NotImplementedException(),
             GenerationReportTarget.TASKS => instances.GetExistingInstance<TaskManager>(),
+            GenerationReportTarget.DISPATCH => instances.GetExistingInstance<IPacketDispatch>(),
             GenerationReportTarget.BUFFERS => instances.GetExistingInstance<BufferPoolManager>(),
             GenerationReportTarget.CONNECTIONS => instances.GetExistingInstance<IConnectionHub>(),
-            GenerationReportTarget.INSTANCES => instances,
             GenerationReportTarget.OBJECT_POOLS => instances.GetExistingInstance<ObjectPoolManager>(),
             GenerationReportTarget.CONNECTION_GUARD => instances.GetExistingInstance<ConnectionGuard>(),
-            GenerationReportTarget.NONE => throw new NotImplementedException(),
             _ => null
         };
 
