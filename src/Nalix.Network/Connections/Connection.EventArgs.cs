@@ -16,7 +16,7 @@ namespace Nalix.Network.Connections;
 /// <remarks>
 /// This class is sealed to prevent derivation and ensure consistent behavior for connection event arguments.
 /// </remarks>
-public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolable
+public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolable, IPoolRentable
 {
     #region Fields
 
@@ -24,28 +24,6 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     private IBufferLease? _lease;
 
     #endregion Fields
-
-    #region Constructors
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with the specified connection.
-    /// </summary>
-    public ConnectionEventArgs()
-    {
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with the specified connection.
-    /// </summary>
-    /// <param name="connection">The connection associated with the event.</param>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="connection"/> is null.</exception>
-    public ConnectionEventArgs(IConnection connection)
-    {
-        _ = Interlocked.Exchange(ref _returnedToPool, 1);
-        this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when creating ConnectionEventArgs");
-    }
-
-    #endregion Constructors
 
     #region Properties
 
@@ -73,36 +51,49 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
 
     #endregion Properties
 
+    #region Constructors
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ConnectionEventArgs"/> class with the specified connection.
+    /// </summary>
+    public ConnectionEventArgs()
+    {
+    }
+
+    #endregion Constructors
+
     #region APIs
 
     /// <inheritdoc />
-    public void Initialize(IConnection connection)
+    internal void Initialize(IConnection connection)
     {
-        _ = Interlocked.Exchange(ref _returnedToPool, 0);
         _lease?.Dispose();
         _lease = null;
         this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
     }
 
     /// <inheritdoc />
-    public void Initialize([Borrowed] IBufferLease lease, IConnection connection)
+    internal void Initialize([Borrowed] IBufferLease lease, IConnection connection)
     {
-        _ = Interlocked.Exchange(ref _returnedToPool, 0);
         if (!ReferenceEquals(_lease, lease))
         {
             _lease?.Dispose();
         }
+
         _lease = lease ?? throw new ArgumentNullException(nameof(lease), "Buffer lease cannot be null when initializing ConnectionEventArgs with a buffer");
         this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
     }
 
     /// <inheritdoc />
-    public IBufferLease? ExchangeLease([Borrowed] IBufferLease? newLease)
+    internal IBufferLease? ExchangeLease([Borrowed] IBufferLease? newLease)
     {
         IBufferLease? old = _lease;
         _lease = newLease;
         return old;
     }
+
+    /// <inheritdoc />
+    public void OnRent() => _ = Interlocked.Exchange(ref _returnedToPool, 0);
 
     /// <inheritdoc />
     public void ResetForPool()
