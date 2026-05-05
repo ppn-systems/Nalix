@@ -1,6 +1,6 @@
 # Transport Options
 
-`TransportOptions` is the central configuration class for client connectivity in `Nalix.SDK`. It inherits from `ConfigurationLoader`, allowing it to be loaded from INI, JSON, or environment variables via the `ConfigurationManager`.
+`TransportOptions` is the central configuration class for client connectivity in `Nalix.SDK`. It inherits from `ConfigurationLoader`, so it can be loaded through `ConfigurationManager` from the active INI configuration.
 
 ## Source mapping
 
@@ -8,7 +8,7 @@
 
 ## Role and Design
 
-Tuning a network client involves balancing latency, memory usage, and resilience. `TransportOptions` provides a strongly-typed interface to control these trade-offs. It includes built-in validation to prevent common misconfigurations like buffer sizes that are too small or invalid port ranges.
+Tuning a network client involves balancing latency, memory usage, and resilience. `TransportOptions` provides a strongly-typed interface to control these trade-offs through declarative properties and data-annotation constraints.
 
 - **Resilient Connectivity**: Built-in exponential backoff for reconnection.
 - **Performance Tuning**: Control over TCP Nagle's algorithm (`NoDelay`) and MTU limits.
@@ -50,35 +50,26 @@ Tuning a network client involves balancing latency, memory usage, and resilience
 | --- | --- | --- |
 | `CompressionEnabled` | `true` | Enables LZ4 compression for outbound packets. |
 | `CompressionThreshold` | `512` | Minimum bytes to trigger compression. |
-| `EncryptionEnabled` | `true` | Enables AEAD packet encryption. |
+| `EncryptionEnabled` | `false` | Enables AEAD packet encryption. |
 | `Algorithm` | `Chacha20Poly1305` | Cipher suite for encrypted communication. |
-| `ServerPublicKey` | `null` | **[NEW]** Pinned X25519 Public Key (Hex) for server identity verification. |
-| `Secret` | `Bytes32.Zero` | **[Ignored]** Runtime zero-allocation encryption key. |
+| `ServerPublicKey` | `null` | Pinned X25519 Public Key (Hex) for server identity verification. |
+| `Secret` | `Bytes32.Zero` | **[ConfiguredIgnore]** Runtime encryption key populated after handshake or resume. |
 
 ### Session Resume & Time Sync
 
 | Property | Default | Description |
 | --- | --- | --- |
-| `SessionToken` | `default` | **[Ignored]** Runtime session token for resume flows. |
+| `SessionToken` | `0` | **[ConfiguredIgnore]** Runtime session token for resume and UDP flows. |
 | `ResumeEnabled` | `true` | Attempts session resume before full handshake. |
 | `ResumeTimeoutMillis` | `3000` | Timeout for resume request/response. |
 | `ResumeFallbackToHandshake` | `true` | Reconnects with full handshake when resume fails. |
 | `TimeSyncEnabled` | `true` | Allows this session to update the global clock during sync. |
-
-## Validation
-
-The `Validate()` method should be called after loading configuration to ensure constraints are met. Common validation errors include:
-
-- `Port` outside [1, 65535].
-- `BufferSize` outside [2KB, 10MB].
-- `ReconnectBaseDelayMillis` > `ReconnectMaxDelayMillis`.
 
 ## Basic usage
 
 ```csharp
 var options = ConfigurationManager.Instance.Get<TransportOptions>();
 options.Address = "server.example.com";
-options.Validate();
 
 var client = new TcpSession(options, catalog);
 ```

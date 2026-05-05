@@ -98,14 +98,16 @@ Nalix enforces mandatory security. Before running the server, you must generate 
 
 ```bash
 # Clean and run the certificate tool
-dotnet run --project tools/Nalix.Certificate
+dotnet run --project tools/Nalix.Certificate/Nalix.Certificate.csproj
 ```
 
-This will generate `certificate.private` and `certificate.public` in your application's identity folder. The server will automatically load the default identity during `Build()`. If your certificate files live somewhere else, call `ConfigureCertificate(...)` before `Build()` so the hosting builder passes that path to the handshake subsystem.
+This generates `certificate.private` and `certificate.public` in `Directories.ConfigurationDirectory`. The server automatically loads the default private identity during `Build()`. If your certificate files live somewhere else, call `ConfigureCertificate(...)` before `Build()` so the hosting builder passes that path to the handshake subsystem.
 
 ```csharp
-using var app = NetworkApplication.CreateBuilder()
-    .ConfigureCertificate("./identity/certificate.private")
+var builder = NetworkApplication.CreateBuilder()
+    .ConfigureCertificate("./identity/certificate.private");
+
+using var app = builder
     // Add packets, handlers, and listeners here.
     .Build();
 ```
@@ -180,6 +182,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
 Nalix SDK provides a `TcpSession` that handles reconnection and type-safe request correlation automatically.
 
 ```csharp
+using System;
 using Contracts;
 using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
@@ -196,6 +199,7 @@ var registry = factory.CreateCatalog();
 var options = new TransportOptions { Address = "127.0.0.1", Port = 5000 };
 using var client = new TcpSession(options, registry);
 await client.ConnectAsync();
+await client.HandshakeAsync();
 
 // 3. Request/Response (Type-Safe)
 var response = await client.RequestAsync<PingResponse>(
@@ -242,4 +246,3 @@ sequenceDiagram
     Checklist for high-traffic deployments.
 
 </div>
-

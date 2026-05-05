@@ -91,7 +91,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
-        _args = new ConnectionEventArgs(this);
+        _args = s_pool.Get<ConnectionEventArgs>();
+        _args.Initialize(this);
+
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
 
@@ -204,8 +206,14 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// </summary>
     internal void InjectIncoming(BufferLease lease)
     {
+        ConnectionEventArgs? args = this.AcquireEventArgs();
+
+        if (args == null)
+        {
+            return;
+        }
+
         this.Socket.IncrementPendingCallbacks();
-        ConnectionEventArgs args = this.AcquireEventArgs() ?? new ConnectionEventArgs(this);
         args.Initialize(lease, this);
 
         if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
@@ -292,7 +300,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                     signaledHere = true;
                     if (_onCloseEvent != null)
                     {
-                        ConnectionEventArgs closeArgs = new(this);
+                        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+                        args.Initialize(this);
+
                         try
                         {
                             Delegate[] handlers = _onCloseEvent.GetInvocationList();
@@ -300,7 +310,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                             {
                                 try
                                 {
-                                    handler(this, closeArgs);
+                                    handler(this, args);
                                 }
                                 catch (Exception handlerEx) when (ExceptionClassifier.IsNonFatal(handlerEx))
                                 {
@@ -313,7 +323,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
                         }
                         finally
                         {
-                            closeArgs.Dispose();
+                            args.Dispose();
                         }
                     }
                 }

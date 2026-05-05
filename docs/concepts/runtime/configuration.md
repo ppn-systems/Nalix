@@ -7,16 +7,19 @@
 
 This page explains how configuration becomes a running Nalix server. It covers the startup wiring sequence, option validation, service registration, and the relationship between configuration, dispatch, and transport.
 
+## Source Mapping
+
+- `src/Nalix.Environment/Configuration/ConfigurationManager.cs`
+- `src/Nalix.Hosting/Bootstrap.cs`
+- `src/Nalix.Hosting/NetworkApplicationBuilder.cs`
+
 ## The Short Version
 
 Nalix startup follows a strict deterministic sequence to ensure that shared infrastructure is ready before traffic starts.
 
 ### Environment-Aware Bootstrapping
 
-Nalix includes a built-in `Bootstrap` system that automatically tunes the framework for its environment:
-
-- **Server Environment**: Uses `server.ini`. Optimized for high throughput with **Object Pooling enabled** for all packets.
-- **SDK / Client Environment**: Uses `client.ini`. Optimized for simplicity with **Object Pooling disabled** to prevent memory leaks in managed client runtimes (like Unity/Godot) where explicit disposal might be missed.
+Nalix configuration is centered around `ConfigurationManager` and the active INI file under `Directories.ConfigurationDirectory`. The exact file path can be changed with `SetConfigFilePath(...)`, and the current implementation constrains that path to the configuration directory.
 
 ```mermaid
 flowchart LR
@@ -52,7 +55,7 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 | `TimingWheelOptions` | O(1) timeout scheduling for idle connections |
 
 !!! tip "Validation Habit"
-    Always call `Validate()` on your options immediately after binding. Use the configuration layer to prevent the server from starting with "garbage" values.
+    Call `Validate()` on option types that actually expose it. Use the configuration layer to fail early instead of discovering bad values during live traffic.
 
 ---
 
@@ -76,7 +79,7 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 After configuration and shared services are ready, the dispatch and transport layers are initialized.
 
 - **Dispatch**: Where the application becomes "real". It holds middleware and handlers.
-- **Listener**: The binary shell. It owns socket acceptance, receive loops, and the `FramePipeline` (AEAD).
+- **Listener**: The binary shell. It owns socket acceptance, receive workers, and the `FramePipeline` (AEAD).
 - **Protocol**: The bridge that receives "clean" messages from the listener and routes them to dispatch.
 
 ### A Safe Startup Pattern

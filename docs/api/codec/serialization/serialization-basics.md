@@ -1,6 +1,6 @@
 # Serialization Basics
 
-`Nalix.Framework.Serialization` provides the serializer entry point and formatter resolution layer used by the framework and packet system.
+`Nalix.Codec.Serialization` provides the serializer entry point and formatter resolution layer used by the framework and packet system.
 
 Use this page when you want the lower-level model behind `LiteSerializer` and `FormatterProvider`.
 
@@ -134,7 +134,7 @@ Span-backed serialization wraps the caller buffer directly. If the formatter wri
     `SerializerBounds.MaxArray` and `SerializerBounds.MaxString` are populated at startup from
     `SerializationOptions` (loaded via `ConfigurationManager`). The defaults are `1_048_576` (1 M) for both.
     `SerializationOptions.MaxWriterCapacity` (default 128 MB) caps individual `DataWriter` buffer expansions.
-    Adjust these values in `server.ini` to harden against malformed or oversized deserialization payloads.
+    Adjust these values in the active configuration file managed by `ConfigurationManager` to harden against malformed or oversized deserialization payloads.
 
 ## Built-in formatter details
 

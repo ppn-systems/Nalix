@@ -3,7 +3,7 @@
 `PacketDispatchChannel` is the runtime bridge between retained transport buffers and
 application packet handlers. It owns the background worker loops, wakes workers when
 new packets are queued, deserializes packets through the registered packet registry,
-and guarantees that packet and buffer leases are disposed after dispatch completes.
+and disposes packet and buffer leases after dispatch completes.
 
 ## Source Mapping
 
@@ -68,7 +68,8 @@ Math.Clamp(
     Options.MaxDrainPerWake)
 ```
 
-Default option values make this clamp resolve within `64..2048` with multiplier `8`.
+Default option values make this clamp resolve within a bounded range derived from
+`Environment.ProcessorCount` and the configured drain multipliers in `PacketDispatchOptions`.
 
 ## DispatchChannel Queue Behavior
 
@@ -82,7 +83,7 @@ It maintains per-connection state and priority-ready queues.
 | Default priority weights | If `DispatchOptions.PriorityWeights` is absent or short, each missing weight uses `1 << priorityIndex`. |
 | Per-connection bounds | Enabled when `DispatchOptions.MaxPerConnectionQueue > 0`. |
 | Overflow handling | Uses `DropPolicy.DropNewest`, `DropOldest`, `Coalesce`, or `Block`; packet dispatch calls `PushCore(..., noBlock: true)`, so block-mode enqueue fails fast from `HandlePacket`. |
-| Cleanup | Subscribes to `IConnectionHub.ConnectionUnregistered` and drains/disposes queued leases for removed connections. |
+| Cleanup | `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs` subscribes to `IConnectionHub.ConnectionUnregistered` and drains/disposes queued leases for removed connections. |
 
 ## Execution and Disposal Guarantees
 

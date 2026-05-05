@@ -23,7 +23,8 @@ classDiagram
         +OnMessageAsync: Event
     }
     class UdpSession {
-        +SessionToken: Snowflake
+        +SessionToken: ulong
+        +OnMessageAsync: Event
     }
     TransportSession <|-- TcpSession
     TransportSession <|-- UdpSession
@@ -38,9 +39,9 @@ classDiagram
 The abstract session sits between application code and the socket layer. It keeps higher-level code focused on packets instead of byte buffers, and it lets the SDK build request/response helpers, subscriptions, handshake flows, and diagnostics on top of the same contract.
 
 - **Unified lifecycle**: `ConnectAsync()` -> send/receive -> `DisconnectAsync()` -> `Dispose()`.
-- **Shared packet registry**: `Catalog` resolves packet types for both raw and typed helpers.
+- **Shared packet registry**: `Catalog` resolves packet types for typed helpers and packet-aware extension methods.
 - **Raw and typed receive paths**: `OnMessageReceived` exposes `IBufferLease`, while typed helpers like `On<T>()` and `RequestAsync<TResponse>()` live in extension APIs.
-- **Protocol-specific overrides**: `TcpSession` adds reliable stream semantics, while `UdpSession` stays datagram-oriented.
+- **Protocol-specific overrides**: `TcpSession` adds reliable stream semantics, while `UdpSession` adds datagram semantics plus a UDP-only `SessionToken` for authenticated outbound envelopes.
 
 ## API Reference
 

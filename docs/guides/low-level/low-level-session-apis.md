@@ -16,7 +16,7 @@ Instead of using `session.On<MyPacket>(...)`, which dynamically deserializes cla
 
 ### Purely Synchronous Parsing (`OnMessageReceived`)
 
-Fires directly in the I/O socket read loop. You are provided with an `IBufferLease`. The framework will automatically dispose of the lease (reclaiming the buffer) after your inline function exits.
+You are provided with an `IBufferLease` for each decoded frame. In the current SDK implementation, `TcpSession` raises `OnMessageReceived` from `HandleReceiveMessage(...)` after `FrameReader` finishes a frame, while `UdpSession` raises it after decrypt/decompress work in its receive loop. The SDK still owns the lease lifecycle and disposes it automatically after the callback path completes unless you explicitly call `Retain()`.
 
 ```csharp
 // WARNING: Do NOT execute heavy CPU loops or blocking await tasks here.
@@ -36,7 +36,7 @@ session.OnMessageReceived += (sender, lease) =>
 
 ### Purely Asynchronous Queuing (`OnMessageAsync`)
 
-Provides an asynchronous backpressure pipeline. The framework safely copies the buffer or manages its persistence automatically via `TransportOptions.AsyncQueueCapacity`.
+Provides an asynchronous receive pipeline. For `TcpSession`, the lease is retained while the async handler runs; for `UdpSession`, async handlers are drained through a bounded queue sized by `TransportOptions.AsyncQueueCapacity`.
 
 ```csharp
 session.OnMessageAsync += async (payload) => 
@@ -58,7 +58,7 @@ When orchestrating connections manually using `ConnectAsync()`, it is extremely 
 await session.ConnectAsync();
 
 // 2. Check if this is a Reconnection (We still have the old Identity State)
-if (!options.SessionToken.IsEmpty && options.Secret.Length > 0)
+if (options.SessionToken != 0 && !options.Secret.IsZero)
 {
     // Fast path: Tell the server we dropped connection but still have our keys.
     ProtocolReason resumeResult = await session.ResumeSessionAsync();
@@ -98,14 +98,14 @@ await session.SendAsync(precomputedLoginPacket.AsMemory());
 
 While `TransportOptions.EncryptionEnabled` strictly governs global cryptographic enforcement across the `TransportSession`, there are scenarios where a highly specific internal frame must bypass the global rules (e.g. sending a `Handshake` packet before encryption keys are actually finalized).
 
-If utilizing a `TcpSession` directly, you can access an intense `encrypt: bool?` override on `SendAsync`:
+If you are working directly with a `TcpSession`, you can override encryption per send:
 
 ```csharp
-TcpSession session = (TcpSession)mySession;
+TcpSession session = myTcpSession;
 
-// Forces this specific HandshakePacket to travel in absolute plaintext
-// ignoring `EncryptionEnabled = true` safely to avoid race conditions.
-await session.SendAsync(new HandshakePacket(), encrypt: false);
+// Example: force this one packet to travel in plaintext even if the
+// session would normally encrypt payloads.
+await session.SendAsync(new Handshake(), encrypt: false);
 ```
 
 !!! danger

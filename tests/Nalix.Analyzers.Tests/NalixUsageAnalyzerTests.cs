@@ -1284,12 +1284,14 @@ public static class Setup
 namespace Demo;
 using Nalix.Hosting;
 
+public class DummyProtocol { }
+
 public static class Setup
 {
     public static void Configure()
     {
         _ = new NetworkApplicationBuilder()
-            .AddUdp(9000)
+            .BindUdp<DummyProtocol>().OnPort(9000).Bind()
             .Build();
     }
 }

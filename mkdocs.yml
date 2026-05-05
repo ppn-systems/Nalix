@@ -120,7 +120,6 @@ nav:
       - Quick Start: quickstart.md
       - Introduction: introduction.md
       - Installation: installation.md
-      - Full Sitemap: sitemap.md
   - Concepts:
       - Overview: concepts/index.md
       - Fundamentals:
@@ -186,12 +185,11 @@ nav:
           - Dynamic Concurrency Adjustment: guides/advanced/dynamic-concurrency-adjustment.md
       - Tools:
         - Overview: guides/tools/index.md
-        - SDK Tools: guides/tools/sdk-tools.md
-        - Packet Visualizer: guides/tools/packet-visualizer.md
         - Identity Certificate Tool: guides/tools/certificate-tool.md
   - Packages:
       - Overview: packages/index.md
       - Nalix.Abstractions: packages/nalix-abstractions.md
+      - Nalix.Environment: packages/nalix-environment.md
       - Nalix.Framework: packages/nalix-framework.md
       - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
@@ -219,6 +217,7 @@ nav:
         - Environment:
           - Directories: api/environment/directories.md
           - Clock: api/environment/clock.md
+          - Random: api/environment/random.md
           - Timing Scope: api/environment/timing-scope.md
           - Configuration: api/environment/configuration.md
         - Runtime:
@@ -232,6 +231,10 @@ nav:
         - Codec:
           - Overview: packages/nalix-codec.md
           - LZ4: api/codec/lz4.md
+          - Memory:
+            - BufferLease: api/codec/memory/buffer-lease.md
+            - DataReader: api/codec/memory/data-reader.md
+            - DataWriter: api/codec/memory/data-writer.md
           - Packets:
             - Frame Model: api/codec/packets/frame-model.md
             - Fragmentation: api/codec/packets/fragmentation.md

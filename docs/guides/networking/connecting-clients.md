@@ -5,7 +5,7 @@
     - :fontawesome-solid-clock: **Time**: 15 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Architecture](../../concepts/fundamentals/architecture.md)
 
-This guide provides a comprehensive, end-to-end flowchart for creating, configuring, and connecting a client session using the `Nalix.SDK`. It covers exactly how to initialize your `TransportOptions`, setup your shared packet registry, and manage the lifecycle of both `TcpSession` and `UdpSession`.
+This guide walks through creating, configuring, and connecting a client session using `Nalix.SDK`. It focuses on the actual SDK surface in the current source tree: `TransportOptions`, `TcpSession`, `UdpSession`, and the transport extension methods built on top of them.
 
 !!! danger "Security Warning"
     Never expose the `Secret` key or the `SessionToken` snowflakes in clear-text logs or debug UIs. These are sensitive cryptographic materials.
@@ -19,7 +19,7 @@ The client and server **must** use the exact same packet contracts. The `IPacket
 
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.DataFrames;
+using Nalix.Codec.DataFrames;
 
 // 1. Initialize the shared registry.
 // This factory scans for packets and binds high-performance deserialize pointers.
@@ -35,8 +35,7 @@ The `TransportOptions` govern connection backoff patterns, socket buffer sizing,
 
 ```csharp
 using Nalix.SDK.Options;
-using Nalix.Abstractions.Security;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 
 // OPTION A: Load automatically from the environment's configuration files (Recommended)
 // This binds values from your INI definitions and natively supports hot-reloading.
@@ -58,21 +57,18 @@ TransportOptions manualOptions = new()
     
     // Performance tuning
     NoDelay = true,           // Disable Nagle's algorithm (highly recommended for Games/Real-time)
-    BufferSize = 8192,        // 8KB buffers for socket I/O
-    MaxPacketSize = 65536,    // Max 64KB for a single packet payload
+    BufferSize = 8192,        // Socket send/receive buffer size
     AsyncQueueCapacity = 1024,// Queue capacity for OnMessageAsync to prevent memory exhaustion
-    
+    MaxUdpDatagramSize = 1400,// UDP limit including the 8-byte session token
+
     // We typically let the Handshake process set Encryption/Algorithms automatically.
     // However, if bypassing Handshake on an unencrypted server, ensure EncryptionEnabled = false.
 };
-
-// Validates options locally before attempting connection
-options.Validate();
 ```
 
 ## 3. Create and Connect a TCP Session
 
-A `TcpSession` uses the configured `TransportOptions` to establish TCP streams. After instantiating, you **must hook up the required events prior to calling `ConnectAsync()`**.
+A `TcpSession` uses the configured `TransportOptions` to establish TCP streams. In practice, you will usually register events before calling `ConnectAsync()` so you do not miss early connection or error signals.
 
 ```csharp
 using System;
@@ -111,15 +107,16 @@ async Task ConnectTcpStandardAsync()
         Console.WriteLine($"Received strongly-typed data: {packet.StatusMessage}");
     });
 
-    // 3. Initiate Connection Loop with Auto-Resume
-    // Automatically attempts to reconnect to the Socket. If you have an active SessionToken, 
-    // it performs a fast ResumeSessionAsync. If this is a fresh connection, it securely falls 
-    // back to a full HandshakeAsync.
+    // 3. Connect, try resume, then fall back to handshake when needed
+    // `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs` connects first,
+    // attempts resume only when ResumeEnabled + SessionToken + Secret are present,
+    // and reconnects before falling back to HandshakeAsync when configured to do so.
     Console.WriteLine("Connecting to server...");
-    await session.ConnectWithResumeAsync();
+    bool resumed = await session.ConnectWithResumeAsync();
+    Console.WriteLine(resumed ? "Session resumed." : "Fresh handshake completed.");
     
-    // At this point, TransportOptions is heavily populated with session configurations 
-    // and authorized dynamically to construct `UdpSession` architectures!
+    // At this point, the shared TransportOptions object contains the negotiated
+    // encryption state and the current session token assigned by the server.
     // ---------------------------------------------------------
 
     // 4. Ship Payloads
@@ -132,7 +129,7 @@ async Task ConnectTcpStandardAsync()
 ```
 
 !!! tip "Performance Edge-case Options"
-    The `On<T>` extension is designed for highest developer velocity. However, if you are looking to squeeze the literal maximum throughput bypassing C# class boxing, see our [Session APIs Guide](./session-apis.md) for dealing with raw byte buffer event loops (`OnMessageReceived`).
+    The `On<T>` extension is designed for highest developer velocity. If you need lower-level control, see our [Session APIs Guide](./session-apis.md) for raw `OnMessageReceived` / `OnMessageAsync` flows.
 
 !!! note "Performance Recommendation"
     While the SDK is mostly platform-agnostic, specialized socket options like `TCP_NODELAY` are enabled by default for gaming workloads.
@@ -140,9 +137,9 @@ async Task ConnectTcpStandardAsync()
 ## 4. Create and Connect a UDP Session (Auxiliary Channel)
 
 !!! note "TCP is Primary, UDP is Auxiliary"
-    In the Nalix architecture, **TCP is always the primary, stateful connection**. The `UdpSession` acts purely as an **auxiliary (secondary) channel** used strictly for high-frequency, unreliable data (like player movement coordinates or voice frames). A UDP session inherently depends on the TCP channel to authenticate and provide the mandated `SessionToken` before it can transmit anything!
+    In the Nalix architecture, **TCP is typically the primary, stateful connection**. The `UdpSession` acts as an auxiliary channel for high-frequency, unreliable data. In the common secured flow, the UDP session reuses the `SessionToken` established by the TCP handshake or resume path.
 
-`UdpSession` relies on exactly the same API contract as TCP but handles untrusted datagrams. Because we already performed the `await session.HandshakeAsync()` over the primary TCP link, our shared `options` object automatically holds the required `SessionToken` returning from the server!
+`UdpSession` follows the same base transport contract, but handles datagrams instead of framed TCP streams. Because the primary TCP session already completed handshake or resume, the shared `options` object already holds the required `SessionToken`.
 
 ```csharp
 using System;
@@ -151,8 +148,8 @@ using Nalix.SDK.Transport;
 
 async Task ConnectUdpStandardAsync()
 {
-    // The shared `options` object already has `options.SessionToken` populated securely 
-    // from the HandshakeAsync process above.
+    // The shared `options` object already has `options.SessionToken` populated
+    // by the TCP handshake or resume flow above.
     using UdpSession udp = new(options, catalog);
 
     udp.OnConnected += (_, _) => Console.WriteLine("UDP socket bound and active.");
@@ -162,8 +159,7 @@ async Task ConnectUdpStandardAsync()
     // Connect to setup targeted UDP Socket (binding against Server IP and Port)
     await udp.ConnectAsync();
 
-    // Send UDP packets out naturally (Flags will automatically drop to UNRELIABLE)
-    // UDP internally prefixes the established SessionToken to all outbound datagrams.
+    // UDP internally prefixes the current SessionToken to all outbound datagrams.
     // await udp.SendAsync(new PlayerMovementPacket { X = 1, Y = 2, Z = 5 });
     
     await Task.Delay(-1);
@@ -174,7 +170,7 @@ async Task ConnectUdpStandardAsync()
     UDP payloads plus the 8-byte `SessionToken` prefix cannot exceed `TransportOptions.MaxUdpDatagramSize` (Default `1400` bytes). Large chunks of data must be routed through TCP protocols. Violating the MTU triggers local `NetworkException` halts.
 
 !!! info
-    The `Bytes32` primitive is used for the cryptographic secret to ensure zero-allocation memory pinned security during the entire lifecycle.
+    `TransportOptions.Secret` uses the `Bytes32` primitive in the current SDK source.
 
 ## 5. Common SDK Extensions
 
@@ -186,12 +182,13 @@ using Nalix.SDK.Transport.Extensions;
 
 // 1. Network Latency Check (Ping)
 // Measures round-trip time (RTT) safely across the protocol
-TimeSpan rtt = await session.PingAsync();
-Console.WriteLine($"Current Latency: {rtt.TotalMilliseconds}ms");
+double rttMs = await session.PingAsync();
+Console.WriteLine($"Current Latency: {rttMs}ms");
 
 // 2. Time Synchronization
 // Re-aligns the client's internal clock offsets against the core server's clock
-await session.SyncTimeAsync();
+var sync = await session.SyncTimeAsync();
+Console.WriteLine($"RTT={sync.RttMs}ms Adjusted={sync.AdjustedMs}ms");
 
 // 3. Request-Response Mechanics (RPC via Packets)
 // Send a request packet and cleanly await a strongly-typed response 
@@ -219,8 +216,8 @@ _ = Task.Run(async () =>
             if (!session.IsConnected) break;
             
             // PingAsync uses the highest-priority Control packet lane
-            TimeSpan rtt = await session.PingAsync();
-            Console.WriteLine($"KeepAlive Ping: {rtt.TotalMilliseconds}ms");
+            double rtt = await session.PingAsync();
+            Console.WriteLine($"KeepAlive Ping: {rtt}ms");
         }
         catch (Exception ex)
         {

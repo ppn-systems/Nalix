@@ -36,14 +36,14 @@ performs pair-wise checks so no `*Preallocate` value can exceed its matching
 _ = ConfigurationManager.Instance.Get<Network.Options.PoolingOptions>();
 ```
 
-This ensures `server.ini` includes the network pool sizing knobs even before the TCP
-listener, callback dispatcher, or timing wheel are constructed.
+This ensures the active configuration file includes the network pool sizing knobs even
+before the TCP listener, callback dispatcher, or timing wheel are constructed.
 
 ## Runtime Initialization Flow
 
 ```mermaid
 flowchart TD
-    A["Bootstrap.Initialize()"] --> B["Load PoolingOptions into server.ini"]
+    A["Bootstrap.Initialize()"] --> B["Load PoolingOptions into active config"]
     C["TcpListenerBase constructor"] --> D["Validate PoolingOptions"]
     D --> E["Set capacity: PooledAcceptContext"]
     D --> F["Set capacity: PooledSocketAsyncEventArgs"]

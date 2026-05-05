@@ -42,8 +42,10 @@ graph TD
 | Hosting | `Nalix.Hosting` | Fluent builder, application lifecycle, automatic discovery |
 | Transport | `Nalix.Network` | TCP/UDP listeners, connection lifecycle, protocol bridge, session store |
 | Dispatch | `Nalix.Runtime` | Packet dispatch, middleware, handler compilation, session resume |
-| Pipeline | `Nalix.Runtime` | Rate limiting, concurrency gating, time synchronization |
-| Infrastructure | `Nalix.Framework` | Configuration, DI, serialization, packet registry, pooling, compression, identifiers |
+| Pipeline | `Nalix.Runtime` | Rate limiting, concurrency gating, middleware, dispatch execution |
+| Infrastructure | `Nalix.Framework` | DI, task scheduling, pooling, identifiers |
+| Codec | `Nalix.Codec` | Serialization, packet registry, framing, compression, cryptography |
+| Environment | `Nalix.Environment` | Configuration, directories, random generation, clock/time helpers |
 | Contracts | `Nalix.Abstractions` | Shared abstractions, packet attributes, middleware primitives |
 | Client | `Nalix.SDK` | Transport sessions, request/response correlation, handshake and resume flows |
 | Logging | `Nalix.Logging` | Structured logging with batched console and file targets |
@@ -72,8 +74,8 @@ sequenceDiagram
     participant Hand as Handler
 
     Net->>Prot: Raw bytes received
-    Prot->>Prot: Validate frame (length / checksum)
-    Note over Prot: FramePipeline: Decrypt / Decompress
+    Note over Net: Listener applies FramePipeline
+    Net->>Prot: Clean message lease
     Prot->>Disp: HandlePacket(lease, connection)
     Note over Disp: Shard-aware queueing
     Disp->>Reg: Deserialize (magic → TPacket)
@@ -88,25 +90,25 @@ sequenceDiagram
 
 ### 1. Transport and Listeners
 
-- **`TcpListenerBase`** — High-concurrency TCP listener using `SocketAsyncEventArgs`. Handles socket acceptance, connection registration to the `ConnectionHub`, and frame-level receive.
+- **`TcpListenerBase`** — High-concurrency TCP listener using `SocketAsyncEventArgs`. Handles socket acceptance, admission control, and the receive start sequence through `Protocol.OnAccept(...)`.
 - **`UdpListenerBase`** — Stateless datagram listener with built-in authenticated session mapping and lock-free rate limiting.
 - **Connection guard** — Early-stage admission control to reject endpoints at the socket level before allocating any application resources.
 
 ### 2. Protocol (The Bridge)
 
-The `IProtocol` interface translates raw network streams into discrete message leases. It ensures that `PacketDispatchChannel` only receives complete, valid packet fragments. The protocol also manages message-level validation and initiates the receive loop.
+The `IProtocol` interface bridges listener-owned transport state and dispatch. In the common case, `ProcessMessage(...)` receives an already-transformed lease and forwards it to `PacketDispatchChannel`.
 
 ### 3. Shard-Aware Dispatch
 
 `PacketDispatchChannel` is the engine of Nalix. It provides:
 
 - **Worker sharding** — Multiple worker loops (parallel to CPU core count) prevent head-of-line blocking. One slow handler does not stall unrelated packets.
-- **Wake-signaling** — Coalesced signaling using `System.Threading.Channels` minimizes thread context switching under bursty load.
+- **Wake-signaling** — Coalesced signaling using a `SemaphoreSlim` wake signal minimizes thread context switching under bursty load.
 - **Prioritization** — Native support for `PacketPriority` (`URGENT`, `HIGH`, `MEDIUM`, `LOW`, `NONE`).
 
 ### 4. Packet Registry
 
-`PacketRegistry` uses `FrozenDictionary<uint, PacketDeserializer>` for O(1) lookup of packet deserializers by magic number (a stable FNV-1a hash of the packet type's full name). Deserialization is bound using unsafe function pointers (`delegate*`) to eliminate delegate allocation on the hot path.
+`PacketRegistry` is the immutable packet catalog built by `PacketRegistryFactory`. It provides fast lookup and deserialization for registered packet types and built-in signal packets.
 
 ### 5. Instance Management
 
@@ -133,7 +135,7 @@ The network runtime is designed to run with pressure controls enabled by default
 | Middleware | Server project → implements `IPacketMiddleware<TPacket>` from `Nalix.Abstractions` |
 | Protocol customization | Server project → extends `Protocol` from `Nalix.Network` |
 | Client session logic | Client project → uses `TcpSession` from `Nalix.SDK` |
-| Configuration | INI file → loaded by `ConfigurationManager` from `Nalix.Framework` |
+| Configuration | INI file → loaded by `ConfigurationManager` from `Nalix.Environment` |
 
 ## See it in action
 

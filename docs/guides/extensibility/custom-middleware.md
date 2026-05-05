@@ -24,7 +24,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
-using Nalix.Framework.DataFrames.SignalFrames;
+using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 
 [MiddlewareOrder(-60)]
@@ -137,4 +137,3 @@ flowchart LR
 
 - [Middleware Pipeline](../../api/runtime/middleware/pipeline.md)
 - [Packet Dispatch](../../api/runtime/routing/packet-dispatch.md)
-

@@ -13,8 +13,8 @@
 - `src/Nalix.SDK/Options`
 - `src/Nalix.SDK/InlineDispatcher.cs`
 - `src/Nalix.SDK/IThreadDispatcher.cs`
-- `src/Nalix.Hosting/Bootstrap.cs`
-- `src/Nalix.Environment/Time/TimeSyncCalculator.cs`
+- `src/Nalix.SDK/Bootstrap.cs`
+- `src/Nalix.SDK/TimeSyncCalculator.cs`
 
 ## Why This Package Exists
 
@@ -54,7 +54,7 @@ Use these pages when working on SDK internals, custom transports, or protocol to
 
 1. Configure transport with `TransportOptions` and packet registry.
 2. Connect with `TcpSession` or `UdpSession`.
-3. Optionally perform `HandshakeAsync`.
+3. Optionally perform `HandshakeAsync` or use `ConnectWithResumeAsync` on `TcpSession`.
 4. Send packets directly or use `RequestAsync<TResponse>`.
 5. Receive via event/subscription APIs.
 

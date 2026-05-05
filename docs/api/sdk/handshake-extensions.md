@@ -6,6 +6,8 @@ For reconnect flows, see [`ResumeExtensions`](./resume-extensions.md).
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
+- `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`
+- `src/Nalix.Codec/Security/HandshakeX25519.cs`
 
 ## Implementation Flow
 
@@ -37,7 +39,7 @@ This helper performs the full client-side handshake sequence after a transport i
 
 - **Ephemeral key exchange**: Generates a fresh X25519 key pair for each handshake.
 - **Proof verification**: Validates the server's response before deriving session material.
-- **Session activation**: Updates `TransportOptions.Secret`, `TransportOptions.Algorithm`, `TransportOptions.EncryptionEnabled`, and `TransportOptions.SessionToken` on success.
+- **Session activation**: Updates `TransportOptions.Secret` and `TransportOptions.Algorithm` before `CLIENT_FINISH`, then sets `TransportOptions.EncryptionEnabled` and `TransportOptions.SessionToken` after validating `SERVER_FINISH`.
 
 ## API Reference
 
@@ -61,6 +63,7 @@ await client.HandshakeAsync();
 - Call this only after the session is connected.
 - **Identity Pinning is Mandatory**: The client MUST provide the expected server public key via `TransportOptions.ServerPublicKey`. Anonymous handshakes are strictly forbidden to prevent MitM attacks.
 - On success, the session switches to `CipherSuiteType.Chacha20Poly1305`.
+- `HandshakeAsync(...)` uses `RequestAsync<Handshake>(...)` for both `CLIENT_HELLO` and `CLIENT_FINISH`, filtering for the expected response stages.
 
 ## Related APIs
 

@@ -32,14 +32,14 @@ Precise attribute docs reduce handler-registration errors and avoid policy misun
 
 | Attribute | Scope | Purpose |
 | --- | --- | --- |
-| `PacketControllerAttribute` | Class | Marks a controller class for packet handlers. |
-| `PacketOpcodeAttribute` | Method | Binds handler to opcode. |
-| `PacketPermissionAttribute` | Method | Declares minimum `PermissionLevel`. |
+| `PacketControllerAttribute` | Class | Marks a controller class for packet handlers. Defaults: `Name = "None"`, `IsActive = true`, `Version = "1.0"`. |
+| `PacketOpcodeAttribute` | Method | Binds a handler to an opcode. |
+| `PacketPermissionAttribute` | Method | Declares the minimum `PermissionLevel` required to run. Defaults to `USER`. |
 | `PacketRateLimitAttribute` | Method | Declares requests-per-second and burst values. |
-| `PacketConcurrencyLimitAttribute` | Method | Declares concurrency/queue limits. |
-| `PacketEncryptionAttribute` | Method | Declares encryption requirement and algorithm hint. |
-| `PacketTimeoutAttribute` | Method | Declares handler timeout budget (ms). |
-| `PacketTransportAttribute` | Method | Declares preferred transport protocol (`TCP` or `UDP`). |
+| `PacketConcurrencyLimitAttribute` | Method | Declares concurrency and queue limits. |
+| `PacketEncryptionAttribute` | Method | Declares whether encryption is required and which cipher suite to use. Defaults to `true` and `Chacha20Poly1305`. |
+| `PacketTimeoutAttribute` | Method | Declares a handler timeout budget in milliseconds. |
+| `PacketTransportAttribute` | Method | Declares the preferred transport protocol for the handler's outbound response. |
 
 ## Why Attributes Exist
 

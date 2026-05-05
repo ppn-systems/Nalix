@@ -2,11 +2,18 @@
 
 Session Resumption is a high-performance protocol in Nalix that allows clients to reconnect and restore their previous state without performing a full [X25519 Handshake](./handshake-protocol.md). This is critical for mobile applications where network switching (e.g., Wi-Fi to 5G) or brief disconnections are common.
 
+## Source Mapping
+
+- `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
+- `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
+- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+
 ## Key Features
 
 - **Fast Reconnection**: Resumption happens in a single request-response cycle.
 - **State Persistence**: Restores authentication level, permissions, and custom connection attributes.
-- **Token Rotation**: Every successful resume generates a new, single-use session token to prevent "replay" or "hijacking" attacks.
+- **Token Rotation**: Every successful resume returns a fresh session token for the next reconnect attempt.
 - **Zero-Trust Validation**: Uses HMAC-based proof-of-possession to verify the client owns the session secret.
 
 ## The Resume Workflow
@@ -28,9 +35,9 @@ sequenceDiagram
     Srv->>Store: ConsumeAsync(Token)
     Store-->>Srv: SessionEntry (Snapshot)
     
-    Note over Srv: Verify MAC Proof using Snapshot Secret<br/>Apply Snapshot to Live Connection<br/>Generate Rotated Session Token
+    Note over Srv: Verify MAC Proof using Snapshot Secret<br/>Apply Snapshot to Live Connection<br/>Store Current Connection
     
-    Srv->>Store: StoreAsync(NewToken, Snapshot)
+    Srv->>Store: StoreAsync(CurrentConnection)
     
     Srv->>SDK: SESSION_SIGNAL (RESPONSE)<br/>[NewSessionToken, SUCCESS]
     
@@ -41,7 +48,7 @@ sequenceDiagram
 
 To prevent **Race Conditions** and **Double-Resume** attacks, Nalix uses "Atomic Consumption". When a resume request arrives:
 
-1. The server attempts to remove the token from the `ISessionStore` immediately.
+1. The server attempts to remove the token from the `ISessionStore` immediately through `ConsumeAsync(...)`.
 2. If the token was already used or doesn't exist, the request is rejected instantly.
 3. This ensures that a stolen token cannot be used twice, even if two requests arrive at the same millisecond.
 
@@ -49,8 +56,8 @@ To prevent **Race Conditions** and **Double-Resume** attacks, Nalix uses "Atomic
 
 The `SessionToken` is a "moving target". After a successful resumption:
 
-- The old token is invalidated.
-- A new token is issued to the client.
+- The old token is invalidated by atomic consumption.
+- A fresh token is issued to the client.
 - The secret (derived during the original handshake) remains the same, maintaining the secure entropy for the encryption layer.
 
 ## Implementation Guide

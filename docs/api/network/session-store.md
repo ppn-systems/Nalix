@@ -61,7 +61,7 @@ The most critical method in the store is `ConsumeAsync(ulong sessionToken)`.
 
 The `InMemorySessionStore` employs a dual-layered expiration strategy:
 
-- **Active Scavenger**: A background task (`PeriodicTimer`) runs every minute to scan the `ConcurrentDictionary` and evict keys where `ExpiresAtUnixMilliseconds <= now`.
+- **Active Scavenger**: A cleanup worker scheduled through `TaskManager` owns a `PeriodicTimer` that ticks every minute, scanning the `ConcurrentDictionary` and evicting keys where `ExpiresAtUnixMilliseconds <= now`.
 - **Lazy Check**: Every time `RetrieveAsync` or `ConsumeAsync` is called, the TTL is checked immediately. If the session has expired, it is treated as "NotFound" and removed even if the scavenger hasn't reached it yet.
 
 ### 3. Session Entry Pooling
@@ -96,4 +96,3 @@ Control the session lifecycle via `SessionStoreOptions`:
 - [Snowflake Identifiers (ulong)](../framework/snowflake.md)
 - [Object Pooling](../framework/memory/object-pooling.md)
 - [Object Map](../framework/memory/object-map.md)
-

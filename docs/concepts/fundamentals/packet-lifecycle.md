@@ -72,8 +72,8 @@ Examples:
 
 ## Step 5. Packet middleware applies policy
 
-Packet middleware runs with a full `PacketContext<TPacket>`.
-`TPacket` can be a built-in packet or a custom packet type.
+Packet middleware runs with the full packet execution context, typically consumed as `IPacketContext<TPacket>`.
+Under the hood, the runtime provides a pooled `PacketContext<TPacket>` implementation.
 
 This is where application-aware checks happen:
 

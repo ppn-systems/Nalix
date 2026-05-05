@@ -12,11 +12,11 @@ Session resumption enables low-latency reconnection by bypassing the full X25519
 
 ## 1. Design & Rationale
 
-Nalix utilizes a **Unified Signal Flow** (introduced in v1.2) to manage session state. By consolidating the legacy `SessionResume` and `SessionResumeAck` packets into a single `SESSION_SIGNAL` packet with a `Stage` state machine, the protocol reduces complexity and ensures atomic state transitions.
+Nalix uses the `SessionResume` packet with a `Stage` state machine to manage session state. The packet supports `REQUEST` and `RESPONSE` stages so the server can restore or reject a session in a single round-trip.
 
-- **Atomic Resumption**: The server applies the restored session snapshot and returns the (possibly rotated) token in a single round-trip.
-- **Stateless Re-entry**: UDP sessions can be resumed immediately as long as the 8-byte `SessionToken` and its associated `Secret` are valid.
-- **Token Rotation**: The server may issue a new `SessionToken` in every successful response to prevent long-term token leakage.
+- **Atomic Resumption**: The server applies the restored session snapshot and returns a fresh response token in a single round-trip.
+- **Stateless Re-entry**: A session can be resumed immediately as long as the 8-byte `SessionToken` and its associated `Secret` are valid.
+- **Token Rotation**: The server can return a rotated `SessionToken` in a successful response.
 
 ---
 
@@ -34,29 +34,17 @@ sequenceDiagram
     S->>C: SERVER_FINISH (New Token)
     
     Note over C, S: Option B: Session Resume (Fast)
-    C->>S: SESSION_SIGNAL [Stage=REQUEST, Token=T1]
-    S->>C: SESSION_SIGNAL [Stage=RESPONSE, Token=T2, Reason=NONE]
+    C->>S: SessionResume [Stage=REQUEST, Token=T1]
+    S->>C: SessionResume [Stage=RESPONSE, Token=T2, Reason=NONE]
 ```
 
 ---
 
 ## 3. Protocol Specification
 
-### Header & Payload
+### Packet Shape
 
-The `SESSION_SIGNAL` packet is a fixed-size frame of **52 bytes**.
-
-| Offset | Field | Type | size | Description |
-| --- | --- | --- | --- | --- |
-| 0 | `MagicNumber` | `int` | 4 | Fixed protocol magic. |
-| 4 | `OpCode` | `ushort` | 2 | `0x0002` (SESSION_SIGNAL). |
-| 6 | `Flags` | `byte` | 1 | Framing flags. |
-| 7 | `Priority` | `byte` | 1 | Fixed at `0x03` (URGENT). |
-| 8 | `SequenceId` | `ushort` | 2 | Correlation identifier. |
-| 10 | `Stage` | `byte` | 1 | `0x01` (REQUEST), `0x02` (RESPONSE). |
-| 11 | `SessionToken` | `Snowflake` | 7 | The 64-bit unique session identifier. |
-| 18 | `Reason` | `ushort` | 2 | `ProtocolReason` result (`ProtocolReason.NONE` = success). |
-| 20 | `Proof` | `Bytes32` | 32 | HMAC-Keccak256 proof-of-possession for the session secret. |
+`SessionResume` is a fixed-size signal packet carrying the stage, session token, proof, and result reason needed for resumption.
 
 ---
 
@@ -64,22 +52,22 @@ The `SESSION_SIGNAL` packet is a fixed-size frame of **52 bytes**.
 
 ### Server Handling Logic
 
-When a `SESSION_SIGNAL` request arrives at `SessionHandlers.Handle`:
+When a `SessionResume` request arrives at `SessionHandlers.Handle`:
 
-1. The incoming packet is strictly validated using `IPacketValidatable` to ensure the `Stage`, `SessionToken`, and `Proof` fields are structurally sound for a `REQUEST`.
+1. The incoming packet is validated to ensure the `Stage`, `SessionToken`, and `Proof` fields are structurally sound for a `REQUEST`.
 2. The server extracts the `SessionToken` from the payload.
-3. It atomically consumes a valid `SessionEntry` via the active `ISessionStore` (`ConsumeAsync`) to prevent token replay.
-4. It validates `Proof` using HMAC-Keccak256 over the 8-byte session token and the stored session secret.
-5. If validation succeeds, the runtime restores the connection's `Secret`, `Level`, and `Attributes`.
-6. A rotated session token is generated and stored, then a `RESPONSE` is sent with `ProtocolReason.NONE`.
-7. If validation, token lookup, or proof verification fails, the server sends an error reason (for example `MALFORMED_PACKET`, `SESSION_EXPIRED` or `TOKEN_REVOKED`) and disconnects.
+3. It resolves and validates a resumable `SessionEntry` through the active `ISessionStore`.
+4. It validates `Proof` using `HmacKeccak256` over the 8-byte session token and the stored session secret.
+5. If validation succeeds, the runtime restores the connection's `Secret`, `Algorithm`, `Level`, and saved `Attributes`, then marks `ConnectionAttributes.HandshakeEstablished = true`.
+6. The runtime stores the live connection back into `IConnectionHub.SessionStore`, computes a response proof for the new token, and sends a `RESPONSE` with `ProtocolReason.NONE`.
+7. If validation, token lookup, or proof verification fails, the server sends an error reason and disconnects.
 
 ---
 
 ## 5. Security & Operations
 
 - **Token Confidentiality**: While the token is not a replacement for the symmetric secret, it should be treated as sensitive material as it identifies an active session.
-- **Rotation Policy**: Clients must update their local `TransportOptions.SessionToken` immediately upon receiving a successful `RESPONSE`.
+- **Rotation Policy**: Clients must update their local `TransportOptions.SessionToken` immediately upon receiving a successful `RESPONSE`. The SDK already does this in `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`.
 - **Invalidation**: Sessions are invalidated upon explicit disconnect or after the configured session-store TTL (Time-To-Live) expires.
 
 ---

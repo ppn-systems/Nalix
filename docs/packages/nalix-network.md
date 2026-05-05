@@ -29,7 +29,7 @@ Both listeners support:
 
 - `Activate(CancellationToken)` / `Deactivate(CancellationToken)`
 - `GenerateReport()` for runtime diagnostics
-- Configurable backlog, timeout enforcement, and time synchronization
+- Configurable backlog, timeout enforcement, and transport-specific limits
 
 ### Protocol
 
@@ -37,10 +37,10 @@ The `IProtocol` interface and `Protocol` base class define how raw network data 
 
 Key responsibilities:
 
-- **Connection acceptance** â€” `ValidateConnection(IConnection)` controls whether new connections are accepted
-- **Receive loop management** â€” `OnAccept(IConnection)` starts listening for incoming frames
-- **Frame forwarding** â€” `ProcessMessage(object? sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`
-- **Connection state — `IsAccepting` controls whether the protocol accepts new connections (atomic property backed by `Interlocked`). Use `SetConnectionAcceptance(bool)` to toggle acceptance at runtime
+- **Connection acceptance** - `ValidateConnection(IConnection)` controls whether new connections are accepted.
+- **Post-accept hook** - `OnAccept(IConnection, CancellationToken)` runs after a connection is admitted and registered.
+- **Frame forwarding** - `ProcessMessage(object? sender, IConnectEventArgs args)` pushes validated frames into `PacketDispatchChannel`.
+- **Connection state** - `IsAccepting` controls whether the protocol accepts new connections (atomic property backed by `Interlocked`). `src/Nalix.Network/Protocols/Protocol.Core.cs` also exposes `SetConnectionAcceptance(bool)` as the public convenience API for toggling that state.
 
 ```csharp
 public sealed class MyProtocol : Protocol
@@ -64,7 +64,7 @@ public sealed class MyProtocol : Protocol
 
 - **`IConnection`** â€” Abstract representation of a client connection with identity, transport adapters, permission level, and cipher state.
 - **`SocketConnection`** â€” Concrete socket-based implementation.
-- **`ConnectionHub`** â€” In-memory registry of active connections. Supports lookup by ID, username mapping, forced disconnects, bulk broadcast, and `GenerateReport()`.
+- **`ConnectionHub`** - In-memory registry of active connections. Supports lookup by ID, forced disconnects, bulk broadcast, and `GenerateReport()`.
 - **`ConnectionGuard`** â€” Socket-level admission control that rejects endpoints before application resources are allocated.
 
 ### Session Store
@@ -90,7 +90,7 @@ Nalix.Network provides focused option types for each transport concern:
 | `DatagramGuardOptions` | UDP source rate limiting and cleanup |
 | `SessionStoreOptions` | Session retention TTL and persistence thresholds |
 
-All option types support `Validate()` for startup-time verification.
+Several network option types support `Validate()` for startup-time verification, including `NetworkSocketOptions`, `ConnectionLimitOptions`, and `DatagramGuardOptions`.
 
 ## Relationship with Nalix.Runtime
 
@@ -98,9 +98,9 @@ All option types support `Validate()` for startup-time verification.
 
 ## Related Packages
 
-- [Nalix.Runtime](./nalix-runtime.md) â€” Dispatch pipeline and middleware
-- [Nalix.Hosting](./nalix-hosting.md) â€” Fluent bootstrap
-- [Nalix.Abstractions](./nalix-abstractions.md) â€” Shared contracts and primitives
+- [Nalix.Runtime](./nalix-runtime.md) - Dispatch pipeline and middleware
+- [Nalix.Hosting](./nalix-hosting.md) - Fluent bootstrap
+- [Nalix.Abstractions](./nalix-abstractions.md) - Shared contracts and primitives
 
 ## Key API Pages
 

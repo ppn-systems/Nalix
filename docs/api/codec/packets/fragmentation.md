@@ -1,6 +1,6 @@
 # Fragmentation
 
-This page covers the chunking and reassembly helpers in `Nalix.Framework.DataFrames.Chunks`.
+This page covers the chunking and reassembly helpers in `Nalix.Codec.DataFrames.Chunks`.
 
 ## Source mapping
 

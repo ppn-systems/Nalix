@@ -7,6 +7,15 @@
 
 This page explains where security decisions happen in Nalix and how the different layers work together to protect your application.
 
+## Source Mapping
+
+- `src/Nalix.Network/Protocols/Protocol.PublicMethods.cs`
+- `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`
+- `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
+- `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
+- `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
+- `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
+
 Nalix does not treat security as a single isolated feature. Instead, security is distributed across the transport, connection, metadata, and middleware layers. This design lets you place checks at the cheapest and most appropriate point in the request path.
 
 ## Security Layers
@@ -30,7 +39,7 @@ flowchart TD
 
 `Connection` carries the live session context that many security decisions depend on:
 
-- **Permission level** — `PermissionLevel` enum (e.g., `NONE`, `USER`, `ADMINISTRATOR`, `SYSTEM_ADMINISTRATOR`)
+- **Permission level** — `PermissionLevel` enum (e.g., `NONE`, `USER`, `TENANT_ADMINISTRATOR`, `SYSTEM_ADMINISTRATOR`)
 - **Session identity** — Connection ID and session token
 - **Cipher state** — Active encryption algorithm and shared secret
 - **Remote endpoint** — Source IP and port
@@ -84,9 +93,9 @@ Nalix includes a built-in X25519 key-agreement handshake flow:
 1. Client generates an ephemeral X25519 key pair and sends `CLIENT_HELLO` with the public key and a nonce
 2. Server generates its own ephemeral key pair, computes the shared secret, and sends `SERVER_HELLO`
 3. Both sides derive session keys from the shared secret
-4. Subsequent traffic is encrypted using the negotiated cipher (ChaCha20-Poly1305 or Salsa20-Poly1305)
+4. Subsequent traffic is encrypted using the active session cipher state
 
-Handshake state is carried on the `Connection` object. After handshake completion, the connection's `Secret` and cipher state are set, enabling transparent encryption/decryption in the pipeline.
+Handshake state is carried on the `Connection` object. After handshake completion, the connection's `Secret` and cipher state are set, enabling transparent transport encryption/decryption.
 
 ## Session Resume
 
@@ -103,11 +112,11 @@ UDP should be treated as an authenticated datagram path, not as a looser copy of
 
 Requirements for secure UDP traffic:
 
-- Session identity must already be established (typically over TCP)
+- Session identity must already be established first
 - Each datagram must include the session token prefix (8 bytes)
 - The connection secret must be initialized
 - `IsAuthenticated(...)` must validate the datagram before processing
-- Replay and timestamp checks should be enabled
+- Replay checks should be enabled
 
 ## Recommended Security Posture
 
@@ -117,7 +126,7 @@ For most production deployments:
 2. Keep identity and permission state on the `Connection` object
 3. Declare packet-level rules with handler attributes
 4. Enforce rules using the built-in middleware pipeline
-5. Treat UDP as an authenticated extension — require pre-existing TCP session
+5. Treat UDP as an authenticated extension of an already established session
 6. Enable `ConnectionGuard` for socket-level admission control
 7. Configure rate limiting and concurrency gates for public-facing endpoints
 

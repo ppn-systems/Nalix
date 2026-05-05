@@ -5,6 +5,13 @@
 
 Nalix is designed with a "Safe-by-Default" mindset. Errors in specific requests or connections are isolated to prevent them from affecting the overall stability of the server.
 
+## Source Mapping
+
+- `src/Nalix.Abstractions/Networking/IConnectionErrorTracked.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs`
+- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
+- `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
+
 ## 1. Fault Isolation
 
 Nalix enforces strict isolation for all user-provided code (handlers, middlewares, and protocols).
@@ -66,6 +73,6 @@ Regardless of whether a request succeeds or fails, Nalix guarantees consistent r
 
 ## Related Source Code
 
-- [IConnectionErrorTracked.cs](file:///e:/Cs/Nalix/src/Nalix.Abstractions/Networking/IConnectionErrorTracked.cs) — The `ErrorCount` contract.
-- [PacketDispatchChannel.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs) — Try-catch blocks in `ProcessOneAsync`.
-- [PacketDispatcherBase.cs](file:///e:/Cs/Nalix/src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs) — Try-catch around handler execution.
+- `src/Nalix.Abstractions/Networking/IConnectionErrorTracked.cs` — The `ErrorCount` contract.
+- `src/Nalix.Runtime/Dispatching/PacketDispatchChannel.cs` — Try-catch blocks in `ProcessOneAsync`.
+- `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs` — Try-catch around handler execution.

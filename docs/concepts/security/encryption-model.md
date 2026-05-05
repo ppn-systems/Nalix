@@ -2,6 +2,13 @@
 
 Nalix prioritizes security by enforcing modern, industry-standard cryptographic algorithms for all data transmission. The framework handles the complexities of AEAD (Authenticated Encryption with Associated Data), nonce management, and cipher state synchronization out of the box.
 
+## Source Mapping
+
+- `src/Nalix.Codec/Security/EnvelopeCipher.cs`
+- `src/Nalix.Codec/Security/Engine/AeadEngine.cs`
+- `src/Nalix.Codec/Security/Engine/SymmetricEngine.cs`
+- `src/Nalix.Abstractions/Security/CipherSuiteType.cs`
+
 ## Primary Cipher: ChaCha20-Poly1305
 
 By default, Nalix uses **ChaCha20-Poly1305**. This cipher suite was selected for several key reasons:
@@ -10,22 +17,22 @@ By default, Nalix uses **ChaCha20-Poly1305**. This cipher suite was selected for
 - **Security**: Provides high security margins and is resistant to many common side-channel attacks.
 - **AEAD Support**: Automatically provides integrity checking—if a single bit of the packet is tampered with over the wire, the decryption will fail.
 
-### Optional Cipher: None
+### Optional Plaintext Mode
 
-For local development, internal trusted networks, or extreme performance scenarios, Nalix supports a `None` cipher suite. When selected, data is transmitted in the clear while still maintaining the packet framing and routing logic.
+The codec layer exposes a `CipherSuiteType.None` case in the current source tree. Treat this as an explicit plaintext/no-envelope mode for controlled environments only.
 
 ## Nonce Management
 
-Correct nonce management is critical to the security of any stream cipher. Nalix manages nonces internally to prevent reuse (nonce misuse):
+Correct nonce management is critical to the security of any stream cipher. Nalix manages nonce material internally inside the envelope and frame layers:
 
-- **Predictable Increment**: Nonces are synchronized between the client and server and incremented with every packet.
-- **Sequence Protection**: The `SequenceId` of the packet is often integrated into the nonce derivation to ensure that even if packets arrive out of order (in UDP), the correct decryption context can be restored.
+- **Fresh nonce generation**: `src/Nalix.Codec/Security/EnvelopeCipher.cs` generates a fresh random nonce per envelope encryption call.
+- **Envelope sequencing**: Sequence metadata is carried in the envelope header and used by the underlying crypto engines according to the selected suite.
 
-1.**Transport Level**: The frame header (10 bytes) is typically sent in the clear (or with light obfuscation) to allow the [Packet System](../fundamentals/packet-system.md) to route the message.
+1. **Transport Level**: Packet framing and envelope metadata remain structured so the transport can process the message correctly.
 
-2.**Payload Encryption**: The entire payload of the packet is encrypted using the session key derived during the [Handshake](./handshake-protocol.md).
+2. **Payload Encryption**: The packet payload is encrypted using the session key derived during the [Handshake](./handshake-protocol.md).
 
-3.**Integrity Tag**: A **16-byte** authentication tag is appended to the encrypted payload as part of the AEAD process.
+3. **Integrity Tag**: AEAD suites append a **16-byte** authentication tag as part of the envelope format.
 
 ## Selective Encryption
 
@@ -51,7 +58,7 @@ await session.SendAsync(myPacket, encrypt: false);
 ```
 
 !!! warning "Security First"
-    By default, Nalix assumes all packets should be encrypted.  
+    By default, established secure sessions are expected to send encrypted traffic.  
     Disabling encryption (via attribute or parameter) should only be done for high-frequency, non-sensitive data where the overhead of AEAD is a bottleneck.
 
 ## Mathematical Correctness

@@ -52,7 +52,7 @@ namespace Nalix.Network.Internal.Time;
 ///   </item>
 /// </list>
 /// </para>
-/// <para><b>Thread safety:</b> <see cref="Register(IConnection)"/> and <see cref="Unregister(IConnection)"/> are thread-safe.
+/// <para><b>Thread safety:</b> <see cref="Register(Connection)"/> and <see cref="Unregister(Connection)"/> are thread-safe.
 /// The background loop is single-consumer and advances the wheel using <see cref="PeriodicTimer"/>.</para>
 /// <para><b>Pool ownership:</b> <see cref="RUN_LOOP"/> is the <em>only</em> place that returns
 /// <see cref="TimeoutTask"/> to the pool. <see cref="Unregister"/> only removes the connection from
@@ -122,7 +122,7 @@ internal sealed class TimingWheel : IActivatable
     /// </summary>
     internal sealed class TimeoutTask : IPoolable
     {
-        public IConnection? Conn;
+        public Connection? Conn;
         public int Rounds;
         public int Version;
 
@@ -432,7 +432,7 @@ internal sealed class TimingWheel : IActivatable
     /// the connection is automatically unregistered when it closes.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Register(IConnection connection)
+    public void Register(Connection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
 
@@ -470,7 +470,7 @@ internal sealed class TimingWheel : IActivatable
                     ? (int)((baseTick + ticks) & _mask)
                     : (int)((baseTick + ticks) % _wheelSize);
 
-                task.Rounds = (int)(ticks / _wheelSize);
+                task.Rounds = (int)((ticks - 1) / _wheelSize);
 
                 connection.OnCloseEvent += this.OnConnectionClosed;
                 subscribed = true;
@@ -512,7 +512,7 @@ internal sealed class TimingWheel : IActivatable
     /// object pool immediately, preventing memory exhaustion under high connection churn.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Unregister(IConnection connection)
+    public void Unregister(Connection connection)
     {
         if (connection is null)
         {
@@ -522,6 +522,11 @@ internal sealed class TimingWheel : IActivatable
         Lock syncLock = _connectionLocks[connection.ID.GetHashCode() & 255];
         lock (syncLock)
         {
+            if (Volatile.Read(ref _disposed) != 0)
+            {
+                return;
+            }
+
             if (connection.IsRegisteredInWheel)
             {
                 connection.IsRegisteredInWheel = false;
@@ -615,6 +620,7 @@ internal sealed class TimingWheel : IActivatable
                         {
                             _poolManager.Return(task);
                             task = next;
+
                             continue;
                         }
 
@@ -629,6 +635,7 @@ internal sealed class TimingWheel : IActivatable
 
                             _poolManager.Return(task);
                             task = next;
+
                             continue;
                         }
 
@@ -636,8 +643,13 @@ internal sealed class TimingWheel : IActivatable
                         if (task.Rounds > 0)
                         {
                             task.Rounds--;
+
+                            task.Next = null;
+                            task.Prev = null;
                             _wheel[bucketIndex].Enqueue(task);
+
                             task = next;
+
                             continue;
                         }
 
@@ -684,12 +696,14 @@ internal sealed class TimingWheel : IActivatable
                         long ticksMore = Math.Max(1, remainingMs / _tickMs);
 
                         task.Version = task.Conn.TimeoutVersion;
-                        task.Rounds = (int)(ticksMore / _wheelSize);
+                        task.Rounds = (int)((ticksMore - 1) / _wheelSize);
 
                         int nextBucket = _useMask
                             ? (int)((tickToProcess + ticksMore) & _mask)
                             : (int)((tickToProcess + ticksMore) % _wheelSize);
 
+                        task.Next = null;
+                        task.Prev = null;
                         _wheel[nextBucket].Enqueue(task);
 
                         task = next;
@@ -719,9 +733,9 @@ internal sealed class TimingWheel : IActivatable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClosed(object? sender, IConnectEventArgs args)
     {
-        if (args?.Connection is not null)
+        if (args?.Connection is Connection conn)
         {
-            this.Unregister(args.Connection);
+            this.Unregister(conn);
         }
     }
 

@@ -41,7 +41,7 @@ Connection state includes:
 | :--- | :--- |
 | Connection ID | Unique identifier for the session |
 | Remote endpoint | Source IP and port |
-| Permission level | Authorization level (`NONE`, `USER`, `ADMINISTRATOR`, etc.) |
+| Permission level | Authorization level (`NONE`, `USER`, `TENANT_ADMINISTRATOR`, `SYSTEM_ADMINISTRATOR`, etc.) |
 | Cipher state | Active encryption algorithm and shared secret |
 | Diagnostics | Bytes sent/received, uptime, ping time, error count |
 
@@ -52,7 +52,7 @@ This is why `Connection` and `ConnectionHub` sit at the center of the real-time 
 A typical TCP request follows this path:
 
 1. Socket accepted by `TcpListenerBase`.
-2. `TcpListenerBase` registers the connection with the `ConnectionHub` and initiates the asynchronous receive loop.
+2. The listener and protocol bring the connection into the active receive path.
 3. The **Listener** receives a frame and executes the `FramePipeline` (decrypt/decompress).
 4. The resolved **Protocol** receives the processed message via `ProcessMessage(...)`.
 5. Messages are forwarded into `PacketDispatchChannel`.
@@ -81,7 +81,9 @@ The UDP path still requires session identity and authentication. Think of it as 
 - Session must be established over TCP first
 - Each datagram includes a session token prefix
 - Connection secret must be initialized
-- `IsAuthenticated(...)` validates each datagram
+- `IsAuthenticated(...)` can apply application-specific datagram checks after token, endpoint, and replay validation
+
+These points reflect the built-in listener flow in `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`, where datagrams are resolved by token first and then checked against the live connection state.
 
 ## Throttling and Protection
 

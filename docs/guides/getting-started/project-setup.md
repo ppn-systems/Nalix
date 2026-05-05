@@ -30,7 +30,7 @@ Use a `Directory.Build.props` file in the root directory to manage package versi
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NalixVersion>12.0.7</NalixVersion>
+    <NalixVersion>$(VersionFromYourReleasePlan)</NalixVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,8 +48,8 @@ The contracts project must be a `Class Library` referenced by both the Server an
 
 ```bash
 dotnet new classlib -n MyProject.Contracts
-dotnet add MyProject.Contracts package Nalix.Abstractions --version 12.0.7
-dotnet add MyProject.Contracts package Nalix.Framework --version 12.0.7
+dotnet add MyProject.Contracts package Nalix.Abstractions --version $NalixVersion
+dotnet add MyProject.Contracts package Nalix.Framework --version $NalixVersion
 ```
 
 ### Key Rules
@@ -79,7 +79,7 @@ The server project should be a `Console Application` or `Worker Service` that us
 ```bash
 dotnet new console -n MyProject.Server
 dotnet add MyProject.Server reference MyProject.Contracts
-dotnet add MyProject.Server package Nalix.Hosting --version 12.0.7
+dotnet add MyProject.Server package Nalix.Hosting --version $NalixVersion
 ```
 
 ### Best Practice: `NetworkApplication`
@@ -87,35 +87,17 @@ dotnet add MyProject.Server package Nalix.Hosting --version 12.0.7
 Use the fluent builder to assemble your server layers:
 
 ```csharp
-using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Framework.DataFrames.SignalFrames;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Hosting;
 using Nalix.Network.Options;
-using Nalix.Runtime.Dispatching;
-
-BufferPoolManager pool = new();
 
 using var app = NetworkApplication.CreateBuilder()
-    .ConfigureBufferPoolManager(pool)
     .Configure<NetworkSocketOptions>(options => options.Port = 57206)
     .ScanPackets<JoinRequest>() // Scans the marker assembly for contracts
     .ScanHandlers<MyHandlers>() // Scans the marker assembly for controllers
-    .BindTcp<MyProtocol>().Bind()
+    .BindTcp<DefaultProtocol>().Bind()
     .Build();
 
 await app.RunAsync();
-
-public sealed class MyProtocol : IProtocol
-{
-    private readonly IPacketDispatch _dispatch;
-
-    public MyProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
-
-    public void ProcessMessage(object sender, IConnectEventArgs args)
-        => _dispatch.HandlePacket(args.Lease, args.Connection);
-}
 ```
 
 ### Builder Semantics
@@ -124,7 +106,9 @@ public sealed class MyProtocol : IProtocol
 - `ScanHandlers<TMarker>()` scans the assembly that contains `TMarker`.
 - `AddHandler<THandler>()` registers one handler type directly.
 - `ConfigureConnectionHub(...)` and `ConfigureBufferPoolManager(...)` are optional, but make host wiring explicit.
-- `ConfigureBufferPoolManager(...)` is recommended for high-throughput servers to keep receive/send buffers on pooled paths end-to-end.
+- `ConfigureBufferPoolManager(...)` is still worth calling explicitly for high-throughput servers, even though `NetworkApplicationBuilder` will create a default manager when omitted.
+- If you only need the standard "forward to dispatch" behavior, use `DefaultProtocol` directly. `src/Nalix.Hosting/DefaultProtocol.cs` already sets `IsAccepting = true` and forwards `args.Lease` to `IPacketDispatch.HandlePacket(...)`.
+- During activation, `src/Nalix.Hosting/NetworkApplicationBuilder.cs` applies `Configure<TOptions>(...)`, ensures `IConnectionHub` and `BufferPoolManager` exist, initializes `HandshakeHandlers`, then creates dispatch and listeners.
 
 ---
 
@@ -135,7 +119,7 @@ The client project should use the `Nalix.SDK` package.
 ```bash
 dotnet new console -n MyProject.Client
 dotnet add MyProject.Client reference MyProject.Contracts
-dotnet add MyProject.Client package Nalix.SDK --version 12.0.7
+dotnet add MyProject.Client package Nalix.SDK --version $NalixVersion
 ```
 
 ---

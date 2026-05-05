@@ -1,6 +1,6 @@
 ﻿# Serialization
 
-This page covers the public serialization surface in `Nalix.Framework.Serialization`.
+This page covers the public serialization surface in `Nalix.Codec.Serialization`.
 
 ## Source mapping
 
@@ -170,4 +170,3 @@ LiteSerializer.Register(new MyCustomFormatter());
 - [Framework Serialization Basics](../serialization/serialization-basics.md)
 - [Packet Registry](../packets/packet-registry.md)
 - [Built-in Frames](../packets/built-in-frames.md)
-

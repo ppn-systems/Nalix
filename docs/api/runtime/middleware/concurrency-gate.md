@@ -28,7 +28,7 @@ Concurrency limits are handler metadata:
 
 ```csharp
 [PacketConcurrencyLimit(max: 4, queue: true, queueMax: 32)]
-public async Task HandleUpload(PacketContext<UploadPacket> request)
+public async Task HandleUpload(IPacketContext<UploadPacket> request)
 {
     // At most four handlers for this opcode execute concurrently.
 }

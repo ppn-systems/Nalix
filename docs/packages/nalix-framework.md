@@ -58,7 +58,7 @@ manager.ScheduleRecurring(
 
 `Nalix.Framework` owns the management logic for resource pools. While the actual leasing primitives (like `BufferLease`) live in `Nalix.Codec`, the managers that own the underlying arrays and objects live here.
 
-- `BufferPoolManager`: Manages sharded byte array pools.
+- `BufferPoolManager`: Manages pooled pinned byte arrays and buffer trimming policy.
 - `ObjectPoolManager`: Manages pools of reusable class instances to minimize GC pressure.
 
 ## Key API Pages

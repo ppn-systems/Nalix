@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Logging;
 using Nalix.Hosting;
 using Nalix.Network.Options;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 
 // 1. Load configuration from environment or .ini files
 var socketOpts = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
@@ -164,7 +164,7 @@ dispatch.Dispose();
 - [x] **Contracts**: Keep packet POCOs in a separate project shared with the client.
 - [x] **Logging**: Always use `NLogix` or a production-ready `ILogger`.
 - [x] **Validation**: Call `.Validate()` on all Options objects before booting.
-- [x] **Protocols**: Call `this.SetConnectionAcceptance(true)` in the protocol constructor to allow new incoming connections.
+- [x] **Protocols**: Use `ValidateConnection(...)`, `IsAccepting`, and `SetConnectionAcceptance(bool)` intentionally. `src/Nalix.Network/Protocols/Protocol.Core.cs` and `src/Nalix.Network/Protocols/Protocol.PublicMethods.cs` show that the protocol exposes both the atomic property and the public helper method, while `src/Nalix.Hosting/DefaultProtocol.cs` already enables acceptance for the common dispatch-forwarding path.
 
 ## Read this next
 

@@ -237,15 +237,31 @@ namespace Nalix.Environment.Configuration.Binding
 
 namespace Nalix.Hosting
 {
+    public interface IProtocolBindingBuilder
+    {
+        IProtocolBindingBuilder OnPort(ushort port);
+        IProtocolBindingBuilder WithFactory(object factory);
+        IProtocolBindingBuilder WithAuthentication(object authen);
+        NetworkApplicationBuilder Bind();
+    }
+
     public sealed class NetworkApplicationBuilder
     {
         public NetworkApplicationBuilder UseBufferPoolManager(object? manager = null) => this;
         public NetworkApplicationBuilder ConfigureConnectionHub(object? hub = null) => this;
-        public NetworkApplicationBuilder AddTcp(ushort port = 0) => this;
-        public NetworkApplicationBuilder AddUdp(ushort port = 0) => this;
+        public IProtocolBindingBuilder BindTcp<T>() => new StubBindingBuilder(this);
+        public IProtocolBindingBuilder BindUdp<T>() => new StubBindingBuilder(this);
         public NetworkApplicationBuilder AddHandler<THandler>() => this;
         public NetworkApplicationBuilder AddMetadataProvider<TProvider>() => this;
         public object Build() => new();
+
+        private sealed class StubBindingBuilder(NetworkApplicationBuilder parent) : IProtocolBindingBuilder
+        {
+            public IProtocolBindingBuilder OnPort(ushort port) => this;
+            public IProtocolBindingBuilder WithFactory(object factory) => this;
+            public IProtocolBindingBuilder WithAuthentication(object authen) => this;
+            public NetworkApplicationBuilder Bind() => parent;
+        }
     }
 }
 """;

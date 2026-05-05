@@ -19,6 +19,8 @@ using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
@@ -96,6 +98,7 @@ public abstract partial class UdpListenerBase
         catch (Exception ex) when (!_cancellationToken.IsCancellationRequested)
         {
             _ = Interlocked.Increment(ref _recvErrors);
+
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
                 _logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}");
@@ -335,13 +338,10 @@ public abstract partial class UdpListenerBase
             BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer, start + Snowflake.Size, length - Snowflake.Size);
             incomingLease.IsReliable = false;
 
-            // Optimize: Try local connection pool first, fallback to global s_pool.
-            ConnectionEventArgs? args = connection.AcquireEventArgs();
-
-            if (args == null)
-            {
-                return;
-            }
+            // Try the connection-local pool first, then fall back to the shared pool.
+            ConnectionEventArgs args = connection.AcquireEventArgs()
+                ?? InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
+                                  .Get<ConnectionEventArgs>();
 
             args.Initialize(incomingLease, connection);
 

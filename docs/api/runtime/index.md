@@ -16,7 +16,7 @@ flowchart TD
     subgraph Channel[Dispatch Layer]
         D -->|Push| Q[DispatchChannel Queue]
         Q -->|Priority Aware| WL[Worker Loops / RunLoop]
-        WL -->|Signal| Wake[WakeChannel]
+        WL -->|Signal| Wake[Wake Semaphore]
     end
 
     subgraph Pipeline[Processing Pipeline]
@@ -44,9 +44,9 @@ flowchart TD
 ### Dispatching
 
 - [IPacketDispatch](./routing/dispatch-contracts.md): The primary entry point for handing off buffers from transport to runtime.
-- [PacketDispatchChannel](./routing/packet-dispatch.md): High-throughput dispatcher that uses worker loops and coalesce signaling to minimize context switching.
+- [PacketDispatchChannel](./routing/packet-dispatch.md): High-throughput dispatcher that uses worker loops and coalesced wake signaling to minimize context switching.
 - [PacketDispatcherBase<`TPacket`>](./routing/dispatch-channel-and-router.md): The base execution engine that handles handler discovery and invocation.
-- [PacketContext<`TPacket`>](./routing/packet-context.md): A pooled state object that carries the packet, connection, and metadata through the pipeline.
+- [PacketContext<`TPacket`>](./routing/packet-context.md): The pooled concrete runtime context behind `IPacketContext<TPacket>`.
 - [PacketSender](./routing/packet-sender.md): A metadata-aware response helper injected into handlers.
 
 ### Middleware & Routing
@@ -57,7 +57,7 @@ flowchart TD
 
 ## Architecture Notes
 
-- **Zero-Allocation Contexts**: `PacketContext` is heavily pooled to prevent GC spikes during high-frequency dispatching.
+- **Zero-Allocation Contexts**: `PacketContext<TPacket>` is heavily pooled to prevent GC spikes during high-frequency dispatching.
 - **Priority Weights**: The `PacketDispatchChannel` respects `PacketPriority`, ensuring critical system packets (like Heartbeats) are processed before bulk data.
 - **Worker Fairness**: The dispatch loops use a "Drain" strategy to ensure one high-volume connection doesn't starve others in the same channel.
 

@@ -5,33 +5,31 @@
     - :fontawesome-solid-clock: **Time**: 5 minutes
     - :fontawesome-solid-book: **Prerequisites**: [Introduction](../../introduction.md)
 
-Nalix provides a suite of specialized tools to accelerate development, debugging, and identity management. These tools ensure that your protocol logic is sound and your infrastructure is secure.
+Nalix currently ships one end-user tool in this repository and documents a few adjacent debugging workflows. This section reflects the current source tree so readers do not chase missing projects.
 
 ---
 
-## 🛠️ Core Utilities
+## Core Utilities
 
-The following tools are integrated into the Nalix ecosystem to help you manage identities and inspect binary state.
+The following pages either map to a bundled tool or explain the equivalent workflow with the APIs available in `src/`.
 
 <div class="grid cards" markdown>
 -   :material-key-chain:{ .lg .middle } [**Certificate Tool**](certificate-tool.md)
     ---
-    CLI utility for generating high-entropy X25519 identity keys for servers and authenticated clients.
+    Bundled CLI utility for generating X25519 identity keys for servers and client pinning.
     [:octicons-arrow-right-24: Generate Keys](certificate-tool.md)
--   :material-matrix:{ .lg .middle } [**Serialization Inspector**](packet-visualizer.md)
+-   :material-matrix:{ .lg .middle } **Serialization Inspector**
     ---
-    WinForms utility to load packet DLLs and visualize how C# properties map to raw binary bytes in real-time.
-    [:octicons-arrow-right-24: Inspect Bytes](packet-visualizer.md)
--   :material-toolbox:{ .lg .middle } [**SDK Developer Tools**](sdk-tools.md)
+    Serialization inspection workflow for the current codebase. The historical desktop visualizer is not present in this repo snapshot; use the codec and packet docs as the maintained reference.
+-   :material-toolbox:{ .lg .middle } **SDK Developer Tools**
     ---
-    Comprehensive WPF suite for building packets, browsing registries, and monitoring real-time logs.
-    [:octicons-arrow-right-24: Open Toolbox](sdk-tools.md)
+    Historical desktop toolbox references were removed from this repo snapshot. Use `Nalix.SDK` transport extensions and the API pages under `docs/api/sdk/` for the supported workflows.
 
 </div>
 
 ---
 
-## 🏗️ Development Utilities
+## Development Utilities
 
 ### Interoperability Tests
 
@@ -48,8 +46,6 @@ Integrated [BenchmarkDotNet](https://benchmarkdotnet.org/) projects to verify ze
 
 ---
 
-## 🚀 Recommended Path
+## Recommended Path
 
 1. :material-key: [**Setup Identity**](certificate-tool.md) — Create your first server certificate.
-2. :material-application-edit: [**Inspect Packets**](packet-visualizer.md) — Verify your binary serialization.
-3. :material-monitor: [**Monitor Traffic**](sdk-tools.md) — Use the SDK Tools to debug live services.

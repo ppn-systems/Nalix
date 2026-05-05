@@ -1,6 +1,14 @@
 # TCP Listener (Low-Level Transport)
 
-`TcpListenerBase` is the core foundation for TCP connection acceptance and lifecycle management in the Nalix framework. It operates at the lowest transport level to ensure zero-allocation accept loops, DoS protection, and high-performance threading via system channels.
+`TcpListenerBase` is the low-level TCP listener foundation in Nalix. It owns socket activation, accept throttling, connection admission, a bounded processing channel for accepted connections, and the handoff into `Protocol.OnAccept(...)`.
+
+## Source Mapping
+
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.PublicMethods.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`
+- `src/Nalix.Network/Listeners/TcpListener/TcpListener.Core.cs`
+- `src/Nalix.Network/Options/NetworkSocketOptions.cs`
+- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
 
 !!! note "Use Case"
     Application developers should use `NetworkApplicationBuilder` (the Hosting layer) which automatically orchestrates the TCP Listener. `TcpListenerBase` is primarily manipulated by framework developers building middleware or transport hooks.
@@ -9,7 +17,7 @@
 
 ## 1. Architectural Model
 
-The `TcpListenerBase` avoids standard `async/await` overhead on the hot accept path. Instead, it utilizes pre-allocated `SocketAsyncEventArgs` (SAEA) coupled with a multi-worker accept queue system.
+The `TcpListenerBase` avoids standard `async/await` overhead on the hot accept path. Instead, it utilizes pre-allocated `SocketAsyncEventArgs` (SAEA) coupled with a multi-worker accept loop.
 
 ```mermaid
 flowchart TD
@@ -28,11 +36,6 @@ flowchart TD
         Guard[ConnectionGuard Admission Control]
         GuardIP[IP Rate Limiter & Banning]
         GuardCount[Global Connection Ceiling]
-    end
-
-    subgraph ChannelPhase[Asynchronous Pipeline]
-        BoundedQueue[Bounded Channel]
-        Workers[Dedicated Channel Readers]
     end
 
     subgraph ApplicationPhase[Application Layer]
@@ -54,66 +57,61 @@ flowchart TD
     GuardCount -.->|Overrated| Drop
     
     Leases -->|Rent Object| Init
-    Init -->|Push to Pipeline| BoundedQueue
-    
-    BoundedQueue -->|Dequeued by| Workers
-    Workers --> BufferPipe
+    Init -->|Push to Pipeline| BufferPipe
     BufferPipe --> Protocol
 ```
 
 ## 2. Low-Level Mechanics
 
-### 2.1. Zero-Allocation Accept Pipeline
+### 2.1. Accept Pipeline
 
-Instead of `await socket.AcceptAsync()`, Nalix employs **Pooled `SocketAsyncEventArgs`**. When the listener activates, it pre-binds `MaxParallel` accept workers. Each worker operates continuously in a tight loop:
+Nalix uses pooled accept contexts and pooled `SocketAsyncEventArgs` for the accept path. During construction, `TcpListenerBase` loads `PoolingOptions`, validates them, and preallocates:
 
-- When a connection arrives, the SAEA callback triggers synchronously or asynchronously.
-- The thread context immediately verifies system limits before accepting.
-- Once accepted, the worker instantly requests another connection without returning to the task scheduler, preserving thread-pool continuity.
+- `PooledAcceptContext`
+- `PooledSocketAsyncEventArgs`
+
+The listener also validates `NetworkSocketOptions` up front.
 
 ### 2.2. Admission Control (`ConnectionGuard`)
 
 Before a `Socket` is promoted to a `Connection` object, it traverses the `ConnectionGuard`.
 
 - **IP Rate Limiting**: Drops rapid reconnects from identical IPs to prevent SYN/Connection flooding.
-- **Global connection limits**: Enforces an absolute ceiling on active `ConnectionHub` entries. The Listener explicitly registers every accepted connection into the `ConnectionHub` immediately after initialization.
-- Dropped sockets at this phase incur **zero object allocation** (garbage collector is untouched).
+- **Global connection limits**: Enforces connection safety rules before accepted sockets reach protocol processing.
+- Dropped sockets at this phase are handled on the fast path and avoid creating a `Connection` object, though logging and error handling may still allocate in some paths.
 
-### 2.3. The Process Channel & Inbound Pipeline
+### 2.3. Inbound Pipeline
 
-To prevent "Slowloris" or blocking socket reading from exhausting the worker threads, `TcpListenerBase` hands off connected sockets to an asynchronous `BoundedChannel`.
+To prevent slow acceptance-side work from exhausting accept workers, `TcpListenerBase` routes accepted `IConnection` instances through a bounded internal process channel.
 
-- Incoming connections are pushed to the channel.
-- If the channel is full (Application is saturated), backpressure is naturally applied to network ingestion.
-- Background worker tasks (`TaskCreationOptions.LongRunning`) continuously pull from this channel and initiate the asynchronous frame-reading loops (`BeginReceive`).
-- **New in v1.4**: The Listener now owns the `ProcessFrame` handler which executes the `FramePipeline` (decryption, decompression) before delivering a clean message to the `IProtocol` for business logic.
+- The channel capacity comes from `NetworkSocketOptions.ProcessChannelCapacity`.
+- Full mode is `Wait`, but producers still call `TryWrite(...)`; saturation fails fast so the listener can explicitly reject and close newly accepted connections.
+- A dedicated `TaskManager` worker drains the channel and calls `ProcessConnection(...)`.
+- `Protocol.OnAccept(...)` then decides whether to validate and start `connection.TCP.BeginReceive(...)`.
 
 ## 3. Public API Surface
 
 | Method | Description |
 | :---: | :---: |
 | `Constructor(..., IConnectionHub)` | Requires an explicit `IConnectionHub` instance for centralized connection management. |
-| `Activate(CancellationToken)` | Binds the socket, begins listening, and spins up parallel accept loop workers. |
-| `Deactivate(CancellationToken)` | Gracefully stops accepting new connections but allows existing connections to drain. |
+| `Activate(CancellationToken)` | Binds the socket, begins listening, and starts accept/process workers. |
+| `Deactivate(CancellationToken)` | Stops accepting new connections and begins listener shutdown. |
 | `Dispose()` | Actively terminates the listening socket and all pending accept args. |
 | `GenerateReport()` | Creates a diagnostic summary string of the transport's real-time health. |
 | `GetReportData()` | Generates diagnostic data as key-value pairs for structured logging and automation. |
 
-### Protected Members (Framework Internal)
+### Internal Notes
 
-- `ProcessFrame(object? sender, IConnectEventArgs args)`: The central bridge that runs the transformation pipeline before protocol dispatch.
-
-### Diagnostic Properties
-
-- `Metrics`: Exposes counters for `TotalAccepted`, `TotalRejected`, and `TotalErrors`.
+- The listener creates a bounded process channel with `SingleReader = true` and `Wait` full mode in `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`; producers use `TryWrite(...)` so overflow remains non-blocking and observable.
+- Accept workers are scheduled through `TaskManager.ScheduleWorker(...)` under the `net/tcp/{port}` worker group in `src/Nalix.Network/Listeners/TcpListener/TcpListener.PublicMethods.cs`.
+- Listener shutdown closes the socket, stops the process channel, cancels grouped tasks, and deactivates the `TimingWheel` when timeout support is enabled.
 
 ## 4. Tuning for Production
 
 To optimize TCP Listener behavior at the OS level, Nalix dynamically sets the following flags (if supported):
 
-- `DontFragment = true`: Optimizes MTU path discovery.
 - `NoDelay = true`: Disables Nagle's Algorithm for real-time responsiveness.
-- `KeepAlive = true`: Configured closely to the system routing table to prune severed connections at the OS level before they hit the application layer.
+- `KeepAlive = true`: Enables TCP keep-alive with the listener's configured probe timings so dead peers can be detected at the OS level.
 
 !!! warning
     Backpressure is intentional. If your `ProcessChannel` metrics show it is frequently full, you must scale the internal Protocol Processing layer or optimize packet handlers instead of merely increasing connection limits.

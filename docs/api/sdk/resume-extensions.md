@@ -33,9 +33,9 @@ flowchart TD
 The primary role of these extensions is to orchestrate the `SESSION_SIGNAL` flow (REQUEST/RESPONSE) while abstracting the complexities of state restoration from the main application logic.
 
 - **State Awareness**: The SDK automatically determines if enough state (Token + Secret) exists to attempt a resume.
-- **Atomic Transition**: On a successful resume, the `TcpSession` or `UdpSession` is immediately updated with the restored security context and any rotated tokens.
+- **Atomic Transition**: On a successful resume, the `TcpSession` immediately updates its restored security state and any rotated token returned by the server.
 - **Fallback Integrity**: In environments with short-lived session caches, the extensions provide a seamless transition from a failed resume to a fresh full handshake.
-- **Stable State**: If resume fails, the SDK preserves the session token so the caller can inspect or retry without losing reconnect state.
+- **Failure Signaling**: `ResumeSessionAsync(...)` returns a `ProtocolReason`, mapping timeout, cancellation, invalid state, and network failures into protocol-friendly result codes.
 
 ## 2. API Reference
 
@@ -45,8 +45,8 @@ These methods are primary extension points for `TcpSession`.
 
 | Method | Returns | Description |
 | --- | --- | --- |
-| `ResumeSessionAsync` | `Task<ProtocolReason>` | Explicitly attempts to resume the session on a connected transport. `ProtocolReason.NONE` means success. |
-| `ConnectWithResumeAsync` | `Task<bool>` | Connects the transport, attempts resume, and falls back to a handshake when allowed. |
+| `ResumeSessionAsync` | `ValueTask<ProtocolReason>` | Explicitly attempts to resume the session on a connected TCP session. `ProtocolReason.NONE` means success. |
+| `ConnectWithResumeAsync` | `ValueTask<bool>` | Connects the session, attempts resume, and falls back to a handshake when allowed. |
 
 ---
 
@@ -82,7 +82,7 @@ using Nalix.Abstractions.Networking.Protocols;
 
 await session.ConnectAsync();
 
-if (!session.Options.SessionToken.IsEmpty && !options.Secret.IsZero)
+if (session.Options.SessionToken != 0 && !session.Options.Secret.IsZero)
 {
     ProtocolReason reason = await session.ResumeSessionAsync();
     if (reason == ProtocolReason.NONE)
@@ -99,8 +99,9 @@ if (!session.Options.SessionToken.IsEmpty && !options.Secret.IsZero)
 - **Encryption Switch**: Upon a successful resume, the SDK automatically sets `Options.EncryptionEnabled = true`.
 - **Structural Validation**: Receiving a malformed or out-of-sequence resume response now throws a `NetworkException` thanks to strict structural validation via `IPacketValidatable`.
 - **Handshake Fallback**: `ConnectWithResumeAsync()` reconnects before falling back to a fresh handshake when resume fails.
+- **Resume State Check**: `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs` treats resume state as present only when `SessionToken != 0` and `Secret` is non-zero.
 - **MTU Considerations**: `SESSION_SIGNAL` packets are fixed at 52 bytes and are designed to fit within standard MTU windows.
-- **UDP Specifics**: While these extensions focus on TCP, the `SessionToken` logic is shared with `UdpSession` for datagram authentication.
+- **UDP Specifics**: These extensions target `TcpSession`, but a successful TCP handshake or resume also refreshes the `SessionToken` later used by `UdpSession`.
 
 ---
 

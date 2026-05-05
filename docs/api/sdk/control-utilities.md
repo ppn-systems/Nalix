@@ -11,7 +11,7 @@ This is a high-level convenience page for client application code. These helpers
 - `src/Nalix.SDK/Transport/Extensions/TimeSyncExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/ControlExtensions.cs`
 - `src/Nalix.SDK/Transport/Extensions/RequestExtensions.cs`
-- `src/Nalix.Environment/Time/TimeSyncCalculator.cs`
+- `src/Nalix.SDK/TimeSyncCalculator.cs`
 
 ## Capability summary
 

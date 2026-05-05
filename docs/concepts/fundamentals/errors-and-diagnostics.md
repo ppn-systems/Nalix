@@ -4,11 +4,11 @@ Nalix uses a structured signaling system to communicate runtime failures and pro
 
 ## 1. Directive Signaling
 
-The `Directive` packet is the primary mechanism for reporting errors during packet dispatch and middleware execution. It uses the `ProtocolOpCode.SYSTEM_CONTROL` opcode to ensure it is handled with high priority by the client SDK.
+The `Directive` packet is the primary mechanism for reporting errors during packet dispatch and middleware execution. It is one of the built-in signal packet types used by the runtime when the failure happens after normal packet flow has started.
 
 ### Runtime Dispatch Errors
 
-When a packet fails to execute at the dispatch level (e.g., due to an exception or type mismatch), the server sends a `Directive` with `ControlType.FAIL`.
+When a packet fails to execute at the dispatch level, the runtime can map the failure into a `Directive` response depending on the handler path and error type.
 
 | Trigger Source | Protocol Reason | Advice | Flags |
 | :--- | :--- | :--- | :--- |
@@ -109,18 +109,18 @@ Failures during session resumption use the `SessionResume` packet with `Stage = 
 
 ## 5. Zero-Allocation Transport Exceptions
 
-To minimize GC pressure during high-frequency network events (including failures), Nalix uses the `NetworkErrors` utility (an `internal` class in `Nalix.Network.Internal.Transport`) to provide cached, zero-allocation exception instances for common transport scenarios.
+To minimize GC pressure during high-frequency network events (including failures), Nalix uses the `Throw` utility (an `internal` class in `Nalix.Network.Internal`) to provide cached, zero-allocation exception instances for common transport scenarios.
 
 ### Cached Exceptions
 
-Standard .NET exceptions capture a full stack trace upon instantiation, which is a significant allocation and CPU cost. `NetworkErrors` overrides this behavior for its internal types:
+Standard .NET exceptions capture a full stack trace upon instantiation, which is a significant allocation and CPU cost. `Throw` overrides this behavior for its internal types:
 
 - **Overridden `StackTrace`**: Cached instances return a static string ("at Nalix.Network.Internal.Transport (Cached Exception)") instead of performing a stack crawl.
-- **Static Reusability**: Instances like `NetworkErrors.ConnectionReset` and `NetworkErrors.SendFailed` are pre-allocated and reused across all connections. Note that `NetworkErrors` is `internal` — these cached exceptions are consumed by the framework's transport layer, not exposed to application code.
+- **Static Reusability**: Instances like `Throw.GetConnectionReset()` and `Throw.GetSendFailed()` are pre-allocated and reused across all connections. Note that `Throw` is `internal` — these cached exceptions are consumed by the framework's transport layer, not exposed to application code.
 
 ### Socket Error Mapping
 
-The `NetworkErrors.GetSocketError(SocketError)` method provides a fast lookup for common `SocketError` codes, returning cached `SocketException` instances for:
+The `Throw.GetSocketError(SocketError)` method provides a fast lookup for common `SocketError` codes, returning cached `SocketException` instances for:
 
 - `ConnectionReset`
 - `ConnectionAborted`
@@ -136,7 +136,7 @@ This ensures that even when the underlying OS reports a connection failure, the 
 ## 4. Technical Constants
 
 - **OpCode Normalization:** `Directive` packets always use `OpCode = ProtocolOpCode.SYSTEM_CONTROL` (0x0001).
-- **Mapping Logic:** Exception-to-Reason mapping is centralized in `PacketDispatchOptions.Execution.cs`.
+- **Mapping Logic:** Exception-to-reason mapping is part of the runtime dispatch execution path.
 - **Advice Flags:**
  -`RETRY`: Suggests the client should attempt the request again.
  -`FIX_AND_RETRY`: Suggests the request was malformed and needs correction.
