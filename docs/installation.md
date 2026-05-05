@@ -82,7 +82,7 @@ BlockTimeout=00:00:01
 Address=127.0.0.1
 Port=57206
 ConnectTimeoutMillis=5000
-MaxPacketSize=65536
+BufferSize=65536
 ```
 
 !!! note "Dispatch loop scaling"
@@ -97,7 +97,7 @@ Validate options before opening sockets or creating sessions. Invalid configurat
 ```csharp
 using Nalix.SDK.Options;
 using Nalix.Network.Options;
-using Nalix.Framework.Configuration;
+using Nalix.Environment.Configuration;
 
 // Server
 NetworkSocketOptions socket = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
@@ -105,7 +105,6 @@ socket.Validate();
 
 // Client
 TransportOptions transport = ConfigurationManager.Instance.Get<TransportOptions>();
-transport.Validate();
 ```
 
 ## Package Dependency Graph
