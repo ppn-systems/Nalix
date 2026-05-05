@@ -1,0 +1,185 @@
+html, body {
+    background: #f4f6f8;
+    color: #172033;
+    font-family: Inter, "Segoe UI", Arial, sans-serif;
+}
+
+h1:focus {
+    outline: none;
+}
+
+.dashboard-appbar {
+    border-bottom: 1px solid #dce3ea;
+}
+
+.dashboard-main {
+    padding: 28px;
+}
+
+.dashboard-shell {
+    max-width: 1500px;
+}
+
+.dashboard-header {
+    align-items: center;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.dashboard-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.api-key-input {
+    min-width: 320px;
+}
+
+.muted {
+    color: #64748b;
+}
+
+.status-grid {
+    margin-bottom: 14px;
+}
+
+.metric-tile {
+    border: 1px solid #dce3ea;
+    border-radius: 6px;
+    min-height: 88px;
+    padding: 16px;
+}
+
+.status-alert {
+    margin: 12px 0;
+}
+
+.report-tabs {
+    background: #ffffff;
+    border: 1px solid #dce3ea;
+    border-radius: 6px;
+    margin-top: 14px;
+}
+
+.report-panel {
+    padding: 16px;
+}
+
+.report-meta {
+    color: #64748b;
+    font-size: 0.875rem;
+    margin-bottom: 10px;
+}
+
+.report-table {
+    border-collapse: collapse;
+    font-size: 0.92rem;
+    width: 100%;
+}
+
+.report-table th,
+.report-table td {
+    border-bottom: 1px solid #e5ebf0;
+    padding: 10px 12px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.report-table th {
+    color: #475569;
+    font-weight: 600;
+    width: 280px;
+}
+
+.empty-panel {
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    color: #64748b;
+    margin: 16px;
+    padding: 20px;
+}
+
+.log-panel {
+    padding: 16px;
+}
+
+.log-toolbar {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.log-output {
+    background: #0f172a;
+    border: 1px solid #263348;
+    border-radius: 6px;
+    color: #dbe7f3;
+    font-family: Consolas, "Cascadia Mono", monospace;
+    font-size: 0.82rem;
+    min-height: 360px;
+    padding: 12px;
+    resize: vertical;
+    width: 100%;
+}
+
+.blazor-error-boundary {
+    background: #b32121;
+    color: white;
+    padding: 1rem;
+}
+
+.blazor-error-boundary::after {
+    content: "An error has occurred.";
+}
+
+#blazor-error-ui {
+    background: #fff3cd;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+@media (max-width: 900px) {
+    .dashboard-main {
+        padding: 16px;
+    }
+
+    .dashboard-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .dashboard-actions {
+        justify-content: stretch;
+    }
+
+    .api-key-input {
+        min-width: 100%;
+    }
+
+    .dashboard-actions .mud-button-root {
+        flex: 1 1 auto;
+    }
+
+    .report-table th {
+        width: 42%;
+    }
+}

@@ -1,0 +1,279 @@
+@page "/"
+@rendermode InteractiveServer
+@implements IDisposable
+@inject DashboardState State
+@inject DashboardTcpClient Client
+
+<PageTitle>Nalix Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.False" Class="dashboard-shell">
+    <div class="dashboard-header">
+        <div>
+            <MudText Typo="Typo.h4">Runtime Dashboard</MudText>
+            <MudText Typo="Typo.body2" Class="muted">TCP bridge to @State.BackendEndpoint</MudText>
+        </div>
+        <div class="dashboard-actions">
+            <MudTextField @bind-Value="_apiKey"
+                          Placeholder="API key"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          InputType="InputType.Password"
+                          Immediate="true"
+                          Class="api-key-input" />
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Secondary"
+                       Disabled="_savingKey"
+                       OnClick="SaveApiKey">
+                Use key
+            </MudButton>
+            <MudButton Variant="Variant.Outlined"
+                       Color="@(State.IsPollingPaused ? Color.Primary : Color.Default)"
+                       OnClick="TogglePolling">
+                @(State.IsPollingPaused ? "Resume" : "Pause")
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="_refreshing || !State.HasApiKey"
+                       OnClick="RefreshNow">
+                Refresh
+            </MudButton>
+        </div>
+    </div>
+
+    <MudGrid Spacing="2" Class="status-grid">
+        <MudItem xs="12" sm="6" lg="2">
+            <MudPaper Class="metric-tile" Elevation="0">
+                <MudText Typo="Typo.caption">TCP status</MudText>
+                <MudText Typo="Typo.h6" Color="@(State.IsConnected ? Color.Success : Color.Error)">
+                    @(State.IsConnected ? "Connected" : "Disconnected")
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="2">
+            <MudPaper Class="metric-tile" Elevation="0">
+                <MudText Typo="Typo.caption">Ping RTT</MudText>
+                <MudText Typo="Typo.h6" Color="@PingColor(State.LastPingMilliseconds)">
+                    @FormatPing(State.LastPingMilliseconds)
+                </MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="2">
+            <MudPaper Class="metric-tile" Elevation="0">
+                <MudText Typo="Typo.caption">Authority</MudText>
+                <MudText Typo="Typo.h6">@(State.HasApiKey ? "Key ready" : "Key required")</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="2">
+            <MudPaper Class="metric-tile" Elevation="0">
+                <MudText Typo="Typo.caption">Last refresh</MudText>
+                <MudText Typo="Typo.h6">@FormatTime(State.LastRefreshAt)</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" lg="2">
+            <MudPaper Class="metric-tile" Elevation="0">
+                <MudText Typo="Typo.caption">Reports</MudText>
+                <MudText Typo="Typo.h6">@Reports.Count / @Targets.Length</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    @if (!State.HasApiKey)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="status-alert">
+            Enter the backend API key, then click Use key to authorize the TCP dashboard session.
+        </MudAlert>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(State.LastError))
+    {
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Dense="true" Class="status-alert">
+            @State.LastError
+        </MudAlert>
+    }
+
+    <MudTabs Elevation="0" Rounded="false" Class="report-tabs">
+        @foreach (GenerationReportTarget target in Targets)
+        {
+            <MudTabPanel Text="@TargetLabel(target)">
+                @RenderReport(target)
+            </MudTabPanel>
+        }
+        <MudTabPanel Text="Logs">
+            <div class="log-panel">
+                <div class="log-toolbar">
+                    <MudText Typo="Typo.caption" Class="muted">@State.Logs.Count log entries</MudText>
+                    <MudButton Variant="Variant.Outlined"
+                               Color="Color.Default"
+                               Size="Size.Small"
+                               OnClick="ClearLogs">
+                        Clear
+                    </MudButton>
+                </div>
+                <textarea class="log-output" readonly>@LogText</textarea>
+            </div>
+        </MudTabPanel>
+    </MudTabs>
+</MudContainer>
+
+@code {
+    private static readonly GenerationReportTarget[] Targets =
+    [
+        GenerationReportTarget.DISPATCH,
+        GenerationReportTarget.TASKS,
+        GenerationReportTarget.BUFFERS,
+        GenerationReportTarget.CONNECTIONS,
+        GenerationReportTarget.INSTANCES
+    ];
+
+    private string? _apiKey;
+    private bool _refreshing;
+    private bool _savingKey;
+
+    private IReadOnlyDictionary<GenerationReportTarget, DashboardReportSnapshot> Reports => State.Reports;
+
+    private string LogText => string.Join(System.Environment.NewLine, State.Logs.Select(static entry =>
+        $"[{entry.Timestamp.ToLocalTime():HH:mm:ss.fff}] [{entry.Level}] {entry.Message}"));
+
+    protected override void OnInitialized()
+    {
+        State.Changed += OnStateChanged;
+    }
+
+    private void OnStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private async Task SaveApiKey()
+    {
+        _savingKey = true;
+        try
+        {
+            await Client.SetApiKeyAsync(_apiKey ?? string.Empty).ConfigureAwait(false);
+        }
+        finally
+        {
+            _savingKey = false;
+        }
+    }
+
+    private async Task RefreshNow()
+    {
+        _refreshing = true;
+        try
+        {
+            await Client.RefreshAllAsync(CancellationToken.None).ConfigureAwait(false);
+        }
+        finally
+        {
+            _refreshing = false;
+        }
+    }
+
+    private void TogglePolling() => State.SetPaused(!State.IsPollingPaused);
+
+    private void ClearLogs() => State.ClearLogs();
+
+    private RenderFragment RenderReport(GenerationReportTarget target) => builder =>
+    {
+        if (!Reports.TryGetValue(target, out DashboardReportSnapshot? report))
+        {
+            builder.OpenComponent<MudPaper>(0);
+            builder.AddAttribute(1, "Class", "empty-panel");
+            builder.AddAttribute(2, "Elevation", 0);
+            builder.AddAttribute(3, "ChildContent", (RenderFragment)(content =>
+            {
+                content.OpenComponent<MudText>(4);
+                content.AddAttribute(5, "Typo", Typo.body1);
+                content.AddAttribute(6, "ChildContent", (RenderFragment)(text => text.AddContent(7, "Waiting for data...")));
+                content.CloseComponent();
+            }));
+            builder.CloseComponent();
+            return;
+        }
+
+        builder.OpenElement(10, "div");
+        builder.AddAttribute(11, "class", "report-panel");
+        builder.OpenElement(12, "div");
+        builder.AddAttribute(13, "class", "report-meta");
+        builder.AddContent(14, $"Reason: {report.Reason} | Received: {FormatTime(report.ReceivedAt)}");
+        builder.CloseElement();
+
+        builder.OpenElement(15, "table");
+        builder.AddAttribute(16, "class", "report-table");
+        builder.OpenElement(17, "tbody");
+        foreach (KeyValuePair<string, object?> row in report.Data.OrderBy(static x => x.Key, StringComparer.Ordinal))
+        {
+            builder.OpenElement(18, "tr");
+            builder.OpenElement(19, "th");
+            builder.AddContent(20, row.Key);
+            builder.CloseElement();
+            builder.OpenElement(21, "td");
+            builder.AddContent(22, FormatValue(row.Value));
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+
+        if (report.Data.Count == 0)
+        {
+            builder.OpenElement(23, "tr");
+            builder.OpenElement(24, "td");
+            builder.AddAttribute(25, "colspan", "2");
+            builder.AddContent(26, "No report fields returned.");
+            builder.CloseElement();
+            builder.CloseElement();
+        }
+
+        builder.CloseElement();
+        builder.CloseElement();
+        builder.CloseElement();
+    };
+
+    private static string TargetLabel(GenerationReportTarget target) => target switch
+    {
+        GenerationReportTarget.DISPATCH => "Dispatch",
+        GenerationReportTarget.TASKS => "Tasks",
+        GenerationReportTarget.BUFFERS => "Buffers",
+        GenerationReportTarget.CONNECTIONS => "Connections",
+        GenerationReportTarget.INSTANCES => "Instances",
+        _ => target.ToString()
+    };
+
+    private static string FormatTime(DateTimeOffset? value)
+        => value is null ? "never" : value.Value.ToLocalTime().ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+
+    private static string FormatPing(double? milliseconds)
+        => milliseconds is null
+            ? "-- ms"
+            : $"{milliseconds.Value.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)} ms";
+
+    private static Color PingColor(double? milliseconds) => milliseconds switch
+    {
+        null => Color.Default,
+        < 50 => Color.Success,
+        < 120 => Color.Warning,
+        _ => Color.Error
+    };
+
+    private static string FormatValue(object? value)
+    {
+        if (value is null)
+        {
+            return "-";
+        }
+
+        if (value is System.Collections.IDictionary dictionary)
+        {
+            return string.Join(", ", dictionary.Keys.Cast<object>().Select(key => $"{key}: {dictionary[key]}"));
+        }
+
+        if (value is System.Collections.IEnumerable sequence and not string)
+        {
+            return string.Join(", ", sequence.Cast<object>());
+        }
+
+        return Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+    }
+
+    public void Dispose()
+    {
+        State.Changed -= OnStateChanged;
+    }
+}

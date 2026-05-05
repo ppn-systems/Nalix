@@ -1,0 +1,33 @@
+#pragma warning disable IDE0211 // Convert to 'Program.Main' style program
+using MudBlazor.Services;
+using Nalix.Examples.Dashboard.Components;
+using Nalix.Examples.Dashboard.Services;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+_ = builder.WebHost.UseUrls("http://localhost:57207");
+
+_ = builder.Services.AddRazorComponents()
+    .AddInteractiveServerComponents();
+_ = builder.Services.AddMudServices();
+_ = builder.Services.Configure<DashboardOptions>(builder.Configuration.GetSection("Dashboard"));
+_ = builder.Services.AddSingleton<DashboardState>();
+_ = builder.Services.AddSingleton<DashboardTcpClient>();
+_ = builder.Services.AddHostedService<DashboardPollingService>();
+
+WebApplication app = builder.Build();
+
+if (!app.Environment.IsDevelopment())
+{
+    _ = app.UseExceptionHandler("/Error", createScopeForErrors: true);
+}
+_ = app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+_ = app.UseAntiforgery();
+
+_ = app.MapStaticAssets();
+_ = app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
+app.Run();
+
+#pragma warning restore IDE0211 // Convert to 'Program.Main' style program

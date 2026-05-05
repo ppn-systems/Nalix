@@ -1,0 +1,45 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense="true" Class="dashboard-appbar">
+        <MudText Typo="Typo.h6">Nalix Examples Dashboard</MudText>
+        <MudSpacer />
+        <MudText Typo="Typo.body2">local runtime console</MudText>
+    </MudAppBar>
+
+    <MudMainContent Class="dashboard-main">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">x</span>
+</div>
+
+@code {
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#2563eb",
+            Secondary = "#0f766e",
+            AppbarBackground = "#ffffff",
+            AppbarText = "#172033",
+            Background = "#f4f6f8",
+            Surface = "#ffffff",
+            TextPrimary = "#172033",
+            TextSecondary = "#64748b"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "6px"
+        }
+    };
+}
