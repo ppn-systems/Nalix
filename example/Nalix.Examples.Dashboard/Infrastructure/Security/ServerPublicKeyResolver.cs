@@ -1,16 +1,22 @@
 using Nalix.Abstractions.Exceptions;
 using Nalix.Examples.Dashboard.Application.Options;
+using Nalix.Examples.Dashboard.Application.State;
 
 namespace Nalix.Examples.Dashboard.Infrastructure.Security;
 
 internal sealed class ServerPublicKeyResolver : IServerPublicKeyResolver
 {
+    private readonly IDashboardStateWriter _state;
+
+    public ServerPublicKeyResolver(IDashboardStateWriter state) => _state = state;
+
     public string Resolve(DashboardOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
         if (!string.IsNullOrWhiteSpace(options.ServerPublicKey))
         {
+            _state.Log("DEBUG", "Server public key resolved source=configuration.");
             return options.ServerPublicKey.Trim();
         }
 
@@ -20,10 +26,12 @@ internal sealed class ServerPublicKeyResolver : IServerPublicKeyResolver
             string trimmed = line.Trim();
             if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith('#'))
             {
+                _state.Log("DEBUG", $"Server public key resolved source=file path=\"{path}\".");
                 return trimmed;
             }
         }
 
+        _state.Log("ERROR", $"Server public key missing path=\"{path}\".");
         throw new NetworkException($"No public key was found in '{path}'.");
     }
 

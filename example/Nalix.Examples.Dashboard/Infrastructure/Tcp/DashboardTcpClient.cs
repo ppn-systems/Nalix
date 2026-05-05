@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Microsoft.Extensions.Options;
@@ -31,6 +32,8 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
     private bool _handshaken;
     private bool _authorized;
 
+    private string Endpoint => $"{_options.BackendAddress}:{_options.BackendPort.ToString(CultureInfo.InvariantCulture)}";
+
     public DashboardTcpClient(
         IOptions<DashboardOptions> options,
         IDashboardStateWriter state,
@@ -41,7 +44,7 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         _state = state;
         _publicKeyResolver = publicKeyResolver;
         _logger = logger;
-        _state.SetEndpoint($"{_options.BackendAddress}:{_options.BackendPort.ToString(CultureInfo.InvariantCulture)}");
+        _state.SetEndpoint(this.Endpoint);
     }
 
     public async Task SetApiKeyAsync(string apiKey)
@@ -51,7 +54,9 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         {
             _apiKey = string.IsNullOrWhiteSpace(apiKey) ? null : apiKey.Trim();
             _state.SetApiKeyConfigured(!string.IsNullOrWhiteSpace(_apiKey));
-            _state.Log("INFO", _apiKey is null ? "API key cleared; dashboard session will disconnect." : "API key configured; dashboard session will reconnect.");
+            _state.Log("INFO", _apiKey is null
+                ? "API key cleared action=disconnect_session."
+                : "API key configured action=reconnect_session.");
             await this.ResetSessionAsync().ConfigureAwait(false);
         }
         finally
@@ -63,13 +68,14 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
     public async Task RefreshAsync(GenerationReportTarget target, CancellationToken ct)
     {
         await _sync.WaitAsync(ct).ConfigureAwait(false);
+        Stopwatch elapsed = Stopwatch.StartNew();
         try
         {
-            _state.Log("DEBUG", $"Refreshing dashboard report: {target}.");
+            _state.Log("DEBUG", $"Report refresh started target={target} endpoint={this.Endpoint}.");
             TcpSession session = await this.EnsureConnectedAsync(ct).ConfigureAwait(false);
             DashboardReportSnapshot snapshot = await this.RequestReportAsync(session, target, ct).ConfigureAwait(false);
             _state.UpdateReport(snapshot);
-            _state.Log("DEBUG", $"Report received: {target} reason={snapshot.Reason} fields={snapshot.Data.Count.ToString(CultureInfo.InvariantCulture)}.");
+            _state.Log("INFO", $"Report refresh completed target={target} reason={snapshot.Reason} fields={snapshot.Data.Count.ToString(CultureInfo.InvariantCulture)} elapsed_ms={elapsed.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture)}.");
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -77,8 +83,8 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger.LogWarning(ex, "Dashboard refresh failed.");
-            _state.Log("WARN", $"Dashboard refresh failed target={target}: {ex.GetType().Name}: {ex.Message}");
+            _logger.LogWarning(ex, "Dashboard refresh failed for target {Target}.", target);
+            _state.Log("WARN", $"Report refresh failed target={target} elapsed_ms={elapsed.ElapsedMilliseconds.ToString(CultureInfo.InvariantCulture)} {FormatException(ex)}.");
             _state.MarkDisconnected(ex.Message);
             await this.ResetSessionAsync().ConfigureAwait(false);
         }
