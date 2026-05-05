@@ -56,6 +56,38 @@ public sealed class ReturnTypeHandlerTests
         Assert.IsType<Nalix.Runtime.Internal.Results.Task.TaskVoidReturnHandler<TestPacket>>(handler);
     }
 
+    [Fact]
+    public async Task TaskReturnHandler_UnwrappedPacketResult_CallsSenderSendAsync()
+    {
+        IReturnHandler<TestPacket> handler = ReturnTypeHandlerFactory<TestPacket>.ResolveHandler(typeof(Task<TestPacket>));
+        TestPacket resultPacket = new() { Header = new PacketHeader { Flags = PacketFlags.RELIABLE } };
+        IPacketSender sender = Substitute.For<IPacketSender>();
+        PacketContext<TestPacket> context = new()
+        {
+            Sender = sender
+        };
+
+        await handler.HandleAsync(resultPacket, context);
+
+        await sender.Received(1).SendAsync(resultPacket);
+    }
+
+    [Fact]
+    public async Task ValueTaskReturnHandler_UnwrappedPacketResult_CallsSenderSendAsync()
+    {
+        IReturnHandler<TestPacket> handler = ReturnTypeHandlerFactory<TestPacket>.ResolveHandler(typeof(ValueTask<TestPacket>));
+        TestPacket resultPacket = new() { Header = new PacketHeader { Flags = PacketFlags.RELIABLE } };
+        IPacketSender sender = Substitute.For<IPacketSender>();
+        PacketContext<TestPacket> context = new()
+        {
+            Sender = sender
+        };
+
+        await handler.HandleAsync(resultPacket, context);
+
+        await sender.Received(1).SendAsync(resultPacket);
+    }
+
     private sealed class TestPacket : IPacket
     {
         public int Length => 0;
@@ -65,7 +97,6 @@ public sealed class ReturnTypeHandlerTests
     }
 }
 #endif
-
 
 
 
