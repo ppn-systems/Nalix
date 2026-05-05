@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
@@ -20,16 +21,22 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
             return;
         }
 
-        if (packet.Header.Flags.HasFlag(PacketFlags.RELIABLE))
+        try
         {
-            await context.Sender.SendAsync(packet).ConfigureAwait(false);
-            return;
-        }
+            if (packet.Header.Flags.HasFlag(PacketFlags.RELIABLE))
+            {
+                await context.Sender.SendAsync(packet).ConfigureAwait(false);
+                return;
+            }
 
-        if (packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE))
+            if (packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE))
+            {
+                await context.Connection.UDP.SendAsync(packet).ConfigureAwait(false);
+            }
+        }
+        finally
         {
-            await context.Connection.UDP.SendAsync(packet).ConfigureAwait(false);
+            (packet as IDisposable)?.Dispose();
         }
     }
 }
-
