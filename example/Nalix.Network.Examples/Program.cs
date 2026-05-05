@@ -11,7 +11,6 @@ using Nalix.Logging.Options;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Examples.Attributes;
-using Nalix.Network.Examples.Handlers;
 using Nalix.Network.Examples.Middleware;
 using Nalix.Network.Examples.Protocols;
 using Nalix.Network.Examples.UI;
@@ -60,7 +59,6 @@ internal class Program
                 o.MaxPendingNormalCallbacks = 100_000;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
-            .AddHandler<PacketCommandHandler>()
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .ConfigureDispatch(o =>
             {
