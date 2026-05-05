@@ -164,7 +164,7 @@ dispatch.Dispose();
 - [x] **Contracts**: Keep packet POCOs in a separate project shared with the client.
 - [x] **Logging**: Always use `NLogix` or a production-ready `ILogger`.
 - [x] **Validation**: Call `.Validate()` on all Options objects before booting.
-- [x] **Protocols**: Use `ValidateConnection(...)` and `SetConnectionAcceptance(bool)` intentionally; the standard `DefaultProtocol` already accepts connections for the common dispatch-forwarding path.
+- [x] **Protocols**: Use `ValidateConnection(...)`, `IsAccepting`, and `SetConnectionAcceptance(bool)` intentionally. `src/Nalix.Network/Protocols/Protocol.Core.cs` and `src/Nalix.Network/Protocols/Protocol.PublicMethods.cs` show that the protocol exposes both the atomic property and the public helper method, while `src/Nalix.Hosting/DefaultProtocol.cs` already enables acceptance for the common dispatch-forwarding path.
 
 ## Read this next
 

@@ -68,9 +68,11 @@ var connectionLimits = ConfigurationManager.Instance.Get<ConnectionLimitOptions>
 connectionLimits.Validate();
 ```
 
+If you use the hosting builder, `src/Nalix.Hosting/NetworkApplicationBuilder.cs` already does this step for every `Configure<TOptions>(...)` registration by invoking public `Validate()` when the option type exposes it.
+
 ### 2. Registry Initialization
 
-The `InstanceManager` serves as the runtime core for shared infrastructure.
+The `InstanceManager` serves as the runtime core for shared infrastructure when you wire the stack manually. The hosting builder performs the same registration work for you.
 
 ```csharp
 using Microsoft.Extensions.Logging;
@@ -113,13 +115,15 @@ public sealed class ServerProtocol : Protocol
     public ServerProtocol(PacketDispatchChannel dispatch)
     {
         _dispatch = dispatch;
-        this.SetConnectionAcceptance(true);
+        this.IsAccepting = true;
     }
 
     public override void ProcessMessage(object? sender, IConnectEventArgs args)
         => _dispatch.HandlePacket(args.Lease, args.Connection);
 }
 ```
+
+That shape matches `src/Nalix.Hosting/DefaultProtocol.cs`, which is the built-in implementation used when you do not need custom protocol hooks.
 
 ---
 
@@ -129,10 +133,13 @@ Managing the **Activation** and **Shutdown** order is critical for preventing co
 
 | phase | Action | Detail |
 | --- | --- | --- |
-| **Startup** | `dispatch.Activate()` | Warm up worker pools and middleware. |
+| **Startup** | `dispatch.Activate()` | Warm up the dispatch pipeline before listeners begin accepting traffic. |
 | **Startup** | `listener.Activate()` | Open the socket and begin accepting. |
-| **Shutdown** | `listener.Deactivate()` | Stop accepting; finish current frames. |
-| **Shutdown** | `dispatch.Dispose()` | Cleanly terminate workers and middleware. |
+| **Shutdown** | `listener.Deactivate()` + `Dispose()` | Stop accepting and release transport resources first. |
+| **Shutdown** | `protocol.Dispose()` | Dispose protocols after listeners stop. |
+| **Shutdown** | `dispatch.Deactivate()` | Stop the dispatch pipeline after listeners and hosted services. |
+
+This order comes directly from `src/Nalix.Hosting/NetworkApplication.cs`, where `ActivateAsync()` prepares callbacks, activates dispatch, starts listeners, then activates hosted services; `DeactivateAsync()` reverses that order and finally waits for `ITaskManager.WaitGroupAsync("net/*")` and `"time/*"`.
 
 ---
 
@@ -140,9 +147,9 @@ Managing the **Activation** and **Shutdown** order is critical for preventing co
 
 A production-ready blueprint always includes a way to query the internal health.
 
-- `listener.GenerateReport()` - Listener state, config, metrics, and accept/reject counts.
-- `protocol.GenerateReport()` - Decryption and decompression success rates.
-- `dispatch.GenerateReport()` - Queue lengths and worker latency.
+- `listener.GenerateReport()` - Listener-side transport state and counters.
+- `protocol.GenerateReport()` - Protocol-side counters and post-process diagnostics.
+- `dispatch.GenerateReport()` - Dispatch runtime state.
 
 !!! info "Pro-Tip"
     Even if you don't have an Admin API, ensure your logs occasionally output these reports during periods of high traffic.
