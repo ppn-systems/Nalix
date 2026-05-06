@@ -6,7 +6,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 using Nalix.Examples.Dashboard.Application.Abstractions;
 using Nalix.Examples.Dashboard.Application.Options;
 using Nalix.Examples.Dashboard.Application.Reports;
