@@ -15,6 +15,12 @@ internal interface IDashboardStateWriter
 
     void SetApiKeyConfigured(bool configured);
 
+    void SetPollIntervalMs(int ms);
+
+    void SetPingIntervalMs(int ms);
+
+    void SetRequestTimeoutMs(int ms);
+
     void Log(string level, string message);
 
     void ClearLogs();

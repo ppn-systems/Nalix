@@ -458,5 +458,51 @@ public abstract partial class TcpListenerBase
         return data;
     }
 
+    /// <inheritdoc/>
+    public virtual void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber("Port", _port);
+        writer.WriteString(nameof(this.State), this.State.ToString());
+        writer.WriteBoolean("Disposed", _isDisposed != 0);
+
+        writer.WriteStartObject("Configuration");
+        writer.WriteBoolean("EnableTimeout", _config.EnableTimeout);
+        writer.WriteNumber("MaxParallelAccepts", _config.MaxParallel);
+        writer.WriteNumber("BufferSize", _config.BufferSize);
+        writer.WriteBoolean("KeepAlive", _config.KeepAlive);
+        writer.WriteBoolean("ReuseAddress", _config.ReuseAddress);
+        writer.WriteBoolean("EnableIPv6", _config.EnableIPv6);
+        writer.WriteNumber("Backlog", _config.Backlog);
+        writer.WriteEndObject();
+
+        writer.WriteStartObject(nameof(this.Metrics));
+        writer.WriteNumber("TotalAccepted", this.Metrics.TotalAccepted);
+        writer.WriteNumber("TotalRejected", this.Metrics.TotalRejected);
+        writer.WriteNumber("TotalErrors", this.Metrics.TotalErrors);
+        writer.WriteEndObject();
+
+        writer.WriteStartObject("Protocol");
+        writer.WriteString("BoundProtocol", _protocol?.ToString() ?? "-");
+        writer.WriteEndObject();
+
+        writer.WriteStartObject("Connections");
+        writer.WriteNumber("ActiveConnections", _hub.Count);
+        writer.WriteBoolean("LimiterEnabled", true);
+        writer.WriteEndObject();
+
+        writer.WriteStartObject("Threading");
+        writer.WriteNumber("ThreadPoolMinWorker", minWorker);
+        writer.WriteNumber("ThreadPoolMinIOCP", minIocp);
+        writer.WriteEndObject();
+
+        writer.WriteEndObject();
+    }
+
     #endregion IReportable Implementation
 }

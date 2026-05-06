@@ -261,6 +261,28 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     }
 
     /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("TypeName", typeof(TSelf).Name);
+        writer.WriteString("AutoMagic", $"0x{PacketTypeCache<TSelf>.AutoMagic:X8}");
+        writer.WriteString("StaticSize", PacketTypeCache<TSelf>.StaticSize.ToString(CultureInfo.InvariantCulture));
+        writer.WriteNumber("PropertiesCount", PacketTypeCache<TSelf>.All.Length);
+        writer.WriteNumber("DynamicGettersCount", PacketTypeCache<TSelf>.SizeGettersCount);
+
+        writer.WriteStartArray("Properties");
+        foreach (PropertyMetadata meta in PacketTypeCache<TSelf>.All)
+        {
+            writer.WriteStringValue(meta.ToString());
+        }
+        writer.WriteEndArray();
+
+        writer.WriteEndObject();
+    }
+
+    /// <inheritdoc/>
     public override string ToString() =>
         $"{typeof(TSelf).Name}(Magic=0x{this.Header.MagicNumber:X8}, OpCode={this.Header.OpCode}, Flags={this.Header.Flags}, Priority={this.Header.Priority}, SequenceId={this.Header.SequenceId})";
 

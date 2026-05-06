@@ -74,5 +74,20 @@ public abstract partial class Protocol : IReportable
         };
     }
 
+    /// <inheritdoc/>
+    public virtual void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteBoolean("IsDisposed", _isDisposed != 0);
+        writer.WriteNumber(nameof(this.TotalMessages), this.TotalMessages);
+        writer.WriteNumber(nameof(this.TotalErrors), this.TotalErrors);
+        writer.WriteBoolean(nameof(this.IsAccepting), this.IsAccepting);
+        writer.WriteBoolean(nameof(this.KeepConnectionOpen), this.KeepConnectionOpen);
+        writer.WriteEndObject();
+    }
+
     #endregion Public Methods
 }

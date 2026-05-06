@@ -463,6 +463,52 @@ public abstract partial class UdpListenerBase : IListener
         return data;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber("Port", _port);
+        writer.WriteString(nameof(this.State), this.State.ToString());
+        writer.WriteBoolean(nameof(this.IsListening), this.IsListening);
+        writer.WriteBoolean("IsDisposed", _isDisposed != 0);
+        writer.WriteString("ProtocolType", _protocol?.GetType().FullName ?? "<null>");
+
+        writer.WriteStartObject("Config");
+        writer.WriteBoolean("ReuseAddress", _options.ReuseAddress);
+        writer.WriteNumber("BufferSize", _options.BufferSize);
+        writer.WriteBoolean("EnableIPv6", _options.EnableIPv6);
+        writer.WriteBoolean("DualMode", _options.DualMode);
+        writer.WriteEndObject();
+
+        writer.WriteStartObject("Worker");
+        writer.WriteString("Group", $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}");
+        writer.WriteNumber("GroupConcurrencyLimit", _options.MaxGroupConcurrency);
+        writer.WriteEndObject();
+
+        writer.WriteStartObject("Traffic");
+        writer.WriteNumber("ReceivedPackets", Interlocked.Read(ref _rxPackets));
+        writer.WriteNumber("ReceivedBytes", Interlocked.Read(ref _rxBytes));
+        writer.WriteNumber("DroppedShort", Interlocked.Read(ref _dropShort));
+        writer.WriteNumber("DroppedUnauth", Interlocked.Read(ref _dropUnauth));
+        writer.WriteNumber("DroppedUnknown", Interlocked.Read(ref _dropUnknown));
+        writer.WriteEndObject();
+
+        writer.WriteStartObject("Errors");
+        writer.WriteNumber("ReceiveErrors", Interlocked.Read(ref _recvErrors));
+        writer.WriteEndObject();
+
+        writer.WriteStartObject("Runtime");
+        writer.WriteString("Socket", _socket is null ? "<null>" : "OK");
+        writer.WriteString("CTS", _cts is null ? "<null>" : "OK");
+        writer.WriteString("RateLimiter", "OK");
+        writer.WriteEndObject();
+
+        writer.WriteEndObject();
+    }
+
     #endregion IReportable Implementation
 
     #region Private Helpers

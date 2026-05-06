@@ -10,7 +10,7 @@ internal sealed class DashboardOptions
 
     public string ServerPublicKeyPath { get; set; } = "shared/certificate.public";
 
-    public int PollIntervalMilliseconds { get; set; } = 2000;
+    public int PollIntervalMilliseconds { get; set; } = 250;
 
     public int PingIntervalMilliseconds { get; set; } = 2000;
 

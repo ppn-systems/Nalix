@@ -318,6 +318,76 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        long now = Stopwatch.GetTimestamp();
+
+        List<KeyValuePair<INetworkEndpoint, EndpointState>> snapshot = this.COLLECT_STATE_SNAPSHOT(now, out int totalEndpoints, out int hardBlockedCount);
+        try
+        {
+            writer.WriteStartObject();
+            writer.WriteString("UtcNow", DateTime.UtcNow);
+            writer.WriteNumber("CapacityTokens", _options.CapacityTokens);
+            writer.WriteNumber("RefillPerSecond", _options.RefillTokensPerSecond);
+            writer.WriteNumber("TokenScale", _options.TokenScale);
+            writer.WriteNumber("Shards", _options.ShardCount);
+            writer.WriteNumber("HardLockoutSeconds", _options.HardLockoutSeconds);
+            writer.WriteNumber("StaleEntrySeconds", _options.StaleEntrySeconds);
+            writer.WriteNumber("CleanupIntervalSecs", _options.CleanupIntervalSeconds);
+            writer.WriteNumber("MaxTrackedEndpoints", _options.MaxTrackedEndpoints);
+            writer.WriteNumber("TrackedEndpoints", totalEndpoints);
+            writer.WriteNumber("HardBlockedCount", hardBlockedCount);
+
+            writer.WriteStartArray("Endpoints");
+            int count = 0;
+            foreach (KeyValuePair<INetworkEndpoint, EndpointState> kv in snapshot)
+            {
+                if (count++ >= 20)
+                {
+                    break;
+                }
+
+                EndpointState state = kv.Value;
+                long micro, blockedUntil;
+                bool lockTaken = false;
+
+                try
+                {
+                    state.SpinLock.Enter(ref lockTaken);
+                    micro = state.MicroBalance;
+                    blockedUntil = state.HardBlockedUntilSw;
+                }
+                finally
+                {
+                    if (lockTaken) { state.SpinLock.Exit(); }
+                }
+
+                bool isBlocked = blockedUntil > now;
+                ushort credit = CALCULATE_REMAINING_CREDIT(micro, _options.TokenScale);
+
+                writer.WriteStartObject();
+                writer.WriteString("Endpoint", kv.Key.Address);
+                writer.WriteBoolean("Blocked", isBlocked);
+                writer.WriteNumber("Credit", credit);
+                writer.WriteNumber("MicroBalance", micro);
+                writer.WriteNumber("RetryAfterMs", isBlocked
+                    ? this.CALCULATE_DELAY_MS(now, blockedUntil)
+                    : (micro >= _options.TokenScale ? 0 : this.CALCULATE_RETRY_DELAY_MS(_options.TokenScale - micro)));
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+
+            writer.WriteEndObject();
+        }
+        finally
+        {
+            RETURN_SNAPSHOT_TO_POOL(snapshot);
+        }
+    }
+
     #endregion Public API
 
     #region Endpoint State Management

@@ -362,6 +362,49 @@ public sealed class PacketDispatchChannel
         return report;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteBoolean("Running", Volatile.Read(ref _running) == 1);
+        writer.WriteNumber("DispatchLoops", _dispatchLoops);
+        writer.WriteNumber("TotalPackets", _dispatch.TotalPackets);
+        writer.WriteNumber("TotalConnections", _dispatch.TotalConnections);
+        writer.WriteNumber("ReadyConnections", _dispatch.ReadyConnections);
+        writer.WriteNumber("WakeSignals", Interlocked.Read(ref _wakeSignals));
+        writer.WriteNumber("WakeReads", Interlocked.Read(ref _wakeReadSignals));
+        writer.WriteBoolean("WakeRequested", Volatile.Read(ref _wakeRequested) == 1);
+        writer.WriteString("PacketRegistryType", _catalog.GetType().Name);
+
+        int[] priorities = _dispatch.PendingPerPriority;
+        writer.WriteStartObject("PendingPerPriority");
+        for (int p = priorities.Length - 1; p >= 0; p--)
+        {
+            writer.WriteNumber(GetPriorityName(p), priorities[p]);
+        }
+        writer.WriteEndObject();
+
+        List<KeyValuePair<IConnection, int>> ranked = [.. _dispatch.PendingPerConnection];
+        ranked.Sort(static (a, b) => b.Value.CompareTo(a.Value));
+
+        int top = Math.Min(10, ranked.Count);
+        writer.WriteStartArray("PendingByConnection");
+        for (int i = 0; i < top; i++)
+        {
+            KeyValuePair<IConnection, int> kv = ranked[i];
+            writer.WriteStartObject();
+            writer.WriteString("EndPoint", kv.Key.NetworkEndpoint.Address);
+            writer.WriteNumber("Pending", kv.Value);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WriteEndObject();
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string GetPriorityName(int index)
     {

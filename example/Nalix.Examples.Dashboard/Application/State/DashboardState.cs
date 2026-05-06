@@ -36,6 +36,12 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
 
     public bool HasApiKey { get; private set; }
 
+    public int PollIntervalMs { get; private set; } = 250;
+
+    public int PingIntervalMs { get; private set; } = 2000;
+
+    public int RequestTimeoutMs { get; private set; } = 5000;
+
     public IReadOnlyDictionary<GenerationReportTarget, DashboardReportSnapshot> Reports
     {
         get
@@ -143,6 +149,57 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
                 this.LastPingMilliseconds = null;
                 this.LastPingAt = null;
             }
+        }
+
+        this.NotifyChanged();
+    }
+
+    public void SetPollIntervalMs(int ms)
+    {
+        lock (_gate)
+        {
+            int clamped = Math.Clamp(ms, 100, 10000);
+            if (this.PollIntervalMs == clamped)
+            {
+                return;
+            }
+
+            this.PollIntervalMs = clamped;
+            this.EnqueueLogUnsafe("INFO", $"Poll interval changed value={clamped}ms.");
+        }
+
+        this.NotifyChanged();
+    }
+
+    public void SetPingIntervalMs(int ms)
+    {
+        lock (_gate)
+        {
+            int clamped = Math.Clamp(ms, 1000, 30000);
+            if (this.PingIntervalMs == clamped)
+            {
+                return;
+            }
+
+            this.PingIntervalMs = clamped;
+            this.EnqueueLogUnsafe("INFO", $"Ping interval changed value={clamped}ms.");
+        }
+
+        this.NotifyChanged();
+    }
+
+    public void SetRequestTimeoutMs(int ms)
+    {
+        lock (_gate)
+        {
+            int clamped = Math.Clamp(ms, 1000, 30000);
+            if (this.RequestTimeoutMs == clamped)
+            {
+                return;
+            }
+
+            this.RequestTimeoutMs = clamped;
+            this.EnqueueLogUnsafe("INFO", $"Request timeout changed value={clamped}ms.");
         }
 
         this.NotifyChanged();

@@ -29,6 +29,12 @@ internal interface IDashboardStateReader
 
     bool HasApiKey { get; }
 
+    int PollIntervalMs { get; }
+
+    int PingIntervalMs { get; }
+
+    int RequestTimeoutMs { get; }
+
     IReadOnlyDictionary<GenerationReportTarget, DashboardReportSnapshot> Reports { get; }
 
     IReadOnlyList<DashboardPingSample> PingSamples { get; }

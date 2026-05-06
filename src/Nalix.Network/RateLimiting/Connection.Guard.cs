@@ -321,6 +321,56 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = this.COLLECT_SNAPSHOT();
+        try
+        {
+            SORT_SNAPSHOT_BY_LOAD(snapshot);
+            GlobalMetrics metrics = this.CALCULATE_GLOBAL_METRICS(snapshot);
+
+            writer.WriteStartObject();
+            writer.WriteString("UtcNow", Clock.NowUtc());
+            writer.WriteNumber("MaxPerEndpoint", _maxPerEndpoint);
+            writer.WriteNumber("CleanupIntervalSeconds", _cleanupInterval.TotalSeconds);
+            writer.WriteNumber("InactivityThresholdSeconds", _inactivityThreshold.TotalSeconds);
+            writer.WriteNumber("TrackedEndpoints", metrics.TotalEndpoints);
+            writer.WriteNumber("TotalConcurrent", metrics.TotalConcurrent);
+            writer.WriteNumber("TotalAttempts", metrics.TotalAttempts);
+            writer.WriteNumber("TotalRejections", metrics.TotalRejections);
+            writer.WriteNumber("TotalCleaned", metrics.TotalCleaned);
+            writer.WriteNumber("RejectionRate", metrics.TotalAttempts > 0 ? (metrics.TotalRejections * 100.0 / metrics.TotalAttempts) : 0.0);
+
+            writer.WriteStartArray("TopEndpoints");
+            int count = 0;
+            foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitInfo> kvp in snapshot)
+            {
+                if (count++ >= 50)
+                {
+                    break;
+                }
+
+                ConnectionLimitInfo info = kvp.Value;
+                writer.WriteStartObject();
+                writer.WriteString("Address", kvp.Key.Address ?? "unknown");
+                writer.WriteNumber("CurrentConnections", info.CurrentConnections);
+                writer.WriteNumber("TotalConnectionsToday", info.TotalConnectionsToday);
+                writer.WriteString("LastConnectionUtc", info.LastConnectionTime);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+
+            writer.WriteEndObject();
+        }
+        finally
+        {
+            RETURN_SNAPSHOT_TO_POOL(snapshot);
+        }
+    }
+
     #endregion Public API
 
     #region Connection Slot Management

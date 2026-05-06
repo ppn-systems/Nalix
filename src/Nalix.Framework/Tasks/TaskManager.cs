@@ -1052,6 +1052,177 @@ public sealed partial class TaskManager : ITaskManager
         return data;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        int runningWorkers = Volatile.Read(ref _runningWorkerCount);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber("RecurringCount", _recurring.Count);
+        writer.WriteNumber("WorkersTotal", _workers.Count);
+        writer.WriteNumber("WorkersRunning", runningWorkers);
+
+        writer.WriteBoolean("DynamicAdjustmentEnabled", _options.DynamicAdjustmentEnabled);
+        writer.WriteNumber("CurrentConcurrencyLimit", _currentConcurrencyLimit);
+        writer.WriteNumber("MaxWorkers", _options.MaxWorkers);
+        writer.WriteNumber("HighCpuThreshold", _options.ThresholdHighCpu);
+        writer.WriteNumber("LowCpuThreshold", _options.ThresholdLowCpu);
+        writer.WriteNumber("ObservingIntervalSeconds", _options.ObservingInterval.TotalSeconds);
+        writer.WriteNumber("WarmupDurationSeconds", _options.CpuWarmupDuration.TotalSeconds);
+        writer.WriteNumber("AdjustmentStreakRequired", _options.AdjustmentStreakRequired);
+
+        try
+        {
+            Process proc = Process.GetCurrentProcess();
+            proc.Refresh();
+
+            writer.WriteStartObject("Memory");
+            writer.WriteNumber("WorkingSetMB", proc.WorkingSet64 / (1024 * 1024));
+            writer.WriteNumber("PrivateMB", proc.PrivateMemorySize64 / (1024 * 1024));
+            writer.WriteNumber("VirtualMB", proc.VirtualMemorySize64 / (1024 * 1024));
+            writer.WriteEndObject();
+
+            ThreadPool.GetMaxThreads(out int maxWorkerThreads, out int _);
+            ThreadPool.GetAvailableThreads(out int availableWorkerThreads, out int _);
+            int activeWorkerThreads = maxWorkerThreads - availableWorkerThreads;
+
+            writer.WriteStartObject("Process");
+            writer.WriteNumber("Threads", ThreadPool.ThreadCount);
+            writer.WriteNumber("CompletedWorkItems", ThreadPool.CompletedWorkItemCount);
+            writer.WriteNumber("ThreadsRunning", activeWorkerThreads);
+            writer.WriteNumber("Handles", proc.HandleCount);
+            writer.WriteNumber("GCGen0", GC.CollectionCount(0));
+            writer.WriteNumber("GCGen1", GC.CollectionCount(1));
+            writer.WriteNumber("GCGen2", GC.CollectionCount(2));
+            writer.WriteNumber("ManagedHeapMB", GC.GetTotalMemory(false) / 1048576);
+            writer.WriteNumber("UptimeDays", (DateTimeOffset.UtcNow - proc.StartTime.ToUniversalTime()).TotalDays);
+            writer.WriteString("StartTimeUtc", proc.StartTime.ToUniversalTime());
+            writer.WriteEndObject();
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+        }
+
+        writer.WriteNumber("WorkerExecutionCount", _workerExecutionCount);
+        writer.WriteNumber("AverageWorkerExecutionTimeMs", this.AverageWorkerExecutionTime);
+        writer.WriteNumber("P95WorkerExecutionTimeMs", this.P95WorkerExecutionTime);
+        writer.WriteNumber("P99WorkerExecutionTimeMs", this.P99WorkerExecutionTime);
+        writer.WriteNumber("AverageWorkerWaitTimeMs", this.AverageWorkerWaitTime);
+        writer.WriteNumber(nameof(this.PeakRunningWorkerCount), this.PeakRunningWorkerCount);
+        writer.WriteNumber(nameof(this.WorkerErrorCount), this.WorkerErrorCount);
+        writer.WriteNumber("RecurringExecutionCount", _recurringExecutionCount);
+        writer.WriteNumber("AverageRecurringExecutionTimeMs", this.AverageRecurringExecutionTime);
+        writer.WriteNumber(nameof(this.RecurringErrorCount), this.RecurringErrorCount);
+
+        List<RecurringState> recurringSnapshot = new(_recurring.Count);
+        foreach (RecurringState recurring in _recurring.Values)
+        {
+            recurringSnapshot.Add(recurring);
+        }
+
+        writer.WriteStartArray("Recurring");
+        foreach (RecurringState s in recurringSnapshot)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("Name", s.Name);
+            writer.WriteNumber("TotalRuns", s.TotalRuns);
+            writer.WriteNumber("ConsecutiveFailures", s.ConsecutiveFailures);
+            writer.WriteBoolean("IsRunning", s.IsRunning);
+            writer.WriteString("LastRunUtc", s.LastRunUtc ?? DateTimeOffset.MinValue);
+            writer.WriteString("NextRunUtc", s.NextRunUtc ?? DateTimeOffset.MinValue);
+            writer.WriteNumber("IntervalMs", s.Interval.TotalMilliseconds);
+            writer.WriteString("Tag", s.Options.Tag ?? "N/A");
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        recurringSnapshot.Sort(static (a, b) => b.ConsecutiveFailures.CompareTo(a.ConsecutiveFailures));
+        int topRecurringCount = recurringSnapshot.Count < 5 ? recurringSnapshot.Count : 5;
+
+        writer.WriteStartArray("TopRecurringByFailures");
+        for (int i = 0; i < topRecurringCount; i++)
+        {
+            RecurringState r = recurringSnapshot[i];
+            writer.WriteStartObject();
+            writer.WriteString("Name", r.Name);
+            writer.WriteNumber("ConsecutiveFailures", r.ConsecutiveFailures);
+            writer.WriteString("LastRunUtc", r.LastRunUtc ?? DateTimeOffset.MinValue);
+            writer.WriteString("Tag", r.Options.Tag ?? "N/A");
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        Dictionary<string, (int running, int total)> groupCounts = new(StringComparer.Ordinal);
+        foreach (KeyValuePair<ISnowflake, WorkerState> kv in _workers)
+        {
+            WorkerState st = kv.Value;
+            if (groupCounts.TryGetValue(st.Group, out (int running, int total) stats))
+            {
+                groupCounts[st.Group] = (stats.running + (st.IsRunning ? 1 : 0), stats.total + 1);
+            }
+            else
+            {
+                groupCounts[st.Group] = (st.IsRunning ? 1 : 0, 1);
+            }
+        }
+
+        List<string> groupNames = new(groupCounts.Count);
+        foreach (KeyValuePair<string, (int running, int total)> kv in groupCounts)
+        {
+            groupNames.Add(kv.Key);
+        }
+
+        groupNames.Sort(StringComparer.Ordinal);
+
+        writer.WriteStartObject("WorkersByGroup");
+        foreach (string groupName in groupNames)
+        {
+            (int running, int total) = groupCounts[groupName];
+            string concurrency = _groupGates.TryGetValue(groupName, out Gate? gate)
+                ? $"{gate.Capacity - gate.SemaphoreSlim.CurrentCount}/{gate.Capacity}"
+                : "-";
+
+            writer.WriteStartObject(groupName);
+            writer.WriteNumber("Running", running);
+            writer.WriteNumber("Total", total);
+            writer.WriteString("Concurrency", concurrency);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndObject();
+
+        List<WorkerState> runningSnapshot = new(_workers.Count);
+        foreach (WorkerState worker in _workers.Values)
+        {
+            if (worker.IsRunning)
+            {
+                runningSnapshot.Add(worker);
+            }
+        }
+
+        runningSnapshot.Sort(static (a, b) => a.StartedUtc.CompareTo(b.StartedUtc));
+        int topRunningCount = runningSnapshot.Count < 50 ? runningSnapshot.Count : 50;
+
+        writer.WriteStartArray("TopRunningWorkers");
+        for (int i = 0; i < topRunningCount; i++)
+        {
+            WorkerState w = runningSnapshot[i];
+            writer.WriteStartObject();
+            writer.WriteString("Id", w.Id.ToString() ?? "N/A");
+            writer.WriteString("Name", w.Name);
+            writer.WriteString("Group", w.Group);
+            writer.WriteString("StartedUtc", w.StartedUtc);
+            writer.WriteNumber("Progress", w.Progress);
+            writer.WriteString("LastHeartbeatUtc", w.LastHeartbeatUtc ?? DateTimeOffset.MinValue);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WriteEndObject();
+    }
+
     #endregion IReportable
 
     #region IDisposable

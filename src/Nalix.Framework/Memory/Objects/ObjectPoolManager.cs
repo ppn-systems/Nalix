@@ -936,6 +936,94 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         return data;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber("UptimeSeconds", this.Uptime.TotalSeconds);
+        writer.WriteNumber(nameof(this.PoolCount), this.PoolCount);
+        writer.WriteNumber(nameof(this.PeakPoolCount), this.PeakPoolCount);
+        writer.WriteNumber(nameof(this.UnhealthyPoolCount), this.UnhealthyPoolCount);
+        writer.WriteNumber(nameof(this.DefaultMaxPoolSize), this.DefaultMaxPoolSize);
+        writer.WriteString("StartTime", _startTime);
+        writer.WriteNumber("LastHealthCheckTicks", _lastHealthCheckUtc);
+        writer.WriteNumber(nameof(this.TotalGetOperations), this.TotalGetOperations);
+        writer.WriteNumber(nameof(this.TotalReturnOperations), this.TotalReturnOperations);
+        writer.WriteNumber(nameof(this.TotalCacheHits), this.TotalCacheHits);
+        writer.WriteNumber(nameof(this.TotalCacheMisses), this.TotalCacheMisses);
+        writer.WriteNumber("TotalCreated", Interlocked.Read(ref _totalCreated));
+        writer.WriteNumber("TotalDisposed", Interlocked.Read(ref _totalDisposed));
+        writer.WriteNumber("TotalLeaked", PoolSentinel.TotalLeaked);
+        writer.WriteNumber("UptimeMs", this.Uptime.TotalMilliseconds);
+        writer.WriteNumber(nameof(this.CacheHitRate), this.CacheHitRate);
+        writer.WriteNumber("Throughput", this.Uptime.TotalSeconds > 0 ? this.TotalGetOperations / this.Uptime.TotalSeconds : 0);
+        writer.WriteNumber("CreationRate", this.Uptime.TotalSeconds > 0 ? Interlocked.Read(ref _totalCreated) / this.Uptime.TotalSeconds : 0);
+        writer.WriteNumber("NetObjects", this.TotalGetOperations - this.TotalReturnOperations);
+
+        List<KeyValuePair<Type, ObjectPool>> sortedPools = new(_poolDict.Count);
+        foreach (KeyValuePair<Type, ObjectPool> kvp in _poolDict)
+        {
+            sortedPools.Add(kvp);
+        }
+
+        sortedPools.Sort((a, b) => string.CompareOrdinal(a.Key.Name, b.Key.Name));
+
+        writer.WriteStartArray("Pools");
+        foreach (KeyValuePair<Type, ObjectPool> kvp in sortedPools)
+        {
+            Dictionary<string, object> poolInfo = kvp.Value.GetStatistics();
+
+            writer.WriteStartObject();
+            writer.WriteString("Type", kvp.Key.FullName ?? kvp.Key.Name);
+            writer.WriteNumber("Available", poolInfo.TryGetValue("AvailableCount", out object? available) ? Convert.ToInt32(available, CultureInfo.InvariantCulture) : 0);
+            writer.WriteNumber("MaxCapacity", poolInfo.TryGetValue("MaxCapacity", out object? maxcap) ? Convert.ToInt32(maxcap, CultureInfo.InvariantCulture) : this.DefaultMaxPoolSize);
+            writer.WriteBoolean("IsActive", !poolInfo.TryGetValue("IsActive", out object? active) || Convert.ToBoolean(active, CultureInfo.InvariantCulture));
+
+            if (_metricsDict.TryGetValue(kvp.Key, out PoolMetrics? metrics))
+            {
+                long gets = metrics.TotalGets, hits = metrics.CacheHits, misses = metrics.CacheMisses;
+                double hitPercent = gets > 0 ? (hits / (double)gets * 100.0) : 0.0;
+
+                writer.WriteNumber("Gets", gets);
+                writer.WriteNumber("Hits", hits);
+                writer.WriteNumber("Misses", misses);
+                writer.WriteNumber("HitRate", hitPercent);
+                writer.WriteString("LastAccessUtc", metrics.LastAccessUtc);
+                writer.WriteString("LastAccessType", metrics.LastAccessType ?? "None");
+                writer.WriteNumber("Outstanding", metrics.Outstanding);
+                writer.WriteNumber("ConsecutiveFailures", metrics.ConsecutiveFailures);
+                writer.WriteString("Status", metrics.ConsecutiveFailures > 0 ? "Unhealthy" : "OK");
+            }
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        if (this.UnhealthyPoolCount > 0)
+        {
+            writer.WriteStartArray("UnhealthyPools");
+            foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
+            {
+                if (kvp.Value.ConsecutiveFailures <= 0)
+                {
+                    continue;
+                }
+
+                writer.WriteStartObject();
+                writer.WriteString("Type", kvp.Key.FullName ?? kvp.Key.Name);
+                writer.WriteNumber("ConsecutiveFailures", kvp.Value.ConsecutiveFailures);
+                writer.WriteString("LastAccessUtc", kvp.Value.LastAccessUtc);
+                writer.WriteNumber("Outstanding", kvp.Value.Outstanding);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }
+
+        writer.WriteEndObject();
+    }
+
     /// <summary>
     /// Gets or creates an <see cref="ObjectPool"/> for <typeparamref name="T"/>.
     /// </summary>

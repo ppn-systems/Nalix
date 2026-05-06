@@ -678,6 +678,71 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         return report;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        List<KeyValuePair<ushort, Entry>> entries = [.. _table];
+        entries.Sort((a, b) =>
+        {
+            int aBusy = a.Value.Capacity - a.Value.Sem.CurrentCount;
+            int bBusy = b.Value.Capacity - b.Value.Sem.CurrentCount;
+            int cmp = bBusy.CompareTo(aBusy);
+            return cmp != 0 ? cmp : b.Value.QueueCount.CompareTo(a.Value.QueueCount);
+        });
+
+        long totalAttempts = Interlocked.Read(ref _totalAcquired) + Interlocked.Read(ref _totalRejected);
+        double rejectionRate = totalAttempts > 0 ? (Interlocked.Read(ref _totalRejected) * 100.0 / totalAttempts) : 0.0;
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber("CleanupIntervalMinutes", _options.CleanupIntervalMinutes);
+        writer.WriteNumber("MinIdleAgeMinutes", _options.MinIdleAgeMinutes);
+        writer.WriteNumber("TrackedOpcodes", _table.Count);
+        writer.WriteNumber("TotalAcquired", Interlocked.Read(ref _totalAcquired));
+        writer.WriteNumber("TotalRejected", Interlocked.Read(ref _totalRejected));
+        writer.WriteNumber("TotalQueued", Interlocked.Read(ref _totalQueued));
+        writer.WriteNumber("TotalCleaned", Interlocked.Read(ref _totalCleanedEntries));
+        writer.WriteNumber("RejectionRate", rejectionRate);
+
+        writer.WriteStartObject("CircuitBreaker");
+        writer.WriteBoolean("IsOpen", Volatile.Read(ref _circuitBreakerOpen) == 1);
+        writer.WriteNumber("Trips", Interlocked.Read(ref _circuitBreakerTrips));
+        writer.WriteEndObject();
+
+        writer.WriteStartArray("Opcodes");
+        int count = 0;
+        foreach (KeyValuePair<ushort, Entry> kvp in entries)
+        {
+            if (count++ >= 50)
+            {
+                break;
+            }
+
+            ushort opcode = kvp.Key;
+            Entry entry = kvp.Value;
+            int available = entry.Sem.CurrentCount;
+            int inUse = entry.Capacity - available;
+            string queueMaxStr = entry.QueueMax == int.MaxValue ? "∞" : entry.QueueMax.ToString(CultureInfo.InvariantCulture);
+
+            writer.WriteStartObject();
+            writer.WriteString("Opcode", $"0x{opcode:X4}");
+            writer.WriteNumber("Capacity", entry.Capacity);
+            writer.WriteNumber("InUse", inUse);
+            writer.WriteNumber("Available", available);
+            writer.WriteBoolean("Queuing", entry.Queue);
+            writer.WriteNumber("QueueCount", entry.QueueCount);
+            writer.WriteString("QueueMax", queueMaxStr);
+            writer.WriteBoolean("IsIdle", entry.IsIdle);
+            writer.WriteString("LastUsedUtc", entry.LastUsedUtc);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WriteEndObject();
+    }
+
     private void APPEND_REPORT_HEADER(StringBuilder sb, double rejectionRate)
     {
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConcurrencyGate Status:");

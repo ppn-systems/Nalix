@@ -557,6 +557,26 @@ public sealed class ConnectionHub : IConnectionHub
         return report;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        int total = Volatile.Read(ref _count);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber("TotalConnections", total);
+        writer.WriteNumber("EvictedConnections", Volatile.Read(ref _evictedConnections));
+        writer.WriteNumber("RejectedConnections", Volatile.Read(ref _rejectedConnections));
+        writer.WriteNumber("ShardCount", _shardCount);
+        writer.WriteNumber("MaxConnections", _maxConnections);
+        writer.WriteString("DropPolicy", _options.DropPolicy.ToString());
+        writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _totalBytesSent));
+        writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _totalBytesReceived));
+        writer.WriteEndObject();
+    }
+
     /// <inheritdoc />
     /// <summary>
     /// Releases all resources used by the <see cref="ConnectionHub"/> and closes all connections.
