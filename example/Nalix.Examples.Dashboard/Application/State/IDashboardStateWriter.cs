@@ -1,4 +1,4 @@
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 using Nalix.Examples.Dashboard.Domain.Reports;
 
 namespace Nalix.Examples.Dashboard.Application.State;

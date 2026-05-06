@@ -154,11 +154,6 @@ jobs:
           if-no-files-found: warn
           compression-level: 0
 
-      - name: Publish trimmed self-contained smoke test
-        if: inputs.os == 'ubuntu-latest'
-        shell: bash
-        run: dotnet publish "${{ inputs.trim_project }}" --configuration Release --no-restore -r linux-x64 --self-contained true /p:PublishTrimmed=true -p:UseSharedCompilation=false --output ./publish-trimmed
-
       - name: Publish build output
         if: inputs.deploy
         shell: bash

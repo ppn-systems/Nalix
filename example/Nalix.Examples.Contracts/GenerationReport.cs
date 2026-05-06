@@ -8,7 +8,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
-namespace Nalix.Examples.Contracts.Packets;
+namespace Nalix.Examples.Contracts;
 
 public enum GenerationReportStage : byte
 {

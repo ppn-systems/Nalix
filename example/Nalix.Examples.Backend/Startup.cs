@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Examples.Backend.Attributes;
 using Nalix.Examples.Backend.Handlers;
 using Nalix.Examples.Backend.Middleware;
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting;

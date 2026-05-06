@@ -1,5 +1,5 @@
 using Nalix.Codec.DataFrames;
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 
 namespace Nalix.Examples.Dashboard.Infrastructure.Tcp;
 
