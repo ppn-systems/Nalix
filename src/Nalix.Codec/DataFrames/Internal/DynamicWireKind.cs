@@ -10,5 +10,7 @@ internal enum DynamicWireKind : byte
     ByteArray,
     Packet,
     UnmanagedArray,
+    UnmanagedList,
+    GenericCollection,
     Other
 }

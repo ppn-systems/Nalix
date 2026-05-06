@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -261,6 +262,28 @@ internal sealed class PropertyMetadata
             }
 
             return (DynamicWireKind.Other, 0);
+        }
+
+        if (declaredType.IsGenericType)
+        {
+            Type[] args = declaredType.GetGenericArguments();
+            Type def = declaredType.GetGenericTypeDefinition();
+
+            if (def == typeof(List<>))
+            {
+                Type elem = args[0];
+                int elemSize = PacketBaseElementSizer.GetElementSize(elem);
+                // unmanaged element → fast path O(1)
+                return elemSize > 0 ? (DynamicWireKind.UnmanagedList, elemSize) : (DynamicWireKind.GenericCollection, 0);
+            }
+
+            if (def == typeof(Dictionary<,>) ||
+                def == typeof(HashSet<>) ||
+                def == typeof(Queue<>) ||
+                def == typeof(Stack<>))
+            {
+                return (DynamicWireKind.GenericCollection, 0);
+            }
         }
 
         return (DynamicWireKind.Other, 0);

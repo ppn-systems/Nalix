@@ -1,4 +1,3 @@
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using System;
 using System.Collections.Generic;
@@ -82,9 +81,10 @@ public sealed class PacketBaseLengthTests
         };
 
         byte[] buffer = new byte[packet.Length - 1];
-        InternalErrorException ex = Assert.ThrowsAny<InternalErrorException>(() => packet.Serialize(buffer));
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => packet.Serialize(buffer));
 
-        Assert.Contains("fixed-size", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Buffer too small", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(packet.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -241,8 +241,6 @@ public sealed class PacketBaseLengthTests
         public static new DynamicHintStringPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DynamicHintStringPacket>.Deserialize(buffer);
     }
 }
-
-
 
 
 
