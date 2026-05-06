@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Codec.Serialization.Internal.Types;
 
 namespace Nalix.Codec.DataFrames.Internal;
 
@@ -20,17 +21,20 @@ internal static class PacketBaseElementSizer
             return GetElementSize(Enum.GetUnderlyingType(type));
         }
 
+        if (!TypeMetadata.IsUnmanaged(type))
+        {
+            return 0;
+        }
+
         return Type.GetTypeCode(type) switch
         {
             TypeCode.Decimal => 16,
             TypeCode.Object => GetUnsafeSizeOf(type),
-            TypeCode.DBNull => GetUnsafeSizeOf(type),
-            TypeCode.String => GetUnsafeSizeOf(type),
             TypeCode.Char or TypeCode.Int16 or TypeCode.UInt16 => 2,
             TypeCode.Int32 or TypeCode.UInt32 or TypeCode.Single => 4,
-            TypeCode.Byte or TypeCode.SByte or TypeCode.Boolean or TypeCode.Empty => 1,
+            TypeCode.Byte or TypeCode.SByte or TypeCode.Boolean => 1,
             TypeCode.Int64 or TypeCode.UInt64 or TypeCode.Double or TypeCode.DateTime => 8,
-            _ => 0
+            TypeCode.Empty or TypeCode.DBNull or TypeCode.String or _ => 0
         };
     }
 
