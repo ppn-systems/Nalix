@@ -238,55 +238,125 @@ internal sealed class PropertyMetadata
 
     private static (DynamicWireKind kind, int elementSize) ComputeDynamicKind(Type declaredType)
     {
+        // ── string ──────────────────────────────────────────────────────────────
         if (declaredType == typeof(string))
         {
             return (DynamicWireKind.String, 0);
         }
 
+        // ── byte[] — fast path riêng, phổ biến nhất ────────────────────────────
         if (declaredType == typeof(byte[]))
         {
             return (DynamicWireKind.ByteArray, 0);
         }
 
+        // ── string[] ────────────────────────────────────────────────────────────
+        if (declaredType == typeof(string[]))
+        {
+            return (DynamicWireKind.StringArray, 0);
+        }
+
+        // ── IPacket ─────────────────────────────────────────────────────────────
         if (typeof(IPacket).IsAssignableFrom(declaredType))
         {
             return (DynamicWireKind.Packet, 0);
         }
 
-        if (declaredType.IsArray)
+        // ── Nullable<T> ─────────────────────────────────────────────────────────
+        Type? underlyingNullable = Nullable.GetUnderlyingType(declaredType);
+        if (underlyingNullable is not null)
         {
-            Type? elementType = declaredType.GetElementType();
-            if (elementType is not null && TypeMetadata.IsUnmanaged(elementType))
-            {
-                return (DynamicWireKind.UnmanagedArray, PacketBaseElementSizer.GetElementSize(elementType));
-            }
-
-            return (DynamicWireKind.Other, 0);
+            int innerSize = PacketBaseElementSizer.GetElementSize(underlyingNullable);
+            return (DynamicWireKind.Nullable, innerSize);
         }
 
-        if (declaredType.IsGenericType)
+        // ── Arrays ──────────────────────────────────────────────────────────────
+        if (declaredType.IsArray)
         {
-            Type[] args = declaredType.GetGenericArguments();
-            Type def = declaredType.GetGenericTypeDefinition();
-
-            if (def == typeof(List<>))
+            Type? elem = declaredType.GetElementType();
+            if (elem is null)
             {
-                Type elem = args[0];
-                int elemSize = PacketBaseElementSizer.GetElementSize(elem);
-                // unmanaged element → fast path O(1)
-                return elemSize > 0 ? (DynamicWireKind.UnmanagedList, elemSize) : (DynamicWireKind.GenericCollection, 0);
+                return (DynamicWireKind.Other, 0);
             }
 
-            if (def == typeof(Dictionary<,>) ||
-                def == typeof(HashSet<>) ||
-                def == typeof(Queue<>) ||
-                def == typeof(Stack<>))
+            // int?[], Guid?[]...
+            Type? nullableInner = Nullable.GetUnderlyingType(elem);
+            if (nullableInner is not null)
+            {
+                int innerSize = PacketBaseElementSizer.GetElementSize(nullableInner);
+                return (DynamicWireKind.NullableArray, innerSize);
+            }
+
+            // int[], Guid[], MyEnum[]... (unmanaged covers enum too)
+            if (TypeMetadata.IsUnmanaged(elem))
+            {
+                return (DynamicWireKind.UnmanagedArray, PacketBaseElementSizer.GetElementSize(elem));
+            }
+
+            return (DynamicWireKind.Other, 0); // string[], complex[]
+        }
+
+        // ── Generic collections ─────────────────────────────────────────────────
+        if (declaredType.IsGenericType)
+        {
+            Type def = declaredType.GetGenericTypeDefinition();
+            Type[] args = declaredType.GetGenericArguments();
+
+            // Memory<T> / ReadOnlyMemory<T> — O(1), element phải unmanaged
+            if (def == typeof(Memory<>) || def == typeof(ReadOnlyMemory<>))
+            {
+                int elemSize = PacketBaseElementSizer.GetElementSize(args[0]);
+                return (DynamicWireKind.Memory, elemSize);
+            }
+
+            // List<T>
+            if (def == typeof(List<>))
+            {
+                int elemSize = PacketBaseElementSizer.GetElementSize(args[0]);
+                return elemSize > 0
+                    ? (DynamicWireKind.UnmanagedList, elemSize)  // List<int>, List<MyEnum>
+                    : (DynamicWireKind.GenericCollection, 0);    // List<string>...
+            }
+
+            // Dictionary<K,V> / HashSet<T> / Queue<T> / Stack<T>
+            if (def == typeof(Dictionary<,>)
+                || def == typeof(HashSet<>)
+                || def == typeof(Queue<>)
+                || def == typeof(Stack<>))
             {
                 return (DynamicWireKind.GenericCollection, 0);
+            }
+
+            if (IsValueTuple(def))
+            {
+                _ = TryComputeValueTupleSize(args);
+                return (DynamicWireKind.Other, 0);
             }
         }
 
         return (DynamicWireKind.Other, 0);
+    }
+
+    private static bool IsValueTuple(Type def)
+        => def == typeof(ValueTuple<,>)
+        || def == typeof(ValueTuple<,,>)
+        || def == typeof(ValueTuple<,,,>)
+        || def == typeof(ValueTuple<,,,,>);
+
+    private static int TryComputeValueTupleSize(Type[] args)
+    {
+        int total = 0;
+        foreach (Type arg in args)
+        {
+            int s = PacketBaseElementSizer.GetElementSize(arg);
+            if (s == 0)
+            {
+                return 0;
+            }
+
+            total += s;
+        }
+        return total;
     }
 
     private static ushort ComputeFixedSize(Type type) =>

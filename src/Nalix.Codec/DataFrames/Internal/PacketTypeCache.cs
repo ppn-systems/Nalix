@@ -129,8 +129,102 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
             DynamicWireKind.UnmanagedList => BUILD_UNMANAGED_LIST_GETTER(meta),
             DynamicWireKind.UnmanagedArray => BUILD_UNMANAGED_ARRAY_GETTER(meta),
             DynamicWireKind.GenericCollection => BUILD_GENERIC_COLLECTION_GETTER(meta),
+            DynamicWireKind.Memory => BUILD_MEMORY_GETTER(meta),
+            DynamicWireKind.StringArray => BUILD_STRING_ARRAY_GETTER(meta),
+            DynamicWireKind.Nullable => BUILD_NULLABLE_GETTER(meta),
+            DynamicWireKind.NullableArray => BUILD_NULLABLE_ARRAY_GETTER(meta),
             DynamicWireKind.None or DynamicWireKind.Other or _ => BUILD_FALLBACK_GETTER(meta)
         };
+
+    private static Func<TSelf, int> BUILD_MEMORY_GETTER(PropertyMetadata meta)
+    {
+        MethodInfo buildGeneric = typeof(PacketTypeCache<TSelf>)
+            .GetMethod(nameof(BUILD_MEMORY_GETTER), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(meta.DeclaredType.GetGenericArguments()[0]);
+
+        bool isReadOnly = meta.DeclaredType.GetGenericTypeDefinition() == typeof(ReadOnlyMemory<>);
+        return (Func<TSelf, int>)buildGeneric.Invoke(null, [meta, isReadOnly])!;
+    }
+
+    private static Func<TSelf, int> BUILD_MEMORY_GETTER<TElement>(
+        PropertyMetadata meta, bool isReadOnly) where TElement : unmanaged
+    {
+        int elemSize = meta.ElementSize;
+        int nullWireSize = meta.NullWireSize;
+
+        if (isReadOnly)
+        {
+            Func<TSelf, ReadOnlyMemory<TElement>> getter =
+                BUILD_TYPED_GETTER<ReadOnlyMemory<TElement>>(meta);
+            return instance => checked(sizeof(int) + (getter(instance).Length * elemSize));
+        }
+        else
+        {
+            Func<TSelf, Memory<TElement>> getter =
+                BUILD_TYPED_GETTER<Memory<TElement>>(meta);
+            return instance => checked(sizeof(int) + (getter(instance).Length * elemSize));
+        }
+    }
+
+    private static Func<TSelf, int> BUILD_NULLABLE_ARRAY_GETTER(PropertyMetadata meta)
+    {
+        if (meta.ElementSize == 0)
+        {
+            return BUILD_FALLBACK_GETTER(meta);
+        }
+
+        Func<TSelf, System.Collections.ICollection?> getter =
+            BUILD_TYPED_GETTER<System.Collections.ICollection?>(meta);
+        int perElement = sizeof(byte) + meta.ElementSize; // flag + value
+        int nullWireSize = meta.NullWireSize;
+
+        return instance =>
+        {
+            System.Collections.ICollection? arr = getter(instance);
+            return arr is null ? nullWireSize : sizeof(int) + (arr.Count * perElement);
+        };
+    }
+
+    private static Func<TSelf, int> BUILD_NULLABLE_GETTER(PropertyMetadata meta)
+    {
+        // elementSize = 0 nghĩa là inner type không unmanaged (hiếm, fallback)
+        if (meta.ElementSize == 0)
+        {
+            return BUILD_FALLBACK_GETTER(meta);
+        }
+
+        Func<TSelf, object?> getter = meta.GetValue;
+        int fixedInner = meta.ElementSize;
+
+        return instance =>
+        {
+            object? val = meta.GetValue(instance);
+            return val is null ? sizeof(byte) : sizeof(byte) + fixedInner;
+        };
+    }
+
+    private static Func<TSelf, int> BUILD_STRING_ARRAY_GETTER(PropertyMetadata meta)
+    {
+        Func<TSelf, string[]?> getter = BUILD_TYPED_GETTER<string[]?>(meta);
+        int nullWireSize = meta.NullWireSize;
+
+        return instance =>
+        {
+            string[]? arr = getter(instance);
+            if (arr is null)
+            {
+                return nullWireSize;
+            }
+
+            int size = sizeof(int); // count prefix
+            foreach (string s in arr)
+            {
+                size += s is null ? sizeof(int) : sizeof(int) + Encoding.UTF8.GetByteCount(s);
+            }
+
+            return size;
+        };
+    }
 
     // List<T> where T : unmanaged → O(1), zero-reflection
     private static Func<TSelf, int> BUILD_UNMANAGED_LIST_GETTER(PropertyMetadata meta)
