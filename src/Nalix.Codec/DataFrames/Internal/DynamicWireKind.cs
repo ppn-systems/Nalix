@@ -6,9 +6,15 @@ namespace Nalix.Codec.DataFrames.Internal;
 internal enum DynamicWireKind : byte
 {
     None = 0,
+    Memory,
     String,
+    StringArray,
     ByteArray,
     Packet,
+    Nullable,
+    NullableArray,
+    UnmanagedList,
     UnmanagedArray,
+    GenericCollection,
     Other
 }

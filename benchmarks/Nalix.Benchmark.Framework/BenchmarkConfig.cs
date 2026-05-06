@@ -34,6 +34,7 @@ public sealed class BenchmarkConfig : ManualConfig
                 .WithGcServer(true)
                 .WithStrategy(RunStrategy.Throughput)
                 .WithOutlierMode(OutlierMode.RemoveUpper)
+                .WithArguments([new MsBuildArgument("/p:DisableNalixAnalyzers=true")])
                 .WithId("Net10"));
 
         _ = this.AddColumn(
