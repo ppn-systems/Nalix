@@ -16,9 +16,15 @@
                               Refreshing="_refreshing"
                               HasApiKey="State.HasApiKey"
                               SelectedReportTarget="SelectedReportTarget"
+                              PollIntervalMs="State.PollIntervalMs"
+                              PingIntervalMs="State.PingIntervalMs"
+                              RequestTimeoutMs="State.RequestTimeoutMs"
                               SaveRequested="SaveApiKey"
                               PauseToggled="TogglePolling"
-                              RefreshRequested="RefreshNow" />
+                              RefreshRequested="RefreshNow"
+                              PollIntervalChanged="OnPollIntervalChanged"
+                              PingIntervalChanged="OnPingIntervalChanged"
+                              RequestTimeoutChanged="OnRequestTimeoutChanged" />
     </div>
 
     <StatusOverview IsConnected="State.IsConnected"
@@ -29,7 +35,8 @@
                     LastRefreshAt="State.LastRefreshAt"
                     SelectedReportTarget="SelectedReportTarget"
                     ReportCount="Reports.Count"
-                    TargetCount="Targets.Count" />
+                    TargetCount="Targets.Count"
+                    PollIntervalMs="State.PollIntervalMs" />
 
     <PingLatencyChart Samples="State.PingSamples"
                       LastPingMilliseconds="State.LastPingMilliseconds" />

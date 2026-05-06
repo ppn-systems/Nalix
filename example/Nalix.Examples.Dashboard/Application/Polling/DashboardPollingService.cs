@@ -26,20 +26,32 @@ internal sealed class DashboardPollingService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        TimeSpan pollInterval = TimeSpan.FromMilliseconds(Math.Max(100, _options.PollIntervalMilliseconds));
-        TimeSpan pingInterval = TimeSpan.FromMilliseconds(Math.Max(1000, _options.PingIntervalMilliseconds));
-        PeriodicTimer timer = new(pollInterval);
+        TimeSpan pingInterval = TimeSpan.FromMilliseconds(Math.Max(1000, _state.PingIntervalMs));
+        PeriodicTimer timer = new(TimeSpan.FromMilliseconds(Math.Max(100, _state.PollIntervalMs)));
         DateTimeOffset nextPingAt = DateTimeOffset.MinValue;
         BooleanStateLog waitingForApiKeyLog = new();
         BooleanStateLog pausedLog = new();
         BooleanStateLog idleTargetLog = new();
 
-        _stateWriter.Log("INFO", $"Dashboard polling service started poll_ms={(int)pollInterval.TotalMilliseconds} ping_ms={(int)pingInterval.TotalMilliseconds}.");
+        _stateWriter.Log("INFO", $"Dashboard polling service started poll_ms={_state.PollIntervalMs} ping_ms={_state.PingIntervalMs}.");
 
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
+                int currentPollMs = _state.PollIntervalMs;
+                int currentPingMs = _state.PingIntervalMs;
+
+                TimeSpan desiredPoll = TimeSpan.FromMilliseconds(Math.Max(100, currentPollMs));
+                if (timer.Period != desiredPoll)
+                {
+                    timer.Dispose();
+                    timer = new PeriodicTimer(desiredPoll);
+                    _stateWriter.Log("DEBUG", $"Poll interval applied value={currentPollMs}ms.");
+                }
+
+                pingInterval = TimeSpan.FromMilliseconds(Math.Max(1000, currentPingMs));
+
                 if (!_state.HasApiKey)
                 {
                     waitingForApiKeyLog.WriteOnce(_stateWriter, "INFO", "Dashboard polling waiting reason=api_key_missing.");

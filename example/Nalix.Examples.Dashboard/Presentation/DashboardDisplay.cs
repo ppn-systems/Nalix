@@ -1,5 +1,6 @@
 using System.Globalization;
 using Nalix.Examples.Contracts;
+using Nalix.Framework.Extensions;
 
 namespace Nalix.Examples.Dashboard.Presentation;
 
@@ -36,4 +37,26 @@ internal static class DashboardDisplay
         < 120 => "is-warn",
         _ => "is-bad"
     };
+
+    public static string FormatCompactNumber(long value) => value.FormatCompact();
+
+    public static string FormatCompactNumber(int value) => value.FormatCompact();
+
+    public static string FormatGroup(long current, long total, bool compact = true)
+        => ReportExtensions.FormatGroup(current, total, compact);
+
+    public static string FormatTimeSpan(TimeSpan value) => value.FormatTimeSpan();
+
+    public static string FormatPollingRate(int intervalMs)
+    {
+        if (intervalMs <= 0)
+        {
+            return "--";
+        }
+
+        double hz = 1000.0 / intervalMs;
+        return hz >= 1
+            ? $"{hz:F1} Hz"
+            : $"{(60.0 / hz):F0}/min";
+    }
 }

@@ -31,6 +31,38 @@
                OnClick="() => RefreshRequested.InvokeAsync()">
         Refresh
     </MudButton>
+
+    <div class="action-panel-heading" style="margin-top:12px">
+        <span>Intervals</span>
+        <strong>Tuning</strong>
+    </div>
+    <MudNumericField T="int"
+                     Value="PollIntervalMs"
+                     ValueChanged="OnPollIntervalChanged"
+                     Label="Poll (ms)"
+                     Variant="Variant.Outlined"
+                     Margin="Margin.Dense"
+                     Min="100"
+                     Max="10000"
+                     Step="100" />
+    <MudNumericField T="int"
+                     Value="PingIntervalMs"
+                     ValueChanged="OnPingIntervalChanged"
+                     Label="Ping (ms)"
+                     Variant="Variant.Outlined"
+                     Margin="Margin.Dense"
+                     Min="1000"
+                     Max="30000"
+                     Step="500" />
+    <MudNumericField T="int"
+                     Value="RequestTimeoutMs"
+                     ValueChanged="OnRequestTimeoutChanged"
+                     Label="Timeout (ms)"
+                     Variant="Variant.Outlined"
+                     Margin="Margin.Dense"
+                     Min="1000"
+                     Max="30000"
+                     Step="1000" />
 </div>
 
 @code {
@@ -56,6 +88,15 @@
     public GenerationReportTarget? SelectedReportTarget { get; set; }
 
     [Parameter]
+    public int PollIntervalMs { get; set; }
+
+    [Parameter]
+    public int PingIntervalMs { get; set; }
+
+    [Parameter]
+    public int RequestTimeoutMs { get; set; }
+
+    [Parameter]
     public EventCallback SaveRequested { get; set; }
 
     [Parameter]
@@ -64,5 +105,20 @@
     [Parameter]
     public EventCallback RefreshRequested { get; set; }
 
+    [Parameter]
+    public EventCallback<int> PollIntervalChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> PingIntervalChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> RequestTimeoutChanged { get; set; }
+
     private Task OnApiKeyChanged(string? value) => ApiKeyChanged.InvokeAsync(value);
+
+    private Task OnPollIntervalChanged(int value) => PollIntervalChanged.InvokeAsync(value);
+
+    private Task OnPingIntervalChanged(int value) => PingIntervalChanged.InvokeAsync(value);
+
+    private Task OnRequestTimeoutChanged(int value) => RequestTimeoutChanged.InvokeAsync(value);
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using Nalix.Framework.Extensions;
 
 namespace Nalix.Examples.Dashboard.Presentation;
 
@@ -23,6 +24,10 @@ internal static class NumberDisplayFormatter
             ? "0"
             : rounded.ToString(CompactDecimalFormat, CultureInfo.InvariantCulture);
     }
+
+    public static string FormatCompact(long value) => value.FormatCompact();
+
+    public static string FormatCompact(int value) => ((long)value).FormatCompact();
 
     public static bool TryFormat(string value, out string formatted)
     {

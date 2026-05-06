@@ -22,6 +22,7 @@ namespace Nalix.Examples.Dashboard.Infrastructure.Tcp;
 internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
 {
     private readonly DashboardOptions _options;
+    private readonly IDashboardStateReader _stateReader;
     private readonly IDashboardStateWriter _state;
     private readonly IServerPublicKeyResolver _publicKeyResolver;
     private readonly ILogger<DashboardTcpClient> _logger;
@@ -36,11 +37,13 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
 
     public DashboardTcpClient(
         IOptions<DashboardOptions> options,
+        IDashboardStateReader stateReader,
         IDashboardStateWriter state,
         IServerPublicKeyResolver publicKeyResolver,
         ILogger<DashboardTcpClient> logger)
     {
         _options = options.Value;
+        _stateReader = stateReader;
         _state = state;
         _publicKeyResolver = publicKeyResolver;
         _logger = logger;
@@ -113,7 +116,7 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         {
             _state.Log("DEBUG", "Sending keepalive ping.");
             TcpSession session = await this.EnsureConnectedAsync(ct).ConfigureAwait(false);
-            double milliseconds = await session.PingAsync(_options.RequestTimeoutMilliseconds, ct).ConfigureAwait(false);
+            double milliseconds = await session.PingAsync(_stateReader.RequestTimeoutMs, ct).ConfigureAwait(false);
             _state.UpdatePing(milliseconds);
             _state.Log("INFO", $"Keepalive ping OK: {milliseconds.ToString("F1", CultureInfo.InvariantCulture)} ms.");
         }
@@ -163,7 +166,7 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         {
             Address = _options.BackendAddress,
             Port = _options.BackendPort,
-            ConnectTimeoutMillis = _options.RequestTimeoutMilliseconds,
+            ConnectTimeoutMillis = _stateReader.RequestTimeoutMs,
             ServerPublicKey = serverPublicKey,
             ReconnectEnabled = false,
             KeepAliveIntervalMillis = 0
@@ -208,7 +211,7 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         using AuthorityGrant response = await session.RequestAsync<AuthorityGrant>(
             request,
             RequestOptions.Default
-                .WithTimeout(_options.RequestTimeoutMilliseconds)
+                .WithTimeout(_stateReader.RequestTimeoutMs)
                 .WithEncrypt(),
             predicate: p => p.Stage == AuthorityGrantStage.RESPONSE,
             ct).ConfigureAwait(false);
@@ -234,7 +237,7 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         using GenerationReport response = await session.RequestAsync<GenerationReport>(
             request,
             RequestOptions.Default
-                .WithTimeout(_options.RequestTimeoutMilliseconds)
+                .WithTimeout(_stateReader.RequestTimeoutMs)
                 .WithEncrypt(),
             predicate: p => p.Stage == GenerationReportStage.RESPONSE && p.Target == target,
             ct).ConfigureAwait(false);

@@ -865,7 +865,6 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             ["TotalCreated"] = Interlocked.Read(ref _totalCreated),
             ["TotalDisposed"] = Interlocked.Read(ref _totalDisposed),
             ["TotalLeaked"] = PoolSentinel.TotalLeaked,
-            ["UptimeMs"] = this.Uptime.TotalMilliseconds,
             ["CacheHitRate"] = this.CacheHitRate,
             ["Throughput"] = this.Uptime.TotalSeconds > 0 ? this.TotalGetOperations / this.Uptime.TotalSeconds : 0,
             ["CreationRate"] = this.Uptime.TotalSeconds > 0 ? Interlocked.Read(ref _totalCreated) / this.Uptime.TotalSeconds : 0,
@@ -957,7 +956,6 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         writer.WriteNumber("TotalCreated", Interlocked.Read(ref _totalCreated));
         writer.WriteNumber("TotalDisposed", Interlocked.Read(ref _totalDisposed));
         writer.WriteNumber("TotalLeaked", PoolSentinel.TotalLeaked);
-        writer.WriteNumber("UptimeMs", this.Uptime.TotalMilliseconds);
         writer.WriteNumber(nameof(this.CacheHitRate), this.CacheHitRate);
         writer.WriteNumber("Throughput", this.Uptime.TotalSeconds > 0 ? this.TotalGetOperations / this.Uptime.TotalSeconds : 0);
         writer.WriteNumber("CreationRate", this.Uptime.TotalSeconds > 0 ? Interlocked.Read(ref _totalCreated) / this.Uptime.TotalSeconds : 0);

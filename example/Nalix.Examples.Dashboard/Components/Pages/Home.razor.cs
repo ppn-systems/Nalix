@@ -93,6 +93,12 @@ public sealed partial class Home : IDisposable
 
     private void ClearLogs() => StateActions.ClearLogs();
 
+    private void OnPollIntervalChanged(int value) => StateActions.SetPollIntervalMs(value);
+
+    private void OnPingIntervalChanged(int value) => StateActions.SetPingIntervalMs(value);
+
+    private void OnRequestTimeoutChanged(int value) => StateActions.SetRequestTimeoutMs(value);
+
     public void Dispose()
     {
         State.Changed -= OnStateChanged;
