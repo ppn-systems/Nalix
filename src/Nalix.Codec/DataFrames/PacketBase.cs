@@ -55,6 +55,7 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     #region Length
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public override int Length
     {

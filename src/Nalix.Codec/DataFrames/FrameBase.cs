@@ -28,6 +28,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeHeader(0)] private PacketHeader _header;
 
     /// <inheritdoc/>
+    [SkipClean]
     [SerializeIgnore]
     public PacketHeader Header { get => _header; set => _header = value; }
 
