@@ -6,7 +6,7 @@ using System.Text;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Examples.Backend.Handlers;

@@ -8,7 +8,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
