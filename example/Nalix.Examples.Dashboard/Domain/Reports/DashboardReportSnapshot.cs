@@ -1,5 +1,5 @@
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 
 namespace Nalix.Examples.Dashboard.Domain.Reports;
 
