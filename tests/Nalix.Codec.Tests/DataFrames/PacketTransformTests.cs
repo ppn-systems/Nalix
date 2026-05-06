@@ -118,8 +118,49 @@ public sealed class PacketTransformTests
         byte[] resultPayload = decrypted.Span[FrameTransformer.Offset..].ToArray();
         Assert.Equal(originalPayload, resultPayload);
     }
-}
 
+    [Fact]
+    public void FramePipeline_CompressAndEncryptFused_RoundtripShouldSucceed()
+    {
+        byte[] originalPayload = new byte[1024];
+        Csprng.NextBytes(originalPayload);
+
+        using BufferLease src = BufferLease.Rent(FrameTransformer.Offset + originalPayload.Length);
+        src.CommitLength(FrameTransformer.Offset + originalPayload.Length);
+
+        src.Span[..FrameTransformer.Offset].Clear();
+        src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.RELIABLE };
+        originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
+
+        IBufferLease outbound = src;
+        FramePipeline.ProcessOutbound(
+            ref outbound,
+            enableCompress: true,
+            minSizeToCompress: 1,
+            enableEncrypt: true,
+            secret: s_testKey,
+            algorithm: CipherSuiteType.Chacha20Poly1305);
+
+        using IBufferLease transformed = outbound;
+
+        PacketFlags transformedFlags = transformed.Span.AsHeaderRef().Flags;
+        Assert.True(transformedFlags.HasFlag(PacketFlags.RELIABLE));
+        Assert.True(transformedFlags.HasFlag(PacketFlags.COMPRESSED));
+        Assert.True(transformedFlags.HasFlag(PacketFlags.ENCRYPTED));
+
+        IBufferLease inbound = transformed;
+        FramePipeline.ProcessInbound(ref inbound, s_testKey, CipherSuiteType.Chacha20Poly1305);
+
+        using IBufferLease restored = inbound;
+
+        PacketFlags restoredFlags = restored.Span.AsHeaderRef().Flags;
+        Assert.True(restoredFlags.HasFlag(PacketFlags.RELIABLE));
+        Assert.False(restoredFlags.HasFlag(PacketFlags.COMPRESSED));
+        Assert.False(restoredFlags.HasFlag(PacketFlags.ENCRYPTED));
+        Assert.Equal(src.Length, restored.Length);
+        Assert.Equal(src.Span.ToArray(), restored.Span.ToArray());
+    }
+}
 
 
 

@@ -47,7 +47,6 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
         using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
-        _outer.AddBytesSent(bytesWrittenHeap);
         this.Send(lease.Span);
     }
 
@@ -77,7 +76,6 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
         using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
-        _outer.AddBytesSent(bytesWrittenHeap);
         await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
     }
 

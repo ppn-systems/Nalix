@@ -8,7 +8,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
 using Nalix.Abstractions;
@@ -25,23 +24,13 @@ using Nalix.Runtime.Options;
 namespace Nalix.Runtime.Internal.Routing;
 
 /// <summary>
-/// Cache-line padded 64-bit counter used to reduce false sharing on hot atomic counters.
-/// </summary>
-[StructLayout(LayoutKind.Explicit, Size = 128)]
-internal struct CacheLinePaddedLong
-{
-    [FieldOffset(64)]
-    public long Value;
-}
-
-/// <summary>
 /// Provides a priority-aware dispatch channel optimized for high-frequency enqueue/dequeue traffic.
 /// </summary>
 /// <typeparam name="TPacket">The packet type handled by the channel.</typeparam>
-[DebuggerNonUserCode]
 [SkipLocalsInit]
-[DebuggerDisplay("TotalPackets={TotalPackets}")]
+[DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
+[DebuggerDisplay("TotalPackets={TotalPackets}")]
 public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDisposable where TPacket : IPacket
 {
     #region Constants
@@ -72,7 +61,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
     private int _activeConnections;
     private int _readyConnections;
-    private CacheLinePaddedLong _packetCount;
+    private PaddedSequence _packetCount;
 
     #endregion Fields
 
@@ -827,8 +816,8 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
         private readonly Slot[] _slots;
         private readonly int _mask;
-        private CacheLinePaddedLong _enqueuePos;
-        private CacheLinePaddedLong _dequeuePos;
+        private PaddedSequence _enqueuePos;
+        private PaddedSequence _dequeuePos;
 
         public MpmcRing(int capacity)
         {

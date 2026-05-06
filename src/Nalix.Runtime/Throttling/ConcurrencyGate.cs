@@ -31,11 +31,11 @@ namespace Nalix.Runtime.Throttling;
 [SkipLocalsInit]
 public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
 {
-    private readonly ConcurrencyOptions _options;
-
     #region Fields
 
+    private readonly ConcurrencyOptions _options;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<ushort, Entry> _table = new();
+
     private ILogger? _logger;
 
     private long _totalAcquired;

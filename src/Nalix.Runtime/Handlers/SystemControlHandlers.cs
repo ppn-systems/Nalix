@@ -21,14 +21,9 @@ namespace Nalix.Runtime.Handlers;
 /// <summary>
 /// Provides handlers for system-level control packets like PING and PONG.
 /// </summary>
-[PacketController("SystemControl")]
+[PacketController("Lib.Control")]
 public sealed class SystemControlHandlers
 {
-    #region Fields
-
-    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-    #endregion Fields
     /// <summary>
     /// Handles incoming system control packets.
     /// </summary>
@@ -86,6 +81,12 @@ public sealed class SystemControlHandlers
                 break;
         }
     }
+
+    #region Fields
+
+    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    #endregion Fields
 
     #region Private Methods
 

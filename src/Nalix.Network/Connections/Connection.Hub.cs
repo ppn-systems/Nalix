@@ -35,8 +35,8 @@ namespace Nalix.Network.Connections;
 /// <see cref="InMemorySessionStore"/> is used; inject a custom implementation for distributed scenarios.
 /// </para>
 /// </remarks>
-[DebuggerNonUserCode]
 [SkipLocalsInit]
+[DebuggerNonUserCode]
 [DebuggerDisplay("ConnectionHub (Count={_count})")]
 public sealed class ConnectionHub : IConnectionHub
 {
@@ -67,6 +67,9 @@ public sealed class ConnectionHub : IConnectionHub
     private volatile bool _disposed;
     private int _evictedConnections;
     private int _rejectedConnections;
+
+    private long _totalBytesSent;
+    private long _totalBytesReceived;
 
     /// <summary>
     /// Outbound-allocated collections for bulk operations
@@ -458,7 +461,9 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     public string GenerateReport()
     {
-        long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
+        long sumBytesSent = Volatile.Read(ref _totalBytesSent);
+        long sumBytesReceived = Volatile.Read(ref _totalBytesReceived);
+        long sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
 
         StringBuilder sb = new(1024);
         Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
@@ -484,9 +489,12 @@ public sealed class ConnectionHub : IConnectionHub
             foreach (IConnection conn in shard.Values)
             {
                 sumBytesSent += conn.BytesSent;
+                sumBytesReceived += conn.BytesReceived;
 
                 long up = conn.UpTime;
+
                 sumUptime += up;
+
                 if (up > maxUptime)
                 {
                     maxUptime = up;
@@ -505,6 +513,7 @@ public sealed class ConnectionHub : IConnectionHub
         }
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Sent   : {sumBytesSent:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Received : {sumBytesReceived:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture,
             $"Average Uptime     : {(total > 0 ? sumUptime / total : 0)}s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connection Time: {maxUptime}s");
@@ -530,6 +539,7 @@ public sealed class ConnectionHub : IConnectionHub
     public IDictionary<string, object> GetReportData()
     {
         int total = Volatile.Read(ref _count);
+
         Dictionary<string, object> report = new()
         {
             ["UtcNow"] = DateTime.UtcNow,
@@ -537,68 +547,12 @@ public sealed class ConnectionHub : IConnectionHub
             ["EvictedConnections"] = Volatile.Read(ref _evictedConnections),
             ["RejectedConnections"] = Volatile.Read(ref _rejectedConnections),
             ["ShardCount"] = _shardCount,
-            ["AnonymousQueueDepth"] = this.CountAnonymousConnections(),
             ["MaxConnections"] = _maxConnections,
             ["DropPolicy"] = _options.DropPolicy.ToString(),
         };
 
-        long sumBytesSent = 0, sumUptime = 0, maxUptime = 0, minUptime = long.MaxValue;
-        Dictionary<string, int> algoCounts = new(StringComparer.OrdinalIgnoreCase);
-        Dictionary<string, int> statusCounts = new(StringComparer.OrdinalIgnoreCase);
-
-        int limit = 15, current = 0;
-        List<Dictionary<string, object>> sampleConnections = [];
-
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
-        {
-            foreach (IConnection conn in shard.Values)
-            {
-                sumBytesSent += conn.BytesSent;
-                long up = conn.UpTime;
-                sumUptime += up;
-                if (up > maxUptime)
-                {
-                    maxUptime = up;
-                }
-
-                if (up < minUptime)
-                {
-                    minUptime = up;
-                }
-
-                string status = conn.Level.ToString();
-                string algo = conn.Algorithm.ToString();
-                algoCounts[algo] = algoCounts.TryGetValue(algo, out int n) ? n + 1 : 1;
-                statusCounts[status] = statusCounts.TryGetValue(status, out int cnt) ? cnt + 1 : 1;
-
-                if (current++ < limit)
-                {
-                    string username = "N/A";
-                    if (conn.Attributes.TryGetValue("username", out object? v) && v is string s)
-                    {
-                        username = s;
-                    }
-
-                    sampleConnections.Add(new Dictionary<string, object>
-                    {
-                        ["ID"] = conn.ID.ToString() ?? "N/A",
-                        ["Username"] = username,
-                        ["Level"] = status,
-                        ["Algorithm"] = algo,
-                        ["BytesSent"] = conn.BytesSent,
-                        ["UpTime"] = conn.UpTime
-                    });
-                }
-            }
-        }
-
-        report["TotalBytesSent"] = sumBytesSent;
-        report["AverageUptimeSeconds"] = total > 0 ? (sumUptime / total) : 0;
-        report["MaxConnectionTime"] = maxUptime;
-        report["MinConnectionTime"] = minUptime == long.MaxValue ? 0 : minUptime;
-        report["ConnectionStatusSummary"] = statusCounts;
-        report["AlgorithmSummary"] = algoCounts;
-        report["SampleConnections"] = sampleConnections;
+        report["TotalBytesSent"] = Volatile.Read(ref _totalBytesSent);
+        report["TotalBytesReceived"] = Volatile.Read(ref _totalBytesReceived);
 
         return report;
     }
@@ -764,6 +718,9 @@ public sealed class ConnectionHub : IConnectionHub
 
         try
         {
+            _ = Interlocked.Add(ref _totalBytesSent, connection.BytesSent);
+            _ = Interlocked.Add(ref _totalBytesReceived, connection.BytesReceived);
+
             removedConnection.Dispose();
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

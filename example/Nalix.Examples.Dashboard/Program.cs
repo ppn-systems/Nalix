@@ -22,7 +22,14 @@ _ = builder.Services.AddSingleton<IServerPublicKeyResolver, ServerPublicKeyResol
 _ = builder.Services.AddSingleton<IDashboardClient, DashboardTcpClient>();
 _ = builder.Services.AddHostedService<DashboardPollingService>();
 
+if (builder.Environment.IsDevelopment())
+{
+    _ = builder.WebHost.UseStaticWebAssets();
+}
+
 WebApplication app = builder.Build();
+
+app.UseStaticFiles();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -33,7 +40,7 @@ _ = app.UseAntiforgery();
 
 _ = app.MapStaticAssets();
 _ = app.MapRazorComponents<Nalix.Examples.Dashboard.Components.App>()
-    .AddInteractiveServerRenderMode();
+       .AddInteractiveServerRenderMode();
 
 app.Run();
 

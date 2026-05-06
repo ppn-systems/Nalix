@@ -106,7 +106,9 @@ internal sealed partial class SocketConnection
                             this.INVOKE_CLOSE_ONCE();
                             Throw.SendFailedNow();
                         }
+
                         sent += n;
+                        Interlocked.Add(ref _bytesSent, n);
                     }
                 }
 
@@ -194,11 +196,13 @@ internal sealed partial class SocketConnection
                         this.INVOKE_CLOSE_ONCE();
                         Throw.SendFailedNow();
                     }
+
                     sent += n;
+                    Interlocked.Add(ref _bytesSent, n);
                 }
             }
 
-            this.InvokePostCallback();
+            this.INVOKE_POST_CALLBACK();
             return;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -302,7 +306,9 @@ internal sealed partial class SocketConnection
                     {
                         return HANDLE_PEER_CLOSED(this, heapBuf);
                     }
+
                     sent += n;
+                    Interlocked.Add(ref _bytesSent, n);
                 }
                 else
                 {
@@ -310,7 +316,7 @@ internal sealed partial class SocketConnection
                 }
             }
 
-            this.InvokePostCallback();
+            this.INVOKE_POST_CALLBACK();
             BufferLease.ByteArrayPool.Return(heapBuf);
             return default;
         }
@@ -339,10 +345,12 @@ internal sealed partial class SocketConnection
                     {
                         throw HANDLE_PEER_CLOSED_EXCEPTION(self);
                     }
+
                     sent += n;
+                    Interlocked.Add(ref self._bytesSent, n);
                 }
 
-                self.InvokePostCallback();
+                self.INVOKE_POST_CALLBACK();
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -491,7 +499,7 @@ internal sealed partial class SocketConnection
             }
         }
 
-        this.InvokePostCallback();
+        this.INVOKE_POST_CALLBACK();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         void SEND_RAW_FRAME(ReadOnlySpan<byte> frame)
@@ -508,7 +516,9 @@ internal sealed partial class SocketConnection
                         this.INVOKE_CLOSE_ONCE();
                         Throw.SendFailedNow();
                     }
+
                     sent += n;
+                    _ = Interlocked.Add(ref _bytesSent, n);
                 }
             }
         }
@@ -570,7 +580,7 @@ internal sealed partial class SocketConnection
                 }
             }
 
-            self.InvokePostCallback();
+            self.INVOKE_POST_CALLBACK();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -639,10 +649,11 @@ internal sealed partial class SocketConnection
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void InvokePostCallback()
+    private void INVOKE_POST_CALLBACK()
     {
         ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
         args.Initialize(_cachedArgs.Connection);
+
         if (!AsyncCallback.Invoke(_callbackPost, _sender, args))
         {
             args.Dispose();
