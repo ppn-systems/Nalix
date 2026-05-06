@@ -1,5 +1,5 @@
 using System.Globalization;
-using Nalix.Examples.Contracts.Packets;
+using Nalix.Examples.Contracts;
 
 namespace Nalix.Examples.Dashboard.Presentation;
 
