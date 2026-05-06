@@ -78,7 +78,11 @@ internal sealed class PropertyMetadata
     public DynamicWireKind DynamicKind { get; }
 
     /// <summary>
-    /// Element size for unmanaged arrays. Zero for non-array properties.
+    /// Pre-computed element size (in bytes) for collection and nullable types.
+    /// Used by <see cref="DynamicWireKind.UnmanagedArray"/>, <see cref="DynamicWireKind.UnmanagedList"/>,
+    /// <see cref="DynamicWireKind.Memory"/>, <see cref="DynamicWireKind.Nullable"/>,
+    /// and <see cref="DynamicWireKind.NullableArray"/>.
+    /// Zero for variable-sized or unsupported element types.
     /// </summary>
     public int ElementSize { get; }
 
@@ -327,37 +331,20 @@ internal sealed class PropertyMetadata
                 return (DynamicWireKind.GenericCollection, 0);
             }
 
-            if (IsValueTuple(def))
-            {
-                _ = TryComputeValueTupleSize(args);
-                return (DynamicWireKind.Other, 0);
-            }
+            //if (IsValueTuple(def))
+            //{
+            //    return (DynamicWireKind.Other, 0);
+            //}
         }
 
         return (DynamicWireKind.Other, 0);
     }
 
-    private static bool IsValueTuple(Type def)
-        => def == typeof(ValueTuple<,>)
-        || def == typeof(ValueTuple<,,>)
-        || def == typeof(ValueTuple<,,,>)
-        || def == typeof(ValueTuple<,,,,>);
-
-    private static int TryComputeValueTupleSize(Type[] args)
-    {
-        int total = 0;
-        foreach (Type arg in args)
-        {
-            int s = PacketBaseElementSizer.GetElementSize(arg);
-            if (s == 0)
-            {
-                return 0;
-            }
-
-            total += s;
-        }
-        return total;
-    }
+    //private static bool IsValueTuple(Type def)
+    //    => def == typeof(ValueTuple<,>)
+    //    || def == typeof(ValueTuple<,,>)
+    //    || def == typeof(ValueTuple<,,,>)
+    //    || def == typeof(ValueTuple<,,,,>);
 
     private static ushort ComputeFixedSize(Type type) =>
         Type.GetTypeCode(type) switch

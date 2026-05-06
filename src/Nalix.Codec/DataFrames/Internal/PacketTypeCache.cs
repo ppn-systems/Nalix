@@ -139,14 +139,14 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
     private static Func<TSelf, int> BUILD_MEMORY_GETTER(PropertyMetadata meta)
     {
         MethodInfo buildGeneric = typeof(PacketTypeCache<TSelf>)
-            .GetMethod(nameof(BUILD_MEMORY_GETTER), BindingFlags.NonPublic | BindingFlags.Static)!
+            .GetMethod(nameof(BUILD_MEMORY_GETTER_CORE), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(meta.DeclaredType.GetGenericArguments()[0]);
 
         bool isReadOnly = meta.DeclaredType.GetGenericTypeDefinition() == typeof(ReadOnlyMemory<>);
         return (Func<TSelf, int>)buildGeneric.Invoke(null, [meta, isReadOnly])!;
     }
 
-    private static Func<TSelf, int> BUILD_MEMORY_GETTER<TElement>(
+    private static Func<TSelf, int> BUILD_MEMORY_GETTER_CORE<TElement>(
         PropertyMetadata meta, bool isReadOnly) where TElement : unmanaged
     {
         int elemSize = meta.ElementSize;
@@ -187,19 +187,28 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
 
     private static Func<TSelf, int> BUILD_NULLABLE_GETTER(PropertyMetadata meta)
     {
-        // elementSize = 0 nghĩa là inner type không unmanaged (hiếm, fallback)
         if (meta.ElementSize == 0)
         {
             return BUILD_FALLBACK_GETTER(meta);
         }
 
-        Func<TSelf, object?> getter = meta.GetValue;
+        MethodInfo buildCore = typeof(PacketTypeCache<TSelf>)
+            .GetMethod(nameof(BUILD_NULLABLE_GETTER_CORE), BindingFlags.NonPublic | BindingFlags.Static)!
+            .MakeGenericMethod(Nullable.GetUnderlyingType(meta.DeclaredType)!);
+
+        return (Func<TSelf, int>)buildCore.Invoke(null, [meta])!;
+    }
+
+    private static Func<TSelf, int> BUILD_NULLABLE_GETTER_CORE<T>(PropertyMetadata meta)
+        where T : struct
+    {
+        Func<TSelf, T?> getter = BUILD_TYPED_GETTER<T?>(meta);
         int fixedInner = meta.ElementSize;
 
         return instance =>
         {
-            object? val = meta.GetValue(instance);
-            return val is null ? sizeof(byte) : sizeof(byte) + fixedInner;
+            T? val = getter(instance);                                      // zero-box
+            return val.HasValue ? sizeof(byte) + fixedInner : sizeof(byte); // branch on struct field
         };
     }
 
@@ -247,17 +256,17 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
     private static Func<TSelf, int> BUILD_GENERIC_COLLECTION_GETTER(PropertyMetadata meta)
     {
         MethodInfo buildGeneric = typeof(PacketTypeCache<TSelf>)
-            .GetMethod(nameof(BUILD_GENERIC_COLLECTION_GETTER),
+            .GetMethod(nameof(BUILD_GENERIC_COLLECTION_GETTER_CORE),
                        BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InternalErrorException(
-                $"Missing method: {nameof(BUILD_GENERIC_COLLECTION_GETTER)}");
+                $"Missing method: {nameof(BUILD_GENERIC_COLLECTION_GETTER_CORE)}");
 
         MethodInfo closed = buildGeneric.MakeGenericMethod(meta.DeclaredType);
         return (Func<TSelf, int>)closed.Invoke(null, [meta])!;
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<TSelf, int> BUILD_GENERIC_COLLECTION_GETTER<TCollection>(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_GENERIC_COLLECTION_GETTER_CORE<TCollection>(PropertyMetadata meta)
     {
         Func<TSelf, TCollection> getter = BUILD_TYPED_GETTER<TCollection>(meta);
         int nullWireSize = meta.NullWireSize;
