@@ -6,7 +6,7 @@
     <div class="report-nav-head">
         <div>
             <span>Reports</span>
-            <strong>@DashboardDisplay.TargetLabel(SelectedReportTarget)</strong>
+            <strong>@NavHeadLabel</strong>
         </div>
     </div>
 
@@ -40,12 +40,26 @@
                 </small>
             </span>
         </button>
+
+        <button type="button"
+                class="@ConfigNavButtonClass"
+                @onclick="() => ConfigSelected.InvokeAsync()">
+            <span class="report-nav-text">
+                <strong>Config</strong>
+                <small class="report-nav-meta is-waiting">
+                    <span>Settings</span>
+                </small>
+            </span>
+        </button>
     </div>
 </aside>
 
 @code {
     [Parameter]
     public bool IsOpen { get; set; }
+
+    [Parameter]
+    public bool IsConfigView { get; set; }
 
     [Parameter]
     public IReadOnlyList<GenerationReportTarget> Targets { get; set; } = [];
@@ -66,12 +80,33 @@
     [Parameter]
     public EventCallback LogsSelected { get; set; }
 
+    [Parameter]
+    public EventCallback ConfigSelected { get; set; }
+
+    private string NavHeadLabel
+    {
+        get
+        {
+            if (IsConfigView) return "Config";
+            return DashboardDisplay.TargetLabel(SelectedReportTarget);
+        }
+    }
+
     private string NavClass => IsOpen ? "report-nav is-open" : "report-nav is-closed";
 
-    private string LogsNavButtonClass => SelectedReportTarget is null ? "report-nav-button is-active" : "report-nav-button";
+    private string LogsNavButtonClass
+    {
+        get
+        {
+            if (IsConfigView) return "report-nav-button";
+            return SelectedReportTarget is null ? "report-nav-button is-active" : "report-nav-button";
+        }
+    }
+
+    private string ConfigNavButtonClass => IsConfigView ? "report-nav-button is-active" : "report-nav-button";
 
     private string ReportNavButtonClass(GenerationReportTarget target)
-        => SelectedReportTarget == target
+        => !IsConfigView && SelectedReportTarget == target
             ? "report-nav-button is-active"
             : "report-nav-button";
 

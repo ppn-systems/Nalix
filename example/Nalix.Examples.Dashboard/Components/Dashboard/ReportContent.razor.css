@@ -276,3 +276,48 @@
         grid-template-columns: 1fr;
     }
 }
+
+.config-panel {
+    padding: 16px 18px 20px;
+}
+
+.config-section h3 {
+    color: var(--dash-text-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+}
+
+.config-fields {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+.config-field {
+    background: var(--dash-surface-muted);
+    border: 1px solid var(--dash-border-soft);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.config-field label {
+    color: var(--dash-text);
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.config-field small {
+    color: var(--dash-text-muted);
+    display: block;
+    font-size: 0.72rem;
+    margin-top: 4px;
+}
+
+.config-field ::deep .mud-input-control {
+    margin-top: 0;
+}

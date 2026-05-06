@@ -15,6 +15,8 @@ internal interface IDashboardStateReader
 
     bool IsReportNavigationOpen { get; }
 
+    bool IsConfigView { get; }
+
     GenerationReportTarget? ActiveReportTarget { get; }
 
     string BackendEndpoint { get; }

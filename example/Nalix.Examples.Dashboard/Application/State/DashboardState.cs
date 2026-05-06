@@ -22,6 +22,8 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
 
     public bool IsReportNavigationOpen { get; private set; } = true;
 
+    public bool IsConfigView { get; private set; }
+
     public GenerationReportTarget? ActiveReportTarget { get; private set; } = GenerationReportTarget.DISPATCH;
 
     public string BackendEndpoint { get; private set; } = "127.0.0.1:57206";
@@ -120,6 +122,27 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
         this.NotifyChanged();
     }
 
+    public void SetConfigView(bool isConfig)
+    {
+        lock (_gate)
+        {
+            if (this.IsConfigView == isConfig)
+            {
+                return;
+            }
+
+            this.IsConfigView = isConfig;
+            if (isConfig)
+            {
+                this.ActiveReportTarget = null;
+            }
+
+            this.EnqueueLogUnsafe("DEBUG", isConfig ? "Config view opened." : "Config view closed.");
+        }
+
+        this.NotifyChanged();
+    }
+
     public void SetActiveReportTarget(GenerationReportTarget? target)
     {
         lock (_gate)
@@ -130,6 +153,7 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
             }
 
             this.ActiveReportTarget = target;
+            this.IsConfigView = false;
             this.EnqueueLogUnsafe("DEBUG", target is null
                 ? "Active view changed view=logs."
                 : $"Active report target changed target={target}.");

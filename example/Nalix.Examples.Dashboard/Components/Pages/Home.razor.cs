@@ -86,7 +86,14 @@ public sealed partial class Home : IDisposable
     private Task SelectLogsAsync()
     {
         StateActions.SetReportNavigationOpen(true);
+        StateActions.SetConfigView(false);
         return this.SelectIndexAsync(DashboardReportTargets.Count);
+    }
+
+    private void SelectConfig()
+    {
+        StateActions.SetReportNavigationOpen(true);
+        StateActions.SetConfigView(true);
     }
 
     private void TogglePolling() => StateActions.SetPaused(!State.IsPollingPaused);

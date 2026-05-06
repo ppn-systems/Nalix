@@ -16,15 +16,9 @@
                               Refreshing="_refreshing"
                               HasApiKey="State.HasApiKey"
                               SelectedReportTarget="SelectedReportTarget"
-                              PollIntervalMs="State.PollIntervalMs"
-                              PingIntervalMs="State.PingIntervalMs"
-                              RequestTimeoutMs="State.RequestTimeoutMs"
                               SaveRequested="SaveApiKey"
                               PauseToggled="TogglePolling"
-                              RefreshRequested="RefreshNow"
-                              PollIntervalChanged="OnPollIntervalChanged"
-                              PingIntervalChanged="OnPingIntervalChanged"
-                              RequestTimeoutChanged="OnRequestTimeoutChanged" />
+                              RefreshRequested="RefreshNow" />
     </div>
 
     <StatusOverview IsConnected="State.IsConnected"
@@ -61,16 +55,25 @@
 
     <div class="@ReportShellClass" id="reports">
         <ReportNavigation IsOpen="State.IsReportNavigationOpen"
+                          IsConfigView="State.IsConfigView"
                           Targets="Targets"
                           SelectedReportTarget="SelectedReportTarget"
                           Reports="@reports"
                           LogsCount="State.Logs.Count"
                           ReportSelected="SelectReportAsync"
-                          LogsSelected="SelectLogsAsync" />
+                          LogsSelected="SelectLogsAsync"
+                          ConfigSelected="SelectConfig" />
 
-        <ReportContent SelectedReportTarget="SelectedReportTarget"
+        <ReportContent IsConfigView="State.IsConfigView"
+                       SelectedReportTarget="SelectedReportTarget"
                        Reports="@reports"
                        Logs="State.Logs"
-                       ClearLogs="ClearLogs" />
+                       ClearLogs="ClearLogs"
+                       PollIntervalMs="State.PollIntervalMs"
+                       PingIntervalMs="State.PingIntervalMs"
+                       RequestTimeoutMs="State.RequestTimeoutMs"
+                       PollIntervalChanged="OnPollIntervalChanged"
+                       PingIntervalChanged="OnPingIntervalChanged"
+                       RequestTimeoutChanged="OnRequestTimeoutChanged" />
     </div>
 </div>

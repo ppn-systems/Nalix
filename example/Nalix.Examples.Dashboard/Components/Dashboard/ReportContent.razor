@@ -8,11 +8,55 @@
     <div class="report-content-head">
         <div>
             <span class="section-label">Selected view</span>
-            <h2>@DashboardDisplay.TargetLabel(SelectedReportTarget)</h2>
+            <h2>@ContentHeadLabel</h2>
         </div>
     </div>
 
-    @if (SelectedReportTarget is { } selectedTarget)
+    @if (IsConfigView)
+    {
+        <div class="report-panel config-panel">
+            <div class="config-section">
+                <h3>Polling</h3>
+                <div class="config-fields">
+                    <div class="config-field">
+                        <label>Poll interval (ms)</label>
+                        <MudNumericField T="int"
+                                         Value="PollIntervalMs"
+                                         ValueChanged="PollIntervalChanged"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="100"
+                                         Max="10000"
+                                         Step="100" />
+                        <small>@DashboardDisplay.FormatPollingRate(PollIntervalMs)</small>
+                    </div>
+                    <div class="config-field">
+                        <label>Ping interval (ms)</label>
+                        <MudNumericField T="int"
+                                         Value="PingIntervalMs"
+                                         ValueChanged="PingIntervalChanged"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="1000"
+                                         Max="30000"
+                                         Step="500" />
+                    </div>
+                    <div class="config-field">
+                        <label>Request timeout (ms)</label>
+                        <MudNumericField T="int"
+                                         Value="RequestTimeoutMs"
+                                         ValueChanged="RequestTimeoutChanged"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="1000"
+                                         Max="30000"
+                                         Step="1000" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else if (SelectedReportTarget is { } selectedTarget)
     {
         @if (Reports.TryGetValue(selectedTarget, out DashboardReportSnapshot? report))
         {
@@ -106,6 +150,9 @@
 
 @code {
     [Parameter]
+    public bool IsConfigView { get; set; }
+
+    [Parameter]
     public GenerationReportTarget? SelectedReportTarget { get; set; }
 
     [Parameter]
@@ -117,6 +164,33 @@
 
     [Parameter]
     public EventCallback ClearLogs { get; set; }
+
+    [Parameter]
+    public int PollIntervalMs { get; set; }
+
+    [Parameter]
+    public int PingIntervalMs { get; set; }
+
+    [Parameter]
+    public int RequestTimeoutMs { get; set; }
+
+    [Parameter]
+    public EventCallback<int> PollIntervalChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> PingIntervalChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> RequestTimeoutChanged { get; set; }
+
+    private string ContentHeadLabel
+    {
+        get
+        {
+            if (IsConfigView) return "Config";
+            return DashboardDisplay.TargetLabel(SelectedReportTarget);
+        }
+    }
 
     private string LogText => string.Join(Environment.NewLine, Logs.Select(static entry =>
         $"[{entry.Timestamp.ToLocalTime():HH:mm:ss.fff}] [{entry.Level}] {entry.Message}"));

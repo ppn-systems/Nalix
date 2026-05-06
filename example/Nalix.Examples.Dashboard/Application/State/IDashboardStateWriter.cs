@@ -11,6 +11,8 @@ internal interface IDashboardStateWriter
 
     void SetReportNavigationOpen(bool open);
 
+    void SetConfigView(bool isConfig);
+
     void SetActiveReportTarget(GenerationReportTarget? target);
 
     void SetApiKeyConfigured(bool configured);
