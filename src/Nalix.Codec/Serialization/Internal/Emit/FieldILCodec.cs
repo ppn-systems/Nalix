@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Reflection;
+#if !NALIX_AOT
 using System.Reflection.Emit;
+#endif
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Formatters.Cache;
@@ -15,6 +17,7 @@ using Nalix.Codec.Serialization.Internal.Types;
 
 namespace Nalix.Codec.Serialization.Internal.Emit;
 
+#if !NALIX_AOT
 internal static class FieldILCodec
 {
     #region Nested Types
@@ -223,8 +226,12 @@ internal static class FieldILCodec
         // directly without a formatter.
         if (TypeMetadata.IsUnmanaged(fieldType))
         {
+#if NALIX_AOT
+            return null;
+#else
             return s_genericWriteMethods.GetOrAdd(
                 fieldType, static t => s_writeUnmanagedMethod.MakeGenericMethod(t));
+#endif
         }
 
         return null;
@@ -308,8 +315,12 @@ internal static class FieldILCodec
         // Generic unmanaged fallback
         if (TypeMetadata.IsUnmanaged(fieldType))
         {
+#if NALIX_AOT
+            return null;
+#else
             return s_genericReadMethods.GetOrAdd(
                 fieldType, static t => s_readUnmanagedMethod.MakeGenericMethod(t));
+#endif
         }
 
         return null;
@@ -359,3 +370,16 @@ internal static class FieldILCodec
 
     #endregion Private Methods
 }
+#else
+internal static class FieldILCodec
+{
+    public static void EmitWriteField(object il, object field, MethodInfo? directWrite, bool derefArg1)
+        => throw new NotSupportedException("Field IL emission is disabled under NALIX_AOT.");
+
+    public static void EmitReadFieldRef(object il, object field, MethodInfo? directRead, object objLocal)
+        => throw new NotSupportedException("Field IL emission is disabled under NALIX_AOT.");
+
+    public static void EmitReadFieldValue(object il, object field, MethodInfo? directRead, object objLocal)
+        => throw new NotSupportedException("Field IL emission is disabled under NALIX_AOT.");
+}
+#endif

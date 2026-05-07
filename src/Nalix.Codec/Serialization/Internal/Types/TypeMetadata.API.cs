@@ -104,7 +104,12 @@ internal static partial class TypeMetadata
 
     #region Private Methods
 
-    public static void RecursiveWarmupFields(Type type, HashSet<Type>? visited = null, bool warmCurrentType = false)
+    public static void RecursiveWarmupFields(
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicFields |
+            DynamicallyAccessedMemberTypes.NonPublicFields)] Type type,
+        HashSet<Type>? visited = null,
+        bool warmCurrentType = false)
     {
         // Walk the transitive closure of field types so formatter registration can be
         // preheated without revisiting the same type over and over.
@@ -118,16 +123,21 @@ internal static partial class TypeMetadata
         // root formatter. Re-entering FormatterProvider.Get<T>() for that same root type
         // would instantiate the formatter again and recurse forever for value types such
         // as Snowflake. Only dependency types should be proactively warmed here.
+#if !NALIX_AOT
         if (warmCurrentType && !type.IsPrimitive && !type.IsEnum && type != typeof(string))
         {
             _ = typeof(FormatterProvider).GetMethod("Get")!.MakeGenericMethod(type).Invoke(null, null);
         }
+#endif
 
         if (type.IsPrimitive || type.IsEnum || type == typeof(string))
         {
             return;
         }
 
+#if NALIX_AOT
+        return;
+#else
         if (type.IsArray)
         {
             // Arrays depend on their element type, so recurse into that instead of the wrapper.
@@ -166,6 +176,7 @@ internal static partial class TypeMetadata
             // Recurse into nested field types so the full graph is warmed, not just the root type.
             RecursiveWarmupFields(field.FieldType, visited, warmCurrentType: true);
         }
+#endif
     }
 
     #endregion Private Method

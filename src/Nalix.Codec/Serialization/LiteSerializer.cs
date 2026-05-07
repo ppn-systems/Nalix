@@ -574,14 +574,14 @@ public static class LiteSerializer
                 return 4;
             }
 
-            Type elementType = typeof(T).GetElementType()
+            _ = typeof(T).GetElementType()
                 ?? throw new SerializationFailureException(
                     $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
 
             if (IsEmptyArrayMarker(buffer))
             {
-                value = (T)(object)Array.CreateInstance(elementType, 0);
+                value = (T)(object)CreateArray<T>(0);
                 return 4;
             }
 
@@ -618,7 +618,7 @@ public static class LiteSerializer
             }
             else
             {
-                arr = Array.CreateInstance(elementType, length);
+                arr = CreateArray<T>(length);
             }
 
             ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
@@ -696,7 +696,7 @@ public static class LiteSerializer
                 return default;
             }
 
-            Type elementType = typeof(T).GetElementType()
+            _ = typeof(T).GetElementType()
                 ?? throw new SerializationFailureException(
                     $"TYPE '{typeof(T)}' is expected to be an array, but element type could not be resolved."
                 );
@@ -704,7 +704,7 @@ public static class LiteSerializer
             if (IsEmptyArrayMarker(buffer))
             {
                 value = 4;
-                return (T)(object)Array.CreateInstance(elementType, 0);
+                return (T)(object)CreateArray<T>(0);
             }
 
             if (buffer.Length < 4)
@@ -739,7 +739,7 @@ public static class LiteSerializer
             }
             else
             {
-                arr = Array.CreateInstance(elementType, length);
+                arr = CreateArray<T>(length);
             }
 
             ref byte dest = ref MemoryMarshal.GetArrayDataReference(arr);
@@ -771,6 +771,33 @@ public static class LiteSerializer
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsEmptyArrayMarker(ReadOnlySpan<byte> buffer) =>
         buffer.Length >= 4 && Unsafe.ReadUnaligned<int>(ref MemoryMarshal.GetReference(buffer)) == 0;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Array CreateArray<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(int length)
+        => typeof(T) switch
+        {
+            Type t when t == typeof(char[]) => GC.AllocateUninitializedArray<char>(length),
+            Type t when t == typeof(byte[]) => GC.AllocateUninitializedArray<byte>(length),
+            Type t when t == typeof(sbyte[]) => GC.AllocateUninitializedArray<sbyte>(length),
+            Type t when t == typeof(short[]) => GC.AllocateUninitializedArray<short>(length),
+            Type t when t == typeof(int[]) => GC.AllocateUninitializedArray<int>(length),
+            Type t when t == typeof(long[]) => GC.AllocateUninitializedArray<long>(length),
+            Type t when t == typeof(ushort[]) => GC.AllocateUninitializedArray<ushort>(length),
+            Type t when t == typeof(uint[]) => GC.AllocateUninitializedArray<uint>(length),
+            Type t when t == typeof(ulong[]) => GC.AllocateUninitializedArray<ulong>(length),
+            Type t when t == typeof(float[]) => GC.AllocateUninitializedArray<float>(length),
+            Type t when t == typeof(double[]) => GC.AllocateUninitializedArray<double>(length),
+            Type t when t == typeof(bool[]) => GC.AllocateUninitializedArray<bool>(length),
+            Type t when t == typeof(decimal[]) => GC.AllocateUninitializedArray<decimal>(length),
+            Type t when t == typeof(Guid[]) => GC.AllocateUninitializedArray<Guid>(length),
+            Type t when t == typeof(DateOnly[]) => GC.AllocateUninitializedArray<DateOnly>(length),
+            Type t when t == typeof(DateTime[]) => GC.AllocateUninitializedArray<DateTime>(length),
+            Type t when t == typeof(TimeSpan[]) => GC.AllocateUninitializedArray<TimeSpan>(length),
+            Type t when t == typeof(TimeOnly[]) => GC.AllocateUninitializedArray<TimeOnly>(length),
+            Type t when t == typeof(DateTimeOffset[]) => GC.AllocateUninitializedArray<DateTimeOffset>(length),
+            _ => throw new SerializationFailureException($"AOT array allocation is not registered for '{typeof(T).FullName}'.")
+        };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool UsesFormatterReader<

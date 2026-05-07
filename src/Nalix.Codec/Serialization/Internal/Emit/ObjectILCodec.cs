@@ -1,6 +1,9 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+#if !NALIX_AOT
 using System.Reflection.Emit;
+#endif
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal.Reflection;
 
@@ -15,7 +18,13 @@ namespace Nalix.Codec.Serialization.Internal.Emit;
 /// Builds a per-type IL serializer for reference types and caches the generated
 /// delegates for reuse.
 /// </summary>
-internal static class ObjectILCodec<T> where T : class, new()
+internal static class ObjectILCodec<
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.PublicFields |
+        DynamicallyAccessedMemberTypes.NonPublicFields |
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] T> where T : class, new()
 {
     public delegate void SerializeDelegate(ref DataWriter writer, in T value);
     public delegate void FillDelegate(ref DataReader reader, T value);
@@ -41,6 +50,14 @@ internal static class ObjectILCodec<T> where T : class, new()
             throw new InvalidOperationException("No serializable fields found.");
         }
 
+#if NALIX_AOT
+        s_directWriteMethods = [];
+        s_directReadMethods = [];
+
+        Fill = static (ref DataReader _, T _) => THROW_AOT_GENERATOR_MISSING();
+        Serialize = static (ref DataWriter _, in T _) => THROW_AOT_GENERATOR_MISSING();
+        Deserialize = static (ref DataReader _) => THROW_AOT_GENERATOR_MISSING<T>();
+#else
         s_directWriteMethods = new MethodInfo?[s_fields.Length];
         s_directReadMethods = new MethodInfo?[s_fields.Length];
 
@@ -54,8 +71,20 @@ internal static class ObjectILCodec<T> where T : class, new()
         Fill = GenerateFill();
         Serialize = GenerateSerialize();
         Deserialize = GenerateDeserialize();
+#endif
     }
 
+#if NALIX_AOT
+    [DoesNotReturn]
+    private static void THROW_AOT_GENERATOR_MISSING()
+        => throw new NotSupportedException($"Native AOT serialization for '{typeof(T).FullName}' requires a generated formatter.");
+
+    [DoesNotReturn]
+    private static TResult THROW_AOT_GENERATOR_MISSING<TResult>()
+        => throw new NotSupportedException($"Native AOT deserialization for '{typeof(T).FullName}' requires a generated formatter.");
+#endif
+
+#if !NALIX_AOT
     private static SerializeDelegate GenerateSerialize()
     {
         // Emit a linear serializer: each discovered field is written in the cached order
@@ -134,4 +163,6 @@ internal static class ObjectILCodec<T> where T : class, new()
 
         return (FillDelegate)dm.CreateDelegate(typeof(FillDelegate));
     }
+
+#endif
 }
