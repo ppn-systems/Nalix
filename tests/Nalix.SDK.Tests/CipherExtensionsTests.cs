@@ -19,13 +19,9 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class CipherExtensionsTests : IDisposable
 {
-    private readonly IPacketRegistry _registry;
-
     public CipherExtensionsTests()
     {
-        _registry = new PacketRegistryFactory()
-            .IncludeNamespace("Nalix.Codec.DataFrames.SignalFrames")
-            .CreateCatalog();
+        PacketRegistry.Build();
         TestUtils.SetupCertificate();
     }
 
@@ -34,7 +30,6 @@ public sealed class CipherExtensionsTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         // Server handles CIPHER_UPDATE by default in Handshake/Control logic?
         // Actually, CIPHER_UPDATE needs to be handled by the server to switch its own cipher.
@@ -52,7 +47,7 @@ public sealed class CipherExtensionsTests : IDisposable
                 ServerPublicKey = TestUtils.GetServerPublicKey()
             };
 
-            using var session = new TcpSession(options, _registry);
+            using var session = new TcpSession(options);
             await session.ConnectAsync();
             await session.HandshakeAsync();
 
@@ -78,6 +73,7 @@ public sealed class CipherExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
 
 
 

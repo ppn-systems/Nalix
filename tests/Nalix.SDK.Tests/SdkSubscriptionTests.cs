@@ -108,7 +108,6 @@ public sealed class SdkSubscriptionTests
         private readonly FakePacketRegistry _catalog = new();
 
         public override TransportOptions Options { get; } = new();
-        public override IPacketRegistry Catalog => _catalog;
         public override bool IsConnected => true;
 
         public override event EventHandler? OnConnected
@@ -152,7 +151,7 @@ public sealed class SdkSubscriptionTests
         {
             // Create a buffer that satisfies the dispatcher's magic number check
             byte[] data = new byte[PacketConstants.HeaderSize];
-            uint magic = PacketRegistryFactory.Compute(_catalog.Next.GetType());
+            uint magic = PacketRegistry.Compute(_catalog.Next.GetType());
             BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
 
             using BufferLease lease = BufferLease.CopyFrom(data);
@@ -188,6 +187,7 @@ public sealed class SdkSubscriptionTests
         public void Dispose() => throw new InvalidOperationException("dispose failed");
     }
 }
+
 
 
 

@@ -23,10 +23,10 @@ public sealed class PacketAwaiterTests
         TransportSession session = Substitute.For<TransportSession>();
         TestPacket packet = new() { Header = new PacketHeader { OpCode = 0x100 } };
         
-        session.Catalog.Returns(new ManualCatalog(packet));
+        
 
         ManualLease lease = new();
-        uint magic = Nalix.Codec.DataFrames.PacketRegistryFactory.Compute(typeof(TestPacket));
+        uint magic = Nalix.Codec.DataFrames.PacketRegistry.Compute(typeof(TestPacket));
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(lease.Span, magic);
 
         Task<TestPacket> awaitTask = PacketAwaiter.AwaitAsync<TestPacket>(
@@ -100,6 +100,7 @@ public sealed class PacketAwaiterTests
     }
 }
 #endif
+
 
 
 

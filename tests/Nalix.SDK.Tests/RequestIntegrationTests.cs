@@ -17,13 +17,9 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class RequestIntegrationTests : IDisposable
 {
-    private readonly IPacketRegistry _registry;
-
     public RequestIntegrationTests()
     {
-        _registry = new PacketRegistryFactory()
-            .IncludeNamespace("Nalix.Codec.DataFrames.SignalFrames")
-            .CreateCatalog();
+        PacketRegistry.Build();
         TestUtils.SetupCertificate();
     }
 
@@ -32,7 +28,6 @@ public sealed class RequestIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
@@ -47,7 +42,7 @@ public sealed class RequestIntegrationTests : IDisposable
                 EncryptionEnabled = false
             };
 
-            using var session = new TcpSession(options, _registry);
+            using var session = new TcpSession(options);
             await session.ConnectAsync();
 
             // PING expects PONG (which is a Control packet with same Seq)
@@ -89,7 +84,7 @@ public sealed class RequestIntegrationTests : IDisposable
 
         try
         {
-            using var session = new TcpSession(options, _registry);
+            using var session = new TcpSession(options);
             await session.ConnectAsync();
 
             var ping = new Control();
@@ -109,6 +104,7 @@ public sealed class RequestIntegrationTests : IDisposable
     public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
 
 
 

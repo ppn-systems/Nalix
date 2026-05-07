@@ -98,16 +98,13 @@ public sealed class NetworkApplicationIntegrationTests
         
         try 
         {
-            // 2. Setup Client
-            IPacketRegistry registry = new PacketRegistryFactory()
-                .RegisterAllPackets(typeof(NetworkApplicationIntegrationTests).Assembly)
-                .CreateCatalog();
+            // 2. Setup Client`r`n            PacketRegistry.Build();
             using TcpSession client = new(new TransportOptions 
             { 
                 Address = "127.0.0.1", 
                 Port = (ushort)port,
                 EncryptionEnabled = false 
-            }, registry);
+            });
             
             await client.ConnectAsync();
             
@@ -194,6 +191,7 @@ public sealed class IntegrationTestController
         Interlocked.Increment(ref ReceivedCount);
     }
 }
+
 
 
 

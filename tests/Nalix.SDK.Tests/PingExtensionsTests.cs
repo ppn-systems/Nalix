@@ -14,19 +14,16 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class PingExtensionsTests : IDisposable
 {
-    private readonly IPacketRegistry _registry;
-
     public PingExtensionsTests()
     {
-        _registry = new PacketRegistryFactory().CreateCatalog();
-    }
+        PacketRegistry.Build();
+}
 
     [Fact]
     public async Task PingAsync_WithRealServer_ReturnsPositiveRtt()
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
@@ -38,7 +35,7 @@ public sealed class PingExtensionsTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port
-            }, _registry);
+            });
 
             await session.ConnectAsync();
 
@@ -54,6 +51,7 @@ public sealed class PingExtensionsTests : IDisposable
     public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
 
 
 

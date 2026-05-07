@@ -135,7 +135,6 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
 {
     private readonly FakePacketRegistry _catalog = new();
     public override TransportOptions Options { get; } = new();
-    public override IPacketRegistry Catalog => _catalog;
     public override bool IsConnected { get; } = isConnected;
     public int SendPacketCallCount { get; private set; }
 
@@ -157,7 +156,7 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
             pong.Header = h;
 
             byte[] data = new byte[PacketConstants.HeaderSize];
-            uint magic = PacketRegistryFactory.Compute(response.GetType());
+            uint magic = PacketRegistry.Compute(response.GetType());
             BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
 
             using BufferLease lease = BufferLease.CopyFrom(data);
@@ -197,6 +196,7 @@ internal sealed class FakePacketRegistry : IPacketRegistry
         return true;
     }
 }
+
 
 
 
