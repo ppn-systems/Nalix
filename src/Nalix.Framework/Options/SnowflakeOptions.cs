@@ -11,7 +11,7 @@ namespace Nalix.Framework.Options;
 /// Identifier configuration options.
 /// </summary>
 [IniComment("Identifier configuration — controls distributed ID generation machine mapping")]
-public sealed class SnowflakeOptions : ConfigurationLoader
+public sealed partial class SnowflakeOptions : ConfigurationLoader
 {
     /// <summary>
     /// Machine ID (1-1023) used in distributed ID generation.

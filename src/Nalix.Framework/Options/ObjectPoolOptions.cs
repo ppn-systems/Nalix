@@ -12,7 +12,7 @@ namespace Nalix.Framework.Options;
 /// Configuration for object pool diagnostics and performance settings.
 /// </summary>
 [IniComment("Object pool configuration — controls diagnostics, lifetime tracking, and leak detection")]
-public sealed class ObjectPoolOptions : ConfigurationLoader
+public sealed partial class ObjectPoolOptions : ConfigurationLoader
 {
     /// <summary>
     /// Enables advanced diagnostics for object pools.
