@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents configuration options for UDP datagram source rate limiting.
 /// </summary>
 [IniComment("UDP datagram guard — bounds source tracking and cleanup behavior")]
-public sealed class DatagramGuardOptions : ConfigurationLoader
+public sealed partial class DatagramGuardOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the maximum number of IPv4 source windows tracked at once.

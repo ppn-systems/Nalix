@@ -12,7 +12,7 @@ namespace Nalix.Network.Options;
 /// Provides configuration options for <see cref="IConnectionHub"/>.
 /// </summary>
 [IniComment("Connection hub configuration — controls capacity, limits, concurrency, and disposal behavior")]
-public sealed class ConnectionHubOptions : ConfigurationLoader
+public sealed partial class ConnectionHubOptions : ConfigurationLoader
 {
     // Limits & backpressure
 

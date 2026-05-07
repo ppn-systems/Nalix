@@ -11,7 +11,7 @@ namespace Nalix.Network.Options;
 /// Defines how long an inactive connection can stay open before being automatically closed.
 /// </summary>
 [IniComment("Timing wheel configuration — controls idle timeout detection for TCP and UDP connections")]
-public sealed class TimingWheelOptions : ConfigurationLoader
+public sealed partial class TimingWheelOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the size of the timing wheel (number of buckets).

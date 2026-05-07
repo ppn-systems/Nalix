@@ -18,7 +18,7 @@ namespace Nalix.Logging.Options;
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
 [IniComment("Logging system configuration — controls log level, timestamp format, and entry metadata")]
-public sealed class NLogixOptions : ConfigurationLoader, IDisposable
+public sealed partial class NLogixOptions : ConfigurationLoader, IDisposable
 {
     #region Fields
 

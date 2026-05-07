@@ -10,7 +10,7 @@ namespace Nalix.Runtime.Options;
 /// Provides configuration options for a high-performance token-bucket rate limiter.
 /// </summary>
 [IniComment("Token-bucket rate limiter configuration — controls burst capacity, refill rate, sharding, and violation policy")]
-public sealed class TokenBucketOptions : ConfigurationLoader
+public sealed partial class TokenBucketOptions : ConfigurationLoader
 {
     #region Properties
 

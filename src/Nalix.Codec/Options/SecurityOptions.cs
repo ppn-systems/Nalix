@@ -11,7 +11,7 @@ namespace Nalix.Codec.Options;
 /// Security-related configuration for hashing and encryption.
 /// </summary>
 [IniComment("Security configuration — controls hashing iterations and other cryptographic parameters")]
-public sealed class SecurityOptions : ConfigurationLoader
+public sealed partial class SecurityOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the iteration count for PBKDF2 hashing.

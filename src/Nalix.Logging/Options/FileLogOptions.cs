@@ -19,7 +19,7 @@ namespace Nalix.Logging.Options;
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("File={LogFileName,nq}, Dir={LogDirectory,nq}, MaxSize={MaxFileSizeBytes}")]
 [IniComment("File logger configuration — controls file size, queue, flush behavior, and naming")]
-public sealed class FileLogOptions : ConfigurationLoader
+public sealed partial class FileLogOptions : ConfigurationLoader
 {
     #region Constants
 

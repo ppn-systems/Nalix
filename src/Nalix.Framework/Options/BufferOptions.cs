@@ -17,7 +17,7 @@ namespace Nalix.Framework.Options;
 /// Configuration for buffer settings with validation and performance/security options.
 /// </summary>
 [IniComment("Buffer pool configuration — controls pool sizing, trimming, adaptive growth, and memory limits")]
-public sealed class BufferOptions : ConfigurationLoader
+public sealed partial class BufferOptions : ConfigurationLoader
 {
     #region Properties
     /// <summary>

@@ -26,7 +26,7 @@ namespace Nalix.Network.Options;
 /// </para>
 /// </summary>
 [IniComment("Object pool configuration — capacity ceiling and startup preallocations for network contexts")]
-public sealed class PoolingOptions : ConfigurationLoader
+public sealed partial class PoolingOptions : ConfigurationLoader
 {
     #region Accept Context — one per in-flight AcceptAsync operation
 

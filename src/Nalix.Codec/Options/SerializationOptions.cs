@@ -11,7 +11,7 @@ namespace Nalix.Codec.Options;
 /// Configures memory limits and safety thresholds for serialization and data writing.
 /// </summary>
 [IniComment("Serialization configuration — controls memory limits for data writing and object encoding")]
-public sealed class SerializationOptions : ConfigurationLoader
+public sealed partial class SerializationOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the maximum capacity, in bytes, that a single <see cref="Memory.DataWriter"/> is allowed to expand to.
@@ -21,19 +21,19 @@ public sealed class SerializationOptions : ConfigurationLoader
     /// by requesting extremely large buffer expansions.
     /// </remarks>
     [IniComment("Maximum capacity (bytes) for a single DataWriter buffer (default 128MB)")]
-    public int MaxWriterCapacity { get; init; } = 128 * 1024 * 1024; // 128MB default
+    public int MaxWriterCapacity { get; set; } = 128 * 1024 * 1024; // 128MB default
 
     /// <summary>
     /// Gets or sets the maximum allowed element count for arrays and collections during deserialization.
     /// </summary>
     [IniComment("Maximum number of elements in an array or collection (default 1M)")]
-    public int MaxArrayLength { get; init; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxArrayLength)
+    public int MaxArrayLength { get; set; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxArrayLength)
 
     /// <summary>
     /// Gets or sets the maximum allowed length, in bytes, for UTF-8 strings during deserialization.
     /// </summary>
     [IniComment("Maximum length (bytes) for a UTF-8 string (default 1M)")]
-    public int MaxStringLength { get; init; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxStringLength)
+    public int MaxStringLength { get; set; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxStringLength)
 
     /// <summary>
     /// Validates the configuration options.
