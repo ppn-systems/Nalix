@@ -92,7 +92,7 @@ public static partial class Directories
 
                 if (Listener.IsEnabled(DiagnosticsEvents.IO.Directory))
                 {
-                    Listener.Write(DiagnosticsEvents.IO.Directory, new { Action = "Created", Path = path, Caller = callerMemberName });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.IO.Directory, new { Action = "Created", Path = path, Caller = callerMemberName });
                 }
             }
         }

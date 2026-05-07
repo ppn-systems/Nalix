@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.Codec.Memory;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
@@ -39,8 +40,6 @@ public class TcpSession : TransportSession
     /// <inheritdoc/>
     public override TransportOptions Options { get; }
 
-    /// <inheritdoc/>
-    public override IPacketRegistry Catalog { get; }
 
     /// <inheritdoc/>
     public override bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
@@ -70,11 +69,9 @@ public class TcpSession : TransportSession
 
     /// <summary>Initializes a new instance of the <see cref="TcpSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
-    /// <param name="catalog">The packet registry used to resolve packet metadata.</param>
-    public TcpSession(TransportOptions options, IPacketRegistry catalog)
+    public TcpSession(TransportOptions options)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
-        this.Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
 
         // Initialize frame helpers with a factory to get the latest socket instance
         _sender = new FrameSender(() => _socket!, options, this.HandleError);
@@ -90,7 +87,9 @@ public class TcpSession : TransportSession
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
+        PacketRegistry.Build();
         await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
+
         try
         {
             string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;

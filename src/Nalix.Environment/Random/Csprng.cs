@@ -55,13 +55,13 @@ public static class Csprng
 
             if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
             {
-                Listener.Write(DiagnosticsEvents.Random.Init, new { Message = "OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced.", Timestamp = DateTime.UtcNow });
+                DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new { Message = "OS CSPRNG unavailable — falling back to OsRandom. Cryptographic strength may be reduced.", Timestamp = DateTime.UtcNow });
             }
         }
 
         if (Listener.IsEnabled(DiagnosticsEvents.Random.Init))
         {
-            Listener.Write(DiagnosticsEvents.Random.Init, new { Message = $"init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}", Timestamp = DateTime.UtcNow });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Random.Init, new { Message = $"init using {(ReferenceEquals(s_f, f) ? "OS_CSPRNG" : "Xoshiro++")}", Timestamp = DateTime.UtcNow });
         }
     }
 

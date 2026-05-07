@@ -69,12 +69,6 @@ public interface INetworkApplicationBuilder
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder ConfigureCertificate(string certificatePath);
 
-    /// <summary>
-    /// Configures a pre-built packet registry instead of hosting auto-discovery.
-    /// </summary>
-    /// <param name="packetRegistry">The packet registry to use.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigurePacketRegistry(IPacketRegistry packetRegistry);
 
     /// <summary>
     /// Configures the packet dispatcher used by the host.

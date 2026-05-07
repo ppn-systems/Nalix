@@ -24,6 +24,18 @@ public static class DiagnosticsEvents
     public static readonly DiagnosticListener Source = new(ListenerName);
 
     /// <summary>
+    /// Emits a diagnostic payload through <see cref="Source"/>.
+    /// </summary>
+    /// <typeparam name="T">The diagnostic payload type.</typeparam>
+    /// <param name="name">The event name.</param>
+    /// <param name="payload">The event payload.</param>
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2026",
+        Justification = "Diagnostic payloads are observational only; trimming nested payload metadata does not affect Environment runtime behavior.")]
+    [System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessage("Trimming", "IL2091",
+        Justification = "Diagnostic payloads are observational only; public-property preservation is not required for runtime behavior.")]
+    public static void Write<T>(string name, T payload) => Source.Write(name, payload);
+
+    /// <summary>
     /// Configuration-related diagnostic events.
     /// </summary>
     public static class Configuration

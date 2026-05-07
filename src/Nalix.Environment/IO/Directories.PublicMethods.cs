@@ -102,7 +102,7 @@ public static partial class Directories
 
         if (deleted > 0 && Listener.IsEnabled(DiagnosticsEvents.IO.Cleanup))
         {
-            Listener.Write(DiagnosticsEvents.IO.Cleanup, new { Action = "FilesDeleted", Count = deleted, Path = directoryPath });
+            DiagnosticsEvents.Write(DiagnosticsEvents.IO.Cleanup, new { Action = "FilesDeleted", Count = deleted, Path = directoryPath });
         }
 
         return deleted;

@@ -96,14 +96,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return this;
     }
 
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigurePacketRegistry(IPacketRegistry packetRegistry)
-    {
-        ArgumentNullException.ThrowIfNull(packetRegistry);
-
-        _state.PacketRegistryOverride = packetRegistry;
-        return this;
-    }
 
     /// <inheritdoc />
     public INetworkApplicationBuilder ConfigureBufferPoolManager(BufferPoolManager manager)
@@ -289,7 +281,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             RegisterLogger(_state);
             ApplyOptions(_state);
-            RegisterPacketRegistry(_state);
+            RegisterPacketRegistry();
 
             this.EnsureConnectionHubRegistered();
             this.EnsureBufferPoolManagerRegistered();
@@ -524,8 +516,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _ = (validateMethod?.Invoke(options, parameters: null));
     }
 
-    private static void RegisterPacketRegistry(HostingBuilderContext state)
-        => InstanceManager.Instance.Register(CreatePacketRegistry(state));
+    private static void RegisterPacketRegistry() => PacketRegistry.Build();
 
     private static void RegisterMetadataProviders(HostingBuilderContext state)
     {
@@ -536,62 +527,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
     }
 
-    internal static IPacketRegistry CreatePacketRegistry(HostingBuilderContext state)
-    {
-        ArgumentNullException.ThrowIfNull(state);
-
-        if (state.PacketRegistryOverride is not null)
-        {
-            return state.PacketRegistryOverride;
-        }
-
-        PacketRegistryFactory factory = new();
-
-        for (int i = 0; i < state.PacketAssemblies.Count; i++)
-        {
-            PacketAssemblyDescriptor registration = state.PacketAssemblies[i];
-            _ = factory.RegisterAllPackets(registration.Assembly, registration.RequirePacketAttribute);
-        }
-
-        for (int i = 0; i < state.PacketAssemblyPaths.Count; i++)
-        {
-            PacketAssemblyPathDescriptor registration = state.PacketAssemblyPaths[i];
-            _ = factory.RegisterPacketAssembly(registration.AssemblyPath, registration.RequirePacketAttribute);
-        }
-
-        bool includeCurrentDomain = false;
-        for (int i = 0; i < state.PacketNamespaces.Count; i++)
-        {
-            PacketNamespaceDescriptor registration = state.PacketNamespaces[i];
-            if (string.IsNullOrWhiteSpace(registration.AssemblyPath))
-            {
-                includeCurrentDomain = true;
-                continue;
-            }
-
-            _ = factory.IncludeAssembly(registration.AssemblyPath);
-        }
-
-        if (includeCurrentDomain)
-        {
-            _ = factory.IncludeCurrentDomain();
-        }
-
-        for (int i = 0; i < state.PacketNamespaces.Count; i++)
-        {
-            PacketNamespaceDescriptor registration = state.PacketNamespaces[i];
-            _ = registration.Recursive
-                ? factory.IncludeNamespaceRecursive(registration.PacketNamespace)
-                : factory.IncludeNamespace(registration.PacketNamespace);
-        }
-
-        foreach (Assembly assembly in state.HandlerAssemblies)
-        {
-            _ = factory.RegisterAllPackets(assembly, requireAttribute: false);
-        }
-
-        return factory.CreateCatalog();
-    }
 
     private static void RegisterHandlerCore<THandler>(PacketDispatchOptions<IPacket> dispatchOptions, Func<object> factory)
         where THandler : class

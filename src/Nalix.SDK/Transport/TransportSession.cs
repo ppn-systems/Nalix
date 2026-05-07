@@ -26,10 +26,6 @@ public abstract class TransportSession : IDisposable
     /// </summary>
     public abstract TransportOptions Options { get; }
 
-    /// <summary>
-    /// Gets the packet registry (catalog) used by this session.
-    /// </summary>
-    public abstract IPacketRegistry Catalog { get; }
 
     /// <summary>
     /// Gets a value indicating whether the session is currently connected.

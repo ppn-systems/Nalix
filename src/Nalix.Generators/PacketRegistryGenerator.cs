@@ -11,13 +11,14 @@ using Microsoft.CodeAnalysis.Text;
 namespace Nalix.Generators;
 
 /// <summary>
-/// Generates packet registry catalogs for packet types declared in the current
-/// compilation.
+/// Generates module-level packet registration code for packets marked with PacketAttribute.
 /// </summary>
 [Generator]
 public sealed class PacketRegistryGenerator : IIncrementalGenerator
 {
-    private const string IPacketMetadataName = "Nalix.Abstractions.Networking.Packets.IPacket";
+    private const string PacketAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketAttribute";
+    private const string PacketBaseName = "PacketBase";
+    private const string PacketBaseNamespace = "Nalix.Codec.DataFrames";
 
     /// <summary>
     /// Registers the incremental source-generation pipeline.
@@ -27,14 +28,13 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
     {
         IncrementalValuesProvider<INamedTypeSymbol?> packets = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: static (node, _) => node is TypeDeclarationSyntax { BaseList: not null },
+                predicate: static (node, _) => node is TypeDeclarationSyntax { AttributeLists.Count: > 0, BaseList: not null },
                 transform: static (ctx, _) => GetPacketType(ctx))
             .Where(static symbol => symbol is not null);
 
-        IncrementalValueProvider<(Compilation Compilation, System.Collections.Immutable.ImmutableArray<INamedTypeSymbol?> Packets)> collected =
-            context.CompilationProvider.Combine(packets.Collect());
+        IncrementalValueProvider<System.Collections.Immutable.ImmutableArray<INamedTypeSymbol?>> collected = packets.Collect();
 
-        context.RegisterSourceOutput(collected, static (spc, source) => Execute(source.Compilation, source.Packets, spc));
+        context.RegisterSourceOutput(collected, static (spc, source) => Execute(source, spc));
     }
 
     private static INamedTypeSymbol? GetPacketType(GeneratorSyntaxContext context)
@@ -54,15 +54,37 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
             return null;
         }
 
-        return ImplementsInterface(symbol, IPacketMetadataName) ? symbol : null;
+        if (!HasPacketAttribute(symbol))
+        {
+            return null;
+        }
+
+        return InheritsPacketBaseOfSelf(symbol) ? symbol : null;
     }
 
-    private static bool ImplementsInterface(INamedTypeSymbol symbol, string metadataName) =>
-        symbol.AllInterfaces.Any(i => i.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) == "global::" + metadataName);
+    private static bool HasPacketAttribute(INamedTypeSymbol symbol) =>
+        symbol.GetAttributes().Any(static attr => attr.AttributeClass?.ToDisplayString() == PacketAttributeMetadataName);
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
+    private static bool InheritsPacketBaseOfSelf(INamedTypeSymbol symbol)
+    {
+        INamedTypeSymbol? current = symbol.BaseType;
+        while (current is not null)
+        {
+            if (current.Name == PacketBaseName &&
+                current.ContainingNamespace.ToDisplayString() == PacketBaseNamespace &&
+                current.TypeArguments.Length == 1 &&
+                SymbolEqualityComparer.Default.Equals(current.TypeArguments[0], symbol))
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
     private static void Execute(
-        Compilation compilation,
         System.Collections.Immutable.ImmutableArray<INamedTypeSymbol?> packets,
         SourceProductionContext context)
     {
@@ -73,52 +95,128 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
             .Where(p => seen.Add(p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
             .OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat))];
 
+        if (distinctPackets.Count == 0)
+        {
+            return;
+        }
+
+        List<string> moduleNames = [];
+        foreach (INamedTypeSymbol packet in distinctPackets)
+        {
+            string moduleName = GetModuleName(packet);
+            moduleNames.Add(moduleName);
+            EmitPacketModule(packet, moduleName, context);
+        }
+
+        EmitBootstrap(distinctPackets, moduleNames, context);
+    }
+
+    private static void EmitPacketModule(INamedTypeSymbol packet, string moduleName, SourceProductionContext context)
+    {
+        string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+        string key = Compute(fullName).ToString(System.Globalization.CultureInfo.InvariantCulture);
+
         StringBuilder sb = new();
         _ = sb.AppendLine("// <auto-generated/>");
         _ = sb.AppendLine("#pragma warning disable CS1591");
         _ = sb.AppendLine("#nullable enable");
-        _ = sb.AppendLine("using System;");
-        _ = sb.AppendLine("using System.Collections.Generic;");
         _ = sb.AppendLine();
-        _ = sb.AppendLine("namespace Nalix.Abstractions.Networking.Packets;");
+        _ = sb.AppendLine("namespace Nalix.Generated.Packets;");
         _ = sb.AppendLine();
-        _ = sb.AppendLine("internal static class GeneratedPacketManifest");
+        _ = sb.AppendLine($"internal static class {moduleName}");
         _ = sb.AppendLine("{");
-        _ = sb.AppendLine("    public static IReadOnlyList<KeyValuePair<uint, PacketDeserializer>> GetDeserializers()");
-        _ = sb.AppendLine("        => s_deserializers;");
-        _ = sb.AppendLine();
-        _ = sb.AppendLine("    public static IReadOnlyList<KeyValuePair<uint, string>> GetNames()");
-        _ = sb.AppendLine("        => s_names;");
-        _ = sb.AppendLine();
-        _ = sb.AppendLine("    private static readonly KeyValuePair<uint, PacketDeserializer>[] s_deserializers =");
-        _ = sb.AppendLine("    [");
+        _ = sb.AppendLine("    internal static void Register()");
+        _ = sb.AppendLine("    {");
+        _ = sb.AppendLine("        global::Nalix.Codec.DataFrames.PacketRegistry.RegisterGenerated(");
+        _ = sb.AppendLine($"            {key}u,");
+        _ = sb.AppendLine($"            \"{Escape(fullName)}\",");
+        _ = sb.AppendLine($"            static raw => global::Nalix.Codec.DataFrames.PacketBase<{typeName}>.Deserialize(raw));");
+        _ = sb.AppendLine("    }");
+        _ = sb.AppendLine("}");
 
-        foreach (INamedTypeSymbol packet in distinctPackets)
+        context.AddSource($"{Sanitize(packet.Name)}.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static void EmitBootstrap(IReadOnlyList<INamedTypeSymbol> packets, IReadOnlyList<string> moduleNames, SourceProductionContext context)
+    {
+        StringBuilder sb = new();
+        _ = sb.AppendLine("// <auto-generated/>");
+        _ = sb.AppendLine("#pragma warning disable CS1591");
+        _ = sb.AppendLine("#nullable enable");
+        _ = sb.AppendLine("using System.Runtime.CompilerServices;");
+        _ = sb.AppendLine("using System.Threading;");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("namespace Nalix.Generated.Packets;");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("internal static class PacketBootstrap");
+        _ = sb.AppendLine("{");
+        _ = sb.AppendLine("    private static int s_registered;");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("    [ModuleInitializer]");
+        _ = sb.AppendLine("    internal static void Initialize() => Register();");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("    internal static void Register()");
+        _ = sb.AppendLine("    {");
+        _ = sb.AppendLine("        if (Interlocked.Exchange(ref s_registered, 1) != 0)");
+        _ = sb.AppendLine("        {");
+        _ = sb.AppendLine("            return;");
+        _ = sb.AppendLine("        }");
+        _ = sb.AppendLine();
+
+        foreach (string moduleName in moduleNames.OrderBy(static n => n))
+        {
+            _ = sb.AppendLine($"        {moduleName}.Register();");
+        }
+
+        _ = sb.AppendLine("        global::Nalix.Codec.DataFrames.PacketRegistry.RegisterGeneratedDispatcher(TryDeserialize);");
+        _ = sb.AppendLine("    }");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("    private static bool TryDeserialize(uint magic, global::System.ReadOnlySpan<byte> raw, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::Nalix.Abstractions.Networking.Packets.IPacket? packet)");
+        _ = sb.AppendLine("    {");
+        _ = sb.AppendLine("        switch (magic)");
+        _ = sb.AppendLine("        {");
+
+        foreach (INamedTypeSymbol packet in packets.OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
         {
             string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
             string key = Compute(fullName).ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-            _ = sb.AppendLine($"        new({key}u, static raw => {typeName}.Deserialize(raw)),");
+            _ = sb.AppendLine($"            case {key}u:");
+            _ = sb.AppendLine($"                packet = global::Nalix.Codec.DataFrames.PacketBase<{typeName}>.Deserialize(raw);");
+            _ = sb.AppendLine("                return packet is not null;");
         }
 
-        _ = sb.AppendLine("    ];");
-        _ = sb.AppendLine();
-        _ = sb.AppendLine("    private static readonly KeyValuePair<uint, string>[] s_names =");
-        _ = sb.AppendLine("    [");
-
-        foreach (INamedTypeSymbol packet in distinctPackets)
-        {
-            string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-            string key = Compute(fullName).ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-            _ = sb.AppendLine($"        new({key}u, \"{Escape(fullName)}\"),");
-        }
-
-        _ = sb.AppendLine("    ];");
+        _ = sb.AppendLine("            default:");
+        _ = sb.AppendLine("                packet = null;");
+        _ = sb.AppendLine("                return false;");
+        _ = sb.AppendLine("        }");
+        _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
 
-        context.AddSource("Nalix_Abstractions_GeneratedPacketManifest.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+        context.AddSource("PacketBootstrap.g.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
+    }
+
+    private static string GetModuleName(INamedTypeSymbol packet)
+    {
+        string name = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+        return Sanitize(name) + "PacketModule";
+    }
+
+    private static string Sanitize(string value)
+    {
+        StringBuilder sb = new(value.Length + 16);
+        foreach (char ch in value)
+        {
+            _ = sb.Append(char.IsLetterOrDigit(ch) || ch == '_' ? ch : '_');
+        }
+
+        if (sb.Length == 0 || (!char.IsLetter(sb[0]) && sb[0] != '_'))
+        {
+            _ = sb.Insert(0, '_');
+        }
+
+        return sb.ToString();
     }
 
     private static uint Compute(string name)

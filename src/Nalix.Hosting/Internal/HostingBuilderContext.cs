@@ -93,11 +93,6 @@ internal sealed class HostingBuilderContext
     /// </summary>
     public string? IdentityCertificatePath { get; set; }
 
-    /// <summary>
-    /// Gets or sets a pre-built packet registry. When provided, hosting skips
-    /// automatic packet discovery and registration.
-    /// </summary>
-    public IPacketRegistry? PacketRegistryOverride { get; set; }
 
     /// <summary>
     /// Indicates whether the user has explicitly configured a custom
