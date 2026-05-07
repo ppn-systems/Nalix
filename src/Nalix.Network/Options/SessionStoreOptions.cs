@@ -12,14 +12,14 @@ namespace Nalix.Network.Options;
 /// Store options for resumable sessions, controlling how long inactive sessions are retained before expiration.
 /// </summary>
 [IniComment("Session store configuration — controls retention of resumable sessions and their expiration")]
-public sealed class SessionStoreOptions : ConfigurationLoader
+public sealed partial class SessionStoreOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the time-to-live for resumable sessions.
     /// </summary>
     [IniComment("Duration after which an inactive session expires (default 30m)")]
     [Required(ErrorMessage = "SessionTtl is required.")]
-    public TimeSpan SessionTtl { get; init; } = TimeSpan.FromMinutes(30);
+    public TimeSpan SessionTtl { get; set; } = TimeSpan.FromMinutes(30);
 
     /// <summary>
     /// Gets or sets a value indicating whether sessions should be automatically saved when a connection is unregistered.

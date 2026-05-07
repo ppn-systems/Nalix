@@ -11,7 +11,7 @@ namespace Nalix.Network.Options;
 /// behavior per IP address.
 /// </summary>
 [IniComment("Per-IP connection limiting — mitigates abuse, DoS, and excessive resource consumption")]
-public sealed class ConnectionLimitOptions : ConfigurationLoader
+public sealed partial class ConnectionLimitOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets the maximum number of concurrent connections allowed per IP address.

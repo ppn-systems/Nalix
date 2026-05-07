@@ -30,7 +30,7 @@ namespace Nalix.Network.Options;
 /// </para>
 /// </summary>
 [IniComment("Async callback dispatcher and per-connection throttle settings (DDoS protection)")]
-public sealed class NetworkCallbackOptions : ConfigurationLoader
+public sealed partial class NetworkCallbackOptions : ConfigurationLoader
 {
     #region Layer 1 — Per-connection receive throttle
 

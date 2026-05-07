@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents network configuration settings for socket and TCP connections.
 /// </summary>
 [IniComment("Network socket configuration — controls port, buffering, concurrency, and socket behavior")]
-public sealed class NetworkSocketOptions : ConfigurationLoader
+public sealed partial class NetworkSocketOptions : ConfigurationLoader
 {
     #region Constants
 
