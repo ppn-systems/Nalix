@@ -11,13 +11,13 @@ namespace Nalix.Codec.Options;
 /// to justify the cost of compressing them.
 /// </summary>
 [IniComment("Compression configuration — controls when and how data is compressed")]
-public sealed class CompressionOptions : ConfigurationLoader
+public sealed partial class CompressionOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets whether compression is enabled globally.
     /// </summary>
     [IniComment("Enable or disable compression (true = enabled, false = disabled)")]
-    public bool Enabled { get; init; } = true;
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the minimum payload size, in bytes, required before compression is attempted.
@@ -28,7 +28,7 @@ public sealed class CompressionOptions : ConfigurationLoader
     /// to benefit from compression.
     /// </remarks>
     [IniComment("Minimum data size (bytes) to trigger compression (e.g. 1024 = 1KB)")]
-    public int MinSizeToCompress { get; init; } = 1024; // 1KB default
+    public int MinSizeToCompress { get; set; } = 1024; // 1KB default
 
     /// <summary>
     /// Gets or sets the maximum allowed size, in bytes, for a decompressed packet payload.
@@ -38,7 +38,7 @@ public sealed class CompressionOptions : ConfigurationLoader
     /// If a packet declares an original size larger than this limit, it will be rejected.
     /// </remarks>
     [IniComment("Maximum allowed size (bytes) for a decompressed packet payload (default 32MB)")]
-    public int MaxDecompressedSize { get; init; } = 32 * 1024 * 1024; // 32MB default
+    public int MaxDecompressedSize { get; set; } = 32 * 1024 * 1024; // 32MB default
 
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.

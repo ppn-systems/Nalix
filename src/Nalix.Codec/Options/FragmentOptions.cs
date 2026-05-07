@@ -14,7 +14,7 @@ namespace Nalix.Codec.Options;
 /// Options for fragmentation and reassembly of large frames.
 /// </summary>
 [IniComment("Fragmentation configuration — controls chunking and reassembly of large data payloads")]
-public sealed class FragmentOptions : ConfigurationLoader
+public sealed partial class FragmentOptions : ConfigurationLoader
 {
     /// <summary>
     /// Maximum allowed size (in bytes) of the raw payload the caller can pass to <c>SendAsync</c>.
