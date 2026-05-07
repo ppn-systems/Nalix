@@ -16,6 +16,7 @@ namespace Nalix.Abstractions.Networking.Packets;
 /// Implementations expose a fixed header and a serialization API that the packet
 /// pipeline can use without knowing the concrete packet type.
 /// </remarks>
+[Packet]
 [SerializePackable(SerializeLayout.Explicit)]
 public interface IPacket
 {

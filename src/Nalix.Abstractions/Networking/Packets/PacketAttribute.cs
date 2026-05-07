@@ -37,7 +37,7 @@ namespace Nalix.Abstractions.Networking.Packets;
 /// }
 /// </code>
 /// </example>
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct | AttributeTargets.Interface, Inherited = true)]
 public sealed class PacketAttribute : Attribute
 {
 }

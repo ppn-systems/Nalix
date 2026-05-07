@@ -60,9 +60,6 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// <exception cref="ValidationException">Thrown when any fragmentation limit is invalid.</exception>
     public void Validate()
     {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
-
         if (this.MaxPayloadSize <= 0)
         {
             throw new ValidationException($"MaxPayloadSize={this.MaxPayloadSize} must be positive.");

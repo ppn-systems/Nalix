@@ -294,6 +294,10 @@ public static class FormatterProvider
         return (IFormatter<T>)GetOrAddFactory(concrete)();
     }
 
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "AOT path only closes formatter instantiations exercised by explicit registration/source-generated manifests.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2055",
+        Justification = "Formatter definitions are closed over known type arguments and validated by NativeAOT compare tests.")]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static IFormatter<T> EmitCreate<T>(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type typeArg1, Type typeArg2)
@@ -302,6 +306,10 @@ public static class FormatterProvider
         return (IFormatter<T>)GetOrAddFactory(concrete)();
     }
 
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "AOT path only closes formatter instantiations exercised by explicit registration/source-generated manifests.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2055",
+        Justification = "Formatter definitions are closed over known type arguments and validated by NativeAOT compare tests.")]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static IFormatter<T> EmitCreate<T>(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type[] typeArgs)

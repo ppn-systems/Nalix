@@ -44,7 +44,7 @@ internal static class PacketTypeCache<
 
     static PacketTypeCache()
     {
-        AutoMagic = PacketRegistryFactory.Compute(typeof(TSelf));
+        AutoMagic = PacketRegistry.Compute(typeof(TSelf));
         IsFixedSize = typeof(IFixedSizeSerializable).IsAssignableFrom(typeof(TSelf));
         FixedSize = IsFixedSize ? FETCH_FIXED_SIZE() : 0;
 

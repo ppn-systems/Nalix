@@ -29,6 +29,7 @@ namespace Nalix.Codec.DataFrames;
 /// </para>
 /// </summary>
 /// <typeparam name="TSelf">The concrete packet type.</typeparam>
+[Packet]
 public abstract class PacketBase<
     [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TSelf> : FrameBase, IPoolable, IPoolRentable, IReportable, IPacketDeserializer<TSelf>, IDisposable where TSelf : PacketBase<TSelf>, new()
 {
