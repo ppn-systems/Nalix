@@ -11,7 +11,6 @@ using System.Text;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
-using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.Internal;
 

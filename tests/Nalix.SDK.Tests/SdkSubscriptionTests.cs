@@ -66,6 +66,7 @@ public sealed class SdkSubscriptionTests
     public void TcpSessionSubscriptionsOnOnce_FiresOnlyOnceEvenWhenMultipleMessagesArrive()
     {
         FakeSession session = new();
+        session.EnsureRegistry();
         int count = 0;
         using IDisposable sub = session.OnOnce<Control>(_ => true, _ => count++);
 
@@ -147,12 +148,11 @@ public sealed class SdkSubscriptionTests
 
         public void SetNextPacket(IPacket packet) => _catalog.Next = packet;
 
+        public void EnsureRegistry() => PacketRegistry.Build();
+
         public void RaiseMessage()
         {
-            // Create a buffer that satisfies the dispatcher's magic number check
-            byte[] data = new byte[PacketConstants.HeaderSize];
-            uint magic = PacketRegistry.Compute(_catalog.Next.GetType());
-            BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+            byte[] data = _catalog.Next.Serialize();
 
             using BufferLease lease = BufferLease.CopyFrom(data);
             OnMessageReceived?.Invoke(this, lease);

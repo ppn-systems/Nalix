@@ -320,6 +320,5 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowTypeMismatch(in FieldSchema metadata, Type requested)
         => throw new SerializationFailureException(
-            $"Field '{metadata.Name}' is of type '{metadata.FieldType.FullName}', " +
-            $"but accessor was requested for '{requested.FullName}'.");
+            $"Field '{metadata.Name}' is of type '{metadata.FieldType.FullName}', but accessor was requested for '{requested.FullName}'.");
 }

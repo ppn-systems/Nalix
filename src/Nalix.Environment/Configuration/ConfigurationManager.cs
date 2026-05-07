@@ -11,7 +11,6 @@ using System.Security;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
-using Nalix.Environment.Configuration.Internal;
 using Nalix.Environment.IO;
 
 namespace Nalix.Environment.Configuration;

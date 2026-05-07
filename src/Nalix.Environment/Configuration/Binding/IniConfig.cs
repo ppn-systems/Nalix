@@ -13,12 +13,7 @@ using System.Text;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
 
-#if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Framework.Tests.")]
-[assembly: InternalsVisibleTo("Nalix.Framework.Benchmarks")]
-#endif
-
-namespace Nalix.Environment.Configuration.Internal;
+namespace Nalix.Environment.Configuration.Binding;
 
 /// <summary>
 /// A high-performance wrapper class for reading and writing INI files.
