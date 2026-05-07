@@ -32,10 +32,4 @@ Designed for modern .NET 10, it follows SOLID and Domain-Driven Design (DDD) pri
 		<ProjectReference Include="..\Nalix.Environment\Nalix.Environment.csproj" />
 		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
 	</ItemGroup>
-
-	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
-
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
-	</ItemGroup>
 </Project>

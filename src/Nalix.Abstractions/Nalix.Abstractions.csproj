@@ -2,7 +2,8 @@
 
 	<PropertyGroup>
 		<!-- Build & Lang -->
-		<TargetFrameworks>netstandard2.1;net10.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(PublishAot)' != 'true'">netstandard2.1;net10.0</TargetFrameworks>
+		<TargetFrameworks Condition="'$(PublishAot)' == 'true'">net10.0</TargetFrameworks>
 		
 		<Nullable>enable</Nullable>
 		<IsPackable>true</IsPackable>
@@ -13,6 +14,7 @@
 		
 		<LangVersion>latest</LangVersion>
 		<TrimMode>partial</TrimMode>
+		<PublishAot Condition="'$(TargetFramework)' == 'netstandard2.1'">false</PublishAot>
 		<PublishAot Condition="'$(TargetFramework)' == 'net10.0'">true</PublishAot>
 		<IsAotCompatible Condition="'$(TargetFramework)' == 'net10.0'">true</IsAotCompatible>
 
@@ -36,5 +38,11 @@ This library focuses on performance, consistency, and cross-platform reliability
     <ItemGroup>
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
     </ItemGroup>
+
+	<ItemGroup Condition="'$(Configuration)' == 'Release'">
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\netstandard2.0\Nalix.Generators.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\netstandard2.0\Nalix.Generators.dll')" />
+	</ItemGroup>
 	
 </Project>

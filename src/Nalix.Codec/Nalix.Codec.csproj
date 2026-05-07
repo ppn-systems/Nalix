@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
 		
@@ -8,6 +8,7 @@
 		<IsTrimmable>false</IsTrimmable>
 		<Deterministic>true</Deterministic>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<DefineConstants Condition="'$(PublishAot)' == 'true'">$(DefineConstants);NALIX_AOT</DefineConstants>
 		<Description>
 			<![CDATA[Nalix.Codec is a high-performance data transformation and framing engine for the Nalix ecosystem. It provides a unified pipeline for serialization, stream compression (LZ4), and AEAD cryptography. 
 Designed for .NET 10, it enables zero-allocation object-to-packet transformation, secure handshake protocols, and robust data framing, ensuring maximum throughput and end-to-end data integrity.]]>
@@ -25,12 +26,7 @@ Designed for .NET 10, it enables zero-allocation object-to-packet transformation
 	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix.Environment\Nalix.Environment.csproj" />
-		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
-	</ItemGroup>
-
-	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
+		<ProjectReference Include="..\Nalix.Environment\Nalix.Environment.csproj" GlobalPropertiesToRemove="PublishAot" />
+		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" SetTargetFramework="TargetFramework=net10.0" GlobalPropertiesToRemove="PublishAot" />
 	</ItemGroup>
 </Project>

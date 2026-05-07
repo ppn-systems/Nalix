@@ -5,12 +5,15 @@
 		<LangVersion>latest</LangVersion>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<TargetFramework>netstandard2.0</TargetFramework>
+		<PublishAot Condition="'$(MSBuildProjectName)' == 'Nalix.Generators'">false</PublishAot>
+		<PublishTrimmed Condition="'$(MSBuildProjectName)' == 'Nalix.Generators'">false</PublishTrimmed>
+		<IsTrimmable Condition="'$(MSBuildProjectName)' == 'Nalix.Generators'">false</IsTrimmable>
+		<IsAotCompatible Condition="'$(MSBuildProjectName)' == 'Nalix.Generators'">false</IsAotCompatible>
 		<EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all" />
-		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.3.0" PrivateAssets="all" />
+		<PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="5.3.0" PrivateAssets="all" />
 	</ItemGroup>
-
 </Project>
