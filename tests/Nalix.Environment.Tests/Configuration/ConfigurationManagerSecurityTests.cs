@@ -66,3 +66,4 @@ public sealed class ConfigurationManagerSecurityTests : IDisposable
         Assert.Equal(Path.GetFullPath(validPath), manager.ConfigFilePath);
     }
 }
+

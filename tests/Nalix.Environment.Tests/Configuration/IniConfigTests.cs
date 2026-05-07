@@ -45,3 +45,4 @@ public class IniConfigTests : IDisposable
     }
 }
 #endif
+

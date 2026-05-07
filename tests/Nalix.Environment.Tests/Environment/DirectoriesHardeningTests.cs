@@ -57,3 +57,4 @@ public class DirectoriesHardeningTests : IDisposable
         Assert.IsType<bool>(result);
     }
 }
+
