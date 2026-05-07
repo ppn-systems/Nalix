@@ -345,6 +345,13 @@ public sealed class ExtensionsCoverageTests
 
         public System.Collections.Generic.IDictionary<string, object> GetReportData() =>
             new System.Collections.Generic.Dictionary<string, object>();
+
+#if NET10_0_OR_GREATER
+        public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+        {
+            writer.WriteString("text", _text);
+        }
+#endif
     }
 }
 
