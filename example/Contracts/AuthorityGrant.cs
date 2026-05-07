@@ -82,3 +82,4 @@ public sealed class AuthorityGrant : PacketBase<AuthorityGrant>, IPacketValidata
         return isValid;
     }
 }
+

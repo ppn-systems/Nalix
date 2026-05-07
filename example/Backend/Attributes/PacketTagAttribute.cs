@@ -14,3 +14,4 @@ public sealed class PacketTagAttribute(string tag) : Attribute
     /// </summary>
     public string Tag { get; } = tag;
 }
+

@@ -94,3 +94,4 @@ public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketVali
         return isValid;
     }
 }
+

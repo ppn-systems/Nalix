@@ -105,3 +105,4 @@ internal class Startup
         return Path.GetFullPath(Path.Combine("shared", fileName));
     }
 }
+

@@ -12,6 +12,7 @@
 	<ItemGroup>
 		<ProjectReference Include="..\..\src\Nalix.Abstractions\Nalix.Abstractions.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Codec\Nalix.Codec.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Generators\Nalix.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetTargetFramework="TargetFramework=netstandard2.0" AdditionalProperties="PublishAot=false;PublishTrimmed=false;IsTrimmable=false;IsAotCompatible=false" />
 	</ItemGroup>
 
 </Project>

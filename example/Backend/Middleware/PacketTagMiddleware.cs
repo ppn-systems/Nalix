@@ -35,3 +35,4 @@ public sealed class PacketTagMiddleware : IPacketMiddleware<IPacket>
         await next(context.CancellationToken).ConfigureAwait(false);
     }
 }
+
