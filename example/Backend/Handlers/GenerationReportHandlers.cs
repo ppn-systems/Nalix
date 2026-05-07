@@ -2,15 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Buffers;
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Contracts;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
-using Contracts;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -24,8 +23,6 @@ namespace Backend.Handlers;
 [PacketController("ExampleGenerationReport")]
 public sealed class GenerationReportHandlers
 {
-    private static readonly JsonSerializerOptions s_jsonOptions = new(JsonSerializerDefaults.Web);
-
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
     [PacketOpcode(GenerationReport.OpCodeValue)]
@@ -92,8 +89,8 @@ public sealed class GenerationReportHandlers
 
     private static string SerializeReportData(IReportable reportable)
     {
-        var bufferWriter = new ArrayBufferWriter<byte>(1024);
-        using var writer = new Utf8JsonWriter(bufferWriter, new JsonWriterOptions
+        ArrayBufferWriter<byte> bufferWriter = new(1024);
+        using Utf8JsonWriter writer = new(bufferWriter, new JsonWriterOptions
         {
             Indented = false,
             SkipValidation = true

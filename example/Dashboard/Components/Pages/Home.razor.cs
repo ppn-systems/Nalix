@@ -106,6 +106,10 @@ public sealed partial class Home : IDisposable
 
     private void OnRequestTimeoutChanged(int value) => StateActions.SetRequestTimeoutMs(value);
 
+    private void OnBackendAddressChanged(string value) => StateActions.SetBackendAddress(value);
+
+    private void OnBackendPortChanged(int value) => StateActions.SetBackendPort(value);
+
     public void Dispose()
     {
         State.Changed -= OnStateChanged;

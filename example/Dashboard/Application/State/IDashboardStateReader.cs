@@ -21,6 +21,10 @@ internal interface IDashboardStateReader
 
     string BackendEndpoint { get; }
 
+    string BackendAddress { get; }
+
+    int BackendPort { get; }
+
     string? LastError { get; }
 
     DateTimeOffset? LastRefreshAt { get; }

@@ -17,6 +17,31 @@
     {
         <div class="report-panel config-panel">
             <div class="config-section">
+                <h3>Connection</h3>
+                <div class="config-fields">
+                    <div class="config-field">
+                        <label>Backend address</label>
+                        <MudTextField T="string"
+                                      Value="BackendAddress"
+                                      ValueChanged="BackendAddressChanged"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Placeholder="127.0.0.1" />
+                    </div>
+                    <div class="config-field">
+                        <label>Backend port</label>
+                        <MudNumericField T="int"
+                                         Value="BackendPort"
+                                         ValueChanged="BackendPortChanged"
+                                         Variant="Variant.Outlined"
+                                         Margin="Margin.Dense"
+                                         Min="1"
+                                         Max="65535"
+                                         Step="1" />
+                    </div>
+                </div>
+            </div>
+            <div class="config-section">
                 <h3>Polling</h3>
                 <div class="config-fields">
                     <div class="config-field">
@@ -165,6 +190,18 @@
 
     [Parameter]
     public EventCallback ClearLogs { get; set; }
+
+    [Parameter]
+    public string BackendAddress { get; set; } = "127.0.0.1";
+
+    [Parameter]
+    public int BackendPort { get; set; } = 57206;
+
+    [Parameter]
+    public EventCallback<string> BackendAddressChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> BackendPortChanged { get; set; }
 
     [Parameter]
     public int PollIntervalMs { get; set; }

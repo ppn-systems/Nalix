@@ -28,6 +28,10 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
 
     public string BackendEndpoint { get; private set; } = "127.0.0.1:57206";
 
+    public string BackendAddress { get; private set; } = "127.0.0.1";
+
+    public int BackendPort { get; private set; } = 57206;
+
     public string? LastError { get; private set; }
 
     public DateTimeOffset? LastRefreshAt { get; private set; }
@@ -83,6 +87,42 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
         {
             this.BackendEndpoint = endpoint;
             this.EnqueueLogUnsafe("INFO", $"Dashboard endpoint configured endpoint={endpoint}.");
+        }
+
+        this.NotifyChanged();
+    }
+
+    public void SetBackendAddress(string address)
+    {
+        lock (_gate)
+        {
+            string trimmed = string.IsNullOrWhiteSpace(address) ? "127.0.0.1" : address.Trim();
+            if (this.BackendAddress == trimmed)
+            {
+                return;
+            }
+
+            this.BackendAddress = trimmed;
+            this.BackendEndpoint = $"{trimmed}:{this.BackendPort}";
+            this.EnqueueLogUnsafe("INFO", $"Backend address changed value={trimmed}.");
+        }
+
+        this.NotifyChanged();
+    }
+
+    public void SetBackendPort(int port)
+    {
+        lock (_gate)
+        {
+            int clamped = Math.Clamp(port, 1, 65535);
+            if (this.BackendPort == clamped)
+            {
+                return;
+            }
+
+            this.BackendPort = clamped;
+            this.BackendEndpoint = $"{this.BackendAddress}:{clamped}";
+            this.EnqueueLogUnsafe("INFO", $"Backend port changed value={clamped}.");
         }
 
         this.NotifyChanged();

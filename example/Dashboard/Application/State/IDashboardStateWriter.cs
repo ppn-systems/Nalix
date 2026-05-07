@@ -7,6 +7,10 @@ internal interface IDashboardStateWriter
 {
     void SetEndpoint(string endpoint);
 
+    void SetBackendAddress(string address);
+
+    void SetBackendPort(int port);
+
     void SetPaused(bool paused);
 
     void SetReportNavigationOpen(bool open);

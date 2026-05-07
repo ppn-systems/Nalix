@@ -70,9 +70,13 @@
                        Reports="@reports"
                        Logs="State.Logs"
                        ClearLogs="ClearLogs"
+                       BackendAddress="State.BackendAddress"
+                       BackendPort="State.BackendPort"
                        PollIntervalMs="State.PollIntervalMs"
                        PingIntervalMs="State.PingIntervalMs"
                        RequestTimeoutMs="State.RequestTimeoutMs"
+                       BackendAddressChanged="OnBackendAddressChanged"
+                       BackendPortChanged="OnBackendPortChanged"
                        PollIntervalChanged="OnPollIntervalChanged"
                        PingIntervalChanged="OnPingIntervalChanged"
                        RequestTimeoutChanged="OnRequestTimeoutChanged" />
