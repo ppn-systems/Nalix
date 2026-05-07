@@ -221,17 +221,13 @@ public sealed class PacketDispatchChannel
     {
         if (lease is null || connection is null)
         {
+            lease?.Dispose();
             return;
         }
 
-        if (lease.Length <= 0)
+        if ((uint)lease.Length < PacketConstants.HeaderSize)
         {
-            return;
-        }
-
-        ref readonly PacketHeader header = ref lease.Span.AsHeaderRef();
-        if (!PacketRegistry.IsKnownMagic(header.MagicNumber))
-        {
+            lease.Dispose();
             connection.IncrementErrorCount();
             return;
         }

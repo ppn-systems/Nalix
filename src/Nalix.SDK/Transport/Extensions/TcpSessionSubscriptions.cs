@@ -222,6 +222,7 @@ public static class TcpSessionSubscriptions
             try
             {
                 IPacket p = PacketRegistry.Deserialize(buffer.Span);
+                bool delivered = false;
                 try
                 {
                     if (p is not TPacket t || !predicate(t))
@@ -235,12 +236,13 @@ public static class TcpSessionSubscriptions
                         return;
                     }
 
+                    delivered = true;
                     client.OnMessageReceived -= Wrapper;
                     handler(t);
                 }
                 finally
                 {
-                    if (disposeAfter && p is IDisposable d)
+                    if ((!delivered || disposeAfter) && p is IDisposable d)
                     {
                         d.Dispose();
                     }

@@ -19,7 +19,10 @@ internal sealed class KeepAliveService : IDisposable
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
     private CancellationTokenSource? _cts;
+    private Int32 _pauseCount;
 #pragma warning restore CA2213 // Disposable fields should be disposed
+
+    private readonly SemaphoreSlim _pingGate = new(1, 1);
 
     public KeepAliveService(ClientSession client, StatusBar status, EventLog log, PingChart chart)
     {
@@ -52,6 +55,12 @@ internal sealed class KeepAliveService : IDisposable
                         break;
                     }
 
+                    if (Volatile.Read(ref _pauseCount) > 0)
+                    {
+                        continue;
+                    }
+
+                    using IDisposable __ = await this.EnterPingScopeAsync(ct).ConfigureAwait(false);
                     double ms = await _client.PingOnceAsync(timeoutMs: 5000, ct).ConfigureAwait(false);
                     _status.UpdatePing(ms);
                     _chart.AddSample(ms);
@@ -81,6 +90,54 @@ internal sealed class KeepAliveService : IDisposable
         finally { cts?.Dispose(); }
     }
 
-    public void Dispose() => this.Stop();
+    public async ValueTask<IDisposable> EnterPingScopeAsync(CancellationToken ct = default)
+    {
+        await _pingGate.WaitAsync(ct).ConfigureAwait(false);
+        return new PingGateToken(_pingGate);
+    }
+
+    public IDisposable PauseScope()
+    {
+        _ = Interlocked.Increment(ref _pauseCount);
+        return new PauseToken(this);
+    }
+
+    public void Dispose()
+    {
+        this.Stop();
+        _pingGate.Dispose();
+    }
+
+    private sealed class PauseToken : IDisposable
+    {
+        private KeepAliveService? _owner;
+
+        public PauseToken(KeepAliveService owner) => _owner = owner;
+
+        public void Dispose()
+        {
+            KeepAliveService? owner = Interlocked.Exchange(ref _owner, null);
+            if (owner is not null)
+            {
+                _ = Interlocked.Decrement(ref owner._pauseCount);
+            }
+        }
+    }
+
+    private sealed class PingGateToken(SemaphoreSlim gate) : IDisposable
+    {
+#pragma warning disable CA2213 // Gate owner is KeepAliveService; token only releases it.
+        private SemaphoreSlim? _gate = gate;
+#pragma warning restore CA2213
+
+        public void Dispose()
+        {
+            SemaphoreSlim? gate = Interlocked.Exchange(ref _gate, null);
+            if (gate is not null)
+            {
+                _ = gate.Release();
+            }
+        }
+    }
 }
 

@@ -16,22 +16,23 @@ using Nalix.Codec.Extensions;
 namespace Nalix.Codec.DataFrames;
 
 /// <summary>
-/// Resolves and deserializes a generated packet without registry dictionary lookup.
-/// </summary>
-public delegate bool PacketFastDispatcher(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet);
-
-/// <summary>
 /// Provides the process-wide generated packet registry.
 /// </summary>
 public static class PacketRegistry
 {
-    private static readonly Lock s_gate = new();
-    private static Dictionary<uint, PacketDeserializer>? s_pendingDeserializers = new();
-    private static Dictionary<uint, string>? s_pendingNames = new();
-    private static FrozenDictionary<uint, PacketDeserializer>? s_deserializers;
-    private static List<PacketFastDispatcher>? s_pendingFastDispatchers = new();
+    #region Fields
+
+    private static readonly Lock s_gate;
+
+    private static Dictionary<uint, string>? s_pendingNames;
     private static PacketFastDispatcher? s_runtimeFastDispatcher;
-    private static PacketFastDispatcher[] s_runtimeFastDispatchers = [];
+    private static List<PacketFastDispatcher>? s_pendingFastDispatchers;
+    private static FrozenDictionary<uint, PacketDeserializer>? s_deserializers;
+    private static Dictionary<uint, PacketDeserializer>? s_pendingDeserializers;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// A single instance of the Pool Manager shared across all packet types.
@@ -43,6 +44,22 @@ public static class PacketRegistry
     /// Gets the number of frozen deserializers.
     /// </summary>
     public static int DeserializerCount => GetBuilt().Count;
+
+    #endregion Properties
+
+    #region Constructors
+
+    static PacketRegistry()
+    {
+        s_gate = new();
+        s_pendingNames = new();
+        s_pendingDeserializers = new();
+        s_pendingFastDispatchers = new();
+    }
+
+    #endregion Constructors
+
+    #region APIs
 
     /// <summary>
     /// Configures the shared Pool Manager for the entire packet ecosystem.
@@ -130,12 +147,36 @@ public static class PacketRegistry
 
             Dictionary<uint, PacketDeserializer> pending = s_pendingDeserializers ?? new();
             PacketFastDispatcher[] dispatchers = s_pendingFastDispatchers?.ToArray() ?? [];
-            s_runtimeFastDispatcher = dispatchers.Length == 1 ? dispatchers[0] : null;
-            s_runtimeFastDispatchers = dispatchers.Length > 1 ? dispatchers : [];
+
             s_deserializers = pending.ToFrozenDictionary();
-            s_pendingFastDispatchers = null;
-            s_pendingDeserializers = null;
+            s_runtimeFastDispatcher = COMPOSE(dispatchers);
+
             s_pendingNames = null;
+            s_pendingDeserializers = null;
+            s_pendingFastDispatchers = null;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static PacketFastDispatcher? COMPOSE(PacketFastDispatcher[] dispatchers)
+        {
+            return dispatchers.Length switch
+            {
+                0 => null,
+                1 => dispatchers[0],
+                _ => (magic, raw, [NotNullWhen(true)] out packet) =>
+                {
+                    for (int i = 0; i < dispatchers.Length; i++)
+                    {
+                        if (dispatchers[i](magic, raw, out packet))
+                        {
+                            return true;
+                        }
+                    }
+
+                    packet = null;
+                    return false;
+                }
+            };
         }
     }
 
@@ -203,6 +244,8 @@ public static class PacketRegistry
 
     /// <summary>
     /// Attempts to deserialize a packet without throwing for unknown magic or short input.
+    /// Generated fast dispatchers are authoritative once registered; the dictionary fallback is used only when no
+    /// generated dispatcher exists.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
@@ -213,22 +256,14 @@ public static class PacketRegistry
             return false;
         }
 
-        ref readonly PacketHeader header = ref raw.AsHeaderRef();
+        uint magic = raw.AsHeaderRef().MagicNumber;
+
         try
         {
-            PacketFastDispatcher? fast = s_runtimeFastDispatcher;
-            if (fast is not null && fast(header.MagicNumber, raw, out packet))
+            PacketFastDispatcher? dispatcher = s_runtimeFastDispatcher;
+            if (dispatcher is not null)
             {
-                return true;
-            }
-
-            PacketFastDispatcher[] fastDispatchers = s_runtimeFastDispatchers;
-            for (int i = 0; i < fastDispatchers.Length; i++)
-            {
-                if (fastDispatchers[i](header.MagicNumber, raw, out packet))
-                {
-                    return true;
-                }
+                return dispatcher(magic, raw, out packet);
             }
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
@@ -237,28 +272,45 @@ public static class PacketRegistry
             return false;
         }
 
-        FrozenDictionary<uint, PacketDeserializer> deserializers = GetBuilt();
-        if (!deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
-        {
-            packet = null;
-            return false;
-        }
+        return TRY_DESERIALIZE_FALLBACK(magic, raw, out packet);
 
-        try
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static bool TRY_DESERIALIZE_FALLBACK(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
         {
-            packet = deserializer(raw);
-            return packet is not null;
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
-        {
-            packet = null;
-            return false;
+            FrozenDictionary<uint, PacketDeserializer> deserializers = GetBuilt();
+            if (!deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
+            {
+                packet = null;
+                return false;
+            }
+
+            try
+            {
+                packet = deserializer(raw);
+                return packet is not null;
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
+            {
+                packet = null;
+                return false;
+            }
         }
     }
+
+    #endregion APIs
+
+    #region Private Methods
 
     private static FrozenDictionary<uint, PacketDeserializer> GetBuilt()
     {
         return Volatile.Read(ref s_deserializers)
             ?? throw new InvalidOperationException("PacketRegistry is not built. Call PacketRegistry.Build() after all packet assemblies are loaded.");
     }
+
+    #endregion Private Methods
 }
+
+/// <summary>
+/// Resolves and deserializes a generated packet without registry dictionary lookup.
+/// </summary>
+public delegate bool PacketFastDispatcher(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet);

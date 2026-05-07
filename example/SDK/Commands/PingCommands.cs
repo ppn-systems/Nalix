@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using SDK.Core;
+using SDK.Services;
 using SDK.UI;
 using Spectre.Console;
 
@@ -14,13 +15,15 @@ internal sealed class PingCommands
     private readonly StatusBar _status;
     private readonly EventLog _log;
     private readonly PingChart _chart;
+    private readonly KeepAliveService _keepAlive;
 
-    public PingCommands(ClientSession client, StatusBar status, EventLog log, PingChart chart)
+    public PingCommands(ClientSession client, StatusBar status, EventLog log, PingChart chart, KeepAliveService keepAlive)
     {
         _client = client;
         _status = status;
         _log = log;
         _chart = chart;
+        _keepAlive = keepAlive;
     }
 
     public async Task PingOnceAsync()
@@ -33,6 +36,8 @@ internal sealed class PingCommands
 #pragma warning disable CA1031 // Do not catch general exception types
         try
         {
+            using IDisposable _ = _keepAlive.PauseScope();
+            using IDisposable __ = await _keepAlive.EnterPingScopeAsync().ConfigureAwait(false);
             double ms = await _client.PingOnceAsync().ConfigureAwait(false);
             _status.UpdatePing(ms);
             _chart.AddSample(ms);
@@ -77,6 +82,8 @@ internal sealed class PingCommands
         int ok = 0, fail = 0;
         double total = 0;
 
+        using IDisposable _ = _keepAlive.PauseScope();
+
         await AnsiConsole.Progress()
             .AutoRefresh(true)
             .AutoClear(false)
@@ -91,6 +98,7 @@ internal sealed class PingCommands
 #pragma warning disable CA1031 // Do not catch general exception types
                     try
                     {
+                        using IDisposable __ = await _keepAlive.EnterPingScopeAsync().ConfigureAwait(false);
                         double ms = await _client.PingOnceAsync(timeoutMs: 3000).ConfigureAwait(false);
                         _status.UpdatePing(ms); _chart.AddSample(ms); _log.Ping(ms);
                         total += ms; ok++;

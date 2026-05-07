@@ -30,7 +30,7 @@ internal sealed class CommandRunner : IDisposable
         _subs = new SubscriptionManager(client, log);
         _conn = new ConnectionCommands(client, status, log, _keepAlive, _subs);
         _security = new SecurityCommands(client, status, log);
-        _ping = new PingCommands(client, status, log, chart);
+        _ping = new PingCommands(client, status, log, chart, _keepAlive);
         _diag = new DiagnosticCommands(client, status, log);
         _control = new ControlCommands(client, status, log);
         _view = new ViewCommands(client, log, chart, status, _subs);

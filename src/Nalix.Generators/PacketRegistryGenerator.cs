@@ -16,9 +16,9 @@ namespace Nalix.Generators;
 [Generator]
 public sealed class PacketRegistryGenerator : IIncrementalGenerator
 {
-    private const string PacketAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketAttribute";
     private const string PacketBaseName = "PacketBase";
     private const string PacketBaseNamespace = "Nalix.Codec.DataFrames";
+    private const string PacketAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketAttribute";
 
     /// <summary>
     /// Registers the incremental source-generation pipeline.
@@ -131,7 +131,7 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         _ = sb.AppendLine("        global::Nalix.Codec.DataFrames.PacketRegistry.RegisterGenerated(");
         _ = sb.AppendLine($"            {key}u,");
         _ = sb.AppendLine($"            \"{Escape(fullName)}\",");
-        _ = sb.AppendLine($"            static raw => global::Nalix.Codec.DataFrames.PacketBase<{typeName}>.Deserialize(raw));");
+        _ = sb.AppendLine($"            static raw => {typeName}.Deserialize(raw));");
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
 
@@ -172,25 +172,78 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         _ = sb.AppendLine("        global::Nalix.Codec.DataFrames.PacketRegistry.RegisterGeneratedDispatcher(TryDeserialize);");
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine();
-        _ = sb.AppendLine("    private static bool TryDeserialize(uint magic, global::System.ReadOnlySpan<byte> raw, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::Nalix.Abstractions.Networking.Packets.IPacket? packet)");
-        _ = sb.AppendLine("    {");
-        _ = sb.AppendLine("        switch (magic)");
-        _ = sb.AppendLine("        {");
+        int tableSize = 1;
+        while (true)
+        {
+            tableSize <<= 1;
+            HashSet<int> slots = new();
+            bool collision = false;
+            foreach (INamedTypeSymbol packet in packets)
+            {
+                string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
+                uint key = Compute(fullName);
+                if (!slots.Add((int)(key & (uint)(tableSize - 1))))
+                {
+                    collision = true;
+                    break;
+                }
+            }
 
-        foreach (INamedTypeSymbol packet in packets.OrderBy(static p => p.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat)))
+            if (!collision)
+            {
+                break;
+            }
+        }
+
+        string[] keys = [.. Enumerable.Repeat("0u", tableSize)];
+        string[] functions = [.. Enumerable.Repeat("null", tableSize)];
+        List<(string Name, string TypeName)> wrappers = [];
+        foreach (INamedTypeSymbol packet in packets)
         {
             string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-            string key = Compute(fullName).ToString(System.Globalization.CultureInfo.InvariantCulture);
-            _ = sb.AppendLine($"            case {key}u:");
-            _ = sb.AppendLine($"                packet = global::Nalix.Codec.DataFrames.PacketBase<{typeName}>.Deserialize(raw);");
-            _ = sb.AppendLine("                return packet is not null;");
+            uint key = Compute(fullName);
+            int slot = (int)(key & (uint)(tableSize - 1));
+            string wrapper = $"Deserialize_{slot}";
+            keys[slot] = key.ToString(System.Globalization.CultureInfo.InvariantCulture) + "u";
+            functions[slot] = $"&{wrapper}";
+            wrappers.Add((wrapper, typeName));
         }
 
-        _ = sb.AppendLine("            default:");
-        _ = sb.AppendLine("                packet = null;");
-        _ = sb.AppendLine("                return false;");
+        _ = sb.AppendLine($"    private const uint Mask = {tableSize - 1}u;");
+        _ = sb.AppendLine("    private static readonly uint[] Keys = [");
+        for (int i = 0; i < keys.Length; i++)
+        {
+            _ = sb.AppendLine($"        {keys[i]},");
+        }
+        _ = sb.AppendLine("    ];");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("    private static readonly unsafe delegate* managed<global::System.ReadOnlySpan<byte>, global::Nalix.Abstractions.Networking.Packets.IPacket>[] Deserializers = [");
+        for (int i = 0; i < functions.Length; i++)
+        {
+            _ = sb.AppendLine($"        {functions[i]},");
+        }
+        _ = sb.AppendLine("    ];");
+        _ = sb.AppendLine();
+        foreach ((string name, string typeName) in wrappers)
+        {
+            _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
+            _ = sb.AppendLine($"    private static global::Nalix.Abstractions.Networking.Packets.IPacket {name}(global::System.ReadOnlySpan<byte> raw) => {typeName}.Deserialize(raw);");
+            _ = sb.AppendLine();
+        }
+        _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
+        _ = sb.AppendLine("    private static unsafe bool TryDeserialize(uint magic, global::System.ReadOnlySpan<byte> raw, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::Nalix.Abstractions.Networking.Packets.IPacket? packet)");
+        _ = sb.AppendLine("    {");
+        _ = sb.AppendLine("        int slot = (int)(magic & Mask);");
+        _ = sb.AppendLine("        delegate* managed<global::System.ReadOnlySpan<byte>, global::Nalix.Abstractions.Networking.Packets.IPacket> deserializer = Deserializers[slot];");
+        _ = sb.AppendLine("        if (deserializer != null && Keys[slot] == magic)");
+        _ = sb.AppendLine("        {");
+        _ = sb.AppendLine("            packet = deserializer(raw);");
+        _ = sb.AppendLine("            return packet is not null;");
         _ = sb.AppendLine("        }");
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("        packet = null;");
+        _ = sb.AppendLine("        return false;");
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine("}");
 
