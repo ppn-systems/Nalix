@@ -28,7 +28,7 @@ namespace Nalix.Environment.Tests.Configuration;
 /// 
 /// Each test uses an isolated temporary directory to avoid cross-test interference.
 /// </remarks>
-public sealed class ConfigurationManagerTests : IDisposable
+public sealed partial class ConfigurationManagerTests : IDisposable
 {
     private readonly string _testDirectory;
     private readonly List<ConfigurationManager> _managers = [];
@@ -461,7 +461,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     /// <remarks>
     /// Bound from the <c>[Sample]</c> section in the configuration file.
     /// </remarks>
-    public sealed class SampleConfig : ConfigurationLoader
+    public sealed partial class SampleConfig : ConfigurationLoader
     {
         /// <summary>
         /// Gets or sets the numeric value used by the test configuration.
@@ -480,7 +480,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     /// <remarks>
     /// Used alongside <see cref="SampleConfig"/> to ensure multiple types are handled correctly.
     /// </remarks>
-    public sealed class AnotherConfig : ConfigurationLoader
+    public sealed partial class AnotherConfig : ConfigurationLoader
     {
         /// <summary>
         /// Gets or sets a value indicating whether the configuration is enabled.
@@ -489,7 +489,7 @@ public sealed class ConfigurationManagerTests : IDisposable
     }
 
     [IniComment("section-comment")]
-    public sealed class CommentedSampleConfig : ConfigurationLoader
+    public sealed partial class CommentedSampleConfig : ConfigurationLoader
     {
         [IniComment("number-comment")]
         public int Number { get; set; }
