@@ -26,7 +26,7 @@ namespace Nalix.Runtime.Options;
 /// </para>
 /// </summary>
 [IniComment("Object pool configuration — capacity ceiling and startup preallocations for runtime contexts")]
-public sealed class PoolingOptions : ConfigurationLoader
+public sealed partial class PoolingOptions : ConfigurationLoader
 {
     #region Packet Context — reusable packet processing contexts
 

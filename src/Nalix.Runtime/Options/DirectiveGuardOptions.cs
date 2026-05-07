@@ -11,7 +11,7 @@ namespace Nalix.Runtime.Options;
 /// Configuration for inbound directive anti-spam guard behavior.
 /// </summary>
 [IniComment("Inbound directive guard configuration — controls cooldown used to suppress repeated fail/timeout responses")]
-public sealed class DirectiveGuardOptions : ConfigurationLoader
+public sealed partial class DirectiveGuardOptions : ConfigurationLoader
 {
     /// <summary>
     /// Minimum interval (milliseconds) between repeated directives of the same category per connection.

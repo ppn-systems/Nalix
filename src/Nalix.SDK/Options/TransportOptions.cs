@@ -16,7 +16,7 @@ namespace Nalix.SDK.Options;
 /// matching this class name (TransportOptions).
 /// </summary>
 [IniComment("Client transport configuration — controls connectivity, reconnect policy, socket tuning, and encryption")]
-public sealed class TransportOptions : ConfigurationLoader
+public sealed partial class TransportOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets the port number for the connection.

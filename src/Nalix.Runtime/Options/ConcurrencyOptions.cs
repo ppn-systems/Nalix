@@ -12,7 +12,7 @@ namespace Nalix.Runtime.Options;
 /// Configuration for the global concurrency gate and circuit breaker.
 /// </summary>
 [IniComment("Concurrency gate configuration — controls circuit breaker thresholds and entry cleanup")]
-public sealed class ConcurrencyOptions : ConfigurationLoader
+public sealed partial class ConcurrencyOptions : ConfigurationLoader
 {
     /// <summary>
     /// Rejection rate threshold (0.0-1.0) to trip the circuit breaker.

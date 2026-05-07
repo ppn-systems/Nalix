@@ -12,7 +12,7 @@ namespace Nalix.Runtime.Options;
 /// Options for dispatch channels (per-connection queue bound and drop behavior).
 /// </summary>
 [IniComment("Dispatch channel configuration — controls per-connection queue size, drop policy, and block timeout")]
-public sealed class DispatchOptions : ConfigurationLoader
+public sealed partial class DispatchOptions : ConfigurationLoader
 {
     #region Properties
 
