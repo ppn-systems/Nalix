@@ -11,7 +11,7 @@ namespace Nalix.Hosting.Options;
 /// Provides configuration options for Nalix hosting and bootstrapping.
 /// </summary>
 [IniComment("Hosting configuration — controls startup diagnostics, console behavior, and lifecycle settings")]
-public sealed class HostingOptions : ConfigurationLoader
+public sealed partial class HostingOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets a value indicating whether to disable clearing the console on startup.
