@@ -25,6 +25,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Environment", "Nalix.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Codec", "Nalix.Codec\Nalix.Codec.csproj", "{DFB95804-027D-0DE8-1FF1-A54C9B7BDB00}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Environment.Generators", "Nalix.Environment.Generators\Nalix.Environment.Generators.csproj", "{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -167,6 +169,18 @@ Global
 		{DFB95804-027D-0DE8-1FF1-A54C9B7BDB00}.Release|x64.Build.0 = Release|Any CPU
 		{DFB95804-027D-0DE8-1FF1-A54C9B7BDB00}.Release|x86.ActiveCfg = Release|Any CPU
 		{DFB95804-027D-0DE8-1FF1-A54C9B7BDB00}.Release|x86.Build.0 = Release|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Debug|x64.Build.0 = Debug|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Debug|x86.Build.0 = Debug|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Release|x64.ActiveCfg = Release|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Release|x64.Build.0 = Release|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Release|x86.ActiveCfg = Release|Any CPU
+		{1AA43661-FC29-4E82-A1A7-6F5B4468FD28}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
