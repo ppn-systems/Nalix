@@ -256,11 +256,11 @@ internal sealed class Program
 
     private static ScenarioResult PacketGeneratedRegistry()
     {
-        PacketRegistry registry = new PacketRegistryFactory()
-            .RegisterGeneratedPackets(
-                GeneratedPacketManifest.GetDeserializers(),
-                GeneratedPacketManifest.GetNames())
-            .CreateCatalog();
+        PacketRegistry.RegisterGenerated(
+            PacketRegistry.Compute(typeof(ComplexCollectionPacket)),
+            typeof(ComplexCollectionPacket).FullName!,
+            static raw => PacketBase<ComplexCollectionPacket>.Deserialize(raw));
+        PacketRegistry.Build();
 
         ComplexCollectionPacket packet = new()
         {
@@ -272,13 +272,13 @@ internal sealed class Program
         };
 
         Byte[] bytes = packet.Serialize();
-        IPacket resolved = registry.Deserialize(bytes);
+        IPacket resolved = PacketRegistry.Deserialize(bytes);
         ComplexCollectionPacket clone = (ComplexCollectionPacket)resolved;
 
-        Require(registry.IsRegistered<ComplexCollectionPacket>(), "generated registry missing complex packet");
+        Require(PacketRegistry.IsRegistered<ComplexCollectionPacket>(), "generated registry missing complex packet");
         Require(clone.IntList!.SequenceEqual(packet.IntList), "generated registry int list mismatch");
         Require(clone.Tuple3 == packet.Tuple3, "generated registry tuple mismatch");
-        return Result(bytes, registry.DeserializerCount.ToString());
+        return Result(bytes, PacketRegistry.DeserializerCount.ToString());
     }
 
     private static ScenarioResult PacketMalformedBuffer()
@@ -374,6 +374,7 @@ public struct NodeMeta
     public Int32 Id { get; set; }
 }
 
+[Packet]
 [SerializePackable(SerializeLayout.Sequential)]
 public sealed class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
 {
@@ -433,3 +434,4 @@ public sealed class EnumListPacket : PacketBase<EnumListPacket>
     public static new EnumListPacket Deserialize(ReadOnlySpan<Byte> buffer)
         => PacketBase<EnumListPacket>.Deserialize(buffer);
 }
+

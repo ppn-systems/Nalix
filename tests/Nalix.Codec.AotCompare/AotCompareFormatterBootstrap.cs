@@ -491,3 +491,4 @@ internal static class AotCompareFormatterBootstrap
     }
 }
 #endif
+

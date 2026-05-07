@@ -120,3 +120,4 @@ public sealed class AotParityTests
 
     private sealed record ScenarioResult(String Name, String Category, Boolean Passed, Int32? Length, String? Sha256, String? Details, String? Error);
 }
+
