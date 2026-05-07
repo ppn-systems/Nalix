@@ -23,18 +23,45 @@ graph LR
 Nalix uses a modular package architecture. Each package has a focused responsibility and a well-defined dependency direction.
 
 ```mermaid
-graph TD
-    Hosting["Nalix.Hosting"] --> Network["Nalix.Network"]
-    Hosting --> Runtime["Nalix.Runtime"]
-    Runtime --> Framework["Nalix.Framework"]
-    Runtime --> Common["Nalix.Abstractions"]
+flowchart LR
+    subgraph App ["Application Layer"]
+        direction TB
+        Hosting["Nalix.Hosting"]
+        SDK["Nalix.SDK"]
+    end
+
+    subgraph Svc ["Service Layer"]
+        direction TB
+        Network["Nalix.Network"]
+        Runtime["Nalix.Runtime"]
+        Logging["Nalix.Logging"]
+    end
+
+    subgraph Core ["Core Layer"]
+        direction TB
+        Codec["Nalix.Codec"]
+        Framework["Nalix.Framework"]
+    end
+
+    subgraph Base ["Base Layer"]
+        direction TB
+        Env["Nalix.Environment"]
+        Common["Nalix.Abstractions"]
+    end
+
+    Hosting --> Network
+    Hosting --> Runtime
+    SDK --> Codec
+
+    Network --> Codec
     Network --> Framework
-    Network --> Common
-    Framework --> Common
-    SDK["Nalix.SDK"] --> Framework
-    SDK --> Common
-    Pipeline["Nalix.Runtime"] --> Network
-    Logging["Nalix.Logging"] --> Common
+    Runtime --> Codec
+    Runtime --> Framework
+    Logging --> Framework
+
+    Codec --> Env
+    Framework --> Env
+    Env --> Common
 ```
 
 | Layer | Package | Responsibility |

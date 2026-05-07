@@ -32,15 +32,30 @@ In source, the listener validates:
 ## High-level flow
 
 ```mermaid
-flowchart LR
-    A["UDP datagram received"] --> B["Rate-limit remote IP"]
-    B --> C["Read 8-byte session token prefix"]
-    C --> D["Validate payload header and UDP flag"]
-    D --> E["Find connection in ConnectionHub"]
-    E --> F["Verify pinned endpoint"]
-    F --> G["Check replay window"]
-    G --> H["Call IsAuthenticated(...) or predicate"]
-    H --> I["Bind UDP transport and inject payload"]
+flowchart TD
+    subgraph Net ["1. Network Phase"]
+        direction LR
+        Recv["Datagram Received"] --> Rate["Rate-limit IP"]
+    end
+
+    subgraph Validate ["2. Validation Phase"]
+        direction LR
+        Token["Read 8-byte Token"] --> Header["Check Header & Flags"]
+    end
+
+    subgraph Sess ["3. Session Phase"]
+        direction LR
+        Conn["Find Connection"] --> Pin["Verify Pinned IP"] --> Replay["Check Replay Window"]
+    end
+
+    subgraph Auth ["4. Routing Phase"]
+        direction LR
+        Hook["IsAuthenticated() Hook"] --> Inject["Bind Transport & Inject"]
+    end
+
+    Net --> Validate
+    Validate --> Sess
+    Sess --> Auth
 ```
 
 ## Server shape

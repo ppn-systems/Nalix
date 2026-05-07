@@ -433,6 +433,43 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         return data;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber("ActivePolicies", _limiters.Count);
+        writer.WriteNumber("MaxPolicies", MaxPolicies);
+        writer.WriteNumber("CheckCounter", Volatile.Read(ref _checkCounter));
+
+        writer.WriteStartArray("Policies");
+        int count = 0;
+        foreach (KeyValuePair<Policy, Entry> kv in _limiters
+            .OrderByDescending(x => x.Key.Rps)
+            .ThenByDescending(x => x.Key.Burst))
+        {
+            if (count++ >= 32)
+            {
+                break;
+            }
+
+            Policy policy = kv.Key;
+            Entry entry = kv.Value;
+            DateTime lastUsed = new(entry.LastUsedUtcTicks, DateTimeKind.Utc);
+
+            writer.WriteStartObject();
+            writer.WriteNumber("RPS", policy.Rps);
+            writer.WriteNumber("Burst", policy.Burst);
+            writer.WriteString("LastUsedUtc", lastUsed);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WriteEndObject();
+    }
+
     /// <summary>
     /// Releases all resources used by the <see cref="PolicyRateLimiter"/>.
     /// </summary>

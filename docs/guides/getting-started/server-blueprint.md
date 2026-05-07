@@ -14,20 +14,28 @@ This page provides the recommended architectural blueprint for a production-grad
 A robust server follows a deterministic sequence:
 
 ```mermaid
-flowchart TD
-    A["Load Configuration"] --> B["Register Services"]
-    B --> C["Compile Dispatch"]
-    C --> D["Layer Transport"]
-    D --> E["Diagnostics Boot"]
-    
-    subgraph Registry ["InstanceManager"]
-        B
+flowchart LR
+    subgraph Setup ["Phase 1: Setup"]
+        direction TB
+        Config["Load Configuration"]
+        Reg["Register Services"]
     end
-    
-    subgraph Pipeline ["Runtime Pipeline"]
-        C
-        D
+
+    subgraph Pipeline ["Phase 2: Runtime Pipeline"]
+        direction TB
+        Disp["Activate Dispatch"]
+        Trans["Start Transport"]
     end
+
+    subgraph Ext ["Phase 3: Extensions"]
+        direction TB
+        Boot["Hosted Services"]
+    end
+
+    Config --> Reg
+    Reg --> Disp
+    Disp --> Trans
+    Trans --> Boot
 ```
 
 !!! success "Why this blueprint?"

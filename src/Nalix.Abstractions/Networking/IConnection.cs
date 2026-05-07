@@ -36,6 +36,11 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     long BytesSent { get; }
 
     /// <summary>
+    /// Gets the total number of bytes received over the life of the connection.
+    /// </summary>
+    long BytesReceived { get; }
+
+    /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
     /// This value can help determine the latency of the network connection.
     /// </summary>

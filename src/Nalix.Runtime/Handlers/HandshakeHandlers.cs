@@ -26,57 +26,10 @@ namespace Nalix.Runtime.Handlers;
 /// <summary>
 /// Provides handlers for the default server-side X25519 handshake protocol.
 /// </summary>
-[PacketController("Handshake")]
+[PacketController("Lib.Handshake")]
 public sealed class HandshakeHandlers
 {
-    #region Fields
-
-    private static Bytes32 s_certificate = Bytes32.Zero;
-    private static int s_isInitialized;
-    private static readonly Lock s_initLock = new();
-
-    #endregion Fields
-
     #region APIs
-
-    /// <summary>
-    /// Initializes the handshake handlers with the default certificate.
-    /// </summary>
-    /// <remarks>
-    /// This is called automatically by the host builder if no custom certificate path is specified.
-    /// </remarks>
-    public static void Initialize()
-    {
-        if (Volatile.Read(ref s_isInitialized) != 0)
-        {
-            return;
-        }
-
-        lock (s_initLock)
-        {
-            if (Volatile.Read(ref s_isInitialized) != 0)
-            {
-                return;
-            }
-
-            LOAD_CERTIFICATE(Path.Combine(Directories.ConfigurationDirectory, "certificate.private"));
-            Volatile.Write(ref s_isInitialized, 1);
-        }
-    }
-
-    /// <summary>
-    /// Sets a custom path for the server identity certificate and initializes it.
-    /// </summary>
-    /// <param name="path">The absolute path to the certificate file.</param>
-    public static void SetCertificatePath(string path)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        lock (s_initLock)
-        {
-            LOAD_CERTIFICATE(path);
-            Volatile.Write(ref s_isInitialized, 1);
-        }
-    }
 
     /// <summary>
     /// Handles incoming handshake signal packets.
@@ -128,7 +81,54 @@ public sealed class HandshakeHandlers
         }
     }
 
+    /// <summary>
+    /// Initializes the handshake handlers with the default certificate.
+    /// </summary>
+    /// <remarks>
+    /// This is called automatically by the host builder if no custom certificate path is specified.
+    /// </remarks>
+    public static void Initialize()
+    {
+        if (Volatile.Read(ref s_isInitialized) != 0)
+        {
+            return;
+        }
+
+        lock (s_initLock)
+        {
+            if (Volatile.Read(ref s_isInitialized) != 0)
+            {
+                return;
+            }
+
+            LOAD_CERTIFICATE(Path.Combine(Directories.ConfigurationDirectory, "certificate.private"));
+            Volatile.Write(ref s_isInitialized, 1);
+        }
+    }
+
+    /// <summary>
+    /// Sets a custom path for the server identity certificate and initializes it.
+    /// </summary>
+    /// <param name="path">The absolute path to the certificate file.</param>
+    public static void SetCertificatePath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        lock (s_initLock)
+        {
+            LOAD_CERTIFICATE(path);
+            Volatile.Write(ref s_isInitialized, 1);
+        }
+    }
+
     #endregion APIs
+
+    #region Fields
+
+    private static int s_isInitialized;
+    private static readonly Lock s_initLock = new();
+    private static Bytes32 s_certificate = Bytes32.Zero;
+
+    #endregion Fields
 
     #region Private Methods
 

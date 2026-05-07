@@ -21,14 +21,39 @@ Nalix does not treat security as a single isolated feature. Instead, security is
 ## Security Layers
 
 ```mermaid
-flowchart TD
-    A["Transport / Listener"] --> B["Connection Guard"]
-    B --> C["Connection State"]
-    C --> D["Protocol Rules"]
-    D --> E["FramePipeline (Low-level)"]
-    E --> F["Packet Metadata"]
-    F --> G["MiddlewarePipeline"]
-    G --> H["Handler"]
+flowchart LR
+    subgraph Net ["Network Admission"]
+        direction TB
+        Listener["Transport Listener"]
+        Guard["Connection Guard"]
+    end
+
+    subgraph Crypt ["State & Integrity"]
+        direction TB
+        State["Connection State"]
+        Frames["Frame Pipeline"]
+    end
+
+    subgraph Routing ["Protocol Validation"]
+        direction TB
+        Proto["Protocol Rules"]
+    end
+
+    subgraph Auth ["Request Authorization"]
+        direction TB
+        Mw["Middleware Pipeline"]
+        Meta["Packet Metadata"]
+    end
+
+    App["Application Handler"]
+
+    Listener --> Guard
+    Guard --> State
+    State --> Frames
+    Frames --> Proto
+    Proto --> Mw
+    Meta -. "declares rules" .-> Mw
+    Mw --> App
 ```
 
 ### Layer 1: Transport Admission

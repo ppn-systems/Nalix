@@ -101,6 +101,7 @@ public sealed class ConnectionLoggingExtensionsTests
         public ISnowflake ID { get; } = new TestSnowflake();
         public long UpTime => 0;
         public long BytesSent => 0;
+        public long BytesReceived => 0;
         public long LastPingTime => 0;
         public INetworkEndpoint NetworkEndpoint { get; } = new TestEndpoint();
         public IObjectMap<string, object> Attributes { get; } = new ObjectMap<string, object>();

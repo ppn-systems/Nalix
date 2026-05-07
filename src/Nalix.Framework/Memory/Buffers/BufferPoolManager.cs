@@ -517,6 +517,100 @@ public sealed class BufferPoolManager : IBufferPoolManager
         return data;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteBoolean("Initialized", _isInitialized);
+        writer.WriteNumber("TotalBuffersConfigured", _config.TotalBuffers);
+        writer.WriteNumber("PoolCount", _bufferAllocations.Length);
+        writer.WriteNumber(nameof(this.MinBufferSize), this.MinBufferSize);
+        writer.WriteNumber(nameof(this.MaxBufferSize), this.MaxBufferSize);
+        writer.WriteBoolean("EnableTrimming", _config.EnableMemoryTrimming);
+        writer.WriteBoolean("EnableAnalytics", _config.EnableAnalytics);
+        writer.WriteBoolean("FallbackToArrayPool", _config.FallbackToArrayPool);
+        writer.WriteNumber("TrimIntervalMinutes", _config.TrimIntervalMinutes);
+        writer.WriteNumber("DeepTrimIntervalMinutes", _config.DeepTrimIntervalMinutes);
+        writer.WriteNumber("TrimCycleCount", _trimCycleCount);
+        writer.WriteNumber("FallbackCount", _fallbackCount);
+        writer.WriteNumber("BucketCacheHits", _suitablePoolSizeCacheHits);
+        writer.WriteNumber("BucketCacheMisses", _suitablePoolSizeCacheMisses);
+        writer.WriteNumber("PeakMemoryUsageBytes", _peakMemoryUsage);
+        writer.WriteNumber("ThroughputMBps", (DateTime.UtcNow - _startTime).TotalSeconds > 0
+            ? (double)Volatile.Read(ref _totalBytesRented) / (1024 * 1024) / (DateTime.UtcNow - _startTime).TotalSeconds
+            : 0);
+
+        writer.WriteStartObject("ShrinkSafetyPolicy");
+        writer.WriteNumber("MinimumRetentionPercent", _shrinkPolicy.MinimumRetentionPercent);
+        writer.WriteNumber("MaxSingleShrinkStep", _shrinkPolicy.MaxSingleShrinkStep);
+        writer.WriteNumber("MaxShrinkPercentPerCycle", _shrinkPolicy.MaxShrinkPercentPerCycle);
+        writer.WriteNumber("AbsoluteMinimum", _shrinkPolicy.AbsoluteMinimum);
+        writer.WriteEndObject();
+
+#if DEBUG
+        writer.WriteStartObject("LeaseTracking");
+        writer.WriteNumber("TotalRented", Volatile.Read(ref s_totalRented));
+        writer.WriteNumber("TotalReturned", Volatile.Read(ref s_totalReturned));
+        writer.WriteNumber("TotalActive", Volatile.Read(ref s_totalRented) - Volatile.Read(ref s_totalReturned));
+        writer.WriteNumber("TotalLeaked", Volatile.Read(ref s_totalLeaked));
+        writer.WriteEndObject();
+#endif
+
+        IReadOnlyCollection<SlabBucket> allBuckets = _slabPool.GetAllBuckets();
+
+        long totalHits = 0;
+        long totalMisses = 0;
+        long totalExpands = 0;
+        long totalShrinks = 0;
+
+        writer.WriteStartArray("Pools");
+        foreach (SlabBucket bucket in allBuckets)
+        {
+            BufferPoolState info = bucket.GetPoolInfo();
+            totalHits += info.Hits;
+            totalMisses += info.Misses;
+            totalExpands += info.Expands;
+            totalShrinks += info.Shrinks;
+
+            int inUse = info.TotalBuffers - info.FreeBuffers;
+            double usage = info.GetUsageRatio();
+            double miss = info.GetMissRate();
+
+            _ = _metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics);
+
+            string bytesReturned = metrics.TotalBytesReturned > 1_000_000
+                ? $"{metrics.TotalBytesReturned / 1_000_000}MB"
+                : $"{metrics.TotalBytesReturned / 1024}KB";
+
+            writer.WriteStartObject();
+            writer.WriteNumber("BufferSize", info.BufferSize);
+            writer.WriteNumber("Initial", info.InitialCapacity);
+            writer.WriteNumber("Total", info.TotalBuffers);
+            writer.WriteNumber("Free", info.FreeBuffers);
+            writer.WriteNumber("InUse", inUse);
+            writer.WriteNumber("Hits", info.Hits);
+            writer.WriteNumber("Expands", info.Expands);
+            writer.WriteNumber("Shrinks", info.Shrinks);
+            writer.WriteNumber("UsageRatio", usage);
+            writer.WriteNumber("MissRate", miss);
+            writer.WriteNumber("ShrinkSkipped", metrics.ShrinkSkipped);
+            writer.WriteString("BytesReturned", bytesReturned);
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+
+        writer.WriteNumber("TotalHits", totalHits);
+        writer.WriteNumber("TotalMisses", totalMisses);
+        writer.WriteNumber("TotalExpands", totalExpands);
+        writer.WriteNumber("TotalShrinks", totalShrinks);
+        writer.WriteNumber("HitRate", (totalHits + totalMisses) > 0 ? (double)totalHits / (totalHits + totalMisses) : 1.0);
+
+        writer.WriteEndObject();
+    }
+
     #endregion Public API
 
     #region Private: Rent / Return helpers

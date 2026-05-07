@@ -23,10 +23,9 @@ namespace Nalix.Runtime.Handlers;
 /// <summary>
 /// Handles dedicated session resume packets.
 /// </summary>
-[PacketController("Session")]
+[PacketController("Lib.Session")]
 public sealed class SessionHandlers
 {
-
     /// <summary>
     /// Handles a session resume request and restores the connection state when the token is valid.
     /// </summary>
@@ -186,4 +185,3 @@ public sealed class SessionHandlers
         }
     }
 }
-

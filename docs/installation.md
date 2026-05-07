@@ -110,17 +110,45 @@ TransportOptions transport = ConfigurationManager.Instance.Get<TransportOptions>
 ## Package Dependency Graph
 
 ```mermaid
-graph TD
-    Hosting["Nalix.Hosting"] --> Network["Nalix.Network"]
-    Hosting --> Runtime["Nalix.Runtime"]
-    Network --> Framework["Nalix.Framework"]
-    Network --> Common["Nalix.Abstractions"]
+flowchart LR
+    subgraph App ["Application Layer"]
+        direction TB
+        Hosting["Nalix.Hosting"]
+        SDK["Nalix.SDK"]
+    end
+
+    subgraph Svc ["Service Layer"]
+        direction TB
+        Network["Nalix.Network"]
+        Runtime["Nalix.Runtime"]
+        Logging["Nalix.Logging"]
+    end
+
+    subgraph Core ["Core Layer"]
+        direction TB
+        Codec["Nalix.Codec"]
+        Framework["Nalix.Framework"]
+    end
+
+    subgraph Base ["Base Layer"]
+        direction TB
+        Env["Nalix.Environment"]
+        Common["Nalix.Abstractions"]
+    end
+
+    Hosting --> Network
+    Hosting --> Runtime
+    SDK --> Codec
+
+    Network --> Codec
+    Network --> Framework
+    Runtime --> Codec
     Runtime --> Framework
-    Runtime --> Common
-    Framework --> Common
-    SDK["Nalix.SDK"] --> Framework
-    SDK --> Common
-    Logging["Nalix.Logging"] --> Common
+    Logging --> Framework
+
+    Codec --> Env
+    Framework --> Env
+    Env --> Common
 ```
 
 ## What to Read Next

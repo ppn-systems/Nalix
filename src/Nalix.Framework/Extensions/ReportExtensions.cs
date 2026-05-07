@@ -19,7 +19,7 @@ public static class ReportExtensions
     /// <summary>
     /// Formats a large number into a compact string (e.g., 1.2k, 3.5M).
     /// </summary>
-    internal static string FormatCompact(this long value)
+    public static string FormatCompact(this long value)
     {
         if (value < 1000)
         {
@@ -51,12 +51,12 @@ public static class ReportExtensions
     /// <summary>
     /// Formats a large number into a compact string (e.g., 1.2k, 3.5M).
     /// </summary>
-    internal static string FormatCompact(this int value) => FormatCompact((long)value);
+    public static string FormatCompact(this int value) => FormatCompact((long)value);
 
     /// <summary>
     /// Groups two values into a single compact string (e.g., "15 / 1024" or "1.2k / 5k").
     /// </summary>
-    internal static string FormatGroup(long current, long total, bool compact = false)
+    public static string FormatGroup(long current, long total, bool compact = false)
     {
         string c = compact ? FormatCompact(current) : current.ToString(CultureInfo.InvariantCulture);
         string t = compact ? FormatCompact(total) : total.ToString(CultureInfo.InvariantCulture);
@@ -66,8 +66,10 @@ public static class ReportExtensions
     /// <summary>
     /// Formats a type name by shortening it if it exceeds a maximum length.
     /// </summary>
-    internal static string FormatTypeName(string name, int maxLength = 24)
+    public static string FormatTypeName(string name, int maxLength = 24)
     {
+        ArgumentNullException.ThrowIfNull(name, nameof(name));
+
         if (name.Length <= maxLength)
         {
             return name.PadRight(maxLength);
@@ -79,7 +81,7 @@ public static class ReportExtensions
     /// <summary>
     /// Formats a TimeSpan into a compact human-readable string (e.g., 1.5s, 10m).
     /// </summary>
-    internal static string FormatTimeSpan(this TimeSpan value)
+    public static string FormatTimeSpan(this TimeSpan value)
     {
         double ms = value.TotalMilliseconds;
         if (ms < 1000)
@@ -116,6 +118,7 @@ public static class ReportExtensions
     }
 
     #endregion Dashboard Utilities
+
     private static readonly string s_reportDir;
 
     static ReportExtensions()

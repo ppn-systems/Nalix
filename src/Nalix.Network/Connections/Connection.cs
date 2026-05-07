@@ -45,7 +45,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     private readonly ConnectionEventArgs _args;
     private int _errorCount;
     private int _closeSignaled;
-    private long _bytesSent;
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
     private int _isDispatchingClose; // 0=no, 1=yes
 
@@ -165,13 +164,23 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// <inheritdoc />
     public bool IsRegisteredInWheel { get; set; }
 
-    /// <summary>Gets the total number of bytes sent through this connection.</summary>
-    /// <returns>The total number of bytes sent.</returns>
-    public long BytesSent
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Interlocked.Read(ref _bytesSent);
-    }
+    /// <summary>
+    /// Gets the total number of bytes sent over the life of the connection.
+    /// </summary>
+    /// <remarks>
+    /// This value is retrieved directly from the underlying <see cref="SocketConnection.BytesSent"/>.
+    /// It represents raw wire data, including protocol headers.
+    /// </remarks>
+    public long BytesSent => this.Socket.BytesSent;
+
+    /// <summary>
+    /// Gets the total number of bytes received over the life of the connection.
+    /// </summary>
+    /// <remarks>
+    /// This value is retrieved directly from the underlying <see cref="SocketConnection.BytesReceived"/>.
+    /// It represents raw wire data before any frame processing or decompression.
+    /// </remarks>
+    public long BytesReceived => this.Socket.BytesReceived;
 
     /// <inheritdoc />
     public void IncrementErrorCount()
@@ -224,9 +233,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
         }
     }
 #endif
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void AddBytesSent(int count) => _ = Interlocked.Add(ref _bytesSent, count);
 
     internal void SetUdpTransport(SocketUdpTransport transport) => this.UdpTransport = transport;
 

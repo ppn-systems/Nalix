@@ -176,6 +176,25 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         };
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteString("User", System.Environment.UserName);
+        writer.WriteString("LogFile", Path.Combine(Directories.LogsDirectory, this.Options.LogFileName));
+        writer.WriteNumber("Written", this.TotalEntriesWritten);
+        writer.WriteNumber("Dropped", this.EntriesDroppedCount);
+        writer.WriteNumber("Queue", this.QueuedEntryCount);
+        writer.WriteNumber("MaxQueueSize", _maxQueueSize);
+        writer.WriteNumber("BatchSize", _batchSize);
+        writer.WriteBoolean("AdaptiveFlush", _adaptiveFlush);
+        writer.WriteNumber("MaxBatchDelayMs", _maxBatchDelay.TotalMilliseconds);
+        writer.WriteBoolean("BlockWhenFull", _blockWhenFull);
+        writer.WriteBoolean("Disposed", _disposed);
+        writer.WriteEndObject();
+    }
+
     private async Task CONSUME_LOOP_ASYNC(IWorkerContext ctx, CancellationToken ct)
     {
         List<LogMessage> batch = new(_batchSize);

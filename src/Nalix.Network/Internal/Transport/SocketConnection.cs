@@ -91,6 +91,8 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     private EventHandler<IConnectEventArgs>? _callbackProcess;
 
     private int _packetCount;
+    private long _bytesSent;
+    private long _bytesReceived;
     private int _openFragmentStreams;
     private int _pendingProcessCallbacks;
     private Task? _receiveLoopTask;
@@ -134,6 +136,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     #endregion Options
 
     #region Properties
+
+    /// <inheritdoc/>
+    public long BytesSent => Interlocked.Read(ref _bytesSent);
+
+    /// <inheritdoc/>
+    public long BytesReceived => Interlocked.Read(ref _bytesReceived);
 
     /// <summary>
     /// Gets the connection uptime in milliseconds (how long the connection has been active).
@@ -467,6 +475,8 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             }
 
             _bufferDataLength += n;
+            _ = Interlocked.Add(ref _bytesReceived, n);
+
             return default;
         }
 
@@ -482,6 +492,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             }
 
             self._bufferDataLength += n;
+            _ = Interlocked.Add(ref self._bytesReceived, n);
         }
     }
 

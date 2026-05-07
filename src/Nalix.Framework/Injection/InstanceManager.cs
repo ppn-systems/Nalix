@@ -834,6 +834,58 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
         return result;
     }
 
+    /// <inheritdoc/>
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        HashSet<RuntimeTypeHandle> activatorTargets = this.BUILD_ACTIVATOR_TARGETS();
+
+        writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
+        writer.WriteNumber(nameof(this.CachedInstanceCount), this.CachedInstanceCount);
+        writer.WriteNumber("InstanceCreationCount", Volatile.Read(ref _instanceCreationCount));
+        writer.WriteNumber("InstanceCacheHitCount", Volatile.Read(ref _instanceCacheHitCount));
+
+        writer.WriteStartArray("Instances");
+
+        foreach (KeyValuePair<RuntimeTypeHandle, object> kvp in _instanceCache)
+        {
+            Type type = Type.GetTypeFromHandle(kvp.Key)!;
+            object instance = kvp.Value;
+            string typeName = type.FullName ?? type.Name;
+            if (typeName.Length > 32)
+            {
+                typeName = "..." + typeName[^29..];
+            }
+
+            bool isDisposable = instance is IDisposable;
+            string source = activatorTargets.Contains(type.TypeHandle) ? "ActivatorCache" : "ManualRegister";
+
+            writer.WriteStartObject();
+            writer.WriteString("Type", typeName);
+            writer.WriteBoolean("IsDisposable", isDisposable);
+            writer.WriteString("Source", source);
+            writer.WriteEndObject();
+        }
+
+        foreach (KeyValuePair<ActivatorKey, object> kvp in _signatureInstanceCache)
+        {
+            Type type = kvp.Value.GetType();
+            string typeName = type.FullName ?? type.Name;
+
+            writer.WriteStartObject();
+            writer.WriteString("Type", typeName);
+            writer.WriteBoolean("IsDisposable", kvp.Value is IDisposable);
+            writer.WriteString("Source", "SignatureCache");
+            writer.WriteEndObject();
+        }
+
+        writer.WriteEndArray();
+
+        writer.WriteEndObject();
+    }
+
     #endregion IReportable
 
     #region IDisposable
