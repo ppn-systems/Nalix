@@ -16,3 +16,4 @@ internal sealed class DashboardOptions
 
     public int RequestTimeoutMilliseconds { get; set; } = 5000;
 }
+

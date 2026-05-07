@@ -60,3 +60,4 @@ internal static class DashboardDisplay
             : $"{(60.0 / hz):F0}/min";
     }
 }
+

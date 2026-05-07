@@ -108,3 +108,4 @@ public static class ReportRecordLayoutBuilder
     private static bool IsLongValue(string value)
         => value.Length > 28;
 }
+

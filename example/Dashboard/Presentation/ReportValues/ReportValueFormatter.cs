@@ -196,3 +196,4 @@ internal static class ReportValueFormatter
         return false;
     }
 }
+

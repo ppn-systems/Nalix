@@ -79,3 +79,4 @@ internal static class GenerationReportDataParser
             : element.GetDouble();
     }
 }
+

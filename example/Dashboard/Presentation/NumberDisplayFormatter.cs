@@ -50,3 +50,4 @@ internal static class NumberDisplayFormatter
         return false;
     }
 }
+

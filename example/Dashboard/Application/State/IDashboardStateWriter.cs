@@ -39,3 +39,4 @@ internal interface IDashboardStateWriter
 
     void UpdateReport(DashboardReportSnapshot report);
 }
+
