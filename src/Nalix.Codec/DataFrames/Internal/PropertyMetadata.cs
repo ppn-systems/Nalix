@@ -138,6 +138,17 @@ internal sealed class PropertyMetadata
             ? (ushort)dynAttr.Size
             : (this.IsDynamic ? (ushort)0 : ComputeFixedSize(this.DeclaredType));
 
+#if NALIX_AOT
+        if (prop.CanRead && prop.GetMethod is not null)
+        {
+            _getter = prop.GetValue;
+        }
+
+        if (prop.CanWrite && prop.SetMethod is not null)
+        {
+            _setter = prop.SetValue;
+        }
+#else
         // Getter delegate: (object instance) => (object) ((TDeclaring)instance).Prop
         if (prop.CanRead && prop.GetMethod is not null)
         {
@@ -171,6 +182,7 @@ internal sealed class PropertyMetadata
                     ex);
             }
         }
+#endif
     }
 
     #endregion Constructor
@@ -391,7 +403,11 @@ internal sealed class PropertyMetadata
 
         if (type.IsValueType)
         {
+#if NALIX_AOT
+            return default;
+#else
             return Activator.CreateInstance(type);
+#endif
         }
 
         return null;

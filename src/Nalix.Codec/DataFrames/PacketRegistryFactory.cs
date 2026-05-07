@@ -47,10 +47,12 @@ public sealed class PacketRegistryFactory
 
     private static readonly DiagnosticListener s_listener = new("Nalix.Codec");
 
+#if !NALIX_AOT
     private const BindingFlags StaticPublic = BindingFlags.Public | BindingFlags.Static;
     private const BindingFlags StaticNonPublic = BindingFlags.NonPublic | BindingFlags.Static;
 
     private static readonly MethodInfo s_bindAllPtrsMi;
+#endif
 
     // Built-in namespaces whose types are pre-registered in the default constructor.
     // These namespaces are skipped during scanning so the factory does not try to
@@ -65,6 +67,8 @@ public sealed class PacketRegistryFactory
     private readonly HashSet<Type> _explicitPacketTypes = [];
     private readonly HashSet<string> _exactNamespaces = new(StringComparer.Ordinal);
     private readonly HashSet<string> _recursiveNamespaces = new(StringComparer.Ordinal);
+    private readonly List<KeyValuePair<uint, PacketDeserializer>> _generatedDeserializers = [];
+    private readonly Dictionary<uint, string> _generatedNames = [];
 
     #endregion Fields
 
@@ -79,8 +83,10 @@ public sealed class PacketRegistryFactory
         ],
         StringComparer.Ordinal);
 
+#if !NALIX_AOT
         s_bindAllPtrsMi = typeof(PacketRegistryFactory).GetMethod(nameof(BIND_PTRS), StaticNonPublic)
             ?? throw new InternalErrorException($"Missing method: {nameof(PacketRegistryFactory)}.{nameof(BIND_PTRS)} (Static, NonPublic).");
+#endif
     }
 
     /// <summary>
@@ -119,6 +125,44 @@ public sealed class PacketRegistryFactory
     }
 
     /// <summary>
+    /// Registers packet deserializers produced by the packet source generator.
+    /// This path is safe for Native AOT and IL2CPP because it avoids assembly
+    /// scanning and reflection-based method binding.
+    /// </summary>
+    /// <param name="deserializers">Generated magic-to-deserializer entries.</param>
+    /// <param name="names">Optional generated magic-to-type-name entries for collision diagnostics.</param>
+    public PacketRegistryFactory RegisterGeneratedPackets(
+        IEnumerable<KeyValuePair<uint, PacketDeserializer>> deserializers,
+        IEnumerable<KeyValuePair<uint, string>>? names = null)
+    {
+        ArgumentNullException.ThrowIfNull(deserializers);
+
+        if (names is not null)
+        {
+            foreach (KeyValuePair<uint, string> pair in names)
+            {
+                _generatedNames[pair.Key] = pair.Value;
+            }
+        }
+
+        foreach (KeyValuePair<uint, PacketDeserializer> pair in deserializers)
+        {
+            if (_generatedNames.TryGetValue(pair.Key, out string? existingName))
+            {
+                TRACE($"register-generated type={existingName} magic=0x{pair.Key:X8}");
+            }
+            else
+            {
+                TRACE($"register-generated magic=0x{pair.Key:X8}");
+            }
+
+            _generatedDeserializers.Add(pair);
+        }
+
+        return this;
+    }
+
+    /// <summary>
     /// Register all packets that implement <see cref="IPacket"/> in the assembly.
     /// If <paramref name="requireAttribute"/> is true, only register classes that have <see cref="PacketAttribute"/>.
     /// This is the broad discovery path used when the caller wants the factory to
@@ -131,6 +175,9 @@ public sealed class PacketRegistryFactory
         ArgumentNullException.ThrowIfNull(asm);
 
         int count = 0;
+#if NALIX_AOT
+        throw new NotSupportedException("Assembly packet scanning is disabled under NALIX_AOT. Use generated/static registration.");
+#else
         foreach (Type? type in SAFE_GET_TYPES(asm))
         {
             if (type is null ||
@@ -154,6 +201,7 @@ public sealed class PacketRegistryFactory
         }
 
         TRACE($"register-packets-complete from asm={asm.GetName().Name} packets={count}");
+#endif
         return this;
     }
 
@@ -306,17 +354,47 @@ public sealed class PacketRegistryFactory
     /// </exception>
     public PacketRegistry CreateCatalog()
     {
+#if NALIX_AOT
+        if (_generatedDeserializers.Count == 0)
+        {
+            throw new InternalErrorException("No generated packet entries registered. Call RegisterGeneratedPackets(...) with the source-generated packet manifest before CreateCatalog() under NALIX_AOT.");
+        }
+
+        Dictionary<uint, PacketDeserializer> deserializers = new(_generatedDeserializers.Count);
+        foreach (KeyValuePair<uint, PacketDeserializer> pair in _generatedDeserializers)
+        {
+            if (deserializers.ContainsKey(pair.Key))
+            {
+                string name = _generatedNames.TryGetValue(pair.Key, out string? resolvedName) ? resolvedName : "<unknown>";
+                throw new InternalErrorException($"[PacketRegistryFactory] Hash collision detected! Magic: 0x{pair.Key:X8}; Type: {name}");
+            }
+
+            deserializers[pair.Key] = pair.Value;
+        }
+
+        return new PacketRegistry(FrozenDictionary.ToFrozenDictionary(deserializers));
+#else
         int estimated =
             Math.Max(16, _explicitPacketTypes.Count + Math.Min(64, _assemblies.Count * 8));
 
         Dictionary<uint, PacketDeserializer> deserializers = new(estimated);
+        Dictionary<uint, Type> magicTypes = new();
+
+        foreach (KeyValuePair<uint, PacketDeserializer> pair in _generatedDeserializers)
+        {
+            if (deserializers.ContainsKey(pair.Key))
+            {
+                string name = _generatedNames.TryGetValue(pair.Key, out string? resolvedName) ? resolvedName : "<unknown>";
+                throw new InternalErrorException($"[PacketRegistryFactory] Hash collision detected! Magic: 0x{pair.Key:X8}; Type: {name}");
+            }
+
+            deserializers[pair.Key] = pair.Value;
+        }
 
         // ── 1. Collect candidates ────────────────────────────────────────────────
         HashSet<Type> candidates = [.. _explicitPacketTypes];
 
-        TRACE($"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count} ns={_exactNamespaces.Count + _recursiveNamespaces.Count}");
-
-        Dictionary<uint, Type> magicTypes = new(candidates.Count);
+        TRACE($"build-start asm={_assemblies.Count} explicit={_explicitPacketTypes.Count} generated={_generatedDeserializers.Count} ns={_exactNamespaces.Count + _recursiveNamespaces.Count}");
 
         foreach (Assembly asm in _assemblies)
         {
@@ -368,7 +446,7 @@ public sealed class PacketRegistryFactory
             }
         }
 
-        if (candidates.Count == 0)
+        if (candidates.Count == 0 && deserializers.Count == 0)
         {
             throw new InternalErrorException("No packet types found for registration. Please check your assembly/namespace configuration.");
         }
@@ -441,6 +519,7 @@ public sealed class PacketRegistryFactory
 
         return new PacketRegistry(
             FrozenDictionary.ToFrozenDictionary(deserializers));
+#endif
     }
 
     /// <summary>
@@ -574,9 +653,14 @@ public sealed class PacketRegistryFactory
             }
         }
 
+#if NALIX_AOT
+        throw new NotSupportedException("Loading packet assemblies by path is disabled under NALIX_AOT. Use generated/static registration.");
+#else
         return Assembly.LoadFrom(fullPath);
+#endif
     }
 
+#if !NALIX_AOT
     /// <summary>
     /// Searches for a static method by name and exact parameter types on
     /// <paramref name="startType"/>, then walks up the inheritance chain if not found.
@@ -608,9 +692,11 @@ public sealed class PacketRegistryFactory
 
         return null;
     }
+#endif
 
     private static void TRACE(string msg)
     {
+#if !NALIX_AOT
         if (s_listener.IsEnabled("registry"))
         {
             s_listener.Write("registry", new
@@ -620,12 +706,14 @@ public sealed class PacketRegistryFactory
                 Timestamp = DateTime.UtcNow
             });
         }
+#endif
     }
 
     #endregion Private Helpers
 
     #region Private: Function Pointer Table
 
+#if !NALIX_AOT
     /// <summary>
     /// Per-type static function-pointer store.
     /// Fields are assigned once at build time and read in the hot path with zero allocation.
@@ -668,10 +756,13 @@ public sealed class PacketRegistryFactory
             return resolved;
         }
     }
+#endif
 
     #endregion Private: Function Pointer Table
 
     #region Private: Binding Helpers
+
+#if !NALIX_AOT
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe delegate* managed<ReadOnlySpan<byte>, TPacket> BIND_DESERIALIZE_PTR<TPacket>(MethodInfo mi)
@@ -697,6 +788,9 @@ public sealed class PacketRegistryFactory
         PacketFunctionTable<TPacket>.DeserializePtr = BIND_DESERIALIZE_PTR<TPacket>(miDeserialize);
         TRACE($"[FW.{nameof(PacketRegistryFactory)}] bind type={typeof(TPacket).Name} des=+");
     }
+#endif
 
     #endregion Private: Binding Helpers
 }
+
+

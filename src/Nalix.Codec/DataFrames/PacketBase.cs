@@ -29,7 +29,8 @@ namespace Nalix.Codec.DataFrames;
 /// </para>
 /// </summary>
 /// <typeparam name="TSelf">The concrete packet type.</typeparam>
-public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, IReportable, IPacketDeserializer<TSelf>, IDisposable where TSelf : PacketBase<TSelf>, new()
+public abstract class PacketBase<
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TSelf> : FrameBase, IPoolable, IPoolRentable, IReportable, IPacketDeserializer<TSelf>, IDisposable where TSelf : PacketBase<TSelf>, new()
 {
     #region Fields
 
@@ -71,7 +72,12 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     /// <exception cref="SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
+    public override byte[] Serialize()
+    {
+        byte[] buffer = new byte[this.Length];
+        int written = this.Serialize(buffer);
+        return written == buffer.Length ? buffer : buffer.AsSpan(0, written).ToArray();
+    }
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
@@ -80,11 +86,11 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override int Serialize(Span<byte> buffer)
     {
-        int staticSize = PacketTypeCache<TSelf>.StaticSize;
-        if (buffer.Length < staticSize)
+        int required = this.Length;
+        if (buffer.Length < required)
         {
             throw new ArgumentException(
-                $"Buffer too small: length={buffer.Length}, required>={staticSize}, type={typeof(TSelf).FullName}.");
+                $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}.");
         }
 
         try
@@ -96,8 +102,6 @@ public abstract class PacketBase<TSelf> : FrameBase, IPoolable, IPoolRentable, I
             ex is InternalErrorException ||
             ex is ArgumentOutOfRangeException)
         {
-            // Dynamic-size packets can overflow a span-backed writer even when the static portion fits.
-            int required = this.Length;
             if (buffer.Length < required)
             {
                 throw new ArgumentException(

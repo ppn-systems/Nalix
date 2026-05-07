@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -10,13 +11,18 @@ using System.Text;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.Internal;
 
 /// <summary>
 /// Per-packet static schema cache used by <see cref="PacketBase{TSelf}"/>.
 /// </summary>
-internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, new()
+internal static class PacketTypeCache<
+    [DynamicallyAccessedMembers(
+        DynamicallyAccessedMemberTypes.PublicConstructors |
+        DynamicallyAccessedMemberTypes.PublicProperties |
+        DynamicallyAccessedMemberTypes.NonPublicProperties)] TSelf> where TSelf : PacketBase<TSelf>, new()
 {
     #region Nested types
 
@@ -112,7 +118,13 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
             size += getters[i](instance);
         }
 
+#if NALIX_AOT
+        IFormatter<TSelf> formatter = FormatterProvider.Get<TSelf>();
+        Int32 actual = checked(PacketConstants.HeaderSize + WireSizeProvider.MeasureWithFormatter(formatter, instance));
+        return actual > size ? actual : size;
+#else
         return size;
+#endif
     }
 
     #endregion API
@@ -138,12 +150,23 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
 
     private static Func<TSelf, int> BUILD_MEMORY_GETTER(PropertyMetadata meta)
     {
+#if NALIX_AOT
+        Int32 elemSize = meta.ElementSize;
+        Int32 nullWireSize = meta.NullWireSize;
+        return instance => meta.GetValue(instance) switch
+        {
+            null => nullWireSize,
+            Array array => checked(sizeof(int) + (array.Length * elemSize)),
+            _ => 0
+        };
+#else
         MethodInfo buildGeneric = typeof(PacketTypeCache<TSelf>)
             .GetMethod(nameof(BUILD_MEMORY_GETTER_CORE), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(meta.DeclaredType.GetGenericArguments()[0]);
 
         bool isReadOnly = meta.DeclaredType.GetGenericTypeDefinition() == typeof(ReadOnlyMemory<>);
         return (Func<TSelf, int>)buildGeneric.Invoke(null, [meta, isReadOnly])!;
+#endif
     }
 
     private static Func<TSelf, int> BUILD_MEMORY_GETTER_CORE<TElement>(
@@ -192,11 +215,16 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
             return BUILD_FALLBACK_GETTER(meta);
         }
 
+#if NALIX_AOT
+        Int32 fixedInner = meta.ElementSize;
+        return instance => meta.GetValue(instance) is null ? sizeof(byte) : sizeof(byte) + fixedInner;
+#else
         MethodInfo buildCore = typeof(PacketTypeCache<TSelf>)
             .GetMethod(nameof(BUILD_NULLABLE_GETTER_CORE), BindingFlags.NonPublic | BindingFlags.Static)!
             .MakeGenericMethod(Nullable.GetUnderlyingType(meta.DeclaredType)!);
 
         return (Func<TSelf, int>)buildCore.Invoke(null, [meta])!;
+#endif
     }
 
     private static Func<TSelf, int> BUILD_NULLABLE_GETTER_CORE<T>(PropertyMetadata meta)
@@ -255,6 +283,19 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
 
     private static Func<TSelf, int> BUILD_GENERIC_COLLECTION_GETTER(PropertyMetadata meta)
     {
+#if NALIX_AOT
+        Int32 nullWireSize = meta.NullWireSize;
+        return instance =>
+        {
+            Object? value = meta.GetValue(instance);
+            if (value is null)
+            {
+                return nullWireSize;
+            }
+
+            return WireSizeProvider.GetSize(value);
+        };
+#else
         MethodInfo buildGeneric = typeof(PacketTypeCache<TSelf>)
             .GetMethod(nameof(BUILD_GENERIC_COLLECTION_GETTER_CORE),
                        BindingFlags.NonPublic | BindingFlags.Static)
@@ -263,10 +304,12 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
 
         MethodInfo closed = buildGeneric.MakeGenericMethod(meta.DeclaredType);
         return (Func<TSelf, int>)closed.Invoke(null, [meta])!;
+#endif
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<TSelf, int> BUILD_GENERIC_COLLECTION_GETTER_CORE<TCollection>(PropertyMetadata meta)
+    private static Func<TSelf, int> BUILD_GENERIC_COLLECTION_GETTER_CORE<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TCollection>(PropertyMetadata meta)
     {
         Func<TSelf, TCollection> getter = BUILD_TYPED_GETTER<TCollection>(meta);
         int nullWireSize = meta.NullWireSize;
@@ -338,15 +381,25 @@ internal static class PacketTypeCache<TSelf> where TSelf : PacketBase<TSelf>, ne
 
     private static Func<TSelf, int> BUILD_FALLBACK_GETTER(PropertyMetadata meta)
     {
+#if NALIX_AOT
+        Int32 nullWireSize = meta.NullWireSize;
+        return instance =>
+        {
+            Object? value = meta.GetValue(instance);
+            return value is null ? nullWireSize : WireSizeProvider.GetSize(value);
+        };
+#else
         MethodInfo buildGeneric = typeof(PacketTypeCache<TSelf>)
             .GetMethod(nameof(BuildFallbackGetterCore), BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new InternalErrorException($"Missing method: {nameof(BuildFallbackGetterCore)}");
         MethodInfo closed = buildGeneric.MakeGenericMethod(meta.DeclaredType);
         return (Func<TSelf, int>)closed.Invoke(null, [meta])!;
+#endif
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Func<TSelf, int> BuildFallbackGetterCore<TValue>(PropertyMetadata meta)
+    private static Func<TSelf, int> BuildFallbackGetterCore<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>(PropertyMetadata meta)
     {
         Func<TSelf, TValue> getter = BUILD_TYPED_GETTER<TValue>(meta);
         int nullWireSize = meta.NullWireSize;
