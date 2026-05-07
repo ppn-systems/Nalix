@@ -10,9 +10,17 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Nalix.Generators;
 
+/// <summary>
+/// Generates AOT-safe configuration binding helpers for types derived from
+/// <c>ConfigurationLoader</c>.
+/// </summary>
 [Generator]
 public class ConfigurationGenerator : IIncrementalGenerator
 {
+    /// <summary>
+    /// Registers the incremental source-generation pipeline.
+    /// </summary>
+    /// <param name="context">The Roslyn incremental generator initialization context.</param>
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         IncrementalValuesProvider<INamedTypeSymbol?> configClasses = context.SyntaxProvider
