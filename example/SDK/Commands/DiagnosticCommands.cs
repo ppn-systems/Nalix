@@ -56,3 +56,4 @@ internal sealed class DiagnosticCommands
         return false;
     }
 }
+

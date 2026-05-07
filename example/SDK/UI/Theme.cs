@@ -27,3 +27,4 @@ internal static class Theme
         _ => PingBad
     };
 }
+

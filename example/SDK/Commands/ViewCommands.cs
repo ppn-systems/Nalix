@@ -73,3 +73,4 @@ internal sealed class ViewCommands
         _ = Console.ReadKey(true);
     }
 }
+

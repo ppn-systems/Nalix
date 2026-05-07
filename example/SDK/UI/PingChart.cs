@@ -92,3 +92,4 @@ internal sealed class PingChart
         AnsiConsole.Write(panel);
     }
 }
+

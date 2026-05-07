@@ -81,3 +81,4 @@ internal sealed class CommandRunner : IDisposable
         _subs.Dispose();
     }
 }
+

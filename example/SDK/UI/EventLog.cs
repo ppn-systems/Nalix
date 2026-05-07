@@ -76,3 +76,4 @@ internal sealed class EventLog
         return sb.ToString().TrimEnd();
     }
 }
+
