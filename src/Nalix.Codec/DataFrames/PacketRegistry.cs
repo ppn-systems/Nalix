@@ -29,7 +29,9 @@ public static class PacketRegistry
     private static Dictionary<uint, PacketDeserializer>? s_pendingDeserializers = new();
     private static Dictionary<uint, string>? s_pendingNames = new();
     private static FrozenDictionary<uint, PacketDeserializer>? s_deserializers;
-    private static PacketFastDispatcher? s_fastDispatcher;
+    private static List<PacketFastDispatcher>? s_pendingFastDispatchers = new();
+    private static PacketFastDispatcher? s_runtimeFastDispatcher;
+    private static PacketFastDispatcher[] s_runtimeFastDispatchers = [];
 
     /// <summary>
     /// A single instance of the Pool Manager shared across all packet types.
@@ -103,11 +105,8 @@ public static class PacketRegistry
                     "PacketRegistry is already built. Load all packet assemblies before first registry access.");
             }
 
-            PacketFastDispatcher? previous = s_fastDispatcher;
-            s_fastDispatcher = previous is null
-                ? dispatcher
-                : (uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet) =>
-                    previous(magic, raw, out packet) || dispatcher(magic, raw, out packet);
+            List<PacketFastDispatcher> dispatchers = s_pendingFastDispatchers ??= new();
+            dispatchers.Add(dispatcher);
         }
     }
 
@@ -130,7 +129,11 @@ public static class PacketRegistry
             }
 
             Dictionary<uint, PacketDeserializer> pending = s_pendingDeserializers ?? new();
+            PacketFastDispatcher[] dispatchers = s_pendingFastDispatchers?.ToArray() ?? [];
+            s_runtimeFastDispatcher = dispatchers.Length == 1 ? dispatchers[0] : null;
+            s_runtimeFastDispatchers = dispatchers.Length > 1 ? dispatchers : [];
             s_deserializers = pending.ToFrozenDictionary();
+            s_pendingFastDispatchers = null;
             s_pendingDeserializers = null;
             s_pendingNames = null;
         }
@@ -211,10 +214,27 @@ public static class PacketRegistry
         }
 
         ref readonly PacketHeader header = ref raw.AsHeaderRef();
-        PacketFastDispatcher? fast = Volatile.Read(ref s_fastDispatcher);
-        if (fast is not null && fast(header.MagicNumber, raw, out packet))
+        try
         {
-            return true;
+            PacketFastDispatcher? fast = s_runtimeFastDispatcher;
+            if (fast is not null && fast(header.MagicNumber, raw, out packet))
+            {
+                return true;
+            }
+
+            PacketFastDispatcher[] fastDispatchers = s_runtimeFastDispatchers;
+            for (int i = 0; i < fastDispatchers.Length; i++)
+            {
+                if (fastDispatchers[i](header.MagicNumber, raw, out packet))
+                {
+                    return true;
+                }
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
+        {
+            packet = null;
+            return false;
         }
 
         FrozenDictionary<uint, PacketDeserializer> deserializers = GetBuilt();
