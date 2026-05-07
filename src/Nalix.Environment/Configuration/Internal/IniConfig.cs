@@ -28,7 +28,7 @@ namespace Nalix.Environment.Configuration.Internal;
 [ExcludeFromCodeCoverage]
 [EditorBrowsable(EditorBrowsableState.Never)]
 [DebuggerDisplay("Path = {_path}, Sections = {_iniData.Count}, Dirty = {_isDirty}")]
-internal sealed class IniConfig : IDisposable
+public sealed class IniConfig : IDisposable
 {
     #region Constants
 
@@ -79,6 +79,9 @@ internal sealed class IniConfig : IDisposable
     /// </summary>
     public bool ExistsFile => File.Exists(_path);
 
+    /// <summary>
+    /// Gets the absolute path to the INI configuration file.
+    /// </summary>
     public string FilePath => _path;
 
     #endregion Properties
@@ -1529,6 +1532,7 @@ internal sealed class IniConfig : IDisposable
         }
     }
 
+    /// <inheritdoc/>
     public void Dispose() => _fileLock.Dispose();
 
     #endregion Private Methods

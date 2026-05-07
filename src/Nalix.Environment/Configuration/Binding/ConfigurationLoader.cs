@@ -15,8 +15,7 @@ namespace Nalix.Environment.Configuration.Binding;
 /// <summary>
 /// Provides high-performance access to configuration values by binding them to
 /// properties.
-/// Reflection is used only to discover the binding metadata once; the resolved
-/// property map is then cached and reused for subsequent loads.
+/// Source generators emit the binding logic at compile time for full AOT compatibility.
 /// </summary>
 /// <remarks>
 /// Derived classes should have the suffix "Config" in their name (e.g., FooConfig).
@@ -32,7 +31,6 @@ public abstract partial class ConfigurationLoader
     #region Fields
 
     private static readonly ConcurrentDictionary<Type, string> s_sectionNameCache;
-    private static readonly ConcurrentDictionary<Type, ConfigurationMetadata> s_metadataCache;
 
     private static readonly string[] s_suffixesToTrim =
     [
@@ -52,11 +50,7 @@ public abstract partial class ConfigurationLoader
 
     #region Contructor
 
-    static ConfigurationLoader()
-    {
-        s_metadataCache = new();
-        s_sectionNameCache = new();
-    }
+    static ConfigurationLoader() => s_sectionNameCache = new();
 
     #endregion Contructor
 
@@ -91,85 +85,56 @@ public abstract partial class ConfigurationLoader
 
     /// <summary>
     /// Creates a shallow clone of this configuration instance.
-    /// The clone copies the current property values and initialization state, but
-    /// it does not re-run the configuration binding pipeline.
     /// </summary>
-    /// <exception cref="InvalidOperationException">Thrown when cached metadata cannot be created for the derived configuration type.</exception>
     [Pure]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public T Clone<T>() where T : ConfigurationLoader, new()
     {
         T clone = new();
-        Type type = this.GetType();
-
-        ConfigurationMetadata metadata = GetOrCreateMetadata(type);
-
-        foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
-        {
-            if (propertyInfo.PropertyInfo.CanRead && propertyInfo.PropertyInfo.CanWrite)
-            {
-                object? value = propertyInfo.PropertyInfo.GetValue(this);
-                propertyInfo.PropertyInfo.SetValue(clone, value);
-            }
-        }
-
+        this.CopyPropertiesTo(clone);
         _ = Interlocked.Exchange(ref clone._isInitialized, _isInitialized);
         clone.LastInitializationTime = this.LastInitializationTime;
-
         return clone;
     }
 
     #endregion Public Methods
 
+    #region Protected Methods
+
+    /// <summary>
+    /// Copies property values from this instance to another.
+    /// Overridden by source generators for AOT compatibility.
+    /// </summary>
+    protected virtual void CopyPropertiesTo(ConfigurationLoader other)
+    {
+        // Source generator will override this
+    }
+
+    /// <summary>
+    /// Binds configuration values from the INI file.
+    /// Overridden by source generators for AOT compatibility.
+    /// </summary>
+    protected virtual void BindProperties(IniConfig configFile, string section)
+    {
+        // Source generator will override this
+    }
+
+    #endregion Protected Methods
+
     #region Private Methods
 
     /// <summary>
     /// Initializes an instance of <see cref="ConfigurationLoader"/> from the provided <see cref="IniConfig"/>.
-    /// Section and property comments from <see cref="Abstractions.IniCommentAttribute"/>
-    /// are written to the file the first time a key is generated.
     /// </summary>
     /// <param name="configFile">The INI configuration file to load values from.</param>
-    /// <exception cref="ArgumentNullException">Thrown when configFile is null.</exception>
     [MemberNotNull(nameof(_isInitialized), nameof(LastInitializationTime))]
     [MethodImpl(MethodImplOptions.NoInlining)]
     internal void Initialize(IniConfig configFile)
     {
         ArgumentNullException.ThrowIfNull(configFile, nameof(configFile));
 
-        Type type = this.GetType();
-        ConfigurationMetadata metadata = GetOrCreateMetadata(type);
-        string section = GetSectionName(type);
-
-        // Write the section-level comment before the first property is processed.
-        // IniConfig.WriteComment is a no-op when the section already exists, so the
-        // call is safe even on repeated initialization; it only matters the first time
-        // a section is generated.
-        configFile.WriteComment(section, key: null, comment: metadata.SectionComment);
-
-        foreach (PropertyMetadata propertyInfo in metadata.BindableProperties)
-        {
-            try
-            {
-                object? value = GetConfigValue(configFile, section, propertyInfo);
-
-                if (value == null ||
-                   (value is string strValue && string.IsNullOrEmpty(strValue)))
-                {
-                    // HandleEmptyValue writes the comment and default value for new
-                    // keys so newly discovered settings are self-documenting.
-                    this.HandleEmptyValue(configFile, section, propertyInfo);
-                    continue;
-                }
-
-                propertyInfo.SetValue(this, value);
-            }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-            {
-                // SEC-21: Prevent a single malformed property from crashing the entire container.
-                // Log the error and continue with the default value.
-                Trace.TraceError($"Configuration binding failed for section={section} key={propertyInfo.Name}: {ex.Message}");
-            }
-        }
+        string section = GetSectionName(this.GetType());
+        this.BindProperties(configFile, section);
 
         _ = Interlocked.Exchange(ref _isInitialized, 1);
         this.LastInitializationTime = DateTime.UtcNow;
