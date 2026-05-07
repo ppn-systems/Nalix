@@ -23,4 +23,14 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <!-- Source generator for [Packet] auto-registration -->
+  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests'">
+    <ProjectReference Include="$(MSBuildThisFileDirectory)..\src\Nalix.Generators\Nalix.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" SetTargetFramework="TargetFramework=netstandard2.0" AdditionalProperties="PublishAot=false;PublishTrimmed=false;IsTrimmable=false;IsAotCompatible=false" />
+  </ItemGroup>
+
 </Project>

@@ -143,28 +143,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     #endregion Configuration Methods
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ScanPackets(Assembly assembly, bool requirePacketAttribute = false)
-    {
-        ArgumentNullException.ThrowIfNull(assembly);
-
-        _state.PacketAssemblies.Add(new PacketAssemblyDescriptor(assembly, requirePacketAttribute));
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ScanPackets(string assemblyPath, bool requirePacketAttribute = false)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
-
-        _state.PacketAssemblyPaths.Add(new PacketAssemblyPathDescriptor(assemblyPath, requirePacketAttribute));
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ScanPackets<TMarker>(bool requirePacketAttribute = false)
-        => this.ScanPackets(typeof(TMarker).Assembly, requirePacketAttribute);
-
-    /// <inheritdoc />
     public INetworkApplicationBuilder ScanHandlers(Assembly assembly)
     {
         ArgumentNullException.ThrowIfNull(assembly);
@@ -183,25 +161,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             typeof(THandler),
             () => InstanceManager.Instance.CreateInstance(typeof(THandler))));
 
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacketNamespace(string packetNamespace, bool recursive = true)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(packetNamespace);
-
-        _state.PacketNamespaces.Add(new PacketNamespaceDescriptor(packetNamespace, recursive));
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder AddPacketNamespace(string assemblyPath, string packetNamespace, bool recursive = true)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(assemblyPath);
-        ArgumentException.ThrowIfNullOrWhiteSpace(packetNamespace);
-
-        _state.PacketNamespaces.Add(new PacketNamespaceDescriptor(packetNamespace, recursive, assemblyPath));
         return this;
     }
 

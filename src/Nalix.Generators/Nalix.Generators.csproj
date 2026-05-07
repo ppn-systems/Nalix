@@ -4,6 +4,7 @@
 		<Nullable>enable</Nullable>
 		<LangVersion>latest</LangVersion>
 		<IsRoslynComponent>true</IsRoslynComponent>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<PublishAot Condition="'$(MSBuildProjectName)' == 'Nalix.Generators'">false</PublishAot>
 		<PublishTrimmed Condition="'$(MSBuildProjectName)' == 'Nalix.Generators'">false</PublishTrimmed>

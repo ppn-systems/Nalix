@@ -30,21 +30,6 @@ internal sealed class HostingBuilderContext
     public List<OptionsConfiguration> Options { get; } = [];
 
     /// <summary>
-    /// Gets the packet assemblies used for packet discovery.
-    /// </summary>
-    public List<PacketAssemblyDescriptor> PacketAssemblies { get; } = [];
-
-    /// <summary>
-    /// Gets the packet assembly paths used for packet discovery.
-    /// </summary>
-    public List<PacketAssemblyPathDescriptor> PacketAssemblyPaths { get; } = [];
-
-    /// <summary>
-    /// Gets the namespace filters used for packet discovery.
-    /// </summary>
-    public List<PacketNamespaceDescriptor> PacketNamespaces { get; } = [];
-
-    /// <summary>
     /// Gets the assemblies scanned for packet handlers.
     /// </summary>
     public HashSet<Assembly> HandlerAssemblies { get; } = [];
@@ -92,7 +77,6 @@ internal sealed class HostingBuilderContext
     /// Gets or sets the optional path to the server identity certificate.
     /// </summary>
     public string? IdentityCertificatePath { get; set; }
-
 
     /// <summary>
     /// Indicates whether the user has explicitly configured a custom

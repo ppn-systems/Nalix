@@ -15,9 +15,7 @@ public sealed class NetworkApplicationBuilderPacketRegistryTests
     [Fact]
     public void StaticPacketRegistryBuildIsIdempotent()
     {
-        NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-
-        _ = builder.AddPacketNamespace(RootNamespace, recursive: true);
+        // Packets are auto-registered via source-generated ModuleInitializer
         PacketRegistry.Build();
         PacketRegistry.Build();
 
