@@ -1,10 +1,6 @@
 #if DEBUG
-using System;
-using System.IO;
 using System.Reflection;
-using System.Collections.Generic;
 using Nalix.Environment.Configuration.Binding;
-using Xunit;
 
 namespace Nalix.Environment.Tests.Configuration;
 
@@ -27,7 +23,7 @@ public class IniConfigTests : IDisposable
     public void Reload_ClearsComments_PreventingMemoryLeak()
     {
         using IniConfig config = new IniConfig(_path);
-        
+
         // Use reflection to check private _comments dictionary size
         var commentsField = typeof(IniConfig).GetField("_comments", BindingFlags.NonPublic | BindingFlags.Instance);
         var comments = (Dictionary<string, string>)commentsField.GetValue(config);

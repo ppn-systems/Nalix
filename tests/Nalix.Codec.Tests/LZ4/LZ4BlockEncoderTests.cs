@@ -2,8 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Codec.LZ4;
-using Nalix.Codec.LZ4;
-using Xunit;
 
 namespace Nalix.Codec.Tests.LZ4;
 

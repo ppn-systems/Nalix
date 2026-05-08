@@ -1,20 +1,13 @@
-using Nalix.Codec.Memory;
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Framework.Memory.Buffers;
+using Nalix.Codec.Memory;
 using Nalix.SDK.Extensions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
-using Nalix.Codec.DataFrames;
-using System.Buffers.Binary;
-using Xunit;
 
 namespace Nalix.SDK.Tests;
 
@@ -66,7 +59,9 @@ public sealed class SdkSubscriptionTests
     public void TcpSessionSubscriptionsOnOnce_FiresOnlyOnceEvenWhenMultipleMessagesArrive()
     {
         FakeSession session = new();
-        session.EnsureRegistry();
+
+        if (!PacketRegistry.IsBuilt)
+            session.EnsureRegistry();
         int count = 0;
         using IDisposable sub = session.OnOnce<Control>(_ => true, _ => count++);
 

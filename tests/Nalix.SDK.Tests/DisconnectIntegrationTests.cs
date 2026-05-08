@@ -18,6 +18,7 @@ public sealed class DisconnectIntegrationTests : IDisposable
 {
     public DisconnectIntegrationTests()
     {
+        if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
         TestUtils.SetupCertificate();
     }

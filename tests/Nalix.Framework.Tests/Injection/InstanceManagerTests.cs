@@ -1,13 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Concurrent;
-using System.Threading;
-using System.Threading.Tasks;
-using Nalix.Framework.Injection;
 using Nalix.Abstractions.Exceptions;
-using Xunit;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Framework.Tests.Injection;
 

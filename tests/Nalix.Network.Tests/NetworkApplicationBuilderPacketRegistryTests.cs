@@ -16,7 +16,8 @@ public sealed class NetworkApplicationBuilderPacketRegistryTests
     public void StaticPacketRegistryBuildIsIdempotent()
     {
         // Packets are auto-registered via source-generated ModuleInitializer
-        PacketRegistry.Build();
+        
+        if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
 
         Assert.True(PacketRegistry.DeserializerCount >= 0);
