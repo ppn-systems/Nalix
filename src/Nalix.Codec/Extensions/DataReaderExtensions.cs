@@ -44,6 +44,16 @@ public static class DataReaderExtensions
         return value;
     }
 
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static short ReadInt16(this ref DataReader reader)
+    {
+        ref byte ptr = ref reader.GetSpanReference(sizeof(short));
+        short value = Unsafe.ReadUnaligned<short>(ref ptr);
+        reader.Advance(sizeof(short));
+        return value;
+    }
+
     /// <summary>
     /// Reads a <see cref="uint"/> from the buffer.
     /// </summary>
@@ -105,16 +115,6 @@ public static class DataReaderExtensions
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static short ReadInt16(this ref DataReader reader)
-    {
-        ref byte ptr = ref reader.GetSpanReference(sizeof(short));
-        short value = Unsafe.ReadUnaligned<short>(ref ptr);
-        reader.Advance(sizeof(short));
-        return value;
-    }
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static sbyte ReadSByte(this ref DataReader reader)
     {
         ref byte ptr = ref reader.GetSpanReference(sizeof(sbyte));
@@ -170,6 +170,30 @@ public static class DataReaderExtensions
     }
 
     /// <summary>
+    /// Reads an enum value with underlying type <see cref="sbyte"/>.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TEnum ReadEnumSByte<TEnum>(this ref DataReader reader)
+    where TEnum : unmanaged, Enum
+    {
+        sbyte value = reader.ReadSByte();
+        return Unsafe.As<sbyte, TEnum>(ref value);
+    }
+
+    /// <summary>
+    /// Reads an enum value with underlying type <see cref="short"/>.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TEnum ReadEnumInt16<TEnum>(this ref DataReader reader)
+    where TEnum : unmanaged, Enum
+    {
+        short value = reader.ReadInt16();
+        return Unsafe.As<short, TEnum>(ref value);
+    }
+
+    /// <summary>
     /// Reads an enum value with underlying type <see cref="ushort"/>.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
@@ -179,6 +203,18 @@ public static class DataReaderExtensions
     {
         ushort value = reader.ReadUInt16();
         return Unsafe.As<ushort, TEnum>(ref value);
+    }
+
+    /// <summary>
+    /// Reads an enum value with underlying type <see cref="int"/>.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the reader does not contain enough remaining data.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static TEnum ReadEnumInt32<TEnum>(this ref DataReader reader)
+    where TEnum : unmanaged, Enum
+    {
+        int value = reader.ReadInt32();
+        return Unsafe.As<int, TEnum>(ref value);
     }
 
     /// <summary>
