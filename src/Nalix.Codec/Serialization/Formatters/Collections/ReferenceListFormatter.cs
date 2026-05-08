@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal;
 
@@ -24,7 +25,7 @@ internal sealed class ReferenceListFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>>
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFillableFormatter<System.Collections.Generic.List<T>>
 {
     private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
     private static string DebuggerDisplay => $"ReferenceListFormatter<{typeof(T).FullName}>";
@@ -83,7 +84,7 @@ internal sealed class ReferenceListFormatter<
 
         if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw new SerializationFailureException("Reference list length out of range.");
+            Throw.LengthOutOfRange();
         }
 
         System.Collections.Generic.List<T> list = new(count);
@@ -95,6 +96,34 @@ internal sealed class ReferenceListFormatter<
         }
 
         return list;
+    }
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Fill(ref DataReader reader, System.Collections.Generic.List<T> value)
+    {
+        int length = reader.ReadInt32();
+
+        if (length == SerializerBounds.Null || length == 0)
+        {
+            value.Clear();
+            return;
+        }
+
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
+        {
+            Throw.LengthOutOfRange();
+        }
+
+        value.Clear();
+        CollectionsMarshal.SetCount(value, length);
+
+        Span<T> span = CollectionsMarshal.AsSpan(value);
+        for (int i = 0; i < length; i++)
+        {
+            span[i] = s_elementFormatter.Deserialize(ref reader);
+        }
     }
 }
 
