@@ -63,6 +63,33 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         return null;
     }
 
+    private static bool HasStaticCreateMethod(ITypeSymbol type)
+    {
+        ITypeSymbol? current = type;
+
+        while (current is not null && current.SpecialType == SpecialType.None)
+        {
+            bool hasCreate = current.GetMembers()
+                .OfType<IMethodSymbol>()
+                .Any(m => m is
+                {
+                    Name: "Create",
+                    IsStatic: true,
+                    Parameters.Length: 0,
+                    DeclaredAccessibility: Accessibility.Public or Accessibility.Internal
+                });
+
+            if (hasCreate)
+            {
+                return true;
+            }
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
     private void Execute(SourceProductionContext context, ImmutableArray<ITypeSymbol?> targets)
     {
         if (targets.IsDefaultOrEmpty)
@@ -84,6 +111,23 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             string @namespace = type.ContainingNamespace.ToDisplayString();
             string formatterName = $"{className}Formatter";
 
+            if (isClass && !HasStaticCreateMethod(type))
+            {
+                context.ReportDiagnostic(Diagnostic.Create(
+                    new DiagnosticDescriptor(
+                        "NALIX059",
+                        "Missing static Create() method",
+                        "Type '{0}' is marked [GenerateFormatter] but neither it nor any of its base types has a public/internal static Create() method. " +
+                        "This is required for the pooling pattern used by LiteSerializer.Fill.",
+                        "Nalix.Abstractions.Serialization.GenerateFormatterAttribute",
+                        DiagnosticSeverity.Error,
+                        true),
+                    type.Locations[0],
+                    type.ToDisplayString()));
+
+                continue;
+            }
+
             registeredFormatters.Add(($"global::{@namespace}.{className}", $"global::{GeneratedFormatterNamespace}.{formatterName}"));
 
             List<ISymbol> members = this.GetOrderedMembers(type);
@@ -102,6 +146,9 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             _ = sb.AppendLine();
             _ = sb.AppendLine($"namespace {GeneratedFormatterNamespace};");
             _ = sb.AppendLine();
+            _ = sb.AppendLine("[System.Diagnostics.StackTraceHidden]");
+            _ = sb.AppendLine("[System.Diagnostics.DebuggerStepThrough]");
+            _ = sb.AppendLine("[System.Runtime.CompilerServices.SkipLocalsInit]");
             _ = sb.AppendLine($"internal sealed class {formatterName} : {interfaceName}");
             _ = sb.AppendLine("{");
 
@@ -149,7 +196,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
                 _ = sb.AppendLine("    {");
                 _ = sb.AppendLine("        System.ArgumentNullException.ThrowIfNull(value);");
                 _ = sb.AppendLine();
-                _ = sb.Append(this.GenerateAssignmentBody(members, "value"));
+                _ = sb.Append(this.GenerateAssignmentBody(members, "value", true));
                 _ = sb.AppendLine("    }");
             }
 
@@ -176,84 +223,83 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
     private string GenerateSerializeBody(List<ISymbol> members)
     {
         StringBuilder code = new(members.Count * 64);
+
         foreach (ISymbol m in members)
         {
             ITypeSymbol type = GetSymbolType(m);
-            if (IsSimpleType(type))
+
+            if (type.TypeKind == TypeKind.Enum)
             {
-                if (type.TypeKind == TypeKind.Enum)
-                {
-                    _ = code.AppendLine($"        writer.WriteEnum(value.{m.Name});");
-                }
-                else if (type.SpecialType != SpecialType.None && type.SpecialType != SpecialType.System_String)
-                {
-                    _ = code.AppendLine($"        writer.Write(({type.ToDisplayString()})value.{m.Name});");
-                }
-                else if (type.IsUnmanagedType && type.TypeKind == TypeKind.Struct)
-                {
-                    _ = code.AppendLine($"        writer.WriteUnmanaged(value.{m.Name});");
-                }
-                else
-                {
-                    _ = code.AppendLine($"        writer.Write(value.{m.Name});");
-                }
+                _ = code.AppendLine($"        writer.WriteEnum(value.{m.Name});");
+            }
+            else if (type.IsUnmanagedType && type.TypeKind == TypeKind.Struct)
+            {
+                // Custom unmanaged struct
+                _ = code.AppendLine($"        writer.WriteUnmanaged(value.{m.Name});");
+            }
+            else if (type.SpecialType != SpecialType.None && type.SpecialType != SpecialType.System_String)
+            {
+                // Primitive types (byte, int, bool, float, double, char...)
+                _ = code.AppendLine($"        writer.Write(value.{m.Name});");
             }
             else
             {
+                // string + complex types + reference types
                 _ = code.AppendLine($"        LiteSerializer.Serialize(ref writer, value.{m.Name});");
             }
         }
+
         return code.ToString();
     }
 
-    private string GenerateAssignmentBody(List<ISymbol> members, string targetName)
+    private string GenerateAssignmentBody(List<ISymbol> members, string targetName, bool isFillContext = false)
     {
-        StringBuilder code = new(members.Count * 64);
+        StringBuilder code = new(members.Count * 80);
+
         foreach (ISymbol m in members)
         {
             ITypeSymbol type = GetSymbolType(m);
-            if (IsSimpleType(type))
+            string memberAccess = $"{targetName}.{m.Name}";
+
+            if (type.TypeKind == TypeKind.Enum)
             {
-                if (type.TypeKind == TypeKind.Enum)
-                {
-                    _ = code.AppendLine($"        {targetName}.{m.Name} = reader.{GetEnumReadMethod(type)}<{type.ToDisplayString()}>();");
-                }
-                else if (type.SpecialType != SpecialType.None && type.SpecialType != SpecialType.System_String)
-                {
-                    _ = code.AppendLine($"        {targetName}.{m.Name} = reader.{GetPrimitiveReadMethod(type)}();");
-                }
-                else if (type.IsUnmanagedType && type.TypeKind == TypeKind.Struct)
-                {
-                    _ = code.AppendLine($"        {targetName}.{m.Name} = reader.ReadUnmanaged<{type.ToDisplayString()}>();");
-                }
-                else
-                {
-                    _ = code.AppendLine($"        {targetName}.{m.Name} = reader.{GetPrimitiveReadMethod(type)}();");
-                }
+                _ = code.AppendLine($"        {memberAccess} = reader.{GetEnumReadMethod(type)}<{type.ToDisplayString()}>();");
+            }
+            else if (type.SpecialType != SpecialType.None && type.SpecialType != SpecialType.System_String)
+            {
+                // Primitive types
+                _ = code.AppendLine($"        {memberAccess} = reader.{GetPrimitiveReadMethod(type)}();");
+            }
+            else if (type.IsUnmanagedType && type.TypeKind == TypeKind.Struct)
+            {
+                // Custom unmanaged struct
+                _ = code.AppendLine($"        {memberAccess} = reader.ReadUnmanaged<{type.ToDisplayString()}>();");
             }
             else
             {
-                _ = code.AppendLine($"        {targetName}.{m.Name} = LiteSerializer.Deserialize<{type.ToDisplayString()}>(ref reader);");
+                // Complex types + string + array + reference types
+                if (isFillContext &&
+                    type.IsReferenceType &&
+                    type.SpecialType != SpecialType.System_String &&
+                    type.TypeKind != TypeKind.Array)
+                {
+                    _ = code.AppendLine($"        if ({memberAccess} is not null)");
+                    _ = code.AppendLine("        {");
+                    _ = code.AppendLine($"            LiteSerializer.Fill(ref reader, {memberAccess});");
+                    _ = code.AppendLine("        }");
+                    _ = code.AppendLine("        else");
+                    _ = code.AppendLine("        {");
+                    _ = code.AppendLine($"            {memberAccess} = LiteSerializer.Deserialize<{type.ToDisplayString()}>(ref reader);");
+                    _ = code.AppendLine("        }");
+                }
+                else
+                {
+                    _ = code.AppendLine($"        {memberAccess} = LiteSerializer.Deserialize<{type.ToDisplayString()}>(ref reader);");
+                }
             }
         }
+
         return code.ToString();
-    }
-
-    private static bool IsSimpleType(ITypeSymbol type)
-    {
-        if (type.SpecialType != SpecialType.None && type.SpecialType != SpecialType.System_String)
-        {
-            return true;
-        }
-
-        if (type.TypeKind == TypeKind.Enum)
-        {
-            return true;
-        }
-
-        return type.IsUnmanagedType &&
-               type.TypeKind == TypeKind.Struct &&
-               !type.ToDisplayString().Contains("ValueTuple");
     }
 
     private static string GetEnumReadMethod(ITypeSymbol type)
@@ -296,15 +342,16 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         // Walk inheritance chain (supports FrameBase / PacketBase patterns)
         while (currentType is not null && currentType.SpecialType == SpecialType.None)
         {
-            foreach (ISymbol member in currentType.GetMembers())
+            ImmutableArray<ISymbol> members = currentType.GetMembers();
+            foreach (ISymbol member in members)
             {
                 if (member is not (IPropertySymbol or IFieldSymbol))
                 {
                     continue;
                 }
 
-                bool hasHeader = member.GetAttributes().Any(static a => a.AttributeClass?.Name == SerializeHeaderAttributeName);
                 bool hasOrder = member.GetAttributes().Any(static a => a.AttributeClass?.Name == SerializeOrderAttributeName);
+                bool hasHeader = member.GetAttributes().Any(static a => a.AttributeClass?.Name == SerializeHeaderAttributeName);
 
                 if (!hasHeader && !hasOrder)
                 {
@@ -333,7 +380,6 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
 
                 allMembers.Add(member);
             }
-
             currentType = currentType.BaseType;
         }
 
@@ -398,3 +444,4 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         context.AddSource("SerializeFormatterGenerated.cs", SourceText.From(sb.ToString(), Encoding.UTF8));
     }
 }
+

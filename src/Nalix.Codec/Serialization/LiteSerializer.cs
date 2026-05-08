@@ -762,6 +762,83 @@ public static class LiteSerializer
 
     #endregion APIs
 
+    #region Fill API (Object Reuse / Pooling Path for Low-Latency TCP)
+
+    /// <summary>
+    /// Fills an existing instance from a byte array using in-place deserialization (object reuse path).
+    /// Optimized for high-performance object pooling in low-latency TCP messaging receive loops.
+    /// </summary>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public static int Fill<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(byte[] buffer, ref T value)
+    {
+        ArgumentNullException.ThrowIfNull(buffer);
+        return Fill((ReadOnlySpan<byte>)buffer, ref value);
+    }
+
+    /// <summary>
+    /// Fills an existing instance from a read-only span.
+    /// Zero-allocation hot path designed for direct use with socket receive buffers
+    /// (e.g. <c>SocketAsyncEventArgs</c>, <c>NetworkStream</c>, memory-mapped recv).
+    /// </summary>
+    [Pure]
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static int Fill<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlySpan<byte> buffer, ref T value)
+    {
+        if (buffer.IsEmpty)
+        {
+            Throw.EmptyBuffer();
+        }
+
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable ?? throw new SerializationFailureException(
+                $"Fill API is not supported for type '{typeof(T).FullName}'. " +
+                "Only types with IFillableFormatter (ObjectFormatter for classes, and supported collections) are allowed. " +
+                "Unmanaged structs and plain StructFormatter value types must use Deserialize<T>(buffer, ref value) instead.");
+        if (value is null && typeof(T).IsClass)
+        {
+            throw new SerializationFailureException(
+                $"Cannot Fill a null instance of reference type '{typeof(T).FullName}'. " +
+                "Pre-create the target instance from an object pool before calling Fill.");
+        }
+
+        DataReader reader = new(buffer);
+        fillable.Fill(ref reader, value);
+        return reader.BytesRead;
+    }
+
+    /// <summary>
+    /// Fills an existing instance from a read-only memory buffer.
+    /// </summary>
+    [Pure]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public static int Fill<
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(ReadOnlyMemory<byte> buffer, ref T value)
+    {
+        if (buffer.IsEmpty)
+        {
+            Throw.EmptyBuffer();
+        }
+
+        IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable ?? throw new SerializationFailureException(
+                $"Fill API is not supported for type '{typeof(T).FullName}'.");
+        if (value is null && typeof(T).IsClass)
+        {
+            throw new SerializationFailureException(
+                $"Cannot Fill null reference type '{typeof(T).FullName}'. Pre-create pooled instance first.");
+        }
+
+        DataReader reader = new(buffer);
+        fillable.Fill(ref reader, value);
+        return reader.BytesRead;
+    }
+
+    #endregion Fill API (Object Reuse / Pooling Path for Low-Latency TCP)
+
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
