@@ -20,20 +20,19 @@ public sealed partial class DataFramesPublicApiTests
     [Fact]
     public void DeserializeWhenRegisteredPacketBytesAreProvidedReturnsExpectedPacket()
     {
-        PacketRegistry registry = new(factory => _ = factory);
         Control packet = new();
         packet.Initialize(33, ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
         byte[] bytes = packet.Serialize();
 
-        IPacket deserialized = registry.Deserialize(bytes);
+        IPacket deserialized = PacketRegistry.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(deserialized);
         Assert.Equal(packet.Header.MagicNumber, control.Header.MagicNumber);
         Assert.Equal(packet.Type, control.Type);
         Assert.Equal(packet.Header.SequenceId, control.Header.SequenceId);
-        Assert.True(registry.DeserializerCount >= 1);
-        Assert.True(registry.IsKnownMagic(packet.Header.MagicNumber));
-        Assert.True(registry.IsRegistered<Control>());
+        Assert.True(PacketRegistry.DeserializerCount >= 1);
+        Assert.True(PacketRegistry.IsKnownMagic(packet.Header.MagicNumber));
+        Assert.True(PacketRegistry.IsRegistered<Control>());
     }
 
     [Theory]
@@ -42,14 +41,13 @@ public sealed partial class DataFramesPublicApiTests
     [InlineData(PacketConstants.HeaderSize - 5)]
     public void DeserializeWhenBufferIsTooShortThrowsArgumentException(int bufferLength)
     {
-        PacketRegistry registry = new(factory => _ = factory);
         byte[] raw = new byte[bufferLength];
         if (bufferLength >= PacketConstants.HeaderSize)
         {
             BitConverter.GetBytes(0xDEADBEEFu).CopyTo(raw, 0);
         }
 
-        ArgumentException ex = Assert.Throws<ArgumentException>(() => registry.Deserialize(raw));
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => PacketRegistry.Deserialize(raw));
         Assert.StartsWith("Raw packet data is too short to contain a valid header", ex.Message);
     }
 
@@ -58,41 +56,19 @@ public sealed partial class DataFramesPublicApiTests
     [InlineData(PacketConstants.HeaderSize + 10)]
     public void DeserializeWhenHeaderMagicIsUnknownThrowsInvalidOperationException(int bufferLength)
     {
-        PacketRegistry registry = new(factory => _ = factory);
         byte[] raw = new byte[bufferLength];
         BitConverter.GetBytes(0xDEADBEEFu).CopyTo(raw, 0);
 
-        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => registry.Deserialize(raw));
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => PacketRegistry.Deserialize(raw));
         Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
     }
-
-    [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void CreateCatalogWhenIncludeMethodsAreUsedReturnsRegistryWithBuiltIns(bool recursive)
-    {
-        PacketRegistryFactory factory = new();
-        PacketRegistryFactory sameFactory = factory.IncludeCurrentDomain();
-
-        _ = recursive
-            ? factory.IncludeNamespaceRecursive("Nalix.Codec.Tests.DataFrames.AssemblyScan")
-            : factory.IncludeNamespace("Nalix.Codec.Tests.DataFrames.AssemblyScan");
-
-        PacketRegistry registry = factory.CreateCatalog();
-
-        Assert.Same(factory, sameFactory);
-        Assert.True(registry.IsRegistered<Control>());
-        Assert.True(registry.IsRegistered<Directive>());
-        Assert.True(registry.IsRegistered<Handshake>());
-    }
-
     [Fact]
     public void ComputeWhenCalledForSameTypeReturnsSameMagicNumber()
     {
         Type type = typeof(Control);
 
-        uint first = PacketRegistryFactory.Compute(type);
-        uint second = PacketRegistryFactory.Compute(type);
+        uint first = PacketRegistry.Compute(type);
+        uint second = PacketRegistry.Compute(type);
 
         Assert.Equal(first, second);
     }
@@ -102,7 +78,7 @@ public sealed partial class DataFramesPublicApiTests
     {
         Type? type = null;
 
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => PacketRegistryFactory.Compute(type!));
+        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => PacketRegistry.Compute(type!));
 
         Assert.Equal("type", exception.ParamName);
     }
@@ -232,6 +208,7 @@ public sealed partial class DataFramesPublicApiTests
         _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(source, key, CipherSuiteType.Chacha20));
     }
 }
+
 
 
 

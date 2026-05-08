@@ -70,51 +70,11 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureCertificate(string certificatePath);
 
     /// <summary>
-    /// Configures a pre-built packet registry instead of hosting auto-discovery.
-    /// </summary>
-    /// <param name="packetRegistry">The packet registry to use.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigurePacketRegistry(IPacketRegistry packetRegistry);
-
-    /// <summary>
     /// Configures the packet dispatcher used by the host.
     /// </summary>
     /// <param name="configure">The callback used to configure dispatcher options.</param>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure);
-
-    /// <summary>
-    /// Scans the specified assembly for packet types and registers them.
-    /// </summary>
-    /// <param name="assembly">The assembly to scan for packet types.</param>
-    /// <param name="requirePacketAttribute">
-    /// <see langword="true"/> to include only packet types marked with <see cref="PacketAttribute"/>;
-    /// otherwise, all concrete packet types are considered.
-    /// </param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ScanPackets(Assembly assembly, bool requirePacketAttribute = false);
-
-    /// <summary>
-    /// Scans the specified assembly path for packet types and registers them.
-    /// </summary>
-    /// <param name="assemblyPath">The .dll path to scan for packet types.</param>
-    /// <param name="requirePacketAttribute">
-    /// <see langword="true"/> to include only packet types marked with <see cref="PacketAttribute"/>;
-    /// otherwise, all concrete packet types are considered.
-    /// </param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ScanPackets(string assemblyPath, bool requirePacketAttribute = false);
-
-    /// <summary>
-    /// Scans the assembly that contains <typeparamref name="TMarker"/> for packet types and registers them.
-    /// </summary>
-    /// <typeparam name="TMarker">A marker type used to resolve the target assembly.</typeparam>
-    /// <param name="requirePacketAttribute">
-    /// <see langword="true"/> to include only packet types marked with <see cref="PacketAttribute"/>;
-    /// otherwise, all concrete packet types are considered.
-    /// </param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ScanPackets<TMarker>(bool requirePacketAttribute = false);
 
     /// <summary>
     /// Scans the specified assembly for packet controller types and registers them.
@@ -129,27 +89,6 @@ public interface INetworkApplicationBuilder
     /// <typeparam name="TMarker">A marker type used to resolve the target assembly.</typeparam>
     /// <returns>The current builder instance.</returns>
     INetworkApplicationBuilder ScanHandlers<TMarker>();
-
-    /// <summary>
-    /// Adds packet types discovered by matching packet namespaces in the current AppDomain.
-    /// </summary>
-    /// <param name="packetNamespace">The namespace to include.</param>
-    /// <param name="recursive">
-    /// <see langword="true"/> to include child namespaces; otherwise exact namespace only.
-    /// </param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacketNamespace(string packetNamespace, bool recursive = true);
-
-    /// <summary>
-    /// Adds packet types discovered by matching packet namespaces from one assembly path.
-    /// </summary>
-    /// <param name="assemblyPath">The .dll path to scan.</param>
-    /// <param name="packetNamespace">The namespace to include.</param>
-    /// <param name="recursive">
-    /// <see langword="true"/> to include child namespaces; otherwise exact namespace only.
-    /// </param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder AddPacketNamespace(string assemblyPath, string packetNamespace, bool recursive = true);
 
     /// <summary>
     /// Adds a packet controller type using the default Nalix activator.

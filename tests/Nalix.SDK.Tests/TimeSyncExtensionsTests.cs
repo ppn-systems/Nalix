@@ -16,13 +16,9 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class TimeSyncExtensionsTests : IDisposable
 {
-    private readonly IPacketRegistry _registry;
-
     public TimeSyncExtensionsTests()
     {
-        _registry = new PacketRegistryFactory()
-            .IncludeNamespace("Nalix.Codec.DataFrames.SignalFrames")
-            .CreateCatalog();
+        PacketRegistry.Build();
         TestUtils.SetupCertificate();
     }
 
@@ -31,7 +27,6 @@ public sealed class TimeSyncExtensionsTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
@@ -46,7 +41,7 @@ public sealed class TimeSyncExtensionsTests : IDisposable
                 TimeSyncEnabled = true
             };
 
-            using var session = new TcpSession(options, _registry);
+            using var session = new TcpSession(options);
             await session.ConnectAsync();
 
             (double rtt, double adjusted) = await session.SyncTimeAsync(timeoutMs: 10000);
@@ -62,6 +57,7 @@ public sealed class TimeSyncExtensionsTests : IDisposable
     public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
 
 
 

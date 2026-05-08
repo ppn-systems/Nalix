@@ -46,7 +46,7 @@ public static class TcpSessionSubscriptions
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(handler);
 
-        uint targetMagic = PacketRegistryFactory.Compute(typeof(TPacket));
+        uint targetMagic = PacketRegistry.Compute(typeof(TPacket));
 
         void Wrapper(object? _, IBufferLease buffer)
         {
@@ -65,7 +65,7 @@ public static class TcpSessionSubscriptions
 
             try
             {
-                IPacket p = client.Catalog.Deserialize(buffer.Span);
+                IPacket p = PacketRegistry.Deserialize(buffer.Span);
                 try
                 {
                     if (p is TPacket t)
@@ -114,7 +114,7 @@ public static class TcpSessionSubscriptions
         {
             try
             {
-                IPacket p = client.Catalog.Deserialize(buffer.Span);
+                IPacket p = PacketRegistry.Deserialize(buffer.Span);
                 try
                 {
                     if (p is not TPacket t)
@@ -164,7 +164,7 @@ public static class TcpSessionSubscriptions
         {
             try
             {
-                IPacket p = client.Catalog.Deserialize(buffer.Span);
+                IPacket p = PacketRegistry.Deserialize(buffer.Span);
 
                 if (p is null || !predicate(p))
                 {
@@ -202,7 +202,7 @@ public static class TcpSessionSubscriptions
         ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(handler);
 
-        uint targetMagic = PacketRegistryFactory.Compute(typeof(TPacket));
+        uint targetMagic = PacketRegistry.Compute(typeof(TPacket));
         int fired = 0;
 
         void Wrapper(object? _, IBufferLease buffer)
@@ -221,7 +221,8 @@ public static class TcpSessionSubscriptions
 
             try
             {
-                IPacket p = client.Catalog.Deserialize(buffer.Span);
+                IPacket p = PacketRegistry.Deserialize(buffer.Span);
+                bool delivered = false;
                 try
                 {
                     if (p is not TPacket t || !predicate(t))
@@ -235,12 +236,13 @@ public static class TcpSessionSubscriptions
                         return;
                     }
 
+                    delivered = true;
                     client.OnMessageReceived -= Wrapper;
                     handler(t);
                 }
                 finally
                 {
-                    if (disposeAfter && p is IDisposable d)
+                    if ((!delivered || disposeAfter) && p is IDisposable d)
                     {
                         d.Dispose();
                     }

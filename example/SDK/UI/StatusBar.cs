@@ -69,3 +69,4 @@ internal sealed class StatusBar
         AnsiConsole.Write(table);
     }
 }
+

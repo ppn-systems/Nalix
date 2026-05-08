@@ -2,6 +2,7 @@ name: "Template: Build & Test"
 # Force use of Node 24 for all actions due to Node 20 deprecation
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DOTNET_CLI_USE_MSBUILD_SERVER: false
 
 permissions:
   contents: read
@@ -104,8 +105,8 @@ jobs:
         shell: bash
         timeout-minutes: 15
         run: |
-          dotnet build "${{ inputs.project }}" --configuration Release --no-restore -p:UseSharedCompilation=false
-          dotnet build "${{ inputs.test }}" --configuration Release --no-restore -p:UseSharedCompilation=false
+          dotnet build "${{ inputs.project }}" -c Release --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false
+          dotnet build "${{ inputs.test }}" -c Release --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false
 
       - name: Run all tests
         shell: bash

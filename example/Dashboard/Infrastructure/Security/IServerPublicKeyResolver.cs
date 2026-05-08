@@ -6,3 +6,4 @@ internal interface IServerPublicKeyResolver
 {
     string Resolve(DashboardOptions options);
 }
+

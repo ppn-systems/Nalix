@@ -8,7 +8,9 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+#if !NALIX_AOT
 using System.Reflection.Emit;
+#endif
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
@@ -168,6 +170,7 @@ public static class FormatterProvider
         Register(new NullableFormatter<ulong>());
         Register(new NullableArrayFormatter<ulong>());
 
+#if !NALIX_AOT
         if (s_listener.IsEnabled("init"))
         {
             s_listener.Write("init", new
@@ -184,6 +187,7 @@ public static class FormatterProvider
                 Timestamp = DateTime.UtcNow
             });
         }
+#endif
     }
 
     #endregion Static Constructor
@@ -193,7 +197,7 @@ public static class FormatterProvider
     /// <summary>
     /// Returns a cached <see cref="Func{Object}"/> that calls the parameterless
     /// constructor of <paramref name="concreteFormatterType"/> via a
-    /// <see cref="DynamicMethod"/>.
+    /// <c>DynamicMethod</c>.
     /// <para>
     /// Generated IL (conceptually):
     /// <code>() => new ConcreteFormatter()</code>
@@ -211,6 +215,18 @@ public static class FormatterProvider
     /// every call and boxes the return value.  The emitted delegate is a plain
     /// <c>Func&lt;object&gt;</c> — zero reflection, zero boxing after the first call.
     /// </remarks>
+#if NALIX_AOT
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Func<object> BuildCtorFactory(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type concreteFormatterType)
+    {
+        _ = concreteFormatterType.GetConstructor(Type.EmptyTypes)
+            ?? throw new SerializationFailureException(
+                $"No parameterless constructor on '{concreteFormatterType.FullName}'.");
+
+        return () => Activator.CreateInstance(concreteFormatterType)!;
+    }
+#else
     [MethodImpl(MethodImplOptions.NoInlining)] // cold path — emit once, cache forever
     private static Func<object> BuildCtorFactory(Type concreteFormatterType)
     {
@@ -241,9 +257,17 @@ public static class FormatterProvider
 
         return dm.CreateDelegate<Func<object>>();
     }
+#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Func<object> GetOrAddFactory(Type concreteFormatterType) => s_factoryCache.GetOrAdd(concreteFormatterType, static t => BuildCtorFactory(t));
+    private static Func<object> GetOrAddFactory(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type concreteFormatterType)
+#if NALIX_AOT
+        => BuildCtorFactory(concreteFormatterType);
+#else
+        => s_factoryCache.GetOrAdd(concreteFormatterType, static t => BuildCtorFactory(t));
+#endif
+
 
     /// <summary>
     /// Resolves the concrete formatter type from a generic definition + type args,
@@ -257,8 +281,46 @@ public static class FormatterProvider
     /// <param name="typeArg">
     /// Type argument used to close the generic, e.g. <c>typeof(int)</c>.
     /// </param>
+#if NALIX_AOT
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "AOT path only closes formatter instantiations exercised by explicit registration/source-generated manifests.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2055",
+        Justification = "Formatter definitions are closed over known type arguments and validated by NativeAOT compare tests.")]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static IFormatter<T> EmitCreate<T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type typeArg)
+    {
+        Type concrete = genericFormatterDef.MakeGenericType([typeArg]);
+        return (IFormatter<T>)GetOrAddFactory(concrete)();
+    }
+
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "AOT path only closes formatter instantiations exercised by explicit registration/source-generated manifests.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2055",
+        Justification = "Formatter definitions are closed over known type arguments and validated by NativeAOT compare tests.")]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static IFormatter<T> EmitCreate<T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type typeArg1, Type typeArg2)
+    {
+        Type concrete = genericFormatterDef.MakeGenericType([typeArg1, typeArg2]);
+        return (IFormatter<T>)GetOrAddFactory(concrete)();
+    }
+
+    [UnconditionalSuppressMessage("AOT", "IL3050",
+        Justification = "AOT path only closes formatter instantiations exercised by explicit registration/source-generated manifests.")]
+    [UnconditionalSuppressMessage("Trimming", "IL2055",
+        Justification = "Formatter definitions are closed over known type arguments and validated by NativeAOT compare tests.")]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static IFormatter<T> EmitCreate<T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type[] typeArgs)
+    {
+        Type concrete = genericFormatterDef.MakeGenericType(typeArgs);
+        return (IFormatter<T>)GetOrAddFactory(concrete)();
+    }
+#else
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type typeArg)
+    private static IFormatter<T> EmitCreate<T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type typeArg)
     {
         // Close the open generic formatter type at runtime, then instantiate the cached constructor.
         Type concrete = genericFormatterDef.MakeGenericType([typeArg]);
@@ -266,18 +328,21 @@ public static class FormatterProvider
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type typeArg1, Type typeArg2)
+    private static IFormatter<T> EmitCreate<T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type typeArg1, Type typeArg2)
     {
         Type concrete = genericFormatterDef.MakeGenericType([typeArg1, typeArg2]);
         return (IFormatter<T>)GetOrAddFactory(concrete)();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> EmitCreate<T>(Type genericFormatterDef, Type[] typeArgs)
+    private static IFormatter<T> EmitCreate<T>(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type[] typeArgs)
     {
         Type concrete = genericFormatterDef.MakeGenericType(typeArgs);
         return (IFormatter<T>)GetOrAddFactory(concrete)();
     }
+#endif
 
     #endregion IL-Emit Factory
 
@@ -439,7 +504,7 @@ public static class FormatterProvider
         // Class (non-string)
         if (t.IsClass && t != typeof(string))
         {
-            return CacheOrGetExisting(EmitCreate<T>(typeof(NullableObjectFormatter<>), t));
+            return CacheOrGetExisting(GetComplex<T>());
         }
 
         // Struct / auto-generated complex
@@ -499,7 +564,11 @@ public static class FormatterProvider
     #region Private Methods
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> CacheOrGetExisting<T>(IFormatter<T> created)
+    private static IFormatter<T> CacheOrGetExisting<
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(IFormatter<T> created)
     {
         IFormatter<T>? existing = Interlocked.CompareExchange(
             ref FormatterCache<T>.Instance, created, null);
@@ -683,7 +752,10 @@ public static class FormatterProvider
     }
 
     private static IFormatter<T>? TryCreateMemoryFormatter<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>()
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicProperties |
+            DynamicallyAccessedMemberTypes.PublicConstructors |
+            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>()
     {
         Type t = typeof(T);
         if (!t.IsGenericType)

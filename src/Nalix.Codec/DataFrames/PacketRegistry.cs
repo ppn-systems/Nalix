@@ -1,10 +1,12 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
@@ -14,27 +16,23 @@ using Nalix.Codec.Extensions;
 namespace Nalix.Codec.DataFrames;
 
 /// <summary>
-/// Provides an immutable, thread-safe catalog of packet deserializers and transformers.
+/// Provides the process-wide generated packet registry.
 /// </summary>
-/// <remarks>
-/// <para>
-/// The catalog stores lookups for:
-/// <list type="bullet">
-///   <item>Packet deserializers mapped by 32-bit magic numbers.</item>
-///   <item>Packet transformers mapped by concrete packet <see cref="Type"/>.</item>
-/// </list>
-/// </para>
-/// <para>
-/// This type is safe for concurrent read access. Instances are immutable once constructed.
-/// Both internal dictionaries are <see cref="System.Collections.Frozen.FrozenDictionary{TKey,TValue}"/>
-/// for allocation-free, branch-prediction-friendly lookups.
-/// </para>
-/// </remarks>
-public sealed class PacketRegistry : IPacketRegistry
+public static class PacketRegistry
 {
     #region Fields
 
-    private readonly FrozenDictionary<uint, PacketDeserializer> _deserializers;
+    private static readonly Lock s_gate;
+
+    private static Dictionary<uint, string>? s_pendingNames;
+    private static PacketFastDispatcher? s_runtimeFastDispatcher;
+    private static List<PacketFastDispatcher>? s_pendingFastDispatchers;
+    private static FrozenDictionary<uint, PacketDeserializer>? s_deserializers;
+    private static Dictionary<uint, PacketDeserializer>? s_pendingDeserializers;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// A single instance of the Pool Manager shared across all packet types.
@@ -42,83 +40,193 @@ public sealed class PacketRegistry : IPacketRegistry
     /// </summary>
     internal static IObjectPoolManager? Manager;
 
-    #endregion Fields
+    /// <summary>
+    /// Gets the number of frozen deserializers.
+    /// </summary>
+    public static int DeserializerCount => GetBuilt().Count;
+
+    #endregion Properties
 
     #region Constructors
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PacketRegistry"/> class using
-    /// pre-built frozen lookup tables.
-    /// </summary>
-    /// <param name="deserializers">
-    /// A frozen dictionary mapping magic numbers to <see cref="PacketDeserializer"/> delegates.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when either argument is <see langword="null"/>.
-    /// </exception>
-    public PacketRegistry(FrozenDictionary<uint, PacketDeserializer> deserializers)
+    static PacketRegistry()
     {
-        ArgumentNullException.ThrowIfNull(deserializers);
-        _deserializers = deserializers;
-    }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="PacketRegistry"/> class by executing
-    /// the specified configuration action on a <see cref="PacketRegistryFactory"/>.
-    /// </summary>
-    /// <param name="configure">
-    /// A delegate that configures the <see cref="PacketRegistryFactory"/> by registering
-    /// explicit packet types, assemblies, and/or namespaces. Must not be
-    /// <see langword="null"/>.
-    /// </param>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="configure"/> is <see langword="null"/>.
-    /// </exception>
-    public PacketRegistry(Action<PacketRegistryFactory> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-
-        PacketRegistryFactory factory = new();
-        configure(factory);
-        PacketRegistry built = factory.CreateCatalog();
-
-        _deserializers = built._deserializers;
+        s_gate = new();
+        s_pendingNames = new();
+        s_pendingDeserializers = new();
+        s_pendingFastDispatchers = new();
     }
 
     #endregion Constructors
 
-    #region Diagnostic Properties
-
-    /// <inheritdoc/>
-    public int DeserializerCount => _deserializers.Count;
-
-    #endregion Diagnostic Properties
-
-    #region Public API
+    #region APIs
 
     /// <summary>
     /// Configures the shared Pool Manager for the entire packet ecosystem.
     /// </summary>
-    /// <param name="manager">An implementation of <see cref="IObjectPoolManager"/> from the infrastructure layer.</param>
-    /// <remarks>
-    /// Because <see cref="PacketRegistry"/> is shared, calling Configure on any 
-    /// <c>PacketProvider&lt;T&gt;</c> will take effect for all other packet types.
-    /// </remarks>
-    public static void Configure(IObjectPoolManager manager) => System.Threading.Volatile.Write(ref Manager, manager);
+    public static void Configure(IObjectPoolManager manager) => Volatile.Write(ref Manager, manager);
 
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsKnownMagic(uint magic) => _deserializers.ContainsKey(magic);
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsRegistered<TPacket>() where TPacket : IPacket => _deserializers.ContainsKey(PacketRegistryFactory.Compute(typeof(TPacket)));
-
-    /// <inheritdoc/>
-    /// <exception cref="ArgumentException">Thrown when a registered deserializer attempts to read a malformed packet header.</exception>
-    public IPacket Deserialize(ReadOnlySpan<byte> raw)
+    /// <summary>
+    /// Builds and freezes the generated packet registry once.
+    /// </summary>
+    public static void Build()
     {
-        if (this.TryDeserialize(raw, out IPacket? packet))
+        FrozenDictionary<uint, PacketDeserializer>? current = Volatile.Read(ref s_deserializers);
+        if (current is not null)
+        {
+            return;
+        }
+
+        lock (s_gate)
+        {
+            if (s_deserializers is not null)
+            {
+                return;
+            }
+
+            Dictionary<uint, PacketDeserializer> pending = s_pendingDeserializers ?? new();
+            PacketFastDispatcher[] dispatchers = s_pendingFastDispatchers?.ToArray() ?? [];
+
+            s_deserializers = pending.ToFrozenDictionary();
+            s_runtimeFastDispatcher = COMPOSE(dispatchers);
+
+            s_pendingNames = null;
+            s_pendingDeserializers = null;
+            s_pendingFastDispatchers = null;
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static PacketFastDispatcher? COMPOSE(PacketFastDispatcher[] dispatchers)
+        {
+            return dispatchers.Length switch
+            {
+                0 => null,
+                1 => dispatchers[0],
+                _ => (magic, raw, [NotNullWhen(true)] out packet) =>
+                {
+                    for (int i = 0; i < dispatchers.Length; i++)
+                    {
+                        if (dispatchers[i](magic, raw, out packet))
+                        {
+                            return true;
+                        }
+                    }
+
+                    packet = null;
+                    return false;
+                }
+            };
+        }
+    }
+
+    /// <summary>
+    /// Registers a source-generated fast dispatcher before the registry is built.
+    /// </summary>
+    public static void RegisterGenerated(PacketFastDispatcher dispatcher)
+    {
+        ArgumentNullException.ThrowIfNull(dispatcher);
+
+        lock (s_gate)
+        {
+            if (s_deserializers is not null)
+            {
+                throw new InvalidOperationException(
+                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
+            }
+
+            List<PacketFastDispatcher> dispatchers = s_pendingFastDispatchers ??= new();
+            dispatchers.Add(dispatcher);
+        }
+    }
+
+    /// <summary>
+    /// Registers a source-generated packet deserializer before the registry is built.
+    /// </summary>
+    public static void RegisterGenerated(uint magic, string name, PacketDeserializer deserializer)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(deserializer);
+
+        lock (s_gate)
+        {
+            if (s_deserializers is not null)
+            {
+                if (s_deserializers.ContainsKey(magic))
+                {
+                    return;
+                }
+
+                throw new InvalidOperationException(
+                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
+            }
+
+            Dictionary<uint, PacketDeserializer> deserializers = s_pendingDeserializers ??= new();
+            Dictionary<uint, string> names = s_pendingNames ??= new();
+
+            if (deserializers.ContainsKey(magic))
+            {
+                string oldName = names.TryGetValue(magic, out string? resolved) ? resolved : "<unknown>";
+                if (StringComparer.Ordinal.Equals(oldName, name))
+                {
+                    return;
+                }
+
+                throw new InternalErrorException(
+                    $"[PacketRegistry] Hash collision detected! Magic: 0x{magic:X8}; Type A: {oldName}; Type B: {name}");
+            }
+
+            deserializers[magic] = deserializer;
+            names[magic] = name;
+        }
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if a deserializer is registered for the magic number.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsKnownMagic(uint magic) => GetBuilt().ContainsKey(magic);
+
+    /// <summary>
+    /// Returns <see langword="true"/> if a deserializer is registered for <typeparamref name="TPacket"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsRegistered<TPacket>() where TPacket : IPacket => GetBuilt().ContainsKey(Compute(typeof(TPacket)));
+
+    /// <summary>
+    /// Computes the deterministic packet magic from a packet type full name.
+    /// </summary>
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    public static uint Compute(Type type)
+    {
+        ArgumentNullException.ThrowIfNull(type);
+
+        return Compute(type.FullName ?? type.Name);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        static uint Compute(string name)
+        {
+            const uint offset = 2166136261u;
+            const uint prime = 16777619u;
+
+            uint hash = offset;
+
+            foreach (char ch in name)
+            {
+                hash ^= ch;
+                hash *= prime;
+            }
+
+            return hash;
+        }
+    }
+
+    /// <summary>
+    /// Deserializes a packet by resolving the magic number from the raw buffer.
+    /// </summary>
+    public static IPacket Deserialize(ReadOnlySpan<byte> raw)
+    {
+        if (TryDeserialize(raw, out IPacket? packet))
         {
             return packet;
         }
@@ -131,19 +239,24 @@ public sealed class PacketRegistry : IPacketRegistry
         }
 
         ref readonly PacketHeader header = ref raw.AsHeaderRef();
-        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
+        FrozenDictionary<uint, PacketDeserializer> deserializers = GetBuilt();
+        if (!deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
         {
             throw new InvalidOperationException(
                 $"Cannot deserialize packet: Magic 0x{header.MagicNumber:X8} is not registered. " +
-                $"Check your PacketRegistryFactory configuration.");
+                "Check generated packet registration and assembly load order.");
         }
 
         return deserializer(raw);
     }
 
-    /// <inheritdoc/>
+    /// <summary>
+    /// Attempts to deserialize a packet without throwing for unknown magic or short input.
+    /// Generated fast dispatchers are authoritative once registered; the dictionary fallback is used only when no
+    /// generated dispatcher exists.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
+    public static bool TryDeserialize(ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
     {
         if ((uint)raw.Length < PacketConstants.HeaderSize)
         {
@@ -151,24 +264,61 @@ public sealed class PacketRegistry : IPacketRegistry
             return false;
         }
 
-        ref readonly PacketHeader header = ref raw.AsHeaderRef();
-        if (!_deserializers.TryGetValue(header.MagicNumber, out PacketDeserializer? deserializer))
-        {
-            packet = null;
-            return false;
-        }
+        uint magic = raw.AsHeaderRef().MagicNumber;
 
         try
         {
-            packet = Unsafe.As<PacketDeserializer>(deserializer).Invoke(raw);
-            return packet is not null;
+            PacketFastDispatcher? dispatcher = s_runtimeFastDispatcher;
+            if (dispatcher is not null)
+            {
+                return dispatcher(magic, raw, out packet);
+            }
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
         {
             packet = null;
             return false;
         }
+
+        return TRY_DESERIALIZE_FALLBACK(magic, raw, out packet);
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        static bool TRY_DESERIALIZE_FALLBACK(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
+        {
+            FrozenDictionary<uint, PacketDeserializer> deserializers = GetBuilt();
+            if (!deserializers.TryGetValue(magic, out PacketDeserializer? deserializer))
+            {
+                packet = null;
+                return false;
+            }
+
+            try
+            {
+                packet = deserializer(raw);
+                return packet is not null;
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or SerializationFailureException)
+            {
+                packet = null;
+                return false;
+            }
+        }
     }
 
-    #endregion Public API
+    #endregion APIs
+
+    #region Private Methods
+
+    private static FrozenDictionary<uint, PacketDeserializer> GetBuilt()
+    {
+        return Volatile.Read(ref s_deserializers)
+            ?? throw new InvalidOperationException("PacketRegistry is not built. Call PacketRegistry.Build() after all packet assemblies are loaded.");
+    }
+
+    #endregion Private Methods
 }
+
+/// <summary>
+/// Resolves and deserializes a generated packet without registry dictionary lookup.
+/// </summary>
+public delegate bool PacketFastDispatcher(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet);

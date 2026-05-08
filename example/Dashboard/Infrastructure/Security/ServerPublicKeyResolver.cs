@@ -71,3 +71,4 @@ internal sealed class ServerPublicKeyResolver : IServerPublicKeyResolver
         }
     }
 }
+

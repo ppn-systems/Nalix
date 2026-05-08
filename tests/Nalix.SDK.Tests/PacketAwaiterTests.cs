@@ -21,15 +21,15 @@ public sealed class PacketAwaiterTests
     public async Task AwaitAsync_WhenPredicateMatches_ReturnsPacket()
     {
         TransportSession session = Substitute.For<TransportSession>();
-        TestPacket packet = new() { Header = new PacketHeader { OpCode = 0x100 } };
-        
-        session.Catalog.Returns(new ManualCatalog(packet));
+        Nalix.Codec.DataFrames.PacketRegistry.Build();
+        Nalix.Codec.DataFrames.SignalFrames.Control packet = new();
+        var header = packet.Header;
+        header.OpCode = 0x100;
+        packet.Header = header;
+        byte[] data = packet.Serialize();
+        ManualLease lease = new(data);
 
-        ManualLease lease = new();
-        uint magic = Nalix.Codec.DataFrames.PacketRegistryFactory.Compute(typeof(TestPacket));
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(lease.Span, magic);
-
-        Task<TestPacket> awaitTask = PacketAwaiter.AwaitAsync<TestPacket>(
+        Task<Nalix.Codec.DataFrames.SignalFrames.Control> awaitTask = PacketAwaiter.AwaitAsync<Nalix.Codec.DataFrames.SignalFrames.Control>(
             session,
             p => p.Header.OpCode == 0x100,
             1000,
@@ -39,13 +39,14 @@ public sealed class PacketAwaiterTests
         // Trigger the message received event
         session.OnMessageReceived += Raise.Event<EventHandler<IBufferLease>>(session, lease);
 
-        TestPacket result = await awaitTask;
-        Assert.Same(packet, result);
+        Nalix.Codec.DataFrames.SignalFrames.Control result = await awaitTask;
+        Assert.Equal(0x100, result.Header.OpCode);
     }
 
     private sealed class ManualLease : IBufferLease
     {
-        private byte[] _data = new byte[16];
+        private readonly byte[] _data;
+        public ManualLease(byte[] data) => _data = data;
         public int Length => _data.Length;
         public bool IsReliable { get; set; }
         public int Capacity => _data.Length;
@@ -100,6 +101,7 @@ public sealed class PacketAwaiterTests
     }
 }
 #endif
+
 
 
 

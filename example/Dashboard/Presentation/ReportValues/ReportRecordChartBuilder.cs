@@ -107,3 +107,4 @@ internal static class ReportRecordChartBuilder
         string Label,
         bool ShowWhenZero);
 }
+

@@ -42,13 +42,7 @@ Nalix.Hosting provides Microsoft-style host and builder APIs for the Nalix ecosy
 		<InternalsVisibleTo Include="Nalix.Network.Tests" />
 		<InternalsVisibleTo Include="Nalix.Network.Benchmarks" />
 	</ItemGroup>
-
-	<ItemGroup Condition="'$(Configuration)' == 'Release'">
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.dll')" />
-
-		<None Include="$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll" Pack="true" PackagePath="analyzers/dotnet/cs" Condition="Exists('$(MSBuildProjectDirectory)\..\..\build\bin\$(Configuration)\Nalix.Analyzers.CodeFixes.dll')" />
-	</ItemGroup>
-
+	
 	<ItemGroup>
 	  <Compile Update="Resource.Designer.cs">
 	    <DesignTime>True</DesignTime>

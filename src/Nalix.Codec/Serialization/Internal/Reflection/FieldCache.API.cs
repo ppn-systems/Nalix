@@ -27,4 +27,9 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static FieldSchema[] GetFields() => s_metadata;
 
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static object? GetObject(T obj, int fieldIndex)
+        => s_metadata[fieldIndex].FieldInfo.GetValue(obj);
+
 }

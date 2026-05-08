@@ -19,7 +19,9 @@ internal static partial class FieldCache<
     [DynamicallyAccessedMembers(
         DynamicallyAccessedMemberTypes.PublicConstructors |
         DynamicallyAccessedMemberTypes.PublicProperties |
-        DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
+        DynamicallyAccessedMemberTypes.NonPublicProperties |
+        DynamicallyAccessedMemberTypes.PublicFields |
+        DynamicallyAccessedMemberTypes.NonPublicFields)] T>
 {
     private static readonly FieldSchema[] s_metadata;
     private static readonly SerializeLayout s_layout;
@@ -47,9 +49,13 @@ internal static partial class FieldCache<
         ENSURE_LAYOUT_IS_VALID();
     }
 
+    [UnconditionalSuppressMessage("Trimming", "IL2075",
+        Justification = "FieldCache<T> preserves fields on T; base traversal is required for PacketBase headers and covered by NativeAOT roundtrip tests.")]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static FieldSchema[] DISCOVER_FIELDS(
-        Type type,
+        [DynamicallyAccessedMembers(
+            DynamicallyAccessedMemberTypes.PublicFields |
+            DynamicallyAccessedMemberTypes.NonPublicFields)] Type type,
         SerializeLayout layout,
         HashSet<string> ignoredProperties,
         Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> explicitOrdersByDeclaringType)
@@ -57,7 +63,9 @@ internal static partial class FieldCache<
         List<FieldSchema> included = new(16);
         int sequentialOrder = 0;
 
-        for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
+        Type? current = type;
+
+        while (current != null && current != typeof(object))
         {
             FieldInfo[] declaredFields = current.GetFields(
                 BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
@@ -91,6 +99,8 @@ internal static partial class FieldCache<
                     field.FieldType,
                     field));
             }
+
+            current = current.BaseType;
         }
 
         included.Sort((a, b) =>
@@ -117,7 +127,8 @@ internal static partial class FieldCache<
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static HashSet<string> BUILD_IGNORED_PROPERTIES(Type type)
+    private static HashSet<string> BUILD_IGNORED_PROPERTIES(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type)
     {
         HashSet<string> set = new(StringComparer.Ordinal);
         for (Type? current = type; current != null && current != typeof(object); current = current.BaseType)
@@ -137,7 +148,8 @@ internal static partial class FieldCache<
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> BUILD_EXPLICIT_ORDER_MAPS(Type type)
+    private static Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> BUILD_EXPLICIT_ORDER_MAPS(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type)
     {
         Dictionary<Type, Dictionary<string, (int Order, bool IsHeader)>> result = [];
 
@@ -236,6 +248,9 @@ internal static partial class FieldCache<
             return 16;
         }
 
+#if NALIX_AOT
+        return IntPtr.Size;
+#else
         try
         {
             return System.Runtime.InteropServices.Marshal.SizeOf(type);
@@ -244,6 +259,7 @@ internal static partial class FieldCache<
         {
             return IntPtr.Size;
         }
+#endif
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]

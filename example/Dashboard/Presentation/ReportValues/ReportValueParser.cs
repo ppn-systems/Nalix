@@ -396,3 +396,4 @@ public static partial class ReportValueParser
         return true;
     }
 }
+

@@ -285,3 +285,4 @@ public static class ReportMetricLayoutBuilder
 
     private sealed record MetricDraft(string Group, ReportMetricItem Item);
 }
+

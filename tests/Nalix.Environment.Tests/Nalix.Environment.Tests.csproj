@@ -22,7 +22,6 @@
     <ProjectReference Include="..\..\src\Nalix.Environment\Nalix.Environment.csproj" />
     <ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
     <ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
-    <ProjectReference Include="..\..\src\Nalix.Generators\Nalix.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

@@ -100,3 +100,4 @@ public sealed class AuthorityGrantHandlers
                CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
     }
 }
+

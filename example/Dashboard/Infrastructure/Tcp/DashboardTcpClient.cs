@@ -1,11 +1,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Microsoft.Extensions.Options;
-using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Abstractions.Security;
-using Nalix.Codec.DataFrames;
 using Contracts;
 using Dashboard.Application.Abstractions;
 using Dashboard.Application.Options;
@@ -13,6 +8,10 @@ using Dashboard.Application.Reports;
 using Dashboard.Application.State;
 using Dashboard.Domain.Reports;
 using Dashboard.Infrastructure.Security;
+using Microsoft.Extensions.Options;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Security;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -159,7 +158,6 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
 
         await this.ResetSessionAsync().ConfigureAwait(false);
 
-        PacketRegistry catalog = DashboardPacketCatalogFactory.Create();
         string serverPublicKey = _publicKeyResolver.Resolve(_options);
 
         TransportOptions transport = new()
@@ -172,7 +170,7 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
             KeepAliveIntervalMillis = 0
         };
 
-        TcpSession session = new(transport, catalog);
+        TcpSession session = new(transport);
         session.OnDisconnected += (_, ex) =>
         {
             _state.Log("WARN", $"TCP disconnected: {ex.Message}");
@@ -275,3 +273,4 @@ internal sealed class DashboardTcpClient : IDashboardClient, IAsyncDisposable
         _sync.Dispose();
     }
 }
+

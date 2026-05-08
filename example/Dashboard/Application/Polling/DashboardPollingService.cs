@@ -125,3 +125,4 @@ internal sealed class DashboardPollingService : BackgroundService
         public void Reset() => _written = false;
     }
 }
+

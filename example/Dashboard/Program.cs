@@ -45,3 +45,4 @@ _ = app.MapRazorComponents<Dashboard.Components.App>()
 app.Run();
 
 #pragma warning restore IDE0211 // Convert to 'Program.Main' style program
+

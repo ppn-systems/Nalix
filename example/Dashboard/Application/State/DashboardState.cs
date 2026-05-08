@@ -377,3 +377,4 @@ internal sealed class DashboardState : IDashboardStateReader, IDashboardStateWri
     private static string NormalizeMessage(string? message)
         => string.IsNullOrWhiteSpace(message) ? "(empty log message)" : message.Trim();
 }
+

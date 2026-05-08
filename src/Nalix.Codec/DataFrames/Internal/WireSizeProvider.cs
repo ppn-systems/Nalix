@@ -22,10 +22,7 @@ internal static class WireSizeProvider
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal static int GetSize<
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicConstructors |
-            DynamicallyAccessedMemberTypes.PublicProperties |
-            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>(T value)
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>(T value)
         => WireSizeCache<T>.GetSize(value);
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -44,10 +41,7 @@ internal static class WireSizeProvider
     }
 
     private static class WireSizeCache<
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicConstructors |
-            DynamicallyAccessedMemberTypes.PublicProperties |
-            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
     {
         private static readonly Func<T, int> s_getSize = CreateSizer();
 
@@ -165,18 +159,145 @@ internal static class WireSizeProvider
 
         private static Func<T, int> CreateSizerFromGeneric(string methodName, Type[] genericArguments)
         {
+#if NALIX_AOT
+            return CreateSizerFromGenericAot(methodName, genericArguments);
+#else
             MethodInfo method = typeof(WireSizeCache<T>)
                 .GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException($"Missing wire-size factory: {methodName}.");
 
             return (Func<T, int>)method.MakeGenericMethod(genericArguments).Invoke(null, null)!;
+#endif
         }
+
+#if NALIX_AOT
+        private static Func<T, int> CreateSizerFromGenericAot(string methodName, Type[] genericArguments)
+        {
+            return methodName switch
+            {
+                nameof(CreateUnmanagedArraySizer) => SizeUnmanagedArrayAot(genericArguments[0]),
+                nameof(CreateReferenceArraySizer) => value => SizeEnumerableAot(value as System.Collections.IEnumerable),
+                nameof(CreateNullableArraySizer) => value => SizeEnumerableAot(value as System.Collections.IEnumerable),
+                nameof(CreateListSizer) => value => SizeCollectionAot(value as System.Collections.ICollection, genericArguments[0]),
+                nameof(CreateHashSetSizer) => value => SizeCollectionAot(value as System.Collections.ICollection, genericArguments[0]),
+                nameof(CreateQueueSizer) => value => SizeCollectionAot(value as System.Collections.ICollection, genericArguments[0]),
+                nameof(CreateStackSizer) => value => SizeCollectionAot(value as System.Collections.ICollection, genericArguments[0]),
+                nameof(CreateDictionarySizer) => value => SizeDictionaryAot(value as System.Collections.IDictionary, genericArguments[0], genericArguments[1]),
+                nameof(CreateNullableSizer) => value => value is null ? sizeof(byte) : sizeof(byte) + PacketBaseElementSizer.GetElementSize(genericArguments[0]),
+                nameof(CreateMemorySizer) or nameof(CreateReadOnlyMemorySizer) => value => SizeMemoryAot(value, genericArguments[0]),
+                _ => _ => 0
+            };
+        }
+
+        private static Func<T, int> SizeUnmanagedArrayAot(Type elementType)
+        {
+            Int32 elementSize = PacketBaseElementSizer.GetElementSize(elementType);
+            return value => value is Array array
+                ? checked(sizeof(int) + (array.Length * elementSize))
+                : sizeof(int);
+        }
+
+        private static int SizeCollectionAot(System.Collections.ICollection? value, Type elementType)
+        {
+            if (value is null)
+            {
+                return sizeof(int);
+            }
+
+            Int32 elementSize = PacketBaseElementSizer.GetElementSize(elementType);
+            if (elementSize != 0)
+            {
+                return checked(sizeof(int) + (value.Count * elementSize));
+            }
+
+            return SizeEnumerableAot(value);
+        }
+
+        private static int SizeDictionaryAot(System.Collections.IDictionary? value, Type keyType, Type valueType)
+        {
+            if (value is null)
+            {
+                return sizeof(int);
+            }
+
+            Int32 keySize = PacketBaseElementSizer.GetElementSize(keyType);
+            Int32 valSize = PacketBaseElementSizer.GetElementSize(valueType);
+            if (keySize != 0 && valSize != 0)
+            {
+                return checked(sizeof(int) + (value.Count * (keySize + valSize)));
+            }
+
+            Int32 size = sizeof(int);
+            foreach (System.Collections.DictionaryEntry entry in value)
+            {
+                size += keySize != 0 ? keySize : SizeObjectAot(entry.Key);
+                size += valSize != 0 ? valSize : SizeObjectAot(entry.Value);
+            }
+
+            return size;
+        }
+
+        private static int SizeEnumerableAot(System.Collections.IEnumerable? value)
+        {
+            if (value is null)
+            {
+                return sizeof(int);
+            }
+
+            Int32 size = sizeof(int);
+            foreach (Object? item in value)
+            {
+                size += SizeObjectAot(item);
+            }
+
+            return size;
+        }
+
+        private static int SizeObjectAot(Object? value)
+        {
+            if (value is null)
+            {
+                return sizeof(byte);
+            }
+
+            Type type = value.GetType();
+            Int32 fixedSize = PacketBaseElementSizer.GetElementSize(type);
+            if (fixedSize != 0)
+            {
+                return fixedSize;
+            }
+
+            if (value is string s)
+            {
+                return SizeString(s);
+            }
+
+            if (value is IPacket packet)
+            {
+                return sizeof(byte) + packet.Length;
+            }
+
+            return 0;
+        }
+
+        private static int SizeMemoryAot(Object? value, Type elementType)
+        {
+            Int32 elementSize = PacketBaseElementSizer.GetElementSize(elementType);
+            return value switch
+            {
+                null => sizeof(int),
+                Array array => checked(sizeof(int) + (array.Length * elementSize)),
+                _ => 0
+            };
+        }
+#endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static Func<T, int> CastSizer<TValue>(Func<TValue, int> sizer)
             => (Func<T, int>)(object)sizer;
 
-        private static Func<T, int> CreateNullableSizer<TValue>() where TValue : struct
+        private static Func<T, int> CreateNullableSizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>() where TValue : struct
         {
             static int Size(TValue? value) =>
                 value.HasValue ? sizeof(byte) + WireSizeProvider.GetSize(value.Value) : sizeof(byte);
@@ -201,7 +322,8 @@ internal static class WireSizeProvider
             return CastSizer<TElement[]?>(value => SizeCore(value, elementSize));
         }
 
-        private static Func<T, int> CreateNullableArraySizer<TElement>() where TElement : struct
+        private static Func<T, int> CreateNullableArraySizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TElement>() where TElement : struct
         {
             static int Size(TElement?[]? value)
             {
@@ -222,7 +344,8 @@ internal static class WireSizeProvider
             return CastSizer<TElement?[]?>(Size);
         }
 
-        private static Func<T, int> CreateReferenceArraySizer<TElement>()
+        private static Func<T, int> CreateReferenceArraySizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TElement>()
         {
             static int Size(TElement[]? value)
             {
@@ -243,7 +366,8 @@ internal static class WireSizeProvider
             return CastSizer<TElement[]?>(Size);
         }
 
-        private static Func<T, int> CreateListSizer<TElement>()
+        private static Func<T, int> CreateListSizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TElement>()
         {
             int elementSize = GetFixedValueSize<TElement>();
 
@@ -271,7 +395,9 @@ internal static class WireSizeProvider
             return CastSizer<List<TElement>?>(value => SizeCore(value, elementSize));
         }
 
-        private static Func<T, int> CreateDictionarySizer<TKey, TValue>() where TKey : notnull
+        private static Func<T, int> CreateDictionarySizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TKey,
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>() where TKey : notnull
         {
             int keySize = GetFixedValueSize<TKey>();
             int valueSize = GetFixedValueSize<TValue>();
@@ -301,7 +427,8 @@ internal static class WireSizeProvider
             return CastSizer<Dictionary<TKey, TValue>?>(value => SizeCore(value, keySize, valueSize));
         }
 
-        private static Func<T, int> CreateHashSetSizer<TElement>() where TElement : notnull
+        private static Func<T, int> CreateHashSetSizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TElement>() where TElement : notnull
         {
             int elementSize = GetFixedValueSize<TElement>();
 
@@ -329,7 +456,8 @@ internal static class WireSizeProvider
             return CastSizer<HashSet<TElement>?>(value => SizeCore(value, elementSize));
         }
 
-        private static Func<T, int> CreateQueueSizer<TElement>()
+        private static Func<T, int> CreateQueueSizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TElement>()
         {
             int elementSize = GetFixedValueSize<TElement>();
 
@@ -357,7 +485,8 @@ internal static class WireSizeProvider
             return CastSizer<Queue<TElement>?>(value => SizeCore(value, elementSize));
         }
 
-        private static Func<T, int> CreateStackSizer<TElement>()
+        private static Func<T, int> CreateStackSizer<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TElement>()
         {
             int elementSize = GetFixedValueSize<TElement>();
 
@@ -418,17 +547,15 @@ internal static class WireSizeProvider
             return size;
         }
 
-        private static int GetFixedValueSize<TValue>()
+        private static int GetFixedValueSize<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TValue>()
             => TypeMetadata.IsUnmanaged<TValue>() || typeof(TValue).IsEnum
                 ? PacketBaseElementSizer.GetElementSize(typeof(TValue))
                 : 0;
     }
 
     private static class ComplexWireSizer<
-        [DynamicallyAccessedMembers(
-            DynamicallyAccessedMemberTypes.PublicConstructors |
-            DynamicallyAccessedMemberTypes.PublicProperties |
-            DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] T>
     {
         private static readonly Func<T, int>[] s_fieldSizers = CreateFieldSizers();
 
@@ -458,14 +585,157 @@ internal static class WireSizeProvider
 
         private static Func<T, int> CreateFieldSizer(int fieldIndex, Type fieldType)
         {
+#if NALIX_AOT
+            return value => GetDynamicSize(FieldCache<T>.GetObject(value, fieldIndex), fieldType);
+#else
             MethodInfo method = typeof(ComplexWireSizer<T>)
                 .GetMethod(nameof(CreateFieldSizerCore), BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException($"Missing method: {nameof(CreateFieldSizerCore)}.");
 
             return (Func<T, int>)method.MakeGenericMethod(fieldType).Invoke(null, [fieldIndex])!;
+#endif
         }
 
-        private static Func<T, int> CreateFieldSizerCore<TField>(int fieldIndex)
+#if NALIX_AOT
+        private static int GetDynamicSize(object? value, Type fieldType)
+        {
+            if (fieldType == typeof(string))
+            {
+                return SizeStringAot((string?)value);
+            }
+
+            if (fieldType == typeof(byte[]))
+            {
+                return value is null ? sizeof(int) : sizeof(int) + ((byte[])value).Length;
+            }
+
+            if (fieldType == typeof(string[]))
+            {
+                return SizeStringArrayAot((string[]?)value);
+            }
+
+            if (typeof(IPacket).IsAssignableFrom(fieldType))
+            {
+                return value is null ? sizeof(byte) : sizeof(byte) + ((IPacket)value).Length;
+            }
+
+            if (fieldType.IsArray)
+            {
+                return SizeArray((Array?)value, fieldType.GetElementType()!);
+            }
+
+            if (value is System.Collections.ICollection collection)
+            {
+                return SizeCollection(collection, fieldType);
+            }
+
+            return value is null ? sizeof(byte) : sizeof(byte) + MeasureRuntime(value);
+        }
+
+        private static int SizeArray(Array? value, Type elementType)
+        {
+            if (value is null)
+            {
+                return sizeof(int);
+            }
+
+            Int32 fixedSize = PacketBaseElementSizer.GetElementSize(elementType);
+            if (fixedSize != 0)
+            {
+                return checked(sizeof(int) + (value.Length * fixedSize));
+            }
+
+            Int32 size = sizeof(int);
+            foreach (Object? item in value)
+            {
+                size += item is null ? sizeof(byte) : sizeof(byte) + MeasureRuntime(item);
+            }
+
+            return size;
+        }
+
+        private static int SizeCollection(System.Collections.ICollection value, Type fieldType)
+        {
+            Type? elementType = fieldType.IsGenericType ? fieldType.GetGenericArguments()[0] : null;
+            Int32 fixedSize = elementType is null ? 0 : PacketBaseElementSizer.GetElementSize(elementType);
+            if (fixedSize != 0)
+            {
+                return checked(sizeof(int) + (value.Count * fixedSize));
+            }
+
+            Int32 size = sizeof(int);
+            foreach (Object? item in value)
+            {
+                size += SizeObjectAot(item);
+            }
+
+            return size;
+        }
+
+        private static int SizeObjectAot(Object? value)
+        {
+            if (value is null)
+            {
+                return sizeof(byte);
+            }
+
+            Type type = value.GetType();
+            Int32 fixedSize = PacketBaseElementSizer.GetElementSize(type);
+            if (fixedSize != 0)
+            {
+                return fixedSize;
+            }
+
+            if (value is string s)
+            {
+                return SizeStringAot(s);
+            }
+
+            if (value is IPacket packet)
+            {
+                return sizeof(byte) + packet.Length;
+            }
+
+            return sizeof(byte) + MeasureRuntime(value);
+        }
+
+        private static int MeasureRuntime(object value)
+        {
+            DataWriter writer = new(256);
+            try
+            {
+                return 0;
+            }
+            finally
+            {
+                writer.Dispose();
+            }
+        }
+
+        private static int SizeStringAot(string? value)
+            => value is null ? sizeof(int) : sizeof(int) + Encoding.UTF8.GetByteCount(value);
+
+        private static int SizeStringArrayAot(string[]? value)
+        {
+            if (value is null)
+            {
+                return sizeof(int);
+            }
+
+            Int32 size = sizeof(int);
+            for (Int32 i = 0; i < value.Length; i++)
+            {
+                size += SizeStringAot(value[i]);
+            }
+
+            return size;
+        }
+#endif
+
+#if !NALIX_AOT
+        private static Func<T, int> CreateFieldSizerCore<
+            [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TField>(int fieldIndex)
             => value => WireSizeProvider.GetSize(FieldCache<T>.GetValue<TField>(value, fieldIndex));
+#endif
     }
 }

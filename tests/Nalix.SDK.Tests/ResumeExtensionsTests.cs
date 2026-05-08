@@ -29,12 +29,10 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class ResumeExtensionsTests : IDisposable
 {
-    private readonly IPacketRegistry _registry;
-
     public ResumeExtensionsTests()
     {
-        _registry = new PacketRegistryFactory().CreateCatalog();
-        TestUtils.SetupCertificate();
+        PacketRegistry.Build();
+TestUtils.SetupCertificate();
     }
 
     [Fact]
@@ -48,7 +46,6 @@ public sealed class ResumeExtensionsTests : IDisposable
 
         // 1. Setup Server with real SessionStore
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
@@ -78,7 +75,7 @@ public sealed class ResumeExtensionsTests : IDisposable
                 Secret = secret,
                 SessionToken = token,
                 EncryptionEnabled = false 
-            }, _registry);
+            });
 
             await session.ConnectAsync("127.0.0.1", (ushort)port);
 
@@ -112,7 +109,6 @@ public sealed class ResumeExtensionsTests : IDisposable
 
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
@@ -138,7 +134,7 @@ public sealed class ResumeExtensionsTests : IDisposable
                 SessionToken = token,
                 EncryptionEnabled = false,
                 ResumeTimeoutMillis = 10000
-            }, _registry);
+            });
 
             await session.ConnectAsync("127.0.0.1", (ushort)port);
 
@@ -167,7 +163,6 @@ public sealed class ResumeExtensionsTests : IDisposable
 
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
@@ -188,7 +183,7 @@ public sealed class ResumeExtensionsTests : IDisposable
                 Secret = secret,
                 SessionToken = token,
                 EncryptionEnabled = false 
-            }, _registry);
+            });
 
             Console.WriteLine($"[TEST] Token: {token}");
             Console.WriteLine($"[TEST] Secret Zero: {secret.IsZero}");
@@ -211,6 +206,7 @@ public sealed class ResumeExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
 
 
 

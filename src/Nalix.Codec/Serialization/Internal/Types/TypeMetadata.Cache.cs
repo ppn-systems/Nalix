@@ -25,7 +25,9 @@ internal static partial class TypeMetadata
 
     public const DynamicallyAccessedMemberTypes PropertyAccess =
         DynamicallyAccessedMemberTypes.PublicProperties |
-        DynamicallyAccessedMemberTypes.NonPublicProperties;
+        DynamicallyAccessedMemberTypes.NonPublicProperties |
+        DynamicallyAccessedMemberTypes.PublicFields |
+        DynamicallyAccessedMemberTypes.NonPublicFields;
 
     private static class Cache<[DynamicallyAccessedMembers(PropertyAccess)] T>
     {

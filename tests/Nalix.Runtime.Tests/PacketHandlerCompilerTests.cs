@@ -647,3 +647,4 @@ public sealed class PacketHandlerCompilerTests
     #endregion
 }
 #endif
+

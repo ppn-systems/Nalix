@@ -102,3 +102,4 @@ public sealed class GenerationReportHandlers
         return Encoding.UTF8.GetString(bufferWriter.WrittenSpan);
     }
 }
+

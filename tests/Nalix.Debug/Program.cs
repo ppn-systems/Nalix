@@ -30,3 +30,4 @@ public sealed class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket
     [SerializeOrder(0)] public List<int>? IntList { get; set; }
     [SerializeOrder(1)] public Dictionary<string, long>? StringLongDict { get; set; }
 }
+

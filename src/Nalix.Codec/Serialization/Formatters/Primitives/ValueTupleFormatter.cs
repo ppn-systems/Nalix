@@ -13,7 +13,9 @@ namespace Nalix.Codec.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
+internal sealed class ValueTupleFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T1,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T2> : IFormatter<(T1, T2)>
 {
     private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}>";
@@ -54,7 +56,10 @@ internal sealed class ValueTupleFormatter<T1, T2> : IFormatter<(T1, T2)>
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
+internal sealed class ValueTupleFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T1,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T2,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T3> : IFormatter<(T1, T2, T3)>
 {
     private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}>";
@@ -98,7 +103,11 @@ internal sealed class ValueTupleFormatter<T1, T2, T3> : IFormatter<(T1, T2, T3)>
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, T3, T4)>
+internal sealed class ValueTupleFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T1,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T2,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T3,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T4> : IFormatter<(T1, T2, T3, T4)>
 {
     private static string DebuggerDisplay =>
         $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, " +
@@ -154,7 +163,12 @@ internal sealed class ValueTupleFormatter<T1, T2, T3, T4> : IFormatter<(T1, T2, 
 [System.Diagnostics.DebuggerStepThrough]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-internal sealed class ValueTupleFormatter<T1, T2, T3, T4, T5>
+internal sealed class ValueTupleFormatter<
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T1,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T2,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T3,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T4,
+    [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T5>
     : IFormatter<(T1, T2, T3, T4, T5)>
 {
     private static string DebuggerDisplay =>

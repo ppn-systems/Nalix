@@ -6,7 +6,9 @@ using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Reflection;
+#if !NALIX_AOT
 using System.Reflection.Emit;
+#endif
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Exceptions;
 
@@ -78,6 +80,11 @@ internal static partial class FieldCache<T>
     /// The returned delegate is cast to <c>Func&lt;T, TField&gt;</c> at the
     /// call site and invoked with zero virtual dispatch.
     /// </remarks>
+#if NALIX_AOT
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Delegate CreateGetter(FieldInfo field)
+        => new Func<T, object?>(obj => field.GetValue(obj));
+#else
     [MethodImpl(MethodImplOptions.NoInlining)] // only called once per field
     private static Delegate CreateGetter(FieldInfo field)
     {
@@ -111,6 +118,7 @@ internal static partial class FieldCache<T>
         Type delegateType = typeof(Func<,>).MakeGenericType(typeof(T), field.FieldType);
         return dm.CreateDelegate(delegateType);
     }
+#endif
 
     /// <summary>
     /// Emits a strongly-typed setter delegate for <paramref name="field"/>.
@@ -123,6 +131,11 @@ internal static partial class FieldCache<T>
     /// non-ref overload on a struct setter will mutate a copy.
     /// </para>
     /// </summary>
+#if NALIX_AOT
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static Delegate CreateSetter(FieldInfo field)
+        => new Action<T, object?>((obj, value) => field.SetValue(obj, value));
+#else
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Delegate CreateSetter(FieldInfo field)
     {
@@ -151,6 +164,7 @@ internal static partial class FieldCache<T>
         Type delegateType = typeof(Action<,>).MakeGenericType(typeof(T), field.FieldType);
         return dm.CreateDelegate(delegateType);
     }
+#endif
 
     /// <summary>
     /// Emits a <see cref="RefSetter{TVal}"/> delegate that mutates a struct in-place
@@ -164,6 +178,11 @@ internal static partial class FieldCache<T>
     /// copying the struct first.  Class types do not need this overload.
     /// </para>
     /// </summary>
+#if NALIX_AOT
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static RefSetter<TField> CreateRefSetter<TField>(FieldInfo field)
+        => (ref T obj, TField value) => field.SetValue(obj, value);
+#else
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static RefSetter<TField> CreateRefSetter<TField>(FieldInfo field)
     {
@@ -192,6 +211,7 @@ internal static partial class FieldCache<T>
 
         return dm.CreateDelegate<RefSetter<TField>>();
     }
+#endif
 
     // =========================================================================
     // Public value accessors  (hot path — AggressiveInlining)
@@ -216,8 +236,12 @@ internal static partial class FieldCache<T>
             ThrowTypeMismatch(metadata, typeof(TField));
         }
 
+#if NALIX_AOT
+        return (TField)((Func<T, object?>)s_getters[fieldIndex])(obj)!;
+#else
         // Direct cast — no virtual call, no interface dispatch.
         return ((Func<T, TField>)s_getters[fieldIndex])(obj);
+#endif
     }
 
     /// <summary>
@@ -236,7 +260,11 @@ internal static partial class FieldCache<T>
             ThrowTypeMismatch(metadata, typeof(TField));
         }
 
+#if NALIX_AOT
+        ((Action<T, object?>)s_setters[fieldIndex])(obj, value);
+#else
         ((Action<T, TField>)s_setters[fieldIndex])(obj, value);
+#endif
     }
 
     /// <summary>
@@ -292,6 +320,5 @@ internal static partial class FieldCache<T>
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static void ThrowTypeMismatch(in FieldSchema metadata, Type requested)
         => throw new SerializationFailureException(
-            $"Field '{metadata.Name}' is of type '{metadata.FieldType.FullName}', " +
-            $"but accessor was requested for '{requested.FullName}'.");
+            $"Field '{metadata.Name}' is of type '{metadata.FieldType.FullName}', but accessor was requested for '{requested.FullName}'.");
 }

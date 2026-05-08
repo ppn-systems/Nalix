@@ -27,3 +27,4 @@ public class LZ4OverlapTests
         Assert.Equal(original, decompressed);
     }
 }
+

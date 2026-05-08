@@ -12,3 +12,4 @@ internal interface IDashboardClient
 
     Task PingAsync(CancellationToken ct);
 }
+

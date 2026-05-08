@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -20,14 +19,7 @@ internal sealed class ClientSession : IAsyncDisposable
 
     public bool IsConnected => _session.IsConnected;
 
-    public ClientSession(TransportOptions options)
-    {
-        // PacketRegistryFactory default ctor registers built-in packets:
-        // Control, Handshake, SessionResume, Directive
-        PacketRegistry catalog = new PacketRegistryFactory().CreateCatalog();
-
-        _session = new TcpSession(options, catalog);
-    }
+    public ClientSession(TransportOptions options) => _session = new TcpSession(options);
 
     /// <summary>Connects to the server (no handshake — example server is unencrypted).</summary>
     public async Task ConnectAsync(CancellationToken ct = default)
@@ -50,3 +42,4 @@ internal sealed class ClientSession : IAsyncDisposable
         _session.Dispose();
     }
 }
+

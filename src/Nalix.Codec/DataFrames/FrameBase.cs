@@ -14,6 +14,7 @@ namespace Nalix.Codec.DataFrames;
 /// Represents the base class for all packet frames in the messaging system.
 /// Provides Abstractions header fields and serialization logic for derived packet types.
 /// </summary>
+[Packet]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 public abstract class FrameBase : IPacket, IPacketHeader

@@ -11,7 +11,6 @@ using System.Security;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
-using Nalix.Environment.Configuration.Internal;
 using Nalix.Environment.IO;
 
 namespace Nalix.Environment.Configuration;
@@ -231,7 +230,7 @@ public sealed class ConfigurationManager : IDisposable
                     {
                         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                         {
-                            Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Flush", oldContext.Path, Exception = ex });
+                            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Flush", oldContext.Path, Exception = ex });
                         }
                     }
                 }
@@ -245,7 +244,7 @@ public sealed class ConfigurationManager : IDisposable
 
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.PathChanged))
                 {
-                    Listener.Write(DiagnosticsEvents.Configuration.PathChanged, new { From = oldPath, To = normalizedPath, CacheHit = newContext.IniFile.IsValueCreated });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.PathChanged, new { From = oldPath, To = normalizedPath, CacheHit = newContext.IniFile.IsValueCreated });
                 }
 
                 if (autoReload && !newContext.ContainerDict.IsEmpty)
@@ -334,7 +333,7 @@ public sealed class ConfigurationManager : IDisposable
 
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
                 {
-                    Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Created", Type = typeof(TClass).Name, Context = context.Path });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Created", Type = typeof(TClass).Name, Context = context.Path });
                 }
 
                 return container;
@@ -452,7 +451,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Reload", Exception = reloadException, context.ContainerDict.Count });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "Reload", Exception = reloadException, context.ContainerDict.Count });
                 }
 
                 throw new InvalidOperationException(
@@ -461,7 +460,7 @@ public sealed class ConfigurationManager : IDisposable
 
             if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
             {
-                Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "Completed", context.ContainerDict.Count });
+                DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "Completed", context.ContainerDict.Count });
             }
         }
         catch (ObjectDisposedException) when (_isDisposed)
@@ -510,7 +509,7 @@ public sealed class ConfigurationManager : IDisposable
         ConfigurationContext context = _currentContext;
         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Removed", Type = typeof(TClass).Name, Context = context.Path });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Removed", Type = typeof(TClass).Name, Context = context.Path });
         }
 
         return context.ContainerDict.TryRemove(typeof(TClass), out _);
@@ -529,7 +528,7 @@ public sealed class ConfigurationManager : IDisposable
         ConfigurationContext context = _currentContext;
         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Container))
         {
-            Listener.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Cleared", Context = context.Path });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Container, new { Action = "Cleared", Context = context.Path });
         }
 
         context.ContainerDict.Clear();
@@ -559,7 +558,7 @@ public sealed class ConfigurationManager : IDisposable
                 snapshot.Value.Flush();
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Flush))
                 {
-                    Listener.Write(DiagnosticsEvents.Configuration.Flush, new { Status = "Completed", Path = snapshot.Value.FilePath });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Flush, new { Status = "Completed", Path = snapshot.Value.FilePath });
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -589,7 +588,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                 {
-                    Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "DisposeFlush", Exception = ex });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "DisposeFlush", Exception = ex });
                 }
             }
         }
@@ -608,7 +607,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
                 {
-                    Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "DisposeGateBusy" });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "DisposeGateBusy" });
                 }
             }
         }
@@ -666,7 +665,7 @@ public sealed class ConfigurationManager : IDisposable
 
         if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
         {
-            Listener.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "WatcherStarted", Path = currentPath });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "WatcherStarted", Path = currentPath });
         }
 
         // Capture path at setup time — lambda must not close over _configFilePath directly.
@@ -704,7 +703,7 @@ public sealed class ConfigurationManager : IDisposable
                         {
                             if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Failure))
                             {
-                                Listener.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "BackgroundReload", Exception = ex });
+                                DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Failure, new { Operation = "BackgroundReload", Exception = ex });
                             }
                         }
                     },
@@ -784,7 +783,7 @@ public sealed class ConfigurationManager : IDisposable
 
                     if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Directory))
                     {
-                        Listener.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "Created", Path = directory });
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Directory, new { Action = "Created", Path = directory });
                     }
 
                     if (!dirInfo.Exists)
@@ -828,7 +827,7 @@ public sealed class ConfigurationManager : IDisposable
             {
                 if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Cache))
                 {
-                    Listener.Write(DiagnosticsEvents.Configuration.Cache, new { Action = "Cleared", Reason = "CapacityExceeded", Limit = MaxCachedContexts });
+                    DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Cache, new { Action = "Cleared", Reason = "CapacityExceeded", Limit = MaxCachedContexts });
                 }
                 _contextCache.Clear();
             }
@@ -862,7 +861,7 @@ public sealed class ConfigurationManager : IDisposable
                     failureCount++;
                     if (Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
                     {
-                        Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "PartialError", Type = lazy.Value.GetType().Name, Exception = ex });
+                        DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "PartialError", Type = lazy.Value.GetType().Name, Exception = ex });
                     }
                 }
             }
@@ -872,7 +871,7 @@ public sealed class ConfigurationManager : IDisposable
 
         if (failureCount > 0 && Listener.IsEnabled(DiagnosticsEvents.Configuration.Reload))
         {
-            Listener.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "CompletedWithErrors", SuccessCount = successCount, FailureCount = failureCount });
+            DiagnosticsEvents.Write(DiagnosticsEvents.Configuration.Reload, new { Status = "CompletedWithErrors", SuccessCount = successCount, FailureCount = failureCount });
         }
     }
 

@@ -435,6 +435,25 @@ public sealed partial class ConfigurationManagerTests : IDisposable
         Assert.Equal(original.LastInitializationTime, clone.LastInitializationTime);
     }
 
+    [Fact]
+    public void GetWhenConfigurationContainsEnumValuesBindsEnumAndNullableEnum()
+    {
+        string filePath = this.WriteConfigFile(
+            "enum.ini",
+            """
+            [EnumSample]
+            Mode = Advanced
+            OptionalMode = 2
+            """);
+
+        using ConfigurationManager manager = this.CreateManager(filePath);
+
+        EnumSampleConfig configuration = manager.Get<EnumSampleConfig>();
+
+        Assert.Equal(SampleMode.Advanced, configuration.Mode);
+        Assert.Equal(SampleMode.Legacy, configuration.OptionalMode);
+    }
+
     private ConfigurationManager CreateManager(string? filePath = null)
     {
         ConfigurationManager manager = new();
@@ -494,7 +513,21 @@ public sealed partial class ConfigurationManagerTests : IDisposable
         [IniComment("number-comment")]
         public int Number { get; set; }
     }
+
+    public sealed partial class EnumSampleConfig : ConfigurationLoader
+    {
+        public SampleMode Mode { get; set; }
+        public SampleMode? OptionalMode { get; set; }
+    }
+
+    public enum SampleMode
+    {
+        Basic = 0,
+        Advanced = 1,
+        Legacy = 2
+    }
 }
+
 
 
 

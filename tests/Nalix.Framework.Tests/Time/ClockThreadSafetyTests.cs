@@ -101,3 +101,4 @@ public class ClockThreadSafetyTests
         Assert.All(tasks, task => Assert.True(task.Result));
     }
 }
+

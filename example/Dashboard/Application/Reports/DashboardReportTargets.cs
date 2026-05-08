@@ -25,3 +25,4 @@ internal static class DashboardReportTargets
     public static GenerationReportTarget? Resolve(int index)
         => index >= 0 && index < s_all.Length ? s_all[index] : null;
 }
+

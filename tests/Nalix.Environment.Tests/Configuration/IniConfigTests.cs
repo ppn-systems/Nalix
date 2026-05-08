@@ -3,7 +3,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
-using Nalix.Environment.Configuration.Internal;
+using Nalix.Environment.Configuration.Binding;
 using Xunit;
 
 namespace Nalix.Environment.Tests.Configuration;
@@ -45,3 +45,4 @@ public class IniConfigTests : IDisposable
     }
 }
 #endif
+

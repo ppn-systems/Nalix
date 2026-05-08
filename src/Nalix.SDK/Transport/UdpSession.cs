@@ -11,6 +11,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.SDK.Options;
@@ -56,8 +57,6 @@ public class UdpSession : TransportSession
     /// <inheritdoc/>
     public override TransportOptions Options { get; }
 
-    /// <inheritdoc/>
-    public override IPacketRegistry Catalog { get; }
 
     /// <inheritdoc/>
     public override bool IsConnected => _socket != null && Volatile.Read(ref _disposed) == 0;
@@ -87,12 +86,7 @@ public class UdpSession : TransportSession
 
     /// <summary>Initializes a new instance of the <see cref="UdpSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
-    /// <param name="catalog">The packet registry used to resolve packet metadata.</param>
-    public UdpSession(TransportOptions options, IPacketRegistry catalog)
-    {
-        this.Options = options ?? throw new ArgumentNullException(nameof(options));
-        this.Catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
-    }
+    public UdpSession(TransportOptions options) => this.Options = options ?? throw new ArgumentNullException(nameof(options));
 
     #endregion Constructor
 
@@ -102,6 +96,8 @@ public class UdpSession : TransportSession
     public override async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
+
+        PacketRegistry.Build();
 
         string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
         ushort effectivePort = port ?? this.Options.Port;

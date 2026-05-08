@@ -8,7 +8,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Environment.Configuration.Internal;
 
 namespace Nalix.Environment.Configuration.Binding;
 

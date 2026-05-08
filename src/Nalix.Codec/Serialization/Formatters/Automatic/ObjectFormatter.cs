@@ -20,6 +20,8 @@ namespace Nalix.Codec.Serialization.Formatters.Automatic;
 internal sealed class ObjectFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicFields |
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicFields |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<T>, IFillableFormatter<T> where T : class, new()
 {

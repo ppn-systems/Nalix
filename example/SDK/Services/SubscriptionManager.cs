@@ -70,3 +70,4 @@ internal sealed class SubscriptionManager : IDisposable
 
     public void Dispose() => this.StopControlSubscription();
 }
+

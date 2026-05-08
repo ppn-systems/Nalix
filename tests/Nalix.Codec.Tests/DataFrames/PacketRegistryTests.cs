@@ -19,18 +19,11 @@ namespace Nalix.Codec.Tests.DataFrames;
 /// </summary>
 public sealed class PacketRegistryTests : IDisposable
 {
-    private readonly IPacketRegistry _catalog;
-
     public PacketRegistryTests()
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-        _catalog = new PacketRegistry(factory =>
-        {
-            _ = factory.RegisterPacket<Control>();
-            _ = factory.RegisterPacket<Handshake>();
-            _ = factory.RegisterPacket<Directive>();
-        });
+        PacketRegistry.Build();
     }
 
     public void Dispose()
@@ -48,7 +41,7 @@ public sealed class PacketRegistryTests : IDisposable
             reasonCode: ProtocolReason.NONE);
 
         byte[] bytes = original.Serialize();
-        IPacket packet = _catalog.Deserialize(bytes);
+        IPacket packet = PacketRegistry.Deserialize(bytes);
 
         Assert.NotNull(packet);
 
@@ -91,7 +84,7 @@ public sealed class PacketRegistryTests : IDisposable
         packet.Initialize(0x0003, ControlType.PING, sequenceId: 7);
         byte[] bytes = packet.Serialize();
 
-        IPacket result = _catalog.Deserialize(bytes);
+        IPacket result = PacketRegistry.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(result);
         Assert.Equal(0x0003, control.Header.OpCode);
@@ -122,7 +115,7 @@ public sealed class PacketRegistryTests : IDisposable
         original.TranscriptHash = hash;
 
         byte[] bytes = original.Serialize();
-        IPacket packet = _catalog.Deserialize(bytes);
+        IPacket packet = PacketRegistry.Deserialize(bytes);
 
         Handshake result = Assert.IsType<Handshake>(packet);
         Assert.Equal(original.Header.OpCode, result.Header.OpCode);
@@ -142,9 +135,9 @@ public sealed class PacketRegistryTests : IDisposable
         Handshake handshake = new();
         Directive directive = new();
 
-        uint regControl = PacketRegistryFactory.Compute(typeof(Control));
-        uint regHandshake = PacketRegistryFactory.Compute(typeof(Handshake));
-        uint regDirective = PacketRegistryFactory.Compute(typeof(Directive));
+        uint regControl = PacketRegistry.Compute(typeof(Control));
+        uint regHandshake = PacketRegistry.Compute(typeof(Handshake));
+        uint regDirective = PacketRegistry.Compute(typeof(Directive));
 
         Assert.Equal(regControl, control.Header.MagicNumber);
         Assert.Equal(regHandshake, handshake.Header.MagicNumber);
@@ -167,7 +160,7 @@ public sealed class PacketRegistryTests : IDisposable
             flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         byte[] bytes = original.Serialize();
 
-        IPacket packet = _catalog.Deserialize(bytes);
+        IPacket packet = PacketRegistry.Deserialize(bytes);
 
         Handshake result = Assert.IsType<Handshake>(packet);
         
@@ -194,7 +187,7 @@ public sealed class PacketRegistryTests : IDisposable
             arg2: 0xFF);
 
         byte[] bytes = original.Serialize();
-        IPacket packet = _catalog.Deserialize(bytes);
+        IPacket packet = PacketRegistry.Deserialize(bytes);
 
         Directive result = Assert.IsType<Directive>(packet);
 
@@ -217,7 +210,7 @@ public sealed class PacketRegistryTests : IDisposable
     {
         byte[] tooShort = new byte[3];
 
-        ArgumentException ex = Assert.Throws<ArgumentException>(() => _catalog.Deserialize(tooShort));
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => PacketRegistry.Deserialize(tooShort));
         Assert.StartsWith("Raw packet data is too short to contain a valid header", ex.Message);
     }
 
@@ -227,14 +220,14 @@ public sealed class PacketRegistryTests : IDisposable
         byte[] buf = new byte[PacketConstants.HeaderSize];
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
 
-        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => _catalog.Deserialize(buf));
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => PacketRegistry.Deserialize(buf));
         Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
     }
 
     [Fact]
     public void DeserializeWhenBufferIsEmptyThrowsArgumentException()
     {
-        ArgumentException ex = Assert.Throws<ArgumentException>(() => _catalog.Deserialize([]));
+        ArgumentException ex = Assert.Throws<ArgumentException>(() => PacketRegistry.Deserialize([]));
         Assert.StartsWith("Raw packet data is too short to contain a valid header", ex.Message);
     }
 
@@ -247,7 +240,7 @@ public sealed class PacketRegistryTests : IDisposable
         byte[] bytes = original.Serialize();
         Control destination = new();
 
-        IPacket packet = _catalog.Deserialize(bytes);
+        IPacket packet = PacketRegistry.Deserialize(bytes);
         Control result = Assert.IsType<Control>(packet);
 
         Assert.Equal(original.Header.OpCode, result.Header.OpCode);
@@ -263,7 +256,7 @@ public sealed class PacketRegistryTests : IDisposable
         System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
 
         Control destination = new();
-        bool ok = _catalog.TryDeserialize(buf, out IPacket? packet);
+        bool ok = PacketRegistry.TryDeserialize(buf, out IPacket? packet);
 
         Assert.False(ok);
     }
@@ -283,47 +276,15 @@ public sealed class PacketRegistryTests : IDisposable
     [Fact]
     public void DifferentPacketTypesProduceDifferentMagicNumbers()
     {
-        uint a = PacketRegistryFactory.Compute(typeof(Control));
-        uint b = PacketRegistryFactory.Compute(typeof(Handshake));
-        uint c = PacketRegistryFactory.Compute(typeof(Directive));
+        uint a = PacketRegistry.Compute(typeof(Control));
+        uint b = PacketRegistry.Compute(typeof(Handshake));
+        uint c = PacketRegistry.Compute(typeof(Directive));
 
         Assert.NotEqual(a, b);
         Assert.NotEqual(a, c);
         Assert.NotEqual(b, c);
-    }
+    }}
 
-    [Fact]
-    public void CreateCatalogWhenPacketDeserializeBindingIsMissingThrowsImmediately()
-    {
-        PacketRegistryFactory factory = new();
-        _ = factory.RegisterAllPackets(typeof(BrokenPacket).Assembly);
-        _ = factory.IncludeNamespace(typeof(BrokenPacket).Namespace!);
-
-        InternalErrorException ex = Assert.Throws<InternalErrorException>(factory.CreateCatalog);
-
-        Assert.Contains(typeof(BrokenPacket).FullName!, ex.Message, StringComparison.Ordinal);
-        Assert.Contains("Deserialize", ex.Message, StringComparison.Ordinal);
-    }
-
-    private sealed class BrokenPacket : IPacket
-    {
-        public int Length => PacketConstants.HeaderSize;
-        public PacketHeader Header { get; set; }
-
-        public byte[] Serialize() => new byte[PacketConstants.HeaderSize];
-
-        public int Serialize(Span<byte> buffer)
-        {
-            if (buffer.Length < PacketConstants.HeaderSize)
-            {
-                throw new ArgumentException("buffer too small", nameof(buffer));
-            }
-
-            buffer[..PacketConstants.HeaderSize].Clear();
-            return PacketConstants.HeaderSize;
-        }
-    }
-}
 
 
 

@@ -29,3 +29,4 @@ internal static class PingChartPointBuilder
         }));
     }
 }
+

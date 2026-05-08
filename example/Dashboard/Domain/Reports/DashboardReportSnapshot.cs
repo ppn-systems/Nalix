@@ -8,3 +8,4 @@ public sealed record DashboardReportSnapshot(
     ProtocolReason Reason,
     IReadOnlyDictionary<string, object?> Data,
     DateTimeOffset ReceivedAt);
+

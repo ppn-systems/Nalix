@@ -8,3 +8,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>", Scope = "member", Target = "~M:SDK.Commands.SecurityCommands.UpdateCipherAsync~System.Threading.Tasks.Task")]
 [assembly: SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>", Scope = "member", Target = "~M:SDK.Commands.DiagnosticCommands.TimeSyncAsync~System.Threading.Tasks.Task")]
 [assembly: SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "<Pending>", Scope = "member", Target = "~M:SDK.Commands.SecurityCommands.ResumeSessionAsync~System.Threading.Tasks.Task")]
+

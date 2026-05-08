@@ -41,6 +41,14 @@ internal static class PacketBaseElementSizer
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static int GetUnsafeSizeOf(Type type)
     {
+#if NALIX_AOT
+        return type == typeof(Guid) ? 16
+            : type == typeof(TimeSpan) ? 8
+            : type == typeof(TimeOnly) ? 8
+            : type == typeof(DateOnly) ? 4
+            : type == typeof(DateTimeOffset) ? 16
+            : 0;
+#else
         return s_elementSizeCache.GetOrAdd(type, static t =>
         {
             MethodInfo method =
@@ -50,5 +58,6 @@ internal static class PacketBaseElementSizer
 
             return method.CreateDelegate<Func<int>>();
         })();
+#endif
     }
 }

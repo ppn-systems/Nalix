@@ -16,8 +16,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Primitives;
-using Nalix.Codec.Extensions;
+using Nalix.Codec.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -37,7 +36,6 @@ public sealed class PacketDispatchChannel
 {
     #region Fields
 
-    private readonly IPacketRegistry _catalog;
     private readonly DispatchChannel<IPacket> _dispatch;
 
     private readonly SemaphoreSlim _wakeSignal;
@@ -65,9 +63,6 @@ public sealed class PacketDispatchChannel
     /// <param name="options">Option builder.</param>
     public PacketDispatchChannel(Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
-        _catalog = InstanceManager.Instance.GetExistingInstance<IPacketRegistry>()
-                   ?? throw new InternalErrorException(
-                       $"[{nameof(PacketDispatchChannel)}] IPacketRegistry not registered in InstanceManager.");
 
         _dispatch = new DispatchChannel<IPacket>();
 
@@ -224,17 +219,13 @@ public sealed class PacketDispatchChannel
     {
         if (lease is null || connection is null)
         {
+            lease?.Dispose();
             return;
         }
 
-        if (lease.Length <= 0)
+        if ((uint)lease.Length < PacketConstants.HeaderSize)
         {
-            return;
-        }
-
-        ref readonly PacketHeader header = ref lease.Span.AsHeaderRef();
-        if (!_catalog.IsKnownMagic(header.MagicNumber))
-        {
+            lease.Dispose();
             connection.IncrementErrorCount();
             return;
         }
@@ -331,7 +322,7 @@ public sealed class PacketDispatchChannel
             ["WakeSignals"] = Interlocked.Read(ref _wakeSignals),
             ["WakeReads"] = Interlocked.Read(ref _wakeReadSignals),
             ["WakeRequested"] = Volatile.Read(ref _wakeRequested),
-            ["PacketRegistryType"] = _catalog.GetType().Name
+            ["PacketRegistryType"] = nameof(PacketRegistry)
         };
 
         int[] priorities = _dispatch.PendingPerPriority;
@@ -377,7 +368,7 @@ public sealed class PacketDispatchChannel
         writer.WriteNumber("WakeSignals", Interlocked.Read(ref _wakeSignals));
         writer.WriteNumber("WakeReads", Interlocked.Read(ref _wakeReadSignals));
         writer.WriteBoolean("WakeRequested", Volatile.Read(ref _wakeRequested) == 1);
-        writer.WriteString("PacketRegistryType", _catalog.GetType().Name);
+        writer.WriteString("PacketRegistryType", nameof(PacketRegistry));
 
         int[] priorities = _dispatch.PendingPerPriority;
         writer.WriteStartObject("PendingPerPriority");
@@ -531,7 +522,7 @@ public sealed class PacketDispatchChannel
     {
         // 1. Acquire pooled packet via registry (zero alloc)
         // If TryDeserialize fails, the packet is already handled.
-        if (!_catalog.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
+        if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
         {
             lease.Dispose();
             connection.IncrementErrorCount();

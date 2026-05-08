@@ -47,3 +47,4 @@ internal interface IDashboardStateReader
 
     IReadOnlyList<DashboardLogEntry> Logs { get; }
 }
+

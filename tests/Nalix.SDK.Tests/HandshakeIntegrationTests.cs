@@ -26,15 +26,13 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class HandshakeIntegrationTests : IDisposable
 {
-    private readonly IPacketRegistry _registry;
     private readonly string _certPath;
     private readonly Bytes32 _serverPublicKey;
 
     public HandshakeIntegrationTests()
     {
-        _registry = new PacketRegistryFactory().CreateCatalog();
-        
-        // Setup Server Identity
+        PacketRegistry.Build();
+// Setup Server Identity
         _certPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../shared/certificate.private"));
         
         if (!File.Exists(_certPath))
@@ -84,7 +82,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
@@ -98,7 +95,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
                 Port = (ushort)port,
                 EncryptionEnabled = false,
                 ServerPublicKey = _serverPublicKey.ToString()
-            }, _registry);
+            });
 
             await session.ConnectAsync();
 
@@ -122,7 +119,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt => 
         {
             opt.MinAttributesForPersistence = 0;
@@ -141,7 +137,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
                 EncryptionEnabled = false,
                 ServerPublicKey = _serverPublicKey.ToString(),
                 ResumeEnabled = true
-            }, _registry);
+            });
 
             // 1. First connect (performs Handshake)
             bool resumed1 = await session.ConnectWithResumeAsync();
@@ -168,6 +164,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
+
 
 
 

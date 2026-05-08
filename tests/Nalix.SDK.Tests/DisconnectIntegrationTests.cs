@@ -16,13 +16,9 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class DisconnectIntegrationTests : IDisposable
 {
-    private readonly IPacketRegistry _registry;
-
     public DisconnectIntegrationTests()
     {
-        _registry = new PacketRegistryFactory()
-            .IncludeNamespace("Nalix.Codec.DataFrames.SignalFrames")
-            .CreateCatalog();
+        PacketRegistry.Build();
         TestUtils.SetupCertificate();
     }
 
@@ -31,7 +27,6 @@ public sealed class DisconnectIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.ConfigurePacketRegistry(_registry);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         
         using NetworkApplication app = builder.Build();
@@ -46,7 +41,7 @@ public sealed class DisconnectIntegrationTests : IDisposable
                 EncryptionEnabled = false
             };
 
-            using var session = new TcpSession(options, _registry);
+            using var session = new TcpSession(options);
             await session.ConnectAsync();
 
             Assert.True(session.IsConnected);
@@ -65,6 +60,7 @@ public sealed class DisconnectIntegrationTests : IDisposable
     public void Dispose() => Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
+
 
 
 
