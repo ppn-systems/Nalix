@@ -31,6 +31,7 @@ public sealed class ResumeExtensionsTests : IDisposable
 {
     public ResumeExtensionsTests()
     {
+        if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
 TestUtils.SetupCertificate();
     }

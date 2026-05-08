@@ -1,5 +1,3 @@
-
-using System;
 using System.Text;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -9,12 +7,16 @@ using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Transforms;
 
-using Xunit;
-
 namespace Nalix.Codec.Tests.DataFrames;
 
 public sealed partial class DataFramesPublicApiTests
 {
+    static DataFramesPublicApiTests()
+    {
+        if (!PacketRegistry.IsBuilt)
+            PacketRegistry.Build();
+    }
+
     public enum TextFrameKind
     {
     }
@@ -80,7 +82,7 @@ public sealed partial class DataFramesPublicApiTests
         Span<byte> nonceArr = stackalloc byte[32]; nonceArr[0] = 5; nonceArr[1] = 6; nonceArr[2] = 7; nonceArr[3] = 8;
         Span<byte> proofArr = stackalloc byte[32]; proofArr[0] = 9; proofArr[1] = 10; proofArr[2] = 11; proofArr[3] = 12;
         Span<byte> hashArr = stackalloc byte[32]; hashArr[0] = 13; hashArr[1] = 14; hashArr[2] = 15; hashArr[3] = 16;
-        
+
         Handshake packet = new(HandshakeStage.SERVER_HELLO, new Bytes32(pubKeyArr), new Bytes32(nonceArr), new Bytes32(proofArr), flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         packet.TranscriptHash = new Bytes32(hashArr);
         return packet;

@@ -1,8 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
@@ -10,7 +8,6 @@ using Nalix.Codec.DataFrames;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -23,7 +20,9 @@ public sealed class PacketRegistryTests : IDisposable
     {
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
-        PacketRegistry.Build();
+
+        if (!PacketRegistry.IsBuilt)
+            PacketRegistry.Build();
     }
 
     public void Dispose()
@@ -163,7 +162,7 @@ public sealed class PacketRegistryTests : IDisposable
         IPacket packet = PacketRegistry.Deserialize(bytes);
 
         Handshake result = Assert.IsType<Handshake>(packet);
-        
+
         Assert.True(result.PublicKey.IsZero);
         Assert.True(result.Nonce.IsZero);
         Assert.True(result.Proof.IsZero);
@@ -283,7 +282,8 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.NotEqual(a, b);
         Assert.NotEqual(a, c);
         Assert.NotEqual(b, c);
-    }}
+    }
+}
 
 
 

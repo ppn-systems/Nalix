@@ -19,6 +19,7 @@ public sealed class RequestIntegrationTests : IDisposable
 {
     public RequestIntegrationTests()
     {
+        if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
         TestUtils.SetupCertificate();
     }

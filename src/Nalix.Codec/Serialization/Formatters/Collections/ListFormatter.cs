@@ -5,6 +5,7 @@ using System;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
@@ -23,7 +24,7 @@ internal sealed class ListFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>>
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFillableFormatter<System.Collections.Generic.List<T>>
 {
     private static readonly int s_elementSize = TypeMetadata.SizeOf<T>();
     private static string DebuggerDisplay => $"ListFormatter<{typeof(T).FullName}>";
@@ -94,14 +95,13 @@ internal sealed class ListFormatter<
 
         if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw new Abstractions.Exceptions.SerializationFailureException("List length out of range.");
+            Throw.LengthOutOfRange();
         }
 
         long totalBytesLong = (long)length * s_elementSize;
         if (totalBytesLong > int.MaxValue)
         {
-            throw new Abstractions.Exceptions.SerializationFailureException(
-                $"List data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+            Throw.Overflow();
         }
 
         System.Collections.Generic.List<T> list = new(length);
@@ -120,6 +120,48 @@ internal sealed class ListFormatter<
         reader.Advance(totalBytes);
 
         return list;
+    }
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Fill(ref DataReader reader, System.Collections.Generic.List<T> value)
+    {
+        int length = reader.ReadInt32();
+
+        if (length == SerializerBounds.Null || length == 0)
+        {
+            value.Clear();
+            return;
+        }
+
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
+        {
+            Throw.LengthOutOfRange();
+        }
+
+        long totalBytesLong = (long)length * s_elementSize;
+
+        if (totalBytesLong > int.MaxValue)
+        {
+            Throw.LengthOutOfRange();
+        }
+
+        int totalBytes = (int)totalBytesLong;
+
+        value.Clear();
+        CollectionsMarshal.SetCount(value, length);
+
+        Span<T> span = CollectionsMarshal.AsSpan(value);
+        ref byte source = ref reader.GetSpanReference(totalBytes);
+        ref T destination = ref MemoryMarshal.GetReference(span);
+
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
+            ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref destination),
+            ref source,
+            (uint)totalBytes);
+
+        reader.Advance(totalBytes);
     }
 }
 

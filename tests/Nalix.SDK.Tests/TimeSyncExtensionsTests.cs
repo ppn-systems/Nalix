@@ -18,6 +18,8 @@ public sealed class TimeSyncExtensionsTests : IDisposable
 {
     public TimeSyncExtensionsTests()
     {
+    
+        if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
         TestUtils.SetupCertificate();
     }

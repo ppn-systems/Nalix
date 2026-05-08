@@ -16,6 +16,7 @@ public sealed class PingExtensionsTests : IDisposable
 {
     public PingExtensionsTests()
     {
+        if (!PacketRegistry.IsBuilt)
         PacketRegistry.Build();
 }
 

@@ -18,7 +18,8 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
     public HandshakeIntegrationTests()
     {
-        PacketRegistry.Build();
+        if (!PacketRegistry.IsBuilt)
+            PacketRegistry.Build();
         // Setup Server Identity
         _certPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../shared/certificate.private"));
 

@@ -25,14 +25,19 @@ public static class PacketRegistry
     private static readonly Lock s_gate;
 
     private static Dictionary<uint, string>? s_pendingNames;
-    private static PacketFastDispatcher? s_runtimeFastDispatcher;
-    private static List<PacketFastDispatcher>? s_pendingFastDispatchers;
+    private static PacketDispatch? s_runtimeFastDispatcher;
+    private static List<PacketDispatch>? s_pendingFastDispatchers;
     private static FrozenDictionary<uint, PacketDeserializer>? s_deserializers;
     private static Dictionary<uint, PacketDeserializer>? s_pendingDeserializers;
 
     #endregion Fields
 
     #region Properties
+
+    /// <summary>
+    /// Gets whether the registry has been built.
+    /// </summary>
+    public static bool IsBuilt => Volatile.Read(ref s_deserializers) is not null;
 
     /// <summary>
     /// A single instance of the Pool Manager shared across all packet types.
@@ -85,7 +90,7 @@ public static class PacketRegistry
             }
 
             Dictionary<uint, PacketDeserializer> pending = s_pendingDeserializers ?? new();
-            PacketFastDispatcher[] dispatchers = s_pendingFastDispatchers?.ToArray() ?? [];
+            PacketDispatch[] dispatchers = s_pendingFastDispatchers?.ToArray() ?? [];
 
             s_deserializers = pending.ToFrozenDictionary();
             s_runtimeFastDispatcher = COMPOSE(dispatchers);
@@ -96,7 +101,7 @@ public static class PacketRegistry
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        static PacketFastDispatcher? COMPOSE(PacketFastDispatcher[] dispatchers)
+        static PacketDispatch? COMPOSE(PacketDispatch[] dispatchers)
         {
             return dispatchers.Length switch
             {
@@ -122,7 +127,7 @@ public static class PacketRegistry
     /// <summary>
     /// Registers a source-generated fast dispatcher before the registry is built.
     /// </summary>
-    public static void RegisterGenerated(PacketFastDispatcher dispatcher)
+    public static void RegisterGenerated(PacketDispatch dispatcher)
     {
         ArgumentNullException.ThrowIfNull(dispatcher);
 
@@ -134,7 +139,7 @@ public static class PacketRegistry
                     "PacketRegistry is already built. Load all packet assemblies before first registry access.");
             }
 
-            List<PacketFastDispatcher> dispatchers = s_pendingFastDispatchers ??= new();
+            List<PacketDispatch> dispatchers = s_pendingFastDispatchers ??= new();
             dispatchers.Add(dispatcher);
         }
     }
@@ -268,7 +273,7 @@ public static class PacketRegistry
 
         try
         {
-            PacketFastDispatcher? dispatcher = s_runtimeFastDispatcher;
+            PacketDispatch? dispatcher = s_runtimeFastDispatcher;
             if (dispatcher is not null)
             {
                 return dispatcher(magic, raw, out packet);
@@ -321,4 +326,4 @@ public static class PacketRegistry
 /// <summary>
 /// Resolves and deserializes a generated packet without registry dictionary lookup.
 /// </summary>
-public delegate bool PacketFastDispatcher(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet);
+public delegate bool PacketDispatch(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet);

@@ -1,4 +1,3 @@
-using Nalix.Codec.Memory;
 #if DEBUG
 using System;
 using System.Diagnostics.CodeAnalysis;
@@ -21,6 +20,8 @@ public sealed class PacketAwaiterTests
     public async Task AwaitAsync_WhenPredicateMatches_ReturnsPacket()
     {
         TransportSession session = Substitute.For<TransportSession>();
+        
+        if (!PacketRegistry.IsBuilt)
         Nalix.Codec.DataFrames.PacketRegistry.Build();
         Nalix.Codec.DataFrames.SignalFrames.Control packet = new();
         var header = packet.Header;
