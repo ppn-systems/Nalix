@@ -46,7 +46,7 @@ jobs:
         run: dotnet restore ./src/Nalix.sln
 
       - name: Build
-        run: dotnet build ./src/Nalix.sln --configuration Release --no-restore /p:Version=${{ env.VERSION }}
+        run: dotnet build ./src/Nalix.sln --configuration Release --no-restore -m:1 /p:Version=${{ env.VERSION }}
 
       - name: Pack
         run: dotnet pack ./src/Nalix.sln --configuration Release --no-build --output ./out /p:Version=${{ env.VERSION }}
