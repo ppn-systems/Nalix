@@ -35,6 +35,11 @@ public static class PacketRegistry
     #region Properties
 
     /// <summary>
+    /// Gets whether the registry has been built.
+    /// </summary>
+    public static bool IsBuilt => Volatile.Read(ref s_deserializers) is not null;
+
+    /// <summary>
     /// A single instance of the Pool Manager shared across all packet types.
     /// If this is <see langword="null"/>, the system automatically falls back to standard allocation.
     /// </summary>
