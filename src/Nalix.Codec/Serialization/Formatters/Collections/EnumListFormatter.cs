@@ -6,6 +6,7 @@ using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
@@ -25,7 +26,7 @@ internal sealed class EnumListFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFormatter<System.Collections.Generic.List<T>>
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T> : IFillableFormatter<System.Collections.Generic.List<T>>
     where T : struct, System.Enum
 {
     private static readonly int s_elementSize = TypeMetadata.SizeOf<T>();
@@ -105,7 +106,7 @@ internal sealed class EnumListFormatter<
 
         if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw new SerializationFailureException("Enum list length out of range.");
+            Throw.LengthOutOfRange();
         }
 
         System.Collections.Generic.List<T> result = new(count);
@@ -114,8 +115,7 @@ internal sealed class EnumListFormatter<
         long totalBytesLong = (long)count * s_elementSize;
         if (totalBytesLong > int.MaxValue)
         {
-            throw new SerializationFailureException(
-                $"Enum list data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
+            Throw.Overflow();
         }
 
         int totalBytes = (int)totalBytesLong;
@@ -131,6 +131,43 @@ internal sealed class EnumListFormatter<
         reader.Advance(totalBytes);
 
         return result;
+    }
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Fill(ref DataReader reader, System.Collections.Generic.List<T> value)
+    {
+        int length = reader.ReadInt32();
+
+        if (length == SerializerBounds.Null || length == 0)
+        {
+            value.Clear();
+            return;
+        }
+
+        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
+        {
+            Throw.LengthOutOfRange();
+        }
+
+        long totalBytesLong = (long)length * s_elementSize;
+        if (totalBytesLong > int.MaxValue)
+        {
+            Throw.Overflow();
+        }
+
+        int totalBytes = (int)totalBytesLong;
+
+        value.Clear();
+        CollectionsMarshal.SetCount(value, length);
+
+        Span<T> span = CollectionsMarshal.AsSpan(value);
+        ref byte source = ref reader.GetSpanReference(totalBytes);
+        ref T destination = ref MemoryMarshal.GetReference(span);
+
+        System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(ref System.Runtime.CompilerServices.Unsafe.As<T, byte>(ref destination), ref source, (uint)totalBytes);
+        reader.Advance(totalBytes);
     }
 }
 
