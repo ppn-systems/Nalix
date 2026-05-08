@@ -2,6 +2,7 @@
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
 		<LangVersion>latest</LangVersion>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
