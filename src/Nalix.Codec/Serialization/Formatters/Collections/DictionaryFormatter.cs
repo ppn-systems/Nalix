@@ -5,6 +5,7 @@ using System;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal;
 
@@ -55,7 +56,7 @@ internal sealed class DictionaryFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
-        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] TValue> : IFormatter<System.Collections.Generic.Dictionary<TKey, TValue>?> where TKey : notnull
+        System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] TValue> : IFillableFormatter<System.Collections.Generic.Dictionary<TKey, TValue>?> where TKey : notnull
 {
     private static readonly IFormatter<TKey> s_keyFormatter = FormatterProvider.Get<TKey>();
     private static readonly IFormatter<TValue> s_valueFormatter = FormatterProvider.Get<TValue>();
@@ -184,8 +185,7 @@ internal sealed class DictionaryFormatter<
 
         if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw new SerializationFailureException(
-                $"Dictionary count out of range: {count}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
+            Throw.LengthOutOfRange();
         }
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);
@@ -197,6 +197,37 @@ internal sealed class DictionaryFormatter<
         }
 
         return dict;
+    }
+
+    /// <inheritdoc/>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Fill(ref DataReader reader, System.Collections.Generic.Dictionary<TKey, TValue>? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        int count = reader.ReadInt32();
+        value.Clear();
+
+        if (count == SerializerBounds.Null || count == 0)
+        {
+            return;
+        }
+
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
+        {
+            Throw.LengthOutOfRange();
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            TKey key = s_keyFormatter.Deserialize(ref reader);
+            TValue val = s_valueFormatter.Deserialize(ref reader);
+            value[key] = val;
+        }
     }
 }
 
