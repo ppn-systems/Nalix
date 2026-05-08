@@ -67,67 +67,6 @@ public static class PacketRegistry
     public static void Configure(IObjectPoolManager manager) => Volatile.Write(ref Manager, manager);
 
     /// <summary>
-    /// Registers a source-generated packet deserializer before the registry is built.
-    /// </summary>
-    public static void RegisterGenerated(uint magic, string name, PacketDeserializer deserializer)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(name);
-        ArgumentNullException.ThrowIfNull(deserializer);
-
-        lock (s_gate)
-        {
-            if (s_deserializers is not null)
-            {
-                if (s_deserializers.ContainsKey(magic))
-                {
-                    return;
-                }
-
-                throw new InvalidOperationException(
-                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
-            }
-
-            Dictionary<uint, PacketDeserializer> deserializers = s_pendingDeserializers ??= new();
-            Dictionary<uint, string> names = s_pendingNames ??= new();
-
-            if (deserializers.ContainsKey(magic))
-            {
-                string oldName = names.TryGetValue(magic, out string? resolved) ? resolved : "<unknown>";
-                if (StringComparer.Ordinal.Equals(oldName, name))
-                {
-                    return;
-                }
-
-                throw new InternalErrorException(
-                    $"[PacketRegistry] Hash collision detected! Magic: 0x{magic:X8}; Type A: {oldName}; Type B: {name}");
-            }
-
-            deserializers[magic] = deserializer;
-            names[magic] = name;
-        }
-    }
-
-    /// <summary>
-    /// Registers a source-generated fast dispatcher before the registry is built.
-    /// </summary>
-    public static void RegisterGeneratedDispatcher(PacketFastDispatcher dispatcher)
-    {
-        ArgumentNullException.ThrowIfNull(dispatcher);
-
-        lock (s_gate)
-        {
-            if (s_deserializers is not null)
-            {
-                throw new InvalidOperationException(
-                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
-            }
-
-            List<PacketFastDispatcher> dispatchers = s_pendingFastDispatchers ??= new();
-            dispatchers.Add(dispatcher);
-        }
-    }
-
-    /// <summary>
     /// Builds and freezes the generated packet registry once.
     /// </summary>
     public static void Build()
@@ -181,6 +120,67 @@ public static class PacketRegistry
     }
 
     /// <summary>
+    /// Registers a source-generated fast dispatcher before the registry is built.
+    /// </summary>
+    public static void RegisterGenerated(PacketFastDispatcher dispatcher)
+    {
+        ArgumentNullException.ThrowIfNull(dispatcher);
+
+        lock (s_gate)
+        {
+            if (s_deserializers is not null)
+            {
+                throw new InvalidOperationException(
+                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
+            }
+
+            List<PacketFastDispatcher> dispatchers = s_pendingFastDispatchers ??= new();
+            dispatchers.Add(dispatcher);
+        }
+    }
+
+    /// <summary>
+    /// Registers a source-generated packet deserializer before the registry is built.
+    /// </summary>
+    public static void RegisterGenerated(uint magic, string name, PacketDeserializer deserializer)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(deserializer);
+
+        lock (s_gate)
+        {
+            if (s_deserializers is not null)
+            {
+                if (s_deserializers.ContainsKey(magic))
+                {
+                    return;
+                }
+
+                throw new InvalidOperationException(
+                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
+            }
+
+            Dictionary<uint, PacketDeserializer> deserializers = s_pendingDeserializers ??= new();
+            Dictionary<uint, string> names = s_pendingNames ??= new();
+
+            if (deserializers.ContainsKey(magic))
+            {
+                string oldName = names.TryGetValue(magic, out string? resolved) ? resolved : "<unknown>";
+                if (StringComparer.Ordinal.Equals(oldName, name))
+                {
+                    return;
+                }
+
+                throw new InternalErrorException(
+                    $"[PacketRegistry] Hash collision detected! Magic: 0x{magic:X8}; Type A: {oldName}; Type B: {name}");
+            }
+
+            deserializers[magic] = deserializer;
+            names[magic] = name;
+        }
+    }
+
+    /// <summary>
     /// Returns <see langword="true"/> if a deserializer is registered for the magic number.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -195,22 +195,30 @@ public static class PacketRegistry
     /// <summary>
     /// Computes the deterministic packet magic from a packet type full name.
     /// </summary>
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public static uint Compute(Type type)
     {
         ArgumentNullException.ThrowIfNull(type);
 
-        const uint offset = 2166136261u;
-        const uint prime = 16777619u;
+        return Compute(type.FullName ?? type.Name);
 
-        uint hash = offset;
-        string name = type.FullName ?? type.Name;
-        for (int i = 0; i < name.Length; i++)
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        static uint Compute(string name)
         {
-            hash ^= name[i];
-            hash *= prime;
-        }
+            const uint offset = 2166136261u;
+            const uint prime = 16777619u;
 
-        return hash;
+            uint hash = offset;
+
+            foreach (char ch in name)
+            {
+                hash ^= ch;
+                hash *= prime;
+            }
+
+            return hash;
+        }
     }
 
     /// <summary>
