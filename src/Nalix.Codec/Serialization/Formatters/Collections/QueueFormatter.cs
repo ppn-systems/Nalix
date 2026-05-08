@@ -5,6 +5,7 @@ using System;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
+using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Serialization.Internal;
 
@@ -49,7 +50,7 @@ internal sealed class QueueFormatter<
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicConstructors |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.PublicProperties |
         System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.NonPublicProperties)] T>
-    : IFormatter<System.Collections.Generic.Queue<T>?>
+    : IFillableFormatter<System.Collections.Generic.Queue<T>?>
 {
     private static readonly IFormatter<T> s_elementFormatter = FormatterProvider.Get<T>();
     /// <summary>
@@ -172,8 +173,7 @@ internal sealed class QueueFormatter<
 
         if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
         {
-            throw new SerializationFailureException(
-                $"Queue count out of range: {count}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
+            Throw.LengthOutOfRange();
         }
 
         System.Collections.Generic.Queue<T> queue = new(count);
@@ -184,6 +184,34 @@ internal sealed class QueueFormatter<
         }
 
         return queue;
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public void Fill(ref DataReader reader, System.Collections.Generic.Queue<T>? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        int count = reader.ReadInt32();
+        value.Clear();
+
+        if (count == SerializerBounds.Null || count == 0)
+        {
+            return;
+        }
+
+        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
+        {
+            Throw.LengthOutOfRange();
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            value.Enqueue(s_elementFormatter.Deserialize(ref reader));
+        }
     }
 }
 
