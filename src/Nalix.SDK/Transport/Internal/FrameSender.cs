@@ -16,33 +16,19 @@ using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
 
-/// <summary>
-/// Optimized frame sender that serializes outbound frames using a SemaphoreSlim.
-/// This implementation provides lower latency than channel-based senders by eliminating
-/// the intermediate task and TaskCompletionSource overhead.
-/// </summary>
 internal sealed class FrameSender : IDisposable
 {
-    #region Fields
-
     private readonly TransportOptions _options;
     private readonly FragmentOptions _fragmentOptions;
     private readonly Func<Socket> _getSocket;
     private readonly Action<Exception> _onError;
     private readonly SemaphoreSlim _sendLock = new(1, 1);
+
     private const int MaxTcpFrameLength = ushort.MaxValue;
-    private const int MaxNormalPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize;
-    private const int MaxFragmentChunkPayloadLength = MaxTcpFrameLength - TcpSession.HeaderSize - FragmentHeader.WireSize;
+    private const int HeaderSize = TcpSession.HeaderSize;
+
     private int _disposed;
 
-    #endregion Fields
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="FrameSender"/> class.
-    /// </summary>
-    /// <param name="getSocket">A delegate that returns the active socket used for sending data.</param>
-    /// <param name="options">The transport options that control queue capacity and frame behavior.</param>
-    /// <param name="onError">The callback invoked when send processing encounters an error.</param>
     public FrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
@@ -51,28 +37,25 @@ internal sealed class FrameSender : IDisposable
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
     }
 
-    /// <summary>
-    /// Queues a payload for sending after applying outbound compression and encryption transforms.
-    /// </summary>
-    /// <param name="payload">The payload to frame and send.</param>
-    /// <param name="encrypt">An optional encryption override. When <see langword="null"/>, the sender uses the configured default.</param>
-    /// <param name="ct">A cancellation token used to abort queueing or sending.</param>
-    /// <returns><see langword="true"/> when the frame is sent successfully; otherwise, <see langword="false"/>.</returns>
-    public async Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
-    {
-        IBufferLease lease = BufferLease.CopyFrom(payload.Span);
-        return await this.SendAsync(lease, encrypt, ct).ConfigureAwait(false);
-    }
+    #region Public Send APIs
 
-    /// <summary>
-    /// Sends a payload using an existing <see cref="IBufferLease"/>.
-    /// The sender takes ownership of the lease and will dispose it after the frame is sent.
-    /// </summary>
-    /// <param name="lease">The lease containing the payload to send.</param>
-    /// <param name="encrypt">An optional encryption override.</param>
-    /// <param name="ct">A cancellation token.</param>
-    /// <returns><see langword="true"/> when the frame is sent successfully; otherwise, <see langword="false"/>.</returns>
-    public async Task<bool> SendAsync([Borrowed] IBufferLease lease, bool? encrypt = null, CancellationToken ct = default)
+    public bool Send(ReadOnlySpan<byte> data, bool encrypt = true)
+        => this.Send(BufferLease.CopyFrom(data), encrypt);
+
+    public bool Send(IBufferLease lease, bool encrypt = true)
+        => this.SEND_CORE(lease, encrypt, sync: true, default).GetAwaiter().GetResult();
+
+    public Task<bool> SendAsync(ReadOnlyMemory<byte> payload, bool? encrypt = null, CancellationToken ct = default)
+        => this.SendAsync(BufferLease.CopyFrom(payload.Span), encrypt, ct);
+
+    public Task<bool> SendAsync(IBufferLease lease, bool? encrypt = null, CancellationToken ct = default)
+        => this.SEND_CORE(lease, encrypt ?? _options.EncryptionEnabled, sync: false, ct);
+
+    #endregion
+
+    #region Core Implementation
+
+    private async Task<bool> SEND_CORE(IBufferLease lease, bool encrypt, bool sync, CancellationToken ct)
     {
         IBufferLease current = lease;
         try
@@ -81,33 +64,13 @@ internal sealed class FrameSender : IDisposable
                 ref current,
                 _options.CompressionEnabled,
                 _options.CompressionThreshold,
-                encrypt ?? _options.EncryptionEnabled,
+                encrypt,
                 _options.Secret.AsSpan(),
                 _options.Algorithm);
 
-            if (current.Length >= _fragmentOptions.MaxChunkSize)
-            {
-                return await this.SEND_FRAGMENTED_ASYNC(current.Memory, ct).ConfigureAwait(false);
-            }
-
-            int totalLen = TcpSession.HeaderSize + current.Length;
-            if (totalLen > MaxTcpFrameLength)
-            {
-                throw new ArgumentOutOfRangeException(nameof(lease), $"TCP frame length {totalLen} exceeds UInt16.MaxValue. Configure fragmentation MaxChunkSize <= {MaxNormalPayloadLength}.");
-            }
-
-            byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
-            try
-            {
-                BinaryPrimitives.WriteUInt16LittleEndian(frame.AsSpan(0, TcpSession.HeaderSize), (ushort)totalLen);
-                current.Memory.Span.CopyTo(frame.AsSpan(TcpSession.HeaderSize, current.Length));
-
-                return await this.SEND_RAW_ASYNC(frame, totalLen, ct).ConfigureAwait(false);
-            }
-            finally
-            {
-                BufferLease.ByteArrayPool.Return(frame);
-            }
+            return current.Length >= _fragmentOptions.MaxChunkSize
+                ? await this.SEND_FRAGMENTED_ASYNC(current.Memory, sync, ct).ConfigureAwait(false)
+                : await this.SEND_SINGLE_FRAME_ASYNC(current.Memory, sync, ct).ConfigureAwait(false);
         }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
@@ -125,75 +88,65 @@ internal sealed class FrameSender : IDisposable
         }
     }
 
-    #region Private Methods
-
-    private async Task<bool> SEND_RAW_ASYNC(byte[] frame, int frameLen, CancellationToken ct)
+    private async Task<bool> SEND_SINGLE_FRAME_ASYNC(ReadOnlyMemory<byte> payload, bool sync, CancellationToken ct)
     {
-        await _sendLock.WaitAsync(ct).ConfigureAwait(false);
+        int totalLen = HeaderSize + payload.Length;
+        if (totalLen > MaxTcpFrameLength)
+        {
+            throw new ArgumentOutOfRangeException(nameof(payload), $"Frame too large: {totalLen}");
+        }
+
+        byte[] frame = BufferLease.ByteArrayPool.Rent(totalLen);
         try
         {
-            Socket s = _getSocket();
-            int sent = 0;
-            while (sent < frameLen)
-            {
-                int n = await s.SendAsync(new ReadOnlyMemory<byte>(frame, sent, frameLen - sent), SocketFlags.None, ct).ConfigureAwait(false);
-                if (n == 0)
-                {
-                    throw new SocketException((int)SocketError.ConnectionReset);
-                }
+            BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)totalLen);
+            payload.Span.CopyTo(frame.AsSpan(HeaderSize));
 
-                sent += n;
-            }
-            return true;
+            return sync
+                ? this.SEND_RAW(frame, totalLen)
+                : await this.SEND_RAW_ASYNC(frame, totalLen, ct).ConfigureAwait(false);
         }
         finally
         {
-            _ = _sendLock.Release();
+            BufferLease.ByteArrayPool.Return(frame);
         }
     }
 
-    private async Task<bool> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, CancellationToken ct)
+    private async Task<bool> SEND_FRAGMENTED_ASYNC(ReadOnlyMemory<byte> payload, bool sync, CancellationToken ct)
     {
         if (payload.Length > _fragmentOptions.MaxPayloadSize)
         {
-            throw new ArgumentOutOfRangeException(nameof(payload), $"Payload exceeds MaxPayloadSize {_fragmentOptions.MaxPayloadSize}");
+            throw new ArgumentOutOfRangeException(nameof(payload));
         }
 
         ushort streamId = FragmentStreamId.Next();
-        int chunkBodySize = _fragmentOptions.MaxChunkSize;
-        if (chunkBodySize <= 0 || chunkBodySize > MaxFragmentChunkPayloadLength)
-        {
-            throw new ArgumentOutOfRangeException(nameof(_fragmentOptions.MaxChunkSize), $"Fragment MaxChunkSize must be between 1 and {MaxFragmentChunkPayloadLength} bytes for TCP framing.");
-        }
+        int chunkSize = _fragmentOptions.MaxChunkSize;
+        int totalChunks = (payload.Length + chunkSize - 1) / chunkSize;
 
-        int totalChunks = (payload.Length + chunkBodySize - 1) / chunkBodySize;
-
-        byte[] headerSpan = new byte[FragmentHeader.WireSize];
+        byte[] headerBytes = new byte[FragmentHeader.WireSize];
 
         for (int i = 0; i < totalChunks; i++)
         {
-            int offset = i * chunkBodySize;
-            int chunkLen = Math.Min(chunkBodySize, payload.Length - offset);
+            int offset = i * chunkSize;
+            int chunkLen = Math.Min(chunkSize, payload.Length - offset);
             bool isLast = i == totalChunks - 1;
 
             FragmentHeader fragHeader = new(streamId, (ushort)i, (ushort)totalChunks, isLast);
-            fragHeader.WriteTo(headerSpan);
+            fragHeader.WriteTo(headerBytes);
 
-            int totalFrameLen = TcpSession.HeaderSize + FragmentHeader.WireSize + chunkLen;
-            if (totalFrameLen > MaxTcpFrameLength)
-            {
-                throw new ArgumentOutOfRangeException(nameof(payload), $"Fragment frame length {totalFrameLen} exceeds UInt16.MaxValue.");
-            }
+            int frameLen = HeaderSize + FragmentHeader.WireSize + chunkLen;
 
-            byte[] frame = BufferLease.ByteArrayPool.Rent(totalFrameLen);
-
+            byte[] frame = BufferLease.ByteArrayPool.Rent(frameLen);
             try
             {
-                BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)totalFrameLen);
-                headerSpan.CopyTo(frame.AsSpan(TcpSession.HeaderSize));
-                payload.Slice(offset, chunkLen).Span.CopyTo(frame.AsSpan(TcpSession.HeaderSize + FragmentHeader.WireSize));
+                BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)frameLen);
+                headerBytes.CopyTo(frame.AsSpan(HeaderSize));
+                payload.Span.Slice(offset, chunkLen).CopyTo(frame.AsSpan(HeaderSize + FragmentHeader.WireSize));
 
-                bool sent = await this.SEND_RAW_ASYNC(frame, totalFrameLen, ct).ConfigureAwait(false);
+                bool sent = sync
+                    ? this.SEND_RAW(frame, frameLen)
+                    : await this.SEND_RAW_ASYNC(frame, frameLen, ct).ConfigureAwait(false);
+
                 if (!sent)
                 {
                     return false;
@@ -208,11 +161,65 @@ internal sealed class FrameSender : IDisposable
         return true;
     }
 
-    #endregion Private Methods
+    #endregion
 
-    /// <summary>
-    /// Releases the semaphore lock and marks the sender as disposed.
-    /// </summary>
+    #region Low-level Send
+
+    private bool SEND_RAW(byte[] frame, int length)
+    {
+        _sendLock.Wait();
+        try
+        {
+            return SEND_LOOP(_getSocket(), frame, length);
+        }
+        finally { _ = _sendLock.Release(); }
+    }
+
+    private async Task<bool> SEND_RAW_ASYNC(byte[] frame, int length, CancellationToken ct)
+    {
+        await _sendLock.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            return await SEND_LOOP_ASYNC(_getSocket(), frame, length, ct).ConfigureAwait(false);
+        }
+        finally { _ = _sendLock.Release(); }
+    }
+
+    private static bool SEND_LOOP(Socket socket, byte[] buffer, int length)
+    {
+        int sent = 0;
+        while (sent < length)
+        {
+            int n = socket.Send(new ReadOnlySpan<byte>(buffer, sent, length - sent));
+            if (n == 0)
+            {
+                throw new SocketException((int)SocketError.ConnectionReset);
+            }
+
+            sent += n;
+        }
+        return true;
+    }
+
+    private static async Task<bool> SEND_LOOP_ASYNC(Socket socket, byte[] buffer, int length, CancellationToken ct)
+    {
+        int sent = 0;
+        while (sent < length)
+        {
+            int n = await socket.SendAsync(new ReadOnlyMemory<byte>(buffer, sent, length - sent), SocketFlags.None, ct)
+                                .ConfigureAwait(false);
+            if (n == 0)
+            {
+                throw new SocketException((int)SocketError.ConnectionReset);
+            }
+
+            sent += n;
+        }
+        return true;
+    }
+
+    #endregion
+
     public void Dispose()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)

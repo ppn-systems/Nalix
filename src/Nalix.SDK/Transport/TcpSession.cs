@@ -204,6 +204,11 @@ public class TcpSession : TransportSession
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Sends raw binary data synchronously (zero-allocation friendly for native).
+    /// </summary>
+    public void Send(ReadOnlySpan<byte> data, bool encrypt = true) => _sender.Send(data, encrypt);
+
     /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, CancellationToken ct = default)
         => await this.SendAsync(packet, this.Options.EncryptionEnabled, ct).ConfigureAwait(false);
