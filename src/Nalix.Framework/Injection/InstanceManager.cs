@@ -778,62 +778,6 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Returns a key-value summary of all cached instances (for diagnostics/monitoring).
-    /// </summary>
-    public IDictionary<string, object> GetReportData()
-    {
-        HashSet<RuntimeTypeHandle> activatorTargets = this.BUILD_ACTIVATOR_TARGETS();
-
-        Dictionary<string, object> result = new(4, StringComparer.Ordinal)
-        {
-            ["UtcNow"] = DateTime.UtcNow,
-            ["CachedInstanceCount"] = this.CachedInstanceCount,
-            ["InstanceCreationCount"] = Volatile.Read(ref _instanceCreationCount),
-            ["InstanceCacheHitCount"] = Volatile.Read(ref _instanceCacheHitCount),
-        };
-
-        List<Dictionary<string, object>> instances = new(_instanceCache.Count);
-
-        foreach (KeyValuePair<RuntimeTypeHandle, object> kvp in _instanceCache)
-        {
-            Type type = Type.GetTypeFromHandle(kvp.Key)!;
-            object instance = kvp.Value;
-            string typeName = type.FullName ?? type.Name;
-            if (typeName.Length > 32)
-            {
-                typeName = "..." + typeName[^29..];
-            }
-
-            bool isDisposable = instance is IDisposable;
-            string source = activatorTargets.Contains(type.TypeHandle) ? "ActivatorCache" : "ManualRegister";
-
-            instances.Add(new Dictionary<string, object>(3, StringComparer.Ordinal)
-            {
-                ["Type"] = typeName,
-                ["IsDisposable"] = isDisposable,
-                ["Source"] = source
-            });
-        }
-
-        foreach (KeyValuePair<ActivatorKey, object> kvp in _signatureInstanceCache)
-        {
-            Type type = kvp.Value.GetType();
-            string typeName = type.FullName ?? type.Name;
-
-            instances.Add(new Dictionary<string, object>(3, StringComparer.Ordinal)
-            {
-                ["Type"] = typeName,
-                ["IsDisposable"] = kvp.Value is IDisposable,
-                ["Source"] = "SignatureCache"
-            });
-        }
-
-        result["Instances"] = instances;
-
-        return result;
-    }
-
     /// <inheritdoc/>
     public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
     {

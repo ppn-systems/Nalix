@@ -90,14 +90,19 @@ public static class PacketRegistry
                 return;
             }
 
-            MergePendingIntoMain();
+            // Merge late registrations
+            if (s_pendingDeserializers?.Count > 0)
+            {
+                foreach (KeyValuePair<uint, PacketDeserializer> kv in s_pendingDeserializers)
+                {
+                    (s_pendingDeserializers ??= new())[kv.Key] = kv.Value;
+                }
+            }
 
-            Dictionary<uint, PacketDeserializer> pending = s_pendingDeserializers ?? new();
-            PacketDispatch[] dispatchers = s_pendingFastDispatchers?.ToArray() ?? [];
+            s_deserializers = (s_pendingDeserializers ?? new()).ToFrozenDictionary();
+            s_runtimeFastDispatcher = COMPOSE(s_pendingFastDispatchers?.ToArray() ?? []);
 
-            s_deserializers = pending.ToFrozenDictionary();
-            s_runtimeFastDispatcher = COMPOSE(dispatchers);
-
+            // Cleanup
             s_pendingNames = null;
             s_pendingDeserializers = null;
             s_pendingFastDispatchers = null;
@@ -146,6 +151,7 @@ public static class PacketRegistry
             dispatchers.Add(dispatcher);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static PacketDispatch? COMPOSE_COMBINED(PacketDispatch? existing, PacketDispatch newOne)
         {
             if (existing is null)
@@ -183,17 +189,17 @@ public static class PacketRegistry
         {
             if (s_deserializers is not null)
             {
-                Dictionary<uint, PacketDeserializer> dict = s_pendingDeserializers ??= new();
-                dict[magic] = deserializer;
+                (s_pendingDeserializers ??= new())[magic] = deserializer;
                 _ = s_pendingNames?[magic] = name;
 
                 return;
             }
 
-            Dictionary<uint, PacketDeserializer> deserializers = s_pendingDeserializers ??= new();
-            Dictionary<uint, string> names = s_pendingNames ??= new();
+            // Early registration
+            Dictionary<uint, PacketDeserializer> dict = s_pendingDeserializers!;
+            Dictionary<uint, string> names = s_pendingNames!;
 
-            if (deserializers.TryGetValue(magic, out _))
+            if (dict.TryGetValue(magic, out _))
             {
                 string oldName = names.TryGetValue(magic, out string? n) ? n : "<unknown>";
                 if (StringComparer.Ordinal.Equals(oldName, name))
@@ -201,10 +207,10 @@ public static class PacketRegistry
                     return;
                 }
 
-                throw new InternalErrorException($"Hash collision! 0x{magic:X8}: {oldName} vs {name}");
+                throw new InternalErrorException($"[PacketRegistry] Hash collision! 0x{magic:X8}: {oldName} vs {name}");
             }
 
-            deserializers[magic] = deserializer;
+            dict[magic] = deserializer;
             names[magic] = name;
         }
     }
@@ -311,7 +317,7 @@ public static class PacketRegistry
 
         return TRY_DESERIALIZE_FALLBACK(magic, raw, out packet);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool TRY_DESERIALIZE_FALLBACK(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
         {
             FrozenDictionary<uint, PacketDeserializer> deserializers = GetBuilt();
@@ -338,26 +344,11 @@ public static class PacketRegistry
 
     #region Private Methods
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static FrozenDictionary<uint, PacketDeserializer> GetBuilt()
     {
         return Volatile.Read(ref s_deserializers)
             ?? throw new InvalidOperationException("PacketRegistry is not built. Call PacketRegistry.Build() after all packet assemblies are loaded.");
-    }
-
-    private static void MergePendingIntoMain()
-    {
-        if (s_pendingDeserializers is null || s_pendingDeserializers.Count == 0)
-        {
-            return;
-        }
-
-        Dictionary<uint, PacketDeserializer> main = s_pendingDeserializers; // sẽ thành frozen sau
-
-        // Merge late registrations (nếu có)
-        foreach (KeyValuePair<uint, PacketDeserializer> kv in s_pendingDeserializers)
-        {
-            main[kv.Key] = kv.Value; // ưu tiên late
-        }
     }
 
     #endregion Private Methods

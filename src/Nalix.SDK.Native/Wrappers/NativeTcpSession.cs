@@ -13,8 +13,9 @@ namespace Nalix.SDK.Native.Wrappers;
 /// <inheritdoc/>
 public sealed unsafe class NativeTcpSession : IDisposable
 {
-    private readonly TcpSession _session;
     private readonly IntPtr _handle;
+    private readonly TcpSession _session;
+
     private int _disposed;
 
     // Callbacks

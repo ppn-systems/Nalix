@@ -33,7 +33,7 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeIgnore]
     public PacketHeader Header { get => _header; set => _header = value; }
 
-    // --- IPacketHeaderAccessor: direct field access, zero-copy ---
+    // --- IPacketHeader: direct field access, zero-copy ---
 
     /// <inheritdoc/>
     [SkipClean]

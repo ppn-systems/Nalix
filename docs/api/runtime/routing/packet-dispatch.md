@@ -98,7 +98,7 @@ When a worker pulls a lease:
 
 ## Diagnostics
 
-`GenerateReport()` and `GetReportData()` expose the current runtime snapshot:
+`GenerateReport()` and `WriteReportData(System.Text.Json.Utf8JsonWriter writer)` expose the current runtime snapshot:
 
 | Field | Meaning |
 | --- | --- |
@@ -111,7 +111,7 @@ When a worker pulls a lease:
 | `TotalConnections` | Active tracked connection states. |
 | `ReadyConnections` | Connections currently marked ready. |
 | `PendingPerPriority` | Ready-entry snapshot per priority level. |
-| `PendingByConnection` | Top pending connections in `GetReportData()`. |
+| `PendingByConnection` | Top pending connections in `WriteReportData(System.Text.Json.Utf8JsonWriter writer)()`. |
 
 ## Related APIs
 
