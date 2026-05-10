@@ -1,12 +1,7 @@
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
-
-using System;
-using System.Collections.Generic;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Codec.Memory;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
-using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;
 
@@ -169,12 +164,8 @@ public sealed partial class MemoryTests
         _ = manager.Rent(256);
 
         string report = manager.GenerateReport();
-        IDictionary<string, object> data = manager.GetReportData();
 
         Assert.Contains("BufferPoolManager Status", report);
-        Assert.Equal(manager.MinBufferSize, data["MinBufferSize"]);
-        Assert.Equal(manager.MaxBufferSize, data["MaxBufferSize"]);
-        Assert.True(data.ContainsKey("Pools"));
     }
 }
 

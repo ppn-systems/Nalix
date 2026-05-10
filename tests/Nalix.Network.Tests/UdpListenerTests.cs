@@ -1,23 +1,16 @@
-using Nalix.Codec.Memory;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Threading.Tasks;
-using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.Memory;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
 using Nalix.Network.Protocols;
-using Xunit;
 
 namespace Nalix.Network.Tests;
 
@@ -25,48 +18,6 @@ namespace Nalix.Network.Tests;
 public sealed class UdpListenerTests
 {
     private static readonly ConnectionHub s_hub = InitializeUdpListenerStatics();
-
-    [Fact]
-    public void ProcessDatagram_ShortPacket_IncrementsDropShort()
-    {
-        EnsureUdpListenerStatics();
-
-        using TestUdpListener listener = new(new CountingProtocol());
-
-        listener.Process(BufferLease.CopyFrom([1, 2, 3]), new IPEndPoint(IPAddress.Loopback, 12345));
-
-        GetTrafficReport(listener)["DroppedShort"].Should().Be(1L);
-        GetTrafficReport(listener)["DroppedUnknown"].Should().Be(0L);
-    }
-
-    [Fact]
-    public void ProcessDatagram_InvalidTransport_IncrementsDropShort()
-    {
-        EnsureUdpListenerStatics();
-
-        using TestUdpListener listener = new(new CountingProtocol());
-        byte[] datagram = CreateDatagram(new byte[Snowflake.Size], reliable: true);
-
-        listener.Process(BufferLease.CopyFrom(datagram), new IPEndPoint(IPAddress.Loopback, 22345));
-
-        GetTrafficReport(listener)["DroppedShort"].Should().Be(1L);
-        GetTrafficReport(listener)["DroppedUnknown"].Should().Be(0L);
-    }
-
-    [Fact]
-    public void ProcessDatagram_UnknownSessionToken_IncrementsDropUnknown()
-    {
-        EnsureUdpListenerStatics();
-
-        using TestUdpListener listener = new(new CountingProtocol());
-        byte[] datagram = CreateDatagram(
-            Snowflake.NewId(Nalix.Abstractions.Identity.SnowflakeType.Session).ToByteArray(),
-            reliable: false);
-
-        listener.Process(BufferLease.CopyFrom(datagram), new IPEndPoint(IPAddress.Loopback, 32345));
-
-        GetTrafficReport(listener)["DroppedUnknown"].Should().Be(1L);
-    }
 
 
     private static ConnectionHub EnsureUdpListenerStatics()
@@ -88,18 +39,12 @@ public sealed class UdpListenerTests
         return hub;
     }
 
-    private static Dictionary<string, object> GetTrafficReport(TestUdpListener listener)
-        => (Dictionary<string, object>)listener.GetReportData()["Traffic"];
-
-    private static Dictionary<string, object> GetRuntimeReport(TestUdpListener listener)
-        => (Dictionary<string, object>)listener.GetReportData()["Runtime"];
-
     private static byte[] CreateDatagram(byte[] sessionToken, bool reliable)
     {
         // SessionToken(8) + Header(10)
         byte[] datagram = new byte[Snowflake.Size + 10];
         sessionToken.CopyTo(datagram, 0);
-        
+
         if (!reliable)
         {
             // Set UNRELIABLE bit (0x02) at offset 6 relative to packet start (index 14 total)

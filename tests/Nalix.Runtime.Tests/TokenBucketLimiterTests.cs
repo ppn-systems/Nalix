@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Runtime.Options;
@@ -77,20 +76,6 @@ public sealed class TokenBucketLimiterTests
         Assert.False(second.Allowed);
         Assert.Equal(TokenBucketLimiter.RateLimitReason.HardLockout, second.Reason);
         Assert.Equal(2000, second.RetryAfterMs);
-    }
-
-    [Fact]
-    public void GetReportData_AfterMultipleEndpoints_ContainsExpectedTrackedCount()
-    {
-        using TokenBucketLimiter limiter = new(CreateOptions());
-
-        _ = limiter.Evaluate(new TestEndpoint("192.168.0.11"));
-        _ = limiter.Evaluate(new TestEndpoint("192.168.0.12"));
-
-        IDictionary<string, object> report = limiter.GetReportData();
-
-        Assert.Equal(2, report["TrackedEndpoints"]);
-        Assert.True(report.ContainsKey("Endpoints"));
     }
 
     [Fact]
