@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Backend.Attributes;
 using Backend.Handlers;
 using Backend.Middleware;
-using Contracts;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -43,7 +42,6 @@ internal class Startup
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
-            .ScanPackets<AuthorityGrant>(requirePacketAttribute: true)
             .AddHandler<AuthorityGrantHandlers>()
             .AddHandler<GenerationReportHandlers>()
             .Configure<NetworkSocketOptions>(o =>

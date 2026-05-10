@@ -87,7 +87,11 @@ public class TcpSession : TransportSession
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
-        PacketRegistry.Build();
+        if (!PacketRegistry.IsBuilt)
+        {
+            PacketRegistry.Build();
+        }
+
         await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
 
         try
