@@ -791,6 +791,16 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
         writer.WriteNumber("InstanceCreationCount", Volatile.Read(ref _instanceCreationCount));
         writer.WriteNumber("InstanceCacheHitCount", Volatile.Read(ref _instanceCacheHitCount));
 
+        writer.WriteNumber("SignatureInstanceCount", _signatureInstanceCache.Count);
+        writer.WriteNumber("ActivatorFactoryCount", _activatorCache.Count);
+        writer.WriteNumber("DisposableCount", _disposables.Count);
+        writer.WriteNumber("SlotsInvalidated", Volatile.Read(ref s_slotsInvalidated));
+
+        writer.WriteNumber("TotalGetOrCreateCalls",
+        Volatile.Read(ref _instanceCreationCount) + Volatile.Read(ref _instanceCacheHitCount));
+
+        writer.WriteNumber("HitRatePermille", CalculateHitRatePermille());
+
         writer.WriteStartArray("Instances");
 
         foreach (KeyValuePair<RuntimeTypeHandle, object> kvp in _instanceCache)
@@ -828,6 +838,21 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
         writer.WriteEndArray();
 
         writer.WriteEndObject();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        int CalculateHitRatePermille()
+        {
+            long creations = Volatile.Read(ref _instanceCreationCount);
+            long hits = Volatile.Read(ref _instanceCacheHitCount);
+            long total = creations + hits;
+
+            if (total == 0)
+            {
+                return 0;
+            }
+
+            return (int)(hits * 1000L / total);
+        }
     }
 
     #endregion IReportable
