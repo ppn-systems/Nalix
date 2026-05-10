@@ -560,24 +560,35 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Func<object, PacketContext<TPacket>, ValueTask<object>> BUILD_CONTEXT_BRIDGE_INVOKER(MethodInfo method, ParameterInfo[] parms, SignatureKind kind)
     {
-        // This path is only used when a dispatcher registered with a broad packet type
-        // (for example IPacket) needs to invoke a handler that declared a concrete
-        // PacketContext<TConcrete>/IPacketContext<TConcrete>.
-        Type bridgePacketType = parms[0].ParameterType.GetGenericArguments()[0];
-        bool withToken = kind == SignatureKind.ContextWithToken;
-        Func<object?, ValueTask<object>> normalizer = CREATE_RESULT_NORMALIZER(method.ReturnType);
-        MethodInfo bridgeMethod = GET_REQUIRED_METHOD(
-            typeof(PacketHandlerCompiler<TController, TPacket>),
-            nameof(INVOKE_CONTEXT_BRIDGE_ASYNC),
-            BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(bridgePacketType);
+        try
+        {
+            // This path is only used when a dispatcher registered with a broad packet type
+            // (for example IPacket) needs to invoke a handler that declared a concrete
+            // PacketContext<TConcrete>/IPacketContext<TConcrete>.
+            Type bridgePacketType = parms[0].ParameterType.GetGenericArguments()[0];
+            bool withToken = kind == SignatureKind.ContextWithToken;
+            Func<object?, ValueTask<object>> normalizer = CREATE_RESULT_NORMALIZER(method.ReturnType);
+            MethodInfo bridgeMethod = GET_REQUIRED_METHOD(
+                typeof(PacketHandlerCompiler<TController, TPacket>),
+                nameof(INVOKE_CONTEXT_BRIDGE_ASYNC),
+                BindingFlags.NonPublic | BindingFlags.Static).MakeGenericMethod(bridgePacketType);
 
-        // Use CreateDelegate to avoid per-call params object[] allocation.
-        Func<MethodInfo, object, PacketContext<TPacket>, bool, Func<object?, ValueTask<object>>, ValueTask<object>> bridgeInvoker = bridgeMethod.CreateDelegate<
-            Func<MethodInfo, object, PacketContext<TPacket>, bool,
-                 Func<object?, ValueTask<object>>, ValueTask<object>>>();
+            // Use CreateDelegate to avoid per-call params object[] allocation.
+            Func<MethodInfo, object, PacketContext<TPacket>, bool, Func<object?, ValueTask<object>>, ValueTask<object>> bridgeInvoker = bridgeMethod.CreateDelegate<
+                Func<MethodInfo, object, PacketContext<TPacket>, bool,
+                     Func<object?, ValueTask<object>>, ValueTask<object>>>();
 
-        return (instance, context) =>
-            bridgeInvoker(method, instance, context, withToken, normalizer);
+            return (instance, context) =>
+                bridgeInvoker(method, instance, context, withToken, normalizer);
+        }
+        catch (TypeInitializationException tie) when (tie.InnerException is InvalidOperationException ioe && ioe.Message.Contains("PacketRegistry is already built", StringComparison.Ordinal))
+        {
+            // Log helpful message
+            throw new InvalidOperationException(
+                "PacketRegistry was built too early. Make sure all packet assemblies are loaded " +
+                "and handlers are registered BEFORE calling PacketRegistry.Build(). " +
+                "See NetworkApplicationBuilder.", tie);
+        }
     }
 
     /// <summary>

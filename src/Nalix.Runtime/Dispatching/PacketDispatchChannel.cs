@@ -305,54 +305,6 @@ public sealed class PacketDispatchChannel
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Generates a key-value diagnostic snapshot.
-    /// </summary>
-    /// <returns>Diagnostic dictionary.</returns>
-    public IDictionary<string, object> GetReportData()
-    {
-        Dictionary<string, object> report = new()
-        {
-            ["UtcNow"] = DateTime.UtcNow,
-            ["Running"] = Volatile.Read(ref _running) == 1,
-            ["DispatchLoops"] = _dispatchLoops,
-            ["TotalPackets"] = _dispatch.TotalPackets,
-            ["TotalConnections"] = _dispatch.TotalConnections,
-            ["ReadyConnections"] = _dispatch.ReadyConnections,
-            ["WakeSignals"] = Interlocked.Read(ref _wakeSignals),
-            ["WakeReads"] = Interlocked.Read(ref _wakeReadSignals),
-            ["WakeRequested"] = Volatile.Read(ref _wakeRequested),
-            ["PacketRegistryType"] = nameof(PacketRegistry)
-        };
-
-        int[] priorities = _dispatch.PendingPerPriority;
-        Dictionary<string, int> pendingPerPriority = new(priorities.Length);
-        for (int p = priorities.Length - 1; p >= 0; p--)
-        {
-            pendingPerPriority[GetPriorityName(p)] = priorities[p];
-        }
-
-        report["PendingPerPriority"] = pendingPerPriority;
-
-        List<KeyValuePair<IConnection, int>> ranked = [.. _dispatch.PendingPerConnection];
-        ranked.Sort(static (a, b) => b.Value.CompareTo(a.Value));
-
-        int top = Math.Min(10, ranked.Count);
-        List<Dictionary<string, object>> topConnections = new(top);
-        for (int i = 0; i < top; i++)
-        {
-            KeyValuePair<IConnection, int> kv = ranked[i];
-            topConnections.Add(new Dictionary<string, object>
-            {
-                ["EndPoint"] = kv.Key.NetworkEndpoint.Address,
-                ["Pending"] = kv.Value
-            });
-        }
-
-        report["PendingByConnection"] = topConnections;
-        return report;
-    }
-
     /// <inheritdoc/>
     public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
     {

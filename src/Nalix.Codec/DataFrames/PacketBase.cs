@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -245,24 +244,6 @@ public abstract class PacketBase<
         }
 
         return sb.ToString();
-    }
-
-    /// <summary>
-    /// Returns a debug-friendly key-value summary of this packet's metadata (for diagnostics, not for production use).
-    /// </summary>
-    /// <exception cref="FormatException">Thrown when diagnostic formatting of packet metadata fails.</exception>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public IDictionary<string, object> GetReportData()
-    {
-        return new Dictionary<string, object>
-        {
-            ["TypeName"] = typeof(TSelf).Name,
-            ["AutoMagic"] = $"0x{PacketTypeCache<TSelf>.AutoMagic:X8}",
-            ["StaticSize"] = PacketTypeCache<TSelf>.StaticSize.ToString(CultureInfo.InvariantCulture),
-            ["PropertiesCount"] = PacketTypeCache<TSelf>.All.Length,
-            ["DynamicGettersCount"] = PacketTypeCache<TSelf>.SizeGettersCount,
-            ["Properties"] = Array.ConvertAll(PacketTypeCache<TSelf>.All, meta => meta.ToString())
-        };
     }
 
     /// <inheritdoc/>

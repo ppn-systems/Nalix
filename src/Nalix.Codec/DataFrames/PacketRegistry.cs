@@ -27,6 +27,7 @@ public static class PacketRegistry
     private static Dictionary<uint, string>? s_pendingNames;
     private static PacketDispatch? s_runtimeFastDispatcher;
     private static List<PacketDispatch>? s_pendingFastDispatchers;
+
     private static FrozenDictionary<uint, PacketDeserializer>? s_deserializers;
     private static Dictionary<uint, PacketDeserializer>? s_pendingDeserializers;
 
@@ -89,12 +90,19 @@ public static class PacketRegistry
                 return;
             }
 
-            Dictionary<uint, PacketDeserializer> pending = s_pendingDeserializers ?? new();
-            PacketDispatch[] dispatchers = s_pendingFastDispatchers?.ToArray() ?? [];
+            // Merge late registrations
+            if (s_pendingDeserializers?.Count > 0)
+            {
+                foreach (KeyValuePair<uint, PacketDeserializer> kv in s_pendingDeserializers)
+                {
+                    (s_pendingDeserializers ??= new())[kv.Key] = kv.Value;
+                }
+            }
 
-            s_deserializers = pending.ToFrozenDictionary();
-            s_runtimeFastDispatcher = COMPOSE(dispatchers);
+            s_deserializers = (s_pendingDeserializers ?? new()).ToFrozenDictionary();
+            s_runtimeFastDispatcher = COMPOSE(s_pendingFastDispatchers?.ToArray() ?? []);
 
+            // Cleanup
             s_pendingNames = null;
             s_pendingDeserializers = null;
             s_pendingFastDispatchers = null;
@@ -135,13 +143,38 @@ public static class PacketRegistry
         {
             if (s_deserializers is not null)
             {
-                throw new InvalidOperationException(
-                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
+                s_runtimeFastDispatcher = COMPOSE_COMBINED(s_runtimeFastDispatcher, dispatcher);
+                return;
             }
 
             List<PacketDispatch> dispatchers = s_pendingFastDispatchers ??= new();
             dispatchers.Add(dispatcher);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static PacketDispatch? COMPOSE_COMBINED(PacketDispatch? existing, PacketDispatch newOne)
+        {
+            if (existing is null)
+            {
+                return newOne;
+            }
+
+            if (existing == newOne)
+            {
+                return existing;
+            }
+
+            return (magic, raw, [NotNullWhen(true)] out packet) =>
+            {
+                if (existing(magic, raw, out packet))
+                {
+                    return true;
+                }
+
+                return newOne(magic, raw, out packet);
+            };
+        }
+
     }
 
     /// <summary>
@@ -156,31 +189,28 @@ public static class PacketRegistry
         {
             if (s_deserializers is not null)
             {
-                if (s_deserializers.ContainsKey(magic))
-                {
-                    return;
-                }
+                (s_pendingDeserializers ??= new())[magic] = deserializer;
+                _ = s_pendingNames?[magic] = name;
 
-                throw new InvalidOperationException(
-                    "PacketRegistry is already built. Load all packet assemblies before first registry access.");
+                return;
             }
 
-            Dictionary<uint, PacketDeserializer> deserializers = s_pendingDeserializers ??= new();
-            Dictionary<uint, string> names = s_pendingNames ??= new();
+            // Early registration
+            Dictionary<uint, PacketDeserializer> dict = s_pendingDeserializers!;
+            Dictionary<uint, string> names = s_pendingNames!;
 
-            if (deserializers.ContainsKey(magic))
+            if (dict.TryGetValue(magic, out _))
             {
-                string oldName = names.TryGetValue(magic, out string? resolved) ? resolved : "<unknown>";
+                string oldName = names.TryGetValue(magic, out string? n) ? n : "<unknown>";
                 if (StringComparer.Ordinal.Equals(oldName, name))
                 {
                     return;
                 }
 
-                throw new InternalErrorException(
-                    $"[PacketRegistry] Hash collision detected! Magic: 0x{magic:X8}; Type A: {oldName}; Type B: {name}");
+                throw new InternalErrorException($"[PacketRegistry] Hash collision! 0x{magic:X8}: {oldName} vs {name}");
             }
 
-            deserializers[magic] = deserializer;
+            dict[magic] = deserializer;
             names[magic] = name;
         }
     }
@@ -287,7 +317,7 @@ public static class PacketRegistry
 
         return TRY_DESERIALIZE_FALLBACK(magic, raw, out packet);
 
-        [MethodImpl(MethodImplOptions.NoInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         static bool TRY_DESERIALIZE_FALLBACK(uint magic, ReadOnlySpan<byte> raw, [NotNullWhen(true)] out IPacket? packet)
         {
             FrozenDictionary<uint, PacketDeserializer> deserializers = GetBuilt();
@@ -314,6 +344,7 @@ public static class PacketRegistry
 
     #region Private Methods
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static FrozenDictionary<uint, PacketDeserializer> GetBuilt()
     {
         return Volatile.Read(ref s_deserializers)

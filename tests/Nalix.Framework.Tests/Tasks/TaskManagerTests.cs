@@ -407,42 +407,6 @@ public sealed class TaskManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task CleanupWorkersRemovesUnusedGroupGateAfterRetentionExpires()
-    {
-        using TaskManager manager = this.CreateManager(new TaskManagerOptions
-        {
-            CleanupInterval = TimeSpan.FromSeconds(1),
-            DynamicAdjustmentEnabled = false,
-            MaxWorkers = 4,
-            IsEnableLatency = true
-        });
-
-        TaskCompletionSource<IWorkerHandle> completion = TaskManagerTestHost.CreateCompletionSource<IWorkerHandle>();
-
-        IWorkerHandle handle = manager.ScheduleWorker(
-            "worker.cleanup.gate",
-            "group-cleanup",
-            (_, _) => ValueTask.CompletedTask,
-            new WorkerOptions
-            {
-                GroupConcurrencyLimit = 1,
-                RetainFor = TimeSpan.FromMilliseconds(150),
-                OnCompleted = worker => completion.TrySetResult(worker)
-            });
-
-        _ = await completion.Task.WaitAsync(TimeSpan.FromSeconds(15));
-        await TaskManagerTestHost.WaitUntilAsync(() => !handle.IsRunning && handle.TotalRuns == 1, TimeSpan.FromSeconds(15));
-        await TaskManagerTestHost.WaitUntilAsync(
-            () =>
-            {
-                IDictionary<string, object> data = manager.GetReportData();
-                return data["WorkersByGroup"] is Dictionary<string, object> workersByGroup &&
-                       !workersByGroup.ContainsKey("group-cleanup");
-            },
-            TimeSpan.FromSeconds(15));
-    }
-
-    [Fact]
     public async Task ScheduleWorkerWhenFailureCallbackThrowsIncrementsWorkerErrorCountAgain()
     {
         using TaskManager manager = this.CreateManager();

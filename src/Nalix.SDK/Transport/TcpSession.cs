@@ -87,7 +87,11 @@ public class TcpSession : TransportSession
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
 
-        PacketRegistry.Build();
+        if (!PacketRegistry.IsBuilt)
+        {
+            PacketRegistry.Build();
+        }
+
         await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
 
         try
@@ -203,6 +207,11 @@ public class TcpSession : TransportSession
 
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Sends raw binary data synchronously (zero-allocation friendly for native).
+    /// </summary>
+    public void Send(ReadOnlySpan<byte> data, bool encrypt = true) => _sender.Send(data, encrypt);
 
     /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, CancellationToken ct = default)

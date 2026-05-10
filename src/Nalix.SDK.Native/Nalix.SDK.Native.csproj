@@ -1,0 +1,69 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+
+		<Nullable>enable</Nullable>
+		<IsPackable>false</IsPackable>
+		<IsTrimmable>false</IsTrimmable>
+		<OutputType>Library</OutputType>
+
+		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->
+		<Optimize>true</Optimize>
+		<TrimMode>partial</TrimMode>
+		<PublishAot>true</PublishAot>
+		<StripSymbols>true</StripSymbols>
+		<Deterministic>true</Deterministic>
+		<IsAotCompatible>true</IsAotCompatible>
+		<InvariantGlobalization>true</InvariantGlobalization>
+
+		<NativeLib>Shared</NativeLib>
+		<SelfContained>true</SelfContained>
+		<NativeLibraryName>Nalix</NativeLibraryName>
+
+		<!-- Reduce reflection metadata; keep it small & fast for interop -->
+		<IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
+
+		<RuntimeIdentifiers>
+			win-x64;win-arm64;
+			linux-x64;linux-arm64;
+			osx-x64;osx-arm64;
+			android-arm64;android-x64
+		</RuntimeIdentifiers>
+
+		<Description>
+			<![CDATA[
+Nalix.SDK.Native is the native AOT interop layer for the Nalix ecosystem.
+It provides a clean C ABI (UnmanagedCallersOnly) allowing Java (JNI/JNA), 
+C/C++, Rust, Python, Go and other languages to call into Nalix networking stack.
+
+Features:
+• High-performance TcpSession and UdpSession with full handshake, encryption, fragmentation
+• Request-Response pattern with completion callbacks
+• Session resume, dynamic cipher update, ping, time sync
+• Zero-copy where possible + memory safety through BufferLease
+      ]]>
+		</Description>
+
+		<PackageReleaseNotes>
+			<![CDATA[
+- Initial Native AOT export with C ABI
+- Full TcpSession interop support (Connect, Send, Handshake, RequestAsync via callback)
+- Callback support for OnMessageReceived, OnDisconnected, OnError
+- Multi-RID publishing (Windows, Linux, macOS, Android)
+- Optimized for JNI / FFI usage
+      ]]>
+		</PackageReleaseNotes>
+
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	</PropertyGroup>
+
+	<Import Project="..\Nalix.Build.props" />
+	<Import Project="..\Package.Build.props" />
+
+	<ItemGroup>
+		<ProjectReference Include="..\Nalix.SDK\Nalix.SDK.csproj" />
+	</ItemGroup>
+</Project>

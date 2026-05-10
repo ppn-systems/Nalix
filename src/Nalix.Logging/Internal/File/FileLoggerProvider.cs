@@ -157,25 +157,6 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
          + System.Environment.NewLine + $"- Dropped:  {this.EntriesDroppedCount:N0}"
          + System.Environment.NewLine + $"- Queue:    ~{this.QueuedEntryCount:N0}/{_maxQueueSize}";
 
-    public IDictionary<string, object> GetReportData()
-    {
-        return new Dictionary<string, object>(StringComparer.Ordinal)
-        {
-            ["UtcNow"] = DateTime.UtcNow,
-            ["User"] = System.Environment.UserName,
-            ["LogFile"] = Path.Combine(Directories.LogsDirectory, this.Options.LogFileName),
-            ["Written"] = this.TotalEntriesWritten,
-            ["Dropped"] = this.EntriesDroppedCount,
-            ["Queue"] = this.QueuedEntryCount,
-            ["MaxQueueSize"] = _maxQueueSize,
-            ["BatchSize"] = _batchSize,
-            ["AdaptiveFlush"] = _adaptiveFlush,
-            ["MaxBatchDelayMs"] = _maxBatchDelay.TotalMilliseconds,
-            ["BlockWhenFull"] = _blockWhenFull,
-            ["Disposed"] = _disposed
-        };
-    }
-
     /// <inheritdoc/>
     public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
     {

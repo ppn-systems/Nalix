@@ -236,11 +236,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public NetworkApplication Build()
     {
+        RegisterPacketRegistry();
+
         void PrepareCallbacks()
         {
-            RegisterLogger(_state);
             ApplyOptions(_state);
-            RegisterPacketRegistry();
+            RegisterLogger(_state);
 
             this.EnsureConnectionHubRegistered();
             this.EnsureBufferPoolManagerRegistered();
@@ -475,7 +476,15 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _ = (validateMethod?.Invoke(options, parameters: null));
     }
 
-    private static void RegisterPacketRegistry() => PacketRegistry.Build();
+    private static void RegisterPacketRegistry()
+    {
+        if (PacketRegistry.IsBuilt)
+        {
+            return;
+        }
+
+        PacketRegistry.Build();
+    }
 
     private static void RegisterMetadataProviders(HostingBuilderContext state)
     {

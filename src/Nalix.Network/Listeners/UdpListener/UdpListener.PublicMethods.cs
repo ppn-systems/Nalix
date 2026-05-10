@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net;
@@ -407,60 +406,6 @@ public abstract partial class UdpListenerBase : IListener
         _ = sb.AppendLine();
 
         return sb.ToString();
-    }
-
-    /// <summary>
-    /// Generates diagnostic data as key-value pairs describing the current UDP listener state.
-    /// </summary>
-    /// <returns>A dictionary containing the report data.</returns>
-    public IDictionary<string, object> GetReportData()
-    {
-        Dictionary<string, object> data = new(StringComparer.Ordinal)
-        {
-            ["UtcNow"] = DateTime.UtcNow,
-            ["Port"] = _port,
-            ["State"] = this.State.ToString(),
-            ["IsListening"] = this.IsListening,
-            ["IsDisposed"] = _isDisposed,
-            ["ProtocolType"] = _protocol?.GetType().FullName ?? "<null>",
-
-            ["Config"] = new Dictionary<string, object>
-            {
-                ["ReuseAddress"] = _options.ReuseAddress,
-                ["BufferSize"] = _options.BufferSize,
-                ["EnableIPv6"] = _options.EnableIPv6,
-                ["DualMode"] = _options.DualMode
-            },
-
-            ["Worker"] = new Dictionary<string, object>
-            {
-                ["Group"] = $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
-                ["GroupConcurrencyLimit"] = _options.MaxGroupConcurrency
-            },
-
-            ["Traffic"] = new Dictionary<string, object>
-            {
-                ["ReceivedPackets"] = Interlocked.Read(ref _rxPackets),
-                ["ReceivedBytes"] = Interlocked.Read(ref _rxBytes),
-                ["DroppedShort"] = Interlocked.Read(ref _dropShort),
-                ["DroppedUnauth"] = Interlocked.Read(ref _dropUnauth),
-                ["DroppedUnknown"] = Interlocked.Read(ref _dropUnknown)
-            },
-
-            ["Errors"] = new Dictionary<string, object>
-            {
-                ["ReceiveErrors"] = Interlocked.Read(ref _recvErrors)
-            },
-
-            ["Runtime"] = new Dictionary<string, object>
-            {
-                ["Socket"] = _socket is null ? "<null>" : "OK",
-                ["CTS"] = _cts is null ? "<null>" : "OK",
-                ["RateLimiter"] = "OK"
-            }
-        };
-
-        return data;
     }
 
     /// <inheritdoc/>

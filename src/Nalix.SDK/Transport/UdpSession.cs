@@ -97,7 +97,10 @@ public class UdpSession : TransportSession
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(UdpSession));
 
-        PacketRegistry.Build();
+        if (!PacketRegistry.IsBuilt)
+        {
+            PacketRegistry.Build();
+        }
 
         string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
         ushort effectivePort = port ?? this.Options.Port;

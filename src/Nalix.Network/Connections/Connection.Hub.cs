@@ -533,30 +533,6 @@ public sealed class ConnectionHub : IConnectionHub
         return sb.ToString();
     }
 
-    /// <summary>
-    /// Generates a key-value diagnostic summary of the connection hub and active connections.
-    /// </summary>
-    public IDictionary<string, object> GetReportData()
-    {
-        int total = Volatile.Read(ref _count);
-
-        Dictionary<string, object> report = new()
-        {
-            ["UtcNow"] = DateTime.UtcNow,
-            ["TotalConnections"] = total,
-            ["EvictedConnections"] = Volatile.Read(ref _evictedConnections),
-            ["RejectedConnections"] = Volatile.Read(ref _rejectedConnections),
-            ["ShardCount"] = _shardCount,
-            ["MaxConnections"] = _maxConnections,
-            ["DropPolicy"] = _options.DropPolicy.ToString(),
-        };
-
-        report["TotalBytesSent"] = Volatile.Read(ref _totalBytesSent);
-        report["TotalBytesReceived"] = Volatile.Read(ref _totalBytesReceived);
-
-        return report;
-    }
-
     /// <inheritdoc/>
     public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
     {

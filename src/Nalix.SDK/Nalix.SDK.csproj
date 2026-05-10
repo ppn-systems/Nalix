@@ -36,7 +36,7 @@ It acts as the bridge between application logic and the Nalix.Network layer, sim
 		]]></PackageReleaseNotes>
 
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
 using System.Globalization;
@@ -405,57 +404,6 @@ public abstract partial class TcpListenerBase
 
         _ = sb.AppendLine("--------------------------------------------");
         return sb.ToString();
-    }
-
-    /// <summary>
-    /// Generates diagnostic data as key-value pairs describing the current TCP
-    /// listener state and metrics.
-    /// This shape is easier for automation and structured logging to consume.
-    /// </summary>
-    /// <returns>A dictionary containing the report data.</returns>
-    public virtual IDictionary<string, object> GetReportData()
-    {
-        ThreadPool.GetMinThreads(out int minWorker, out int minIocp);
-
-        Dictionary<string, object> data = new(StringComparer.Ordinal)
-        {
-            ["UtcNow"] = DateTime.UtcNow,
-            ["Port"] = _port,
-            ["State"] = this.State,
-            ["Disposed"] = _isDisposed,
-            ["Configuration"] = new Dictionary<string, object>
-            {
-                ["EnableTimeout"] = _config.EnableTimeout,
-                ["MaxParallelAccepts"] = _config.MaxParallel,
-                ["BufferSize"] = _config.BufferSize,
-                ["KeepAlive"] = _config.KeepAlive,
-                ["ReuseAddress"] = _config.ReuseAddress,
-                ["EnableIPv6"] = _config.EnableIPv6,
-                ["Backlog"] = _config.Backlog
-            },
-            ["Metrics"] = new Dictionary<string, object>
-            {
-                ["TotalAccepted"] = this.Metrics.TotalAccepted,
-                ["TotalRejected"] = this.Metrics.TotalRejected,
-                ["TotalErrors"] = this.Metrics.TotalErrors
-            },
-            ["Protocol"] = new Dictionary<string, object>
-            {
-                ["BoundProtocol"] = _protocol?.ToString() ?? "-"
-            },
-            ["Connections"] = new Dictionary<string, object>
-            {
-                ["ActiveConnections"] = _hub.Count,
-                ["LimiterEnabled"] = true
-            },
-            ["Threading"] = new Dictionary<string, object>
-            {
-                ["ThreadPoolMinWorker"] = minWorker,
-                ["ThreadPoolMinIOCP"] = minIocp
-            }
-        };
-
-        return data;
     }
 
     /// <inheritdoc/>

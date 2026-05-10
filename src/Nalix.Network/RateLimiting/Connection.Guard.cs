@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using System.Linq;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -269,51 +268,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         {
             SORT_SNAPSHOT_BY_LOAD(snapshot);
             return this.BUILD_REPORT(snapshot);
-        }
-        finally
-        {
-            RETURN_SNAPSHOT_TO_POOL(snapshot);
-        }
-    }
-
-    /// <summary>
-    /// Generates a key-value diagnostic summary of the connection limiter and its tracked endpoints.
-    /// </summary>
-    public IDictionary<string, object> GetReportData()
-    {
-        List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = this.COLLECT_SNAPSHOT();
-        try
-        {
-            SORT_SNAPSHOT_BY_LOAD(snapshot);
-            GlobalMetrics metrics = this.CALCULATE_GLOBAL_METRICS(snapshot);
-
-            Dictionary<string, object> report = new()
-            {
-                ["UtcNow"] = Clock.NowUtc(),
-                ["MaxPerEndpoint"] = _maxPerEndpoint,
-                ["CleanupIntervalSeconds"] = _cleanupInterval.TotalSeconds,
-                ["InactivityThresholdSeconds"] = _inactivityThreshold.TotalSeconds,
-                ["TrackedEndpoints"] = metrics.TotalEndpoints,
-                ["TotalConcurrent"] = metrics.TotalConcurrent,
-                ["TotalAttempts"] = metrics.TotalAttempts,
-                ["TotalRejections"] = metrics.TotalRejections,
-                ["TotalCleaned"] = metrics.TotalCleaned,
-                ["RejectionRate"] = metrics.TotalAttempts > 0 ? (metrics.TotalRejections * 100.0 / metrics.TotalAttempts) : 0.0
-            };
-
-            report["TopEndpoints"] = snapshot.Take(50).Select(kvp =>
-            {
-                ConnectionLimitInfo info = kvp.Value;
-                return new Dictionary<string, object>
-                {
-                    ["Address"] = kvp.Key.Address ?? "unknown",
-                    ["CurrentConnections"] = info.CurrentConnections,
-                    ["TotalConnectionsToday"] = info.TotalConnectionsToday,
-                    ["LastConnectionUtc"] = info.LastConnectionTime
-                };
-            }).ToList();
-
-            return report;
         }
         finally
         {

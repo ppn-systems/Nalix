@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -616,66 +615,6 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         APPEND_OPCODE_DETAILS(sb, snapshot);
 
         return sb.ToString();
-    }
-
-    /// <summary>
-    /// Generates a key-value diagnostic summary of the concurrency gate and per-opcode state.
-    /// </summary>
-    public IDictionary<string, object> GetReportData()
-    {
-        List<KeyValuePair<ushort, Entry>> entries = [.. _table];
-        entries.Sort((a, b) =>
-        {
-            int aBusy = a.Value.Capacity - a.Value.Sem.CurrentCount;
-            int bBusy = b.Value.Capacity - b.Value.Sem.CurrentCount;
-            int cmp = bBusy.CompareTo(aBusy);
-            return cmp != 0 ? cmp : b.Value.QueueCount.CompareTo(a.Value.QueueCount);
-        });
-
-        long totalAttempts = Interlocked.Read(ref _totalAcquired) + Interlocked.Read(ref _totalRejected);
-        double rejectionRate = totalAttempts > 0 ? (Interlocked.Read(ref _totalRejected) * 100.0 / totalAttempts) : 0.0;
-
-        Dictionary<string, object> report = new()
-        {
-            ["UtcNow"] = DateTime.UtcNow,
-            ["CleanupIntervalMinutes"] = _options.CleanupIntervalMinutes,
-            ["MinIdleAgeMinutes"] = _options.MinIdleAgeMinutes,
-            ["TrackedOpcodes"] = _table.Count,
-            ["TotalAcquired"] = Interlocked.Read(ref _totalAcquired),
-            ["TotalRejected"] = Interlocked.Read(ref _totalRejected),
-            ["TotalQueued"] = Interlocked.Read(ref _totalQueued),
-            ["TotalCleaned"] = Interlocked.Read(ref _totalCleanedEntries),
-            ["RejectionRate"] = rejectionRate,
-            ["CircuitBreaker"] = new Dictionary<string, object>
-            {
-                ["IsOpen"] = Volatile.Read(ref _circuitBreakerOpen) == 1,
-                ["Trips"] = Interlocked.Read(ref _circuitBreakerTrips)
-            }
-        };
-
-        report["Opcodes"] = entries.Take(50).Select(kvp =>
-        {
-            ushort opcode = kvp.Key;
-            Entry entry = kvp.Value;
-            int available = entry.Sem.CurrentCount;
-            int inUse = entry.Capacity - available;
-            string queueMaxStr = entry.QueueMax == int.MaxValue ? "∞" : entry.QueueMax.ToString(CultureInfo.InvariantCulture);
-
-            return new Dictionary<string, object>
-            {
-                ["Opcode"] = $"0x{opcode:X4}",
-                ["Capacity"] = entry.Capacity,
-                ["InUse"] = inUse,
-                ["Available"] = available,
-                ["Queuing"] = entry.Queue,
-                ["QueueCount"] = entry.QueueCount,
-                ["QueueMax"] = queueMaxStr,
-                ["IsIdle"] = entry.IsIdle,
-                ["LastUsedUtc"] = entry.LastUsedUtc
-            };
-        }).ToList();
-
-        return report;
     }
 
     /// <inheritdoc/>
