@@ -132,6 +132,18 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(0, 60000, ErrorMessage = "ProcessChannelDrainTimeout must be between 0 and 60000 ms.")]
     public int ProcessChannelDrainTimeout { get; set; } = 5000;
 
+    /// <summary>
+    /// ReusePort allows multiple sockets to bind to the same port, which can be useful for load balancing and high availability scenarios.
+    /// </summary>
+    [IniComment("Allow multiple sockets to bind to the same port for load balancing (default: true)")]
+    public bool ReusePort { get; set; } = true;
+
+    /// <summary>
+    /// TcpFastOpen enables the TCP Fast Open feature, which allows data to be sent during the initial connection handshake, reducing latency for subsequent connections.
+    /// </summary>
+    [IniComment("Enable TCP Fast Open to reduce latency for subsequent connections (default: true)")]
+    public bool TcpFastOpen { get; set; } = true;
+
     #endregion Properties
 
     /// <summary>

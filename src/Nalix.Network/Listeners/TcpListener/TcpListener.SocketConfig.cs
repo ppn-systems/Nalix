@@ -9,12 +9,16 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
 {
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
+    private static readonly SocketOptionName ReusePortOption = (SocketOptionName)15;
+
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void Initialize()
@@ -74,7 +78,7 @@ public abstract partial class TcpListenerBase
 
                 return;
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // IPv6/DualMode is not supported on this environment -> IPv4 fallback.
                 // WHY not rethrow: Failover automatically is better than crashing the server.
@@ -96,7 +100,7 @@ public abstract partial class TcpListenerBase
                             $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
                     }
                 }
-                catch (Exception closeEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
+                catch (Exception closeEx) when (ExceptionClassifier.IsNonFatal(closeEx))
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
@@ -110,7 +114,7 @@ public abstract partial class TcpListenerBase
                 {
                     sock?.Dispose();
                 }
-                catch (Exception disposeEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(disposeEx))
+                catch (Exception disposeEx) when (ExceptionClassifier.IsNonFatal(disposeEx))
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
@@ -260,20 +264,20 @@ public abstract partial class TcpListenerBase
             try
             {
                 // Cross-platform API (.NET 5+): Windows, Linux, and macOS all support it.
-                // Time = 3s: After 3 seconds of idle, start sending the first probe.
+                // Time = 120s: After 120 seconds of idle, start sending the first probe.
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
-                                       SocketOptionName.TcpKeepAliveTime, 3);
+                                       SocketOptionName.TcpKeepAliveTime, 120);
 
-                // Interval = 1s: If no response is given, send the next probe after 1 second.
+                // Interval = 30s: If no response is given, send the next probe after 30 second.
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
-                                       SocketOptionName.TcpKeepAliveInterval, 1);
+                                       SocketOptionName.TcpKeepAliveInterval, 30);
 
-                // RetryCount = 3: after 3 probes, there is no response -> connection dead -> close socket.
-                // Total time to detect dead connection: 3 + (3 × 1) = 6 seconds.
+                // RetryCount = 5: after 30 probes, there is no response -> connection dead -> close socket.
+                // Total time to detect dead connection: 120 + (5 × 30) = 270 seconds.
                 socket.SetSocketOption(SocketOptionLevel.Tcp,
-                                       SocketOptionName.TcpKeepAliveRetryCount, 3);
+                                       SocketOptionName.TcpKeepAliveRetryCount, 5);
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // Fallback Windows-only: SIO_KEEPALIVE_VALS IOControl.
                 // WHY fallback: Older runtime or restricted environment does not support cross-platform API.
@@ -281,8 +285,8 @@ public abstract partial class TcpListenerBase
                 if (OperatingSystem.IsWindows())
                 {
                     const int on = 1;
-                    const int time = 3_000; // 3 seconds = 3000ms
-                    const int interval = 1_000; // 1 second = 1000ms
+                    const int time = 120_000;
+                    const int interval = 30_000;
 
                     byte[] vals = new byte[12];
                     // WHY BinaryPrimitives instead of BitConverter: BinaryPrimitives does not allocate,
@@ -296,6 +300,51 @@ public abstract partial class TcpListenerBase
                 // WHY not throw: Best-effort; Keep-Alive will still work without it.
             }
         }
+
+        // SO_REUSEPORT - multi-thread/process load balancing on Linux
+        if (_config.ReusePort)
+        {
+            try
+            {
+                if (OperatingSystem.IsLinux())
+                {
+                    socket.SetSocketOption(SocketOptionLevel.Socket, ReusePortOption, 1);
+                }
+                else if (OperatingSystem.IsWindows())
+                {
+                    socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseUnicastPort, 1);
+                }
+            }
+            catch (SocketException ex) when (ex.SocketErrorCode is SocketError.OperationNotSupported or SocketError.ProtocolNotSupported)
+            {
+                // Graceful fallback
+                if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                {
+                    _logger.LogDebug($"[{nameof(TcpListenerBase)}:InitializeOptions] SO_REUSEPORT not-supported platform/kernel");
+                }
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+        }
+
+        // TCP Fast Open (TFO) - reduces latency by 1 RTT
+        if (_config.TcpFastOpen)
+        {
+            try
+            {
+                socket.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.FastOpen, 5);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            try
+            {
+                socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)3, 1);    // TCP_CORK = 3
+                socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)0x0C, 1); // TCP_QUICKACK = 12
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }
+        }
     }
 
     // These SocketError occur when the listener is shutting down normally:
@@ -308,9 +357,7 @@ public abstract partial class TcpListenerBase
     // OperationAborted -> async operation is destroyed (usually when Dispose).
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsIgnorableAcceptError(
-        SocketError code,
-        CancellationToken token)
+    private static bool IsIgnorableAcceptError(SocketError code, CancellationToken token)
         => token.IsCancellationRequested || code
         is SocketError.Shutdown
         or SocketError.TimedOut
