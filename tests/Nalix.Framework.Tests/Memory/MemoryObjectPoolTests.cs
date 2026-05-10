@@ -1,11 +1,5 @@
-
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Memory.Pools;
-using Xunit;
 
 namespace Nalix.Framework.Tests.Memory;
 
@@ -99,7 +93,6 @@ public sealed partial class MemoryTests
         int preallocated = manager.Prealloc<TestPoolable>(2);
         bool setCapacity = manager.SetMaxCapacity<TestPoolable>(4);
         Dictionary<string, object> typeInfo = manager.GetTypeInfo<TestPoolable>();
-        IDictionary<string, object> reportData = manager.GetReportData();
         string report = manager.GenerateReport();
 
         Assert.Equal(0, second.Value);
@@ -114,7 +107,6 @@ public sealed partial class MemoryTests
         Assert.True(preallocated >= 0);
         Assert.True(setCapacity);
         Assert.Equal(nameof(TestPoolable), typeInfo["TypeName"]);
-        Assert.True(reportData.ContainsKey("Pools"));
         Assert.Contains("ObjectPoolManager Status", report);
     }
 

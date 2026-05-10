@@ -1,17 +1,12 @@
-using Nalix.Codec.Extensions;
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Buffers.Binary;
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
+using Nalix.Codec.Extensions;
 using Nalix.Framework.Extensions;
-using Xunit;
 
 namespace Nalix.Framework.Tests.Extensions;
 
@@ -342,9 +337,6 @@ public sealed class ExtensionsCoverageTests
         private readonly string _text = text;
 
         public string GenerateReport() => _text;
-
-        public System.Collections.Generic.IDictionary<string, object> GetReportData() =>
-            new System.Collections.Generic.Dictionary<string, object>();
 
 #if NET10_0_OR_GREATER
         public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)

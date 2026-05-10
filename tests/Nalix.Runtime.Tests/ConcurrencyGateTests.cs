@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Runtime.Options;
 using Nalix.Runtime.Throttling;
 using Xunit;
 
@@ -116,22 +114,6 @@ public sealed class ConcurrencyGateTests
         Assert.True(acquired >= 1);
         Assert.True(rejected >= 1);
         Assert.True(trackedOpcodes >= 1);
-    }
-
-    [Fact]
-    public void GenerateReportAndReportData_WhenGateIsUsed_ContainExpectedFields()
-    {
-        ConcurrencyGate gate = new();
-        PacketConcurrencyLimitAttribute attr = new(max: 1, queue: false, queueMax: 0);
-        _ = gate.TryEnter(0x1060, attr, out ConcurrencyGate.Lease lease);
-        lease.Dispose();
-
-        string report = gate.GenerateReport();
-        IDictionary<string, object> reportData = gate.GetReportData();
-
-        Assert.Contains("ConcurrencyGate Status", report, StringComparison.Ordinal);
-        Assert.Equal(1, reportData["TrackedOpcodes"]);
-        Assert.True(reportData.ContainsKey("Opcodes"));
     }
 
     private static async Task<bool> WaitForAsync(Func<bool> condition, int timeoutMs)
