@@ -139,7 +139,7 @@ Nalix is composed of several modular packages — install only what you need.
 | Package | Description |
 | :--- | :--- |
 | **[Nalix.Network](src/Nalix.Network)** | High-performance TCP/UDP transport, connection management, and session persistence. |
-| **[Nalix.Network.Hosting](src/Nalix.Network.Hosting)** | Microsoft-style host and builder APIs for quick bootstrapping. |
+| **[Nalix.Hosting](src/Nalix.Network.Hosting)** | Microsoft-style host and builder APIs for quick bootstrapping. |
 
 ### 🛠️ Utilities & Tooling
 
