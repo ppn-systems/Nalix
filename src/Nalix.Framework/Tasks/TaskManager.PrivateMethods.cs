@@ -20,7 +20,63 @@ public partial class TaskManager
 {
     #region Types
 
-    private sealed record Gate(SemaphoreSlim SemaphoreSlim, int Capacity);
+    private sealed class Gate
+    {
+        public SemaphoreSlim SemaphoreSlim { get; }
+        public int Capacity { get; private set; }
+        private int _deficiency;
+
+        public Gate(int capacity)
+        {
+            this.Capacity = Math.Max(1, capacity);
+            this.SemaphoreSlim = new SemaphoreSlim(this.Capacity, int.MaxValue);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+        internal void Adjust(int newCapacity)
+        {
+            newCapacity = Math.Max(1, newCapacity);
+            int previous = this.Capacity;
+            if (previous == newCapacity)
+            {
+                return;
+            }
+
+            this.Capacity = newCapacity;
+            int delta = newCapacity - previous;
+
+            if (delta > 0)
+            {
+                int toRelease = delta;
+                int def = Volatile.Read(ref _deficiency);
+                while (def > 0 && toRelease > 0)
+                {
+                    int consumed = Math.Min(def, toRelease);
+                    if (Interlocked.CompareExchange(ref _deficiency, def - consumed, def) == def)
+                    {
+                        toRelease -= consumed;
+                    }
+
+                    def = Volatile.Read(ref _deficiency);
+                }
+                if (toRelease > 0)
+                {
+                    _ = this.SemaphoreSlim.Release(toRelease);
+                }
+            }
+            else if (delta < 0)
+            {
+                int toSteal = -delta;
+                for (int i = 0; i < toSteal; i++)
+                {
+                    if (!this.SemaphoreSlim.Wait(0))
+                    {
+                        _ = Interlocked.Increment(ref _deficiency);
+                    }
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Snapshot of CPU metrics for safe concurrent access.
@@ -106,6 +162,38 @@ public partial class TaskManager
     }
 
     #endregion Internal Cleanup
+
+
+    /// <summary>
+    /// Calculates an approximate percentile for worker execution time based on histogram buckets.
+    /// </summary>
+    /// <param name="percentile">The percentile to calculate (e.g., 0.95 for P95).</param>
+    /// <returns>The approximate latency in milliseconds.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private double GET_WORKER_PERCENTILE(double percentile)
+    {
+        long total = _workerExecutionCount;
+        if (total == 0)
+        {
+            return 0;
+        }
+
+        long target = (long)(total * percentile);
+        long accumulated = 0;
+
+        double[] thresholds = [1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0];
+
+        for (int i = 0; i < _workerLatencyBuckets.Length; i++)
+        {
+            accumulated += Volatile.Read(ref _workerLatencyBuckets[i]);
+            if (accumulated >= target)
+            {
+                return thresholds[i];
+            }
+        }
+
+        return thresholds[^1];
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void ENQUEUE_WORKER(WorkerState worker)
@@ -206,6 +294,29 @@ public partial class TaskManager
     }
 
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private void ADJUST_GROUP_CONCURRENCY(string group, int newLimit)
+    {
+        if (string.IsNullOrWhiteSpace(group))
+        {
+            return;
+        }
+
+        if (_groupGates.TryGetValue(group, out Gate? gate))
+        {
+            gate.Adjust(newLimit);
+        }
+        else
+        {
+            _ = _groupGates.TryAdd(group, new Gate(newLimit));
+        }
+
+        if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+        {
+            Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new { Action = "GroupConcurrencyAdjusted", Group = group, NewLimit = newLimit });
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void START_WORKER_EXECUTION(WorkerState st)
     {
         string name = st.Name;
@@ -217,7 +328,7 @@ public partial class TaskManager
         Gate? gate = null;
         if (options.GroupConcurrencyLimit is int cap && cap > 0)
         {
-            gate = _groupGates.GetOrAdd(group, static (_, capacity) => new Gate(new SemaphoreSlim(capacity, capacity), capacity), cap);
+            gate = _groupGates.GetOrAdd(group, static (_, capacity) => new Gate(capacity), cap);
             if (gate.Capacity != cap)
             {
                 throw new InvalidOperationException(
@@ -561,6 +672,12 @@ public partial class TaskManager
                 long executionStartTicks = 0;
                 try
                 {
+                    if (s.IsPaused)
+                    {
+                        next += step;
+                        continue;
+                    }
+
                     s.MarkStart();
                     executionStartTicks = _options.IsEnableLatency ? Stopwatch.GetTimestamp() : 0;
 
