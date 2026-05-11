@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.5.11723.231 stable
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Debug", "Nalix.Debug.csproj", "{2FB2B768-6AAA-F27D-41E4-77EF51EC5BD8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2FB2B768-6AAA-F27D-41E4-77EF51EC5BD8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FB2B768-6AAA-F27D-41E4-77EF51EC5BD8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FB2B768-6AAA-F27D-41E4-77EF51EC5BD8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FB2B768-6AAA-F27D-41E4-77EF51EC5BD8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9C649FD1-05D4-4B24-9139-4435EE8F0870}
+	EndGlobalSection
+EndGlobal
