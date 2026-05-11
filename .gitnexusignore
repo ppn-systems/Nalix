@@ -15,3 +15,9 @@ benchmarks/
 .dotnethome/
 shared/
 docs/
+example/
+context7.json
+requirements.txt
+SYSTEM-ROADMAP.md
+mkdocs.yml
+DOCUMENTATION.md
