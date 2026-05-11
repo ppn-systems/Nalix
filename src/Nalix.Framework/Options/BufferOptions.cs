@@ -131,11 +131,18 @@ public sealed partial class BufferOptions : ConfigurationLoader
     public long MaxMemoryBytes { get; set; } = 0;
 
     /// <summary>
-    /// Enable capturing stack traces for buffer leaks (DEBUG only).
-    /// capturing stack trace is extremely expensive and should be disabled 
+    /// Enables GC-based leak detection using finalizers.
+    /// When enabled, a sentinel is attached to rented objects to report if they are GC'd without being returned.
+    /// </summary>
+    [IniComment("Enable GC-based leak detection using sentinel finalizers")]
+    public bool EnableBufferLeakDetection { get; set; } = false;
+
+    /// <summary>
+    /// Enable capturing stack traces for buffer leaks.
+    /// Capturing stack trace is extremely expensive and should be disabled 
     /// during high-concurrency benchmarks.
     /// </summary>
-    [IniComment("Enable expensive stack trace capture for buffer leak detection (DEBUG only)")]
+    [IniComment("Enable expensive stack trace capture for buffer leak detection")]
     public bool EnableBufferLeakStackTrace { get; set; } = false;
 
     /// <summary>
@@ -161,6 +168,13 @@ public sealed partial class BufferOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Initial capacity for internal slab tracking (power of 2)")]
     public int InitialSlabTrackingCapacity { get; set; } = 128;
+
+    /// <summary>
+    /// Threshold in seconds after which an outstanding object is considered "suspicious".
+    /// </summary>
+    [IniComment("Threshold in seconds to flag 'suspicious' objects in reports")]
+    [Range(0, 3600, ErrorMessage = "SuspiciousThresholdSeconds must be between 0 and 3600.")]
+    public int SuspiciousThresholdSeconds { get; set; } = 30;
 
     #endregion Properties
 
