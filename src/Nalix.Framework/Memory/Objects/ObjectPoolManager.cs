@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,9 +13,11 @@ using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Extensions;
+using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
+using Nalix.Framework.Tasks;
 
 namespace Nalix.Framework.Memory.Objects;
 
@@ -69,6 +73,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
 
     #region Fields
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
+    private static readonly string RecurringName = "obj.trim";
+
     /// <summary>
     /// Thread-safe storage for pools
     /// </summary>
@@ -92,7 +99,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     /// <summary>
     /// Tracks weak references to sentinels for scanning.
     /// </summary>
-    private readonly System.Collections.Concurrent.ConcurrentBag<WeakReference<PoolSentinel>> _sentinelTracker = new();
+    private System.Collections.Concurrent.ConcurrentBag<WeakReference<PoolSentinel>> _sentinelTracker = new();
 
     // Configuration
 
@@ -112,6 +119,10 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     private long _lastHealthCheckUtc;
 
     private int _unhealthyPoolCount;
+
+    private int _disposed;
+    private int _trimCycleCount;
+    private long _totalTrimmedObjects;
 
     #endregion Fields
 
@@ -200,6 +211,27 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         _config = config;
         _config.Validate();
         _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
+
+        if (_config.EnableMemoryTrimming)
+        {
+            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+                name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
+                interval: TimeSpan.FromMinutes(Math.Max(1, _config.TrimIntervalMinutes)),
+                work: _ =>
+                {
+                    this.TRIM_EXCESS_OBJECTS();
+                    return ValueTask.CompletedTask;
+                },
+                options: new RecurringOptions
+                {
+                    NonReentrant = true,
+                    Tag = TaskNaming.Tags.Service,
+                    Jitter = TimeSpan.FromSeconds(5),
+                    ExecutionTimeout = TimeSpan.FromSeconds(10),
+                    BackoffCap = TimeSpan.FromMinutes(1)
+                }
+            );
+        }
     }
 
     #endregion Constructor
@@ -217,19 +249,15 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         Type type = typeof(T);
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
 
-        // Try to get from pool
-        T? result;
-        if (pool.AvailableCountByType(type) > 0)
+        (T? result, bool isCacheHit) = pool.GetWithInfo<T>();
+
+        if (isCacheHit)
         {
-            // Hit from pool
-            result = pool.Get<T>();
             _ = Interlocked.Increment(ref _totalCacheHits);
             _ = Interlocked.Increment(ref metrics.CacheHits);
         }
         else
         {
-            // Miss: create new instance (ObjectPool.Get will do this anyway, but we account it as a miss)
-            result = pool.Get<T>();
             _ = Interlocked.Increment(ref _totalCacheMisses);
             _ = Interlocked.Increment(ref _totalCreated);
             _ = Interlocked.Increment(ref metrics.CacheMisses);
@@ -297,7 +325,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             sentinel.MarkReturned();
             _ = _activeSentinels.Remove(obj);
 
-            long elapsedTicks = System.Diagnostics.Stopwatch.GetTimestamp() - sentinel.RentTimestamp;
+            long elapsedTicks = Stopwatch.GetTimestamp() - sentinel.RentTimestamp;
             _ = Interlocked.Add(ref metrics.TotalLifetimeTicks, elapsedTicks);
 
             long currentMax;
@@ -422,6 +450,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     /// Resets all global and per-pool metrics to baseline (zero).
     /// Use this between benchmark runs to ensure a clean slate for diagnostic reports.
     /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetMetrics()
     {
         _ = Interlocked.Exchange(ref _totalGetOperations, 0);
@@ -496,35 +525,17 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             if (_config.EnableDiagnostics)
             {
                 double avgMs = metrics.TotalGets > 0
-                    ? (metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0)
+                    ? (metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / Stopwatch.Frequency * 1000.0)
                     : 0;
-                double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
+                double maxMs = metrics.MaxLifetimeTicks / (double)Stopwatch.Frequency * 1000.0;
 
                 info["AvgLifetimeMs"] = avgMs;
                 info["MaxLifetimeMs"] = maxMs;
-                info["p95LifetimeMs"] = this.CalculateP95(metrics);
+                info["p95LifetimeMs"] = this.CALCULATE_P95(metrics);
             }
         }
 
         return info;
-    }
-
-    private double CalculateP95(PoolMetrics metrics)
-    {
-        long[]? reservoir = metrics.LifetimeReservoir;
-        if (reservoir == null || metrics.TotalReturns == 0)
-        {
-            return 0;
-        }
-
-        // Copy and sort for percentile calculation (diagnostic only, so allocation is OK)
-        long[] samples = new long[reservoir.Length];
-        Array.Copy(reservoir, samples, reservoir.Length);
-        Array.Sort(samples);
-
-        // Find the 95th percentile
-        int index = (int)(samples.Length * 0.95);
-        return samples[index] / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
     }
 
     /// <summary>Clears all objects from a specific type's pool.</summary>
@@ -560,21 +571,6 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ClearAllPools), TotalRemoved = totalRemoved });
-        }
-
-        return totalRemoved;
-    }
-
-    /// <summary>Trims all pools to their target sizes.</summary>
-    /// <param name="percentage">The percentage of items to trim from each pool.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown by an underlying pool when <paramref name="percentage"/> falls outside the supported trim range.</exception>
-    public int TrimAllPools(int percentage = 50)
-    {
-        int totalRemoved = 0;
-
-        foreach (ObjectPool pool in _poolDict.Values)
-        {
-            totalRemoved += pool.Trim(percentage);
         }
 
         return totalRemoved;
@@ -653,35 +649,6 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
         {
             DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ResetStatistics), Phase = "ResetComplete" });
-        }
-    }
-
-    /// <summary>Schedules a regular trimming operation to run in the background.</summary>
-    /// <param name="interval">The delay between trimming runs.</param>
-    /// <param name="percentage">The percentage of items to trim from each pool.</param>
-    /// <param name="cancellationToken">The token used to cancel the background loop.</param>
-    /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="interval"/> is negative or not supported by <see cref="Task.Delay(TimeSpan, CancellationToken)"/>.</exception>
-    public async Task ScheduleRegularTrimming(TimeSpan interval, int percentage = 50, CancellationToken cancellationToken = default)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            try
-            {
-                await Task.Delay(interval, cancellationToken).ConfigureAwait(false);
-                _ = this.TrimAllPools(percentage);
-                _ = this.PerformHealthCheck();
-            }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-            {
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { Manager = nameof(ObjectPoolManager), Operation = nameof(ScheduleRegularTrimming), Error = ex.Message });
-                }
-            }
         }
     }
 
@@ -797,9 +764,9 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
 
             if (_config.EnableDiagnostics && metrics != null && metrics.TotalReturns > 0)
             {
-                double avgMs = metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / System.Diagnostics.Stopwatch.Frequency * 1000.0;
-                double maxMs = metrics.MaxLifetimeTicks / (double)System.Diagnostics.Stopwatch.Frequency * 1000.0;
-                double p95Ms = this.CalculateP95(metrics);
+                double avgMs = metrics.TotalLifetimeTicks / (double)metrics.TotalReturns / Stopwatch.Frequency * 1000.0;
+                double maxMs = metrics.MaxLifetimeTicks / (double)Stopwatch.Frequency * 1000.0;
+                double p95Ms = this.CALCULATE_P95(metrics);
                 _ = sb.AppendLine(CultureInfo.InvariantCulture, $"                             | Lifetime (ms): Avg={avgMs:F2}, p95={p95Ms:F2}, Max={maxMs:F2}");
             }
         }
@@ -879,7 +846,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         writer.WriteStartArray("Pools");
         foreach (KeyValuePair<Type, ObjectPool> kvp in sortedPools)
         {
-            Dictionary<string, object> poolInfo = kvp.Value.GetStatistics();
+            Dictionary<string, object> poolInfo = kvp.Value.GetTypeInfoByType(kvp.Key);
 
             writer.WriteStartObject();
             writer.WriteString("Type", kvp.Key.FullName ?? kvp.Key.Name);
@@ -968,8 +935,8 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         _ = sb.AppendLine("TYPE                     | Elapsed (s) | Stack Trace (first line)");
         _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
 
-        long now = System.Diagnostics.Stopwatch.GetTimestamp();
-        long thresholdTicks = _config.SuspiciousThresholdSeconds * System.Diagnostics.Stopwatch.Frequency;
+        long now = Stopwatch.GetTimestamp();
+        long thresholdTicks = _config.SuspiciousThresholdSeconds * Stopwatch.Frequency;
         int found = 0;
 
         // We prune stale references while scanning to prevent the bag from growing indefinitely.
@@ -992,7 +959,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
                 if (elapsed >= thresholdTicks)
                 {
                     found++;
-                    double elapsedSec = elapsed / (double)System.Diagnostics.Stopwatch.Frequency;
+                    double elapsedSec = elapsed / (double)Stopwatch.Frequency;
 
                     string typeName = sentinel.ObjectType.Name.Length > 24
                         ? $"{sentinel.ObjectType.Name.AsSpan(0, 21)}..."
@@ -1013,6 +980,17 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             }
         }
 
+        if (_sentinelTracker.Count > 10000 && survivors.Count < _sentinelTracker.Count * 0.7)
+        {
+            ConcurrentBag<WeakReference<PoolSentinel>> newBag = new();
+            foreach (WeakReference<PoolSentinel> wr in survivors)
+            {
+                newBag.Add(wr);
+            }
+
+            _sentinelTracker = newBag;
+        }
+
         // Pruning: If the bag is much larger than current survivors, we might want to reset it.
         // For simplicity in this diagnostic path, we'll just show the count.
         if (found > 20)
@@ -1030,4 +1008,177 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     }
 
     #endregion APIs
+
+    #region Private Methods
+
+    private double CALCULATE_P95(PoolMetrics metrics)
+    {
+        long[]? reservoir = metrics.LifetimeReservoir;
+        if (reservoir == null || metrics.TotalReturns == 0)
+        {
+            return 0;
+        }
+
+        // Copy and sort for percentile calculation (diagnostic only, so allocation is OK)
+        long[] samples = new long[reservoir.Length];
+        Array.Copy(reservoir, samples, reservoir.Length);
+        Array.Sort(samples);
+
+        // Find the 95th percentile
+        int index = (int)(samples.Length * 0.95);
+        return samples[index] / (double)Stopwatch.Frequency * 1000.0;
+    }
+
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void TRIM_EXCESS_OBJECTS()
+    {
+        // Increment trim cycle counter (used for deep trim scheduling)
+        int cycle = Interlocked.Increment(ref _trimCycleCount);
+        bool isDeepTrim = this.SHOULD_RUN_DEEP_TRIM(cycle);
+
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
+            {
+                Cycle = cycle,
+                DeepTrim = isDeepTrim,
+                Phase = "ObjectTrimRun"
+            });
+        }
+
+        int totalRemoved = 0;
+
+        // Take a snapshot to safely iterate while trimming (prevents CollectionModifiedException)
+        foreach (KeyValuePair<Type, ObjectPool> kvp in _poolDict.ToArray())
+        {
+            Type type = kvp.Key;
+            if (!_metricsDict.TryGetValue(type, out PoolMetrics? metrics))
+            {
+                continue;
+            }
+
+            int trimPercentage = this.CALCULATE_PER_TYPE_TRIM_PERCENTAGE(type, metrics, isDeepTrim);
+
+            try
+            {
+                int removed = kvp.Value.Trim(trimPercentage);
+                totalRemoved += removed;
+            }
+            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            {
+                // One pool failing must not crash the entire trim job
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new
+                    {
+                        Type = type.Name,
+                        Error = ex.Message,
+                        Phase = "TrimSinglePool"
+                    });
+                }
+            }
+        }
+
+        if (totalRemoved > 0)
+        {
+            _ = Interlocked.Add(ref _totalTrimmedObjects, totalRemoved);
+
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
+            {
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
+                {
+                    Cycle = cycle,
+                    DeepTrim = isDeepTrim,
+                    TotalRemoved = totalRemoved,
+                });
+            }
+        }
+
+        _ = this.PerformHealthCheck();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool SHOULD_RUN_DEEP_TRIM(int cycle)
+    {
+        // Deep trim runs less frequently than normal trim (e.g. every 6 normal cycles if DeepTrimIntervalMinutes = 30)
+        int deepEvery = Math.Max(1, _config.DeepTrimIntervalMinutes / Math.Max(1, _config.TrimIntervalMinutes));
+        return cycle % deepEvery == 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int CALCULATE_PER_TYPE_TRIM_PERCENTAGE(Type type, PoolMetrics metrics, bool isDeepTrim)
+    {
+        if (isDeepTrim)
+        {
+            return _config.DeepTrimPercentage; // aggressive trim on deep cycle
+        }
+
+        if (metrics.TotalGets == 0)
+        {
+            // Pool has never been used → trim more aggressively
+            return Math.Max(40, _config.BaseKeepPercentage + 15);
+        }
+
+        double hitRate = (double)metrics.CacheHits / metrics.TotalGets * 100.0;
+
+        // Get current pool state (available count and capacity)
+        int available = 0;
+        int maxCap = this.DefaultMaxPoolSize;
+        if (_poolDict.TryGetValue(type, out ObjectPool? pool))
+        {
+            Dictionary<string, object> info = pool.GetTypeInfoByType(type);
+            maxCap = info.TryGetValue("MaxCapacity", out object? mc) ? Convert.ToInt32(mc, CultureInfo.InvariantCulture) : maxCap;
+            available = info.TryGetValue("AvailableCount", out object? av) ? Convert.ToInt32(av, CultureInfo.InvariantCulture) : 0;
+        }
+
+        double freeRatio = maxCap > 0 ? (double)available / maxCap : 0.0;
+
+        // === SAFETY FLOOR ===
+        // Never trim below this threshold to prevent excessive churn and keep recovery fast
+        int minKeep = Math.Max(_config.MinimumKeepObjects, maxCap / 12);
+        if (available <= minKeep)
+        {
+            return 0; // already at minimum safe level
+        }
+
+        // === HOT POOL (high hit rate) → keep more objects ===
+        if (hitRate >= _config.HotHitRateThreshold)
+        {
+            return 75; // light trim
+        }
+
+        // === COLD / UNHEALTHY / IDLE POOL ===
+        bool needsAggressive = hitRate < (_config.HotHitRateThreshold - 20.0) || freeRatio > 0.78 || metrics.ConsecutiveFailures > 2;
+
+        if (needsAggressive)
+        {
+            // Aggressive trim when cache is poor or too many idle objects
+            return _config.BaseKeepPercentage + 27;
+        }
+
+        // Normal routine trim
+        return _config.BaseKeepPercentage;
+    }
+
+    #endregion Private Methods
+
+    #region IDisposable
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        {
+            return;
+        }
+
+        if (_config.EnableMemoryTrimming)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                    .CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()));
+        }
+    }
+
+    #endregion IDisposable
 }

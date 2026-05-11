@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -27,9 +28,8 @@ internal class TypePool(int maxCapacity)
 {
     #region Fields
 
-    private int _count;
     private int _maxCapacity = maxCapacity;
-    private readonly System.Collections.Concurrent.ConcurrentStack<IPoolable> _objects = new();
+    private readonly ConcurrentStack<IPoolable> _objects = new();
 
     #endregion Fields
 
@@ -78,15 +78,13 @@ internal class TypePool(int maxCapacity)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPush(IPoolable obj)
     {
-        int newCount = Interlocked.Increment(ref _count);
-
-        if (newCount > _maxCapacity)
+        if (_objects.Count >= Volatile.Read(ref _maxCapacity))
         {
-            _ = Interlocked.Decrement(ref _count);
             return false;
         }
 
         _objects.Push(obj);
+
         return true;
     }
 
@@ -96,16 +94,7 @@ internal class TypePool(int maxCapacity)
     /// <param name="obj">The object from the pool.</param>
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryPop(out IPoolable? obj)
-    {
-        if (_objects.TryPop(out obj))
-        {
-            _ = Interlocked.Decrement(ref _count);
-            return true;
-        }
-
-        return false;
-    }
+    public bool TryPop(out IPoolable? obj) => _objects.TryPop(out obj);
 
     /// <summary>
     /// Clears all objects from this pool.
@@ -116,7 +105,6 @@ internal class TypePool(int maxCapacity)
     {
         int count = _objects.Count;
         _objects.Clear();
-        _ = Interlocked.Exchange(ref _count, 0);
         return count;
     }
 
@@ -128,46 +116,43 @@ internal class TypePool(int maxCapacity)
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public int Trim(int percentage)
     {
-        if (percentage >= 100)
-        {
-            // Keep everything up to max capacity
-            return 0;
-        }
-
         if (percentage <= 0)
         {
-            // Dispose everything
             return this.Clear();
         }
 
-        // Calculate the target size
-        int targetSize = this.MaxCapacity * percentage / 100;
-        int currentCount = _objects.Count;
+        int targetSize = percentage >= 100
+            ? _maxCapacity
+            : _maxCapacity * percentage / 100;
 
+        int currentCount = _objects.Count;
         if (currentCount <= targetSize)
         {
-            // No need to trim
             return 0;
         }
 
-        // Remove objects until we reach the target size
         int toRemove = currentCount - targetSize;
-        int removed = 0;
 
-        for (int i = 0; i < toRemove; i++)
+        return RemoveObjects(_objects, toRemove);
+
+        static int RemoveObjects(ConcurrentStack<IPoolable> stack, int count)
         {
-            if (_objects.TryPop(out _))
-            {
-                _ = Interlocked.Decrement(ref _count);
-                removed++;
-            }
-            else
-            {
-                break;
-            }
-        }
+            int removed = 0;
 
-        return removed;
+            for (int i = 0; i < count; i++)
+            {
+                if (stack.TryPop(out _))
+                {
+                    removed++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return removed;
+        }
     }
 
     /// <summary>

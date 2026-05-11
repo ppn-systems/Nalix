@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -32,11 +34,12 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
     private readonly BufferOptions _config;
 
-    private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _suitablePoolSizeCache;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, BufferPoolMetrics> _metricsCache;
-    private readonly System.Buffers.ArrayPool<byte> _fallbackArrayPool = System.Buffers.ArrayPool<byte>.Shared;
+    private readonly ConcurrentDictionary<int, int> _suitablePoolSizeCache;
+    private readonly ConcurrentDictionary<int, BufferPoolMetrics> _metricsCache;
+
     private readonly ShrinkSafetyPolicy _shrinkPolicy;
+    private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
+    private readonly ArrayPool<byte> _fallbackArrayPool = ArrayPool<byte>.Shared;
 
     /// <summary>
     /// Slab-based buffer pool manager using standalone pinned arrays.
@@ -232,7 +235,7 @@ public sealed class BufferPoolManager : IBufferPoolManager
                 interval: TimeSpan.FromMinutes(Math.Max(1, _config.TrimIntervalMinutes)),
                 work: _ =>
                 {
-                    this.TRIM_EXCESS_BUFFERS(null);
+                    this.TRIM_EXCESS_BUFFERS();
                     return ValueTask.CompletedTask;
                 },
                 options: new RecurringOptions
@@ -636,7 +639,7 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private void TRIM_EXCESS_BUFFERS(object? _)
+    private void TRIM_EXCESS_BUFFERS()
     {
         /*
          * [Memory Trimming Lifecycle]
@@ -649,7 +652,11 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { DeepTrim = deepTrim, Phase = "TrimRun" });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
+            {
+                DeepTrim = deepTrim,
+                Phase = "BufferTrimRun"
+            });
         }
 
         // Compute memory budget once per cycle (cache it)
@@ -820,17 +827,20 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
         bucket.DecreaseCapacity(shrinkStep);
 
-        if (_metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics))
-        {
-            metrics.TotalBytesReturned += (long)shrinkStep * info.BufferSize;
-            metrics.ShrinkAttempted++;
-            metrics.LastChangeTime = System.Environment.TickCount64;
-            _metricsCache[info.BufferSize] = metrics;
-        }
+        BufferPoolMetrics metrics = _metricsCache.GetOrAdd(info.BufferSize, _ => default);
+        metrics.TotalBytesReturned += (long)shrinkStep * info.BufferSize;
+        metrics.ShrinkAttempted++;
+        metrics.LastChangeTime = System.Environment.TickCount64;
+        _metricsCache[info.BufferSize] = metrics;
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { info.BufferSize, Step = shrinkStep, Usage = usage });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
+            {
+                Usage = usage,
+                info.BufferSize,
+                Step = shrinkStep
+            });
         }
     }
 

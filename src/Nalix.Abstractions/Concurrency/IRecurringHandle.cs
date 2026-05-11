@@ -26,6 +26,11 @@ public interface IRecurringHandle : IDisposable
     bool IsRunning { get; }
 
     /// <summary>
+    /// Pauses the scheduling of new workers. Running workers will continue until completion,
+    /// </summary>
+    bool IsPaused { get; }
+
+    /// <summary>
     /// Gets the interval between each run of the recurring job.
     /// </summary>
     TimeSpan Interval { get; }
