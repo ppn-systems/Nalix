@@ -1,13 +1,13 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-#if DEBUG
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests")]
-#endif
-
 using System;
 using System.Diagnostics;
 using System.Threading;
+
+#if DEBUG
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Framework.Tests")]
+#endif
 
 namespace Nalix.Framework.Memory.Internal.Buffers;
 

@@ -53,7 +53,7 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader
     /// Enables automatic trimming of object pools (same as BufferPoolManager).
     /// </summary>
     [IniComment("Enable automatic memory trimming for object pools")]
-    public bool EnableMemoryTrimming { get; set; } = true;
+    public bool EnableObjectTrimming { get; set; } = true;
 
     /// <summary>
     /// Interval between routine trim cycles (minutes).

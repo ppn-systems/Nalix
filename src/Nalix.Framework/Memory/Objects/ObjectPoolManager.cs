@@ -212,7 +212,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         _config.Validate();
         _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
 
-        if (_config.EnableMemoryTrimming)
+        if (_config.EnableObjectTrimming)
         {
             _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
@@ -1173,7 +1173,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             return;
         }
 
-        if (_config.EnableMemoryTrimming)
+        if (_config.EnableObjectTrimming)
         {
             InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
                                     .CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()));

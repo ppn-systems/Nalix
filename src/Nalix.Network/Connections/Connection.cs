@@ -212,7 +212,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// This bypasses the socket receive loop but still triggers AsyncCallback
     /// and respects the per-connection throttle.
     /// </summary>
-    internal void InjectIncoming(BufferLease lease)
+    internal void InjectIncoming(Codec.Memory.BufferLease lease)
     {
         ConnectionEventArgs? args = this.AcquireEventArgs();
 
