@@ -379,14 +379,18 @@ public abstract partial class UdpListenerBase : IListener
         long dropShort = Interlocked.Read(ref _dropShort);
         long dropUnauth = Interlocked.Read(ref _dropUnauth);
         long dropUnknown = Interlocked.Read(ref _dropUnknown);
+        long dropRateLimited = Interlocked.Read(ref _dropRateLimited);
+        long dropOversize = Interlocked.Read(ref _dropOversize);
 
         _ = sb.AppendLine("Traffic:");
         _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedPackets : {rxPackets}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedBytes   : {rxBytes}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedShort    : {dropShort}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedUnauth   : {dropUnauth}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedUnknown  : {dropUnknown}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedPackets    : {rxPackets}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"ReceivedBytes      : {rxBytes}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedShort       : {dropShort}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedUnauth      : {dropUnauth}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedUnknown     : {dropUnknown}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedRateLimited : {dropRateLimited}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DroppedOversize    : {dropOversize}");
         _ = sb.AppendLine();
 
         // Error counters.
@@ -439,6 +443,8 @@ public abstract partial class UdpListenerBase : IListener
         writer.WriteNumber("DroppedShort", Interlocked.Read(ref _dropShort));
         writer.WriteNumber("DroppedUnauth", Interlocked.Read(ref _dropUnauth));
         writer.WriteNumber("DroppedUnknown", Interlocked.Read(ref _dropUnknown));
+        writer.WriteNumber("DroppedRateLimited", Interlocked.Read(ref _dropRateLimited));
+        writer.WriteNumber("DroppedOversize", Interlocked.Read(ref _dropOversize));
         writer.WriteEndObject();
 
         writer.WriteStartObject("Errors");
