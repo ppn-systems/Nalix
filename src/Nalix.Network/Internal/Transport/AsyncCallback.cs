@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
@@ -253,7 +254,12 @@ internal static class AsyncCallback
         bool isHigh,
         bool releasePendingPacketOnCompletion)
     {
-        PooledConnectEventContext? wrapper = (sender as Connection)?.AcquireContext() ?? PooledConnectEventContext.Get();
+        PooledConnectEventContext wrapper =
+            sender is Connection connection
+                ? connection.AcquireContext()
+                    ?? throw new InvalidOperationException("Failed to acquire context.")
+                : throw new InvalidOperationException("Invalid sender type.");
+
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
         bool queued = false;
@@ -262,7 +268,7 @@ internal static class AsyncCallback
         {
             queued = ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             LOG_THROTTLED_ERROR_SAFE(args, "async.queue_exception", $"[NW.{nameof(AsyncCallback)}] exception-queue-work-item", ex);
             queued = false;
@@ -402,7 +408,7 @@ internal static class AsyncCallback
         {
             return args.Connection;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             return null;
         }
@@ -420,7 +426,7 @@ internal static class AsyncCallback
         {
             return args.NetworkEndpoint;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             return null;
         }
@@ -485,7 +491,7 @@ internal static class AsyncCallback
         {
             w.Callback?.Invoke(w.Sender, args);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             LOG_THROTTLED_ERROR_SAFE(args, "async.callback_error", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
         }

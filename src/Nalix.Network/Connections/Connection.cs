@@ -13,7 +13,6 @@ using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.Memory;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
@@ -454,13 +453,37 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// Acquires an EventArgs from the connection's local pool for packet processing.
     /// Returns null if the local pool is exhausted (throttle reached).
     /// </summary>
-    internal ConnectionEventArgs? AcquireEventArgs() => _argsPool.Acquire(arg => arg.Initialize(this));
+    internal ConnectionEventArgs AcquireEventArgs()
+    {
+        ConnectionEventArgs? arg_local = _argsPool.Acquire(arg => arg.Initialize(this));
+        if (arg_local != null)
+        {
+            return arg_local;
+        }
+
+        ConnectionEventArgs? arg_global = s_pool.Get<ConnectionEventArgs>();
+        arg_global.Initialize(this);
+
+        return arg_global;
+    }
 
     /// <summary>
     /// Acquires a transition context from the connection's local pool.
     /// Used by AsyncCallback to execute packet handoffs without global pooling.
     /// </summary>
-    internal PooledConnectEventContext? AcquireContext() => _contextPool.Acquire(ctx => ctx.LocalOwner = this);
+    internal PooledConnectEventContext AcquireContext()
+    {
+        PooledConnectEventContext? arg_local = _contextPool.Acquire(ctx => ctx.LocalOwner = this);
+        if (arg_local != null)
+        {
+            return arg_local;
+        }
+
+        PooledConnectEventContext? arg_global = s_pool.Get<PooledConnectEventContext>();
+        arg_global.LocalOwner = this;
+
+        return arg_global;
+    }
 
     internal void ReturnEventArgs(ConnectionEventArgs args) => _argsPool.Return(args);
 
