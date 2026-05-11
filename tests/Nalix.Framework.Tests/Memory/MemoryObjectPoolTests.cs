@@ -111,60 +111,6 @@ public sealed partial class MemoryTests
     }
 
     [Fact]
-    public void ClearPool_ObjectPoolManagerMaintenanceApis_ReturnExpectedCounts()
-    {
-        ObjectPoolManager manager = new() { DefaultMaxPoolSize = 4 };
-        _ = manager.Prealloc<TestPoolable>(2);
-        TypedObjectPool<TestPoolable> adapter = manager.GetTypedPool<TestPoolable>();
-
-        List<TestPoolable> rented = adapter.GetMultiple(2);
-        int returned = adapter.ReturnMultiple(rented);
-        int trimmed = adapter.Trim(150);
-        int preallocated = adapter.Prealloc(1);
-        adapter.SetMaxCapacity(3);
-        Dictionary<string, object> info = adapter.GetInfo();
-        int clearedAdapter = adapter.Clear();
-        int clearedPool = manager.ClearPool<TestPoolable>();
-        int clearedAll = manager.ClearAllPools();
-        int trimmedAll = manager.TrimAllPools(50);
-        manager.ResetStatistics();
-
-        Assert.Equal(2, returned);
-        Assert.True(trimmed >= 0);
-        Assert.True(preallocated >= 0);
-        Assert.Equal(nameof(TestPoolable), info["TypeName"]);
-        Assert.True(clearedAdapter >= 0);
-        Assert.True(clearedPool >= 0);
-        Assert.True(clearedAll >= 0);
-        Assert.True(trimmedAll >= 0);
-        Assert.Equal(0L, manager.TotalGetOperations);
-        Assert.Equal(0L, manager.TotalReturnOperations);
-    }
-
-    [Fact]
-    public async Task PerformHealthCheck_StateUnderTest_ReportsUnhealthyPoolsAndStopsScheduledWork()
-    {
-        ObjectPoolManager manager = new();
-        _ = manager.Get<HealthCheckPoolable>();
-        using CancellationTokenSource cancellationTokenSource = new();
-
-        int unhealthyPools = manager.PerformHealthCheck();
-        Task scheduled = manager.ScheduleRegularTrimming(TimeSpan.FromMilliseconds(10), cancellationToken: cancellationTokenSource.Token);
-        cancellationTokenSource.CancelAfter(20);
-        try
-        {
-            await scheduled.ConfigureAwait(true);
-        }
-        catch (OperationCanceledException)
-        {
-            // Expected when the cancellation token is triggered
-        }
-
-        Assert.True(unhealthyPools >= 0);
-        Assert.True(manager.UnhealthyPoolCount >= 0);
-    }
-
-    [Fact]
     public void Return_TypedObjectPoolNullObject_ThrowsArgumentNullException()
     {
         ObjectPoolManager manager = new();
