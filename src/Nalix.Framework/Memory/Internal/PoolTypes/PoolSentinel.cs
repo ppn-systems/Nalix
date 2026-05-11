@@ -18,13 +18,20 @@ namespace Nalix.Framework.Memory.Internal.PoolTypes;
 /// </summary>
 internal sealed class PoolSentinel
 {
+    #region Fields
+
     private static long s_totalLeaked;
 
     private readonly WeakReference<object> _weakTarget;
     private readonly Type _objectType;
     private readonly long _rentTimestamp;
     private readonly string? _stackTrace;
+
     private bool _returned;
+
+    #endregion Fields
+
+    #region Properties
 
     /// <summary>
     /// Gets the total number of objects that were leaked (GC'd without return).
@@ -52,6 +59,15 @@ internal sealed class PoolSentinel
     public bool IsAlive => _weakTarget.TryGetTarget(out _);
 
     /// <summary>
+    /// Gets if the associated object has been returned to the pool.
+    /// </summary>
+    public bool IsReturned => _returned;
+
+    #endregion Properties
+
+    #region Constructor
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="PoolSentinel"/> class.
     /// </summary>
     public PoolSentinel(object target, bool captureStackTrace)
@@ -66,10 +82,7 @@ internal sealed class PoolSentinel
         }
     }
 
-    /// <summary>
-    /// Gets if the associated object has been returned to the pool.
-    /// </summary>
-    public bool IsReturned => _returned;
+    #endregion Constructor
 
     /// <summary>
     /// Marks the associated object as returned to the pool.

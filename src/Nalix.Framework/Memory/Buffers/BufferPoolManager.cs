@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -32,11 +34,15 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
     private readonly BufferOptions _config;
 
-    private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, int> _suitablePoolSizeCache;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, BufferPoolMetrics> _metricsCache;
-    private readonly System.Buffers.ArrayPool<byte> _fallbackArrayPool = System.Buffers.ArrayPool<byte>.Shared;
+    private readonly ConcurrentDictionary<int, int> _suitablePoolSizeCache;
+    private readonly ConcurrentDictionary<int, BufferPoolMetrics> _metricsCache;
+
     private readonly ShrinkSafetyPolicy _shrinkPolicy;
+    private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
+    private readonly ArrayPool<byte> _fallbackArrayPool = ArrayPool<byte>.Shared;
+
+    private readonly ConditionalWeakTable<byte[], BufferSentinel> _activeSentinels = new();
+    private ConcurrentBag<WeakReference<BufferSentinel>> _sentinelTracker = new();
 
     /// <summary>
     /// Slab-based buffer pool manager using standalone pinned arrays.
@@ -55,47 +61,6 @@ public sealed class BufferPoolManager : IBufferPoolManager
     private long _totalBytesRented;
     private long _peakMemoryUsage;
     private readonly DateTime _startTime;
-
-#if DEBUG
-    private static readonly ConditionalWeakTable<byte[], BufferSentinel> s_activeSentinels = new();
-    private static long s_totalRented;
-    private static long s_totalReturned;
-    private static long s_totalLeaked;
-
-    private sealed class BufferSentinel
-    {
-        private readonly string _stackTrace;
-        private readonly int _size;
-        private bool _returned;
-
-        public BufferSentinel(int size, bool captureStackTrace)
-        {
-            _size = size;
-            _stackTrace = captureStackTrace ? System.Environment.StackTrace : "<stacktrace-disabled>";
-            _ = Interlocked.Increment(ref s_totalRented);
-        }
-
-        public void MarkReturned()
-        {
-            if (!_returned)
-            {
-                _returned = true;
-                _ = Interlocked.Increment(ref s_totalReturned);
-            }
-        }
-
-        ~BufferSentinel()
-        {
-            if (!_returned)
-            {
-                _ = Interlocked.Increment(ref s_totalLeaked);
-                // Log the leak
-                Console.WriteLine($"\n[FW.Memory] LEAK DETECTED: Buffer of size {_size} was GC'd without being returned to the pool.");
-                Console.WriteLine($"Allocation StackTrace:\n{_stackTrace}\n");
-            }
-        }
-    }
-#endif
 
     #endregion Fields & Constants
 
@@ -232,7 +197,7 @@ public sealed class BufferPoolManager : IBufferPoolManager
                 interval: TimeSpan.FromMinutes(Math.Max(1, _config.TrimIntervalMinutes)),
                 work: _ =>
                 {
-                    this.TRIM_EXCESS_BUFFERS(null);
+                    this.TRIM_EXCESS_BUFFERS();
                     return ValueTask.CompletedTask;
                 },
                 options: new RecurringOptions
@@ -302,9 +267,15 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
     ReturnArray:
         _ = Interlocked.Add(ref _totalBytesRented, array.Length);
-#if DEBUG
-        _ = s_activeSentinels.GetValue(array, arr => new BufferSentinel(arr.Length, _config.EnableBufferLeakStackTrace));
-#endif
+
+        if (_config.EnableBufferLeakDetection)
+        {
+            BufferSentinel sentinel = new(array, _config.EnableBufferLeakStackTrace);
+
+            _activeSentinels.Add(array, sentinel);
+            _sentinelTracker.Add(new WeakReference<BufferSentinel>(sentinel));
+        }
+
         return array;
     }
 
@@ -325,13 +296,14 @@ public sealed class BufferPoolManager : IBufferPoolManager
             array.AsSpan().Clear();
         }
 
-#if DEBUG
-        if (s_activeSentinels.TryGetValue(array, out BufferSentinel? sentinel))
+        if (_config.EnableBufferLeakDetection)
         {
-            sentinel.MarkReturned();
-            s_activeSentinels.Remove(array);
+            if (_activeSentinels.TryGetValue(array, out BufferSentinel? sentinel))
+            {
+                sentinel.MarkReturned();
+                _ = _activeSentinels.Remove(array);
+            }
         }
-#endif
 
         if (!_slabPool.TryReturn(array))
         {
@@ -398,18 +370,7 @@ public sealed class BufferPoolManager : IBufferPoolManager
         StringBuilder sb = new();
 
         this.APPEND_REPORT_HEADER(sb);
-
-#if DEBUG
-        sb.AppendLine("Lease Tracking (DEBUG):");
-        sb.AppendLine("-----------------------------------------------------------------------------");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Rented         : {Volatile.Read(ref s_totalRented)}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Returned       : {Volatile.Read(ref s_totalReturned)}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Active         : {Volatile.Read(ref s_totalRented) - Volatile.Read(ref s_totalReturned)}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"Total Leaked         : {Volatile.Read(ref s_totalLeaked)}");
-        sb.AppendLine("-----------------------------------------------------------------------------");
-        sb.AppendLine();
-#endif
-
+        this.APPEND_SUSPICIOUS_BUFFERS(sb);
         this.APPEND_REPORT_POOL_DETAILS(sb);
         this.APPEND_REPORT_METRICS(sb);
 
@@ -448,15 +409,6 @@ public sealed class BufferPoolManager : IBufferPoolManager
         writer.WriteNumber("MaxShrinkPercentPerCycle", _shrinkPolicy.MaxShrinkPercentPerCycle);
         writer.WriteNumber("AbsoluteMinimum", _shrinkPolicy.AbsoluteMinimum);
         writer.WriteEndObject();
-
-#if DEBUG
-        writer.WriteStartObject("LeaseTracking");
-        writer.WriteNumber("TotalRented", Volatile.Read(ref s_totalRented));
-        writer.WriteNumber("TotalReturned", Volatile.Read(ref s_totalReturned));
-        writer.WriteNumber("TotalActive", Volatile.Read(ref s_totalRented) - Volatile.Read(ref s_totalReturned));
-        writer.WriteNumber("TotalLeaked", Volatile.Read(ref s_totalLeaked));
-        writer.WriteEndObject();
-#endif
 
         IReadOnlyCollection<SlabBucket> allBuckets = _slabPool.GetAllBuckets();
 
@@ -636,7 +588,7 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    private void TRIM_EXCESS_BUFFERS(object? _)
+    private void TRIM_EXCESS_BUFFERS()
     {
         /*
          * [Memory Trimming Lifecycle]
@@ -649,7 +601,11 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { DeepTrim = deepTrim, Phase = "TrimRun" });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
+            {
+                DeepTrim = deepTrim,
+                Phase = "BufferTrimRun"
+            });
         }
 
         // Compute memory budget once per cycle (cache it)
@@ -820,17 +776,20 @@ public sealed class BufferPoolManager : IBufferPoolManager
 
         bucket.DecreaseCapacity(shrinkStep);
 
-        if (_metricsCache.TryGetValue(info.BufferSize, out BufferPoolMetrics metrics))
-        {
-            metrics.TotalBytesReturned += (long)shrinkStep * info.BufferSize;
-            metrics.ShrinkAttempted++;
-            metrics.LastChangeTime = System.Environment.TickCount64;
-            _metricsCache[info.BufferSize] = metrics;
-        }
+        BufferPoolMetrics metrics = _metricsCache.GetOrAdd(info.BufferSize, _ => default);
+        metrics.TotalBytesReturned += (long)shrinkStep * info.BufferSize;
+        metrics.ShrinkAttempted++;
+        metrics.LastChangeTime = System.Environment.TickCount64;
+        _metricsCache[info.BufferSize] = metrics;
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {
-            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new { info.BufferSize, Step = shrinkStep, Usage = usage });
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolTrimmed, new
+            {
+                Usage = usage,
+                info.BufferSize,
+                Step = shrinkStep
+            });
         }
     }
 
@@ -990,6 +949,84 @@ public sealed class BufferPoolManager : IBufferPoolManager
     #endregion Private: Resize Strategies
 
     #region Private: Reporting
+
+    private void APPEND_SUSPICIOUS_BUFFERS(StringBuilder sb)
+    {
+        if (!_config.EnableBufferLeakDetection)
+        {
+            return;
+        }
+
+        _ = sb.AppendLine("Suspicious Buffers (Outstanding > " + _config.SuspiciousThresholdSeconds + "s):");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine("SIZE (bytes) | Elapsed (s) | Stack Trace (first line)");
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+
+        long now = Stopwatch.GetTimestamp();
+        long thresholdTicks = _config.SuspiciousThresholdSeconds * Stopwatch.Frequency;
+        int found = 0;
+
+        List<WeakReference<BufferSentinel>> survivors = new();
+
+        foreach (WeakReference<BufferSentinel> weakRef in _sentinelTracker)
+        {
+            if (weakRef.TryGetTarget(out BufferSentinel? sentinel))
+            {
+                if (sentinel.IsReturned)
+                {
+                    continue;
+                }
+
+                survivors.Add(weakRef);
+
+                long elapsed = now - sentinel.RentTimestamp;
+                if (elapsed >= thresholdTicks)
+                {
+                    found++;
+                    double elapsedSec = elapsed / (double)Stopwatch.Frequency;
+
+                    string stack = "N/A (CaptureStackTrace=false)";
+                    if (!string.IsNullOrEmpty(sentinel.StackTrace))
+                    {
+                        int firstLineEnd = sentinel.StackTrace.IndexOf('\n', StringComparison.Ordinal);
+                        stack = firstLineEnd > 0
+                            ? sentinel.StackTrace[..firstLineEnd].Trim()
+                            : sentinel.StackTrace;
+                    }
+
+                    if (found <= 20)
+                    {
+                        _ = sb.AppendLine(CultureInfo.InvariantCulture,
+                            $"{sentinel.Size,12} | {elapsedSec,11:F1} | {stack}");
+                    }
+                }
+            }
+        }
+
+        if (_sentinelTracker.Count > 10000 && survivors.Count < _sentinelTracker.Count * 0.7)
+        {
+            ConcurrentBag<WeakReference<BufferSentinel>> newBag = new();
+            foreach (WeakReference<BufferSentinel> wr in survivors)
+            {
+                newBag.Add(wr);
+            }
+            _sentinelTracker = newBag;
+        }
+
+        if (found > 20)
+        {
+            _ = sb.AppendLine(CultureInfo.InvariantCulture,
+                $"... and {found - 20} more suspicious buffers.");
+        }
+
+        if (found == 0)
+        {
+            _ = sb.AppendLine("(None detected)");
+        }
+
+        _ = sb.AppendLine("----------------------------------------------------------------------------------------------");
+        _ = sb.AppendLine();
+    }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]

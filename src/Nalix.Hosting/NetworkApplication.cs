@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -12,6 +13,10 @@ using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Dispatching;
+
+#pragma warning disable NALIX040 // NetworkApplicationBuilder should configure BufferPoolManager
+#pragma warning disable NALIX041 // NetworkApplicationBuilder should configure ConnectionHub
+#pragma warning disable NALIX044 // NetworkApplicationBuilder should configure a TCP binding
 
 namespace Nalix.Hosting;
 
@@ -97,6 +102,38 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
     #endregion Constructors
 
     #region APIs
+
+    /// <summary>
+    /// Creates a minimal <see cref="NetworkApplication"/> with sensible defaults:
+    /// <list type="bullet">
+    ///   <item>Default logger</item>
+    ///   <item>Default ConnectionHub + BufferPoolManager</item>
+    ///   <item>Default TCP binding on port from configuration (or 8080)</item>
+    ///   <item>Automatic handler scanning from calling assembly</item>
+    /// </list>
+    /// </summary>
+    /// <param name="port">Optional port override. If null, uses configuration or defaults to 8080.</param>
+    /// <returns>A ready-to-run minimal NetworkApplication.</returns>
+    public static NetworkApplication CreateMinimal(ushort? port = null)
+    {
+        NetworkApplicationBuilder builder = CreateBuilder();
+
+        // Default TCP binding with DefaultProtocol
+        IProtocolBindingBuilder tcpBuilder = builder.BindTcp<DefaultProtocol>();
+
+        if (port.HasValue)
+        {
+            _ = tcpBuilder.OnPort(port.Value);
+        }
+
+        _ = tcpBuilder.Bind();
+
+        // Auto-scan handlers from the calling assembly (most common use-case)
+        Assembly callingAssembly = Assembly.GetCallingAssembly();
+        _ = builder.ScanHandlers(callingAssembly);
+
+        return builder.Build();
+    }
 
     /// <summary>
     /// Creates a new builder for <see cref="NetworkApplication"/>.

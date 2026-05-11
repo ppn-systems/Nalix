@@ -19,8 +19,6 @@ using Nalix.Codec.Extensions;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
@@ -201,28 +199,46 @@ public abstract partial class UdpListenerBase
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void HandleReceive(PooledUdpReceiveEventArgs args)
     {
-        if (args.SocketError != SocketError.Success || args.BytesTransferred == 0 || args.RemoteEndPoint is null)
+        if (args.SocketError != SocketError.Success ||
+            args.BytesTransferred == 0 ||
+            args.RemoteEndPoint is null ||
+            args.Buffer is null)
         {
             return;
         }
 
-        if (args.RemoteEndPoint is IPEndPoint ip)
+        try
         {
-            if (!_rateLimiter.TryAccept(ip))
+            if (args.RemoteEndPoint is IPEndPoint ip && !_rateLimiter.TryAccept(ip))
             {
-                _ = Interlocked.Increment(ref _dropUnauth);
+                _ = Interlocked.Increment(ref _dropRateLimited);
                 return;
             }
+
+            if (args.BytesTransferred > _connectionLimitOptions.MaxUdpDatagramSize)
+            {
+                _ = Interlocked.Increment(ref _dropOversize);
+                return;
+            }
+
+            // Copy + lease
+            byte[] buffer = BufferLease.ByteArrayPool.Rent(args.BytesTransferred);
+            args.Buffer.AsSpan(args.Offset, args.BytesTransferred).CopyTo(buffer.AsSpan());
+
+            BufferLease lease = BufferLease.TakeOwnership(buffer, 0, args.BytesTransferred);
+            lease.IsReliable = false;
+
+            this.ProcessDatagram(lease, args.RemoteEndPoint);
         }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            _ = Interlocked.Increment(ref _recvErrors);
 
-        // Copy from the persistent SAEA buffer to a lease so we don't hold the SAEA while processing.
-        byte[] buffer = BufferLease.ByteArrayPool.Rent(args.BytesTransferred);
-        Buffer.BlockCopy(args.Buffer!, args.Offset, buffer, 0, args.BytesTransferred);
-
-        BufferLease lease = BufferLease.TakeOwnership(buffer, 0, args.BytesTransferred);
-        lease.IsReliable = false;
-
-        this.ProcessDatagram(lease, args.RemoteEndPoint);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger?.LogDebug(ex, $"[NW.UdpListenerBase:{nameof(HandleReceive)}] non-fatal");
+            }
+        }
     }
 
     /// <summary>
@@ -268,9 +284,18 @@ public abstract partial class UdpListenerBase
 
         // --- 2. Protocol validation gate ---
         // SEC-72: Strict length and type guard. 
-        // A valid UDP datagram must have at least the full packet header (13 bytes).
+        // A valid UDP datagram must have at least the full packet header size.
         // And the transport byte must be UDP.
-        if (payload.Length < 10 || (payload[6] & (byte)PacketFlags.UNRELIABLE) == 0)
+        if (payload.Length < PacketHeader.Size)
+        {
+            _ = Interlocked.Increment(ref _dropShort);
+            lease.Dispose();
+            return;
+        }
+
+        ref readonly PacketHeader header = ref payload.AsHeaderRef();
+
+        if ((header.Flags & PacketFlags.UNRELIABLE) == 0)
         {
             _ = Interlocked.Increment(ref _dropShort);
             lease.Dispose();
@@ -302,7 +327,6 @@ public abstract partial class UdpListenerBase
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
         // Extract sequence ID cleanly from the packet header (offset 8 for the new 16-bit sequence)
-        ref readonly PacketHeader header = ref payload.AsHeaderRef();
         if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
@@ -339,9 +363,7 @@ public abstract partial class UdpListenerBase
             incomingLease.IsReliable = false;
 
             // Try the connection-local pool first, then fall back to the shared pool.
-            ConnectionEventArgs args = connection.AcquireEventArgs()
-                ?? InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                  .Get<ConnectionEventArgs>();
+            ConnectionEventArgs args = connection.AcquireEventArgs();
 
             args.Initialize(incomingLease, connection);
 

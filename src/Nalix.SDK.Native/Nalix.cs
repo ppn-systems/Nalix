@@ -84,7 +84,7 @@ public static unsafe partial class Nalix
         {
             string? hostStr = Marshal.PtrToStringUTF8((IntPtr)host);
 
-            if (host == null)
+            if (hostStr is null || hostStr.Length == 0)
             {
                 return ErrorCode.InvalidArgument;
             }
@@ -145,8 +145,18 @@ public static unsafe partial class Nalix
     public static int TcpDisconnect(IntPtr handle)
     {
         NativeTcpSession? wrapper = GET_WRAPPER(handle);
-        wrapper?.UnderlyingSession.DisconnectAsync().Wait();
-        return ErrorCode.Success;
+
+        try
+        {
+
+            wrapper?.UnderlyingSession.DisconnectAsync().Wait();
+            return ErrorCode.Success;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            LastError.Set(ex);
+            return ErrorCode.DisconnectFailed;
+        }
     }
 
     /// <summary>

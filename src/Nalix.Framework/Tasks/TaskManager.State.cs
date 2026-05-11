@@ -281,6 +281,8 @@ public partial class TaskManager
     {
         #region Properties / fields
 
+        private int _isPaused;
+
         // Recurring jobs use a one-per-loop gate when NonReentrant is enabled so an
         // overrun does not overlap with the next scheduled tick.
         public readonly SemaphoreSlim Gate = new(1, 1);
@@ -355,11 +357,23 @@ public partial class TaskManager
             }
         }
 
+        public bool IsPaused
+        {
+            get => Volatile.Read(ref _isPaused) != 0;
+            private set => Volatile.Write(ref _isPaused, value ? 1 : 0);
+        }
+
         public DateTimeOffset? NextRunUtc => this.LastRunUtc?.Add(this.Interval);
 
         #endregion Properties / fields
 
         #region Computed Methods
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public void Pause() => this.IsPaused = true;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public void Resume() => this.IsPaused = false;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
         public void MarkStart()
@@ -393,6 +407,7 @@ public partial class TaskManager
             this.Cancel();
             this.CancellationTokenSource.Dispose();
             Gate.Dispose();
+            this.IsPaused = false;
         }
 
         #endregion Computed Methods
@@ -400,6 +415,8 @@ public partial class TaskManager
         #region IRecurringHandle
 
         string IRecurringHandle.Name => this.Name;
+
+        bool IRecurringHandle.IsPaused => this.IsPaused;
 
         bool IRecurringHandle.IsRunning => this.IsRunning;
 

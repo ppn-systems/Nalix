@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Framework.Memory.Internal.PoolTypes;
 using Nalix.Framework.Memory.Objects;
@@ -68,8 +69,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     {
         get
         {
-            System.Threading.Thread.MemoryBarrier();
-            return System.Threading.Volatile.Read(ref _totalCreated);
+            Thread.MemoryBarrier();
+            return Volatile.Read(ref _totalCreated);
         }
     }
 
@@ -97,12 +98,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// <summary>
     /// Gets the total number of objects returned to the pool.
     /// </summary>
-    public long TotalReturnedCount => System.Threading.Interlocked.Read(ref _totalReturned);
+    public long TotalReturnedCount => Interlocked.Read(ref _totalReturned);
 
     /// <summary>
     /// Gets the total number of objects rented from the pool.
     /// </summary>
-    public long TotalRentedCount => System.Threading.Interlocked.Read(ref _totalRented);
+    public long TotalRentedCount => Interlocked.Read(ref _totalRented);
 
     /// <summary>
     /// Gets the pool uptime in milliseconds.
@@ -125,14 +126,12 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     #region Public Methods
 
     /// <summary>
-    /// Gets an instance of <typeparamref name="T"/>, creating a new one when the pool is empty.
+    /// Gets an object from the pool and returns whether it was a cache hit (reused from pool) or miss (newly created).
+    /// This is the single source of truth for hit/miss counting → eliminates TOCTOU in ObjectPoolManager.
     /// </summary>
-    /// <typeparam name="T">The type of object to get from the pool.</typeparam>
-    /// <returns>An instance of <typeparamref name="T"/>.</returns>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public T Get<T>() where T : IPoolable, new()
+    public (T obj, bool isCacheHit) GetWithInfo<T>() where T : IPoolable, new()
     {
         /*
          * [Type-Sharded Retrieval]
@@ -147,18 +146,28 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         // Rent from the bucket when possible; otherwise create a fresh instance.
         if (typePool.TryPop(out IPoolable? obj) && obj != null)
         {
-            _ = System.Threading.Interlocked.Increment(ref _totalRented);
-            return (T)obj;
+            _ = Interlocked.Increment(ref _totalRented);
+            return ((T)obj, true);
         }
 
         // Pool miss: create a new instance and account for it as a fresh allocation.
         T newObj = new();
 
-        _ = System.Threading.Interlocked.Increment(ref _totalCreated);
-        _ = System.Threading.Interlocked.Increment(ref _totalRented);
+        _ = Interlocked.Increment(ref _totalCreated);
+        _ = Interlocked.Increment(ref _totalRented);
 
-        return newObj;
+        return (newObj, false);
     }
+
+    /// <summary>
+    /// Gets an instance of <typeparamref name="T"/>, creating a new one when the pool is empty.
+    /// </summary>
+    /// <typeparam name="T">The type of object to get from the pool.</typeparam>
+    /// <returns>An instance of <typeparamref name="T"/>.</returns>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    [return: System.Diagnostics.CodeAnalysis.NotNull]
+    public T Get<T>() where T : IPoolable, new() => this.GetWithInfo<T>().obj;
 
     /// <summary>
     /// Returns an instance of <typeparamref name="T"/> to the pool for future reuse.
@@ -192,7 +201,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         // If the bucket is full we simply drop the instance and let GC reclaim it.
         if (typePool.TryPush(obj))
         {
-            _ = System.Threading.Interlocked.Increment(ref _totalReturned);
+            _ = Interlocked.Increment(ref _totalReturned);
             return;
         }
 
@@ -225,8 +234,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             if (typePool.TryPush(obj))
             {
                 created++;
-                _ = System.Threading.Interlocked.Increment(ref _totalCreated);
-                _ = System.Threading.Interlocked.Increment(ref _totalReturned);
+                _ = Interlocked.Increment(ref _totalCreated);
+                _ = Interlocked.Increment(ref _totalReturned);
             }
             else
             {
@@ -370,9 +379,9 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     public void ResetStatistics()
     {
-        _ = System.Threading.Interlocked.Exchange(ref _totalCreated, 0);
-        _ = System.Threading.Interlocked.Exchange(ref _totalRented, 0);
-        _ = System.Threading.Interlocked.Exchange(ref _totalReturned, 0);
+        _ = Interlocked.Exchange(ref _totalCreated, 0);
+        _ = Interlocked.Exchange(ref _totalRented, 0);
+        _ = Interlocked.Exchange(ref _totalReturned, 0);
         _uptime.Restart();
 
     }
@@ -425,7 +434,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             if (typePool.TryPush(obj))
             {
                 returnedCount++;
-                _ = System.Threading.Interlocked.Increment(ref _totalReturned);
+                _ = Interlocked.Increment(ref _totalReturned);
             }
         }
 

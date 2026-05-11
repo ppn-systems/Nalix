@@ -1,15 +1,18 @@
-# Nalix.Network.Hosting
+# Nalix.Hosting
 
-> Fluent orchestration layer to build and host Nalix applications with minimal boilerplate.
+> Fluent Microsoft-style builder API to bootstrap and host Nalix network servers with minimal boilerplate.
 
-## Key Features
+**Nalix.Hosting** provides a clean, familiar builder pattern (inspired by `WebApplicationBuilder`) for quickly creating high-performance TCP and UDP servers using the Nalix ecosystem.
 
-| Feature | Description |
-| :--- | :--- |
-| 🏗️ **NetworkApplicationBuilder** | Fluent API to configure listeners, protocols, and handlers. |
-| 🔌 **Service Integration** | Built-in support for `Microsoft.Extensions.Logging` and `InstanceManager`. |
-| 🔍 **Auto-Discovery** | Automatic scanning and registration of packet contracts and controllers. |
-| ♻️ **Lifecycle Management** | Clean startup and shutdown orchestration for complex networking stacks. |
+## Features
+
+- **Fluent & Intuitive Builder API**
+- **`DefaultProtocol`** – Zero-boilerplate solution that forwards all packets to the dispatch pipeline
+- **Automatic Handler Discovery** via `ScanHandlers`
+- **Full TCP + UDP Support** – Bind multiple listeners easily
+- **Deep Integration** with `Microsoft.Extensions.Logging`, `InstanceManager`, and Configuration system
+- **Robust Lifecycle Management** – `ActivateAsync` / `DeactivateAsync` / `RunAsync` with graceful shutdown
+- **Smart Bootstrap** – Automatic `server.ini` loading, GC tuning, high-precision timer, diagnostic bridging, etc.
 
 ## Installation
 
@@ -19,13 +22,16 @@ dotnet add package Nalix.Network.Hosting
 
 ## Quick Example
 
+Using DefaultProtocol (Recommended for most cases).
+
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
 
 using var app = NetworkApplication.CreateBuilder()
-    .BindTcp<MyProtocol>().OnPort(8080).Bind()
-    .ScanPackets<MyPacket>()
-    .ScanHandlers<MyHandlers>()
+    .BindTcp<DefaultProtocol>()
+        .OnPort(8080)
+        .Bind()
+    .ScanHandlers<Program>()           // Scan all PacketController in the assembly
     .Build();
 
 await app.RunAsync();

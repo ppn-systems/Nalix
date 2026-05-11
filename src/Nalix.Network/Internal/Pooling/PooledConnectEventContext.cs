@@ -79,9 +79,6 @@ internal sealed class PooledConnectEventContext : IPoolable
     }
 
     /// <inheritdoc/>
-    public static PooledConnectEventContext Get() => s_pool.Get<PooledConnectEventContext>();
-
-    /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void ResetForPool()
     {

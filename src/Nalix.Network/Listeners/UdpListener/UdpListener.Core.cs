@@ -62,6 +62,8 @@ public abstract partial class UdpListenerBase
     private long _dropUnauth;
     private long _dropUnknown;
     private long _recvErrors;
+    private long _dropOversize;
+    private long _dropRateLimited;
 
     #endregion Fields
 

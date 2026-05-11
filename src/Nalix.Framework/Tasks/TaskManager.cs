@@ -32,7 +32,10 @@ public sealed partial class TaskManager : ITaskManager
 {
     #region Fields
 
-    private readonly Timer _cleanupTimer;
+    private readonly Task _cleanupTask;
+    private readonly PeriodicTimer _cleanupPeriodicTimer;
+    private readonly CancellationTokenSource _cleanupCts;
+
     private readonly Lock _pendingWorkersLock;
     private readonly Task _workerDispatcherTask;
     private readonly TaskManagerOptions _options;
@@ -137,42 +140,12 @@ public sealed partial class TaskManager : ITaskManager
     /// <summary>
     /// Gets the 95th percentile worker execution time in milliseconds (approximation).
     /// </summary>
-    public double P95WorkerExecutionTime => this.GetWorkerPercentile(0.95);
+    public double P95WorkerExecutionTime => this.GET_WORKER_PERCENTILE(0.95);
 
     /// <summary>
     /// Gets the 99th percentile worker execution time in milliseconds (approximation).
     /// </summary>
-    public double P99WorkerExecutionTime => this.GetWorkerPercentile(0.99);
-
-    /// <summary>
-    /// Calculates an approximate percentile for worker execution time based on histogram buckets.
-    /// </summary>
-    /// <param name="percentile">The percentile to calculate (e.g., 0.95 for P95).</param>
-    /// <returns>The approximate latency in milliseconds.</returns>
-    public double GetWorkerPercentile(double percentile)
-    {
-        long total = _workerExecutionCount;
-        if (total == 0)
-        {
-            return 0;
-        }
-
-        long target = (long)(total * percentile);
-        long accumulated = 0;
-
-        double[] thresholds = [1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0];
-
-        for (int i = 0; i < _workerLatencyBuckets.Length; i++)
-        {
-            accumulated += Volatile.Read(ref _workerLatencyBuckets[i]);
-            if (accumulated >= target)
-            {
-                return thresholds[i];
-            }
-        }
-
-        return thresholds[^1];
-    }
+    public double P99WorkerExecutionTime => this.GET_WORKER_PERCENTILE(0.99);
 
     #endregion Properties
 
@@ -195,6 +168,7 @@ public sealed partial class TaskManager : ITaskManager
 
         _workers = new();
         _recurring = new();
+        _cleanupCts = new();
         _groupGates = new(StringComparer.Ordinal);
         _pendingWorkers = new();
         _pendingWorkersLock = new();
@@ -204,11 +178,31 @@ public sealed partial class TaskManager : ITaskManager
         _globalConcurrencyGate = new SemaphoreSlim(_currentConcurrencyLimit, _options.MaxWorkers);
         _workerDispatcherTask = this.WORKER_DISPATCH_LOOP_ASYNC(_workerDispatcherCts.Token);
 
-        _cleanupTimer = new Timer(static s =>
+        _cleanupPeriodicTimer = new PeriodicTimer(_options.CleanupInterval);
+        _cleanupTask = Task.Run(async () =>
         {
-            TaskManager self = (TaskManager)s!;
-            self.CLEANUP_WORKERS();
-        }, this, _options.CleanupInterval, _options.CleanupInterval);
+            try
+            {
+                while (await _cleanupPeriodicTimer.WaitForNextTickAsync(_cleanupCts.Token)
+                                                 .ConfigureAwait(false))
+                {
+                    if (_disposed)
+                    {
+                        break;
+                    }
+
+                    this.CLEANUP_WORKERS();
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                {
+                    Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CleanupLoopError", Exception = ex.Message });
+                }
+            }
+        }, _cleanupCts.Token);
 
         if (_options.DynamicAdjustmentEnabled)
         {
@@ -353,6 +347,96 @@ public sealed partial class TaskManager : ITaskManager
                 Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Name = name, Exception = ex.Message });
             }
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Dynamically updates the concurrency limit for the specified task group at runtime.
+    /// </summary>
+    /// <param name="group">
+    /// The name of the task group whose concurrency limit will be updated.
+    /// </param>
+    /// <param name="limit">
+    /// The maximum number of concurrent tasks allowed for the group.
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="group"/> is <see langword="null"/>, empty, or whitespace.
+    /// </exception>
+    /// <exception cref="ObjectDisposedException">
+    /// Thrown when the current <c>TaskManager</c> instance has already been disposed.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public void SetGroupConcurrencyLimit(string group, int limit)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(group, nameof(group));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
+
+        this.ADJUST_GROUP_CONCURRENCY(group, limit);
+    }
+
+    /// <summary>
+    /// Pauses the specified recurring job.
+    /// </summary>
+    /// <param name="name">
+    /// The unique name of the recurring job to pause.
+    /// </param>
+    /// <remarks>
+    /// While paused, scheduled executions for the recurring job are skipped
+    /// until <see cref="ResumeRecurring(string)"/> is called.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="name"/> is <see langword="null"/>.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void PauseRecurring(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (_recurring.TryGetValue(name, out RecurringState? st))
+        {
+            st.Pause();
+
+            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            {
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new
+                {
+                    Action = "RecurringPaused",
+                    Name = name
+                });
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resumes a previously paused recurring job.
+    /// </summary>
+    /// <param name="name">
+    /// The unique name of the recurring job to resume.
+    /// </param>
+    /// <remarks>
+    /// Once resumed, the recurring job continues executing according
+    /// to its configured schedule.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="name"/> is <see langword="null"/>.
+    /// </exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ResumeRecurring(string name)
+    {
+        ArgumentNullException.ThrowIfNull(name);
+
+        if (_recurring.TryGetValue(name, out RecurringState? st))
+        {
+            st.Resume();
+
+            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Dispatcher))
+            {
+                Listener.Write(DiagnosticsEvents.Tasks.Dispatcher, new
+                {
+                    Action = "RecurringResumed",
+                    Name = name
+                });
+            }
         }
     }
 
@@ -1087,25 +1171,22 @@ public sealed partial class TaskManager : ITaskManager
 
         try
         {
-            _ = _cleanupTimer.Change(Timeout.Infinite, Timeout.Infinite);
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
-            {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CleanupTimerStopError", Exception = ex.Message });
-            }
-        }
+            _cleanupCts.Cancel();
+            _cleanupPeriodicTimer.Dispose();
 
-        try
-        {
-            _cleanupTimer?.Dispose();
+            // Đợi tối đa 3 giây cho cleanup loop kết thúc
+            if (!_cleanupTask.IsCompleted)
+            {
+                _ = _cleanupTask.Wait(TimeSpan.FromSeconds(3));
+            }
+
+            _cleanupCts.Dispose();
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (Listener.IsEnabled(DiagnosticsEvents.Tasks.Failed))
             {
-                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CleanupTimerDisposeError", Exception = ex.Message });
+                Listener.Write(DiagnosticsEvents.Tasks.Failed, new { Action = "CleanupShutdownError", Exception = ex.Message });
             }
         }
 
