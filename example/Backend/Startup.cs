@@ -66,10 +66,10 @@ internal class Startup
             })
             .Configure<ObjectPoolOptions>(o =>
             {
-                o.EnableLeakDetection = true;
-                o.EnableDiagnostics = true;
-                o.CaptureStackTraces = true;
-                o.SuspiciousThresholdSeconds = 10;
+                //o.EnableLeakDetection = true;
+                //o.EnableDiagnostics = true;
+                //o.CaptureStackTraces = true;
+                //o.SuspiciousThresholdSeconds = 10;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddMetadataProvider<PacketTagMetadataProvider>()
