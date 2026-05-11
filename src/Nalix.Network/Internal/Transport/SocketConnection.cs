@@ -529,14 +529,13 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(_buffer, offset, payloadLen));
         lease.IsReliable = true;
 
-        ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
         ReadOnlySpan<byte> payloadSpan = lease.Span;
 
         // 2. Fragment Assembly Check.
         // A FragmentHeader is 8 bytes. If it's a fragment, we handle it separately.
         if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
         {
-            this.HANDLE_FRAGMENTED_FRAME(lease, args, header);
+            this.HANDLE_FRAGMENTED_FRAME(lease, header);
         }
         else
         {
@@ -553,10 +552,11 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 }
 #endif
                 Interlocked.Decrement(ref _pendingProcessCallbacks);
-                args.Dispose();
                 lease.Dispose();
                 return;
             }
+
+            ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
 
             args.Initialize(lease, _cachedArgs.Connection);
             this.LastPingTime = Clock.UnixMillisecondsNow();
@@ -582,7 +582,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// <summary>
     /// Helper to handle fragmented frames, extracted for clarity.
     /// </summary>
-    private void HANDLE_FRAGMENTED_FRAME(BufferLease lease, ConnectionEventArgs args, FragmentHeader header)
+    private void HANDLE_FRAGMENTED_FRAME(BufferLease lease, FragmentHeader header)
     {
         try
         {
@@ -592,11 +592,11 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             if (header.ChunkIndex == 0)
             {
                 int openStreams = Interlocked.Increment(ref _openFragmentStreams);
+
                 if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
                 {
                     Interlocked.Decrement(ref _openFragmentStreams);
                     Interlocked.Decrement(ref _pendingProcessCallbacks);
-                    args.Dispose();
 
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
@@ -625,6 +625,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 assembledLease.IsReliable = true;
                 assembledLease.Retain();
 
+
+                ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
+
                 this.LastPingTime = Clock.UnixMillisecondsNow();
                 args.Initialize(assembledLease, _cachedArgs.Connection);
 
@@ -649,7 +652,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             }
             else
             {
-                args.Dispose();
                 Interlocked.Decrement(ref _pendingProcessCallbacks);
                 if (streamEvicted)
                 {

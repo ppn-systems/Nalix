@@ -8,6 +8,7 @@ using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Options;
 using Nalix.Hosting;
 using Nalix.Logging;
 using Nalix.Logging.Sinks;
@@ -62,6 +63,13 @@ internal class Startup
                 o.MaxPerConnectionPendingPackets = 512;
                 o.MaxPendingPerIp = 10_000;
                 o.MaxPendingNormalCallbacks = 100_000;
+            })
+            .Configure<ObjectPoolOptions>(o =>
+            {
+                o.EnableLeakDetection = true;
+                o.EnableDiagnostics = true;
+                o.CaptureStackTraces = true;
+                o.SuspiciousThresholdSeconds = 10;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddMetadataProvider<PacketTagMetadataProvider>()

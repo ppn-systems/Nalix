@@ -87,7 +87,14 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
             if ((Interlocked.Read(ref _mask) & bit) == 0 &&
                 (Interlocked.Or(ref _mask, bit) & bit) == 0)
             {
-                return items[i];
+                T item = items[i];
+
+                if (item is IPoolRentable rentable)
+                {
+                    rentable.OnRent();
+                }
+
+                return item;
             }
         }
 

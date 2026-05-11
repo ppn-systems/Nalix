@@ -20,6 +20,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
 {
     #region Fields
 
+    private IConnection? _connection;
     private int _returnedToPool;
     private IBufferLease? _lease;
 
@@ -36,14 +37,13 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     {
         get
         {
-            if (field is null)
+            if (_connection is null)
             {
                 Throw.ConnectionNotAvailable();
             }
 
-            return field;
+            return _connection;
         }
-        private set;
     }
 
     /// <inheritdoc />
@@ -69,7 +69,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     {
         _lease?.Dispose();
         _lease = null;
-        this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
+        _connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs");
     }
 
     /// <inheritdoc />
@@ -81,7 +81,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         }
 
         _lease = lease ?? throw new ArgumentNullException(nameof(lease), "Buffer lease cannot be null when initializing ConnectionEventArgs with a buffer");
-        this.Connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
+        _connection = connection ?? throw new ArgumentNullException(nameof(connection), "Connection cannot be null when initializing ConnectionEventArgs with a buffer");
     }
 
     /// <inheritdoc />
@@ -101,7 +101,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         _lease?.Dispose();
 
         _lease = null;
-        this.Connection = null;
+        _connection = null;
     }
 
     /// <inheritdoc />
@@ -113,7 +113,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
         }
 
         // Local pool priority
-        if (this.Connection is Connection owner)
+        if (_connection is Connection owner)
         {
             owner.ReturnEventArgs(this);
             return;
