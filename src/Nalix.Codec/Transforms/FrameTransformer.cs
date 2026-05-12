@@ -124,6 +124,7 @@ public static class FrameTransformer
     /// <param name="src">The source buffer containing the original packet.</param>
     /// <param name="dest">The destination buffer to write the encrypted packet.</param>
     /// <param name="key">The encryption key.</param>
+    /// <param name="seq">>The sequence number send in the encrypted envelope.</param>
     /// <param name="suite">The cipher suite used for encryption.</param>
     /// <remarks>
     /// The header portion of the packet is copied unchanged.
@@ -135,7 +136,7 @@ public static class FrameTransformer
     /// Thrown when the selected cipher rejects the supplied key or destination envelope.
     /// </exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Encrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType suite)
+    public static void Encrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key, uint? seq, CipherSuiteType suite)
     {
         ArgumentNullException.ThrowIfNull(src);
         ArgumentNullException.ThrowIfNull(dest);
@@ -160,7 +161,7 @@ public static class FrameTransformer
 
         srcSpan[..Offset].CopyTo(destFull[..Offset]);
 
-        EnvelopeCipher.Encrypt(key, srcSpan[Offset..], destFull[Offset..], null, null, suite, out int encrypted);
+        EnvelopeCipher.Encrypt(key, srcSpan[Offset..], destFull[Offset..], null, seq, suite, out int encrypted);
         dest.CommitLength(Offset + encrypted);
     }
 
@@ -171,6 +172,7 @@ public static class FrameTransformer
     /// <param name="dest">The destination buffer to write the decrypted packet.</param>
     /// <param name="key">The decryption key.</param>
     /// <param name="expectedAlgorithm">The expected cipher suite to validate/decrypt the envelope.</param>
+    /// <param name="seq">The sequence number received in the decrypted envelope.</param>
     /// <remarks>
     /// The header portion is copied unchanged.
     /// Only the payload is decrypted.
@@ -180,7 +182,9 @@ public static class FrameTransformer
     /// <exception cref="CipherException">Thrown when AEAD authentication fails during payload decryption.</exception>
     /// <exception cref="NotSupportedException">Thrown when the encrypted payload declares an unsupported cipher suite.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Decrypt([Borrowed] IBufferLease src, [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm)
+    public static void Decrypt(
+        [Borrowed] IBufferLease src,
+        [Borrowed] IBufferLease dest, ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm, out uint seq)
     {
         ArgumentNullException.ThrowIfNull(src);
         ArgumentNullException.ThrowIfNull(dest);
@@ -205,7 +209,7 @@ public static class FrameTransformer
 
         srcSpan[..Offset].CopyTo(destFull[..Offset]);
 
-        EnvelopeCipher.Decrypt(key, srcSpan[Offset..], destFull[Offset..], null, expectedAlgorithm, out int decrypted);
+        EnvelopeCipher.Decrypt(key, srcSpan[Offset..], destFull[Offset..], null, expectedAlgorithm, out int decrypted, out seq);
         dest.CommitLength(Offset + decrypted);
     }
 

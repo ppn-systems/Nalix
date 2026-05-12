@@ -27,7 +27,9 @@ public static class FrameCipher
     /// Decrypts a framed packet and clears the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IBufferLease DecryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm)
+    public static IBufferLease DecryptFrame(
+        [Borrowed] IBufferLease src,
+        ReadOnlySpan<byte> key, CipherSuiteType expectedAlgorithm, out uint seq)
     {
         ArgumentNullException.ThrowIfNull(src);
 
@@ -40,7 +42,7 @@ public static class FrameCipher
                                        .GetPlaintextLength(src.Span));
         try
         {
-            FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm);
+            FrameTransformer.Decrypt(src, dest, key, expectedAlgorithm, out seq);
 
             ref PacketHeader header = ref dest.Span.AsHeaderRef();
             header.Flags &= ~PacketFlags.ENCRYPTED;
@@ -58,7 +60,7 @@ public static class FrameCipher
     /// Encrypts a framed packet and sets the encrypted flag in the resulting buffer.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static IBufferLease EncryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, CipherSuiteType suite)
+    public static IBufferLease EncryptFrame([Borrowed] IBufferLease src, ReadOnlySpan<byte> key, uint? seq, CipherSuiteType suite)
     {
         ArgumentNullException.ThrowIfNull(src);
 
@@ -66,7 +68,7 @@ public static class FrameCipher
                                        .GetMaxCiphertextSize(suite, src.Length - FrameTransformer.Offset));
         try
         {
-            FrameTransformer.Encrypt(src, dest, key, suite);
+            FrameTransformer.Encrypt(src, dest, key, seq, suite);
 
             ref PacketHeader header = ref dest.Span.AsHeaderRef();
             header.Flags |= PacketFlags.ENCRYPTED;
