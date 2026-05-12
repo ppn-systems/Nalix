@@ -10,27 +10,30 @@ using Nalix.Abstractions;
 using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Options;
+using Nalix.Codec.Security;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
 
-internal sealed class FrameSender : IDisposable
+internal sealed class TcpFrameSender : IDisposable
 {
+    private readonly SequenceCounter _sequence;
     private readonly TransportOptions _options;
     private readonly FragmentOptions _fragmentOptions;
     private readonly Func<Socket> _getSocket;
     private readonly Action<Exception> _onError;
-    private readonly SemaphoreSlim _sendLock = new(1, 1);
+    private readonly SemaphoreSlim _sendLock = new(16, 16);
 
     private const int MaxTcpFrameLength = ushort.MaxValue;
     private const int HeaderSize = TcpSession.HeaderSize;
 
     private int _disposed;
 
-    public FrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
+    public TcpFrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
     {
+        _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
@@ -60,12 +63,15 @@ internal sealed class FrameSender : IDisposable
         IBufferLease current = lease;
         try
         {
+            uint? seqToUse = encrypt ? _sequence.Next() : null;
+
             FramePipeline.ProcessOutbound(
                 ref current,
                 _options.CompressionEnabled,
                 _options.CompressionThreshold,
                 encrypt,
                 _options.Secret.AsSpan(),
+                seqToUse,
                 _options.Algorithm);
 
             return current.Length >= _fragmentOptions.MaxChunkSize

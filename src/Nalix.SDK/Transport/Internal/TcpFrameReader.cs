@@ -10,6 +10,7 @@ using Nalix.Abstractions;
 using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Codec.Memory;
 using Nalix.Codec.Options;
+using Nalix.Codec.Security;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
 using Nalix.SDK.Options;
@@ -20,13 +21,14 @@ namespace Nalix.SDK.Transport.Internal;
 /// Optimized frame recipient that handles reassembly of fragmented packets,
 /// decryption, and decompression of raw network data.
 /// </summary>
-internal sealed class FrameReader : IDisposable
+internal sealed class TcpFrameReader : IDisposable
 {
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
     private static readonly SocketException s_frameSizeExceeded = new((int)SocketError.MessageSize);
 
-    private readonly TransportOptions _options;
     private readonly Func<Socket> _getSocket;
+    private readonly SequenceCounter _sequence;
+    private readonly TransportOptions _options;
     private readonly Action<Exception> _onError;
     private readonly Action<IBufferLease> _onMessage;
 
@@ -37,18 +39,19 @@ internal sealed class FrameReader : IDisposable
     };
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="FrameReader"/> class.
+    /// Initializes a new instance of the <see cref="TcpFrameReader"/> class.
     /// </summary>
     /// <param name="getSocket">A delegate that returns the active socket used for receiving data.</param>
     /// <param name="options">The transport options used to validate inbound frame sizes.</param>
     /// <param name="onMessage">The callback invoked when a fully processed frame is ready.</param>
     /// <param name="onError">The callback invoked when receive processing fails.</param>
-    public FrameReader(
+    public TcpFrameReader(
         Func<Socket> getSocket,
         TransportOptions options,
         Action<IBufferLease> onMessage,
         Action<Exception> onError)
     {
+        _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
@@ -160,9 +163,19 @@ internal sealed class FrameReader : IDisposable
         IBufferLease original = lease;
         try
         {
-            FramePipeline.ProcessInbound(ref lease, _options.Secret.AsSpan(), _options.Algorithm);
+            FramePipeline.ProcessInbound(ref lease, _options.Secret.AsSpan(), _options.Algorithm, out uint? seq);
+
+            if (!_sequence.IsValid(seq))
+            {
+                return;
+            }
 
             _onMessage(lease);
+
+            if (seq.HasValue)
+            {
+                _sequence.UpdateTo(seq.Value);
+            }
         }
         finally
         {
