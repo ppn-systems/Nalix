@@ -107,6 +107,30 @@ public sealed class SessionHandlers
         RestoreSessionSnapshot(context.Connection, session);
         context.Connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
 
+        // Restore sequence number
+        if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.TcpSendSequence, out object? ts) && ts is uint tcpSend)
+        {
+            context.Connection.TCP.SendSequence.ResumeFrom(tcpSend);
+        }
+
+        if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.TcpReceiveSequence, out object? tr) && tr is uint tcpRecv)
+        {
+            context.Connection.TCP.ReceiveSequence.ResumeFrom(tcpRecv);
+        }
+
+        if (context.Connection.IsUdpCreated)
+        {
+            if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
+            {
+                context.Connection.UDP.SendSequence.ResumeFrom(udpSend);
+            }
+
+            if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.UdpReceiveSequence, out object? ur) && ur is uint udpRecv)
+            {
+                context.Connection.UDP.ReceiveSequence.ResumeFrom(udpRecv);
+            }
+        }
+
         // Generate a new session entry with a rotated token for subsequent resume attempts.
         if (hub is not null)
         {
@@ -143,9 +167,9 @@ public sealed class SessionHandlers
     {
         SessionSnapshot snapshot = session.Snapshot;
 
+        connection.Level = snapshot.Level;
         connection.Secret = snapshot.Secret;
         connection.Algorithm = snapshot.Algorithm;
-        connection.Level = snapshot.Level;
 
         if (snapshot.Attributes is not null)
         {
