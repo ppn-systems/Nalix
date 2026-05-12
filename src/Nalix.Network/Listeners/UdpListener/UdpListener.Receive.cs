@@ -500,7 +500,13 @@ public abstract partial class UdpListenerBase
 
         try
         {
-            FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
+            FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out uint? seq);
+
+            if (!args.Connection.UDP.ReceiveSequence.IsValid(seq, window: _sequenceOptions.UdpWindow))
+            {
+                current.Dispose();
+                return;
+            }
 
             if (!ReferenceEquals(current, lease))
             {
@@ -510,6 +516,11 @@ public abstract partial class UdpListenerBase
             }
 
             _protocol.ProcessMessage(sender, args);
+
+            if (seq.HasValue)
+            {
+                args.Connection.UDP.ReceiveSequence.UpdateTo(seq.Value);
+            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
