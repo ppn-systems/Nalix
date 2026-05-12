@@ -12,7 +12,7 @@ namespace Nalix.Abstractions.Networking;
 /// Any connection that wants strong anti-replay protection and proper nonce management
 /// should implement this interface in addition to <see cref="IConnection"/>.
 /// </remarks>
-public interface IConnectionSequencer
+public interface ITransportSequencer
 {
     /// <summary>
     /// Gets the sequence counter for outgoing packets.
@@ -23,11 +23,4 @@ public interface IConnectionSequencer
     /// Gets the sequence counter for incoming packets.
     /// </summary>
     ISequenceCounter ReceiveSequence { get; }
-
-    /// <summary>
-    /// Resumes both send and receive sequence counters after reconnection.
-    /// </summary>
-    /// <param name="lastSendSeq">Last sent sequence before disconnect.</param>
-    /// <param name="lastReceiveSeq">Last received sequence before disconnect.</param>
-    void ResumeSequences(uint lastSendSeq = 0, uint lastReceiveSeq = 0);
 }

@@ -35,7 +35,7 @@ public interface ISequenceCounter
     /// </summary>
     /// <param name="receivedSeq">Sequence number from the incoming packet.</param>
     /// <param name="window">Allowed reordering window (0 = strict monotonic).</param>
-    bool IsValid(uint receivedSeq, uint window = 0);
+    bool IsValid(uint? receivedSeq, uint window = 0);
 
     /// <summary>
     /// Updates the counter to the received sequence if it is higher.
