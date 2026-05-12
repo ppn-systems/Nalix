@@ -25,6 +25,35 @@ public static class HandshakeX25519
 
     #endregion Static Labels
 
+    #region HKDF-Keccak256 Helpers (RFC 5869)
+
+    private static class Hkdf
+    {
+        /// <summary>
+        /// HKDF-Extract: PRK = HMAC-Hash(salt, IKM)
+        /// </summary>
+        public static Bytes32 Extract(ReadOnlySpan<byte> salt, ReadOnlySpan<byte> ikm)
+        {
+            Span<byte> prk = stackalloc byte[32];
+            HmacKeccak256.Compute(salt, ikm, prk);
+            return new Bytes32(prk);
+        }
+
+        public static Bytes32 Expand(Bytes32 prk, ReadOnlySpan<byte> info)
+        {
+            Span<byte> okm = stackalloc byte[32];
+            Span<byte> t = stackalloc byte[info.Length + 1];
+
+            info.CopyTo(t);
+            t[^1] = 1; // counter
+
+            HmacKeccak256.Compute(prk.AsSpan(), t, okm);
+            return new Bytes32(okm);
+        }
+    }
+
+    #endregion HKDF-Keccak256 Helpers (RFC 5869)
+
     #region Public Methods
 
     /// <summary>
@@ -32,31 +61,66 @@ public static class HandshakeX25519
     /// This provides both forward secrecy and server authentication (MitM protection) via Noise Protocol concepts.
     /// </summary>
     public static Bytes32 ComputeMasterSecret(Bytes32 sharedSecretEE, Bytes32 sharedSecretSE)
-        => ComputeDigest(MasterSecretLabel, sharedSecretEE.AsSpan(), sharedSecretSE.AsSpan());
+    {
+        Span<byte> ikm = stackalloc byte[64];
+        sharedSecretEE.WriteTo(ikm);
+        sharedSecretSE.WriteTo(ikm[32..]);
+
+        return Hkdf.Extract(ReadOnlySpan<byte>.Empty, ikm);
+    }
 
     /// <summary>
     /// Computes the server proof over the negotiated shared secret and transcript hash.
     /// </summary>
-    public static Bytes32 ComputeServerProof(Bytes32 sharedSecret, Bytes32 transcriptHash)
-        => ComputeDigest(ServerProofLabel, sharedSecret.AsSpan(), transcriptHash.AsSpan());
+    public static Bytes32 ComputeServerProof(Bytes32 masterSecret, Bytes32 transcriptHash)
+    {
+        Span<byte> info = stackalloc byte[ServerProofLabel.Length + 32];
+        ServerProofLabel.CopyTo(info);
+        transcriptHash.WriteTo(info[ServerProofLabel.Length..]);
+        return Hkdf.Expand(masterSecret, info);
+    }
 
     /// <summary>
     /// Computes the client proof over the negotiated shared secret and transcript hash.
     /// </summary>
-    public static Bytes32 ComputeClientProof(Bytes32 sharedSecret, Bytes32 transcriptHash)
-        => ComputeDigest(ClientProofLabel, sharedSecret.AsSpan(), transcriptHash.AsSpan());
+    public static Bytes32 ComputeClientProof(Bytes32 masterSecret, Bytes32 transcriptHash)
+    {
+        Span<byte> info = stackalloc byte[ClientProofLabel.Length + 32];
+        ClientProofLabel.CopyTo(info);
+        transcriptHash.WriteTo(info[ClientProofLabel.Length..]);
+        return Hkdf.Expand(masterSecret, info);
+    }
 
     /// <summary>
     /// Computes the final server acknowledgement proof over the negotiated shared secret and transcript hash.
     /// </summary>
-    public static Bytes32 ComputeServerFinishProof(Bytes32 sharedSecret, Bytes32 transcriptHash)
-        => ComputeDigest(ServerFinishLabel, sharedSecret.AsSpan(), transcriptHash.AsSpan());
+    public static Bytes32 ComputeServerFinishProof(Bytes32 masterSecret, Bytes32 transcriptHash)
+    {
+        Span<byte> info = stackalloc byte[ServerFinishLabel.Length + 32];
+        ServerFinishLabel.CopyTo(info);
+        transcriptHash.WriteTo(info[ServerFinishLabel.Length..]);
+        return Hkdf.Expand(masterSecret, info);
+    }
 
     /// <summary>
     /// Derives the session key that should be assigned to the connection.
     /// </summary>
-    public static Bytes32 DeriveSessionKey(Bytes32 sharedSecret, Bytes32 clientNonce, Bytes32 serverNonce, Bytes32 transcriptHash)
-        => ComputeDigest(SessionLabel, sharedSecret.AsSpan(), clientNonce.AsSpan(), serverNonce.AsSpan(), transcriptHash.AsSpan());
+    public static Bytes32 DeriveSessionKey(Bytes32 masterSecret, Bytes32 clientNonce, Bytes32 serverNonce, Bytes32 transcriptHash)
+    {
+        Span<byte> info = stackalloc byte[SessionLabel.Length + 96];
+        int offset = 0;
+
+        SessionLabel.CopyTo(info);
+        offset += SessionLabel.Length;
+
+        clientNonce.WriteTo(info[offset..]);
+        offset += 32;
+        serverNonce.WriteTo(info[offset..]);
+        offset += 32;
+        transcriptHash.WriteTo(info[offset..]);
+
+        return Hkdf.Expand(masterSecret, info[..(offset + 32)]);
+    }
 
     /// <summary>
     /// Composes the initial transcript buffer from public keys and nonces to compute the transcript hash.
@@ -98,7 +162,9 @@ public static class HandshakeX25519
     /// Computes the handshake transcript hash from public keys and nonces,
     /// and securely clears the temporary heap buffer after hashing.
     /// </summary>
-    public static Bytes32 ComputeTranscriptHash(Bytes32 clientPublicKey, Bytes32 clientNonce, Bytes32 serverPublicKey, Bytes32 serverNonce)
+    public static Bytes32 ComputeTranscriptHash(
+        Bytes32 clientPublicKey, Bytes32 clientNonce,
+        Bytes32 serverPublicKey, Bytes32 serverNonce)
     {
         byte[] buffer = ComposeTranscriptBuffer(clientPublicKey, clientNonce, serverPublicKey, serverNonce);
         try
@@ -114,57 +180,6 @@ public static class HandshakeX25519
     #endregion Public Methods
 
     #region Private Helpers
-
-    private static Bytes32 ComputeDigest(ReadOnlySpan<byte> label, ReadOnlySpan<byte> segment0, ReadOnlySpan<byte> segment1)
-    {
-        int total = (sizeof(int) * 3) + label.Length + segment0.Length + segment1.Length;
-
-        byte[] buffer = GC.AllocateUninitializedArray<byte>(total);
-        Span<byte> destination = buffer;
-        int offset = 0;
-
-        try
-        {
-            offset = WriteSegment(destination, offset, label);
-            offset = WriteSegment(destination, offset, segment0);
-            _ = WriteSegment(destination, offset, segment1);
-
-            return Keccak256.HashDataToFixed(buffer);
-        }
-        finally
-        {
-            MemorySecurity.ZeroMemory(buffer);
-        }
-    }
-
-    private static Bytes32 ComputeDigest(ReadOnlySpan<byte> label, ReadOnlySpan<byte> segment0, ReadOnlySpan<byte> segment1, ReadOnlySpan<byte> segment2, ReadOnlySpan<byte> segment3)
-    {
-        int total = (sizeof(int) * 5)
-            + label.Length
-            + segment0.Length
-            + segment1.Length
-            + segment2.Length
-            + segment3.Length;
-
-        byte[] buffer = GC.AllocateUninitializedArray<byte>(total);
-        Span<byte> destination = buffer;
-        int offset = 0;
-
-        try
-        {
-            offset = WriteSegment(destination, offset, label);
-            offset = WriteSegment(destination, offset, segment0);
-            offset = WriteSegment(destination, offset, segment1);
-            offset = WriteSegment(destination, offset, segment2);
-            _ = WriteSegment(destination, offset, segment3);
-
-            return Keccak256.HashDataToFixed(buffer);
-        }
-        finally
-        {
-            MemorySecurity.ZeroMemory(buffer);
-        }
-    }
 
     private static int WriteSegment(Span<byte> destination, int offset, ReadOnlySpan<byte> value)
     {
