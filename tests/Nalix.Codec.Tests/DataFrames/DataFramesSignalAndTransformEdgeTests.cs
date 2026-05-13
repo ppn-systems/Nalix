@@ -1,7 +1,3 @@
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
-using System;
-using System.IO;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
@@ -9,11 +5,9 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
 using Nalix.Codec.Transforms;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Identifiers;
-using Nalix.Framework.Memory.Buffers;
-using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -134,8 +128,8 @@ public sealed class DataFramesSignalAndTransformEdgeTests
     public void FrameCipherWhenSourceIsNullThrowsArgumentNullException()
     {
         byte[] key = new byte[32];
-        _ = Assert.Throws<ArgumentNullException>(() => FrameCipher.EncryptFrame(null!, key, CipherSuiteType.Chacha20Poly1305));
-        _ = Assert.Throws<ArgumentNullException>(() => FrameCipher.DecryptFrame(null!, key, CipherSuiteType.Chacha20Poly1305));
+        _ = Assert.Throws<ArgumentNullException>(() => FrameCipher.EncryptFrame(null!, key, null, CipherSuiteType.Chacha20Poly1305));
+        _ = Assert.Throws<ArgumentNullException>(() => FrameCipher.DecryptFrame(null!, key, CipherSuiteType.Chacha20Poly1305, out _));
     }
 
     [Fact]
@@ -161,8 +155,8 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         src.Span.AsHeaderRef() = new PacketHeader { Flags = PacketFlags.COMPRESSED };
         payload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
-        using var encrypted = FrameCipher.EncryptFrame(src, key, CipherSuiteType.Chacha20Poly1305);
-        using var decrypted = FrameCipher.DecryptFrame(encrypted, key, CipherSuiteType.Chacha20Poly1305);
+        using var encrypted = FrameCipher.EncryptFrame(src, key, null, CipherSuiteType.Chacha20Poly1305);
+        using var decrypted = FrameCipher.DecryptFrame(encrypted, key, CipherSuiteType.Chacha20Poly1305, out _);
 
         PacketFlags flags = decrypted.Span.AsHeaderRef().Flags;
         Assert.True(flags.HasFlag(PacketFlags.COMPRESSED));
@@ -199,7 +193,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         using BufferLease shortFrame = BufferLease.Rent(FrameTransformer.Offset);
         shortFrame.CommitLength(FrameTransformer.Offset);
 
-        _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(shortFrame, key, CipherSuiteType.Chacha20));
+        _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(shortFrame, key, CipherSuiteType.Chacha20, out _));
     }
 }
 

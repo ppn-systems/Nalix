@@ -1,13 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Aead;
 using Nalix.Codec.Security.Engine;
-using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
 
@@ -606,7 +604,7 @@ public sealed class AeadEngineTests
 
         Assert.NotEqual(ct1, ct2);
     }
-    
+
     [Fact]
     public void EnvelopeCipherEncryptDecryptWithAadShouldSucceed()
     {
@@ -614,12 +612,12 @@ public sealed class AeadEngineTests
         var plaintext = new byte[100];
         var aad = new byte[] { 1, 2, 3, 4 };
         var ciphertext = new byte[1000];
-        
+
         EnvelopeCipher.Encrypt(key, plaintext, ciphertext, aad, null, CipherSuiteType.Chacha20Poly1305, out int written);
-        
+
         var decrypted = new byte[100];
-        EnvelopeCipher.Decrypt(key, ciphertext.AsSpan()[..written], decrypted, aad, CipherSuiteType.Chacha20Poly1305, out int decWritten);
-        
+        EnvelopeCipher.Decrypt(key, ciphertext.AsSpan()[..written], decrypted, aad, CipherSuiteType.Chacha20Poly1305, out int decWritten, out _);
+
         Assert.Equal(100, decWritten);
     }
 }

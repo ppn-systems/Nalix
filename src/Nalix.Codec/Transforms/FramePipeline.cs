@@ -103,8 +103,10 @@ public static class FramePipeline
             }
 
             ProcessOutboundFused(ref current, payloadSize, secret, seq.Value, algorithm);
+            return;
         }
-        else if (doCompress)
+
+        if (doCompress)
         {
             current = FrameCompression.CompressFrame(current);
         }

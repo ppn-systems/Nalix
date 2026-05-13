@@ -1,10 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Identity;
@@ -12,9 +9,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Framework.Extensions;
 using Nalix.Framework.Memory.Objects;
-using Xunit;
 
 namespace Nalix.Framework.Tests.Extensions;
 
@@ -115,6 +110,8 @@ public sealed class ConnectionLoggingExtensionsTests
         public bool IsRegisteredInWheel { get; set; }
         public bool IsDisposed => false;
 
+        public bool IsUdpCreated => throw new NotImplementedException();
+
         public event EventHandler<IConnectEventArgs>? OnCloseEvent { add { } remove { } }
         public event EventHandler<IConnectEventArgs>? OnProcessEvent { add { } remove { } }
         public event EventHandler<IConnectEventArgs>? OnPostProcessEvent { add { } remove { } }
@@ -130,6 +127,10 @@ public sealed class ConnectionLoggingExtensionsTests
 
     private sealed class TestTransport : IConnection.ITransport
     {
+        public ISequenceCounter SendSequence => throw new NotImplementedException();
+
+        public ISequenceCounter ReceiveSequence => throw new NotImplementedException();
+
         public void BeginReceive(System.Threading.CancellationToken cancellationToken = default) { }
 
         public void Send(IPacket packet) { }

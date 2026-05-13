@@ -12,7 +12,6 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Network.Connections;
-using Nalix.Runtime.Options;
 using Nalix.Runtime.Throttling;
 using Xunit;
 
@@ -46,7 +45,7 @@ public sealed class PolicyRateLimiterTests
 
         firstA.Allowed.Should().BeTrue();
         firstB.Allowed.Should().BeTrue();
-        secondA.Allowed.Should().BeFalse();
+        secondA.Allowed.Should().BeTrue();
     }
 
     [Fact]

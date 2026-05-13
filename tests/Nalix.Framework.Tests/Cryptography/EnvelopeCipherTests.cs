@@ -1,11 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Security;
-using Xunit;
 
 namespace Nalix.Framework.Tests.Cryptography;
 
@@ -62,7 +60,7 @@ public sealed class EnvelopeCipherTests
         byte[] decrypted = new byte[plaintext.Length];
 
         EnvelopeCipher.Encrypt(key, plaintext, envelope, aad, seq: 77u, suite, out int encWritten);
-        EnvelopeCipher.Decrypt(key, new System.ReadOnlySpan<byte>(envelope, 0, encWritten), decrypted, aad, suite, out int decWritten);
+        EnvelopeCipher.Decrypt(key, new System.ReadOnlySpan<byte>(envelope, 0, encWritten), decrypted, aad, suite, out int decWritten, out _);
 
         Assert.Equal(envelope.Length, encWritten);
         Assert.Equal(plaintext.Length, decWritten);
@@ -80,7 +78,7 @@ public sealed class EnvelopeCipherTests
         EnvelopeCipher.Encrypt(key, plaintext, envelope, seq: 1u, CipherSuiteType.Chacha20, out _);
 
         _ = Assert.ThrowsAny<CipherException>(() =>
-            EnvelopeCipher.Decrypt(key, envelope, decrypted, CipherSuiteType.Salsa20, out _));
+            EnvelopeCipher.Decrypt(key, envelope, decrypted, CipherSuiteType.Salsa20, out _, out _));
     }
 
     [Fact]
