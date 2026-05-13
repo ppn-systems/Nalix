@@ -1444,26 +1444,89 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     private static bool ContainsInvocation(IOperation? operation, string methodName)
     {
-        while (operation is not null)
+        IOperation? current = operation;
+        while (current is not null)
         {
-            if (operation is IInvocationOperation invocation)
+            if (current is IInvocationOperation invocation)
             {
                 if (invocation.TargetMethod.Name == methodName)
                 {
                     return true;
                 }
 
-                operation = invocation.Instance;
+                current = invocation.Instance;
                 continue;
             }
 
-            if (operation is IConversionOperation conversion)
+            if (current is IConversionOperation conversion)
             {
-                operation = conversion.Operand;
+                current = conversion.Operand;
                 continue;
+            }
+
+            if (current is ILocalReferenceOperation localRef)
+            {
+                return CheckSymbolUsage(localRef, localRef.Local, methodName);
+            }
+
+            if (current is IParameterReferenceOperation paramRef)
+            {
+                return CheckSymbolUsage(paramRef, paramRef.Parameter, methodName);
             }
 
             break;
+        }
+
+        return false;
+    }
+
+    private static bool CheckSymbolUsage(IOperation reference, ISymbol symbol, string methodName)
+    {
+        IOperation? root = reference.Parent;
+        while (root is not null && root.Kind != OperationKind.MethodBody && root.Kind != OperationKind.AnonymousFunction)
+        {
+            root = root.Parent;
+        }
+
+        if (root is null)
+        {
+            return false;
+        }
+
+        foreach (IOperation desc in root.Descendants())
+        {
+            if (desc is IInvocationOperation invocation && invocation.TargetMethod.Name == methodName)
+            {
+                if (IsMatchingSymbol(invocation.Instance, symbol))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsMatchingSymbol(IOperation? operation, ISymbol symbol)
+    {
+        while (operation is IInvocationOperation invocation)
+        {
+            operation = invocation.Instance;
+        }
+
+        while (operation is IConversionOperation conversion)
+        {
+            operation = conversion.Operand;
+        }
+
+        if (operation is ILocalReferenceOperation localRef)
+        {
+            return SymbolEqualityComparer.Default.Equals(localRef.Local, symbol);
+        }
+
+        if (operation is IParameterReferenceOperation paramRef)
+        {
+            return SymbolEqualityComparer.Default.Equals(paramRef.Parameter, symbol);
         }
 
         return false;

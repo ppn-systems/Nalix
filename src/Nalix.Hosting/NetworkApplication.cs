@@ -16,7 +16,6 @@ using Nalix.Runtime.Dispatching;
 
 #pragma warning disable NALIX040 // NetworkApplicationBuilder should configure BufferPoolManager
 #pragma warning disable NALIX041 // NetworkApplicationBuilder should configure ConnectionHub
-#pragma warning disable NALIX044 // NetworkApplicationBuilder should configure a TCP binding
 
 namespace Nalix.Hosting;
 

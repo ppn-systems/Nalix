@@ -1278,6 +1278,58 @@ public static class Setup
     }
 
     [Fact]
+    public async Task NetworkBuildWithLocalBuilder_DoesNotReportDiagnostics()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Hosting;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Network.Connections;
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        var builder = new NetworkApplicationBuilder();
+        builder.ConfigureBufferPoolManager(new BufferPoolManager());
+        builder.ConfigureConnectionHub(new ConnectionHub(null));
+        builder.BindTcp<DefaultProtocol>();
+        _ = builder.Build();
+    }
+}
+""";
+
+        // Local variables are now tracked, so this should NOT report diagnostics.
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
+    public async Task NetworkBuildWithFluentChain_DoesNotReportNalix044()
+    {
+        const string source = """
+namespace Demo;
+using Nalix.Hosting;
+using Nalix.Framework.Memory.Buffers;
+using Nalix.Network.Connections;
+
+public static class Setup
+{
+    public static void Configure()
+    {
+        _ = new NetworkApplicationBuilder()
+            .ConfigureBufferPoolManager(new BufferPoolManager())
+            .ConfigureConnectionHub(new ConnectionHub(null))
+            .BindTcp<DefaultProtocol>()
+            .Bind()
+            .Build();
+    }
+}
+""";
+
+        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source);
+    }
+
+    [Fact]
     public async Task NetworkBuildWithUdpWithoutTcp_ReportsNalix045()
     {
         const string source = """

@@ -247,7 +247,7 @@ namespace Nalix.Hosting
 
     public sealed class NetworkApplicationBuilder
     {
-        public NetworkApplicationBuilder UseBufferPoolManager(object? manager = null) => this;
+        public NetworkApplicationBuilder ConfigureBufferPoolManager(object? manager = null) => this;
         public NetworkApplicationBuilder ConfigureConnectionHub(object? hub = null) => this;
         public IProtocolBindingBuilder BindTcp<T>() => new StubBindingBuilder(this);
         public IProtocolBindingBuilder BindUdp<T>() => new StubBindingBuilder(this);

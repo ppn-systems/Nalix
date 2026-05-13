@@ -93,6 +93,7 @@ public static partial class Bootstrap
         _ = ConfigurationManager.Instance.Get<TaskManagerOptions>();
 
         // Network-level options
+        _ = ConfigurationManager.Instance.Get<SequenceOptions>();
         _ = ConfigurationManager.Instance.Get<TimingWheelOptions>();
         _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
