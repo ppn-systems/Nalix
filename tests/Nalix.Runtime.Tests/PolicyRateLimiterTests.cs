@@ -9,6 +9,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Network.Connections;
+using Nalix.Runtime.Options;
 using Nalix.Runtime.Throttling;
 using Xunit;
 
@@ -27,9 +28,19 @@ public sealed class PolicyRateLimiterTests : IDisposable
     {
         _limiter = new PolicyRateLimiter();
         
-        // Isolate the test by using a fresh limiter engine instead of the shared singleton
+        // Isolate the test by using a fresh, strict limiter engine instead of the shared singleton
+        var options = new TokenBucketOptions
+        {
+            CapacityTokens = 1,
+            InitialTokens = 1,
+            TokenScale = 100,
+            RefillTokensPerSecond = 0.001, // Extremely slow refill to prevent flakiness
+            MaxSoftViolations = 1,
+            ShardCount = 8
+        };
+        
         var field = typeof(PolicyRateLimiter).GetField("_shared", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-        field?.SetValue(_limiter, new TokenBucketLimiter());
+        field?.SetValue(_limiter, new TokenBucketLimiter(options));
     }
 
     [Fact]

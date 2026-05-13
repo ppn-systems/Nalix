@@ -69,14 +69,11 @@ public static class XxHash32
 
             if (Vector128.IsHardwareAccelerated && len >= 32)
             {
-                _ = Vector128.Create(PRIME32_2);
-                _ = Vector128.Create(PRIME32_1);
-
                 int limit = len - 15;
 
                 while (i <= limit - 16)
                 {
-                    Vector128<byte> block = Vector128.LoadUnsafe(ref src, (uint)i);
+                    Vector128<uint> block = Vector128.LoadUnsafe(ref src, (uint)i).AsUInt32();
 
                     v1 = Round(v1, block.GetElement(0));
                     v2 = Round(v2, block.GetElement(1));

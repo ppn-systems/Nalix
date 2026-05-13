@@ -68,7 +68,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// <summary>
     /// A composite endpoint key that isolates token buckets by IP Address, and either Operation Code or a specific Policy ID.
     /// </summary>
-    private readonly struct ScopedEndpoint : INetworkEndpoint, IEquatable<ScopedEndpoint>
+    private sealed class ScopedEndpoint : INetworkEndpoint, IEquatable<ScopedEndpoint>
     {
         private readonly ushort _op;
         private readonly string _ip;
@@ -78,7 +78,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         public ScopedEndpoint(ushort op, string? policyId, INetworkEndpoint inner)
         {
             _op = op;
-            _ip = inner.Address;
+            _ip = inner?.Address ?? string.Empty;
             _policyId = policyId;
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         }
@@ -90,16 +90,16 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         public override int GetHashCode() => ComputeHash(_op, _policyId, _ip);
 
-        public bool Equals(ScopedEndpoint other) =>
-            _op == other._op &&
-            string.Equals(_policyId, other._policyId, StringComparison.Ordinal) &&
-            string.Equals(_ip, other._ip, StringComparison.Ordinal);
+        public bool Equals(ScopedEndpoint? other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return _op == other._op &&
+                   string.Equals(_policyId, other._policyId, StringComparison.Ordinal) &&
+                   string.Equals(_ip, other._ip, StringComparison.Ordinal);
+        }
 
         public override bool Equals(object? obj) => obj is ScopedEndpoint other && this.Equals(other);
-
-        public static bool operator ==(ScopedEndpoint left, ScopedEndpoint right) => left.Equals(right);
-
-        public static bool operator !=(ScopedEndpoint left, ScopedEndpoint right) => !left.Equals(right);
 
         public override string ToString() => $"op:{_op:X4}|policy:{_policyId ?? "null"}|ip:{_ip}";
 
@@ -112,9 +112,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             }
 
             ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(ip.AsSpan());
-
-            // OPTIMIZATION: If PolicyId is present, use its hash as the XxHash32 seed to isolate the bucket.
-            // Otherwise, fallback to the operation code as the seed.
             uint seed = policyId != null ? (uint)policyId.GetHashCode(StringComparison.Ordinal) : op;
 
             uint hash = XxHash32.Compute(ipBytes, seed: seed);

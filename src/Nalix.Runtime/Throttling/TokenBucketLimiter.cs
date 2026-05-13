@@ -868,7 +868,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         state.LastRefillSwTicks = now;
 
         // Check for potential overflow before multiplication
-        if (dt > _capacityMicro)
+        if (dt * _refillPerTick >= _capacityMicro)
         {
             // Extreme case: very long dt or high refill rate -> cap at full
             state.AccumulatedMicro = 0;
@@ -913,7 +913,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
 
         state.LastRefillSwTicks = now;
 
-        if (dt > policy.CapacityMicro)
+        if (dt * policy.RefillPerTick >= policy.CapacityMicro)
         {
             state.AccumulatedMicro = 0;
             state.MicroBalance = policy.CapacityMicro;
