@@ -36,6 +36,7 @@ namespace Nalix.Framework.Identifiers;
 [ExcludeFromCodeCoverage]
 [StructLayout(
     LayoutKind.Sequential, Pack = 1)]
+[SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("0x{_combined:X16} (T={Type}, M={MachineId})")]
 public readonly partial struct Snowflake : ISnowflake
 {
@@ -44,22 +45,17 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// The size in bytes of the <see cref="Snowflake"/> structure.
     /// </summary>
-    [SerializeIgnore]
     public const int Size = 8;
 
-    [SerializeIgnore]
+    [SerializeOrder(1)]
     private readonly ulong _combined;
 
-    [SerializeIgnore]
     private static int s_sequence;
 
-    [SerializeIgnore]
     private static uint s_lastTimestamp;
 
-    [SerializeIgnore]
     private static readonly Lock s_genLock = new();
 
-    [SerializeIgnore]
     private static readonly ushort s_machineId = LAZY_LOAD_MACHINE_ID();
 
     #endregion Const
@@ -67,7 +63,6 @@ public readonly partial struct Snowflake : ISnowflake
     #region Decomposition
 
     /// <inheritdoc/>
-    [SerializeIgnore]
     public uint Value
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -75,7 +70,6 @@ public readonly partial struct Snowflake : ISnowflake
     }
 
     /// <inheritdoc/>
-    [SerializeIgnore]
     public ushort MachineId
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -83,7 +77,6 @@ public readonly partial struct Snowflake : ISnowflake
     }
 
     /// <inheritdoc/>
-    [SerializeIgnore]
     public SnowflakeType Type
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -93,7 +86,6 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// Gets the sequence component of the identifier (14 bits).
     /// </summary>
-    [SerializeIgnore]
     public ushort Sequence
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -107,11 +99,9 @@ public readonly partial struct Snowflake : ISnowflake
     /// <summary>
     /// Gets an empty <see cref="Snowflake"/> instance with all components set to zero.
     /// </summary>
-    [SerializeIgnore]
     public static readonly ISnowflake Empty = new Snowflake(0, 0, 0);
 
     /// <inheritdoc/>
-    [SerializeIgnore]
     public bool IsEmpty => _combined == 0;
 
     #endregion Public Properties
@@ -298,8 +288,14 @@ public readonly partial struct Snowflake : ISnowflake
     /// </remarks>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() =>
-        HashCode.Combine((uint)(_combined >> 32), (uint)_combined);
+    public override int GetHashCode()
+    {
+        ulong h = _combined;
+        h ^= h >> 33;
+        h *= 0xff51afd7ed558ccdL;
+        h ^= h >> 33;
+        return (int)h;
+    }
 
     /// <summary>
     /// Determines whether this identifier is equal to the specified object.

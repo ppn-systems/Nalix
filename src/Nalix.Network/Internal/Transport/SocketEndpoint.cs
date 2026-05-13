@@ -8,6 +8,7 @@ using System.Diagnostics.Contracts;
 using System.Net;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Networking;
+using Nalix.Codec.Security.Hashing;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -168,29 +169,7 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
     // Hash by IP only — port is excluded to match the IP-only Equals semantics.
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode()
-    {
-        // FNV-1a 64-bit → final 32-bit
-        ulong hash = 0xCBF29CE484222325UL; // FNV offset basis
-
-        hash ^= _hi;
-        hash *= 0x00000100000001B3UL; // FNV prime
-
-        hash ^= _lo;
-        hash *= 0x00000100000001B3UL;
-
-        if (_port != 0)
-        {
-            hash ^= (ulong)_port;
-            hash *= 0x00000100000001B3UL;
-        }
-
-        hash ^= this.IsIPv6 ? 1UL : 0UL;
-        hash *= 0x00000100000001B3UL;
-
-        // Fold 64-bit to 32-bit successfully (avalanche)
-        return (int)((hash ^ (hash >> 32)) & 0x7FFFFFFF);
-    }
+    public override int GetHashCode() => XxHash32.Compute(_hi, _lo, _port, isIPv6: this.IsIPv6);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(SocketEndpoint left, SocketEndpoint right) => left.Equals(right);
