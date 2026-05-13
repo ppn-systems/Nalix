@@ -109,12 +109,19 @@ public abstract partial class TcpListenerBase
             Throw.EventArgsMustHaveLease();
             return;
         }
-        IBufferLease current = lease;
+
         bool exchanged = false;
+        IBufferLease current = lease;
 
         try
         {
-            FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm);
+            FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out uint? seq);
+
+            if (!args.Connection.TCP.ReceiveSequence.IsValid(seq, window: _sequenceOptions.TcpWindow))
+            {
+                current.Dispose();
+                return;
+            }
 
             if (!ReferenceEquals(current, lease))
             {
@@ -124,6 +131,11 @@ public abstract partial class TcpListenerBase
             }
 
             _protocol.ProcessMessage(sender, args);
+
+            if (seq.HasValue)
+            {
+                args.Connection.TCP.ReceiveSequence.UpdateTo(seq.Value);
+            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {

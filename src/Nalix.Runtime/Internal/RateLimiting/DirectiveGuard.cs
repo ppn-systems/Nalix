@@ -47,6 +47,7 @@ internal static class DirectiveGuard
         GuardState state = GET_OR_CREATE_STATE(attributes);
 
         bool lockTaken = false;
+
         try
         {
             state.SpinLock.Enter(ref lockTaken);
@@ -86,22 +87,22 @@ internal static class DirectiveGuard
 
     private static GuardState GET_OR_CREATE_STATE(IObjectMap<string, object> attributes)
     {
-        if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardSyncRoot, out object? existing) &&
+        if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardLock, out object? existing) &&
             existing is GuardState state)
         {
             return state;
         }
 
         GuardState created = new();
-        attributes.Add(ConnectionAttributes.InboundDirectiveGuardSyncRoot, created);
+        attributes.Add(ConnectionAttributes.InboundDirectiveGuardLock, created);
 
-        if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardSyncRoot, out existing) &&
+        if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardLock, out existing) &&
             existing is GuardState resolved)
         {
             return resolved;
         }
 
-        attributes[ConnectionAttributes.InboundDirectiveGuardSyncRoot] = created;
+        attributes[ConnectionAttributes.InboundDirectiveGuardLock] = created;
         return created;
     }
 }

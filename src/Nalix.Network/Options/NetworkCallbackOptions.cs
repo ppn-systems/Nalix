@@ -45,14 +45,14 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader
     /// headroom while blocking flood attacks.
     /// </para>
     /// </summary>
-    [IniComment("Max packets queued per connection before dropping (Layer 1, default 16)")]
+    [IniComment("Max packets queued per connection before dropping (Layer 1, default 16) (min=1, max=1024)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxPerConnectionPendingPackets must be between 1 and 1024.")]
     public int MaxPerConnectionPendingPackets { get; set; } = 16;
 
     /// <summary>
     /// Maximum number of concurrently open fragmented streams per connection.
     /// </summary>
-    [IniComment("Max concurrently open fragmented streams per connection (Layer 1, default 4)")]
+    [IniComment("Max concurrently open fragmented streams per connection (Layer 1, default 4) (min=1, max=256)")]
     [System.ComponentModel.DataAnnotations.Range(1, 256, ErrorMessage = "MaxPerConnectionOpenFragmentStreams must be between 1 and 256.")]
     public int MaxPerConnectionOpenFragmentStreams { get; set; } = 4;
 
@@ -68,7 +68,7 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader
     /// against this limit and are always dispatched immediately.
     /// </para>
     /// </summary>
-    [IniComment("Max total normal-priority callbacks pending globally (Layer 2, default 10000)")]
+    [IniComment("Max total normal-priority callbacks pending globally (Layer 2, default 10000) (min=100, max=1000000)")]
     [System.ComponentModel.DataAnnotations.Range(100, 1_000_000, ErrorMessage = "MaxPendingNormalCallbacks must be between 100 and 1,000,000.")]
     public int MaxPendingNormalCallbacks { get; set; } = 10_000;
 
@@ -76,7 +76,7 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader
     /// Emit a warning log every time pending normal callbacks reaches a
     /// multiple of this value. Set to <c>0</c> to disable warnings.
     /// </summary>
-    [IniComment("Log warning when pending callbacks crosses this threshold (0 = disabled, default 5000)")]
+    [IniComment("Log warning when pending callbacks crosses this threshold (0 = disabled, default 5000) (min=0, max=1,000,000)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000, ErrorMessage = "CallbackWarningThreshold must be between 0 and 1,000,000.")]
     public int CallbackWarningThreshold { get; set; } = 5_000;
 
@@ -102,7 +102,7 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader
     /// a small constant memory footprint (~few KB per object).
     /// </para>
     /// </summary>
-    [IniComment("StateWrapper object pool ceiling inside AsyncCallback (default 1000)")]
+    [IniComment("StateWrapper object pool ceiling inside AsyncCallback (default 1000) (min=64, max=100,000)")]
     [System.ComponentModel.DataAnnotations.Range(64, 100_000,
         ErrorMessage = "MaxPooledCallbackStates must be between 64 and 100,000.")]
     public int MaxPooledCallbackStates { get; set; } = 1_000;
@@ -111,7 +111,7 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader
     /// Size of the fixed-size array used for Layer 2 per-IP fairness tracking.
     /// Larger values reduce hash collisions (false backpressure) but consume more memory.
     /// </summary>
-    [IniComment("Size of the fixed-size fairness map array (default 4096)")]
+    [IniComment("Size of the fixed-size fairness map array (default 4096) (min=1024, max=65536)")]
     [System.ComponentModel.DataAnnotations.Range(1024, 65536, ErrorMessage = "FairnessMapSize must be between 1024 and 65536.")]
     public int FairnessMapSize { get; set; } = 4096;
 

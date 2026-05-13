@@ -117,6 +117,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private readonly double _swFreq;
     private readonly TokenBucketOptions _options;
     private readonly long _capacityMicro;
+    private readonly double _refillPerTick;
     private readonly long _refillPerSecMicro;
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
@@ -157,6 +158,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         _swFreq = Stopwatch.Frequency;
         _cleanupIntervalSec = _options.CleanupIntervalSeconds;
         _capacityMicro = (long)_options.CapacityTokens * _options.TokenScale;
+        _refillPerTick = _options.RefillTokensPerSecond * _options.TokenScale / _swFreq;
         _refillPerSecMicro = (long)Math.Round(_options.RefillTokensPerSecond * _options.TokenScale);
 
         _initialBalanceMicro = this.CalculateInitialBalance();
@@ -722,7 +724,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         state.LastRefillSwTicks = now;
 
         // Check for potential overflow before multiplication
-        if (dt > long.MaxValue / _refillPerSecMicro)
+        if (dt > _capacityMicro)
         {
             // Extreme case: very long dt or high refill rate -> cap at full
             state.AccumulatedMicro = 0;
@@ -738,27 +740,21 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
 
         // Formula: (dt * refillRate) + accumulated = whole_tokens * frequency + remainder
-        long totalMicro = (dt * _refillPerSecMicro) + state.AccumulatedMicro;
-        long microToAdd = totalMicro / (long)_swFreq;
+        long microToAdd = (long)(dt * _refillPerTick) + state.AccumulatedMicro;
 
+        if (microToAdd <= 0)
+        {
+            return;
+        }
 
         // Store remainder for next refill (prevents precision loss)
-        state.AccumulatedMicro = totalMicro % (long)_swFreq;
+        long newBalance = state.MicroBalance + microToAdd;
+        state.MicroBalance = newBalance > _capacityMicro ? _capacityMicro : newBalance;
 
-        if (microToAdd > 0)
+        // Reset accumulator if capped (prevents unbounded growth)
+        if (microToAdd > _capacityMicro)
         {
-            long newBalance = state.MicroBalance + microToAdd;
-
-            // Clamp to capacity
-            state.MicroBalance = newBalance >= _capacityMicro
-                ? _capacityMicro
-                : newBalance;
-
-            // Reset accumulator if capped (prevents unbounded growth)
-            if (state.MicroBalance >= _capacityMicro)
-            {
-                state.AccumulatedMicro = 0;
-            }
+            state.AccumulatedMicro = 0;
         }
     }
 

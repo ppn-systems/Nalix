@@ -82,9 +82,9 @@ public sealed partial class ConnectionLimitOptions : ConfigurationLoader
     /// Gets or sets the bit-size of the UDP replay protection sliding window.
     /// SEC-27: Larger windows consume more memory but are more resilient to packet out-of-order arrival.
     /// </summary>
-    [IniComment("UDP replay protection window size in bits (default 1024)")]
+    [IniComment("UDP replay protection window size in bits (default 512)")]
     [System.ComponentModel.DataAnnotations.Range(64, 65536, ErrorMessage = "UdpReplayWindowSize must be between 64 and 65536.")]
-    public int UdpReplayWindowSize { get; set; } = 1024;
+    public int UdpReplayWindowSize { get; set; } = 512;
 
     /// <summary>
     /// Gets or sets the maximum number of packets allowed per second from a single connection before it is considered abusive and disconnected.

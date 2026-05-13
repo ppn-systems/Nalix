@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
+using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -32,6 +33,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly IProtocol _protocol;
     private readonly IConnectionHub _hub;
     private readonly ConnectionGuard _limiter;
+    private readonly SequenceOptions _sequenceOptions;
 
     private int _state;
     private int _isDisposed;
@@ -95,9 +97,11 @@ public abstract partial class TcpListenerBase : IListener
         // Fetch infrastructure instances via InstanceManager for proper test isolation
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
-        _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+
+        _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        _sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
 
         // Register force-close action to ConnectionGuard for DDoS protection
         _ = _limiter.WithForceClose(key => _hub.ForceClose(key));

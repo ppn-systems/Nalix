@@ -113,6 +113,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     /// <inheritdoc/>
     public bool IsDisposed => _disposed;
 
+    /// <inheritdoc/>
+    public bool IsUdpCreated => this.UdpTransport is not null;
+
     /// <inheritdoc />
     public ISnowflake ID { get; }
 

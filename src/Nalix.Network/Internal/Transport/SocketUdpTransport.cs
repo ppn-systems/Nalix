@@ -14,11 +14,13 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.Memory;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal.Security;
 using Nalix.Network.Options;
 
 
@@ -44,7 +46,19 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     private static readonly ConnectionLimitOptions s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
+    private TransportSequencer _sequencer = new();
+
     #endregion Static Factory
+
+    #region Properties
+
+    /// <inheritdoc/>
+    public ISequenceCounter SendSequence => _sequencer.SendSequence;
+
+    /// <inheritdoc/>
+    public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
+
+    #endregion Properties
 
     #region APIs
 
@@ -68,6 +82,16 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         IPEndPoint ep = remoteEndPoint;
         transport.Initialize(ref ep);
         connection.SetUdpTransport(transport);
+
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
+        {
+            connection.UDP.SendSequence.ResumeFrom(udpSend);
+        }
+
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpReceiveSequence, out object? ur) && ur is uint udpRecv)
+        {
+            connection.UDP.ReceiveSequence.ResumeFrom(udpRecv);
+        }
     }
 
     #endregion APIs

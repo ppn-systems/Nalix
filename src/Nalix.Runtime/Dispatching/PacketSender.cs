@@ -4,14 +4,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Environment.Configuration;
-using Nalix.Codec.Options;
 using Nalix.Codec.Memory;
-using Nalix.Abstractions;
+using Nalix.Codec.Options;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Configuration;
 
 #if DEBUG
 using Nalix.Framework.Injection;
@@ -105,12 +105,14 @@ public sealed class PacketSender : IPacketSender
         // Serialize into a pooled buffer first so the subsequent compression/encryption
         // branches can reuse the same payload without reserializing the packet.
         BufferLease rawLease = BufferLease.Rent(packetLength);
+        IConnection.ITransport transport = GetTransport(connection, attributes);
         try
         {
             int written = packet.Serialize(rawLease.SpanFull);
             rawLease.CommitLength(written);
 
             IBufferLease current = rawLease;
+            uint? sequenceToUse = needEncrypt ? transport.SendSequence.Next() : null;
 
             // FramePipeline mutates `current` and properly cleans up older leases.
             FramePipeline.ProcessOutbound(
@@ -119,11 +121,12 @@ public sealed class PacketSender : IPacketSender
                 s_options.MinSizeToCompress,
                 needEncrypt,
                 connection.Secret.AsSpan(),
+                sequenceToUse,
                 connection.Algorithm);
 
             try
             {
-                await GetTransport(connection, attributes).SendAsync(current.Memory, ct).ConfigureAwait(false);
+                await transport.SendAsync(current.Memory, ct).ConfigureAwait(false);
             }
             finally
             {

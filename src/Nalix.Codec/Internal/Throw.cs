@@ -107,6 +107,9 @@ internal static class Throw
     private static readonly CipherException s_transformEncryptRequestedButNoCipher =
         new CachedCipherException("Encryption requested but no cipher suite has been negotiated.");
 
+    private static readonly CipherException s_transformEncryptButNoSeq =
+        new CachedCipherException("Encryption requested but no sequence number is available.");
+
     #endregion Cached Exceptions (private)
 
     #region Throw Helpers — LZ4
@@ -276,6 +279,11 @@ internal static class Throw
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void EncryptRequestedButNoCipher() => throw s_transformEncryptRequestedButNoCipher;
+
+    [DoesNotReturn]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void EncryptRequestedButNoSeq() => throw s_transformEncryptButNoSeq;
 
     #endregion Throw Helpers — Transform
 

@@ -23,7 +23,7 @@ public partial interface IConnection
     /// <summary>
     /// Represents a transport interface for sending data packets.
     /// </summary>
-    interface ITransport
+    interface ITransport : ITransportSequencer
     {
         /// <summary>
         /// Sends a packet synchronously over the connection.
