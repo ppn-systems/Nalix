@@ -17,7 +17,7 @@
 		<PublishRepositoryUrl>false</PublishRepositoryUrl>
 		<EmbedUntrackedSources>false</EmbedUntrackedSources>
 	  
-		<OutputPath>..\..\build\bin\$(Configuration)\</OutputPath>
+		<OutputPath>..\..\build\bin\$(Configuration)\$(MSBuildProjectName)\</OutputPath>
 		<IntermediateOutputPath>..\..\build\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
 	</PropertyGroup>
 
@@ -33,7 +33,7 @@
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 
-		<OutputPath>..\..\build\bin\$(Configuration)\</OutputPath>
+		<OutputPath>..\..\build\bin\$(Configuration)\$(MSBuildProjectName)\</OutputPath>
 		<IntermediateOutputPath>..\..\build\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
 
 		<PackageVersion Condition="'$(PackageVersion)' == ''">$(Version)</PackageVersion>
