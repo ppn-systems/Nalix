@@ -8,7 +8,6 @@ using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
-using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Network.Options;
@@ -37,9 +36,8 @@ public abstract partial class UdpListenerBase
     #region Fields
 
     private readonly NetworkSocketOptions _options;
-    private readonly SequenceOptions _sequenceOptions;
-    private readonly DatagramGuardOptions _datagramGuardOptions;
     private readonly ConnectionLimitOptions _connectionLimitOptions;
+    private readonly DatagramGuardOptions _datagramGuardOptions;
     private readonly ILogger? _logger;
 
     private readonly ushort _port;
@@ -99,9 +97,7 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        _sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         _connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 

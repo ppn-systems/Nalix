@@ -37,15 +37,6 @@ public abstract class SessionStoreBase : ISessionStore
             attributes[item.Key] = item.Value;
         }
 
-        attributes[ConnectionAttributes.TcpSendSequence] = connection.TCP.SendSequence;
-        attributes[ConnectionAttributes.TcpReceiveSequence] = connection.TCP.ReceiveSequence;
-
-        if (connection.IsUdpCreated)
-        {
-            attributes[ConnectionAttributes.UdpSendSequence] = connection.UDP.SendSequence;
-            attributes[ConnectionAttributes.UdpReceiveSequence] = connection.UDP.ReceiveSequence;
-        }
-
         SessionSnapshot snapshot = new()
         {
             SessionToken = connection.ID.ToUInt64(),

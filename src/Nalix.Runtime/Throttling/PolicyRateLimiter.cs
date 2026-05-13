@@ -80,7 +80,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         public TokenBucketLimiter Limiter { get; }
 
-        public long LastUsedUtcTicks => Interlocked.Read(ref _lastUsedUtcTicks);
+        public long LastUsedUtcTicks =>
+            Interlocked.Read(ref _lastUsedUtcTicks);
 
         public Entry(TokenBucketLimiter limiter, ILogger? logger = null)
         {

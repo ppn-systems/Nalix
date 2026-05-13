@@ -19,63 +19,63 @@ public sealed partial class TokenBucketOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Maximum burst size in tokens — determines how many requests can fire at once (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "CapacityTokens must be positive")]
-    public int CapacityTokens { get; set; } = 64;
+    public int CapacityTokens { get; set; } = 12;
 
     /// <summary>
     /// Gets or sets the refill rate in tokens per second.
     /// </summary>
     [IniComment("Sustained throughput rate in tokens per second (typically CapacityTokens / window)")]
     [System.ComponentModel.DataAnnotations.Range(0.001, double.MaxValue, ErrorMessage = "RefillTokensPerSecond must be positive")]
-    public double RefillTokensPerSecond { get; set; } = 32.0;
+    public double RefillTokensPerSecond { get; set; } = 6.0;
 
     /// <summary>
     /// Gets or sets the hard lockout duration in seconds after a throttle decision.
     /// </summary>
     [IniComment("Hard lockout duration in seconds after throttling (0 = disabled)")]
     [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "HardLockoutSeconds cannot be negative")]
-    public int HardLockoutSeconds { get; set; } = 30;
+    public int HardLockoutSeconds { get; set; }
 
     /// <summary>
     /// Gets or sets the duration in seconds after which an idle endpoint entry is considered stale.
     /// </summary>
     [IniComment("Seconds before an idle endpoint entry is eligible for cleanup (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "StaleEntrySeconds must be positive")]
-    public int StaleEntrySeconds { get; set; } = 180;
+    public int StaleEntrySeconds { get; set; } = 300;
 
     /// <summary>
     /// Gets or sets the cleanup interval in seconds.
     /// </summary>
     [IniComment("How often stale endpoint entries are purged in seconds (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "CleanupIntervalSeconds must be positive")]
-    public int CleanupIntervalSeconds { get; set; } = 45;
+    public int CleanupIntervalSeconds { get; set; } = 120;
 
     /// <summary>
     /// Gets or sets the fixed-point resolution for token arithmetic (micro-tokens per token).
     /// </summary>
     [IniComment("Fixed-point precision for token arithmetic (1–1,000,000; higher = more precise)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000, ErrorMessage = "TokenScale must be positive")]
-    public int TokenScale { get; set; } = 100;
+    public int TokenScale { get; set; } = 1_000;
 
     /// <summary>
     /// Gets or sets the number of shards for endpoint partitioning.
     /// </summary>
     [IniComment("Shard count for endpoint partitioning — must be a power of two (e.g. 16, 32, 64)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "ShardCount must be positive")]
-    public int ShardCount { get; set; } = 256;
+    public int ShardCount { get; set; } = 32;
 
     /// <summary>
     /// Gets or sets the time window in seconds for tracking soft rate limit violations.
     /// </summary>
     [IniComment("Window in seconds for counting soft violations before escalation (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "SoftViolationWindowSeconds must be positive")]
-    public int SoftViolationWindowSeconds { get; set; } = 8;
+    public int SoftViolationWindowSeconds { get; set; } = 5;
 
     /// <summary>
     /// Gets or sets the maximum number of soft violations allowed within the soft violation window.
     /// </summary>
     [IniComment("Max soft violations within SoftViolationWindowSeconds before stricter penalties apply (minimum 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxSoftViolations must be positive")]
-    public int MaxSoftViolations { get; set; } = 5;
+    public int MaxSoftViolations { get; set; } = 3;
 
     /// <summary>
     /// Gets or sets the cooldown reset duration in seconds.
@@ -89,7 +89,7 @@ public sealed partial class TokenBucketOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Max tracked endpoints to prevent unbounded memory growth (0 = unlimited, not recommended)")]
     [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "MaxTrackedEndpoints cannot be negative")]
-    public int MaxTrackedEndpoints { get; set; } = 100_000;
+    public int MaxTrackedEndpoints { get; set; } = 10_000;
 
     /// <summary>
     /// Gets or sets the initial number of tokens for new endpoints.
@@ -100,9 +100,9 @@ public sealed partial class TokenBucketOptions : ConfigurationLoader
     /// <summary>
     /// Maximum capacity for the eviction queue to prevent spikes in cleanup latency.
     /// </summary>
-    [IniComment("Max items processed per cleanup cycle to cap latency (default 8192)")]
+    [IniComment("Max items processed per cleanup cycle to cap latency (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(64, 65536)]
-    public int MaxEvictionCapacity { get; set; } = 8192;
+    public int MaxEvictionCapacity { get; set; } = 4096;
 
     /// <summary>
     /// Minimum initial capacity for report list to avoid reallocations.

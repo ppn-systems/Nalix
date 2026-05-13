@@ -14,26 +14,6 @@ public static class ConnectionAttributes
     public const string OwnerHub = "nalix.owner_hub";
 
     /// <summary>
-    /// Stores the last TCP send sequence number (for session resume).
-    /// </summary>
-    public const string TcpSendSequence = "nalix.tcp.sequence.send";
-
-    /// <summary>
-    /// Stores the last TCP receive sequence number (for session resume).
-    /// </summary>
-    public const string TcpReceiveSequence = "nalix.tcp.sequence.receive";
-
-    /// <summary>
-    /// Stores the last UDP send sequence number (for session resume).
-    /// </summary>
-    public const string UdpSendSequence = "nalix.udp.sequence.send";
-
-    /// <summary>
-    /// Stores the last UDP receive sequence number (for session resume).
-    /// </summary>
-    public const string UdpReceiveSequence = "nalix.udp.sequence.receive";
-
-    /// <summary>
     /// Key for the handshake context state stored during the negotiation process.
     /// </summary>
     public const string HandshakeState = "nalix.handshake.state";
@@ -46,7 +26,7 @@ public static class ConnectionAttributes
     /// <summary>
     /// Synchronization key used to coordinate anti-spam directive send guards per connection.
     /// </summary>
-    public const string InboundDirectiveGuardLock = "nalix.inbound.directive.guard.lock";
+    public const string InboundDirectiveGuardSyncRoot = "nalix.inbound.directive.guard.sync_root";
 
     /// <summary>
     /// Stores the last monotonic timestamp (ms) when a TIMEOUT directive was sent.

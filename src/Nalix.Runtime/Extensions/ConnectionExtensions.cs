@@ -26,7 +26,9 @@ public static class ConnectionExtensions
     {
         ArgumentNullException.ThrowIfNull(connection);
 
-        return connection.Attributes.TryGetValue(ConnectionAttributes.OwnerHub, out object? obj) ? (IConnectionHub)obj : null;
+        return connection.Attributes.TryGetValue(ConnectionAttributes.OwnerHub, out object? obj)
+            ? (IConnectionHub)obj
+            : null;
     }
 
     /// <summary>

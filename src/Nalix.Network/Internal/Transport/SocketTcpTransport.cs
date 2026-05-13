@@ -9,10 +9,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Security;
 using Nalix.Codec.Memory;
 using Nalix.Network.Connections;
-using Nalix.Network.Internal.Security;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
@@ -26,24 +24,7 @@ namespace Nalix.Network.Internal.Transport;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransport
 {
-    #region Fields
-
     private readonly Connection _outer = outer;
-    private TransportSequencer _sequencer = new();
-
-    #endregion Fields
-
-    #region Properties
-
-    /// <inheritdoc/>
-    public ISequenceCounter SendSequence => _sequencer.SendSequence;
-
-    /// <inheritdoc/>
-    public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
-
-    #endregion Properties
-
-    #region APIs
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -109,6 +90,4 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
 
         await _outer.Socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
     }
-
-    #endregion APIs
 }

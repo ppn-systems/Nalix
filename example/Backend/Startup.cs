@@ -62,17 +62,14 @@ internal class Startup
             {
                 o.MaxPerConnectionPendingPackets = 512;
                 o.MaxPendingPerIp = 10_000;
-                o.MaxPendingNormalCallbacks = 1_000_000;
-                o.MaxPerConnectionOpenFragmentStreams = 256;
-                o.CallbackWarningThreshold = 10_000;
-                o.MaxPooledCallbackStates = 64_000;
+                o.MaxPendingNormalCallbacks = 100_000;
             })
             .Configure<ObjectPoolOptions>(o =>
             {
-                o.EnableLeakDetection = true;
-                o.EnableDiagnostics = true;
-                o.CaptureStackTraces = true;
-                o.SuspiciousThresholdSeconds = 10;
+                //o.EnableLeakDetection = true;
+                //o.EnableDiagnostics = true;
+                //o.CaptureStackTraces = true;
+                //o.SuspiciousThresholdSeconds = 10;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddMetadataProvider<PacketTagMetadataProvider>()
@@ -84,7 +81,7 @@ internal class Startup
                 _ = o.WithDispatchLoopCount(8);
                 _ = o.WithMiddleware(new TimeoutMiddleware());
                 _ = o.WithMiddleware(new PacketTagMiddleware());
-                //_ = o.WithMiddleware(new RateLimitMiddleware());
+                _ = o.WithMiddleware(new RateLimitMiddleware());
                 _ = o.WithMiddleware(new PermissionMiddleware());
                 _ = o.WithMiddleware(new ConcurrencyMiddleware());
 

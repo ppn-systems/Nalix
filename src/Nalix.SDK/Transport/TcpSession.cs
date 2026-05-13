@@ -13,15 +13,15 @@ using Nalix.SDK.Transport.Internal;
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// Provides a TCP transport session built on <see cref="TcpFrameReader"/> and <see cref="TcpFrameSender"/>.
+/// Provides a TCP transport session built on <see cref="FrameReader"/> and <see cref="FrameSender"/>.
 /// </summary>
 public class TcpSession : TransportSession
 {
     #region Fields
 
     // Low-level components for reading and sending frames
-    private readonly TcpFrameSender _sender;
-    private readonly TcpFrameReader _reader;
+    private readonly FrameSender _sender;
+    private readonly FrameReader _reader;
 
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
 #pragma warning disable CA2213 // Disposed through Interlocked.Exchange locals inside DisconnectInternalAsync/Dispose(bool).
@@ -74,8 +74,8 @@ public class TcpSession : TransportSession
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
 
         // Initialize frame helpers with a factory to get the latest socket instance
-        _sender = new TcpFrameSender(() => _socket!, options, this.HandleError);
-        _reader = new TcpFrameReader(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
+        _sender = new FrameSender(() => _socket!, options, this.HandleError);
+        _reader = new FrameReader(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
     }
 
     #endregion Constructor
@@ -269,7 +269,7 @@ public class TcpSession : TransportSession
     }
 
     /// <summary>
-    /// Handles messages received by <see cref="TcpFrameReader"/>.
+    /// Handles messages received by <see cref="FrameReader"/>.
     /// </summary>
     private void HandleReceiveMessage(IBufferLease lease)
     {

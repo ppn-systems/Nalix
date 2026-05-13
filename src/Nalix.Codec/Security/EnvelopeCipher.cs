@@ -62,8 +62,6 @@ namespace Nalix.Codec.Security;
 [DebuggerNonUserCode]
 public static class EnvelopeCipher
 {
-    #region Constants
-
     /// <summary>
     /// Estimated number of additional bytes produced by the envelope encryption format.
     /// </summary>
@@ -76,10 +74,6 @@ public static class EnvelopeCipher
     /// This is an estimate and may be conservative depending on the concrete cipher suite implementation.
     /// </remarks>
     public const int HeaderSize = EnvelopeFormat.HeaderSize;
-
-    #endregion Constants
-
-    #region Public API
 
     /// <summary>
     /// Gets the nonce length in bytes required by the specified cipher suite.
@@ -253,7 +247,6 @@ public static class EnvelopeCipher
     /// </param>
     /// <param name="expectedAlgorithm">The cipher suite expected for this envelope. Used to prevent algorithm downgrade attacks.</param>
     /// <param name="written">Number of plaintext bytes written on success.</param>
-    /// <param name="seq">The sequence number received in the envelope.</param>
     /// <remarks>
     /// For AEAD suites, the same AAD convention is used as in encryption:
     /// <c>header || nonce || userAAD</c>.
@@ -281,12 +274,10 @@ public static class EnvelopeCipher
         Span<byte> plaintext,
         ReadOnlySpan<byte> aad,
         CipherSuiteType expectedAlgorithm,
-        out int written, out uint seq)
+        out int written)
     {
         written = 0;
         EnvelopeFormat.Envelope env = EnvelopeFormat.ParseEnvelope(envelope);
-
-        seq = env.Seq;
 
         // SEC-38: Enforce that the algorithm declared in the envelope matches the one 
         // expected by the session state. Prevents AEAD -> non-AEAD downgrade attacks.
@@ -362,7 +353,6 @@ public static class EnvelopeCipher
     /// <param name="plaintext">
     /// Destination buffer for the plaintext.
     /// </param>
-    /// <param name="receivedSeq">The sequence number received in the envelope.</param>
     /// <param name="expectedAlgorithm">The cipher suite expected for this envelope. Used to prevent algorithm downgrade attacks.</param>
     /// <param name="written">Number of plaintext bytes written on success.</param>
     /// <remarks>
@@ -391,8 +381,5 @@ public static class EnvelopeCipher
         ReadOnlySpan<byte> envelope,
         Span<byte> plaintext,
         CipherSuiteType expectedAlgorithm,
-        out int written,
-        out uint receivedSeq) => Decrypt(key, envelope, plaintext, default, expectedAlgorithm, out written, out receivedSeq);
-
-    #endregion Public API
+        out int written) => Decrypt(key, envelope, plaintext, default, expectedAlgorithm, out written);
 }

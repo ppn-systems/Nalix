@@ -24,13 +24,10 @@ public static class FramePipeline
     /// Mutates the <paramref name="current"/> lease directly via <see langword="ref"/> to optimize performance.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ProcessInbound
-        ([Borrowed] ref IBufferLease current,
-        ReadOnlySpan<byte> secret, CipherSuiteType algorithm, out uint? seq)
+    public static void ProcessInbound([Borrowed] ref IBufferLease current, ReadOnlySpan<byte> secret, CipherSuiteType algorithm)
     {
         ArgumentNullException.ThrowIfNull(current);
 
-        seq = null;
         IBufferLease original = current;
         PacketFlags flags = current.Span.AsHeaderRef().Flags;
 
@@ -48,8 +45,7 @@ public static class FramePipeline
 
             try
             {
-                current = FrameCipher.DecryptFrame(current, secret, algorithm, out uint _seq);
-                seq = _seq;
+                current = FrameCipher.DecryptFrame(current, secret, algorithm);
 
                 // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
                 flags = current.Span.AsHeaderRef().Flags;
@@ -81,7 +77,7 @@ public static class FramePipeline
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ProcessOutbound(
         [Borrowed] ref IBufferLease current, bool enableCompress,
-        int minSizeToCompress, bool enableEncrypt, ReadOnlySpan<byte> secret, uint? seq, CipherSuiteType algorithm)
+        int minSizeToCompress, bool enableEncrypt, ReadOnlySpan<byte> secret, CipherSuiteType algorithm)
     {
         ArgumentNullException.ThrowIfNull(current);
 
@@ -97,12 +93,7 @@ public static class FramePipeline
 
         if (doCompress && enableEncrypt)
         {
-            if (seq == null)
-            {
-                Throw.EncryptRequestedButNoSeq();
-            }
-
-            ProcessOutboundFused(ref current, payloadSize, secret, seq.Value, algorithm);
+            ProcessOutboundFused(ref current, payloadSize, secret, algorithm);
         }
         else if (doCompress)
         {
@@ -111,7 +102,7 @@ public static class FramePipeline
         else if (enableEncrypt)
         {
             IBufferLease prev = current;
-            current = FrameCipher.EncryptFrame(current, secret, seq, algorithm);
+            current = FrameCipher.EncryptFrame(current, secret, algorithm);
 
             // If we replaced a buffer that was ALREADY a replacement (intermediate),
             // we must dispose it to avoid a leak. We do NOT dispose the 'original' one.
@@ -122,9 +113,7 @@ public static class FramePipeline
         }
     }
 
-    private static void ProcessOutboundFused(
-        [Borrowed] ref IBufferLease current,
-        int payloadSize, ReadOnlySpan<byte> secret, uint seq, CipherSuiteType algorithm)
+    private static void ProcessOutboundFused([Borrowed] ref IBufferLease current, int payloadSize, ReadOnlySpan<byte> secret, CipherSuiteType algorithm)
     {
         // 1. Calculate maximum required sizes
         int maxCompSize = FrameTransformer.GetMaxCompressedSize(payloadSize);
@@ -147,7 +136,7 @@ public static class FramePipeline
             int compLen = LZ4.LZ4Codec.Encode(srcSpan[FrameTransformer.Offset..], tempRegion);
 
             // 5. Encrypt from tempRegion into finalRegion
-            EnvelopeCipher.Encrypt(secret, tempRegion[..compLen], finalRegion, null, seq, algorithm, out int encLen);
+            EnvelopeCipher.Encrypt(secret, tempRegion[..compLen], finalRegion, null, null, algorithm, out int encLen);
 
             // [SECURITY] 5.5: Clear intermediate compressed data from the memory pool
             tempRegion[..compLen].Clear();

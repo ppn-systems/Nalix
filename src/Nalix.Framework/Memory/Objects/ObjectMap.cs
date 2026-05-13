@@ -1,7 +1,6 @@
 // Copyright (c)2025 - 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -100,32 +99,12 @@ public sealed class ObjectMap<TKey, TValue> : IObjectMap<TKey, TValue>
     #region APIs
 
     /// <summary>
-    /// Adds the specified key and value to the map.
+    /// Attempts to add the specified key and value to the map.
     /// </summary>
-    /// <exception cref="ArgumentException">
-    /// Thrown when an element with the same key already exists.
-    /// </exception>
-    public void Add(TKey key, TValue value)
-    {
-        if (!_dict.TryAdd(key, value))
-        {
-            throw new ArgumentException($"An element with the same key already exists: {key}");
-        }
-    }
-
-    /// <summary>
-    /// Adds the specified key and value to the map.
-    /// </summary>
-    /// <exception cref="ArgumentException">
-    /// Thrown when an element with the same key already exists.
-    /// </exception>
-    public void Add(KeyValuePair<TKey, TValue> item)
-    {
-        if (!_dict.TryAdd(item.Key, item.Value))
-        {
-            throw new ArgumentException($"An element with the same key already exists: {item.Key}");
-        }
-    }
+    /// <remarks>
+    /// If the key already exists, the operation is ignored.
+    /// </remarks>
+    public void Add(TKey key, TValue value) => _dict.TryAdd(key, value);
 
     /// <summary>
     /// Determines whether the map contains the specified key.
@@ -144,6 +123,11 @@ public sealed class ObjectMap<TKey, TValue> : IObjectMap<TKey, TValue>
     public bool TryGetValue(TKey key, [MaybeNullWhen(false)] out TValue value) => _dict.TryGetValue(key, out value);
 
     /// <summary>
+    /// Attempts to add the specified key/value pair to the map.
+    /// </summary>
+    public void Add(KeyValuePair<TKey, TValue> item) => _dict.TryAdd(item.Key, item.Value);
+
+    /// <summary>
     /// Removes all elements from the map.
     /// </summary>
     public void Clear() => _dict.Clear();
@@ -156,12 +140,13 @@ public sealed class ObjectMap<TKey, TValue> : IObjectMap<TKey, TValue>
     /// <summary>
     /// Copies the elements of the map to an array, starting at the specified index.
     /// </summary>
-    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) => ((IDictionary<TKey, TValue>)_dict).CopyTo(array, arrayIndex);
+    public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex) =>
+        ((IDictionary<TKey, TValue>)_dict).CopyTo(array, arrayIndex);
 
     /// <summary>
     /// Attempts to remove a specific key/value pair from the map.
     /// </summary>
-    public bool Remove(KeyValuePair<TKey, TValue> item) => ((ICollection<KeyValuePair<TKey, TValue>>)_dict).Remove(item);
+    public bool Remove(KeyValuePair<TKey, TValue> item) => _dict.TryRemove(item.Key, out TValue? val) && EqualityComparer<TValue>.Default.Equals(val, item.Value);
 
     /// <summary>
     /// Returns an enumerator that iterates through the map.
@@ -169,11 +154,8 @@ public sealed class ObjectMap<TKey, TValue> : IObjectMap<TKey, TValue>
     /// <remarks>
     /// The enumerator represents a snapshot of the collection at a point in time.
     /// </remarks>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator() => _dict.GetEnumerator();
 
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
     /// <summary>
