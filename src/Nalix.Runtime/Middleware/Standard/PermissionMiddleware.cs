@@ -78,7 +78,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
                 controlFlags: ControlFlags.NONE,
                 arg0: 0,
                 arg1: 0,
-                arg2: context.Attributes.PacketOpcode.OpCode);
+                arg2: context.Packet.Header.OpCode);
 
             await context.Sender.SendAsync(directive).ConfigureAwait(false);
         }
