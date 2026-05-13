@@ -18,7 +18,7 @@
 		<EmbedUntrackedSources>false</EmbedUntrackedSources>
 	  
 		<OutputPath>..\..\build\bin\$(Configuration)\$(MSBuildProjectName)\</OutputPath>
-		<IntermediateOutputPath>..\..\build\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
+		<BaseIntermediateOutputPath>..\..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
@@ -34,7 +34,7 @@
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
 
 		<OutputPath>..\..\build\bin\$(Configuration)\$(MSBuildProjectName)\</OutputPath>
-		<IntermediateOutputPath>..\..\build\obj\$(Configuration)\$(MSBuildProjectName)\</IntermediateOutputPath>
+		<BaseIntermediateOutputPath>..\..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 
 		<PackageVersion Condition="'$(PackageVersion)' == ''">$(Version)</PackageVersion>
 		<FileVersion Condition="'$(FileVersion)' == ''">$(Version).0</FileVersion>
