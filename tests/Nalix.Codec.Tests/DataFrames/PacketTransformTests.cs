@@ -1,19 +1,15 @@
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.Transforms;
-using Nalix.Framework.Extensions;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Environment.Random;
+using Nalix.Codec.Extensions;
+using Nalix.Codec.Memory;
 using Nalix.Codec.Security;
-using Xunit;
+using Nalix.Codec.Transforms;
+using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
@@ -41,14 +37,14 @@ public sealed class PacketTransformTests
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         // 2. Encrypt
-        using IBufferLease encrypted = FrameCipher.EncryptFrame(src, s_testKey, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease encrypted = FrameCipher.EncryptFrame(src, s_testKey, null, CipherSuiteType.Chacha20Poly1305);
 
         Assert.True(encrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.NotEqual(0, encrypted.Length);
         Assert.True(encrypted.Length >= FrameTransformer.Offset + EnvelopeCipher.HeaderSize);
 
         // 3. Decrypt
-        using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease decrypted = FrameCipher.DecryptFrame(encrypted, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.Equal(src.Length, decrypted.Length);
@@ -101,7 +97,7 @@ public sealed class PacketTransformTests
         originalPayload.CopyTo(src.Span[FrameTransformer.Offset..]);
 
         // 2. Encrypt then Compress
-        using IBufferLease encrypted = FrameCipher.EncryptFrame(src, s_testKey, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease encrypted = FrameCipher.EncryptFrame(src, s_testKey, null, CipherSuiteType.Chacha20Poly1305);
         using IBufferLease compressed = FrameCompression.CompressFrame(encrypted);
 
         Assert.True(compressed.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
@@ -109,7 +105,7 @@ public sealed class PacketTransformTests
 
         // 3. Decompress then Decrypt
         using IBufferLease decompressed = FrameCompression.DecompressFrame(compressed);
-        using IBufferLease decrypted = FrameCipher.DecryptFrame(decompressed, s_testKey, CipherSuiteType.Chacha20Poly1305);
+        using IBufferLease decrypted = FrameCipher.DecryptFrame(decompressed, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.ENCRYPTED));
         Assert.False(decrypted.Span.AsHeaderRef().Flags.HasFlag(PacketFlags.COMPRESSED));
@@ -139,6 +135,7 @@ public sealed class PacketTransformTests
             minSizeToCompress: 1,
             enableEncrypt: true,
             secret: s_testKey,
+            seq: 1,
             algorithm: CipherSuiteType.Chacha20Poly1305);
 
         using IBufferLease transformed = outbound;
@@ -149,7 +146,7 @@ public sealed class PacketTransformTests
         Assert.True(transformedFlags.HasFlag(PacketFlags.ENCRYPTED));
 
         IBufferLease inbound = transformed;
-        FramePipeline.ProcessInbound(ref inbound, s_testKey, CipherSuiteType.Chacha20Poly1305);
+        FramePipeline.ProcessInbound(ref inbound, s_testKey, CipherSuiteType.Chacha20Poly1305, out _);
 
         using IBufferLease restored = inbound;
 
