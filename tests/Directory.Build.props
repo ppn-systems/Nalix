@@ -1,5 +1,10 @@
 <Project>
   <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <OutputPath>$(MSBuildThisFileDirectory)..\build\bin\$(Configuration)\$(MSBuildProjectName)\</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
     <IsTestProject>true</IsTestProject>
     <OutputType>Exe</OutputType>
     <Nullable>enable</Nullable>
