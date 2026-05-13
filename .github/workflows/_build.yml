@@ -105,8 +105,8 @@ jobs:
         shell: bash
         timeout-minutes: 15
         run: |
-          dotnet build "${{ inputs.project }}" -c Release --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false
-          dotnet build "${{ inputs.test }}" -c Release --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false
+          dotnet build "${{ inputs.project }}" -c Release --no-restore
+          dotnet build "${{ inputs.test }}" -c Release --no-restore
 
       - name: Run all tests
         shell: bash
