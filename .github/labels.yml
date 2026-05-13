@@ -11,6 +11,14 @@
   color: "a2eeef"
   description: "New feature proposal or request"
 
+- name: "major"
+  color: "000000"
+  description: "Major version bump (Breaking Change)"
+
+- name: "breaking-change"
+  color: "d93f0b"
+  description: "Significant change that breaks backward compatibility"
+
 - name: "enhancement"
   color: "84b6eb"
   description: "New feature or request"

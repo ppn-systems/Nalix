@@ -1,0 +1,88 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+categories:
+  - title: '🚀 Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🔒 Security'
+    labels:
+      - 'security'
+    exclude-labels:
+      - 'feature'
+      - 'enhancement'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bug'
+    exclude-labels:
+      - 'feature'
+      - 'enhancement'
+      - 'security'
+  - title: '⚡ Performance'
+    labels:
+      - 'performance'
+    exclude-labels:
+      - 'feature'
+      - 'enhancement'
+      - 'security'
+      - 'bug'
+  - title: '🛠️ Refactors'
+    labels:
+      - 'refactor'
+    exclude-labels:
+      - 'feature'
+      - 'enhancement'
+      - 'security'
+      - 'bug'
+      - 'performance'
+  - title: '📚 Documentation'
+    labels:
+      - 'documentation'
+    exclude-labels:
+      - 'feature'
+      - 'enhancement'
+      - 'security'
+      - 'bug'
+      - 'performance'
+      - 'refactor'
+  - title: '🧪 Tests'
+    labels:
+      - 'test'
+    exclude-labels:
+      - 'feature'
+      - 'enhancement'
+      - 'security'
+      - 'bug'
+      - 'performance'
+      - 'refactor'
+      - 'documentation'
+  - title: '📦 Dependencies'
+    labels:
+      - 'dependencies'
+
+change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
+template: |
+  ## What's Changed
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPO/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
+
+version-resolver:
+  major:
+    labels:
+      - 'major'
+      - 'breaking-change'
+  minor:
+    labels:
+      - 'feature'
+      - 'enhancement'
+  patch:
+    labels:
+      - 'bug'
+      - 'refactor'
+      - 'performance'
+      - 'documentation'
+      - 'test'
+      - 'security'
+  default: patch

@@ -103,11 +103,11 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
                 ControlType.FAIL, ProtocolReason.RATE_LIMITED, ProtocolAdvice.RETRY,
                 sequenceId: context.Packet.Header.SequenceId,
                 controlFlags: ControlFlags.IS_TRANSIENT,
-                arg0: context.Attributes.PacketOpcode?.OpCode ?? 0u,
+                arg0: context.Packet.Header.OpCode,
                 arg1: (uint)decision.RetryAfterMs,
                 arg2: decision.Credit);
 
-            await context.Sender.SendAsync(directive, CancellationToken.None).ConfigureAwait(false);
+            await context.Sender.SendAsync(directive, context.CancellationToken).ConfigureAwait(false);
 
             return;
         }

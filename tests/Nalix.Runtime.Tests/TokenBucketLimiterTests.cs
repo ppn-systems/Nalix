@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using FluentAssertions;
 using Nalix.Abstractions.Networking;
 using Nalix.Runtime.Options;
 using Nalix.Runtime.Throttling;
@@ -10,132 +11,175 @@ namespace Nalix.Runtime.Tests;
 public sealed class TokenBucketLimiterTests
 {
     [Fact]
-    public void Evaluate_WhenEndpointIsNull_ThrowsArgumentNullException()
+    public void Evaluate_WithNullEndpoint_ShouldThrowArgumentNullException()
     {
-        using TokenBucketLimiter limiter = new(CreateOptions());
-
-        _ = Assert.Throws<ArgumentNullException>(() => limiter.Evaluate(null!));
+        using var limiter = new TokenBucketLimiter(CreateOptions());
+        Action act = () => limiter.Evaluate(null!);
+        act.Should().Throw<ArgumentNullException>().WithParameterName("key");
     }
 
     [Fact]
-    public void Evaluate_WhenEndpointAddressIsEmpty_ThrowsArgumentException()
+    public void Evaluate_WithEmptyAddress_ShouldThrowArgumentException()
     {
-        using TokenBucketLimiter limiter = new(CreateOptions());
-
-        _ = Assert.Throws<ArgumentException>(() => limiter.Evaluate(new TestEndpoint("")));
-    }
-
-    //[Fact]
-    //public void Evaluate_WhenBucketIsExhausted_ReturnsSoftThrottle()
-    //{
-    //    TokenBucketOptions options = CreateOptions();
-    //    options.CapacityTokens = 1;
-    //    options.RefillTokensPerSecond = 0.001;
-    //    options.MaxSoftViolations = 3;
-
-    //    using TokenBucketLimiter limiter = new(options);
-    //    TestEndpoint endpoint = new("127.0.0.10");
-
-    //    TokenBucketLimiter.RateLimitDecision first = limiter.Evaluate(endpoint);
-    //    TokenBucketLimiter.RateLimitDecision second = limiter.Evaluate(endpoint);
-
-    //    Assert.True(first.Allowed);
-    //    Assert.False(second.Allowed);
-    //    Assert.Equal(TokenBucketLimiter.RateLimitReason.SoftThrottle, second.Reason);
-    //    Assert.True(second.RetryAfterMs >= 0);
-    //}
-
-    [Fact]
-    public void Evaluate_WhenInitialTokensIsZero_FirstRequestIsThrottled()
-    {
-        TokenBucketOptions options = CreateOptions();
-        options.InitialTokens = 0;
-        options.MaxSoftViolations = 5;
-
-        using TokenBucketLimiter limiter = new(options);
-
-        TokenBucketLimiter.RateLimitDecision decision = limiter.Evaluate(new TestEndpoint("127.0.0.20"));
-
-        Assert.False(decision.Allowed);
-        Assert.Equal(TokenBucketLimiter.RateLimitReason.SoftThrottle, decision.Reason);
+        using var limiter = new TokenBucketLimiter(CreateOptions());
+        Action act = () => limiter.Evaluate(new TestEndpoint(""));
+        act.Should().Throw<ArgumentException>().WithMessage("*address*");
     }
 
     [Fact]
-    public void Evaluate_WhenMaxTrackedEndpointsReached_ReturnsHardLockoutForNewEndpoint()
+    public void Evaluate_WithinBurstCapacity_ShouldAllowRequests()
     {
-        TokenBucketOptions options = CreateOptions();
-        options.MaxTrackedEndpoints = 1;
-        options.HardLockoutSeconds = 2;
+        var options = CreateOptions();
+        options.CapacityTokens = 5;
+        options.InitialTokens = 5;
+        options.RefillTokensPerSecond = 0.001; // Minimal refill to pass validation while staying stable
+        using var limiter = new TokenBucketLimiter(options);
+        var endpoint = new TestEndpoint("1.1.1.1");
 
-        using TokenBucketLimiter limiter = new(options);
+        for (int i = 0; i < 5; i++)
+        {
+            var decision = limiter.Evaluate(endpoint);
+            decision.Allowed.Should().BeTrue();
+            decision.Credit.Should().Be((ushort)(4 - i));
+        }
 
-        TokenBucketLimiter.RateLimitDecision first = limiter.Evaluate(new TestEndpoint("10.0.0.1"));
-        TokenBucketLimiter.RateLimitDecision second = limiter.Evaluate(new TestEndpoint("10.0.0.2"));
-
-        Assert.True(first.Allowed);
-        Assert.False(second.Allowed);
-        Assert.Equal(TokenBucketLimiter.RateLimitReason.HardLockout, second.Reason);
-        Assert.Equal(2000, second.RetryAfterMs);
+        limiter.Evaluate(endpoint).Allowed.Should().BeFalse();
     }
 
     [Fact]
-    public async Task DisposeAsync_AfterDispose_EvaluateReturnsHardLockoutDecision()
+    public async Task Evaluate_AfterRefillTime_ShouldAllowNewRequests()
     {
-        TokenBucketLimiter limiter = new(CreateOptions());
-        await limiter.DisposeAsync();
+        var options = CreateOptions();
+        options.CapacityTokens = 1;
+        options.InitialTokens = 1;
+        options.RefillTokensPerSecond = 5; // Refill 1 token every 200ms
+        options.TokenScale = 1000;
+        
+        using var limiter = new TokenBucketLimiter(options);
+        var endpoint = new TestEndpoint("2.2.2.2");
 
-        TokenBucketLimiter.RateLimitDecision decision = limiter.Evaluate(new TestEndpoint("172.16.10.20"));
+        // 1. Consume initial
+        limiter.Evaluate(endpoint).Allowed.Should().BeTrue();
+        
+        // 2. Immediate next should be blocked (200ms window)
+        limiter.Evaluate(endpoint).Allowed.Should().BeFalse();
 
-        Assert.False(decision.Allowed);
-        Assert.Equal(TokenBucketLimiter.RateLimitReason.HardLockout, decision.Reason);
+        // 3. Wait for refill (200ms + buffer)
+        await Task.Delay(400);
+
+        limiter.Evaluate(endpoint).Allowed.Should().BeTrue();
     }
 
     [Fact]
-    public void GenerateReport_AfterTraffic_ContainsExpectedHeader()
+    public void Evaluate_RepeatedViolations_ShouldEscalateToHardLockout()
     {
-        using TokenBucketLimiter limiter = new(CreateOptions());
-        _ = limiter.Evaluate(new TestEndpoint("127.0.0.50"));
+        var options = CreateOptions();
+        options.CapacityTokens = 1;
+        options.InitialTokens = 1;
+        options.MaxSoftViolations = 2;
+        options.SoftViolationWindowSeconds = 10;
+        options.HardLockoutSeconds = 60;
+        
+        using var limiter = new TokenBucketLimiter(options);
+        var endpoint = new TestEndpoint("3.3.3.3");
+
+        // 1. Consume
+        limiter.Evaluate(endpoint).Allowed.Should().BeTrue();
+
+        // 2. First violation (soft)
+        var soft1 = limiter.Evaluate(endpoint);
+        soft1.Allowed.Should().BeFalse();
+        soft1.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.SoftThrottle);
+
+        // 3. Second violation (triggers hard lockout)
+        var hard = limiter.Evaluate(endpoint);
+        hard.Allowed.Should().BeFalse();
+        hard.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.HardLockout);
+        hard.RetryAfterMs.Should().BeInRange(59000, 61000);
+    }
+
+    [Fact]
+    public void Evaluate_DynamicPolicy_ShouldUseProvidedPolicy()
+    {
+        using var limiter = new TokenBucketLimiter(CreateOptions());
+        var endpoint = new TestEndpoint("4.4.4.4");
+
+        // Create a strict policy (1 token capacity, 0 refill)
+        var policy = new TokenBucketLimiter.RateLimitPolicy(
+            rps: 0, // Disable refill 
+            burst: 1.0, 
+            tokenScale: 1000, 
+            swFreq: System.Diagnostics.Stopwatch.Frequency, 
+            hardLockoutSec: 10, 
+            maxSoftViolations: 1);
+
+        limiter.Evaluate(endpoint, policy).Allowed.Should().BeTrue();
+        
+        var second = limiter.Evaluate(endpoint, policy);
+        second.Allowed.Should().BeFalse();
+        second.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.HardLockout);
+    }
+
+    [Fact]
+    public void Evaluate_MaxTrackedEndpoints_ShouldRejectNewEndpoints()
+    {
+        var options = CreateOptions();
+        options.MaxTrackedEndpoints = 2;
+        
+        using var limiter = new TokenBucketLimiter(options);
+        
+        limiter.Evaluate(new TestEndpoint("ip1")).Allowed.Should().BeTrue();
+        limiter.Evaluate(new TestEndpoint("ip2")).Allowed.Should().BeTrue();
+        
+        var third = limiter.Evaluate(new TestEndpoint("ip3"));
+        third.Allowed.Should().BeFalse();
+        third.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.HardLockout);
+    }
+
+    [Fact]
+    public void GenerateReport_ShouldReturnFormattedString()
+    {
+        using var limiter = new TokenBucketLimiter(CreateOptions());
+        limiter.Evaluate(new TestEndpoint("report-ip"));
 
         string report = limiter.GenerateReport();
+        report.Should().Contain("TokenBucketLimiter Status");
+        report.Should().Contain("report-ip");
+    }
 
-        Assert.Contains("TokenBucketLimiter Status", report, StringComparison.Ordinal);
-        Assert.Contains("TrackedEndpoints", report, StringComparison.Ordinal);
+    [Fact]
+    public void Dispose_AfterDisposed_ShouldReturnHardLockout()
+    {
+        var limiter = new TokenBucketLimiter(CreateOptions());
+        limiter.Dispose();
+
+        var decision = limiter.Evaluate(new TestEndpoint("any"));
+        decision.Allowed.Should().BeFalse();
+        decision.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.HardLockout);
     }
 
     private static TokenBucketOptions CreateOptions()
     {
         return new TokenBucketOptions
         {
-            CapacityTokens = 2,
-            RefillTokensPerSecond = 1,
-            HardLockoutSeconds = 2,
+            CapacityTokens = 10,
+            RefillTokensPerSecond = 10,
+            HardLockoutSeconds = 5,
             StaleEntrySeconds = 60,
             CleanupIntervalSeconds = 60,
-            TokenScale = 1000,
-            ShardCount = 2,
+            TokenScale = 1000000,
+            ShardCount = 8,
             SoftViolationWindowSeconds = 5,
-            MaxSoftViolations = 3,
-            CooldownResetSec = 10,
-            MaxTrackedEndpoints = 100,
-            InitialTokens = -1
+            MaxSoftViolations = 5,
+            MaxTrackedEndpoints = 1000,
+            InitialTokens = -1 // Full bucket
         };
     }
 
-    private sealed record TestEndpoint(string Address, int Port = 0, bool HasPort = false, bool IsIPv6 = false) : INetworkEndpoint
+    private sealed record TestEndpoint(string Address) : INetworkEndpoint
     {
+        public int Port => 0;
+        public bool HasPort => false;
+        public bool IsIPv6 => false;
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

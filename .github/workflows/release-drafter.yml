@@ -1,0 +1,24 @@
+name: "Release: Drafter"
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  update_release_draft:
+    permissions:
+      contents: write  # for release-drafter to create/update a release
+      pull-requests: write  # for release-drafter to add label to PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

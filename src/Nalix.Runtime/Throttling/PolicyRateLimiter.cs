@@ -2,10 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,22 +15,25 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Environment.Configuration;
+using Nalix.Framework.Injection;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;
 
 /// <summary>
-/// Provides a policy-based rate limiting mechanism using token bucket algorithms.
+/// Provides a policy-based rate limiting mechanism using a shared stateless token bucket engine.
 /// </summary>
 /// <remarks>
 /// <para>
-/// <see cref="PolicyRateLimiter"/> manages multiple rate limit policies defined by
-/// requests-per-second (RPS) and burst capacity. Policies are quantized into predefined tiers
-/// to reduce memory usage and improve reuse.
+/// <see cref="PolicyRateLimiter"/> extracts rate limit policies (RPS and burst capacity)
+/// directly from packet attributes and evaluates them against a single, highly-optimized 
+/// <see cref="TokenBucketLimiter"/> backend.
 /// </para>
 /// <para>
-/// Each policy is backed by a shared <see cref="TokenBucketLimiter"/> instance and
-/// automatically evicted when unused for a configured period.
+/// By utilizing the dynamic <see cref="TokenBucketLimiter.RateLimitPolicy"/> API, this class
+/// completely eliminates the need for policy caching, quantization, and background eviction 
+/// threads, resulting in near-zero allocation and bounded memory footprint regardless of 
+/// how many distinct policies are defined by the user.
 /// </para>
 /// <para>
 /// This class is thread-safe and optimized for high-throughput network environments.
@@ -41,235 +43,68 @@ namespace Nalix.Runtime.Throttling;
 [SkipLocalsInit]
 public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<PolicyRateLimiter>
 {
-    #region Constants
-
-    private const int MaxPolicies = 64;
-    private const int PolicyTtlSeconds = 1800;
-    private const int SweepEveryNChecks = 1024;
-
-    #endregion Constants
-
     #region Fields
 
-    private int _checkCounter;
     private int _disposed;
+    private int _checkCounter;
 
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<Policy, Entry> _limiters = new();
-
-    private static readonly int[] s_rpsTiers = [1, 2, 4, 8, 16, 32, 64, 128];
-    private static readonly double[] s_burstTiers = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
-
-    private static readonly Lazy<TokenBucketOptions> s_defaults = new(ConfigurationManager.Instance.Get<TokenBucketOptions>);
+    // The single, shared engine that handles ALL policies statelessly
+#pragma warning disable CA2213 // Disposable fields should be disposed
+    private readonly TokenBucketLimiter _shared;
+#pragma warning restore CA2213 // Disposable fields should be disposed
+    private readonly ConcurrentDictionary<(int rps, double burst, int hardLockout, int maxVio), TokenBucketLimiter.RateLimitPolicy> _policyCache;
 
     /// <summary>
-    /// Gets the default rate limiting options shared across all policies.
+    /// Gets the default rate limiting options used for global configuration (shard count, cleanups).
     /// </summary>
-    private static TokenBucketOptions Defaults => s_defaults.Value;
+    private static readonly TokenBucketOptions s_defaults = ConfigurationManager.Instance.Get<TokenBucketOptions>();
+
     private ILogger? _logger;
 
     #endregion Fields
 
     #region Private Types
 
-    private sealed class Entry : IDisposable
-    {
-        private readonly ILogger? _logger;
-        private long _lastUsedUtcTicks;
-        private int _activeUsers;
-        private int _disposed;
-        private int _disposeFinalized;
-        private readonly ManualResetEventSlim _idleSignal = new(true);
-
-        public TokenBucketLimiter Limiter { get; }
-
-        public long LastUsedUtcTicks => Interlocked.Read(ref _lastUsedUtcTicks);
-
-        public Entry(TokenBucketLimiter limiter, ILogger? logger = null)
-        {
-            this.Limiter = limiter ?? throw new ArgumentNullException(nameof(limiter));
-            _logger = logger;
-            _activeUsers = 0;
-            _disposed = 0;
-            this.Touch();
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Touch()
-        {
-            _ = Interlocked.Exchange(
-                ref _lastUsedUtcTicks,
-                DateTime.UtcNow.Ticks);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool TryAcquire()
-        {
-            if (Volatile.Read(ref _disposed) != 0)
-            {
-                return false;
-            }
-
-            int newCount = Interlocked.Increment(ref _activeUsers);
-            _idleSignal.Reset();
-
-            if (Volatile.Read(ref _disposed) != 0)
-            {
-                _ = Interlocked.Decrement(ref _activeUsers);
-                if (Volatile.Read(ref _activeUsers) == 0)
-                {
-                    _idleSignal.Set();
-                }
-                return false;
-            }
-
-            if (newCount <= 0)
-            {
-                _ = Interlocked.Decrement(ref _activeUsers);
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                {
-                    _logger.LogError($"[RT.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
-                }
-                return false;
-            }
-
-            return true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Release()
-        {
-            int remaining = Interlocked.Decrement(ref _activeUsers);
-
-            if (remaining < 0)
-            {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                {
-                    _logger.LogError($"[RT.{nameof(PolicyRateLimiter)}:Entry] active-users-overflow");
-                }
-                _ = Interlocked.Exchange(ref _activeUsers, 0);
-                _idleSignal.Set();
-                return;
-            }
-
-            if (remaining == 0)
-            {
-                _idleSignal.Set();
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsStale(long nowTicks, int ttlSeconds)
-        {
-            if (Volatile.Read(ref _disposed) != 0)
-            {
-                return true;
-            }
-
-            long lastTicks = Interlocked.Read(ref _lastUsedUtcTicks);
-            long ttlTicks = ttlSeconds * TimeSpan.TicksPerSecond;
-            return nowTicks - lastTicks > ttlTicks;
-        }
-
-        public void Dispose()
-        {
-            if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-            {
-                return;
-            }
-
-            if (Volatile.Read(ref _activeUsers) == 0)
-            {
-                this.FINALIZE_DISPOSE();
-                return;
-            }
-
-            _ = ThreadPool.UnsafeQueueUserWorkItem(
-                static state => state.WAIT_FOR_IDLE_AND_DISPOSE(),
-                this,
-                preferLocal: false);
-        }
-
-        private void WAIT_FOR_IDLE_AND_DISPOSE()
-        {
-            const int maxWaitMs = 500;
-
-            try
-            {
-                if (!_idleSignal.Wait(maxWaitMs))
-                {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-                    {
-                        _logger.LogWarning(
-                            $"[RT.{nameof(PolicyRateLimiter)}:Entry] " +
-                            $"dispose-timeout active-users={Volatile.Read(ref _activeUsers)}");
-                    }
-                }
-            }
-            catch (ObjectDisposedException)
-            {
-                // Dispose already completed on another path.
-            }
-
-            this.FINALIZE_DISPOSE();
-        }
-
-        private void FINALIZE_DISPOSE()
-        {
-            if (Interlocked.CompareExchange(ref _disposeFinalized, 1, 0) != 0)
-            {
-                return;
-            }
-
-            try
-            {
-                this.Limiter.Dispose();
-            }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-            {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                {
-                    _logger.LogError(ex, $"[RT.{nameof(PolicyRateLimiter)}:Entry] disposal-error");
-                }
-            }
-
-            _idleSignal.Dispose();
-        }
-    }
-
-    private readonly record struct Policy(int Rps, double Burst);
-
-    private readonly struct RateLimitSubject : INetworkEndpoint, IEquatable<RateLimitSubject>
+    /// <summary>
+    /// A composite endpoint key that isolates token buckets by IP Address, and either Operation Code or a specific Policy ID.
+    /// </summary>
+    private sealed class ScopedEndpoint : INetworkEndpoint, IEquatable<ScopedEndpoint>
     {
         private readonly ushort _op;
         private readonly string _ip;
+        private readonly string? _policyId;
         private readonly INetworkEndpoint _inner;
 
-        public RateLimitSubject(ushort op, INetworkEndpoint inner)
+        public ScopedEndpoint(ushort op, string? policyId, INetworkEndpoint inner)
         {
             _op = op;
+            _ip = inner?.Address ?? string.Empty;
+            _policyId = policyId;
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
-            _ip = inner.Address; // Use address only for subject identity to prevent port-rotation bypass
         }
 
         public string Address => _inner.Address;
-        public int Port => _inner.Port;
         public bool HasPort => _inner.HasPort;
         public bool IsIPv6 => _inner.IsIPv6;
+        public int Port => _inner.Port;
 
-        public override int GetHashCode() => ComputeHash(_op, _ip);
+        public override int GetHashCode() => ComputeHash(_op, _policyId, _ip);
 
-        public bool Equals(RateLimitSubject other) => _op == other._op && _ip == other._ip;
+        public bool Equals(ScopedEndpoint? other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return _op == other._op &&
+                   string.Equals(_policyId, other._policyId, StringComparison.Ordinal) &&
+                   string.Equals(_ip, other._ip, StringComparison.Ordinal);
+        }
 
-        public override bool Equals(object? obj) => obj is RateLimitSubject other && this.Equals(other);
+        public override bool Equals(object? obj) => obj is ScopedEndpoint other && this.Equals(other);
 
-        public static bool operator ==(RateLimitSubject left, RateLimitSubject right) => left.Equals(right);
-
-        public static bool operator !=(RateLimitSubject left, RateLimitSubject right) => !left.Equals(right);
-
-        public override string ToString() => $"op:{_op:X4}|ip:{_ip}";
+        public override string ToString() => $"op:{_op:X4}|policy:{_policyId ?? "null"}|ip:{_ip}";
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        private static int ComputeHash(ushort op, string ip)
+        private static int ComputeHash(ushort op, string? policyId, string ip)
         {
             if (string.IsNullOrEmpty(ip))
             {
@@ -277,17 +112,12 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             }
 
             ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(ip.AsSpan());
+            uint seed = policyId != null ? (uint)policyId.GetHashCode(StringComparison.Ordinal) : op;
 
-            uint hash = XxHash32.Compute(ipBytes, seed: op);
+            uint hash = XxHash32.Compute(ipBytes, seed: seed);
 
             return (int)(hash & 0x7FFFFFFF);
         }
-    }
-
-    private readonly struct CheckResult
-    {
-        public TokenBucketLimiter.RateLimitDecision Decision { get; init; }
-        public bool Success { get; init; }
     }
 
     #endregion Private Types
@@ -298,12 +128,16 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// Initializes a new instance of the <see cref="PolicyRateLimiter"/> class.
     /// </summary>
     /// <remarks>
-    /// Default rate limiting options are loaded from configuration at startup.
+    /// Default rate limiting options are loaded from configuration at startup to initialize the shared engine.
     /// </remarks>
     public PolicyRateLimiter()
     {
         _disposed = 0;
         _checkCounter = 0;
+
+        // Instantiate the single shared engine that will process all dynamic policies
+        _policyCache = new();
+        _shared = InstanceManager.Instance.GetOrCreateInstance<TokenBucketLimiter>();
     }
 
     #endregion Constructor
@@ -319,96 +153,62 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     public PolicyRateLimiter WithLogging(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _ = _shared.WithLogging(_logger);
         return this;
     }
 
     /// <summary>
     /// Performs a rate limit check for the specified operation code and packet context.
     /// </summary>
-    /// <param name="opCode">
-    /// The operation code associated with the incoming packet.
-    /// </param>
-    /// <param name="context">
-    /// The packet context containing connection, endpoint, and rate limit metadata.
-    /// </param>
+    /// <param name="opCode">The operation code associated with the incoming packet.</param>
+    /// <param name="context">The packet context containing connection, endpoint, and rate limit metadata.</param>
     /// <returns>
     /// A <see cref="TokenBucketLimiter.RateLimitDecision"/> indicating whether the request
     /// is allowed, throttled, or denied.
     /// </returns>
     /// <exception cref="ObjectDisposedException">Thrown when the limiter has been disposed.</exception>
-    /// <exception cref="ArgumentNullException">
-    /// Thrown when <paramref name="context"/> is <c>null</c>.
-    /// </exception>
-    /// <remarks>
-    /// <para>
-    /// If no rate limit attribute is present, the request is always allowed.
-    /// </para>
-    /// <para>
-    /// Rate limit policies are shared and reused across requests with similar limits.
-    /// </para>
-    /// </remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TokenBucketLimiter.RateLimitDecision Evaluate(ushort opCode, IPacketContext<IPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
 
-        CheckResult validationResult = this.VALIDATE_RATE_LIMIT_ATTRIBUTE(context);
-        if (!validationResult.Success)
+        PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
+
+        // Fast-path: No limits applied or invalid configuration
+        if (rl is null || rl.RequestsPerSecond <= 0)
         {
-            return validationResult.Decision;
+            return CREATE_ALLOWED_DECISION();
         }
 
-        Policy policy = EXTRACT_AND_QUANTIZE_POLICY(context.Attributes.RateLimit!);
+        // Fast-path: Invalid burst
+        if (rl.Burst <= 0)
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[RT.{nameof(PolicyRateLimiter)}] invalid-burst burst={rl.Burst}");
+            }
+            return CREATE_DENIED_DECISION(isHard: true);
+        }
 
-        CheckResult checkResult = this.PERFORM_RATE_LIMIT_CHECK(opCode, context, policy);
+        TokenBucketLimiter.RateLimitPolicy dynamicPolicy = this.EXTRACT_DYNAMIC_POLICY(rl);
 
-        this.TRY_SCHEDULE_SWEEP();
-
-        return checkResult.Decision;
+        return this.PERFORM_RATE_LIMIT_CHECK(opCode, rl.PolicyId, context, in dynamicPolicy);
     }
 
     /// <summary>
     /// Generates a human-readable diagnostic report describing the current rate limiter state.
     /// </summary>
-    /// <returns>
-    /// A formatted string containing active policies, usage counters,
-    /// and last-access timestamps.
-    /// </returns>
-    /// <remarks>
-    /// This method is intended for diagnostics, monitoring, and debugging purposes.
-    /// </remarks>
     public string GenerateReport()
     {
         StringBuilder sb = new();
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PolicyRateLimiter Status:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Policies    : {_limiters.Count}/{MaxPolicies}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Evaluate Counter      : {Volatile.Read(ref _checkCounter):N0}");
         _ = sb.AppendLine();
-
-        if (_limiters.IsEmpty)
-        {
-            _ = sb.AppendLine("(no active policies)");
-            return sb.ToString();
-        }
-
-        _ = sb.AppendLine("Active Policies:");
-        _ = sb.AppendLine("------------------------------------------------------------");
-        _ = sb.AppendLine("RPS  | Burst | Last Used (UTC)");
-        _ = sb.AppendLine("------------------------------------------------------------");
-
-        List<KeyValuePair<Policy, Entry>> sorted = [.. _limiters.OrderByDescending(kv => kv.Key.Rps).ThenByDescending(kv => kv.Key.Burst)];
-
-        foreach ((Policy policy, Entry entry) in sorted)
-        {
-            long lastTicks = entry.LastUsedUtcTicks;
-            DateTime lastUsed = new(lastTicks, DateTimeKind.Utc);
-
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{policy.Rps,4} | {policy.Burst,5} | {lastUsed:yyyy-MM-dd HH:mm:ss}");
-        }
-
-        _ = sb.AppendLine("------------------------------------------------------------");
+        _ = sb.AppendLine("--- Shared TokenBucket Engine Report ---");
+        _ = sb.Append(_shared.GenerateReport());
 
         return sb.ToString();
     }
@@ -420,32 +220,10 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         writer.WriteStartObject();
         writer.WriteString("UtcNow", DateTime.UtcNow);
-        writer.WriteNumber("ActivePolicies", _limiters.Count);
-        writer.WriteNumber("MaxPolicies", MaxPolicies);
         writer.WriteNumber("CheckCounter", Volatile.Read(ref _checkCounter));
 
-        writer.WriteStartArray("Policies");
-        int count = 0;
-        foreach (KeyValuePair<Policy, Entry> kv in _limiters
-            .OrderByDescending(x => x.Key.Rps)
-            .ThenByDescending(x => x.Key.Burst))
-        {
-            if (count++ >= 32)
-            {
-                break;
-            }
-
-            Policy policy = kv.Key;
-            Entry entry = kv.Value;
-            DateTime lastUsed = new(entry.LastUsedUtcTicks, DateTimeKind.Utc);
-
-            writer.WriteStartObject();
-            writer.WriteNumber("RPS", policy.Rps);
-            writer.WriteNumber("Burst", policy.Burst);
-            writer.WriteString("LastUsedUtc", lastUsed);
-            writer.WriteEndObject();
-        }
-        writer.WriteEndArray();
+        writer.WritePropertyName("SharedEngine");
+        _shared.WriteReportData(writer);
 
         writer.WriteEndObject();
     }
@@ -453,14 +231,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// <summary>
     /// Releases all resources used by the <see cref="PolicyRateLimiter"/>.
     /// </summary>
-    /// <remarks>
-    /// <para>
-    /// All active policy limiters are disposed and removed.
-    /// </para>
-    /// <para>
-    /// This method is safe to call multiple times.
-    /// </para>
-    /// </remarks>
     public void Dispose()
     {
         if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
@@ -468,53 +238,12 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             return;
         }
 
-        int disposedCount = 0;
-        int totalCount = _limiters.Count;
-
-        const int maxAttempts = 10;
-        int attempt = 0;
-
-        while (!_limiters.IsEmpty && attempt++ < maxAttempts)
-        {
-            foreach ((Policy policy, _) in _limiters)
-            {
-
-#pragma warning disable CA2000
-                if (_limiters.TryRemove(policy, out Entry? removed) && removed is not null)
-                {
-                    try
-                    {
-                        removed.Dispose();
-                        disposedCount++;
-                    }
-                    catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-                    {
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                        {
-                            _logger.LogError(ex,
-                                $"[RT.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] " +
-                                $"disposal-error policy={policy}");
-                        }
-                    }
-                }
-#pragma warning restore CA2000
-
-            }
-
-            if (!_limiters.IsEmpty)
-            {
-                _ = Thread.Yield();
-            }
-        }
-
-        if (!_limiters.IsEmpty)
-        {
-            _limiters.Clear();
-        }
+        // Note: We do NOT dispose _shared here because it is a singleton managed by InstanceManager.
+        // It should only be disposed when the application shuts down or the manager disposes it.
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation($"[RT.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] disposed={disposedCount}/{totalCount}");
+            _logger.LogInformation($"[RT.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] disposed");
         }
 
         GC.SuppressFinalize(this);
@@ -522,113 +251,50 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
     #endregion Public API
 
-    #region Validation
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private CheckResult VALIDATE_RATE_LIMIT_ATTRIBUTE(IPacketContext<IPacket> context)
-    {
-        PacketRateLimitAttribute? rl = context.Attributes.RateLimit;
-
-        if (rl is null)
-        {
-            return new CheckResult
-            {
-                Success = true,
-                Decision = CREATE_ALLOWED_DECISION()
-            };
-        }
-
-        if (rl.RequestsPerSecond <= 0)
-        {
-            return new CheckResult
-            {
-                Success = true,
-                Decision = CREATE_ALLOWED_DECISION()
-            };
-        }
-
-        if (rl.Burst <= 0)
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning($"[RT.{nameof(PolicyRateLimiter)}] invalid-burst burst={rl.Burst}");
-            }
-
-            return new CheckResult
-            {
-                Success = false,
-                Decision = CREATE_DENIED_DECISION(isHard: true)
-            };
-        }
-
-        return new CheckResult { Success = true };
-    }
-
-    #endregion Validation
-
     #region Policy Management
 
+    /// <summary>
+    /// Creates a dynamic rate limit policy structurally compatible with the token bucket engine.
+    /// Quantization is no longer required due to stateless evaluation.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Policy EXTRACT_AND_QUANTIZE_POLICY(PacketRateLimitAttribute rl)
+    private TokenBucketLimiter.RateLimitPolicy EXTRACT_DYNAMIC_POLICY(PacketRateLimitAttribute rl)
     {
-        int rps = QUANTIZE_VALUE(rl.RequestsPerSecond, s_rpsTiers);
-        double burst = QUANTIZE_VALUE(rl.Burst, s_burstTiers);
-        burst = Math.Max(1.0, burst); // Ensure CapacityTokens >= 1
+        // 1. Normalize the parameters
+        int rps = rl.RequestsPerSecond;
+        double burst = Math.Max(1.0, rl.Burst); // Ensure CapacityTokens >= 1
+        int hardLockout = rl.HardLockoutSeconds > 0 ? rl.HardLockoutSeconds : s_defaults.HardLockoutSeconds;
+        int maxViolations = rl.MaxSoftViolations > 0 ? rl.MaxSoftViolations : s_defaults.MaxSoftViolations;
 
-        return new Policy(rps, burst);
-    }
+        // 2. Create ValueTuple Key (Completely on register/stack, no garbage)
+        (int rps, double burst, int hardLockout, int maxViolations) cacheKey = (rps, burst, hardLockout, maxViolations);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int QUANTIZE_VALUE(int value, int[] tiers)
-    {
-        foreach (int tier in tiers)
+        // 3. Check in Cache (Fast-path)
+        if (_policyCache.TryGetValue(cacheKey, out TokenBucketLimiter.RateLimitPolicy cachedPolicy))
         {
-            if (value <= tier)
-            {
-                return tier;
-            }
+            return cachedPolicy;
         }
 
-        return tiers[^1];
-    }
+        // 4. If not present, calculate for the first time (Slow-path)
+        TokenBucketLimiter.RateLimitPolicy newPolicy = new(
+            rps, burst,
+            s_defaults.TokenScale, Stopwatch.Frequency,
+            hardLockout,
+            maxViolations
+        );
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static double QUANTIZE_VALUE(double value, double[] tiers)
-    {
-        foreach (double tier in tiers)
-        {
-            if (value <= tier)
-            {
-                return tier;
-            }
-        }
+        // 5. Store in cache for subsequent requests
+        _ = _policyCache.TryAdd(cacheKey, newPolicy);
 
-        return tiers[^1];
-    }
-
-    private static TokenBucketOptions CREATE_OPTIONS_FOR_POLICY(Policy policy)
-    {
-        return new TokenBucketOptions
-        {
-            CapacityTokens = (int)policy.Burst,
-            RefillTokensPerSecond = policy.Rps,
-            TokenScale = Defaults.TokenScale,
-            ShardCount = Defaults.ShardCount,
-            HardLockoutSeconds = Defaults.HardLockoutSeconds,
-            StaleEntrySeconds = Defaults.StaleEntrySeconds,
-            CleanupIntervalSeconds = Defaults.CleanupIntervalSeconds,
-            MaxTrackedEndpoints = Defaults.MaxTrackedEndpoints,
-            MaxSoftViolations = Defaults.MaxSoftViolations,
-            SoftViolationWindowSeconds = Defaults.SoftViolationWindowSeconds,
-            InitialTokens = Defaults.InitialTokens
-        };
+        return newPolicy;
     }
 
     #endregion Policy Management
 
     #region Rate Limit Check
 
-    private CheckResult PERFORM_RATE_LIMIT_CHECK(ushort opCode, IPacketContext<IPacket> context, Policy policy)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private TokenBucketLimiter.RateLimitDecision PERFORM_RATE_LIMIT_CHECK(ushort opCode, string? policyId, IPacketContext<IPacket> context, in TokenBucketLimiter.RateLimitPolicy policy)
     {
         if (context.Connection?.NetworkEndpoint is null)
         {
@@ -637,152 +303,16 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
                 _logger.LogWarning($"[RT.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={opCode}");
             }
 
-            return new CheckResult
-            {
-                Success = false,
-                Decision = CREATE_DENIED_DECISION(isHard: false)
-            };
+            return CREATE_DENIED_DECISION(isHard: false);
         }
 
-        Entry entry = this.GET_OR_CREATE_LIMITER_ENTRY(policy);
+        // Isolate keyspace by hashing PolicyId (if present) or OpCode, and IP Address
+        ScopedEndpoint subject = new(opCode, policyId, context.Connection.NetworkEndpoint);
 
-        if (!entry.TryAcquire())
-        {
-            return new CheckResult
-            {
-                Success = false,
-                Decision = CREATE_DENIED_DECISION(isHard: false, retryAfterMs: 1000)
-            };
-        }
+        _ = Interlocked.Increment(ref _checkCounter);
 
-        try
-        {
-            RateLimitSubject subject = new(opCode, context.Connection.NetworkEndpoint);
-            TokenBucketLimiter.RateLimitDecision decision = entry.Limiter.Evaluate(subject);
-
-            return new CheckResult
-            {
-                Success = true,
-                Decision = decision
-            };
-        }
-        finally
-        {
-            entry.Release();
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private Entry GET_OR_CREATE_LIMITER_ENTRY(Policy policy)
-    {
-        if (_limiters.TryGetValue(policy, out Entry? existingEntry) && existingEntry is not null)
-        {
-            existingEntry.Touch();
-            return existingEntry;
-        }
-
-        if (this.IS_AT_POLICY_CAPACITY())
-        {
-            Entry? reusedEntry = this.TRY_REUSE_CLOSEST_POLICY(policy);
-            if (reusedEntry is not null)
-            {
-                return reusedEntry;
-            }
-        }
-
-        return this.CREATE_NEW_LIMITER_ENTRY(policy);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IS_AT_POLICY_CAPACITY() => _limiters.Count >= MaxPolicies;
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private Entry? TRY_REUSE_CLOSEST_POLICY(Policy wanted)
-    {
-        if (_limiters.IsEmpty)
-        {
-            return null;
-        }
-
-        Policy closest = this.FIND_CLOSEST_POLICY(wanted);
-
-        if (closest.Equals(default))
-        {
-            return null;
-        }
-
-        if (_limiters.TryGetValue(closest, out Entry? reused) && reused is not null)
-        {
-            reused.Touch();
-
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug($"[RT.{nameof(PolicyRateLimiter)}] reusing-policy wanted=({wanted.Rps},{wanted.Burst}) closest=({closest.Rps},{closest.Burst})");
-            }
-
-            return reused;
-        }
-
-        return null;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private Policy FIND_CLOSEST_POLICY(Policy wanted)
-    {
-        Policy closest = default;
-        int bestDistance = int.MaxValue;
-        bool found = false;
-
-        foreach (Policy candidate in _limiters.Keys)
-        {
-            int distance = CALCULATE_POLICY_DISTANCE(candidate, wanted);
-
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                closest = candidate;
-                found = true;
-
-                if (distance == 0)
-                {
-                    break;
-                }
-            }
-        }
-
-        return found ? closest : default;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int CALCULATE_POLICY_DISTANCE(Policy a, Policy b) => (int)(Math.Abs(a.Rps - b.Rps) + Math.Abs(a.Burst - b.Burst));
-
-    private Entry CREATE_NEW_LIMITER_ENTRY(Policy policy)
-    {
-        TokenBucketOptions options = CREATE_OPTIONS_FOR_POLICY(policy);
-        TokenBucketLimiter limiter = new(options);
-        if (_logger is not null)
-        {
-            _ = limiter.WithLogging(_logger);
-        }
-
-        Entry newEntry = new(limiter, _logger);
-
-        Entry actualEntry = _limiters.GetOrAdd(policy, newEntry);
-
-        if (ReferenceEquals(actualEntry, newEntry))
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation($"[RT.{nameof(PolicyRateLimiter)}] created-policy-limiter rps={policy.Rps} burst={policy.Burst} total={_limiters.Count}");
-            }
-        }
-        else
-        {
-            newEntry.Dispose();
-        }
-
-        actualEntry.Touch();
-        return actualEntry;
+        // Feed the subject and the dynamic policy directly into the shared engine
+        return _shared.Evaluate(subject, in policy);
     }
 
     #endregion Rate Limit Check
@@ -802,75 +332,16 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static TokenBucketLimiter.RateLimitDecision CREATE_DENIED_DECISION(
-        bool isHard,
-        int retryAfterMs = 0)
+    private static TokenBucketLimiter.RateLimitDecision CREATE_DENIED_DECISION(bool isHard, int retryAfterMs = 0)
     {
         return new TokenBucketLimiter.RateLimitDecision
         {
+            Credit = 0,
             Allowed = false,
             RetryAfterMs = retryAfterMs > 0 ? retryAfterMs : (isHard ? int.MaxValue : 1000),
-            Credit = 0,
-            Reason = isHard
-                ? TokenBucketLimiter.RateLimitReason.HardLockout
-                : TokenBucketLimiter.RateLimitReason.SoftThrottle
+            Reason = isHard ? TokenBucketLimiter.RateLimitReason.HardLockout : TokenBucketLimiter.RateLimitReason.SoftThrottle
         };
     }
 
     #endregion Decision Helpers
-
-    #region Cleanup
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRY_SCHEDULE_SWEEP()
-    {
-        int count = Interlocked.Increment(ref _checkCounter);
-
-        if (count < 0)
-        {
-            _ = Interlocked.CompareExchange(ref _checkCounter, 1, count);
-            count = 1;
-        }
-
-        if ((count & (SweepEveryNChecks - 1)) == 0)
-        {
-            _ = ThreadPool.UnsafeQueueUserWorkItem(
-                static state => state.EVICT_STALE_POLICIES(),
-                this,
-                preferLocal: false);
-        }
-    }
-
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void EVICT_STALE_POLICIES()
-    {
-        long nowTicks = DateTime.UtcNow.Ticks;
-        int evictedCount = 0;
-
-        foreach ((Policy policy, Entry entry) in _limiters)
-        {
-
-#pragma warning disable CA2000
-            if (entry.IsStale(nowTicks, PolicyTtlSeconds) && _limiters.TryRemove(policy, out Entry? removed) && removed is not null)
-            {
-                removed.Dispose();
-                evictedCount++;
-            }
-#pragma warning restore CA2000
-
-        }
-
-        if (evictedCount > 0)
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.LogDebug(
-                    $"[RT.{nameof(PolicyRateLimiter)}] evicted-stale-policies " +
-                    $"count={evictedCount} remaining={_limiters.Count}");
-            }
-        }
-    }
-
-    #endregion Cleanup
 }

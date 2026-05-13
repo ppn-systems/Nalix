@@ -105,13 +105,18 @@ jobs:
         shell: bash
         timeout-minutes: 15
         run: |
-          dotnet build "${{ inputs.project }}" -c Release --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false
-          dotnet build "${{ inputs.test }}" -c Release --no-restore -m:1 -p:UseSharedCompilation=false -p:BuildInParallel=false
+          # Build source solution first
+          dotnet build "${{ inputs.project }}" -c Release --no-restore -m
+          # Build test solution (will only build test projects as src is already built)
+          dotnet build "${{ inputs.test }}" -c Release --no-restore -m
 
       - name: Run all tests
         shell: bash
         timeout-minutes: 15
-        run: dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore --logger "trx" --results-directory "$TEST_RESULTS_DIR" --collect:"XPlat Code Coverage" -p:UseSharedCompilation=false
+        run: |
+          dotnet test "${{ inputs.test }}" --configuration Release --no-build --no-restore \
+            --logger "trx" --results-directory "$TEST_RESULTS_DIR" \
+            --collect:"XPlat Code Coverage" -m
 
       - name: Detect coverage reports
         id: coverage_files
