@@ -49,7 +49,9 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     private int _checkCounter;
 
     // The single, shared engine that handles ALL policies statelessly
+#pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly TokenBucketLimiter _shared;
+#pragma warning restore CA2213 // Disposable fields should be disposed
     private readonly ConcurrentDictionary<(int rps, double burst, int hardLockout, int maxVio), TokenBucketLimiter.RateLimitPolicy> _policyCache;
 
     /// <summary>
@@ -239,7 +241,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
             return;
         }
 
-        _shared.Dispose();
+        // Note: We do NOT dispose _shared here because it is a singleton managed by InstanceManager.
+        // It should only be disposed when the application shuts down or the manager disposes it.
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
         {

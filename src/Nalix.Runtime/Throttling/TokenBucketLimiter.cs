@@ -616,7 +616,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
             // Step 3: Check if we have at least one whole token (TokenScale units)
             if (this.CAN_CONSUME_TOKEN(state))
             {
-                return this.CONSUME_TOKEN_AN_DCREATE_DECISION(state);
+                return this.CONSUME_TOKEN_AND_CREATE_DECISION(state);
             }
 
             // Step 4: No tokens left - apply penalty or block
@@ -715,7 +715,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     private bool CAN_CONSUME_TOKEN(EndpointState state, in RateLimitPolicy policy) => state.MicroBalance >= policy.TokenScale;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private RateLimitDecision CONSUME_TOKEN_AN_DCREATE_DECISION(EndpointState state)
+    private RateLimitDecision CONSUME_TOKEN_AND_CREATE_DECISION(EndpointState state)
     {
         state.SoftViolations = 0;
         state.MicroBalance -= _options.TokenScale;
@@ -1493,7 +1493,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         }
 
         int toRemove = currentCount - _options.MaxTrackedEndpoints;
-        int removed = this.REMOVEO_LDEST_ENDPOINTS(toRemove, token);
+        int removed = this.REMOVE_OLDEST_ENDPOINTS(toRemove, token);
 
         if (removed > 0)
         {
@@ -1513,7 +1513,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// <param name="count"></param>
     /// <param name="cancellationToken"></param>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private int REMOVEO_LDEST_ENDPOINTS(
+    private int REMOVE_OLDEST_ENDPOINTS(
         int count,
         CancellationToken cancellationToken)
     {
@@ -1527,7 +1527,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
         try
         {
             candidates.Sort((a, b) => a.LastSeen.CompareTo(b.LastSeen));
-            return this.EVICT_OLD_ESTCANDIDATES(candidates, count, cancellationToken);
+            return this.EVICT_OLDEST_CANDIDATES(candidates, count, cancellationToken);
         }
         finally
         {
@@ -1583,7 +1583,7 @@ public sealed class TokenBucketLimiter : IDisposable, IAsyncDisposable, IReporta
     /// <param name="candidates"></param>
     /// <param name="count"></param>
     /// <param name="cancellationToken"></param>
-    private int EVICT_OLD_ESTCANDIDATES(
+    private int EVICT_OLDEST_CANDIDATES(
         List<(INetworkEndpoint Key, long LastSeen)> candidates,
         int count,
         CancellationToken cancellationToken)

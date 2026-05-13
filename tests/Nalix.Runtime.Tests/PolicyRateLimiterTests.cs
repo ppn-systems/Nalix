@@ -1,10 +1,7 @@
 using System;
-using System.Collections;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -17,96 +14,133 @@ using Xunit;
 
 namespace Nalix.Runtime.Tests;
 
-[SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
-public sealed class PolicyRateLimiterTests
+public sealed class PolicyRateLimiterTests : IDisposable
 {
-    private static readonly FieldInfo s_limitersField =
-        typeof(PolicyRateLimiter).GetField("_limiters", BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException("PolicyRateLimiter._limiters field was not found.");
+    private readonly PolicyRateLimiter _limiter;
+    private static int s_opCodeCounter = 0x5000;
+    private static int s_ipCounter = 1;
 
-    private static readonly MethodInfo s_evictStalePoliciesMethod =
-        typeof(PolicyRateLimiter).GetMethod("EVICT_STALE_POLICIES", BindingFlags.Instance | BindingFlags.NonPublic)
-        ?? throw new InvalidOperationException("PolicyRateLimiter.EVICT_STALE_POLICIES method was not found.");
+    private ushort NextOpCode() => (ushort)Interlocked.Increment(ref s_opCodeCounter);
+    private string NextIp() => $"127.0.0.{Interlocked.Increment(ref s_ipCounter)}";
 
-    //[Fact]
-    //public async Task Evaluate_UsesSeparateBucketsPerOpcode()
-    //{
-    //    using PolicyRateLimiter limiter = new();
-    //    using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-    //    using Connection connection = new(scope.ServerSocket);
-
-    //    PacketRateLimitAttribute rateLimit = new(requestsPerSecond: 1, burst: 1);
-    //    TestPacketContext contextA = new(connection, opCode: 0x1000, rateLimit);
-    //    TestPacketContext contextB = new(connection, opCode: 0x1001, rateLimit);
-
-    //    TokenBucketLimiter.RateLimitDecision firstA = limiter.Evaluate(0x1000, contextA);
-    //    TokenBucketLimiter.RateLimitDecision firstB = limiter.Evaluate(0x1001, contextB);
-    //    TokenBucketLimiter.RateLimitDecision secondA = limiter.Evaluate(0x1000, contextA);
-
-    //    firstA.Allowed.Should().BeTrue();
-    //    firstB.Allowed.Should().BeTrue();
-    //    secondA.Allowed.Should().BeTrue();
-    //}
-
-    [Fact]
-    public async Task Evaluate_StalePolicyEntry_IsEvictedBySweep()
+    public PolicyRateLimiterTests()
     {
-        using PolicyRateLimiter limiter = new();
-        using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
-
-        TestPacketContext context = new(connection, opCode: 0x2000, new PacketRateLimitAttribute(4, 1));
-        _ = limiter.Evaluate(0x2000, context);
-
-        object limiters = s_limitersField.GetValue(limiter)!;
-        PropertyInfo countProperty = limiters.GetType().GetProperty("Count")
-            ?? throw new InvalidOperationException("PolicyRateLimiter._limiters Count property was not found.");
-        PropertyInfo valuesProperty = limiters.GetType().GetProperty("Values")
-            ?? throw new InvalidOperationException("PolicyRateLimiter._limiters Values property was not found.");
-
-        countProperty.GetValue(limiters).Should().Be(1);
-
-        IEnumerable values = (IEnumerable)valuesProperty.GetValue(limiters)!;
-        object entry = values.Cast<object>().Single();
-        FieldInfo lastUsedTicksField = entry.GetType().GetField("_lastUsedUtcTicks", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new InvalidOperationException("PolicyRateLimiter.Entry._lastUsedUtcTicks field was not found.");
-        lastUsedTicksField.SetValue(entry, DateTime.UtcNow.AddHours(-1).Ticks);
-
-        _ = s_evictStalePoliciesMethod.Invoke(limiter, parameters: null);
-
-        countProperty.GetValue(limiters).Should().Be(0);
+        _limiter = new PolicyRateLimiter();
+        
+        // Isolate the test by using a fresh limiter engine instead of the shared singleton
+        var field = typeof(PolicyRateLimiter).GetField("_shared", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        field?.SetValue(_limiter, new TokenBucketLimiter());
     }
 
-    private sealed class TestPacketContext(Connection connection, ushort opCode, PacketRateLimitAttribute rateLimit) : IPacketContext<IPacket>
+    [Fact]
+    public async Task Evaluate_SeparatePolicies_ShouldUseSeparateBuckets()
+    {
+        using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
+        using var connection = new Connection(scope.ServerSocket);
+
+        ushort opA = NextOpCode();
+        ushort opB = NextOpCode();
+
+        var attrA = new PacketRateLimitAttribute(1, 1) { PolicyId = "PolicyA" };
+        var contextA = new TestPacketContext(connection, opA, attrA);
+
+        var attrB = new PacketRateLimitAttribute(1, 1) { PolicyId = "PolicyB" };
+        var contextB = new TestPacketContext(connection, opB, attrB);
+
+        _limiter.Evaluate(opA, contextA).Allowed.Should().BeTrue();
+        _limiter.Evaluate(opB, contextB).Allowed.Should().BeTrue();
+
+        _limiter.Evaluate(opA, contextA).Allowed.Should().BeFalse();
+        _limiter.Evaluate(opB, contextB).Allowed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Evaluate_SameIPDifferentOpCode_ShouldUseSeparateBuckets()
+    {
+        using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
+        using var connection = new Connection(scope.ServerSocket);
+
+        ushort op1 = NextOpCode();
+        ushort op2 = NextOpCode();
+
+        var attr = new PacketRateLimitAttribute(1, 1);
+        var context1 = new TestPacketContext(connection, op1, attr);
+        var context2 = new TestPacketContext(connection, op2, attr);
+
+        _limiter.Evaluate(op1, context1).Allowed.Should().BeTrue();
+        _limiter.Evaluate(op2, context2).Allowed.Should().BeTrue();
+        
+        _limiter.Evaluate(op1, context1).Allowed.Should().BeFalse();
+        _limiter.Evaluate(op2, context2).Allowed.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Evaluate_InvalidBurst_ShouldDenyRequest()
+    {
+        using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
+        using var connection = new Connection(scope.ServerSocket);
+
+        ushort op = NextOpCode();
+        var attr = new PacketRateLimitAttribute(10, 0); 
+        var context = new TestPacketContext(connection, op, attr);
+
+        var decision = _limiter.Evaluate(op, context);
+        decision.Allowed.Should().BeFalse();
+        decision.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.HardLockout);
+    }
+
+    [Fact]
+    public async Task Evaluate_NoRateLimitAttribute_ShouldAllowRequest()
+    {
+        using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
+        using var connection = new Connection(scope.ServerSocket);
+
+        ushort op = NextOpCode();
+        var context = new TestPacketContext(connection, op, null);
+
+        var decision = _limiter.Evaluate(op, context);
+        decision.Allowed.Should().BeTrue();
+        decision.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.None);
+    }
+
+    [Fact]
+    public void GenerateReport_ShouldContainSharedEngineInfo()
+    {
+        string report = _limiter.GenerateReport();
+        report.Should().Contain("PolicyRateLimiter Status");
+        report.Should().Contain("Shared TokenBucket Engine Report");
+    }
+
+    public void Dispose()
+    {
+        _limiter.Dispose();
+    }
+
+    private sealed class TestPacketContext(IConnection connection, ushort opCode, PacketRateLimitAttribute? rateLimit) : IPacketContext<IPacket>
     {
         public bool IsReliable => true;
-
         public bool SkipOutbound => false;
-
         public IPacket Packet { get; } = new TestPacket(opCode);
-
         public IConnection Connection { get; } = connection;
+        public PacketMetadata Attributes { get; } = new PacketMetadata(
+                new PacketOpcodeAttribute(opCode),
+                timeout: null,
+                permission: null,
+                encryption: null,
+                rateLimit: rateLimit,
+                concurrencyLimit: null,
+                transport: null);
 
-        public PacketMetadata Attributes { get; } =
-            new(new PacketOpcodeAttribute(opCode), timeout: null, permission: null, encryption: null, rateLimit, concurrencyLimit: null, transport: null);
-
-        public IPacketSender Sender => throw new NotSupportedException();
-
+        public IPacketSender Sender => null!;
         public CancellationToken CancellationToken => CancellationToken.None;
-
-        public void ResetForPool()
-        {
-        }
+        public void ResetForPool() { }
     }
 
     private sealed class TestPacket(ushort opCode) : IPacket
     {
         public int Length => 0;
-
         public PacketHeader Header { get; set; } = new PacketHeader { OpCode = opCode };
-
         public byte[] Serialize() => [];
-
         public int Serialize(Span<byte> buffer) => 0;
     }
 
@@ -120,22 +154,21 @@ public sealed class PolicyRateLimiterTests
         }
 
         public Socket ListenerSocket { get; }
-
         public Socket ClientSocket { get; }
-
         public Socket ServerSocket { get; }
 
-        public static async Task<ConnectedSocketScope> CreateAsync()
+        public static async Task<ConnectedSocketScope> CreateAsync(string address)
         {
+            var ip = IPAddress.Loopback;
             Socket listener = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            listener.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+            listener.Bind(new IPEndPoint(ip, 0));
             listener.Listen(1);
 
             int port = ((IPEndPoint)listener.LocalEndPoint!).Port;
             Task<Socket> acceptTask = Task.Run(() => listener.Accept());
 
             Socket client = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            await client.ConnectAsync(IPAddress.Loopback, port);
+            await client.ConnectAsync(ip, port);
 
             Socket server = await acceptTask;
             return new ConnectedSocketScope(listener, client, server);
@@ -149,17 +182,3 @@ public sealed class PolicyRateLimiterTests
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
