@@ -7,12 +7,14 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.Security.Hashing;
 using Nalix.Environment.Configuration;
 using Nalix.Runtime.Options;
 
@@ -239,8 +241,8 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     private readonly struct RateLimitSubject : INetworkEndpoint, IEquatable<RateLimitSubject>
     {
         private readonly ushort _op;
-        private readonly INetworkEndpoint _inner;
         private readonly string _ip;
+        private readonly INetworkEndpoint _inner;
 
         public RateLimitSubject(ushort op, INetworkEndpoint inner)
         {
@@ -254,7 +256,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         public bool HasPort => _inner.HasPort;
         public bool IsIPv6 => _inner.IsIPv6;
 
-        public override int GetHashCode() => HashCode.Combine(_op, _ip);
+        public override int GetHashCode() => ComputeHash(_op, _ip);
 
         public bool Equals(RateLimitSubject other) => _op == other._op && _ip == other._ip;
 
@@ -265,6 +267,21 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         public static bool operator !=(RateLimitSubject left, RateLimitSubject right) => !left.Equals(right);
 
         public override string ToString() => $"op:{_op:X4}|ip:{_ip}";
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        private static int ComputeHash(ushort op, string ip)
+        {
+            if (string.IsNullOrEmpty(ip))
+            {
+                return op; // fallback
+            }
+
+            ReadOnlySpan<byte> ipBytes = MemoryMarshal.AsBytes(ip.AsSpan());
+
+            uint hash = XxHash32.Compute(ipBytes, seed: op);
+
+            return (int)(hash & 0x7FFFFFFF);
+        }
     }
 
     private readonly struct CheckResult

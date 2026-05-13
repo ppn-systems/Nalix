@@ -7,6 +7,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Codec.Security.Hashing;
 
 namespace Nalix.Codec.DataFrames.Chunks;
 
@@ -148,7 +149,18 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public override int GetHashCode() => HashCode.Combine(StreamId, ChunkIndex, TotalChunks, Flags);
+    public override int GetHashCode()
+    {
+        Span<byte> buffer = stackalloc byte[7];
+
+        Unsafe.WriteUnaligned(ref buffer[0], StreamId);
+        Unsafe.WriteUnaligned(ref buffer[2], ChunkIndex);
+        Unsafe.WriteUnaligned(ref buffer[4], TotalChunks);
+
+        buffer[6] = Flags;
+
+        return (int)XxHash32.Compute(buffer);
+    }
 
     /// <inheritdoc/>
     public override string ToString() => $"Chunk(stream={StreamId}, {ChunkIndex}/{TotalChunks - 1}, last={this.IsLast})";

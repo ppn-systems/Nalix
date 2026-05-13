@@ -6,10 +6,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Codec.Security.Hashing;
 
 namespace Nalix.Network.RateLimiting;
 
@@ -35,7 +37,13 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
     {
         public static readonly IpComparer Instance = new();
         public bool Equals(uint x, uint y) => x == y;
-        public int GetHashCode(uint obj) => (int)obj;
+        public int GetHashCode(uint obj)
+        {
+            Span<byte> buffer = stackalloc byte[4];
+            Unsafe.WriteUnaligned(ref MemoryMarshal.GetReference(buffer), obj);
+
+            return (int)XxHash32.Compute(buffer);
+        }
     }
 
     // ── Use uint (raw IPv4 address bytes) as dictionary keys, avoiding IPAddress allocations ──
