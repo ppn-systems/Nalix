@@ -149,7 +149,7 @@ public sealed partial class DataFramesPublicApiTests
     public void HandshakeLengthWhenHandshakePayloadExistsMatchesActualSerializedBytes()
     {
         Handshake packet = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero, Bytes32.Zero, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
+        packet.TranscriptHash = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed([1, 2, 3, 4, 5]);
 
         byte[] bytes = packet.Serialize();
 
@@ -160,7 +160,7 @@ public sealed partial class DataFramesPublicApiTests
     public void HandshakeSerializeIntoLengthSizedBufferWhenHandshakePayloadExistsSucceeds()
     {
         Handshake packet = new(HandshakeStage.SERVER_HELLO, Bytes32.Zero, Bytes32.Zero, Bytes32.Zero, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        packet.UpdateTranscriptHash([1, 2, 3, 4, 5]);
+        packet.TranscriptHash = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed([1, 2, 3, 4, 5]);
 
         byte[] buffer = new byte[packet.Length];
         int written = packet.Serialize(buffer);
@@ -279,8 +279,8 @@ public sealed partial class DataFramesPublicApiTests
     {
         byte[] transcript = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-        Bytes32 first = Handshake.ComputeTranscriptHash(transcript);
-        Bytes32 second = Handshake.ComputeTranscriptHash(transcript);
+        Bytes32 first = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed(transcript);
+        Bytes32 second = Nalix.Codec.Security.Hashing.Keccak256.HashDataToFixed(transcript);
 
         Assert.Equal(first, second);
     }

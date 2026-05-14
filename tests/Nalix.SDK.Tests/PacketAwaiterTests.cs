@@ -1,15 +1,11 @@
 #if DEBUG
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Threading;
-using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
+using Nalix.Codec.DataFrames;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Internal;
-using Nalix.SDK.Transport.Extensions;
-using Nalix.Abstractions;
-using Xunit;
 using NSubstitute;
 
 namespace Nalix.SDK.Tests;
@@ -20,9 +16,9 @@ public sealed class PacketAwaiterTests
     public async Task AwaitAsync_WhenPredicateMatches_ReturnsPacket()
     {
         TransportSession session = Substitute.For<TransportSession>();
-        
+
         if (!PacketRegistry.IsBuilt)
-        Nalix.Codec.DataFrames.PacketRegistry.Build();
+            Nalix.Codec.DataFrames.PacketRegistry.Build();
         Nalix.Codec.DataFrames.SignalFrames.Control packet = new();
         var header = packet.Header;
         header.OpCode = 0x100;

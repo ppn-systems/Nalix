@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
-public sealed class PacketComplexCollectionsTests
+public sealed partial class PacketComplexCollectionsTests
 {
     [Fact]
     public void LengthAndSerialization_WithComplexCollections_MatchesSerializedData()
@@ -335,7 +335,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class ExtremeNestedPacket : PacketBase<ExtremeNestedPacket>
+    public sealed partial class ExtremeNestedPacket : PacketBase<ExtremeNestedPacket>
     {
         public List<Dictionary<string, List<int>>>? Data { get; set; }
         public static new ExtremeNestedPacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -343,7 +343,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class LargeDataPacket : PacketBase<LargeDataPacket>
+    public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
     {
         public List<string>? Payload { get; set; }
         public static new LargeDataPacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -351,7 +351,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class NullStressPacket : PacketBase<NullStressPacket>
+    public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
     {
         public List<string>? Items { get; set; }
         public static new NullStressPacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -359,7 +359,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class NestedCollectionPacket : PacketBase<NestedCollectionPacket>
+    public sealed partial class NestedCollectionPacket : PacketBase<NestedCollectionPacket>
     {
         public UserDetails? User { get; set; }
 
@@ -375,7 +375,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class GraphPacket : PacketBase<GraphPacket>
+    public sealed partial class GraphPacket : PacketBase<GraphPacket>
     {
         public string Name { get; set; } = string.Empty;
         public List<GraphPacket>? Nodes { get; set; }
@@ -391,7 +391,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
+    public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
     {
         [SerializeOrder(0)]
         public List<int>? IntList { get; set; }
@@ -413,7 +413,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class FloatStressPacket : PacketBase<FloatStressPacket>
+    public sealed partial class FloatStressPacket : PacketBase<FloatStressPacket>
     {
         public List<float>? Values { get; set; }
         public static new FloatStressPacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -421,7 +421,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class ObjectListPacket : PacketBase<ObjectListPacket>
+    public sealed partial class ObjectListPacket : PacketBase<ObjectListPacket>
     {
         public List<UserDetails?>? Users { get; set; }
         public static new ObjectListPacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -429,7 +429,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class DeepListPacket : PacketBase<DeepListPacket>
+    public sealed partial class DeepListPacket : PacketBase<DeepListPacket>
     {
         public List<List<List<string>>>? Matrix { get; set; }
         public static new DeepListPacket Deserialize(ReadOnlySpan<byte> buffer)
@@ -437,7 +437,7 @@ public sealed class PacketComplexCollectionsTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    public sealed class EnumListPacket : PacketBase<EnumListPacket>
+    public sealed partial class EnumListPacket : PacketBase<EnumListPacket>
     {
         public List<PacketPriority>? Priorities { get; set; }
         public static new EnumListPacket Deserialize(ReadOnlySpan<byte> buffer)
