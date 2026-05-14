@@ -114,7 +114,7 @@ Manual handler registrations override assembly-scanned registrations for the sam
 - `AddMetadataProvider<TProvider>()`: Registers a packet metadata provider.
 - `AddMetadataProvider<TProvider>(Func<TProvider> factory)`: Registers a metadata provider with a custom factory.
 - `ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>>)`: Configures the `PacketDispatchChannel` options, including middleware and custom logic for built-in and custom packet pipelines.
-- `ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>)`: Configures a custom `IPacketDispatch` implementation (e.g., `InlinePacketDispatcher`).
+- `ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>)`: Configures a custom `IPacketDispatch` implementation by providing a factory that receives the dispatch configuration.
 
 When dispatch is created, the builder applies logging first, then all `ConfigureDispatchOptions(...)` callbacks, then resolved handler registrations.
 
