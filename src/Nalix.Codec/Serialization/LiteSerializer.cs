@@ -872,7 +872,8 @@ public static class LiteSerializer
             Type t when t == typeof(TimeSpan[]) => GC.AllocateUninitializedArray<TimeSpan>(length),
             Type t when t == typeof(TimeOnly[]) => GC.AllocateUninitializedArray<TimeOnly>(length),
             Type t when t == typeof(DateTimeOffset[]) => GC.AllocateUninitializedArray<DateTimeOffset>(length),
-            _ => throw new SerializationFailureException($"AOT array allocation is not registered for '{typeof(T).FullName}'.")
+            _ => Array.CreateInstance(typeof(T).GetElementType()
+                ?? throw new SerializationFailureException($"Type '{typeof(T).FullName}' is not an array."), length)
         };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
