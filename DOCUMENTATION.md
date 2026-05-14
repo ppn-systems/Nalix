@@ -25,7 +25,7 @@ High-performance transport and application hosting layers.
 | Module | Description | Guide |
 | :--- | :--- | :---: |
 | **Nalix.Network** | Transport runtime: TCP/UDP listeners, connection management, and session persistence. | [Read →](./docs/packages/nalix-network.md) |
-| **Nalix.Network.Hosting** | Fluent bootstrap: Microsoft-style host/builder APIs and managed lifecycle. | [Read →](./docs/packages/nalix-network-hosting.md) |
+| **Nalix.Hosting** | Fluent bootstrap: Microsoft-style host/builder APIs and managed lifecycle. | [Read →](./docs/packages/nalix-network-hosting.md) |
 
 ### 🛠️ Utilities & Tooling
 
@@ -64,7 +64,6 @@ Nalix is designed for latency-sensitive workloads. For detailed performance repo
 | Document | Description |
 | :--- | :--- |
 | [README.md](./README.md) | Project overview and introduction. |
-| [CHANGELOG.md](./CHANGELOG.md) | Version history and release notes. |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Development workflow and PR guidelines. |
 | [SECURITY.md](./SECURITY.md) | Vulnerability reporting and supported versions. |
 | [AGENTS.md](./.github/AGENTS.md) | Instructions for AI agents working in this repo. |
