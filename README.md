@@ -1,20 +1,20 @@
 <p align="center">
-  <img src="docs/assets/!/banner.svg" alt="Nalix Banner" width="100%">
+  <img src="docs/assets/!/banner.svg" alt="nalix Banner" width="100%">
   <img src="docs/assets/!/claude.svg" alt="Claude Code mascot jumping" width="120" height="100"><br>
 </p>
 
 <p align="center">
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-10.0-blueviolet?logo=dotnet&logoColor=white" alt=".NET"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/Nalix?style=flat-square" alt="License"></a>
-  <a href="https://www.nuget.org/packages/Nalix.Common"><img src="https://img.shields.io/nuget/v/Nalix.Common?style=flat-square&logo=nuget&label=NuGet" alt="NuGet"></a>
-  <a href="https://www.nuget.org/packages/Nalix.Common"><img src="https://img.shields.io/nuget/dt/Nalix.Common?style=flat-square&logo=nuget&label=Downloads" alt="Downloads"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/ppn-systems/nalix?style=flat-square" alt="License"></a>
+  <a href="https://www.nuget.org/packages/Nalix.Network"><img src="https://img.shields.io/nuget/v/Nalix.Network?style=flat-square&logo=nuget&label=NuGet" alt="NuGet"></a>
+  <a href="https://www.nuget.org/packages/Nalix.Network"><img src="https://img.shields.io/nuget/dt/Nalix.Network?style=flat-square&logo=nuget&label=Downloads" alt="Downloads"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/ppn-systems/Nalix/issues"><img src="https://img.shields.io/github/issues/ppn-systems/Nalix?style=flat-square" alt="Issues"></a>
-  <a href="https://github.com/ppn-systems/Nalix/pulls"><img src="https://img.shields.io/github/issues-pr/ppn-systems/Nalix?style=flat-square" alt="PRs"></a>
-  <a href="https://github.com/ppn-systems/Nalix"><img src="https://img.shields.io/github/repo-size/ppn-systems/Nalix?style=flat-square" alt="Repo Size"></a>
-  <a href="https://github.com/ppn-systems/Nalix/commits/master"><img src="https://img.shields.io/github/commit-activity/m/ppn-systems/Nalix?style=flat-square&logo=github" alt="Commit Activity"></a>
+  <a href="https://github.com/ppn-systems/nalix/issues"><img src="https://img.shields.io/github/issues/ppn-systems/nalix?style=flat-square" alt="Issues"></a>
+  <a href="https://github.com/ppn-systems/nalix/pulls"><img src="https://img.shields.io/github/issues-pr/ppn-systems/nalix?style=flat-square" alt="PRs"></a>
+  <a href="https://github.com/ppn-systems/nalix"><img src="https://img.shields.io/github/repo-size/ppn-systems/nalix?style=flat-square" alt="Repo Size"></a>
+  <a href="https://github.com/ppn-systems/nalix/commits/master"><img src="https://img.shields.io/github/commit-activity/m/ppn-systems/nalix?style=flat-square&logo=github" alt="Commit Activity"></a>
 </p>
 
 <p align="center">
@@ -33,8 +33,8 @@
 
 | Platform | Status |
 | :--- | :--- |
-| ![Linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange) | [![CI](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-linux.yml) |
-| ![Windows](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1) | [![CI](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/Nalix/actions/workflows/ci-windows.yml) |
+| ![Linux](https://badgen.net/badge/icon/Ubuntu%20Linux%2022.04%20x64?icon=terminal&label&color=orange) | [![CI](https://github.com/ppn-systems/nalix/actions/workflows/ci-linux.yml/badge.svg?event=push)](https://github.com/ppn-systems/nalix/actions/workflows/ci-linux.yml) |
+| ![Windows](https://badgen.net/badge/icon/Windows,.NET%2010?icon=windows&label&list=1) | [![CI](https://github.com/ppn-systems/nalix/actions/workflows/ci-windows.yml/badge.svg?event=push)](https://github.com/ppn-systems/nalix/actions/workflows/ci-windows.yml) |
 
 ---
 
