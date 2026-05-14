@@ -1,17 +1,13 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Formatter;
-using Nalix.Codec.DataFrames.Internal;
-using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
@@ -23,26 +19,8 @@ namespace Nalix.Codec.DataFrames.SignalFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, IPacketValidatable
 {
-    /// <summary>
-    /// Default dynamic size hint used for fixed-width handshake fields.
-    /// </summary>
-    [SerializeIgnore]
-    public const int DynamicSize = 32;
-
-    /// <inheritdoc/>
-    [SerializeIgnore]
-    public static int Size { get; } =
-        PacketConstants.HeaderSize +
-        sizeof(HandshakeStage) +    // Stage
-        sizeof(ProtocolReason) +    // Reason
-        Bytes32.Size +             // PublicKey
-        Bytes32.Size +             // Nonce
-        Bytes32.Size +             // Proof
-        Bytes32.Size +             // TranscriptHash
-        ISnowflake.Size;             // SessionToken
-
     /// <summary>
     /// Stages the current phase of the handshake process.
     /// </summary>
@@ -130,7 +108,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         Bytes32? proof = null,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = OpCodeCache.Handshake;
+        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = stage;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
@@ -148,7 +126,7 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
     /// </summary>
     public void InitializeError(ProtocolReason reason, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = OpCodeCache.Handshake;
+        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = HandshakeStage.ERROR;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
@@ -192,22 +170,6 @@ public sealed class Handshake : PacketBase<Handshake>, IFixedSizeSerializable, I
         failureReason = null;
         return true;
     }
-
-    /// <summary>
-    /// Computes the Keccak-256 transcript hash for the provided bytes.
-    /// </summary>
-    /// <param name="transcript">Handshake transcript bytes.</param>
-    /// <returns>A 32-byte Keccak-256 hash.</returns>
-    [return: NotNull]
-    public static Bytes32 ComputeTranscriptHash(ReadOnlySpan<byte> transcript)
-        => Keccak256.HashDataToFixed(transcript);
-
-    /// <summary>
-    /// Recomputes and stores the Keccak-256 transcript hash for this packet.
-    /// </summary>
-    /// <param name="transcript">Handshake transcript bytes.</param>
-    public void UpdateTranscriptHash(ReadOnlySpan<byte> transcript)
-        => this.TranscriptHash = ComputeTranscriptHash(transcript);
 
     /// <summary>
     /// Returns a compact debug representation of this handshake packet.

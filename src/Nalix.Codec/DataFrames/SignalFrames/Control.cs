@@ -19,16 +19,8 @@ namespace Nalix.Codec.DataFrames.SignalFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IFixedSizeSerializable
+public sealed partial class Control : PacketBase<Control>, IPacketTimestamped, IPacketReasoned, IFixedSizeSerializable
 {
-    /// <inheritdoc/>
-    [SerializeIgnore]
-    public static int Size { get; } = PacketConstants.HeaderSize
-        + sizeof(ProtocolReason)
-        + sizeof(ControlType)
-        + sizeof(long)
-        + sizeof(long);
-
     /// <summary>
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>

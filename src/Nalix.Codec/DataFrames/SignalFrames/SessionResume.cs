@@ -3,37 +3,14 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Formatter;
-using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
-
-/// <summary>
-/// Identifies the stage of a session management operation.
-/// </summary>
-public enum SessionResumeStage : byte
-{
-    /// <summary>
-    /// No session stage assigned.
-    /// </summary>
-    NONE = 0x00,
-
-    /// <summary>
-    /// Client requests to resume a session.
-    /// </summary>
-    REQUEST = 0x01,
-
-    /// <summary>
-    /// Server responds to a resume request.
-    /// </summary>
-    RESPONSE = 0x02
-}
 
 /// <summary>
 /// Represents a unified signal packet for session management operations.
@@ -43,16 +20,8 @@ public enum SessionResumeStage : byte
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_SIGNAL Stage={Stage}, Token={SessionToken}, Reason={Reason}")]
-public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable
 {
-    /// <inheritdoc/>
-    [SerializeIgnore]
-    public static int Size { get; } = PacketConstants.HeaderSize
-        + sizeof(SessionResumeStage)
-        + ISnowflake.Size
-        + sizeof(ProtocolReason)
-        + 32; // Proof (HMAC-SHA256)
-
     /// <summary>
     /// Gets or sets the current stage of the session operation.
     /// </summary>
@@ -77,7 +46,6 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     [SerializeOrder(3)]
     public Bytes32 Proof { get; set; }
 
-
     /// <summary>
     /// Registers the <see cref="SessionResumeFormatter"/> to optimize serialization performance.
     /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
@@ -94,7 +62,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     /// </summary>
     public void Initialize(SessionResumeStage stage, ulong sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = OpCodeCache.SessionSignal;
+        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.Stage = stage;
@@ -107,7 +75,7 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = OpCodeCache.SessionSignal;
+        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
         this.Priority = PacketPriority.URGENT;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = SessionResumeStage.NONE;
@@ -138,4 +106,25 @@ public sealed class SessionResume : PacketBase<SessionResume>, IFixedSizeSeriali
         failureReason = null;
         return true;
     }
+}
+
+/// <summary>
+/// Identifies the stage of a session management operation.
+/// </summary>
+public enum SessionResumeStage : byte
+{
+    /// <summary>
+    /// No session stage assigned.
+    /// </summary>
+    NONE = 0x00,
+
+    /// <summary>
+    /// Client requests to resume a session.
+    /// </summary>
+    REQUEST = 0x01,
+
+    /// <summary>
+    /// Server responds to a resume request.
+    /// </summary>
+    RESPONSE = 0x02
 }

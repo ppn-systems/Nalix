@@ -4,16 +4,13 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
-using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Serialization;
 
@@ -30,7 +27,7 @@ namespace Nalix.Codec.DataFrames;
 /// <typeparam name="TSelf">The concrete packet type.</typeparam>
 [Packet]
 public abstract class PacketBase<
-    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TSelf> : FrameBase, IPoolable, IPoolRentable, IReportable, IPacketDeserializer<TSelf>, IDisposable where TSelf : PacketBase<TSelf>, new()
+    [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.All)] TSelf> : FrameBase, IPoolable, IPoolRentable, IPacketDeserializer<TSelf>, IDisposable where TSelf : PacketBase<TSelf>, new()
 {
     #region Fields
 
@@ -49,22 +46,10 @@ public abstract class PacketBase<
     /// Assigns the automatically derived <see cref="FrameBase.Header"/>.MagicNumber
     /// so that every packet is self-identifying on the wire without any attribute.
     /// </summary>
-    protected PacketBase() => this.MagicNumber = PacketTypeCache<TSelf>.AutoMagic;
+    protected PacketBase() => this.MagicNumber = PacketSchema<TSelf>.AutoMagic;
 
     #endregion Constructor
 
-    #region Length
-
-    /// <inheritdoc/>
-    [SkipClean]
-    [SerializeIgnore]
-    public override int Length
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => PacketTypeCache<TSelf>.GetLength((TSelf)this);
-    }
-
-    #endregion Length
 
     #region APIs
 
@@ -72,12 +57,7 @@ public abstract class PacketBase<
     /// <exception cref="SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override byte[] Serialize()
-    {
-        byte[] buffer = new byte[this.Length];
-        int written = this.Serialize(buffer);
-        return written == buffer.Length ? buffer : buffer.AsSpan(0, written).ToArray();
-    }
+    public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
@@ -164,25 +144,13 @@ public abstract class PacketBase<
     [EditorBrowsable(EditorBrowsableState.Never)]
     public override void ResetForPool()
     {
-        // Reset all user-defined serializable properties via compiled delegates.
-        // No GetCustomAttribute calls in this path.
-        foreach (PropertyMetadata meta in PacketTypeCache<TSelf>.Metadata)
-        {
-            if (meta.IsWritable)
-            {
-                meta.SetValue(this, meta.DefaultValue);
-            }
-        }
-
-        // Explicitly reset all FrameBase header fields to well-known defaults.
-        // These are declared in the base class so _metadata may or may not include them
-        // depending on whether SerializeOrder is defined — reset them unconditionally.
+        // Reset all FrameBase header fields to well-known defaults.
         this.SequenceId = 0;
         this.Flags = PacketFlags.SYSTEM;
         this.Priority = PacketPriority.NONE;
 
-        // Restore type identity — never reset to 0.
-        this.MagicNumber = PacketTypeCache<TSelf>.AutoMagic;
+        // Restore type identity.
+        this.MagicNumber = PacketSchema<TSelf>.AutoMagic;
     }
 
     /// <inheritdoc/>
@@ -223,51 +191,6 @@ public abstract class PacketBase<
 
     #region Diagnostics
 
-    /// <summary>
-    /// Returns a debug-friendly description of this packet's metadata.
-    /// Not intended for production logging — allocates strings.
-    /// </summary>
-    /// <exception cref="FormatException">Thrown when diagnostic formatting of packet metadata fails.</exception>
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public string GenerateReport()
-    {
-        StringBuilder sb = new(128);
-
-        _ = sb.AppendLine(
-            CultureInfo.InvariantCulture,
-            $"[{typeof(TSelf).Name}] s_autoMagic=0x{PacketTypeCache<TSelf>.AutoMagic:X8} StaticSize={PacketTypeCache<TSelf>.StaticSize} " +
-            $"Properties={PacketTypeCache<TSelf>.All.Length} DynamicGetters={PacketTypeCache<TSelf>.SizeGettersCount}");
-
-        foreach (PropertyMetadata meta in PacketTypeCache<TSelf>.All)
-        {
-            _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  {meta}");
-        }
-
-        return sb.ToString();
-    }
-
-    /// <inheritdoc/>
-    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
-    {
-        ArgumentNullException.ThrowIfNull(writer);
-
-        writer.WriteStartObject();
-        writer.WriteString("TypeName", typeof(TSelf).Name);
-        writer.WriteString("AutoMagic", $"0x{PacketTypeCache<TSelf>.AutoMagic:X8}");
-        writer.WriteString("StaticSize", PacketTypeCache<TSelf>.StaticSize.ToString(CultureInfo.InvariantCulture));
-        writer.WriteNumber("PropertiesCount", PacketTypeCache<TSelf>.All.Length);
-        writer.WriteNumber("DynamicGettersCount", PacketTypeCache<TSelf>.SizeGettersCount);
-
-        writer.WriteStartArray("Properties");
-        foreach (PropertyMetadata meta in PacketTypeCache<TSelf>.All)
-        {
-            writer.WriteStringValue(meta.ToString());
-        }
-        writer.WriteEndArray();
-
-        writer.WriteEndObject();
-    }
-
     /// <inheritdoc/>
     public override string ToString() =>
         $"{typeof(TSelf).Name}(Magic=0x{this.Header.MagicNumber:X8}, OpCode={this.Header.OpCode}, Flags={this.Header.Flags}, Priority={this.Header.Priority}, SequenceId={this.Header.SequenceId})";
@@ -284,17 +207,17 @@ public abstract class PacketBase<
             throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
         }
 
-        if (buffer.Length < PacketTypeCache<TSelf>.StaticSize)
+        if (buffer.Length < PacketSchema<TSelf>.StaticSize)
         {
             throw new SerializationFailureException(
-                $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={PacketTypeCache<TSelf>.StaticSize}.");
+                $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={PacketSchema<TSelf>.StaticSize}.");
         }
 
         ref readonly PacketHeader header = ref buffer.AsHeaderRef();
-        if (header.MagicNumber != PacketTypeCache<TSelf>.AutoMagic)
+        if (header.MagicNumber != PacketSchema<TSelf>.AutoMagic)
         {
             throw new SerializationFailureException(
-                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{header.MagicNumber:X8}, expected=0x{PacketTypeCache<TSelf>.AutoMagic:X8}. " +
+                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{header.MagicNumber:X8}, expected=0x{PacketSchema<TSelf>.AutoMagic:X8}. " +
                 "The received packet type does not match the target deserialization type.");
         }
     }
