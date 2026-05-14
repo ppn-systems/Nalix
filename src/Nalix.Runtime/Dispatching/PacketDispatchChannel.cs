@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,11 +17,13 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Routing;
+using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Routing;
 
 namespace Nalix.Runtime.Dispatching;
@@ -63,11 +66,8 @@ public sealed class PacketDispatchChannel
     /// <param name="options">Option builder.</param>
     public PacketDispatchChannel(Action<PacketDispatchOptions<IPacket>> options) : base(options)
     {
-
         _dispatch = new DispatchChannel<IPacket>();
-
         _wakeSignal = new SemaphoreSlim(0, int.MaxValue);
-
         _maxDrainPerWake = Math.Clamp(System.Environment.ProcessorCount * this.Options.MaxDrainPerWakeMultiplier, this.Options.MinDrainPerWake, this.Options.MaxDrainPerWake);
     }
 
@@ -472,27 +472,56 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
-        // 1. Acquire pooled packet via registry (zero alloc)
-        // If TryDeserialize fails, the packet is already handled.
-        if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? packet) || packet is null)
+        // 1. Read the packet header directly from the raw span to determine routing
+        PacketHeader header = MemoryMarshal.Read<PacketHeader>(lease.Span);
+
+        // 2. Resolve the handler using the parsed opcode
+        if (!this.Options.TryResolveHandler(header.OpCode, out PacketHandler<IPacket> handler))
         {
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+            {
+                connection.ThrottledWarn(
+                    this.Logging,
+                    "dispatch.execute",
+                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] no-handler opcode={header.OpCode}");
+            }
+
             lease.Dispose();
             connection.IncrementErrorCount();
-
             return ValueTask.CompletedTask;
+        }
+
+        IPacket packet;
+
+        // 3. Bypass deserialization if the handler expects raw memory
+        if (handler.ExpectedPacketType == typeof(MemoryPacket))
+        {
+            packet = new MemoryPacket(lease.Memory, header);
+        }
+        else
+        {
+            // 4. Normal deserialization fallback for structured packets
+            if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? deserialized) || deserialized is null)
+            {
+                lease.Dispose();
+                connection.IncrementErrorCount();
+                return ValueTask.CompletedTask;
+            }
+
+            packet = deserialized;
         }
 
         try
         {
             /*
              * [Packet Handler Execution]
-             * 1. Attempt to execute the handler.
+             * 1. Attempt to execute the resolved handler.
              * 2. If it completes synchronously, we can dispose resources immediately.
              * 3. If it's asynchronous, we hand off to AwaitPacketHandlerCompletionAsync.
              */
-            ValueTask pending = this.ExecutePacketHandlerAsync(packet, connection, ct);
+            ValueTask pending = this.Options.ExecuteResolvedHandlerAsync(in handler, packet, connection, ct);
 
-            // 3. Fast-path: handler completed synchronously
+            // Fast-path: handler completed synchronously
             if (pending.IsCompletedSuccessfully)
             {
                 if (packet is IDisposable disposable)
@@ -504,7 +533,7 @@ public sealed class PacketDispatchChannel
                 return ValueTask.CompletedTask;
             }
 
-            // 4. Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
+            // Slow-path: async completion (AwaitDispatchAsync handles Return/Dispose)
             return AwaitPacketHandlerCompletionAsync(this, connection, lease, packet, pending, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -514,9 +543,13 @@ public sealed class PacketDispatchChannel
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             connection.IncrementErrorCount();
+
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
             {
-                this.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                connection.ThrottledError(
+                    this.Logging,
+                    "dispatch.execute",
+                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
             }
         }
 
@@ -547,7 +580,10 @@ public sealed class PacketDispatchChannel
             connection.IncrementErrorCount();
             if (owner.Logging != null && owner.Logging.IsEnabled(LogLevel.Error))
             {
-                owner.Logging.LogError(ex, $"[{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                connection.ThrottledError(
+                    owner.Logging,
+                    "dispatch.execute",
+                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
             }
         }
         finally

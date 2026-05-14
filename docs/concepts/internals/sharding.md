@@ -79,7 +79,7 @@ using Nalix.Hosting;
 
 var builder = NetworkApplication.CreateBuilder();
 
-builder.ConfigureDispatch(options =>
+builder.ConfigureDispatchOptions(options =>
 {
     // 1. Core Affinity: Match physical cores to avoid context switching
     options.WithDispatchLoopCount(Environment.ProcessorCount / 2);
@@ -196,7 +196,7 @@ Register a global observer to capture exceptions that escape handler logic befor
 using Nalix.Hosting;
 using Nalix.Abstractions.Networking.Packets;
 
-builder.ConfigureDispatch(options =>
+builder.ConfigureDispatchOptions(options =>
 {
     options.WithErrorHandling((exception, opCode) => 
     {

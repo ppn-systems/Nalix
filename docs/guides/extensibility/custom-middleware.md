@@ -92,13 +92,13 @@ public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
 
 ## Step 2. Register middleware in the host dispatch
 
-Middleware is registered fluently during server setup using the `ConfigureDispatch` method.
+Middleware is registered fluently during server setup using the `ConfigureDispatchOptions` method.
 
 ```csharp
 using Nalix.Hosting;
 
 using NetworkApplication app = NetworkApplication.CreateBuilder()
-    .ConfigureDispatch(options =>
+    .ConfigureDispatchOptions(options =>
     {
         _ = options.WithMiddleware(new SessionAuthorizationMiddleware());
     })

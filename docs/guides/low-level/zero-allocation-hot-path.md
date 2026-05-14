@@ -189,6 +189,28 @@ public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 }
 ```
 
+### Pattern: The Ultra Hot-Path (Zero Deserialization)
+
+For packets where even the cost of bit-blitting deserialization is too high (e.g., streaming media, encrypted proxy traffic), you can bypass the `PacketRegistry` entirely by accepting raw memory.
+
+```csharp
+[PacketOpcode(0x7001)]
+public ValueTask HandleRawData(ReadOnlyMemory<byte> memory, IConnection connection)
+{
+    // 'memory' points directly to the pooled IBufferLease.Span
+    // No deserialization, no object allocation, no magic number check.
+    var rawSpan = memory.Span;
+    
+    // Process raw bytes directly
+    Process(rawSpan);
+    
+    return ValueTask.CompletedTask;
+}
+```
+
+!!! important "Security vs Performance"
+    Bypassing deserialization also bypasses the framework's built-in magic number and checksum validation. Use this only for internal or already-authenticated streams.
+
 ---
 
 ## 5. Zero-Allocation Error Handling
@@ -202,7 +224,7 @@ Instead of per-packet `try-catch` blocks in your handlers, use the global observ
 ```csharp
 using Nalix.Hosting;
 
-builder.ConfigureDispatch(options =>
+builder.ConfigureDispatchOptions(options =>
 {
     options.WithErrorHandling((exception, opCode) => 
     {
@@ -255,7 +277,7 @@ Nalix maps connection traffic to worker loops based on the connection's identity
 2. **Parallelism**: Different connections are spread across all available CPU cores.
 
 ```csharp
-builder.ConfigureDispatch(options => {
+builder.ConfigureDispatchOptions(options => {
     // Match shards to CPU cores (default: Environment.ProcessorCount)
     options.WithDispatchLoopCount(Environment.ProcessorCount);
     
@@ -306,7 +328,7 @@ In a high-performance hot path, traditional `try-catch` blocks in every handler 
 Register a global observer to track handler failures without heap allocations:
 
 ```csharp
-builder.ConfigureDispatch(options =>
+builder.ConfigureDispatchOptions(options =>
 {
     options.WithErrorHandling((exception, opCode) => 
     {

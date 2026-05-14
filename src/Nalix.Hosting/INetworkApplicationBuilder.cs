@@ -70,11 +70,18 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureCertificate(string certificatePath);
 
     /// <summary>
-    /// Configures the packet dispatcher used by the host.
+    /// Configures the options for the packet dispatcher.
     /// </summary>
     /// <param name="configure">The callback used to configure dispatcher options.</param>
     /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure);
+    INetworkApplicationBuilder ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>> configure);
+
+    /// <summary>
+    /// Configures the host to use a custom packet dispatcher.
+    /// </summary>
+    /// <param name="factory">A factory delegate that receives the compiled dispatch options configuration and returns an <see cref="IPacketDispatch"/>.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory);
 
     /// <summary>
     /// Scans the specified assembly for packet controller types and registers them.

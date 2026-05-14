@@ -103,7 +103,7 @@ is not continued.
 ## Registration
 
 ```csharp
-builder.ConfigureDispatch(options =>
+builder.ConfigureDispatchOptions(options =>
 {
     options.WithMiddleware(new PermissionMiddleware());
 });

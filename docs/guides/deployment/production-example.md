@@ -116,7 +116,7 @@ using var app = NetworkApplication.CreateBuilder()
     // 2. Add Handlers (resolved via InstanceManager)
     .ScanHandlers<DataHandlers>()
     // 3. Configure Dispatch Middleware
-    .ConfigureDispatch(dispatch => {
+    .ConfigureDispatchOptions(dispatch => {
         dispatch.WithLogging(logger)
                 .WithMiddleware(new ConcurrencyMiddleware())
                 .WithErrorHandling((ex, cmd) => logger.Error("Unhandled!", ex));
