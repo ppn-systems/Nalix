@@ -154,6 +154,18 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         /// The dispatcher will perform a runtime type-check and cast before invoking.
         /// </summary>
         LegacyConcreteWithToken = 5,
+
+        /// <summary>
+        /// (ReadOnlyMemory&lt;byte&gt;, IConnection)
+        /// Extracts raw memory payload from RawMemoryPacket.
+        /// </summary>
+        MemoryNoToken = 6,
+
+        /// <summary>
+        /// (ReadOnlyMemory&lt;byte&gt;, IConnection, CancellationToken)
+        /// Extracts raw memory payload from RawMemoryPacket.
+        /// </summary>
+        MemoryWithToken = 7,
     }
 
     [StackTraceHidden]
@@ -370,6 +382,33 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                         $"Found {parms.Length} parameter(s).");
         }
 
+        // ---- new-style: raw memory payload ----
+        if (parms.Length >= 1 && parms[0].ParameterType == typeof(ReadOnlyMemory<byte>))
+        {
+            if (parms.Length < 2 || !typeof(IConnection).IsAssignableFrom(parms[1].ParameterType))
+            {
+                throw new InternalErrorException(
+                    $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                    "raw memory signature requires (ReadOnlyMemory<byte>, IConnection[, CancellationToken]). " +
+                    "Second parameter must implement IConnection.");
+            }
+
+            if (parms.Length == 2)
+            {
+                return SignatureKind.MemoryNoToken;
+            }
+
+            if (parms.Length == 3 && parms[2].ParameterType == typeof(CancellationToken))
+            {
+                return SignatureKind.MemoryWithToken;
+            }
+
+            throw new InternalErrorException(
+                $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
+                "raw memory signature only supports 2 or 3 parameters " +
+                $"(ReadOnlyMemory<byte>, IConnection[, CancellationToken]). Found {parms.Length}.");
+        }
+
         // ---- legacy-style: first param must implement IPacket ----
         if (parms.Length >= 1 && typeof(IPacket).IsAssignableFrom(parms[0].ParameterType))
         {
@@ -417,7 +456,9 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             "(TConcretePacket, IConnection), " +
             "(TConcretePacket, IConnection, CancellationToken), " +
             "(PacketContext<T>), " +
-            "(PacketContext<T>, CancellationToken).");
+            "(PacketContext<T>, CancellationToken), " +
+            "(ReadOnlyMemory<byte>, IConnection), " +
+            "(ReadOnlyMemory<byte>, IConnection, CancellationToken).");
     }
 
     /// <summary>
@@ -551,6 +592,30 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     return [pktArg, connArg, ctExpr];
                 }
 
+            case SignatureKind.MemoryNoToken:
+                {
+                    Type connType = parms[1].ParameterType;
+                    Expression rawMemArg = Expression.Property(Expression.Convert(packetExpr, typeof(MemoryPacket)), nameof(MemoryPacket.Memory));
+
+                    Expression connArg = connType == typeof(IConnection)
+                        ? connectionExpr
+                        : System.Linq.Expressions.Expression.Convert(connectionExpr, connType);
+
+                    return [rawMemArg, connArg];
+                }
+
+            case SignatureKind.MemoryWithToken:
+                {
+                    Type connType = parms[1].ParameterType;
+                    Expression rawMemArg = Expression.Property(Expression.Convert(packetExpr, typeof(MemoryPacket)), nameof(MemoryPacket.Memory));
+
+                    Expression connArg = connType == typeof(IConnection)
+                        ? connectionExpr
+                        : System.Linq.Expressions.Expression.Convert(connectionExpr, connType);
+
+                    return [rawMemArg, connArg, ctExpr];
+                }
+
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
         }
@@ -638,8 +703,75 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
             SignatureKind.LegacyConcreteWithToken => BUILD_LEGACY_INVOKER(method, parms, withToken: true),
 
+            SignatureKind.MemoryNoToken => BUILD_RAW_MEMORY_INVOKER(method, isVoid, withToken: false),
+
+            SignatureKind.MemoryWithToken => BUILD_RAW_MEMORY_INVOKER(method, isVoid, withToken: true),
+
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
         };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private static Func<object, PacketContext<TPacket>, object> BUILD_RAW_MEMORY_INVOKER(MethodInfo method, bool isVoid, bool withToken)
+    {
+        if (method.IsStatic)
+        {
+            if (!withToken)
+            {
+                if (isVoid)
+                {
+                    Action<ReadOnlyMemory<byte>, IConnection> invoker = method.CreateDelegate<Action<ReadOnlyMemory<byte>, IConnection>>();
+                    return (_, context) => { invoker(((MemoryPacket)(object)context.Packet!).Memory, context.Connection); return null!; };
+                }
+                else
+                {
+                    Func<ReadOnlyMemory<byte>, IConnection, object> invoker = method.CreateDelegate<Func<ReadOnlyMemory<byte>, IConnection, object>>();
+                    return (_, context) => invoker(((MemoryPacket)(object)context.Packet!).Memory, context.Connection);
+                }
+            }
+            else
+            {
+                if (isVoid)
+                {
+                    Action<ReadOnlyMemory<byte>, IConnection, CancellationToken> invoker = method.CreateDelegate<Action<ReadOnlyMemory<byte>, IConnection, CancellationToken>>();
+                    return (_, context) => { invoker(((MemoryPacket)(object)context.Packet!).Memory, context.Connection, context.CancellationToken); return null!; };
+                }
+                else
+                {
+                    Func<ReadOnlyMemory<byte>, IConnection, CancellationToken, object> invoker = method.CreateDelegate<Func<ReadOnlyMemory<byte>, IConnection, CancellationToken, object>>();
+                    return (_, context) => invoker(((MemoryPacket)(object)context.Packet!).Memory, context.Connection, context.CancellationToken);
+                }
+            }
+        }
+        else
+        {
+            if (!withToken)
+            {
+                if (isVoid)
+                {
+                    Action<TController, ReadOnlyMemory<byte>, IConnection> invoker = method.CreateDelegate<Action<TController, ReadOnlyMemory<byte>, IConnection>>();
+                    return (instance, context) => { invoker((TController)instance, ((MemoryPacket)(object)context.Packet!).Memory, context.Connection); return null!; };
+                }
+                else
+                {
+                    Func<TController, ReadOnlyMemory<byte>, IConnection, object> invoker = method.CreateDelegate<Func<TController, ReadOnlyMemory<byte>, IConnection, object>>();
+                    return (instance, context) => invoker((TController)instance, ((MemoryPacket)(object)context.Packet!).Memory, context.Connection);
+                }
+            }
+            else
+            {
+                if (isVoid)
+                {
+                    Action<TController, ReadOnlyMemory<byte>, IConnection, CancellationToken> invoker = method.CreateDelegate<Action<TController, ReadOnlyMemory<byte>, IConnection, CancellationToken>>();
+                    return (instance, context) => { invoker((TController)instance, ((MemoryPacket)(object)context.Packet!).Memory, context.Connection, context.CancellationToken); return null!; };
+                }
+                else
+                {
+                    Func<TController, ReadOnlyMemory<byte>, IConnection, CancellationToken, object> invoker = method.CreateDelegate<Func<TController, ReadOnlyMemory<byte>, IConnection, CancellationToken, object>>();
+                    return (instance, context) => invoker((TController)instance, ((MemoryPacket)(object)context.Packet!).Memory, context.Connection, context.CancellationToken);
+                }
+            }
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
