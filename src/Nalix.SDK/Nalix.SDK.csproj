@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -11,9 +11,6 @@
 		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->
 		<Optimize>true</Optimize>
 		<TrimMode>partial</TrimMode>
-		<PublishAot>true</PublishAot>
-		<StripSymbols>true</StripSymbols>
-		<Deterministic>true</Deterministic>
 		<IsAotCompatible>true</IsAotCompatible>
 		<InvariantGlobalization>true</InvariantGlobalization>
 
