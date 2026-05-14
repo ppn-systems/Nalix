@@ -1,4 +1,4 @@
-﻿# API Reference
+# API Reference
 
 Nalix API documentation is organized by package boundary and runtime responsibility so you can move from contracts (`Nalix.Abstractions`) to execution (`Nalix.Runtime`, `Nalix.Network`) and then to client transport (`Nalix.SDK`) without mixing concerns.
 

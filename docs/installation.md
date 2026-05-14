@@ -66,7 +66,7 @@ dotnet add package Nalix.Framework
 
 ## Configuration File
 
-Most server setups and many SDK examples load options from the `default.ini` file via `ConfigurationManager`. This file will be automatically generated in your project's output directory:
+Most server setups and many SDK examples load options from the `server.ini` file via `ConfigurationManager`. This file will be automatically generated in your project's output directory:
 
 ```ini
 [NetworkSocketOptions]

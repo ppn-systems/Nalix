@@ -1,4 +1,4 @@
-﻿# Object Pooling
+# Object Pooling
 
 The Object Pooling system in `Nalix.Framework` provides a thread-safe, high-performance mechanism for recycling expensive class instances, reducing the frequency of garbage collection.
 
@@ -41,6 +41,20 @@ public interface IPoolable
     /// Resets the object state to its default values before being returned to the pool.
     /// </summary>
     void Reset();
+}
+```
+
+### IPoolRentable Interface
+
+For objects that need to perform logic specifically when they are taken *out* of the pool (e.g., generating a unique ID or starting a stopwatch), implement `IPoolRentable`.
+
+```csharp
+public interface IPoolRentable
+{
+    /// <summary>
+    /// Invoked immediately after the object is retrieved from the pool.
+    /// </summary>
+    void OnRent();
 }
 ```
 
@@ -122,7 +136,7 @@ The manager tracks several critical metrics to help tune pool capacities:
 
 ## Advanced Diagnostics
 
-Advanced diagnostics can be enabled via `ObjectPoolOptions` (usually in `default.ini` under `[ObjectPool]`). These features provide deep insight at a slight performance cost.
+Advanced diagnostics can be enabled via `ObjectPoolOptions` (usually in `server.ini` under `[ObjectPool]`). These features provide deep insight at a slight performance cost.
 
 ### Statistics Collected
 
@@ -132,13 +146,26 @@ Advanced diagnostics can be enabled via `ObjectPoolOptions` (usually in `default
 
 ### Configuration Example
 
-```ini
 [ObjectPool]
+# Overall diagnostics toggle
 EnableDiagnostics = true
+
+# Capture stack traces on Get() for leak tracking (slow)
 CaptureStackTraces = true
+
+# Detect objects collected by GC without being returned
 EnableLeakDetection = true
+
+# Threshold for marking an object as "Suspiciously long-lived"
 SuspiciousThresholdSeconds = 30
+
+# Background trimming configuration
+EnableObjectTrimming = true
+TrimIntervalMinutes = 5
 ```
+
+!!! note "Performance Impact"
+    While `EnableDiagnostics` provides invaluable insight during development and load testing, it is recommended to disable `CaptureStackTraces` in extreme production environments to save CPU cycles on every `Get<T>()` call.
 
 !!! tip "Diagnostic Insight"
     Use `ScheduleRegularTrimming` to keep memory usage balanced. Trimming runs `PerformHealthCheck` automatically to log warnings about unhealthy pools.
