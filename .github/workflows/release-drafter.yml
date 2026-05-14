@@ -4,9 +4,12 @@ on:
   push:
     branches:
       - master
+    tags:
+      - "v*"
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -15,10 +18,13 @@ permissions:
 jobs:
   update_release_draft:
     permissions:
-      contents: write  # for release-drafter to create/update a release
-      pull-requests: write  # for release-drafter to add label to PR
+      contents: write 
+      pull-requests: write 
     runs-on: ubuntu-latest
     steps:
       - uses: release-drafter/release-drafter@v6
+        with:
+          tag: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          name: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
