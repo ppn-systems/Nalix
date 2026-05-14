@@ -375,8 +375,9 @@ public struct NodeMeta
 }
 
 [Packet]
+[GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
+public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
 {
     [SerializeOrder(0)]
     public List<Int32>? IntList { get; set; }
@@ -397,8 +398,9 @@ public sealed class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket
         => PacketBase<ComplexCollectionPacket>.Deserialize(buffer);
 }
 
+[GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed class GraphPacket : PacketBase<GraphPacket>
+public sealed partial class GraphPacket : PacketBase<GraphPacket>
 {
     public String Name { get; set; } = String.Empty;
     public List<GraphPacket>? Nodes { get; set; }
@@ -408,8 +410,9 @@ public sealed class GraphPacket : PacketBase<GraphPacket>
         => PacketBase<GraphPacket>.Deserialize(buffer);
 }
 
+[GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed class LargeDataPacket : PacketBase<LargeDataPacket>
+public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
 {
     public List<String>? Payload { get; set; }
 
@@ -417,8 +420,9 @@ public sealed class LargeDataPacket : PacketBase<LargeDataPacket>
         => PacketBase<LargeDataPacket>.Deserialize(buffer);
 }
 
+[GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed class NullStressPacket : PacketBase<NullStressPacket>
+public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
 {
     public List<String>? Items { get; set; }
 
@@ -426,12 +430,12 @@ public sealed class NullStressPacket : PacketBase<NullStressPacket>
         => PacketBase<NullStressPacket>.Deserialize(buffer);
 }
 
+[GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed class EnumListPacket : PacketBase<EnumListPacket>
+public sealed partial class EnumListPacket : PacketBase<EnumListPacket>
 {
     public List<PacketPriority>? Priorities { get; set; }
 
     public static new EnumListPacket Deserialize(ReadOnlySpan<Byte> buffer)
         => PacketBase<EnumListPacket>.Deserialize(buffer);
 }
-

@@ -334,6 +334,7 @@ public sealed partial class PacketComplexCollectionsTests
         _ = Assert.ThrowsAny<Exception>(() => LargeDataPacket.Deserialize(corrupted));
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class ExtremeNestedPacket : PacketBase<ExtremeNestedPacket>
     {
@@ -342,6 +343,7 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<ExtremeNestedPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
     {
@@ -350,6 +352,7 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<LargeDataPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
     {
@@ -358,6 +361,7 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<NullStressPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class NestedCollectionPacket : PacketBase<NestedCollectionPacket>
     {
@@ -367,13 +371,17 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<NestedCollectionPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     public sealed class UserDetails
     {
         public string Username { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = [];
         public Dictionary<string, string> Attributes { get; set; } = [];
+
+        public static UserDetails Create() => new();
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class GraphPacket : PacketBase<GraphPacket>
     {
@@ -385,11 +393,13 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<GraphPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     public struct NodeMeta
     {
         public int Id { get; set; }
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
     {
@@ -412,6 +422,7 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<ComplexCollectionPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class FloatStressPacket : PacketBase<FloatStressPacket>
     {
@@ -420,6 +431,7 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<FloatStressPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class ObjectListPacket : PacketBase<ObjectListPacket>
     {
@@ -428,6 +440,7 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<ObjectListPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class DeepListPacket : PacketBase<DeepListPacket>
     {
@@ -436,6 +449,7 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<DeepListPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     public sealed partial class EnumListPacket : PacketBase<EnumListPacket>
     {
@@ -444,7 +458,6 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<EnumListPacket>.Deserialize(buffer);
     }
 }
-
 
 
 

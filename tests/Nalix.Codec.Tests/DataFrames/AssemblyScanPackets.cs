@@ -10,6 +10,7 @@ namespace Nalix.Codec.Tests.DataFrames
     /// <summary>
     /// Test-only packet for namespace scanning.
     /// </summary>
+    [GenerateFormatter]
     public sealed partial class AssemblyScanRootPacket : PacketBase<AssemblyScanRootPacket>
     {
         [SerializeOrder(PacketHeaderOffset.Region)]
@@ -25,6 +26,7 @@ namespace Nalix.Codec.Tests.DataFrames.AssemblyScanChild
     /// <summary>
     /// Test-only child namespace packet for recursive scanning.
     /// </summary>
+    [GenerateFormatter]
     public sealed partial class AssemblyScanChildPacket : PacketBase<AssemblyScanChildPacket>
     {
         [SerializeOrder(PacketHeaderOffset.Region)]
@@ -34,7 +36,6 @@ namespace Nalix.Codec.Tests.DataFrames.AssemblyScanChild
             => PacketBase<AssemblyScanChildPacket>.Deserialize(buffer);
     }
 }
-
 
 
 

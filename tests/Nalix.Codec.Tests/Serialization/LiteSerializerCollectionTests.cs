@@ -147,7 +147,7 @@ public sealed class LiteSerializerCollectionTests
     }
 
     [Fact]
-    public void SerializeDeserialize_AutoClassAndStruct_RoundTripsState()
+    public void SerializeDeserialize_UnmarkedComplexClass_ThrowsSerializationFailureException()
     {
         AutoTestClass input = new()
         {
@@ -156,14 +156,13 @@ public sealed class LiteSerializerCollectionTests
             Nested = new AutoTestStruct { FloatVal = 4.5f, LongVal = 678L }
         };
 
-        AutoTestClass? output = null;
-        _ = LiteSerializerTestHelper.RoundTrip(input, ref output);
+        TypeInitializationException ex = Assert.Throws<TypeInitializationException>(
+            () => LiteSerializer.Serialize(in input));
 
-        Assert.NotNull(output);
-        Assert.Equal(input.IntVal, output.IntVal);
-        Assert.Equal(input.StringVal, output.StringVal);
-        Assert.Equal(input.Nested.FloatVal, output.Nested.FloatVal);
-        Assert.Equal(input.Nested.LongVal, output.Nested.LongVal);
+        Abstractions.Exceptions.SerializationFailureException inner =
+            Assert.IsType<Abstractions.Exceptions.SerializationFailureException>(ex.InnerException);
+        Assert.Contains("No formatter registered", inner.Message, StringComparison.Ordinal);
+        Assert.Contains("[GenerateFormatter]", inner.Message, StringComparison.Ordinal);
     }
 
     private sealed class AutoTestClass
@@ -179,7 +178,6 @@ public sealed class LiteSerializerCollectionTests
         public long LongVal { get; set; }
     }
 }
-
 
 
 
