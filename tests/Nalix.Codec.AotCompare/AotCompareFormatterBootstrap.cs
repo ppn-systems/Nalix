@@ -31,9 +31,6 @@ internal static class AotCompareFormatterBootstrap
     }
     public static void Register()
     {
-        FormatterProvider.RegisterComplex(new UserDetailsFormatter());
-        FormatterProvider.Register(new NullableFormatter<UserDetails>(new UserDetailsFormatter()));
-
         RegisterPacket(new ComplexCollectionPacketFormatter());
         RegisterPacket(new GraphPacketFormatter());
         RegisterPacket(new LargeDataPacketFormatter());
@@ -42,14 +39,6 @@ internal static class AotCompareFormatterBootstrap
 
         FormatterProvider.Register(new Tuple5Formatter());
         FormatterProvider.Register(new Tuple3Formatter());
-        FormatterProvider.Register(new ListFormatter<Int32>());
-        FormatterProvider.Register(new ListFormatter<String>());
-        FormatterProvider.Register(new ListFormatter<GraphPacket>());
-        FormatterProvider.Register(new ListFormatter<PacketPriority>());
-        FormatterProvider.Register(new DictionaryFormatter<String, String>());
-        FormatterProvider.Register(new DictionaryFormatter<String, Int64>());
-        FormatterProvider.Register(new QueueFormatter<String>());
-        FormatterProvider.Register(new HashSetFormatter<Single>());
         FormatterProvider.Register(new NodeMetaFormatter());
     }
 
@@ -314,24 +303,6 @@ internal static class AotCompareFormatterBootstrap
         }
     }
 
-    private sealed class NullableFormatter<T>(IFormatter<T> inner) : IFormatter<T?> where T : class
-    {
-        public void Serialize(ref DataWriter writer, in T? value)
-        {
-            if (value is null)
-            {
-                writer.Write((byte)0);
-                return;
-            }
-
-            writer.Write((byte)1);
-            inner.Serialize(ref writer, value);
-        }
-
-        public T? Deserialize(ref DataReader reader)
-            => reader.ReadByte() == 0 ? null : inner.Deserialize(ref reader);
-    }
-
     private sealed class NodeMetaFormatter : IFormatter<NodeMeta>
     {
         public void Serialize(ref DataWriter writer, in NodeMeta value)
@@ -339,24 +310,6 @@ internal static class AotCompareFormatterBootstrap
 
         public NodeMeta Deserialize(ref DataReader reader)
             => new() { Id = reader.ReadInt32() };
-    }
-
-    private sealed class UserDetailsFormatter : IFormatter<UserDetails>
-    {
-        public void Serialize(ref DataWriter writer, in UserDetails value)
-        {
-            FormatterProvider.Get<String>().Serialize(ref writer, value.Username);
-            FormatterProvider.Get<List<String>>().Serialize(ref writer, value.Roles);
-            FormatterProvider.Get<Dictionary<String, String>>().Serialize(ref writer, value.Attributes);
-        }
-
-        public UserDetails Deserialize(ref DataReader reader)
-            => new()
-            {
-                Username = FormatterProvider.Get<String>().Deserialize(ref reader),
-                Roles = FormatterProvider.Get<List<String>>().Deserialize(ref reader),
-                Attributes = FormatterProvider.Get<Dictionary<String, String>>().Deserialize(ref reader)
-            };
     }
 
     private sealed class ComplexCollectionPacketFormatter : PacketFormatter<ComplexCollectionPacket>
@@ -491,4 +444,3 @@ internal static class AotCompareFormatterBootstrap
     }
 }
 #endif
-

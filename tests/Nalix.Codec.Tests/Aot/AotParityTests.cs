@@ -13,7 +13,7 @@ public sealed class AotParityTests
     private static readonly String HarnessProject = Path.Combine(RepositoryRoot, "tests", "Nalix.Codec.AotCompare", "Nalix.Codec.AotCompare.csproj");
     private static readonly String ResultsDir = Path.Combine(RepositoryRoot, "tests", "Nalix.Codec.AotCompare", "artifacts");
 
-    [Fact(Skip = "Source Release build currently fails: PacketTypeCache references missing FormatterProvider.")]
+    [Fact]
     public async Task NativeAot_OutputMatchesJit_ForCodecScenarios()
     {
         Directory.CreateDirectory(ResultsDir);
@@ -21,7 +21,7 @@ public sealed class AotParityTests
         String jitJson = await RunDotnetAsync("run", $"--project \"{HarnessProject}\" -c Release --no-restore");
         String publishOutput = await RunDotnetAsync(
             "publish",
-            $"\"{HarnessProject}\" -c Release -r win-x64 -p:PublishAot=true -p:DefineConstants=NALIX_AOT --self-contained true --no-restore");
+            $"\"{HarnessProject}\" -c Release -r win-x64 -p:PublishAot=true -p:DefineConstants=NALIX_AOT --self-contained true --no-restore -m:1");
 
         String nativeExe = FindNativeExecutable(publishOutput);
         String aotJson = await RunProcessAsync(nativeExe, String.Empty, Path.GetDirectoryName(nativeExe)!);
@@ -49,7 +49,11 @@ public sealed class AotParityTests
 
     private static ScenarioResult[] Parse(String output)
     {
-        Int32 start = output.IndexOf('[', StringComparison.Ordinal);
+        Int32 start = output.IndexOf("[\r\n", StringComparison.Ordinal);
+        if (start < 0)
+        {
+            start = output.IndexOf("[\n", StringComparison.Ordinal);
+        }
         Int32 end = output.LastIndexOf(']');
         Assert.True(start >= 0 && end > start, output);
         return JsonSerializer.Deserialize<ScenarioResult[]>(output[start..(end + 1)], new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
@@ -120,4 +124,3 @@ public sealed class AotParityTests
 
     private sealed record ScenarioResult(String Name, String Category, Boolean Passed, Int32? Length, String? Sha256, String? Details, String? Error);
 }
-

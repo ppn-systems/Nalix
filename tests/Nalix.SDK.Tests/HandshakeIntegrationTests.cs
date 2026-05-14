@@ -102,7 +102,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         }
     }
 
-    [Fact(Skip = "Flaky test, needs investigation")]
+    [Fact]
     public async Task ConnectWithResumeAsync_FullCycle_Succeeds()
     {
         int port = TestUtils.GetFreePort();
@@ -152,7 +152,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
-
 
 
 

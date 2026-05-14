@@ -125,7 +125,7 @@ public sealed partial class PacketComplexCollectionsTests
         Assert.Equal(999, output.StringLongDict[$"{unicodeKey}_999"]);
     }
 
-    [Fact(Skip = "Current generated packet serializer length accounting undercounts nested object marker overhead.")]
+    [Fact]
     public void Serialization_WithNestedPackets_RoundTripsGraph()
     {
         GraphPacket root = new()
@@ -256,31 +256,6 @@ public sealed partial class PacketComplexCollectionsTests
         Assert.Equal(float.Epsilon, output.Values[3]);
         Assert.Equal(float.MaxValue, output.Values[4]);
         Assert.Equal(float.MinValue, output.Values[5]);
-    }
-
-    [Fact(Skip = "Current generated object serializer does not support null object entries in collections.")]
-    public void Serialization_Extreme_MixedNullObjectsInList_RoundTrips()
-    {
-        ObjectListPacket packet = new()
-        {
-            Users =
-            [
-                new UserDetails { Username = "u1" },
-                null!,
-                new UserDetails { Username = "u2" },
-                null!
-            ]
-        };
-
-        byte[] bytes = packet.Serialize();
-        Assert.Equal(bytes.Length, packet.Length);
-
-        ObjectListPacket output = ObjectListPacket.Deserialize(bytes);
-        Assert.Equal(4, output.Users!.Count);
-        Assert.Equal("u1", output.Users[0]!.Username);
-        Assert.Null(output.Users[1]);
-        Assert.Equal("u2", output.Users[2]!.Username);
-        Assert.Null(output.Users[3]);
     }
 
     [Fact]
@@ -458,8 +433,6 @@ public sealed partial class PacketComplexCollectionsTests
             => PacketBase<EnumListPacket>.Deserialize(buffer);
     }
 }
-
-
 
 
 

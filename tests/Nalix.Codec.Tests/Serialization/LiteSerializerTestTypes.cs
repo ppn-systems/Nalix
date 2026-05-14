@@ -2,10 +2,12 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Codec.Tests.Serialization;
 
-internal struct SmallStruct
+[GenerateFormatter]
+internal partial struct SmallStruct
 {
     internal byte A;
 }
@@ -23,12 +25,14 @@ internal sealed class NullClass
     internal short? I16;
 }
 
-internal sealed class TestObject
+[GenerateFormatter]
+internal sealed partial class TestObject
 {
     internal int Id { get; set; }
     internal string Name { get; set; } = string.Empty;
-    internal TestObject? Child { get; set; }
     internal List<string> Tags { get; set; } = [];
+
+    internal static TestObject Create() => new();
 }
 
 internal readonly struct TestStruct(int x, float y)
@@ -36,8 +40,6 @@ internal readonly struct TestStruct(int x, float y)
     internal readonly int X = x;
     internal readonly float Y = y;
 }
-
-
 
 
 

@@ -362,11 +362,14 @@ internal sealed class Program
 
 internal sealed record ScenarioResult(String Name, String Category, Boolean Passed, Int32? Length, String? Sha256, String? Details, String? Error);
 
-public sealed class UserDetails
+[GenerateFormatter]
+public sealed partial class UserDetails
 {
     public String Username { get; set; } = String.Empty;
     public List<String> Roles { get; set; } = [];
     public Dictionary<String, String> Attributes { get; set; } = [];
+
+    public static UserDetails Create() => new();
 }
 
 public struct NodeMeta

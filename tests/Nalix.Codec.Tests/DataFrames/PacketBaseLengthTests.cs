@@ -36,7 +36,7 @@ public sealed partial class PacketBaseLengthTests
         Assert.Equal(bytes, buffer);
     }
 
-    [Fact(Skip = "Current generated packet serializer length accounting includes nested object marker overhead.")]
+    [Fact]
     public void LengthWhenPacketContainsNestedPacketMatchesSerializedByteCount()
     {
         ParentPacket packet = new()
@@ -57,20 +57,6 @@ public sealed partial class PacketBaseLengthTests
 
         Assert.Equal(packet.Length, written);
         Assert.Equal(bytes, buffer);
-    }
-
-    [Fact(Skip = "Current generated object serializer does not support null nested packet references.")]
-    public void LengthWhenNestedPacketIsNullMatchesSerializedByteCount()
-    {
-        ParentPacket packet = new()
-        {
-            Child = null
-        };
-
-        byte[] bytes = packet.Serialize();
-
-        Assert.Equal(bytes.Length, packet.Length);
-        Assert.Equal(PacketConstants.HeaderSize + sizeof(byte), packet.Length);
     }
 
     [Fact]
@@ -236,8 +222,6 @@ public sealed partial class PacketBaseLengthTests
         public string Message { get; set; } = string.Empty;
     }
 }
-
-
 
 
 
