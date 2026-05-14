@@ -196,7 +196,7 @@ PacketRegistry.Build();
 
 // 2. Open the session
 var options = new TransportOptions { Address = "127.0.0.1", Port = 5000 };
-using var client = new TcpSession(options, PacketRegistry.Instance);
+using var client = new TcpSession(options);
 await client.ConnectAsync();
 await client.HandshakeAsync();
 

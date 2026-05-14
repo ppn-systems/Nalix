@@ -148,9 +148,8 @@ using MyNet.Contracts;
 // In modern Nalix, this is handled via Source Generators.
 PacketRegistry.Configure(poolManager); // Optional
 PacketRegistry.Build();
-IPacketRegistry catalog = PacketRegistry.Instance;
 
-using var session = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 }, catalog);
+using var session = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 });
 await session.ConnectAsync();
 await session.HandshakeAsync();
 
