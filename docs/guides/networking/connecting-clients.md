@@ -22,11 +22,11 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
 // 1. Initialize the shared registry.
-// This factory scans for packets and binds high-performance deserialize pointers.
-IPacketRegistry catalog = new PacketRegistryFactory()
-    .RegisterPacket<MyRequestPacket>()
-    .RegisterPacket<MyResponsePacket>()
-    .CreateCatalog();
+// This is populated automatically by Source Generators.
+// We just need to freeze the catalog.
+PacketRegistry.Configure(poolManager); // Optional
+PacketRegistry.Build();
+IPacketRegistry catalog = PacketRegistry.Instance;
 ```
 
 ## 2. Configure Transport Options

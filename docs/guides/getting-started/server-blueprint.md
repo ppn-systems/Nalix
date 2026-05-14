@@ -27,15 +27,9 @@ flowchart LR
         Trans["Start Transport"]
     end
 
-    subgraph Ext ["Phase 3: Extensions"]
-        direction TB
-        Boot["Hosted Services"]
-    end
-
     Config --> Reg
     Reg --> Disp
     Disp --> Trans
-    Trans --> Boot
 ```
 
 !!! success "Why this blueprint?"
@@ -80,17 +74,17 @@ If you use the hosting builder, `src/Nalix.Hosting/NetworkApplicationBuilder.cs`
 
 ### 2. Registry Initialization
 
-The `InstanceManager` serves as the runtime core for shared infrastructure when you wire the stack manually. The hosting builder performs the same registration work for you.
+The `PacketRegistry` must be built once at startup. This freezes the catalog of discovered packets (via source generators) and prepares it for high-performance deserialization.
 
 ```csharp
-using Microsoft.Extensions.Logging;
-using Nalix.Logging;
+using Nalix.Codec.DataFrames;
 
-ILogger logger = NLogix.Host.Instance;
-
-InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
+// Initialize the global registry
+PacketRegistry.Configure(poolManager); // Optional: enable pooling
+PacketRegistry.Build(); // Freeze the catalog
 ```
+
+The hosting builder performs this step automatically during `app.Build()`.
 
 ### 3. Dispatch & Middleware Setup
 
@@ -145,9 +139,9 @@ Managing the **Activation** and **Shutdown** order is critical for preventing co
 | **Startup** | `listener.Activate()` | Open the socket and begin accepting. |
 | **Shutdown** | `listener.Deactivate()` + `Dispose()` | Stop accepting and release transport resources first. |
 | **Shutdown** | `protocol.Dispose()` | Dispose protocols after listeners stop. |
-| **Shutdown** | `dispatch.Deactivate()` | Stop the dispatch pipeline after listeners and hosted services. |
+| **Shutdown** | `dispatch.Deactivate()` | Stop the dispatch pipeline after listeners. |
 
-This order comes directly from `src/Nalix.Hosting/NetworkApplication.cs`, where `ActivateAsync()` prepares callbacks, activates dispatch, starts listeners, then activates hosted services; `DeactivateAsync()` reverses that order and finally waits for `ITaskManager.WaitGroupAsync("net/*")` and `"time/*"`.
+This order comes directly from `src/Nalix.Hosting/NetworkApplication.cs`, where `ActivateAsync()` prepares callbacks, activates dispatch, then starts listeners; `DeactivateAsync()` reverses that order and finally waits for `ITaskManager.WaitGroupAsync("net/*")` and `"time/*"`.
 
 ---
 

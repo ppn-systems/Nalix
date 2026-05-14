@@ -166,7 +166,6 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     using Nalix.Network.Options;
 
     using var app = NetworkApplication.CreateBuilder()
-        .ScanPackets<Contracts.PingRequest>()
         .AddHandler<PingHandler>()
         .Configure<NetworkSocketOptions>(opt => opt.Port = 5000)
         .BindTcp<PingProtocol>().Bind()
@@ -190,14 +189,14 @@ using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
 // 1. Build the packet registry (The 'Catalog')
-PacketRegistryFactory factory = new();
-factory.RegisterPacket<PingRequest>()
-       .RegisterPacket<PingResponse>();
-var registry = factory.CreateCatalog();
+// Note: In modern Nalix, this is handled via Source Generators.
+// Simply configure and build the static registry.
+PacketRegistry.Configure(poolManager); // Optional
+PacketRegistry.Build();
 
 // 2. Open the session
 var options = new TransportOptions { Address = "127.0.0.1", Port = 5000 };
-using var client = new TcpSession(options, registry);
+using var client = new TcpSession(options, PacketRegistry.Instance);
 await client.ConnectAsync();
 await client.HandshakeAsync();
 

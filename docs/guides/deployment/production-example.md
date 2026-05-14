@@ -111,8 +111,6 @@ using var app = NetworkApplication.CreateBuilder()
         opt.Port = 5000;
         opt.Backlog = 1024;
     })
-    // 1. Register contracts assembly for auto-discovery
-    .ScanPackets<DataRequest>() 
     // 2. Add Handlers (resolved via InstanceManager)
     .ScanHandlers<DataHandlers>()
     // 3. Configure Dispatch Middleware
@@ -146,11 +144,11 @@ The client uses the `Nalix.SDK` for high-level session management.
 using Nalix.SDK.Transport;
 using MyNet.Contracts;
 
-// The client needs the same registry as the server
-IPacketRegistry catalog = new PacketRegistryFactory()
-    .RegisterPacket<DataRequest>()
-    .RegisterPacket<DataResponse>()
-    .CreateCatalog();
+// The client needs the same registry as the server.
+// In modern Nalix, this is handled via Source Generators.
+PacketRegistry.Configure(poolManager); // Optional
+PacketRegistry.Build();
+IPacketRegistry catalog = PacketRegistry.Instance;
 
 using var session = new TcpSession(new TransportOptions { Address = "127.0.0.1", Port = 5000 }, catalog);
 await session.ConnectAsync();

@@ -74,10 +74,9 @@ sequenceDiagram
 
 ```csharp
 var options = ConfigurationManager.Instance.Get<TransportOptions>();
-var catalog = new PacketRegistryFactory()
-    .RegisterPacket<LoginPacket>()
-    .RegisterPacket<LoginResponse>()
-    .CreateCatalog();
+// 1. Build the packet registry (populated by Source Generators)
+PacketRegistry.Build();
+var catalog = PacketRegistry.Instance;
 
 using var client = new TcpSession(options, catalog);
 
