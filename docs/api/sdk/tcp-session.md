@@ -76,9 +76,8 @@ sequenceDiagram
 var options = ConfigurationManager.Instance.Get<TransportOptions>();
 // 1. Build the packet registry (populated by Source Generators)
 PacketRegistry.Build();
-var catalog = PacketRegistry.Instance;
 
-using var client = new TcpSession(options, catalog);
+using var client = new TcpSession(options);
 
 client.OnConnected += (s, e) => Console.WriteLine("Connected!");
 client.OnMessageReceived += (s, lease) => 

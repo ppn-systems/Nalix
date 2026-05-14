@@ -75,7 +75,7 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 ## Basic usage
 
 ```csharp
-var client = new UdpSession(options, catalog);
+var client = new UdpSession(options);
 
 // Essential: must match the session identifier assigned during TCP login
 client.SessionToken = mySessionSnowflake;
