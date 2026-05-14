@@ -5,8 +5,6 @@ using System.Diagnostics;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
-using Nalix.Codec.DataFrames.Formatter;
-using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -14,6 +12,7 @@ namespace Nalix.Codec.DataFrames.SignalFrames;
 /// Represents a directive frame used for control and server feedback.
 /// </summary>
 [Packet]
+[GenerateFormatter]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
 public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable
@@ -64,12 +63,6 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
     public ushort Arg2 { get; set; }
 
     /// <summary>
-    /// Registers the <see cref="DirectiveFormatter"/> to optimize serialization performance.
-    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
-    /// </summary>
-    static Directive() => LiteSerializer.Register(new DirectiveFormatter());
-
-    /// <summary>
     /// Initializes a new instance with default values.
     /// </summary>
     public Directive()
@@ -98,12 +91,12 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
         this.Arg1 = arg1;
         this.Arg2 = arg2;
         this.Type = type;
+        this.Flags = flags;
         this.Reason = reason;
         this.Action = action;
         this.Control = controlFlags;
         this.SequenceId = sequenceId;
         this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
-        this.Flags = flags;
 
         this.Priority = PacketPriority.HIGH;
     }
@@ -130,12 +123,12 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
         this.Arg1 = arg1;
         this.Arg2 = arg2;
         this.Type = type;
+        this.Flags = flags;
         this.Reason = reason;
         this.Action = action;
-        this.Control = controlFlags;
         this.OpCode = opCode;
+        this.Control = controlFlags;
         this.SequenceId = sequenceId;
-        this.Flags = flags;
 
         this.Priority = PacketPriority.HIGH;
     }
@@ -144,8 +137,9 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.Priority = PacketPriority.HIGH;
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
     }
 

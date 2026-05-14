@@ -7,8 +7,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
-using Nalix.Codec.DataFrames.Formatter;
-using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -17,6 +15,7 @@ namespace Nalix.Codec.DataFrames.SignalFrames;
 /// Replaces redundant SessionResume and SessionResumeAck packets.
 /// </summary>
 [Packet]
+[GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_SIGNAL Stage={Stage}, Token={SessionToken}, Reason={Reason}")]
@@ -47,12 +46,6 @@ public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSiz
     public Bytes32 Proof { get; set; }
 
     /// <summary>
-    /// Registers the <see cref="SessionResumeFormatter"/> to optimize serialization performance.
-    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
-    /// </summary>
-    static SessionResume() => LiteSerializer.Register(new SessionResumeFormatter());
-
-    /// <summary>
     /// Initializes a new instance of the <see cref="SessionResume"/> packet.
     /// </summary>
     public SessionResume() => this.ResetForPool();
@@ -75,13 +68,14 @@ public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSiz
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
-        this.Priority = PacketPriority.URGENT;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
-        this.Stage = SessionResumeStage.NONE;
+
         this.SessionToken = 0;
-        this.Reason = ProtocolReason.NONE;
         this.Proof = Bytes32.Zero;
+        this.Reason = ProtocolReason.NONE;
+        this.Stage = SessionResumeStage.NONE;
+        this.Priority = PacketPriority.URGENT;
+        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
     }
 
     /// <inheritdoc/>

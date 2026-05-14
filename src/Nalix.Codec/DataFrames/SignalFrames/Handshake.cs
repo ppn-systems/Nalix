@@ -7,8 +7,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
-using Nalix.Codec.DataFrames.Formatter;
-using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
 
@@ -16,6 +14,7 @@ namespace Nalix.Codec.DataFrames.SignalFrames;
 /// Represents the default protocol handshake packet for key exchange and transcript verification.
 /// </summary>
 [Packet]
+[GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("HANDSHAKE Stage={Stage}, OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -65,12 +64,6 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
     /// </summary>
     [SerializeOrder(6)]
     public Bytes32 TranscriptHash { get; set; }
-
-    /// <summary>
-    /// Registers the <see cref="HandshakeFormatter"/> to optimize serialization performance.
-    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
-    /// </summary>
-    static Handshake() => LiteSerializer.Register(new HandshakeFormatter());
 
     /// <summary>
     /// Initializes a new <see cref="Handshake"/> with default transport metadata.
@@ -126,17 +119,17 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
     /// </summary>
     public void InitializeError(ProtocolReason reason, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
-        this.Stage = HandshakeStage.ERROR;
-        this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.Reason = reason;
+        this.Stage = HandshakeStage.ERROR;
+        this.Priority = PacketPriority.URGENT;
+        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
 
-        this.PublicKey = Bytes32.Zero;
+        this.SessionToken = 0;
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;
+        this.PublicKey = Bytes32.Zero;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = 0;
     }
 
     /// <inheritdoc/>
@@ -185,16 +178,16 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
     {
         base.ResetForPool();
 
-        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
-        this.Stage = HandshakeStage.NONE;
-        this.Reason = ProtocolReason.NONE;
-        this.PublicKey = Bytes32.Zero;
+        this.SessionToken = 0;
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;
+        this.PublicKey = Bytes32.Zero;
+        this.Stage = HandshakeStage.NONE;
+        this.Reason = ProtocolReason.NONE;
         this.TranscriptHash = Bytes32.Zero;
-        this.SessionToken = 0;
         this.Priority = PacketPriority.URGENT;
+        this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
     }
 }
 

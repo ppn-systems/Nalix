@@ -6,8 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
-using Nalix.Codec.DataFrames.Formatter;
-using Nalix.Codec.Serialization;
 using Nalix.Environment.Time;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
@@ -16,6 +14,7 @@ namespace Nalix.Codec.DataFrames.SignalFrames;
 /// Represents a binary data packet used for transmitting raw bytes over the network.
 /// </summary>
 [Packet]
+[GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
@@ -44,12 +43,6 @@ public sealed partial class Control : PacketBase<Control>, IPacketTimestamped, I
     /// </summary>
     [SerializeOrder(3)]
     public long MonoTicks { get; set; }
-
-    /// <summary>
-    /// Registers the <see cref="ControlFormatter"/> to optimize serialization performance.
-    /// Static constructor ensures zero-allocation type registration at startup, avoiding dynamic lookup overhead.
-    /// </summary>
-    static Control() => LiteSerializer.Register(new ControlFormatter());
 
     /// <summary>
     /// Initializes a new instance of the Control class with default metadata values.
