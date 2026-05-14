@@ -19,10 +19,6 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
 {
     #region Constants and Diagnostics
 
-    private const string PacketBaseName = "PacketBase";
-    private const string PacketBaseNamespace = "Nalix.Codec.DataFrames";
-    private const string PacketAttributeMetadataName = "Nalix.Abstractions.Networking.Packets.PacketAttribute";
-
     private const int MaxTableSize = 4096;
 
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
@@ -86,15 +82,15 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
     }
 
     private static bool HAS_PACKET_ATTRIBUTE(INamedTypeSymbol symbol) =>
-        symbol.GetAttributes().Any(static attr => attr.AttributeClass?.ToDisplayString() == PacketAttributeMetadataName);
+        symbol.GetAttributes().Any(static attr => attr.AttributeClass?.ToDisplayString() == KnownNames.PacketAttributeMetadataName);
 
     private static bool INHERITS_PACKET_BASE_OF_SELF(INamedTypeSymbol symbol)
     {
         INamedTypeSymbol? current = symbol.BaseType;
         while (current is not null)
         {
-            if (current.Name == PacketBaseName &&
-                current.ContainingNamespace.ToDisplayString() == PacketBaseNamespace &&
+            if (current.Name == KnownNames.PacketBaseName &&
+                current.ContainingNamespace.ToDisplayString() == KnownNames.PacketBaseNamespace &&
                 current.TypeArguments.Length == 1 &&
                 SymbolEqualityComparer.Default.Equals(current.TypeArguments[0], symbol))
             {
@@ -138,7 +134,7 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
             foreach (INamedTypeSymbol packet in packets)
             {
                 string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-                uint key = Hashing.ComputeFnv1a(fullName);
+                uint key = Fnv1a.Compute(fullName);
                 if (!slots.Add((int)(key & (uint)(tableSize - 1))))
                 {
                     collision = true;
@@ -176,7 +172,7 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         {
             string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-            uint key = Hashing.ComputeFnv1a(fullName);
+            uint key = Fnv1a.Compute(fullName);
             int slot = (int)(key & mask);
             entries[slot] = (key, typeName, true);
         }
@@ -222,7 +218,7 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         {
             string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
-            uint key = Hashing.ComputeFnv1a(fullName);
+            uint key = Fnv1a.Compute(fullName);
             _ = sb.AppendLine($"        global::Nalix.Codec.DataFrames.PacketRegistry.RegisterGenerated(");
             _ = sb.AppendLine($"            {key.ToString(System.Globalization.CultureInfo.InvariantCulture)}u,");
             _ = sb.AppendLine($"            \"{ESCAPE(fullName)}\",");
