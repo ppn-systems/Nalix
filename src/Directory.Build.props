@@ -34,6 +34,7 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
 		<AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+		<UseSharedCompilation Condition="'$(ContinuousIntegrationBuild)' == 'true'">false</UseSharedCompilation>
 		<OutputPath>$(MSBuildThisFileDirectory)..\build\bin\$(Configuration)\$(MSBuildProjectName)\</OutputPath>
 
 		<PackageVersion Condition="'$(PackageVersion)' == ''">$(Version)</PackageVersion>
