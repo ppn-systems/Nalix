@@ -31,7 +31,7 @@ This helps controller authors choose predictable return styles while keeping dis
 | --- | --- |
 | `void` | No payload is sent. |
 | `Task` / `ValueTask` | Await completion, no payload is sent. |
-| `TPacket` (or any `IPacket`) | Sent as packet response through runtime sender flow. |
+| `TPacket` (or any `IPacket`) | Sent as packet response through runtime sender flow. Supports both classes and structs (e.g., `MemoryPacket`). |
 | `byte[]` | Sent as raw payload. |
 | `Memory<byte>` / `ReadOnlyMemory<byte>` | Sent as raw payload memory. |
 | `Task<T>` / `ValueTask<T>` | Awaited, then resolved again as type `T`. `T` must be a supported shape (`void`, `IPacket`, `byte[]`, `Memory<byte>`, `ReadOnlyMemory<byte>`). |

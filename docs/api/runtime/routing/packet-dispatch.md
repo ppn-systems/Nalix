@@ -89,12 +89,13 @@ It maintains per-connection state and priority-ready queues.
 
 When a worker pulls a lease:
 
-1. `IPacketRegistry.TryDeserialize(lease.Span, out IPacket?)` is called.
-2. Deserialization failure increments the connection error count and disposes the lease.
-3. Successful packets are executed through `ExecutePacketHandlerAsync`.
-4. Synchronous completions dispose `IDisposable` packets and the lease immediately.
-5. Asynchronous completions are awaited by a helper that disposes both in `finally`.
-6. Non-fatal handler exceptions increment the connection error count and are logged.
+1. If the handler expects `ReadOnlyMemory<byte>`, a `MemoryPacket` is created directly from the lease, bypassing the registry.
+2. Otherwise, `IPacketRegistry.TryDeserialize(lease.Span, out IPacket?)` is called.
+3. Deserialization failure increments the connection error count and disposes the lease.
+4. Successful packets are executed through `ExecutePacketHandlerAsync`.
+5. Synchronous completions dispose `IDisposable` packets and the lease immediately.
+6. Asynchronous completions are awaited by a helper that disposes both in `finally`.
+7. Non-fatal handler exceptions increment the connection error count and are logged.
 
 ## Diagnostics
 

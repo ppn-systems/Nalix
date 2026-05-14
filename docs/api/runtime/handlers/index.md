@@ -1,4 +1,4 @@
-﻿# Nalix.Runtime.Handlers
+# Nalix.Runtime.Handlers
 
 `Nalix.Runtime.Handlers` provides the core controller pattern and built-in protocol handlers that manage the basic handshaking, session management, and system control logic of the Nalix framework.
 
@@ -86,8 +86,8 @@ public class MyController
 
 - `[PacketController(string tag)]`: Identifies a class as a candidate for scanning.
 - `[PacketOpcode(ushort opcode)]`: Maps a specific opcode to a method.
-- `[PacketEncryption(bool)]`: Overrides the default security requirement for this handler.
-- `[PacketPermission(PermissionLevel)]`: Enforces specific access levels before execution starts.
+- `[PacketEncryption(bool, CipherSuiteType)]`: Overrides the default security requirement and algorithm for this handler.
+- `[PacketPermission(PermissionLevel)]`: Enforces specific access levels before execution starts. Defaults to `PermissionLevel.USER`.
 
 ## Related Information
 

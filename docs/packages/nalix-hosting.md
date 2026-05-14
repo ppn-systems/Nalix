@@ -16,7 +16,7 @@
 flowchart LR
     subgraph Config ["Configuration"]
         A["CreateBuilder()"] --> B["Register Services"]
-        B --> C["Scan Packets"]
+        B --> C["Scan Handlers"]
         C --> D["Bind Protocols"]
     end
 
@@ -52,12 +52,9 @@ The builder exposes fluent methods for configuring the server:
 - `ConfigureBufferPoolManager(...)`
 - `ConfigureObjectPoolManager(...)`
 - `ConfigureCertificate(...)`
-- `ConfigurePacketRegistry(...)`
 - `ConfigureDispatchOptions(...)`
 - `ConfigureDispatch(...)`
 - `Configure<TOptions>(...)`
-- `ScanPackets<TMarker>()`
-- `AddPacketNamespace(...)`
 - `ScanHandlers<TMarker>()`
 - `AddHandler<THandler>()`
 - `AddMetadataProvider<TProvider>()`
@@ -82,8 +79,7 @@ var app = NetworkApplication.CreateBuilder()
     {
         options.Port = 57206;
     })
-    .ScanPackets<MyPacket>()
-    .ScanHandlers<MyHandlers>()
+    .AddHandler<MyHandlers>()
     .BindTcp<MyProtocol>().Bind()
     .Build();
 

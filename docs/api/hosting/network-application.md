@@ -28,7 +28,7 @@ The public API surface revolves around two main types:
 graph LR
     subgraph Configuration ["Phase 1: Configuration"]
         Create["CreateBuilder()"] --> Config["Configure Loggers, Options, Hubs"]
-        Config --> Discover["ScanPackets()/AddPacketNamespace() & ScanHandlers()"]
+        Config --> Discover["ScanHandlers()"]
         Discover --> Bind["BindTcp() / BindUdp()"]
     end
 
@@ -41,7 +41,6 @@ graph LR
         Prep --> Services["Register logger, options, registry, hub, buffers, identity"]
         Services --> Dispatch["Create and activate packet dispatch"]
         Dispatch --> Listeners["Create and start TCP/UDP listeners"]
-        Listeners --> Hosted["Activate hosted services"]
     end
 ```
 
@@ -49,8 +48,8 @@ graph LR
 
 | Type | Public members |
 |---|---|
-| `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigurePacketRegistry(...)`, `ScanPackets(...)`, `AddPacketNamespace(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `Build()` |
+| `NetworkApplication` | `CreateMinimal(...)`, `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `Build()` |
 
 ## Builder composition details
 
@@ -73,13 +72,15 @@ Listener factories then resolve the shared `IConnectionHub` from `InstanceManage
 `NetworkApplication` manages the lifecycle of the server runtime. It handles the activation and deactivation of the packet dispatcher, protocols, and listeners in the correct order.
 The hosted pipeline remains generic-friendly, so the same builder flow works for built-in packets and custom packet types.
 
-### Lifecycle methods
+### Creation and Lifecycle
 
-- `ActivateAsync(...)`: Acquires the lifecycle gate, runs builder preparation callbacks, creates packet dispatch, best-effort registers it as `IPacketDispatch`, activates packet dispatch, creates and starts each TCP/UDP listener, activates hosted services, then marks the application started.
+- `CreateBuilder()`: Creates a new `NetworkApplicationBuilder`.
+- `CreateMinimal(port)`: Creates a minimal `NetworkApplication` with a default logger, default hubs/pools, automatic handler scanning from the calling assembly, and a TCP listener on the specified (or configured) port.
+- `ActivateAsync(...)`: Acquires the lifecycle gate, runs builder preparation callbacks, creates packet dispatch, best-effort registers it as `IPacketDispatch`, activates packet dispatch, then creates and starts each TCP/UDP listener.
 !!! note
     Middleware is registered globally but executed inside the sharded dispatch loop. Ensure your custom middleware is thread-safe or uses localized state.
 - `RunAsync(...)`: Calls `ActivateAsync(...)`, waits until cancellation, then calls `DeactivateAsync(CancellationToken.None)` in a `finally` block.
-- `DeactivateAsync(...)`: Stops and disposes listeners in reverse order, disposes protocols in reverse order, deactivates hosted services in reverse order, deactivates the packet dispatcher, waits for background task groups (`net/*` and `time/*`) via `ITaskManager.WaitGroupAsync`, clears runtime lists, then marks the application stopped.
+- `DeactivateAsync(...)`: Stops and disposes listeners in reverse order, disposes protocols in reverse order, deactivates the packet dispatcher, waits for background task groups (`net/*` and `time/*`) via `ITaskManager.WaitGroupAsync`, clears runtime lists, then marks the application stopped.
 - `Dispose()`: Starts `DeactivateAsync(CancellationToken.None)`, logs deferred failures, disposes the lifecycle gate, and suppresses finalization.
 
 ## `INetworkApplicationBuilder`
@@ -99,15 +100,9 @@ The builder uses a fluent API to configure the host before it is built.
     The builder automatically registers built-in `SessionHandlers`, `HandshakeHandlers`, and `SystemControlHandlers` in its constructor before user-defined handler discovery runs.
     `Configure<TOptions>(...)` applies delegates during host activation, not at the fluent call site. Use it for options that must be loaded into `ConfigurationManager` before dispatch and listeners start.
 
-### Packet and Handler Discovery
+### Handler Discovery
 
-- `ScanPackets(assembly, requirePacketAttribute)`: Scans an assembly for packet types.
-- `ScanPackets(assemblyPath, requirePacketAttribute)`: Loads a `.dll` path and scans it for packet types.
-- `ScanPackets<TMarker>(...)`: Marker-type shortcut for scanning packets.
-- `AddPacketNamespace(packetNamespace, recursive)`: Scans currently loaded assemblies and includes matching packet namespaces.
-- `AddPacketNamespace(assemblyPath, packetNamespace, recursive)`: Scopes namespace discovery to one assembly path.
-- `ConfigurePacketRegistry(IPacketRegistry)`: Uses a pre-built registry and skips hosting auto-registration.
-- `ScanHandlers(assembly)`: Scans an assembly for `[PacketController]` classes. Handler-scanned assemblies are also registered for packet discovery with `requireAttribute: false`.
+- `ScanHandlers(assembly)`: Scans an assembly for `[PacketController]` classes.
 - `ScanHandlers<TMarker>()`: Marker-type shortcut for scanning handlers.
 - `AddHandler<THandler>()`: Manually registers a handler type.
 - `AddHandler<THandler>(Func<THandler> factory)`: Registers a handler type with a custom factory.
@@ -122,6 +117,7 @@ Manual handler registrations override assembly-scanned registrations for the sam
 - `ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>)`: Configures a custom `IPacketDispatch` implementation (e.g., `InlinePacketDispatcher`).
 
 When dispatch is created, the builder applies logging first, then all `ConfigureDispatchOptions(...)` callbacks, then resolved handler registrations.
+
 
 ### Server Bindings
 
@@ -153,8 +149,7 @@ var app = NetworkApplication.CreateBuilder()
     {
         options.Port = 57206;
     })
-    .ScanPackets<Handshake>()
-    .ScanHandlers<SampleHandlers>()
+    .AddHandler<SampleHandlers>()
     .BindTcp<SampleProtocol>().Bind()
     .Build();
 
