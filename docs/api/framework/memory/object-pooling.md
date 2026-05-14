@@ -40,7 +40,7 @@ public interface IPoolable
     /// <summary>
     /// Resets the object state to its default values before being returned to the pool.
     /// </summary>
-    void Reset();
+    void ResetForPool();
 }
 ```
 
@@ -91,7 +91,7 @@ public interface IPoolRentable
 | `ResetStatistics()` | Resets all statistics for the pool manager and all pools. |
 | `GetTypeInfo<T>()` | Gets detailed information about a specific type's pool. |
 | `GenerateReport()` | Produces a detailed text summary of all managed pools and their metrics. |
-| `GetReportData()` | Returns a structured dictionary for monitoring dashboards. |
+| `WriteReportData(Utf8JsonWriter)` | Writes structured diagnostic data to a JSON writer for zero-allocation reporting. |
 
 ### Properties
 

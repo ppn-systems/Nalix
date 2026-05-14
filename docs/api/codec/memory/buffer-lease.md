@@ -10,7 +10,7 @@ To avoid Garbage Collection (GC) pressure from millions of lease allocations, `B
 
 ### 2. Slice Ownership & Zero-Copy Handoff
 
-Unlike a standard `byte[]`, a `BufferLease` can represent a specific **slice** of an array (via `_start` and `Length`). This is critical for zero-copy handoffs where a payload is located after a protocol header in the same rented array. You can use `TakeOwnership` to create a lease over just that slice.
+Unlike a standard `byte[]`, a `BufferLease` can represent a specific **slice** of an array (via start offset and `Length`). This is critical for zero-copy handoffs where a payload is located after a protocol header in the same rented array. You can use `TakeOwnership` to create a lease over just that slice.
 
 ### 3. Reference Counting
 
@@ -23,7 +23,7 @@ Unlike a standard `byte[]`, a `BufferLease` can represent a specific **slice** o
 - `Rent(int capacity, bool zeroOnDispose = false)`: Auto-rents a buffer and returns an empty slice. You write to `SpanFull` and then call `CommitLength()`.
 - `CopyFrom(ReadOnlySpan<byte> src, bool zeroOnDispose = false)`: Creates a lease by copying source data into a newly rented buffer.
 - `TakeOwnership(byte[] buffer, int start, int length, bool zeroOnDispose = false)`: Wraps a slice of an already rented array, taking ownership of it.
-- `FromRented(byte[] buffer, int length)`: Wraps an entire rented array.
+- `FromRented(byte[] buffer, int length, bool zeroOnDispose = false)`: Wraps an entire rented array.
 
 ### Buffer Access
 
