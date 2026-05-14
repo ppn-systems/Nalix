@@ -98,9 +98,8 @@ Workers with higher `WorkerPriority` values are automatically moved to the front
 
 | Method | Signature | Description |
 | :--- | :--- | :--- |
-| `GetWorkerPercentile` | `double GetWorkerPercentile(double percentile)` | Calculates an approximate percentile for worker execution time based on histogram buckets. |
 | `GenerateReport` | `string GenerateReport()` | Produces a comprehensive diagnostic report (text-based). |
-| `GetReportData` | `IDictionary<string, object> GetReportData()` | Generates report data as key-value pairs. |
+| `WriteReportData` | `void WriteReportData(Utf8JsonWriter writer)` | Writes structured diagnostic data to a JSON writer for zero-allocation reporting. |
 | `Dispose` | `void Dispose()` | Disposes the manager, cancelling all workers and recurring tasks. |
 
 ### `GenerateReport()`
