@@ -31,9 +31,10 @@ public enum GenerationReportTarget : byte
 
 [Packet]
 [ExcludeFromCodeCoverage]
+[GenerateFormatterAttribute]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("GENERATION_REPORT Stage={Stage}, Target={Target}, Reason={Reason}")]
-public sealed class GenerationReport : PacketBase<GenerationReport>, IPacketValidatable
+public sealed partial class GenerationReport : PacketBase<GenerationReport>, IPacketValidatable
 {
     public const ushort OpCodeValue = 0x5101;
 
