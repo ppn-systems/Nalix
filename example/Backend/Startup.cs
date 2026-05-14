@@ -76,7 +76,7 @@ internal class Startup
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddMetadataProvider<PacketTagMetadataProvider>()
-            .ConfigureDispatch(o =>
+            .ConfigureDispatchOptions(o =>
             {
                 o.MaxDrainPerWake = 4096;
                 o.MaxDrainPerWakeMultiplier = 16;

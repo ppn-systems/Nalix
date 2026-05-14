@@ -59,6 +59,12 @@ categories:
   - title: '📦 Dependencies'
     labels:
       - 'dependencies'
+  - title: '🏠 Internal'
+    labels:
+      - 'internal'
+      - 'chore'
+  - title: 'Other Changes'
+    labels: [] # Catch-all cho các PR không có label
 
 change-template: '- $TITLE (#$NUMBER) @$AUTHOR'
 template: |
