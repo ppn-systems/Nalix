@@ -74,7 +74,6 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
     private readonly List<IListener> _listeners = [];
     private readonly List<IProtocol> _protocols = [];
-    private readonly IReadOnlyList<IActivatableAsync> _hostedServices;
 
     private bool _isStarted;
     private bool _isDisposed;
@@ -88,14 +87,12 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         ILogger logger,
         Action prepareCallbacks,
         Func<IPacketDispatch> dispatchFactory,
-        IReadOnlyList<Func<IPacketDispatch, ListenerBinding>> serverFactories,
-        IReadOnlyList<IActivatableAsync> hostedServices)
+        IReadOnlyList<Func<IPacketDispatch, ListenerBinding>> serverFactories)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _prepareCallbacks = prepareCallbacks ?? throw new ArgumentNullException(nameof(prepareCallbacks));
         _dispatchFactory = dispatchFactory ?? throw new ArgumentNullException(nameof(dispatchFactory));
         _serverFactories = serverFactories ?? throw new ArgumentNullException(nameof(serverFactories));
-        _hostedServices = hostedServices ?? throw new ArgumentNullException(nameof(hostedServices));
     }
 
     #endregion Constructors
@@ -215,11 +212,6 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                         s_startedTcpServerMessage(_logger, server.ProtocolType.FullName, null);
                     }
                 }
-
-                for (int i = 0; i < _hostedServices.Count; i++)
-                {
-                    await _hostedServices[i].ActivateAsync(cancellationToken).ConfigureAwait(false);
-                }
             }
             catch
             {
@@ -297,21 +289,6 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             }
 
             _protocols.Clear();
-
-            for (int i = _hostedServices.Count - 1; i >= 0; i--)
-            {
-                try
-                {
-                    await _hostedServices[i].DeactivateAsync(cancellationToken).ConfigureAwait(false);
-                }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (_logger.IsEnabled(LogLevel.Warning))
-                    {
-                        _logger.LogWarning(ex, "Failed to stop hosted service cleanly.");
-                    }
-                }
-            }
 
             try
             {

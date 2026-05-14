@@ -55,11 +55,6 @@ internal sealed class HostingBuilderContext
     public List<UdpProtocolBinding> UdpBindings { get; } = [];
 
     /// <summary>
-    /// Gets the list of hosted background services.
-    /// </summary>
-    public List<Func<IActivatableAsync>> HostedServices { get; } = [];
-
-    /// <summary>
     /// Gets the configuration delegates applied to
     /// <see cref="PacketDispatchOptions{TPacket}"/>.
     /// </summary>

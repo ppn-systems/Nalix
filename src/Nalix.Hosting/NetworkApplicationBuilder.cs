@@ -321,13 +321,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             });
         }
 
-        List<IActivatableAsync> hostedServices = [];
-        foreach (Func<IActivatableAsync> factory in _state.HostedServices)
-        {
-            hostedServices.Add(factory());
-        }
-
-        return new NetworkApplication(_state.Logger, PrepareCallbacks, DispatchFactory, serverFactories, hostedServices);
+        return new NetworkApplication(_state.Logger, PrepareCallbacks, DispatchFactory, serverFactories);
     }
 
     #region Factory Methods

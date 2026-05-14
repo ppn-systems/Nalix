@@ -17,8 +17,9 @@ namespace Nalix.Runtime.Internal.Compilation;
 /// <typeparam name="TPacket">The packet type this handler processes.</typeparam>
 /// <param name="MethodInfo"></param>
 /// <param name="ReturnType"></param>
+/// <param name="ExpectedPacketType">The concrete packet type expected by the handler, or null for generic dispatch.</param>
 /// <param name="CompiledInvoker"></param>
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal readonly record struct PacketHandlerDescriptor<TPacket>(MethodInfo MethodInfo, Type ReturnType, Func<object, PacketContext<TPacket>, ValueTask<object>> CompiledInvoker)
+internal readonly record struct PacketHandlerDescriptor<TPacket>(MethodInfo MethodInfo, Type ReturnType, Type? ExpectedPacketType, Func<object, PacketContext<TPacket>, ValueTask<object>> CompiledInvoker)
     where TPacket : IPacket;
 
