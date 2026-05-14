@@ -50,7 +50,7 @@ graph LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigurePacketRegistry(...)`, `ScanPackets(...)`, `AddPacketNamespace(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ConfigurePacketRegistry(...)`, `ScanPackets(...)`, `AddPacketNamespace(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `Build()` |
 
 ## Builder composition details
 
@@ -118,9 +118,10 @@ Manual handler registrations override assembly-scanned registrations for the sam
 
 - `AddMetadataProvider<TProvider>()`: Registers a packet metadata provider.
 - `AddMetadataProvider<TProvider>(Func<TProvider> factory)`: Registers a metadata provider with a custom factory.
-- `ConfigureDispatch(Action<PacketDispatchOptions<IPacket>>)`: Configures the `PacketDispatchChannel` options, including middleware and custom logic for built-in and custom packet pipelines.
+- `ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>>)`: Configures the `PacketDispatchChannel` options, including middleware and custom logic for built-in and custom packet pipelines.
+- `ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>)`: Configures a custom `IPacketDispatch` implementation (e.g., `InlinePacketDispatcher`).
 
-When dispatch is created, the builder applies logging first, then all `ConfigureDispatch(...)` callbacks, then resolved handler registrations.
+When dispatch is created, the builder applies logging first, then all `ConfigureDispatchOptions(...)` callbacks, then resolved handler registrations.
 
 ### Server Bindings
 

@@ -53,6 +53,7 @@ The builder exposes fluent methods for configuring the server:
 - `ConfigureObjectPoolManager(...)`
 - `ConfigureCertificate(...)`
 - `ConfigurePacketRegistry(...)`
+- `ConfigureDispatchOptions(...)`
 - `ConfigureDispatch(...)`
 - `Configure<TOptions>(...)`
 - `ScanPackets<TMarker>()`

@@ -144,7 +144,7 @@ Instead of per-packet `try-catch` blocks in your handlers, use the global observ
 ```csharp
 using Nalix.Hosting;
 
-builder.ConfigureDispatch(options =>
+builder.ConfigureDispatchOptions(options =>
 {
     options.WithErrorHandling((exception, opCode) => 
     {
@@ -196,7 +196,7 @@ using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
     .ScanHandlers<GameMarker>() // Triggers handler compilation
-    .ConfigureDispatch(options => {
+    .ConfigureDispatchOptions(options => {
         // Scale dispatch loops to the current machine's logical CPU count
         options.WithDispatchLoopCount(Environment.ProcessorCount);
         // Increase per-wake drain budget for burst workloads

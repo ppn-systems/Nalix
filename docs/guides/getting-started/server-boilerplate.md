@@ -103,7 +103,7 @@ public sealed class MyPingHandler
 Add these to your `CreateBuilder()` chain to harden your server for production traffic.
 
 ```csharp
-builder.ConfigureDispatch(options =>
+builder.ConfigureDispatchOptions(options =>
 {
     options.WithLogging(NLogix.Host.Instance)
            // Add security layers

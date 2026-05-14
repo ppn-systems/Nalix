@@ -130,7 +130,7 @@ var app = NetworkApplication.CreateBuilder()
     .AddHandler<ChatHandlers>()  // Explicit registration
     
     // 2. Register Middleware
-    .ConfigureDispatch(options => 
+    .ConfigureDispatchOptions(options => 
     {
         options.WithMiddleware(new EncryptionMiddleware());
         options.WithMiddleware(new AuditMiddleware(logger));
