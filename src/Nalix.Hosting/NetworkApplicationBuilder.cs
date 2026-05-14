@@ -132,11 +132,19 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureDispatch(Action<PacketDispatchOptions<IPacket>> configure)
+    public INetworkApplicationBuilder ConfigureDispatchOptions(Action<PacketDispatchOptions<IPacket>> configure)
     {
         ArgumentNullException.ThrowIfNull(configure);
 
-        _state.PacketDispatchConfigurators.Add(configure);
+        _state.PacketDispatchOptionsConfigurators.Add(configure);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureDispatch(Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch> factory)
+    {
+        ArgumentNullException.ThrowIfNull(factory);
+        _state.CustomDispatchFactory = factory;
         return this;
     }
 
@@ -345,17 +353,17 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         return (IProtocol)InstanceManager.Instance.CreateInstance(protocolType);
     }
 
-    internal static PacketDispatchChannel CreatePacketDispatch(HostingBuilderContext state)
+    internal static IPacketDispatch CreatePacketDispatch(HostingBuilderContext state)
     {
         ArgumentNullException.ThrowIfNull(state);
 
-        return new PacketDispatchChannel(dispatchOptions =>
+        void ConfigureOptions(PacketDispatchOptions<IPacket> dispatchOptions)
         {
             _ = dispatchOptions.WithLogging(state.Logger);
 
-            for (int i = 0; i < state.PacketDispatchConfigurators.Count; i++)
+            for (int i = 0; i < state.PacketDispatchOptionsConfigurators.Count; i++)
             {
-                state.PacketDispatchConfigurators[i](dispatchOptions);
+                state.PacketDispatchOptionsConfigurators[i](dispatchOptions);
             }
 
             foreach (HandlerDescriptor registration in ResolveHandlerRegistrations(state))
@@ -363,7 +371,14 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 _ = s_registerHandlerMethod.MakeGenericMethod(registration.HandlerType)
                                            .Invoke(obj: null, parameters: [dispatchOptions, registration.Factory]);
             }
-        });
+        }
+
+        if (state.CustomDispatchFactory != null)
+        {
+            return state.CustomDispatchFactory(ConfigureOptions);
+        }
+
+        return new PacketDispatchChannel(ConfigureOptions);
     }
 
     private static IEnumerable<HandlerDescriptor> ResolveHandlerRegistrations(HostingBuilderContext state)

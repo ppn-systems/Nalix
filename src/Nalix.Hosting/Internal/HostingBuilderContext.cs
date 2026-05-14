@@ -63,7 +63,7 @@ internal sealed class HostingBuilderContext
     /// Gets the configuration delegates applied to
     /// <see cref="PacketDispatchOptions{TPacket}"/>.
     /// </summary>
-    public List<Action<PacketDispatchOptions<IPacket>>> PacketDispatchConfigurators { get; } = [];
+    public List<Action<PacketDispatchOptions<IPacket>>> PacketDispatchOptionsConfigurators { get; } = [];
 
     /// <summary>
     /// Gets or sets the logger used during host construction.
@@ -91,6 +91,11 @@ internal sealed class HostingBuilderContext
     /// When <c>true</c>, the host will not create a default manager.
     /// </summary>
     public bool HasCustomBufferPoolManager { get; set; }
+
+    /// <summary>
+    /// A custom factory for creating the packet dispatcher.
+    /// </summary>
+    public Func<Action<PacketDispatchOptions<IPacket>>, IPacketDispatch>? CustomDispatchFactory { get; set; }
 }
 
 /// <summary>
