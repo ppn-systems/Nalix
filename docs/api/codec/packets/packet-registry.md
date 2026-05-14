@@ -12,7 +12,7 @@ In Nalix, the `PacketRegistry` is a process-wide, immutable, thread-safe catalog
 
 ### 1. Automatic Discovery (Source Generation)
 
-Nalix uses a C# Source Generator to automatically detect types inheriting from `PacketBase<TSelf>` or implementing `IPacket`. The generator produces calls to `PacketRegistry.RegisterGenerated<T>()` which are executed during assembly initialization.
+Nalix uses a C# Source Generator to automatically detect types inheriting from `PacketBase<TSelf>` or implementing `IPacket`. The generator produces calls to `PacketRegistry.RegisterGenerated(...)` which are executed during assembly initialization.
 
 ### 2. Frozen Catalog
 
@@ -26,7 +26,7 @@ The registry must be "built" before it can be used for deserialization. Calling 
 
 | Type | Public members |
 | --- | --- |
-| `PacketRegistry` | `Configure(IObjectPoolManager)`, `RegisterGenerated<T>()`, `Build()`, `IsKnownMagic`, `TryDeserialize`, `Manager` |
+| `PacketRegistry` | `Configure(IObjectPoolManager)`, `RegisterGenerated(PacketDispatch)`, `RegisterGenerated(uint, string, PacketDeserializer)`, `Build()`, `IsKnownMagic`, `TryDeserialize`, `Manager` |
 
 ## Usage
 
@@ -47,8 +47,8 @@ PacketRegistry.Build();
 The registry provides a high-performance `TryDeserialize` method that handles header extraction and object rehydration (or pooling).
 
 ```csharp
-// Read a packet from a raw buffer lease
-if (PacketRegistry.TryDeserialize(bufferLease, out IPacket? packet))
+// Read a packet from a raw buffer span
+if (PacketRegistry.TryDeserialize(bufferLease.Span, out IPacket? packet))
 {
     using (packet) // Packets are usually IPoolable
     {

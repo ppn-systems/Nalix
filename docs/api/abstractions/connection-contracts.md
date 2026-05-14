@@ -19,7 +19,7 @@
 
 | Type | Public members |
 |---|---|
-| `IConnection` | `ID`, `UpTime`, `BytesSent`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
+| `IConnection` | `ID`, `UpTime`, `BytesSent`, `BytesReceived`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `IsUdpCreated`, `TCP`, `UDP`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
 | `IConnectionHub` | `Count`, `SessionStore`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ForceClose(...)`, `CloseAllConnections(...)`, `ListConnections(...)` |
 | `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
 
