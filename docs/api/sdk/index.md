@@ -62,9 +62,8 @@ Use these pages when working on SDK internals, custom transports, or protocol to
 
 ```csharp
 TransportOptions options = new();
-IPacketRegistry catalog = /* resolve registry */;
 
-using TcpSession session = new(options, catalog);
+using TcpSession session = new(options);
 await session.ConnectAsync();
 
 await session.HandshakeAsync();

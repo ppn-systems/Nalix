@@ -65,14 +65,14 @@ Important public members:
 Nalix uses a sophisticated, type-safe pooling system for all packet types. Instead of manual `new` allocations, you should rent packets from the pool to minimize GC pressure.
 
 ### The `Create()` Pattern
-
 Every packet inheriting from `PacketBase<TSelf>` provides a static `Create` method:
 
 ```csharp
-// Rent a packet from the pool and initialize it
-using var handshake = Handshake.Create(h => {
-    h.Initialize(HandshakeStage.CLIENT_HELLO, pubKey, nonce);
-});
+// 1. Rent a packet from the pool
+using var handshake = Handshake.Create();
+
+// 2. Initialize the packet
+handshake.Initialize(HandshakeStage.CLIENT_HELLO, pubKey, nonce);
 
 // The packet is automatically returned to the pool when 'handshake' is disposed.
 ```

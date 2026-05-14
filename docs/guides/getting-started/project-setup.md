@@ -27,7 +27,7 @@ Use a `Directory.Build.props` file in the root directory to manage package versi
 ```xml
 <Project>
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NalixVersion>$(VersionFromYourReleasePlan)</NalixVersion>

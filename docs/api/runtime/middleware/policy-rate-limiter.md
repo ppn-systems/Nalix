@@ -185,13 +185,13 @@ summary, and suppresses finalization.
 - active policies sorted by descending RPS and burst;
 - last-used UTC time for each active policy.
 
-`GetReportData()` returns key-value data with:
+`WriteReportData(Utf8JsonWriter)` writes zero-allocation JSON with:
 
 - `UtcNow`;
 - `ActivePolicies`;
 - `MaxPolicies`;
 - `CheckCounter`;
-- up to `32` active policy rows with `RPS`, `Burst`, and `LastUsedUtc`.
+- `Policies` array containing `RPS`, `Burst`, and `LastUsedUtc` for each entry.
 
 ## Authoring Guidance
 

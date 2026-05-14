@@ -2,19 +2,9 @@
 
 Nalix runtime resolves handler return types through internal return handlers during dispatch execution.
 
-## Audit Summary
+## Overview
 
-- Existing page had a solid overview but needed tighter wording around supported wrapping behavior and unsupported type handling.
-- Needed explicit source mapping to the internal result handlers used at runtime.
-
-## Missing Content Identified
-
-- Concrete mapping from return type shapes to built-in handler implementations.
-- Clarified boundary: return-handler system is runtime-internal but directly affects handler authoring.
-
-## Improvement Rationale
-
-This helps controller authors choose predictable return styles while keeping dispatch behavior transparent.
+Nalix runtime resolves handler return types through internal return handlers during dispatch execution. This allows you to choose the most natural return style for your logic—whether synchronous, asynchronous, or even returning raw binary data—while keeping the outbound transport logic centralized and consistent.
 
 ## Source Mapping
 
@@ -34,7 +24,7 @@ This helps controller authors choose predictable return styles while keeping dis
 | `TPacket` (or any `IPacket`) | Sent as packet response through runtime sender flow. Supports both classes and structs (e.g., `MemoryPacket`). |
 | `byte[]` | Sent as raw payload. |
 | `Memory<byte>` / `ReadOnlyMemory<byte>` | Sent as raw payload memory. |
-| `Task<T>` / `ValueTask<T>` | Awaited, then resolved again as type `T`. `T` must be a supported shape (`void`, `IPacket`, `byte[]`, `Memory<byte>`, `ReadOnlyMemory<byte>`). |
+| `Task<T>` / `ValueTask<T>` | Awaited, then resolved again as type `T`. `T` must be a supported shape (`IPacket`, `byte[]`, `Memory<byte>`, `ReadOnlyMemory<byte>`). |
 
 ## Why It Exists
 

@@ -117,7 +117,7 @@ The API is backed by the high-performance **SlabBucket** infrastructure and bene
 | `Return` | `void Return(byte[]? array, bool arrayClear = false)` | Returns a buffer to the appropriate pool. |
 | `GetAllocationForSize` | `double GetAllocationForSize(int size)` | Gets the allocation ratio for a given buffer size. |
 | `GenerateReport` | `string GenerateReport()` | Generates a human-readable text report. |
-| `GetReportData` | `IDictionary<string, object> GetReportData()` | Generates a structured key-value diagnostic report. |
+| `WriteReportData` | `void WriteReportData(Utf8JsonWriter writer)` | Writes structured JSON diagnostic data for reporting. |
 | `Dispose` | `void Dispose()` | Releases all resources of the buffer pools. |
 
 ## Constructing Outgoing Packets with BufferLease
@@ -164,7 +164,7 @@ BufferAllocations = 256,0.15; 1024,0.15; 4096,0.30; 16384,0.30; 32768,0.10
 
 ## Monitoring & Metrics
 
-The `BufferPoolManager` provides deep insights into memory health via the `GenerateReport()` or `GetReportData()` APIs:
+The `BufferPoolManager` provides deep insights into memory health via the `GenerateReport()` or `WriteReportData(Utf8JsonWriter)` APIs:
 
 - **Expands / Shrinks**: Tracks the actual growth and contraction events of each bucket.
 - **Initial Capacity**: Shows the configured "floor" that the pool will never shrink below.
@@ -172,7 +172,7 @@ The `BufferPoolManager` provides deep insights into memory health via the `Gener
 - **Overall Hit Rate**: A high-level summary of how many rent requests were satisfied by pooled buffers.
 
 !!! tip "Enterprise Reporting"
-    Call `manager.GenerateReport()` for a human-readable text summary, or `manager.GetReportData()` to get a structured `IDictionary` for monitoring dashboards (e.g., Prometheus/Grafana).
+    Call `manager.GenerateReport()` for a human-readable text summary, or `manager.WriteReportData(writer)` to get structured JSON for monitoring dashboards (e.g., Prometheus/Grafana).
 
 ## Related APIs
 

@@ -132,7 +132,7 @@ connections that actually need the replay window.
 `ConnectionGuard` implements `IReportable`:
 
 - `GenerateReport()` returns a human-readable status table.
-- `GetReportData()` returns structured metrics including tracked endpoints,
+- `WriteReportData(Utf8JsonWriter)` returns zero-allocation JSON including tracked endpoints,
   concurrent connections, total attempts, total rejections, total cleaned entries,
   rejection rate, and the top 50 endpoints by current load.
 

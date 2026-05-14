@@ -336,13 +336,15 @@ For scenarios where even deserialization overhead is unacceptable (e.g., relayin
 A `MemoryPacket` is a high-performance struct that holds a `ReadOnlyMemory<byte>` payload and the standard `PacketHeader`.
 
 ```csharp
-using Nalix.Abstractions.Networking.Packets;
+using System;
+using System.Threading.Tasks;
+using Nalix.Abstractions.Networking;
 
 // Receiving raw memory directly in a handler
 [PacketOpcode(0x9000)]
-public ValueTask HandleRaw(ReadOnlyMemory<byte> rawData, IPacketContext context)
+public ValueTask HandleRaw(ReadOnlyMemory<byte> rawData, IConnection connection)
 {
-    // rawData points directly to the transport lease
+    // rawData points directly into the transport buffer lease segment
     return ValueTask.CompletedTask;
 }
 ```

@@ -83,7 +83,7 @@ public class MyProtocol : Protocol
 - `PostProcessMessage(object? sender, IConnectEventArgs args)`
 - `OnAccept(IConnection connection, CancellationToken cancellationToken = default)`
 - `SetConnectionAcceptance(bool isEnabled)`
-- `GenerateReport()` / `GetReportData()`
+- `GenerateReport()` / `WriteReportData(Utf8JsonWriter)`
 - `IsAccepting`
 - `KeepConnectionOpen`
 - `TotalMessages`
@@ -102,7 +102,7 @@ public class MyProtocol : Protocol
 
 - Keep protocol code focused on protocol-level routing; route business logic to packet handlers or dispatch code.
 - Use `ValidateConnection` for admission checks only.
-- Use `GenerateReport()` / `GetReportData()` when debugging acceptance and post-process failures.
+- Use `GenerateReport()` / `WriteReportData(Utf8JsonWriter)` when debugging acceptance and post-process failures.
 
 ## Related APIs
 

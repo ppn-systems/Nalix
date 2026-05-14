@@ -133,11 +133,11 @@ That shape matches `src/Nalix.Hosting/DefaultProtocol.cs`, which is the built-in
 
 Managing the **Activation** and **Shutdown** order is critical for preventing connection "dangling."
 
-| phase | Action | Detail |
+| Phase | Action | Detail |
 | --- | --- | --- |
 | **Startup** | `dispatch.Activate()` | Warm up the dispatch pipeline before listeners begin accepting traffic. |
 | **Startup** | `listener.Activate()` | Open the socket and begin accepting. |
-| **Shutdown** | `listener.Deactivate()` + `Dispose()` | Stop accepting and release transport resources first. |
+| **Shutdown** | `listener.Deactivate()` | Stop accepting and release transport resources first. |
 | **Shutdown** | `protocol.Dispose()` | Dispose protocols after listeners stop. |
 | **Shutdown** | `dispatch.Deactivate()` | Stop the dispatch pipeline after listeners. |
 
@@ -147,11 +147,15 @@ This order comes directly from `src/Nalix.Hosting/NetworkApplication.cs`, where 
 
 ## 📊 Diagnostics Surface
 
-A production-ready blueprint always includes a way to query the internal health.
+A production-ready blueprint always includes a way to query the internal health. All core components implement `IReportable`.
 
-- `listener.GenerateReport()` - Listener-side transport state and counters.
-- `protocol.GenerateReport()` - Protocol-side counters and post-process diagnostics.
-- `dispatch.GenerateReport()` - Dispatch runtime state.
+- `GenerateReport()`: Returns a human-readable string for logging or CLI.
+- `WriteReportData(Utf8JsonWriter)`: Zero-allocation JSON output for monitoring APIs or dashboards.
+
+Available on:
+- `IListener`: Listener-side transport state and counters.
+- `IProtocol`: Protocol-side counters and post-process diagnostics.
+- `IPacketDispatch`: Dispatch runtime state and channel pressure.
 
 !!! info "Pro-Tip"
     Even if you don't have an Admin API, ensure your logs occasionally output these reports during periods of high traffic.

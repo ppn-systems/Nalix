@@ -106,7 +106,7 @@ public class UserBasedRouter : IPacketDispatch
     public void Activate(CancellationToken ct = default) => _inner.Activate(ct);
     public void Deactivate(CancellationToken ct = default) => _inner.Deactivate(ct);
     public string GenerateReport() => _inner.GenerateReport();
-    public IDictionary<string, object> GetReportData() => _inner.GetReportData();
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer) => _inner.WriteReportData(writer);
 }
 ```
 

@@ -82,10 +82,9 @@ client.SessionToken = mySessionSnowflake;
 
 client.OnMessageReceived += (s, lease) => 
 {
-    using (lease)
-    {
-        // Handle low-latency update
-    }
+    // The lease is owned by the transport and will be disposed after this event returns.
+    // If you need to keep the data beyond this callback, call lease.Retain().
+    Console.WriteLine($"Received {lease.Length} bytes");
 };
 
 await client.ConnectAsync();
