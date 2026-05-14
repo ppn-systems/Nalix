@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
 
 namespace Nalix.Abstractions.Primitives;
 
@@ -12,12 +13,14 @@ namespace Nalix.Abstractions.Primitives;
 /// wire-compatible layout across all platforms.
 /// </summary>
 [StructLayout(LayoutKind.Explicit, Pack = 1)]
-public struct PacketHeader
+public struct PacketHeader : IFixedSizeSerializable
 {
     /// <summary>
     /// The wire size of the header in bytes.
     /// </summary>
     public const int Size = (int)PacketHeaderOffset.Region;
+
+    static int IFixedSizeSerializable.Size => Size;
 
     /// <summary>
     /// Gets the magic number that identifies the packet format or protocol.

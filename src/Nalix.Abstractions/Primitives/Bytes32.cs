@@ -23,12 +23,14 @@ namespace Nalix.Abstractions.Primitives;
 [DebuggerDisplay("{ToString()}")]
 [StructLayout(LayoutKind.Explicit)]
 [SerializePackable(SerializeLayout.Explicit)]
-public readonly struct Bytes32 : IEquatable<Bytes32>
+public readonly struct Bytes32 : IEquatable<Bytes32>, IFixedSizeSerializable
 {
     /// <summary>
     /// The size of the <see cref="Bytes32"/> buffer in bytes.
     /// </summary>
     public const int Size = 0x20;
+
+    static int IFixedSizeSerializable.Size => Size;
 
     [FieldOffset(0x00)][SerializeOrder(0)] private readonly ulong _v1;
     [FieldOffset(0x08)][SerializeOrder(1)] private readonly ulong _v2;
