@@ -98,7 +98,7 @@ To prevent slow acceptance-side work from exhausting accept workers, `TcpListene
 | `Deactivate(CancellationToken)` | Stops accepting new connections and begins listener shutdown. |
 | `Dispose()` | Actively terminates the listening socket and all pending accept args. |
 | `GenerateReport()` | Creates a diagnostic summary string of the transport's real-time health. |
-| `GetReportData()` | Generates diagnostic data as key-value pairs for structured logging and automation. |
+| `WriteReportData(Utf8JsonWriter)` | Writes structured diagnostic data directly to a JSON writer for zero-allocation reporting. |
 
 ### Internal Notes
 

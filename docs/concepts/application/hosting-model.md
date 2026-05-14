@@ -12,14 +12,12 @@ You configure your application using the `NetworkApplicationBuilder`. This allow
 
 ```csharp
 using Nalix.Hosting;
-using Nalix.Hosting;
 using Nalix.Network.Options;
 
 var builder = NetworkApplication.CreateBuilder();
 
 builder.ConfigureCertificate("path/to/certificate.private")
        .Configure<NetworkSocketOptions>(options => options.Port = 8080)
-       .ScanPackets<MyPacket>()
        .ScanHandlers<MyHandlers>()
        .BindTcp<MyProtocol>()
        .Bind();
@@ -34,7 +32,7 @@ await app.RunAsync();
 The hosting model manages the four major stages of a server's life:
 
 1. **Bootstrap**: Loading configuration, registering logger / pools / packet registry, and initializing handshake identity.
-2. **Startup**: Creating the packet dispatcher, opening TCP or UDP listeners, and activating hosted services.
+2. **Startup**: Creating the packet dispatcher and opening TCP or UDP listeners.
 3. **Runtime**: Accepting connections, dispatching packets, and managing session state.
 4. **Shutdown**: Stopping listeners and disposing runtime resources through `NetworkApplication`.
 

@@ -2,6 +2,7 @@
   <PropertyGroup>
     <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
     <OutputPath>$(MSBuildThisFileDirectory)..\build\bin\$(Configuration)\$(MSBuildProjectName)\</OutputPath>
+    <UseSharedCompilation Condition="'$(GITHUB_ACTIONS)' == 'true'">false</UseSharedCompilation>
   </PropertyGroup>
 
   <PropertyGroup>

@@ -13,7 +13,7 @@ Use this pattern for standard request/reply flows where the handler returns exac
 ```csharp
 using System.Threading.Tasks;
 using Contracts; // Contains PingRequest and PingResponse
-using Nalix.Abstractions.Abstractions;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 
@@ -64,7 +64,22 @@ public sealed class ChatHandlers
 
 ---
 
-## 2. Error Handling
+## 2. Supported Method Signatures
+
+The Nalix dispatcher is extremely flexible and supports multiple method signatures. The [Source Generator](../../concepts/fundamentals/packet-system.md#7-packet-registration) automatically detects your signature and compiles an optimized invoker.
+
+| Style | Signature | Use Case |
+| :--- | :--- | :--- |
+| **Context** | `(IPacketContext<T> context)` | **Recommended.** Provides full access to packet, connection, and metadata. |
+| **Context + Token** | `(IPacketContext<T> context, CancellationToken ct)` | Standard for async handlers needing cancellation support. |
+| **Legacy** | `(T packet, IConnection connection)` | Familiar request/reply style. |
+| **Legacy + Token** | `(T packet, IConnection connection, CancellationToken ct)` | Async request/reply with cancellation. |
+| **Raw Memory** | `(ReadOnlyMemory<byte> raw, IConnection connection)` | Ultra-hot path relaying or custom parsing. |
+
+!!! tip
+    All signatures also support `ValueTask`, `ValueTask<T>`, `Task`, `Task<T>`, or synchronous `void`/`T` return types.
+
+---
 
 Handlers should gracefully handle failures within the execution block. While the Nalix dispatcher catches unhandled exceptions to prevent worker crashes, you should provide meaningful protocol feedback.
 

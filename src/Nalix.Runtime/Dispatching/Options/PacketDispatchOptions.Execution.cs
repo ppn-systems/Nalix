@@ -341,6 +341,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
         }
 
+        if (firstParam == typeof(ReadOnlyMemory<byte>))
+        {
+            return typeof(MemoryPacket);
+        }
+
         // Legacy-style handlers receive the packet directly, so capture the actual packet type
         // for a dispatch-time sanity check.
         return typeof(IPacket).IsAssignableFrom(firstParam) ? firstParam : null;

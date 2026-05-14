@@ -73,7 +73,7 @@ flowchart TD
 | Method / Property | Description |
 | :--- | :--- |
 | `GenerateReport()` | Produces a human-readable report of all cached instances. |
-| `GetReportData()` | Returns a key-value summary for diagnostics/monitoring. |
+| `WriteReportData(Utf8JsonWriter)` | Writes a structured JSON summary for diagnostics/monitoring. |
 | `CachedInstanceCount` | Gets the number of cached instances. |
 | `EntryAssembly` | Gets the assembly that started the application. |
 | `ApplicationMutexName` | The OS mutex name used for single-instance detection. |

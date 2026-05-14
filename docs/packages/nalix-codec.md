@@ -34,7 +34,6 @@ A lightweight wrapper around pooled memory that ensures safe disposal and reuse.
 
 Helpers for applying encryption and compression to framed packets.
 
-
 ### `LZ4Codec`
 
 A pooled implementation of the LZ4 compression algorithm.
@@ -43,11 +42,10 @@ A pooled implementation of the LZ4 compression algorithm.
 
 ```mermaid
 flowchart LR
-    A["PacketRegistryFactory"] --> B["Include assemblies / namespaces"]
-    B --> C["CreateCatalog()"]
-    C --> D["PacketRegistry"]
-    D --> E["Nalix.Network"]
-    D --> F["Nalix.SDK"]
+    A["Source Generator"] -- "RegisterGenerated()" --> B["PacketRegistry"]
+    B -- "Build()" --> C["Frozen Catalog"]
+    C --> D["Nalix.Network"]
+    C --> E["Nalix.SDK"]
 ```
 
 ### Purpose
@@ -60,19 +58,17 @@ flowchart LR
 
 ### Key components
 
-- `FrameBase` / `PacketBase<TSelf>` Ã¢â‚¬â€ base abstractions for headers, auto-magic, serialization, and pooling.
-- `SerializePackableAttribute` / `SerializeOrderAttribute` / `SerializeIgnoreAttribute` / `SerializeHeaderAttribute` / `SerializeDynamicSizeAttribute` Ã¢â‚¬â€ low-level serialization layout controls.
-- `LiteSerializer` / `FormatterProvider` / `IFormatter<T>` Ã¢â‚¬â€ serializer entry points and formatter resolution.
-- `DataReader` / `DataWriter` / `HeaderExtensions` Ã¢â‚¬â€ low-level read/write and header inspection helpers.
-- `PacketRegistryFactory` Ã¢â‚¬â€ scans packet types and binds deserialize function pointers.
-- `PacketRegistry` Ã¢â‚¬â€ frozen catalog of deserializers/transformers.
-- `Handshake` Ã¢â‚¬â€ default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
-- `SessionResume` Ã¢â‚¬â€ unified session signal packet for resume request/response flows (uses `SessionResumeStage` for stage disambiguation).
-- `Control` Ã¢â‚¬â€ built-in frame type.
-- `PacketProvider<TPacket>` Ã¢â‚¬â€ packet initialization and pooling helpers.
-- `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` Ã¢â‚¬â€ chunk large payloads and reassemble them safely.
-- `FrameCipher` / `FrameCompression` Ã¢â‚¬â€ framed packet encrypt/decrypt and compress/decompress helpers.
-- `LZ4Codec` Ã¢â‚¬â€ pooled block compression and decompression.
+- `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, auto-magic, serialization, and pooling.
+- `SerializePackableAttribute` / `SerializeOrderAttribute` / `SerializeIgnoreAttribute` / `SerializeHeaderAttribute` / `SerializeDynamicSizeAttribute` — low-level serialization layout controls.
+- `LiteSerializer` / `FormatterProvider` / `IFormatter<T>` — serializer entry points and formatter resolution.
+- `DataReader` / `DataWriter` / `HeaderExtensions` — low-level read/write and header inspection helpers.
+- `PacketRegistry` — process-wide registry for packet discovery and deserialization.
+- `Handshake` — default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
+- `SessionResume` — unified session signal packet for resume request/response flows (uses `SessionResumeStage` for stage disambiguation).
+- `Control` — built-in frame type.
+- `FragmentHeader` / `FragmentAssembler` / `FragmentOptions` — chunk large payloads and reassemble them safely.
+- `FrameCipher` / `FrameCompression` — framed packet encrypt/decrypt and compress/decompress helpers.
+- `LZ4Codec` — pooled block compression and decompression.
 
 ### Quick example
 
@@ -81,11 +77,9 @@ using Nalix.Codec.DataFrames;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Memory;
 
-// Build and register the shared catalog
-PacketRegistryFactory factory = new();
-PacketRegistry registry = factory.CreateCatalog();
+// Initialize the registry (usually called by NetworkApplicationBuilder)
 PacketRegistry.Configure(poolManager); // optional: enable packet pooling
-InstanceManager.Instance.Register<IPacketRegistry>(registry);
+PacketRegistry.Build(); // Freeze the registry
 
 // Handshake frame
 Handshake hs = new(
@@ -95,19 +89,6 @@ Handshake hs = new(
     flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
 hs.UpdateTranscriptHash("nalix-default-handshake"u8);
 byte[] bytes = hs.Serialize();
-```
-
-### Registry build flow
-
-- Add assemblies or namespaces if you have custom packets.
-- Call `CreateCatalog()` once and reuse the result in listeners and clients.
-
-### Quick example
-
-```csharp
-PacketRegistryFactory factory = new();
-factory.IncludeNamespaceRecursive("MyApp.Packets");
-PacketRegistry catalog = factory.CreateCatalog();
 ```
 
 ## Key API pages
@@ -120,4 +101,3 @@ PacketRegistry catalog = factory.CreateCatalog();
 - [Built-in Frames](../api/codec/packets/built-in-frames.md)
 - [Fragmentation](../api/codec/packets/fragmentation.md)
 - [Cryptography](../api/security/cryptography.md)
-

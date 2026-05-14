@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
@@ -10,8 +10,6 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AssemblyName>Nalix.Analyzers.CodeFixes</AssemblyName>
 		<Description>Roslyn code fixes for Nalix analyzers.</Description>
-		<OutputPath>..\..\build\bin\$(Configuration)\</OutputPath>
-		<IntermediateOutputPath>..\..\build\obj\$(Configuration)\Nalix.Analyzers.CodeFixes\</IntermediateOutputPath>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
 

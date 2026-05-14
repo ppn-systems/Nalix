@@ -2,19 +2,9 @@
 
 `PacketSender` is the default runtime sender implementation bound to the pooled `PacketContext<TPacket>` used during dispatch and exposed to application code through `IPacketContext<TPacket>.Sender`.
 
-## Audit Summary
+## Overview
 
-- Existing page correctly described transform ordering but mixed some behavior details with assumptions.
-- Needed explicit mapping to actual branching logic in `SendAsync` implementation.
-
-## Missing Content Identified
-
-- Clear explanation of default encryption decision (`context.Attributes.Encryption?.IsEncrypted`).
-- Explicit runtime boundaries: sender is initialized by runtime and used through `IPacketSender<TPacket>`.
-
-## Improvement Rationale
-
-This prevents confusion between per-handler metadata policy and per-call override behavior.
+`PacketSender` is the default runtime sender implementation bound to the pooled `PacketContext<TPacket>` used during dispatch and exposed to application code through `IPacketContext<TPacket>.Sender`. It provides a high-performance, asynchronous API for sending packets back to the client while automatically respecting the security and transport policies defined via attributes on your handlers.
 
 ## Source Mapping
 

@@ -1,4 +1,4 @@
-﻿# API Reference
+# API Reference
 
 Nalix API documentation is organized by package boundary and runtime responsibility so you can move from contracts (`Nalix.Abstractions`) to execution (`Nalix.Runtime`, `Nalix.Network`) and then to client transport (`Nalix.SDK`) without mixing concerns.
 
@@ -6,11 +6,11 @@ Nalix API documentation is organized by package boundary and runtime responsibil
 
 If you're looking for the core interfaces and classes that drive Nalix:
 
-- :fontawesome-solid-cube: **Packet contracts & attributes** â†’ [Common API](./abstractions/index.md)
-- :fontawesome-solid-route: **Handlers, routing & metadata** â†’ [Runtime Routing](./runtime/routing/index.md)
-- :fontawesome-solid-filter: **Middleware pipelines** â†’ [Runtime Middleware](./runtime/middleware/index.md)
-- :fontawesome-solid-network-wired: **TCP/UDP transport & protocols** â†’ [Network API](./network/index.md)
-- :fontawesome-solid-mobile-screen: **Client sessions & requests** â†’ [SDK API](./sdk/index.md)
+- :fontawesome-solid-cube: **Packet contracts & attributes** -> [Common API](./abstractions/index.md)
+- :fontawesome-solid-route: **Handlers, routing & metadata** -> [Runtime Routing](./runtime/routing/index.md)
+- :fontawesome-solid-filter: **Middleware pipelines** -> [Runtime Middleware](./runtime/middleware/index.md)
+- :fontawesome-solid-network-wired: **TCP/UDP transport & protocols** -> [Network API](./network/index.md)
+- :fontawesome-solid-mobile-screen: **Client sessions & requests** -> [SDK API](./sdk/index.md)
 
 !!! warning "Important"
     Most users should NOT start by reading the API reference.  
@@ -24,7 +24,6 @@ If you're looking for the core interfaces and classes that drive Nalix:
 - `src/Nalix.Runtime`
 - `src/Nalix.Network`
 - `src/Nalix.Hosting`
-- `src/Nalix.Runtime`
 - `src/Nalix.SDK`
 
 ## Why This Structure Exists
@@ -33,10 +32,9 @@ Nalix is split into focused packages with explicit layering:
 
 - `Nalix.Abstractions` defines shared contracts and attributes.
 - `Nalix.Framework` provides reusable framework primitives (packet model, configuration, memory, security, tasking).
-- `Nalix.Runtime` turns packets into handler execution.
+- `Nalix.Runtime` turns packets into handler execution and provides reusable middleware/throttling components.
 - `Nalix.Network` owns listeners, connections, protocols, and session stores.
 - `Nalix.Hosting` adds host/builder composition on top of runtime + network.
-- `Nalix.Runtime` exposes reusable middleware and throttling components.
 - `Nalix.SDK` provides client-side transport sessions and extension APIs.
 
 This keeps server runtime internals, transport lifecycle, and client APIs independently evolvable.
@@ -47,10 +45,9 @@ This keeps server runtime internals, transport lifecycle, and client APIs indepe
 | --- | --- | --- | --- |
 | `Nalix.Abstractions` | Core interfaces/enums/attributes | You need shared contracts across packages | You need concrete runtime behavior |
 | `Nalix.Framework` | Core framework implementations and infrastructure | You need packet registry, serialization, memory/security utilities | You only need transport/session lifecycle |
-| `Nalix.Runtime` | Packet dispatch and middleware execution | You are building handler execution pipelines | You only need socket listener primitives |
+| `Nalix.Runtime` | Packet dispatch and middleware execution | You are building handler execution pipelines or need throttling components | You only need socket listener primitives |
 | `Nalix.Network` | Connection + listener + protocol runtime | You are implementing server transport/runtime loops | You only need pure client transport |
 | `Nalix.Hosting` | Host-style startup composition | You want builder-driven server bootstrapping | You prefer manual wiring |
-| `Nalix.Runtime` | Reusable inbound middleware and limiters | You need throttling/middleware components standalone | You need complete server hosting surface |
 | `Nalix.SDK` | Client transport sessions and request/response helpers | You build Nalix clients | You implement server listeners |
 
 ## Progressive API Path

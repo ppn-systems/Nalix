@@ -1,4 +1,4 @@
-﻿# Configuration
+# Configuration
 
 The `Nalix.Environment` configuration system is a high-performance, INI-based runtime that supports typed option binding, automatic reloading, and multi-thread safety.
 
@@ -8,7 +8,7 @@ The following diagram illustrates how configuration flows from disk to your appl
 
 ```mermaid
 flowchart LR
-    Disk[(default.ini)] --> Loader[ConfigurationLoader]
+    Disk[(server.ini)] --> Loader[ConfigurationLoader]
     Loader -->|Parse & Bind| Manager[ConfigurationManager]
     Manager -->|Cache| Instance[Options Instance]
     Instance -->|Usage| App[Application Code]
@@ -73,6 +73,27 @@ var network = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 ConfigurationManager.Instance.SetConfigFilePath(
     Path.Combine(Directories.ConfigurationDirectory, "prod.ini"),
     autoReload: true);
+
+// Cloning for modification without affecting cache
+var customSettings = network.Clone<NetworkSocketOptions>();
+customSettings.Port = 9000;
+```
+
+## In-Memory Instance Management
+
+`ConfigurationManager` allows you to inspect and manipulate the active configuration cache at runtime. This is useful for clearing state during tests or forcing a re-initialization of specific components.
+
+```csharp
+// Check if a config is already in memory
+if (ConfigurationManager.Instance.IsLoaded<ServerOptions>()) {
+    // ...
+}
+
+// Evict a specific config from cache
+ConfigurationManager.Instance.Remove<ServerOptions>();
+
+// Clear all active configurations
+ConfigurationManager.Instance.ClearAll();
 ```
 
 !!! important "Persistence"

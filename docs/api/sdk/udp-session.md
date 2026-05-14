@@ -75,17 +75,16 @@ Unlike TCP, `UdpSession` is connectionless at the socket level but "session-awar
 ## Basic usage
 
 ```csharp
-var client = new UdpSession(options, catalog);
+var client = new UdpSession(options);
 
 // Essential: must match the session identifier assigned during TCP login
 client.SessionToken = mySessionSnowflake;
 
 client.OnMessageReceived += (s, lease) => 
 {
-    using (lease)
-    {
-        // Handle low-latency update
-    }
+    // The lease is owned by the transport and will be disposed after this event returns.
+    // If you need to keep the data beyond this callback, call lease.Retain().
+    Console.WriteLine($"Received {lease.Length} bytes");
 };
 
 await client.ConnectAsync();

@@ -9,7 +9,6 @@ classDiagram
     class TransportSession {
         <<Abstract>>
         +Options: TransportOptions
-        +Catalog: IPacketRegistry
         +IsConnected: bool
         +OnConnected: Event
         +OnDisconnected: Event
@@ -39,7 +38,7 @@ classDiagram
 The abstract session sits between application code and the socket layer. It keeps higher-level code focused on packets instead of byte buffers, and it lets the SDK build request/response helpers, subscriptions, handshake flows, and diagnostics on top of the same contract.
 
 - **Unified lifecycle**: `ConnectAsync()` -> send/receive -> `DisconnectAsync()` -> `Dispose()`.
-- **Shared packet registry**: `Catalog` resolves packet types for typed helpers and packet-aware extension methods.
+- **Shared packet registry**: Uses the static `PacketRegistry` to resolve packet types for typed helpers and packet-aware extension methods.
 - **Raw and typed receive paths**: `OnMessageReceived` exposes `IBufferLease`, while typed helpers like `On<T>()` and `RequestAsync<TResponse>()` live in extension APIs.
 - **Protocol-specific overrides**: `TcpSession` adds reliable stream semantics, while `UdpSession` adds datagram semantics plus a UDP-only `SessionToken` for authenticated outbound envelopes.
 
@@ -50,7 +49,6 @@ The abstract session sits between application code and the socket layer. It keep
 | Member | Description |
 | --- | --- |
 | `Options` | Read-only access to the `TransportOptions` configured at construction. |
-| `Catalog` | Access to the `IPacketRegistry` used to resolve packet metadata. |
 | `IsConnected` | Thread-safe check of the current connection status. |
 
 ### Events

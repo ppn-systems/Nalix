@@ -85,6 +85,22 @@ public static ValueTask<object> CompiledInvoker(object instance, PacketContext<H
 
 This delegate is then cached in a **`FrozenDictionary`**, providing $O(1)$ lookup time with significantly lower overhead than a standard `Dictionary`.
 
+### The "MemoryPacket" Bypass (Ultra Hot Path)
+
+For the absolute highest throughput where even deserialization overhead is unacceptable (e.g., forwarding raw data or custom bit-packing), you can define a handler that accepts `ReadOnlyMemory<byte>` directly.
+
+When the dispatcher detects such a handler, it **skips the Packet Registry entirely** and wraps the raw transport lease in a `MemoryPacket` struct.
+
+```csharp
+[PacketOpcode(0x9999)]
+public ValueTask HandleRaw(ReadOnlyMemory<byte> rawData, IPacketContext context)
+{
+    // Zero-deserialization: rawData points directly to the transport buffer lease.
+    // No Registry.TryDeserialize call was made.
+    return ValueTask.CompletedTask;
+}
+```
+
 ---
 
 ## 3. The Pooling Pipeline
@@ -136,6 +152,21 @@ Standard exceptions are expensive due to stack trace generation. Nalix uses a **
 - **Static Instances**: Common exceptions are pre-instantiated as static readonly fields.
 - **Overridden StackTrace**: These cached exceptions override the `StackTrace` property to return a static string, bypassing the expensive stack crawl entirely.
 - **Socket Error Mapping**: `NetworkErrors.GetSocketError(SocketError)` returns a cached `SocketException` for standard OS errors, ensuring that even low-level networking failures don't trigger allocations.
+
+### Pattern: Result-Based Flow
+
+Instead of throwing exceptions for business logic failures, return a result object (or a pooled packet) that describes the failure.
+
+```csharp
+public ValueTask<LoginResult> HandleLogin(LoginRequest request)
+{
+    if (!Valid(request)) {
+        // Return a static/cached failure response instead of throwing
+        return ValueTask.FromResult(LoginResult.InvalidCredentials);
+    }
+    // ...
+}
+```
 
 ### Global Error Hook
 
@@ -275,9 +306,12 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 
 - [x] Use `struct` or pooled `class` for packets.
 - [x] Use `IPacketContext<T>` to leverage frame-level pooling.
+- [x] Use `ReadOnlyMemory<byte>` handlers for zero-deserialization bypass.
 - [x] Annotate controllers with `[PacketController]`.
 - [x] Use `[PacketOpcode]` for zero-reflection routing.
+- [x] Use SIMD primitives (`Bytes32`) for security checks.
 - [x] Return `ValueTask` from handlers.
 - [x] Avoid `new`, `LINQ`, and closures inside handlers.
+- [x] Use `NetworkErrors` for zero-allocation exception propagation.
 - [x] Register handlers via assembly scanning to enable compilation.
 - [x] Verify with `BenchmarkDotNet` [MemoryDiagnoser].

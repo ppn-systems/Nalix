@@ -1,4 +1,4 @@
-﻿# Concurrency Gate
+# Concurrency Gate
 
 `ConcurrencyGate` is the runtime per-opcode concurrency limiter used by
 `ConcurrencyMiddleware`. It protects handler execution by bounding how many
@@ -165,7 +165,7 @@ The gate also has a rejection-pressure circuit breaker:
 - circuit breaker open state
 - tracked opcode count
 
-`GenerateReport()` and `GetReportData()` add per-opcode details including:
+`GenerateReport()` and `WriteReportData(Utf8JsonWriter)` add per-opcode details including:
 
 - capacity, in-use count, and available slots
 - queue depth and queue maximum

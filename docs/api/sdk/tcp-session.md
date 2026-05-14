@@ -74,12 +74,10 @@ sequenceDiagram
 
 ```csharp
 var options = ConfigurationManager.Instance.Get<TransportOptions>();
-var catalog = new PacketRegistryFactory()
-    .RegisterPacket<LoginPacket>()
-    .RegisterPacket<LoginResponse>()
-    .CreateCatalog();
+// 1. Build the packet registry (populated by Source Generators)
+PacketRegistry.Build();
 
-using var client = new TcpSession(options, catalog);
+using var client = new TcpSession(options);
 
 client.OnConnected += (s, e) => Console.WriteLine("Connected!");
 client.OnMessageReceived += (s, lease) => 

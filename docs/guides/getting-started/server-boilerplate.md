@@ -38,8 +38,6 @@ using var app = NetworkApplication.CreateBuilder()
     })
     // 2.5. Configure Zero-Allocation Buffer Pooling
     .ConfigureBufferPoolManager(new BufferPoolManager(NLogix.Host.Instance))
-    // Add your packet contracts
-    .ScanPackets<MyPingPacket>()
     // Register your logic controllers
     .AddHandler<MyPingHandler>()
     // Attach the transport protocol

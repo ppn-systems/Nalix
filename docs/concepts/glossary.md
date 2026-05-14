@@ -64,13 +64,13 @@ The base class for all Nalix packets. Provides system header management (magic, 
 - Cancellation token
 - A pooled sender for manual replies
 
-## PacketFactory / PacketScope
+## Packet Registry
 
-`PacketFactory<TPacket>` — Static factory that rents a packet and wraps it in a `PacketScope<TPacket>`. `PacketScope<TPacket>` is a zero-allocation struct that returns the packet to its pool on dispose.
+A process-wide, immutable catalog of packet deserializers. It is populated automatically by **Source Generators** and finalized via `PacketRegistry.Build()`. Provides O(1) lookup by magic number.
 
-## PacketRegistry
+## PacketBase<T>.Create()
 
-An immutable, `FrozenDictionary`-backed catalog of packet deserializers built by `PacketRegistryFactory`. Provides O(1) lookup by magic number (FNV-1a hash of the packet type's full name).
+The static factory pattern used to rent a packet from the object pool. The returned instance is wrapped in a `using` block and automatically returns to the pool on dispose.
 
 ## Protocol
 

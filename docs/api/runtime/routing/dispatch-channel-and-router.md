@@ -2,20 +2,6 @@
 
 This page documents the lower-level dispatch queue implementation used by runtime dispatchers.
 
-## Audit Summary
-
-- Existing page referenced outdated source paths and a `DispatchRouter<TPacket>` type that is not present in current code.
-- Needed alignment with current implementation (`DispatchChannel<TPacket>` only).
-
-## Missing Content Identified
-
-- Correct source mapping to `Nalix.Runtime.Internal.Routing`.
-- Accurate boundary between public type visibility and intended internal-runtime use.
-
-## Improvement Rationale
-
-Accurate internals docs prevent contributors from targeting removed or non-existent routing APIs.
-
 ## Source Mapping
 
 - `src/Nalix.Runtime/Internal/Routing/DispatchChannel.cs`
@@ -61,7 +47,7 @@ Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection is
 - `Deactivate(CancellationToken)` — stops dispatch workers.
 - `HandlePacket(IBufferLease packet, IConnection connection)` — enqueues a raw packet for async dispatch.
 - `GenerateReport()` — returns a human-readable diagnostic report.
-- `GetReportData()` — returns a key-value diagnostic snapshot.
+- `WriteReportData(Utf8JsonWriter)` — zero-allocation JSON diagnostic snapshot.
 
 ### Diagnostics
 

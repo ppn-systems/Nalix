@@ -1,4 +1,4 @@
-﻿# Serialization Attributes
+# Serialization Attributes
 
 # Serialization Attributes
 
@@ -57,7 +57,7 @@ For `LiteSerializer` automatic object and struct serialization, the effective ru
 
 ### `PacketAttribute` (or `[Packet]`)
 
-Marks a class for automatic discovery and registration. It allows the `PacketRegistryFactory` to find and bind the type to its deserializer at runtime without explicit manual registration.
+Marks a class for automatic discovery and registration. It allows the **Source Generator** to detect the type and generate registration code, which is then finalized via `PacketRegistry.Build()` at runtime.
 
 ### `SerializePackableAttribute`
 

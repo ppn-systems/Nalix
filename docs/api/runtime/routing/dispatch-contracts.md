@@ -2,19 +2,9 @@
 
 This page covers the public dispatch contracts used by `Nalix.Runtime` routing components.
 
-## Audit Summary
+## Overview
 
-- Existing source mapping pointed to `Nalix.Network` paths for contracts that are defined in `Nalix.Runtime`.
-- Contract responsibilities were described at a high level but did not call out operational boundaries.
-
-## Missing Content Identified
-
-- Clear separation between queue contract (`IDispatchChannel<TPacket>`) and runtime entry contract (`IPacketDispatch`).
-- Practical guidance on when each contract should be implemented directly.
-
-## Improvement Rationale
-
-Accurate source mapping and boundary-focused descriptions reduce integration errors when extending dispatch behavior.
+This page covers the public dispatch contracts used by `Nalix.Runtime` routing components. These interfaces define the boundaries between transport, queuing, and execution layers, ensuring that the framework remains modular and extensible.
 
 ## Source Mapping
 

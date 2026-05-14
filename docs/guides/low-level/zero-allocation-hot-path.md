@@ -73,19 +73,16 @@ To achieve zero-allocation performance, Nalix must "bake" your handlers and pack
 
 ### The Registration Flow
 
-When you call `ScanHandlers` or `ScanPackets`, the framework performs two critical operations:
+When you call `ScanHandlers`, the framework performs two critical operations:
 
-1.  **Frozen Registry Creation**: Scans for packet magic numbers and builds an immutable `FrozenDictionary` for $O(1)$ branch-prediction-friendly lookups.
+1.  **Frozen Registry Creation**: The `PacketRegistry` uses source-generated metadata to build an immutable `FrozenDictionary` for $O(1)$ branch-prediction-friendly lookups.
 2.  **Handler Compilation**: Uses expression trees to compile your controller methods into optimized static delegates, eliminating reflection overhead.
 
 ```csharp
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    // 1. Register Packet Contracts (triggers Frozen Registry creation)
-    .ScanPackets<PositionUpdatePacket>()
-    
-    // 2. Register Logic Handlers (triggers PacketHandlerCompiler)
+    // 1. Register Logic Handlers (triggers PacketHandlerCompiler)
     .ScanHandlers<GameController>()
     
     .Build(); // Lookups are frozen and handlers compiled here

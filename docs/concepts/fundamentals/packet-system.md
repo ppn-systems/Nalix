@@ -220,40 +220,38 @@ catch (SerializationFailureException ex)
 
 ## 7. Packet Registration
 
-Packets must be registered with the `PacketRegistry` before they can be deserialized at runtime. The `PacketRegistryFactory` discovers packet types, binds their deserializers, and builds an immutable `FrozenDictionary`-backed catalog.
+Packets must be registered with the `PacketRegistry` before they can be deserialized at runtime. Nalix uses a **Source Generator** to automatically handle most of this work.
 
 ### Automatic registration (hosted server)
 
-When using `Nalix.Hosting`, use the builder to scan assemblies:
+When using `Nalix.Hosting`, the framework automatically discovers and registers all packet types in your project during the `Build()` phase.
 
 ```csharp
 using Nalix.Hosting;
 
 var app = NetworkApplication.CreateBuilder()
-    .ScanPackets<PingRequest>()        // Scans the assembly containing PingRequest
-    .ScanHandlers<PingHandler>()
-    .Build();
+    .AddHandler<PingHandler>()
+    .Build(); // PacketRegistry.Build() is called internally
 ```
 
-### Manual registration
+### Manual registration (Standalone Codec)
 
-When building the dispatch manually, create the registry explicitly:
+If you are using `Nalix.Codec` without the hosting layer, you must manually initialize the registry. The Source Generator still generates the registration calls, but you must "freeze" the catalog before use.
 
 ```csharp
-using Nalix.Abstractions.Networking.Packets;
+using Nalix.Codec.DataFrames;
 
-PacketRegistryFactory factory = new();
-factory.RegisterPacket<PingRequest>()
-       .RegisterPacket<PingResponse>();
+// 1. (Optional) Configure pooling
+PacketRegistry.Configure(poolManager);
 
-// Or scan by namespace
-factory.IncludeAssembly(typeof(PingRequest).Assembly);
-factory.IncludeNamespaceRecursive("MyApp.Packets");
+// 2. Build the registry (freezes the catalog)
+PacketRegistry.Build();
 
-IPacketRegistry catalog = factory.CreateCatalog();
+// 3. (Optional) Register it in InstanceManager if needed
+InstanceManager.Instance.Register<IPacketRegistry>(PacketRegistry.Instance);
 ```
 
-Built-in signal packets (`Control`, `Handshake`, `SessionResume`, `Directive`) are registered automatically by the `PacketRegistryFactory` constructor.
+Built-in signal packets (`Control`, `Handshake`, `SessionResume`, `Directive`) are registered automatically by the framework.
 
 ---
 
@@ -327,7 +325,35 @@ public class GeoLocationFormatter : IFormatter<GeoLocation>
 }
 ```
 
-## See it in action
+---
+
+## 7. Ultra Hot Path: Raw Memory Packets
+
+For scenarios where even deserialization overhead is unacceptable (e.g., relaying data or custom binary formats), Nalix supports the **MemoryPacket** bypass.
+
+### Using `MemoryPacket`
+
+A `MemoryPacket` is a high-performance struct that holds a `ReadOnlyMemory<byte>` payload and the standard `PacketHeader`.
+
+```csharp
+using System;
+using System.Threading.Tasks;
+using Nalix.Abstractions.Networking;
+
+// Receiving raw memory directly in a handler
+[PacketOpcode(0x9000)]
+public ValueTask HandleRaw(ReadOnlyMemory<byte> rawData, IConnection connection)
+{
+    // rawData points directly into the transport buffer lease segment
+    return ValueTask.CompletedTask;
+}
+```
+
+When a handler signature accepts `ReadOnlyMemory<byte>`, the Nalix dispatcher **skips the packet registry lookup** and provides the raw buffer segment directly.
+
+---
+
+## 8. See it in action
 
 - [Quickstart](../../quickstart.md) — Define and use your first packets.
 - [TCP Request/Response](../../guides/networking/tcp-patterns.md) — See how packet contracts are shared between projects.

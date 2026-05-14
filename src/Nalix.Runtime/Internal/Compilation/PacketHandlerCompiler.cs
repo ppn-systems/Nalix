@@ -97,7 +97,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 compiledMethod.MethodInfo,
                 compiledMethod.ReturnType,
                 compiledMethod.CompiledInvoker,
-                expectedPacketType: null,
+                expectedPacketType: compiledMethod.ExpectedPacketType,
                 returnHandler: ReturnTypeHandlerFactory<TPacket>.ResolveHandler(compiledMethod.ReturnType));
         }
 
@@ -303,6 +303,15 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         // bridge instead. MethodInfo.Invoke boxes arguments to object and performs the
         // assignability check at runtime via CLR rules, accepting PacketContext<Handshake>
         // without any explicit cast.
+        Type? expectedPacketType = kind switch
+        {
+            SignatureKind.MemoryNoToken or SignatureKind.MemoryWithToken => typeof(MemoryPacket),
+            SignatureKind.LegacyConcreteNoToken or SignatureKind.LegacyConcreteWithToken => parms[0].ParameterType,
+            SignatureKind.ContextOnly or SignatureKind.ContextWithToken when parms[0].ParameterType.IsGenericType =>
+                parms[0].ParameterType.GetGenericArguments()[0] == typeof(TPacket) ? null : parms[0].ParameterType.GetGenericArguments()[0],
+            _ => null
+        };
+
         bool needsContextBridge =
             (kind is SignatureKind.ContextOnly or SignatureKind.ContextWithToken)
             && parms[0].ParameterType != typeof(PacketContext<TPacket>)
@@ -346,7 +355,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
             x20 = WRAP_RETURN_TYPE(x12, x22.ReturnType);
         }
 
-        return new PacketHandlerDescriptor<TPacket>(x22, x22.ReturnType, x20);
+        return new PacketHandlerDescriptor<TPacket>(x22, x22.ReturnType, expectedPacketType, x20);
     }
 
     /// <summary>

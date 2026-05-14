@@ -21,7 +21,7 @@ This page covers the core `Nalix.Codec.DataFrames` abstractions that sit underne
 | Type | Public members |
 | --- | --- |
 | `FrameBase` | `Header`, `MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`, `Length`, `Serialize()`, `Serialize(Span<byte>)`, `ResetForPool()` |
-| `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `GetReportData()`, `Deserialize(ReadOnlySpan<byte>)`, `Deserialize(ReadOnlySpan<byte>, ref TSelf)` |
+| `PacketBase<TSelf>` | frame members plus `GenerateReport()`, `WriteReportData(Utf8JsonWriter)`, `Deserialize(ReadOnlySpan<byte>)`, `Create()` |
 | `FrameTransformer` | low-level payload transform helpers and size calculations |
 | `FrameCipher` | shared framed packet encrypt/decrypt helper |
 | `FrameCompression` | shared framed packet compress/decompress helper |
@@ -54,12 +54,12 @@ It also defines the common packet lifecycle methods:
 
 It adds the behavior most application packets want by default:
 
-- automatic `MagicNumber` generation from the concrete type name through `PacketRegistryFactory.Compute(...)`
+- automatic `MagicNumber` generation from the concrete type name through an internal FNV-1a hash of the full type name
 - cached reflection metadata for ordered serializable properties
 - automatic `Length` calculation for fixed-size and dynamic-size payloads
 - `LiteSerializer`-based `Serialize(...)` and `Deserialize(...)`
 - pooled reset behavior that restores header defaults and packet fields
-- diagnostics through `GenerateReport()` and `GetReportData()`
+- diagnostics through `GenerateReport()` and `WriteReportData(Utf8JsonWriter)`
 
 ## Basic usage
 

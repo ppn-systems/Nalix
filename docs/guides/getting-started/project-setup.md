@@ -27,7 +27,7 @@ Use a `Directory.Build.props` file in the root directory to manage package versi
 ```xml
 <Project>
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <NalixVersion>$(VersionFromYourReleasePlan)</NalixVersion>
@@ -92,18 +92,19 @@ using Nalix.Network.Options;
 
 using var app = NetworkApplication.CreateBuilder()
     .Configure<NetworkSocketOptions>(options => options.Port = 57206)
-    .ScanPackets<JoinRequest>() // Scans the marker assembly for contracts
-    .ScanHandlers<MyHandlers>() // Scans the marker assembly for controllers
+    .ScanHandlers<JoinHandler>() // Scans the marker assembly for logic controllers
     .BindTcp<DefaultProtocol>().Bind()
     .Build();
 
 await app.RunAsync();
 ```
 
+!!! note "Packet Discovery"
+    Nalix uses a source generator to automatically register packets decorated with the `[SerializePackable]` attribute. You do not need to manually scan for packets; as long as the assembly is loaded (or referenced by your handlers), the registry will find them during startup.
+
 ### Builder Semantics
 
-- `ScanPackets<TMarker>()` scans the assembly that contains `TMarker`.
-- `ScanHandlers<TMarker>()` scans the assembly that contains `TMarker`.
+- `ScanHandlers<TMarker>()` scans the assembly that contains `TMarker` for logic controllers.
 - `AddHandler<THandler>()` registers one handler type directly.
 - `ConfigureConnectionHub(...)` and `ConfigureBufferPoolManager(...)` are optional, but make host wiring explicit.
 - `ConfigureBufferPoolManager(...)` is still worth calling explicitly for high-throughput servers, even though `NetworkApplicationBuilder` will create a default manager when omitted.

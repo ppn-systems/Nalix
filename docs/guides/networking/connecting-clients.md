@@ -22,11 +22,10 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 
 // 1. Initialize the shared registry.
-// This factory scans for packets and binds high-performance deserialize pointers.
-IPacketRegistry catalog = new PacketRegistryFactory()
-    .RegisterPacket<MyRequestPacket>()
-    .RegisterPacket<MyResponsePacket>()
-    .CreateCatalog();
+// This is populated automatically by Source Generators.
+// We just need to freeze the catalog.
+PacketRegistry.Configure(poolManager); // Optional
+PacketRegistry.Build();
 ```
 
 ## 2. Configure Transport Options
@@ -80,7 +79,7 @@ using Nalix.Framework.Memory.Buffers;
 async Task ConnectTcpStandardAsync()
 {
     // The 'using' declaration ensures sockets and background loops are safely tracked
-    using TcpSession session = new(options, catalog);
+    using TcpSession session = new(options);
 
     // 1. Bind Lifecycle Events
     session.OnConnected += (_, _) => 
@@ -150,7 +149,7 @@ async Task ConnectUdpStandardAsync()
 {
     // The shared `options` object already has `options.SessionToken` populated
     // by the TCP handshake or resume flow above.
-    using UdpSession udp = new(options, catalog);
+    using UdpSession udp = new(options);
 
     udp.OnConnected += (_, _) => Console.WriteLine("UDP socket bound and active.");
     udp.OnDisconnected += (_, ex) => Console.WriteLine($"UDP Disconnected: {ex.Message}");

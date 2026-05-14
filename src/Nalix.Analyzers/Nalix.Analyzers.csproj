@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
@@ -12,8 +12,6 @@
         <NoWarn>$(NoWarn);RS2008;CS1591</NoWarn>
         <AssemblyName>Nalix.Analyzers</AssemblyName>
         <Description>Roslyn analyzers for Nalix packages.</Description>
-        <OutputPath>..\..\build\bin\$(Configuration)\</OutputPath>
-        <IntermediateOutputPath>..\..\build\obj\$(Configuration)\Nalix.Analyzers\</IntermediateOutputPath>
     </PropertyGroup>
 
     <ItemGroup>

@@ -159,7 +159,7 @@ enabled.
 `ConnectionHub` implements report-style diagnostics through:
 
 - `GenerateReport()` for a human-readable status summary;
-- `GetReportData()` for structured values such as total connections, evictions,
+- `WriteReportData(Utf8JsonWriter)` for structured values such as total connections, evictions,
   rejections, shard count, anonymous queue depth, capacity policy, byte totals,
   uptime statistics, algorithm summary, permission-level summary, and sampled
   connection rows.
