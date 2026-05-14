@@ -9,6 +9,10 @@
         <IncludeBuildOutput>false</IncludeBuildOutput>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <PublishAot>false</PublishAot>
+        <PublishTrimmed>false</PublishTrimmed>
+        <IsTrimmable>false</IsTrimmable>
+        <IsAotCompatible>false</IsAotCompatible>
         <NoWarn>$(NoWarn);RS2008;CS1591</NoWarn>
         <AssemblyName>Nalix.Analyzers</AssemblyName>
         <Description>Roslyn analyzers for Nalix packages.</Description>

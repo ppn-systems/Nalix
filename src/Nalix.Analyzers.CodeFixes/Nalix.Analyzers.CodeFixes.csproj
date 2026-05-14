@@ -10,6 +10,10 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AssemblyName>Nalix.Analyzers.CodeFixes</AssemblyName>
 		<Description>Roslyn code fixes for Nalix analyzers.</Description>
+		<PublishAot>false</PublishAot>
+		<PublishTrimmed>false</PublishTrimmed>
+		<IsTrimmable>false</IsTrimmable>
+		<IsAotCompatible>false</IsAotCompatible>
 		<NoWarn>$(NoWarn);CS1591</NoWarn>
 	</PropertyGroup>
 
