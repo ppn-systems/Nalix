@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
-using System;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Text;
@@ -206,7 +205,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
     {
         foreach (INamedTypeSymbol iface in type.AllInterfaces)
         {
-            if (iface.Name == "IFixedSizeSerializable" &&
+            if (iface.Name == KnownNames.IFixedSizeSerializableName &&
                 iface.ContainingNamespace?.ToDisplayString() == KnownNames.SerializationAbstractionsNamespace)
             {
                 return true;
@@ -215,8 +214,13 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         return false;
     }
 
+    private static readonly SymbolDisplayFormat s_fullyQualifiedNullableFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions |
+            SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     private static string GetTypeName(ITypeSymbol type)
-        => type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        => type.ToDisplayString(s_fullyQualifiedNullableFormat);
 
     private static string GetFormatterName(ITypeSymbol type)
     {
@@ -232,7 +236,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             current = current.ContainingType;
         }
 
-        return String.Join("_", names);
+        return string.Join("_", names);
     }
 
     private string GenerateSerializeBody(List<ISymbol> members)
@@ -260,7 +264,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             else
             {
                 // string + complex types + reference types
-                _ = code.AppendLine($"        FormatterProvider.Get<{GetTypeName(type)}>().Serialize(ref writer, value.{m.Name});");
+                _ = code.AppendLine($"        FormatterProvider.Get<{GetTypeName(type)}>().Serialize(ref writer, value.{m.Name}!);");
             }
         }
 
