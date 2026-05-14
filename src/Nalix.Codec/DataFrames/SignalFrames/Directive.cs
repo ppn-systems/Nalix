@@ -6,7 +6,6 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames.Formatter;
-using Nalix.Codec.DataFrames.Internal;
 using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames.SignalFrames;
@@ -17,19 +16,8 @@ namespace Nalix.Codec.DataFrames.SignalFrames;
 [Packet]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
-public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable
+public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable
 {
-    /// <inheritdoc/>
-    [SerializeIgnore]
-    public static int Size { get; } = PacketConstants.HeaderSize
-        + sizeof(ControlType)
-        + sizeof(ProtocolReason)
-        + sizeof(ProtocolAdvice)
-        + sizeof(ControlFlags)
-        + sizeof(uint)
-        + sizeof(uint)
-        + sizeof(ushort);
-
     /// <summary>
     /// Gets or sets the directive type.
     /// </summary>
@@ -86,7 +74,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     /// </summary>
     public Directive()
     {
-        this.OpCode = OpCodeCache.SystemControl;
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
         this.Priority = PacketPriority.HIGH;
     }
 
@@ -114,7 +102,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
         this.Action = action;
         this.Control = controlFlags;
         this.SequenceId = sequenceId;
-        this.OpCode = OpCodeCache.SystemControl;
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
         this.Flags = flags;
 
         this.Priority = PacketPriority.HIGH;
@@ -156,7 +144,7 @@ public sealed class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSi
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = OpCodeCache.SystemControl;
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
     }

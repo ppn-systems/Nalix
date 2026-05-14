@@ -17,8 +17,9 @@ public sealed class PingExtensionsTests : IDisposable
     public PingExtensionsTests()
     {
         if (!PacketRegistry.IsBuilt)
-        PacketRegistry.Build();
-}
+            PacketRegistry.Build();
+        TestUtils.SetupCertificate();
+    }
 
     [Fact]
     public async Task PingAsync_WithRealServer_ReturnsPositiveRtt()

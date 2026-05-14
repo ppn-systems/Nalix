@@ -1,15 +1,13 @@
-using Nalix.Abstractions.Serialization;
-using System;
-using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
-using Nalix.Codec.Serialization;
+using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
-using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
-public sealed class PacketBaseLengthTests
+public sealed partial class PacketBaseLengthTests
 {
     [Theory]
     [InlineData("hello")]
@@ -26,6 +24,9 @@ public sealed class PacketBaseLengthTests
 
         byte[] bytes = packet.Serialize();
 
+        Debug.WriteLine("text: " + text + "| bytes: " + Encoding.UTF8.GetBytes(text).Length);
+        Debug.WriteLine("bytes.Length: " + bytes.Length);
+        Debug.WriteLine("packet.Length: " + packet.Length);
         Assert.Equal(bytes.Length, packet.Length);
 
         byte[] buffer = new byte[packet.Length];
@@ -184,61 +185,48 @@ public sealed class PacketBaseLengthTests
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class StringPacket : PacketBase<StringPacket>
+    internal sealed partial class StringPacket : PacketBase<StringPacket>
     {
+        [SerializeOrder(0)]
         public string Message { get; set; } = string.Empty;
-
-        public static new StringPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<StringPacket>.Deserialize(buffer);
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class ChildPacket : PacketBase<ChildPacket>
+    internal sealed partial class ChildPacket : PacketBase<ChildPacket>
     {
         [SerializeOrder(0)]
         public int Value { get; set; }
-
-        public static new ChildPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<ChildPacket>.Deserialize(buffer);
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class ParentPacket : PacketBase<ParentPacket>
+    internal sealed partial class ParentPacket : PacketBase<ParentPacket>
     {
         public ChildPacket? Child { get; set; }
-
-        public static new ParentPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<ParentPacket>.Deserialize(buffer);
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class ListPacket : PacketBase<ListPacket>
+    internal sealed partial class ListPacket : PacketBase<ListPacket>
     {
         public List<int>? Values { get; set; }
-
-        public static new ListPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<ListPacket>.Deserialize(buffer);
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class DictionaryPacket : PacketBase<DictionaryPacket>
+    internal sealed partial class DictionaryPacket : PacketBase<DictionaryPacket>
     {
         public Dictionary<string, int>? Values { get; set; }
-
-        public static new DictionaryPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DictionaryPacket>.Deserialize(buffer);
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class StringDictionaryPacket : PacketBase<StringDictionaryPacket>
+    internal sealed partial class StringDictionaryPacket : PacketBase<StringDictionaryPacket>
     {
         public Dictionary<string, string>? Values { get; set; }
-
-        public static new StringDictionaryPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<StringDictionaryPacket>.Deserialize(buffer);
     }
 
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>
+    internal sealed partial class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>
     {
         [SerializeDynamicSize(64)]
         public string Message { get; set; } = string.Empty;
-
-        public static new DynamicHintStringPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DynamicHintStringPacket>.Deserialize(buffer);
     }
 }
 

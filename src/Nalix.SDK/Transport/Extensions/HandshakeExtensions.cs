@@ -51,7 +51,7 @@ public static class HandshakeExtensions
 
         X25519.X25519KeyPair clientKey = X25519.GenerateKeyPair();
 
-        Span<byte> clientNonceBytes = stackalloc byte[Handshake.DynamicSize];
+        Span<byte> clientNonceBytes = stackalloc byte[Bytes32.Size];
         Csprng.Fill(clientNonceBytes);
         Bytes32 clientNonce = new(clientNonceBytes);
 

@@ -20,9 +20,10 @@ public enum AuthorityGrantStage : byte
 
 [Packet]
 [ExcludeFromCodeCoverage]
+[GenerateFormatterAttribute]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("AUTHORITY_GRANT Stage={Stage}, Granted={GrantedLevel}, Reason={Reason}")]
-public sealed class AuthorityGrant : PacketBase<AuthorityGrant>, IPacketValidatable
+public sealed partial class AuthorityGrant : PacketBase<AuthorityGrant>, IPacketValidatable
 {
     public const ushort OpCodeValue = 0x5100;
 
