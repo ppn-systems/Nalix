@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using Microsoft.CodeAnalysis;
@@ -19,10 +21,10 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
 {
     #region Constants and Diagnostics
 
-    private const int MaxTableSize = 4096;
+    private const int MaxTableSize = short.MaxValue;
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("MicrosoftCodeAnalysisReleaseTracking", "RS2008:Enable analyzer release tracking", Justification = "<Pending>")]
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
+    [SuppressMessage("MicrosoftCodeAnalysisReleaseTracking", "RS2008:Enable analyzer release tracking", Justification = "<Pending>")]
     private static readonly DiagnosticDescriptor HashCollisionError = new(
         id: "NALIX059",
         title: "Packet hash table collision limit exceeded",
@@ -103,9 +105,7 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         return false;
     }
 
-    private static void EXECUTE(
-        System.Collections.Immutable.ImmutableArray<INamedTypeSymbol?> packets,
-        SourceProductionContext context)
+    private static void EXECUTE(ImmutableArray<INamedTypeSymbol?> packets, SourceProductionContext context)
     {
         HashSet<string> seen = new();
         List<INamedTypeSymbol> distinctPackets = [.. packets
@@ -219,14 +219,14 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
             string typeName = packet.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             string fullName = packet.ToDisplayString(SymbolDisplayFormat.CSharpErrorMessageFormat);
             uint key = Fnv1a.Compute(fullName);
-            _ = sb.AppendLine($"        global::Nalix.Codec.DataFrames.PacketRegistry.RegisterGenerated(");
+            _ = sb.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketRegistryName}.RegisterGenerated(");
             _ = sb.AppendLine($"            {key.ToString(System.Globalization.CultureInfo.InvariantCulture)}u,");
             _ = sb.AppendLine($"            \"{ESCAPE(fullName)}\",");
             _ = sb.AppendLine($"            static raw => {typeName}.Deserialize(raw));");
             _ = sb.AppendLine();
         }
 
-        _ = sb.AppendLine("        global::Nalix.Codec.DataFrames.PacketRegistry.RegisterGenerated(s_dispatch);");
+        _ = sb.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketRegistryName}.RegisterGenerated(s_dispatch);");
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine();
 
@@ -237,12 +237,12 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         _ = sb.AppendLine("        internal PacketEntry(uint key, PacketDeserializer fn) { Key = key; Fn = fn; }");
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine();
-        _ = sb.AppendLine("    private delegate global::Nalix.Abstractions.Networking.Packets.IPacket PacketDeserializer(global::System.ReadOnlySpan<byte> raw);");
+        _ = sb.AppendLine($"    private delegate global::{KnownNames.PacketAbstractionsNamespace}.{KnownNames.IPacketInterfaceName} PacketDeserializer(global::System.ReadOnlySpan<byte> raw);");
         _ = sb.AppendLine();
         _ = sb.AppendLine($"    private const uint Mask = {mask}u;");
         _ = sb.AppendLine();
 
-        _ = sb.AppendLine("    private static readonly global::Nalix.Codec.DataFrames.PacketDispatch s_dispatch = TryDeserialize;");
+        _ = sb.AppendLine($"    private static readonly global::{KnownNames.PacketBaseNamespace}.PacketDispatch s_dispatch = TryDeserialize;");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("    private static readonly PacketEntry[] Table = [");
@@ -263,14 +263,14 @@ public sealed class PacketRegistryGenerator : IIncrementalGenerator
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
-        _ = sb.AppendLine("    private static global::Nalix.Abstractions.Networking.Packets.IPacket? Resolve(uint magic, global::System.ReadOnlySpan<byte> raw)");
+        _ = sb.AppendLine($"    private static global::{KnownNames.PacketAbstractionsNamespace}.{KnownNames.IPacketInterfaceName}? Resolve(uint magic, global::System.ReadOnlySpan<byte> raw)");
         _ = sb.AppendLine("    {");
         _ = sb.AppendLine("        PacketEntry entry = Table[(int)(magic & Mask)];");
         _ = sb.AppendLine("        return entry.Fn is not null && entry.Key == magic ? entry.Fn(raw) : null;");
         _ = sb.AppendLine("    }");
         _ = sb.AppendLine();
         _ = sb.AppendLine("    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]");
-        _ = sb.AppendLine("    private static bool TryDeserialize(uint magic, global::System.ReadOnlySpan<byte> raw, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::Nalix.Abstractions.Networking.Packets.IPacket? packet)");
+        _ = sb.AppendLine($"    private static bool TryDeserialize(uint magic, global::System.ReadOnlySpan<byte> raw, [global::System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out global::{KnownNames.PacketAbstractionsNamespace}.{KnownNames.IPacketInterfaceName}? packet)");
         _ = sb.AppendLine("    {");
         _ = sb.AppendLine("        packet = Resolve(magic, raw);");
         _ = sb.AppendLine("        return packet is not null;");

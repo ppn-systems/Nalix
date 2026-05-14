@@ -103,7 +103,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
         _ = sb.AppendLine("#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member");
         _ = sb.AppendLine("#nullable enable");
         _ = sb.AppendLine("using System;");
-        _ = sb.AppendLine("using Nalix.Environment.Configuration.Binding;");
+        _ = sb.AppendLine($"using {KnownNames.ConfigurationBindingNamespace};");
         _ = sb.AppendLine();
         _ = sb.AppendLine($"namespace {ns};");
         _ = sb.AppendLine();
@@ -123,7 +123,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
         string i = indent + "    "; // inner indent
 
         // ── CopyPropertiesTo ──
-        _ = sb.AppendLine($"{i}protected override void CopyPropertiesTo(global::Nalix.Environment.Configuration.Binding.ConfigurationLoader other)");
+        _ = sb.AppendLine($"{i}protected override void CopyPropertiesTo(global::{KnownNames.ConfigurationBindingNamespace}.{KnownNames.ConfigurationLoader} other)");
         _ = sb.AppendLine($"{i}{{");
         _ = sb.AppendLine($"{i}    if (other is {name} t)");
         _ = sb.AppendLine($"{i}    {{");
@@ -137,7 +137,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
         _ = sb.AppendLine();
 
         // ── BindProperties ──
-        _ = sb.AppendLine($"{i}protected override void BindProperties(global::Nalix.Environment.Configuration.Binding.IniConfig configFile, string section)");
+        _ = sb.AppendLine($"{i}protected override void BindProperties(global::{KnownNames.ConfigurationBindingNamespace}.IniConfig configFile, string section)");
         _ = sb.AppendLine($"{i}{{");
 
         if (!string.IsNullOrEmpty(sectionComment))
@@ -153,7 +153,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
 
             // Property comment
             AttributeData? commentAttr = p.GetAttributes()
-                .FirstOrDefault(a => a.AttributeClass?.Name is "IniCommentAttribute" or "IniComment");
+                .FirstOrDefault(a => a.AttributeClass?.Name is KnownNames.IniCommentAttribute or KnownNames.IniCommentShort);
 
             string? comment = commentAttr?.ConstructorArguments.FirstOrDefault().Value?.ToString();
 
@@ -192,7 +192,7 @@ public class ConfigurationGenerator : IIncrementalGenerator
             }
 
             _ = sb.AppendLine($"{i}    }}");
-            _ = sb.AppendLine($"{i}    catch (Exception ex) when (global::Nalix.Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))");
+            _ = sb.AppendLine($"{i}    catch (Exception ex) when (global::{KnownNames.ExceptionsAbstractionsNamespace}.ExceptionClassifier.IsNonFatal(ex))");
             _ = sb.AppendLine($"{i}    {{");
             _ = sb.AppendLine($"{i}        System.Diagnostics.Trace.TraceError($\"Configuration binding failed for section={{section}} key={propName}: {{ex.Message}}\");");
             _ = sb.AppendLine($"{i}    }}");
