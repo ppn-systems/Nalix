@@ -1,4 +1,4 @@
-﻿# Built-in Frames
+# Built-in Frames
 
 This page covers the built-in packet types that Nalix ships out of the box.
 
@@ -62,17 +62,30 @@ Important public members:
 
 ## Packet pooling
 
-Packet instances are pooled through type-specific helpers:
+Nalix uses a sophisticated, type-safe pooling system for all packet types. Instead of manual `new` allocations, you should rent packets from the pool to minimize GC pressure.
 
-- `PacketFactory<TPacket>` — rents a packet wrapped in `PacketScope<TPacket>`
-- `PacketScope<TPacket>` — zero-allocation scope that returns the packet on dispose
+### The `Create()` Pattern
 
-Use the scope-based API when you want the packet to return itself to the pool automatically.
+Every packet inheriting from `PacketBase<TSelf>` provides a static `Create` method:
+
+```csharp
+// Rent a packet from the pool and initialize it
+using var handshake = Handshake.Create(h => {
+    h.Initialize(HandshakeStage.CLIENT_HELLO, pubKey, nonce);
+});
+
+// The packet is automatically returned to the pool when 'handshake' is disposed.
+```
+
+### Key APIs
+
+- `PacketBase<TSelf>.Create()`: Rents an instance from the underlying `IObjectPoolManager`.
+- `PacketBase<TSelf>.Dispose()`: Returns the instance to the pool.
+- `PacketRegistry.Manager`: The global pool manager used for all packet types.
 
 ## Related APIs
 
 - [Frame Model](./frame-model.md)
 - [Packet Registry](./packet-registry.md)
-- [Packet Pooling](../../runtime/pooling/packet-pooling.md)
-- [Session Extensions](../../sdk/tcp-session-extensions.md)
-- [Handler Return Types](../../runtime/routing/handler-results.md)
+- [Packet Contracts](../../abstractions/packet-contracts.md)
+- [Object Pooling](../../framework/memory/object-pooling.md)

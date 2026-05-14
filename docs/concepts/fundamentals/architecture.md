@@ -135,7 +135,7 @@ The `IProtocol` interface bridges listener-owned transport state and dispatch. I
 
 ### 4. Packet Registry
 
-`PacketRegistry` is the immutable packet catalog built by `PacketRegistryFactory`. It provides fast lookup and deserialization for registered packet types and built-in signal packets.
+`PacketRegistry` is the process-wide packet catalog. It is populated automatically by a **Source Generator** that detects packet types during compilation. At runtime, calling `PacketRegistry.Build()` freezes the catalog, providing ultra-fast lookup and deserialization for all registered packet types and built-in signal packets.
 
 ### 5. Instance Management
 

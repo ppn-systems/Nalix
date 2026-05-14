@@ -1,92 +1,67 @@
-﻿# Packet Registry
+# Packet Registry
 
 This page covers packet discovery and registry APIs in `Nalix.Codec.DataFrames`.
 
 ## Source mapping
 
-- `src/Nalix.Codec/DataFrames/PacketRegistryFactory.cs`
 - `src/Nalix.Codec/DataFrames/PacketRegistry.cs`
+
+## Core Concepts
+
+In Nalix, the `PacketRegistry` is a process-wide, immutable, thread-safe catalog of packet types and their associated deserializers. It is optimized for ultra-fast lookup via the packet's **Magic Number** (auto-generated hash of the type name).
+
+### 1. Automatic Discovery (Source Generation)
+
+Nalix uses a C# Source Generator to automatically detect types inheriting from `PacketBase<TSelf>` or implementing `IPacket`. The generator produces calls to `PacketRegistry.RegisterGenerated<T>()` which are executed during assembly initialization.
+
+### 2. Frozen Catalog
+
+The registry must be "built" before it can be used for deserialization. Calling `PacketRegistry.Build()` freezes the internal catalog, making it read-only and thread-safe for high-performance dispatch.
 
 ## Main types
 
-- `PacketRegistryFactory`
 - `PacketRegistry`
 
 ## Public members at a glance
 
 | Type | Public members |
 | --- | --- |
-| `PacketRegistryFactory` | `RegisterPacket`, `RegisterAllPackets`, `RegisterPacketAssembly`, `IncludeAssembly(Assembly)`, `IncludeAssembly(string)`, `IncludeCurrentDomain`, `RegisterCurrentDomainPackets`, `IncludeNamespace`, `IncludeNamespaceRecursive`, `CreateCatalog`, `Compute` |
-| `PacketRegistry` | `Configure(IObjectPoolManager)`, `LoadFromNamespace(...)`, `LoadFromAssemblyPath(...)`, `IsKnownMagic`, `IsRegistered`, `Deserialize`, `TryDeserialize`, `DeserializerCount` |
+| `PacketRegistry` | `Configure(IObjectPoolManager)`, `RegisterGenerated<T>()`, `Build()`, `IsKnownMagic`, `TryDeserialize`, `Manager` |
 
-## PacketRegistryFactory
+## Usage
 
-`PacketRegistryFactory` is the fluent builder for an immutable `PacketRegistry`.
+### 1. Configuration & Initialization
 
-The constructor pre-registers built-in signal packets:
-
-- `Control`
-- `Handshake`
-- `SessionResume`
-- `Directive`
-
-### Common workflows
-
-- Register explicit packet types.
-- Register all packet types from an `Assembly`.
-- Register all packet types from a `.dll` file path.
-- Scan loaded assemblies, then filter by namespace.
-
-### Basic usage
+Typically, the `NetworkApplicationBuilder` handles registry initialization. If you are using the Codec standalone:
 
 ```csharp
-PacketRegistryFactory factory = new();
+// Optional: Configure a pool manager for zero-allocation packet recycling
+PacketRegistry.Configure(myPoolManager);
 
-factory.IncludeCurrentDomain()
-       .IncludeNamespaceRecursive("MyApp.Packets");
-
-PacketRegistry registry = factory.CreateCatalog();
+// Freeze the registry (finalizes the catalog)
+PacketRegistry.Build();
 ```
 
-### Assembly path usage
+### 2. Manual Deserialization
+
+The registry provides a high-performance `TryDeserialize` method that handles header extraction and object rehydration (or pooling).
 
 ```csharp
-PacketRegistryFactory factory = new();
-factory.RegisterPacketAssembly(@"C:\apps\MyPackets.dll", requireAttribute: true);
-
-PacketRegistry registry = factory.CreateCatalog();
-```
-
-## PacketRegistry
-
-`PacketRegistry` is the runtime, immutable, thread-safe lookup catalog.
-
-### What it provides
-
-- Fast magic-number lookup.
-- Packet-type registration checks.
-- Deserialization from raw packet bytes.
-
-### Runtime use
-
-```csharp
-if (registry.TryDeserialize(buffer, out IPacket? packet))
+// Read a packet from a raw buffer lease
+if (PacketRegistry.TryDeserialize(bufferLease, out IPacket? packet))
 {
-    Console.WriteLine(packet.Header.OpCode);
+    using (packet) // Packets are usually IPoolable
+    {
+        Console.WriteLine($"Received packet: {packet.GetType().Name}");
+    }
 }
 ```
 
-### Static convenience loaders
-
-- `LoadFromAssemblyPath(assemblyPath, requirePacketAttribute)`
-- `LoadFromNamespace(packetNamespace, recursive)`
-- `LoadFromNamespace(assemblyPath, packetNamespace, recursive)`
-
 ## Practical notes
 
-- Use one shared registry instance across server runtime and client SDK whenever possible.
-- Prefer `ConfigurePacketRegistry(...)` in hosting if you already have a pre-built registry.
-- Prefer namespace filters when you want tighter discovery boundaries than full assembly scans.
+- **Magic Numbers**: Magic numbers are 4-byte hashes derived from the packet's full type name. They provide collision-resistant identification without the overhead of strings.
+- **Built-in Packets**: Built-in frames like `Handshake`, `Control`, and `SessionResume` are automatically registered by the framework.
+- **Threading**: `PacketRegistry` is thread-safe after `Build()` is called.
 
 ## Related APIs
 

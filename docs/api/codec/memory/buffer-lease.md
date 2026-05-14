@@ -27,18 +27,20 @@ Unlike a standard `byte[]`, a `BufferLease` can represent a specific **slice** o
 
 ### Buffer Access
 
-- `Span`: A read/write `Span<byte>` over the valid (committed) payload.
-- `SpanFull`: A read/write `Span<byte>` over the entire available capacity.
-- `Memory`: A `ReadOnlyMemory<byte>` over the valid payload.
-- `Capacity`: Total capacity of the owned slice.
-- `Length`: The committed length of the payload.
+- `Span`: A read/write `Span<byte>` over the valid (committed) payload slice.
+- `SpanFull`: A read/write `Span<byte>` over the full owned capacity.
+- `Memory`: A `ReadOnlyMemory<byte>` over the valid payload slice.
+- `Capacity`: Total capacity of the owned slice (from start to end of array).
+- `RawCapacity`: Total length of the underlying byte array.
+- `Length`: The committed length of the payload within the slice.
+- `IsReliable`: Gets or sets whether the buffer carries reliable transport data.
 
 ### Lifecycle Management
 
 - `CommitLength(int length)`: Sets the valid payload length (used after writing to `SpanFull`).
-- `Retain()`: Increments the reference count.
+- `Retain()`: Increments the reference count for shared ownership.
 - `Dispose()`: Decrements the reference count and returns the buffer to the pool when it reaches zero.
-- `ReleaseOwnership(out byte[]? buffer, out int start, out int length)`: Detaches the underlying array, transferring ownership to the caller. Returns `true` if the buffer was successfully detached; `false` if the lease has already been detached or has multiple references. Disposing the lease afterward does nothing.
+- `ReleaseOwnership(out byte[]? buffer, out int start, out int length)`: Detaches the underlying array, transferring ownership to the caller. Returns `true` if successful (only allowed if refCount == 1).
 
 ## Example Usage
 

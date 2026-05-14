@@ -54,7 +54,7 @@ It also defines the common packet lifecycle methods:
 
 It adds the behavior most application packets want by default:
 
-- automatic `MagicNumber` generation from the concrete type name through `PacketRegistryFactory.Compute(...)`
+- automatic `MagicNumber` generation from the concrete type name through an internal FNV-1a hash of the full type name
 - cached reflection metadata for ordered serializable properties
 - automatic `Length` calculation for fixed-size and dynamic-size payloads
 - `LiteSerializer`-based `Serialize(...)` and `Deserialize(...)`

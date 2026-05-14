@@ -27,8 +27,9 @@ This layer provides:
 
 | Type | Public members |
 |---|---|
-| `LZ4Codec` | `Encode(...)`, `Decode(...)`, `GetMaxCompressedSize(...)`, `GetMaxDecompressedSize(...)`, `GetCompressionRatio(...)` and related span / lease overloads |
-| `LZ4BlockHeader` | block header fields and wire-size helpers used by the codec |
+| `LZ4Codec` | `Encode(...)`, `Decode(...)` — supports `ReadOnlySpan<byte>` input with both `Span<byte>` and `BufferLease` output overloads. |
+| `LZ4BlockHeader` | `OriginalLength`, `CompressedLength`, `Size` — handles the 8-byte LZ4 block header. |
+| `LZ4BlockEncoder` | `GetMaxLength(...)`, `GetMinOutputBufferSize(...)` — sizing helpers for encoder planning. |
 
 ## Runtime shape
 
