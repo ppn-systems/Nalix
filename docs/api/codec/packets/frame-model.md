@@ -112,7 +112,8 @@ For higher-level frame workflows, prefer the shared helpers:
 | Discover or deserialize packets at runtime | [Packet Registry](./packet-registry.md) |
 
 ## Related APIs
-
+ 
+- [Frame Pipeline](../frame-pipeline.md)
 - [Packet Registry](./packet-registry.md)
 - [Built-in Frames](./built-in-frames.md)
 - [Fragmentation](./fragmentation.md)

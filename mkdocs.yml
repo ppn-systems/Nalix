@@ -203,6 +203,7 @@ nav:
         - Overview: api/analyzers/index.md
         - Diagnostic Codes: api/analyzers/diagnostic-codes.md
         - Code Fixes: api/analyzers/code-fixes.md
+        - Auto Generation: api/analyzers/autogen.md
       - Abstractions:
         - Overview: api/abstractions/index.md
         - Control Type: api/abstractions/protocols/control-type.md
@@ -222,6 +223,7 @@ nav:
           - Random: api/environment/random.md
           - Timing Scope: api/environment/timing-scope.md
           - Configuration: api/environment/configuration.md
+          - Sequencing: api/environment/sequencing.md
           - Memory:
             - Buffer Management: api/environment/memory/buffer-management.md
             - BufferLease: api/environment/memory/buffer-lease.md
@@ -242,6 +244,7 @@ nav:
         - Codec:
           - Overview: api/codec/index.md
           - LZ4: api/codec/lz4.md
+          - Frame Pipeline: api/codec/frame-pipeline.md
 
           - Packets:
             - Frame Model: api/codec/packets/frame-model.md

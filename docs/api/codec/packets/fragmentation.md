@@ -4,10 +4,10 @@ This page covers the chunking and reassembly helpers in `Nalix.Codec.DataFrames.
 
 ## Source mapping
 
-- `src/Nalix.Codec/DataFrames/Chunks/FragmentHeader.cs`
-- `src/Nalix.Codec/DataFrames/Chunks/FragmentAssembler.cs`
+- `src/Nalix.Environment/Fragments/FragmentHeader.cs`
+- `src/Nalix.Environment/Fragments/FragmentAssembler.cs`
 - `src/Nalix.Codec/Options/FragmentOptions.cs`
-- `src/Nalix.Codec/DataFrames/Chunks/FragmentStreamId.cs`
+- `src/Nalix.Environment/Fragments/FragmentStreamId.cs`
 
 ## Main types
 
