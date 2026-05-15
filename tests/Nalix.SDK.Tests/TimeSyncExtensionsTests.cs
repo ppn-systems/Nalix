@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Hosting;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;

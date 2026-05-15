@@ -4,7 +4,7 @@
 using Nalix.Codec.DataFrames;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Pooling;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;

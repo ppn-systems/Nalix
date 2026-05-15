@@ -1,7 +1,7 @@
 // Licensed under the Apache License, Version 2.0.
 using System;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Serialization;

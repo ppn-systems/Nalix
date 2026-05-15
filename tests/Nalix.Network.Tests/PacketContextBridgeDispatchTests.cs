@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Network.Connections;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;

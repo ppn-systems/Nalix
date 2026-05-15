@@ -12,7 +12,7 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Environment.Hashing;

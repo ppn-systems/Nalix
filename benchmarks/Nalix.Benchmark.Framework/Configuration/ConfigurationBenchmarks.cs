@@ -7,9 +7,9 @@ using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Benchmark.Framework.Configuration;
 
-public sealed class BenchConfigA : ConfigurationLoader { }
-public sealed class BenchConfigB : ConfigurationLoader { }
-public sealed class BenchConfigC : ConfigurationLoader { }
+public sealed partial class BenchConfigA : ConfigurationLoader { }
+public sealed partial class BenchConfigB : ConfigurationLoader { }
+public sealed partial class BenchConfigC : ConfigurationLoader { }
 
 /// <summary>
 /// Benchmarks for ConfigurationManager including loading, caching, and reloading.

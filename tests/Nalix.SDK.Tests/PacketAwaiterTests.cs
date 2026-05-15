@@ -19,14 +19,14 @@ public sealed class PacketAwaiterTests
 
         if (!PacketRegistry.IsBuilt)
             Nalix.Codec.DataFrames.PacketRegistry.Build();
-        Nalix.Codec.DataFrames.SignalFrames.Control packet = new();
+        Nalix.Codec.ProtocolFrames.Control packet = new();
         var header = packet.Header;
         header.OpCode = 0x100;
         packet.Header = header;
         byte[] data = packet.Serialize();
         ManualLease lease = new(data);
 
-        Task<Nalix.Codec.DataFrames.SignalFrames.Control> awaitTask = PacketAwaiter.AwaitAsync<Nalix.Codec.DataFrames.SignalFrames.Control>(
+        Task<Nalix.Codec.ProtocolFrames.Control> awaitTask = PacketAwaiter.AwaitAsync<Nalix.Codec.ProtocolFrames.Control>(
             session,
             p => p.Header.OpCode == 0x100,
             1000,
@@ -36,7 +36,7 @@ public sealed class PacketAwaiterTests
         // Trigger the message received event
         session.OnMessageReceived += Raise.Event<EventHandler<IBufferLease>>(session, lease);
 
-        Nalix.Codec.DataFrames.SignalFrames.Control result = await awaitTask;
+        Nalix.Codec.ProtocolFrames.Control result = await awaitTask;
         Assert.Equal(0x100, result.Header.OpCode);
     }
 

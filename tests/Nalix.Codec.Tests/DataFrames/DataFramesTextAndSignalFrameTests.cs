@@ -4,7 +4,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Xunit;
 
 namespace Nalix.Codec.Tests.DataFrames;

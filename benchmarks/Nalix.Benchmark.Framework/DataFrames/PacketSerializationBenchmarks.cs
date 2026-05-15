@@ -4,7 +4,7 @@ using Nalix.Codec.DataFrames;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Random;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,7 @@ namespace Nalix.Benchmark.Framework.DataFrames;
 /// <summary>
 /// Benchmarks for high-performance packet serialization and deserialization using PacketBase.
 /// </summary>
-public class PacketSerializationBenchmarks : NalixBenchmarkBase
+public partial class PacketSerializationBenchmarks : NalixBenchmarkBase
 {
     private Handshake _handshake = null!;
     private byte[] _serializedHandshake = null!;
@@ -89,24 +89,27 @@ public class PacketSerializationBenchmarks : NalixBenchmarkBase
     [BenchmarkCategory("Length"), Benchmark(Description = "Length (Dictionary<string,string> Packet)")]
     public int LengthStringDictionaryPacket() => _stringDictionaryPacket.Length;
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class StringPacket : PacketBase<StringPacket>
+    internal sealed partial class StringPacket : PacketBase<StringPacket>
     {
         public string Message { get; set; } = string.Empty;
 
         public static new StringPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<StringPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class ListPacket : PacketBase<ListPacket>
+    internal sealed partial class ListPacket : PacketBase<ListPacket>
     {
         public List<int> Values { get; set; } = [];
 
         public static new ListPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<ListPacket>.Deserialize(buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
-    private sealed class StringDictionaryPacket : PacketBase<StringDictionaryPacket>
+    internal sealed partial class StringDictionaryPacket : PacketBase<StringDictionaryPacket>
     {
         public Dictionary<string, string> Values { get; set; } = new(StringComparer.Ordinal);
 

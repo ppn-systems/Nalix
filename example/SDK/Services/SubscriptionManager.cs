@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using SDK.Core;
 using SDK.UI;
 using Nalix.SDK.Transport.Extensions;
