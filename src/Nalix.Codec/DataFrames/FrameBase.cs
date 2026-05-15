@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
@@ -38,9 +39,9 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeIgnore]
     public uint MagicNumber
     {
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _header.MagicNumber;
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => _header.MagicNumber = value;
     }
 
@@ -49,9 +50,9 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeIgnore]
     public ushort OpCode
     {
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _header.OpCode;
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => _header.OpCode = value;
     }
 
@@ -60,9 +61,9 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeIgnore]
     public PacketFlags Flags
     {
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _header.Flags;
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => _header.Flags = value;
     }
 
@@ -71,9 +72,9 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeIgnore]
     public PacketPriority Priority
     {
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _header.Priority;
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => _header.Priority = value;
     }
 
@@ -82,9 +83,9 @@ public abstract class FrameBase : IPacket, IPacketHeader
     [SerializeIgnore]
     public ushort SequenceId
     {
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _header.SequenceId;
-        [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         set => _header.SequenceId = value;
     }
 
