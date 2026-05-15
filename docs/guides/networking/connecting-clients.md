@@ -20,12 +20,23 @@ The client and server **must** use the exact same packet contracts. The `IPacket
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
+using Nalix.Environment.Memory;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Memory.Buffers;
 
-// 1. Initialize the shared registry.
+// 1. Get core managers from the instance container (Singletons)
+var objectPoolManager = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+var bufferPoolManager = InstanceManager.Instance.GetOrCreateInstance<BufferPoolManager>();
+
+// 2. Initialize the shared registry.
 // This is populated automatically by Source Generators.
-// We just need to freeze the catalog.
-PacketRegistry.Configure(poolManager); // Optional
+PacketRegistry.Configure(objectPoolManager);
 PacketRegistry.Build();
+
+// 3. Configure Buffer Management (Optional but Recommended)
+// Bind the high-performance slab pool to BufferLease.
+BufferLease.ByteArrayPool.Configure(bufferPoolManager);
 ```
 
 ## 2. Configure Transport Options

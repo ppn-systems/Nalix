@@ -26,7 +26,6 @@ The sample stays intentionally small so you can copy the structure first and opt
 
 ```csharp
 InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 ```
 
 ### 2. Create handlers

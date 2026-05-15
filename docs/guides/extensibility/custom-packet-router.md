@@ -20,7 +20,6 @@ using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Abstractions.Abstractions;
 
 public sealed class UserShardProxy : IConnection
 {
@@ -72,7 +71,6 @@ Implement the `IPacketDispatch` interface to intercept incoming packets and reso
 ```csharp
 using Nalix.Runtime.Dispatching;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Memory.Buffers;
 
 public class UserBasedRouter : IPacketDispatch
 {
