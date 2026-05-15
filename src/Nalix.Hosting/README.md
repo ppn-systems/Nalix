@@ -49,4 +49,4 @@ using var app = NetworkApplication.CreateBuilder()
 
 ## Documentation
 
-For full end-to-end setup guides, check the [Quickstart](https://ppn-systems.me/quickstart).
+For full end-to-end setup guides, check the [Quickstart](https://ppn-system.me/quickstart).

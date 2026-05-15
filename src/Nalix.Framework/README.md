@@ -47,5 +47,5 @@ byte[] encoded = LiteSerializer.Serialize(new MyData { Id = 1 });
 
 ## Documentation
 
-For deep dives into memory management, serialization, and cryptography, see the [official documentation](https://ppn-systems.me/concepts/packet-system).
+For deep dives into memory management, serialization, and cryptography, see the [official documentation](https://ppn-system.me/concepts/packet-system).
 

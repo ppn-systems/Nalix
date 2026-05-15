@@ -50,4 +50,4 @@ await app.RunAsync();
 
 ## Documentation
 
-See [Transport & Networking](https://ppn-systems.me/api/network/index) for detailed configuration options and listener lifecycles.
+See [Transport & Networking](https://ppn-system.me/api/network/index) for detailed configuration options and listener lifecycles.
