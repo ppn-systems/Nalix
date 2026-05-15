@@ -246,9 +246,6 @@ PacketRegistry.Configure(poolManager);
 
 // 2. Build the registry (freezes the catalog)
 PacketRegistry.Build();
-
-// 3. (Optional) Register it in InstanceManager if needed
-InstanceManager.Instance.Register<IPacketRegistry>(PacketRegistry.Instance);
 ```
 
 Built-in signal packets (`Control`, `Handshake`, `SessionResume`, `Directive`) are registered automatically by the framework.

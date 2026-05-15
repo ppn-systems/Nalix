@@ -23,11 +23,11 @@ For a complete end-to-end walkthrough of how these optimizations work together i
 
 Instead of allocating `byte[]` per request, Nalix uses a slab-oriented `BufferPoolManager` backed by standalone pinned arrays managed through internal slab buckets. `BufferLease` then exposes owned slices over those rented arrays. This keeps hot-path rentals predictable while avoiding per-request heap churn.
 
-- **Pinned pooled arrays** — Internal slab buckets keep reusable pinned arrays alive on the **Pinned Object Heap (POH)** so hot paths can rent already-prepared buffers instead of allocating new ones.
-- **Lock-free slab allocation** — Minimizes thread contention during high-frequency leasing using thread-local caches.
+- **Pinned pooled arrays** — Internal buckets keep reusable pinned arrays alive on the **Pinned Object Heap (POH)** so hot paths can rent already-prepared buffers instead of allocating new ones.
+- **Lock-free allocation** — Minimizes thread contention during high-frequency leasing using thread-local caches.
 - **Atomic Lease Tracking** — `BufferLease` instances are pooled using a lock-free free-list with an **O(1) atomic counter**, avoiding the linear-time overhead of traditional collection count checks.
 - **Span-first API** — Leverages `Span<byte>` and `ReadOnlySpan<byte>` for slicing without copying data.
-- **Deterministic lifetime** — `BufferLease` implements `IDisposable`, ensuring buffers return to the slab after handler execution.
+- **Deterministic lifetime** — `BufferLease` implements `IDisposable`, ensuring buffers return to the pool after handler execution.
 
 ### Poolable Contexts (IPacketContext)
 

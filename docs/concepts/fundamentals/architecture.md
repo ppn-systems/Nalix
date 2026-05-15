@@ -23,7 +23,7 @@ graph LR
 Nalix uses a modular package architecture. Each package has a focused responsibility and a well-defined dependency direction.
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph App ["Application Layer"]
         direction TB
         Hosting["Nalix.Hosting"]
@@ -46,14 +46,16 @@ flowchart LR
     subgraph Base ["Base Layer"]
         direction TB
         Env["Nalix.Environment"]
-        Common["Nalix.Abstractions"]
+        Abstractions["Nalix.Abstractions"]
     end
 
     Hosting --> Network
     Hosting --> Runtime
+    Hosting --> Framework
+    Hosting --> Codec
+    
     SDK --> Codec
 
-    Network --> Codec
     Network --> Framework
     Runtime --> Codec
     Runtime --> Framework
@@ -61,19 +63,19 @@ flowchart LR
 
     Codec --> Env
     Framework --> Env
-    Env --> Common
+    Env --> Abstractions
 ```
 
 | Layer | Package | Responsibility |
 | :--- | :--- | :--- |
 | Hosting | `Nalix.Hosting` | Fluent builder, application lifecycle, automatic discovery |
 | Transport | `Nalix.Network` | TCP/UDP listeners, connection lifecycle, protocol bridge, session store |
-| Dispatch | `Nalix.Runtime` | Packet dispatch, middleware, handler compilation, session resume |
+| Dispatch | `Nalix.Runtime` | Packet dispatch, middleware, handler compilation |
 | Pipeline | `Nalix.Runtime` | Rate limiting, concurrency gating, middleware, dispatch execution |
-| Infrastructure | `Nalix.Framework` | DI, task scheduling, pooling, identifiers |
+| Infrastructure | `Nalix.Framework` | DI, task scheduling, object pooling, identifiers |
 | Codec | `Nalix.Codec` | Serialization, packet registry, framing, compression, cryptography |
 | Environment | `Nalix.Environment` | Configuration, directories, random generation, clock/time helpers |
-| Contracts | `Nalix.Abstractions` | Shared abstractions, packet attributes, middleware primitives |
+| Contracts | `Nalix.Abstractions` | Shared abstractions, packet attributes, connection contracts |
 | Client | `Nalix.SDK` | Transport sessions, request/response correlation, handshake and resume flows |
 | Logging | `Nalix.Logging` | Structured logging with batched console and file targets |
 
