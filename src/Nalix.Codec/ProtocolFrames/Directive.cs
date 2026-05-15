@@ -5,8 +5,9 @@ using System.Diagnostics;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
 
-namespace Nalix.Codec.DataFrames.SignalFrames;
+namespace Nalix.Codec.ProtocolFrames;
 
 /// <summary>
 /// Represents a directive frame used for control and server feedback.

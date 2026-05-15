@@ -7,8 +7,9 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
 
-namespace Nalix.Codec.DataFrames.SignalFrames;
+namespace Nalix.Codec.ProtocolFrames;
 
 /// <summary>
 /// Represents the default protocol handshake packet for key exchange and transcript verification.

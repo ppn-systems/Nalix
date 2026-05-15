@@ -11,7 +11,6 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
-using Nalix.Codec.Extensions;
 using Nalix.Environment.Extensions;
 
 namespace Nalix.Codec.DataFrames;
