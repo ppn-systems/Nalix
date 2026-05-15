@@ -8,21 +8,11 @@ using Nalix.Environment.Configuration.Binding;
 namespace Nalix.Codec.Options;
 
 /// <summary>
-/// Configures memory limits and safety thresholds for serialization and data writing.
+/// Configures memory limits and safety thresholds for serialization.
 /// </summary>
 [IniComment("Serialization configuration — controls memory limits for data writing and object encoding")]
 public sealed partial class SerializationOptions : ConfigurationLoader
 {
-    /// <summary>
-    /// Gets or sets the maximum capacity, in bytes, that a single <see cref="Memory.DataWriter"/> is allowed to expand to.
-    /// </summary>
-    /// <remarks>
-    /// This limit prevents a single malicious or malformed packet from exhausting server memory
-    /// by requesting extremely large buffer expansions.
-    /// </remarks>
-    [IniComment("Maximum capacity (bytes) for a single DataWriter buffer (default 128MB)")]
-    public int MaxWriterCapacity { get; set; } = 128 * 1024 * 1024; // 128MB default
-
     /// <summary>
     /// Gets or sets the maximum allowed element count for arrays and collections during deserialization.
     /// </summary>
@@ -40,11 +30,6 @@ public sealed partial class SerializationOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        if (this.MaxWriterCapacity < 1024)
-        {
-            throw new ValidationException($"MaxWriterCapacity must be at least 1024 bytes.");
-        }
-
         if (this.MaxArrayLength <= 0)
         {
             throw new ValidationException($"MaxArrayLength must be positive.");
@@ -56,4 +41,3 @@ public sealed partial class SerializationOptions : ConfigurationLoader
         }
     }
 }
-

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Security;
 
-namespace Nalix.Codec.Security;
+namespace Nalix.Environment.Sequencing;
 
 /// <summary>
 /// Provides a thread-safe, monotonically increasing sequence number generator

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Internal;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization.Formatters.Primitives;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;

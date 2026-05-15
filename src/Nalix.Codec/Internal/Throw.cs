@@ -316,7 +316,7 @@ internal static class Throw
     [StackTraceHidden]
     private sealed class CachedArgumentOutOfRangeException(string paramName, string message) : ArgumentOutOfRangeException(paramName, message)
     {
-        public override string StackTrace => "   at Nalix.Codec.Memory (Cached Exception)";
+        public override string StackTrace => "   at Nalix.Environment.Memory (Cached Exception)";
     }
 
     #endregion Private Cached Exception Types

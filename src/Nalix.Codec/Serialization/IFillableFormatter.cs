@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics.CodeAnalysis;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Serialization;
 

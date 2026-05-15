@@ -7,9 +7,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Security;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Memory;
+using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;

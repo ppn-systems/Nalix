@@ -1,5 +1,5 @@
 using Nalix.Abstractions.Exceptions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 

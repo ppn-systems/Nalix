@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Codec.Options;
+using Nalix.Environment.Options;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
 using Nalix.Framework.Injection;

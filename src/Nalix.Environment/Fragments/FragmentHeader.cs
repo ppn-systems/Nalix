@@ -7,9 +7,9 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Hashing;
 
-namespace Nalix.Codec.DataFrames.Chunks;
+namespace Nalix.Environment.Fragments;
 
 //┌───────────────────────────────────────────────────────────────────────────┐
 //│  Wire format for each chunk(= 1 normal framed packet)                     │

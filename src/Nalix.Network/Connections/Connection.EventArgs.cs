@@ -85,7 +85,7 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
     }
 
     /// <inheritdoc />
-    internal IBufferLease? ExchangeLease([Borrowed] IBufferLease? newLease)
+    public IBufferLease? ExchangeLease([Borrowed] IBufferLease? newLease)
     {
         IBufferLease? old = _lease;
         _lease = newLease;

@@ -6,7 +6,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 

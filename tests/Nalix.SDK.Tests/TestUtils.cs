@@ -7,7 +7,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 using Nalix.SDK.Options;

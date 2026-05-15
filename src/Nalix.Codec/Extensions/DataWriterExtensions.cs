@@ -4,7 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Extensions;
 

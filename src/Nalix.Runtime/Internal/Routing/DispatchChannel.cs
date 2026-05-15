@@ -15,7 +15,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.Extensions;
+using Nalix.Environment.Extensions;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Dispatching;

@@ -9,9 +9,9 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Codec.Internal;
+using Nalix.Environment.Internal;
 
-namespace Nalix.Codec.Memory;
+namespace Nalix.Environment.Memory;
 
 /// <summary>
 /// Provides functionality for reading serialized data from a byte buffer.

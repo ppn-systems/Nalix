@@ -12,6 +12,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
+using Nalix.Environment.Extensions;
 using Nalix.Codec.Serialization;
 
 namespace Nalix.Codec.DataFrames;

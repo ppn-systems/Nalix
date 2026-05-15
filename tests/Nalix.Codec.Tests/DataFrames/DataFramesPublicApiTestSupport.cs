@@ -3,9 +3,9 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Codec.Transforms;
+using Nalix.Environment.Fragments;
 
 namespace Nalix.Codec.Tests.DataFrames;
 

@@ -62,18 +62,18 @@ public abstract partial class TcpListenerBase
                 // IPv6Any (::) -> listens on all IPv6 interfaces (and IPv4 via DualMode).
                 IPEndPoint epV6Any = new(IPAddress.IPv6Any, _port);
 
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
+                    this.Logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV6Any}.v6)");
                 }
 
                 sock.Bind(epV6Any);
                 sock.Listen(_config.Backlog);
 
                 _listener = sock;
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
+                    this.Logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}.dual");
                 }
 
                 return;
@@ -82,9 +82,9 @@ public abstract partial class TcpListenerBase
             {
                 // IPv6/DualMode is not supported on this environment -> IPv4 fallback.
                 // WHY not rethrow: Failover automatically is better than crashing the server.
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    _logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
+                    this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] failed-bind ex={ex.Message}");
                 }
 
                 try
@@ -93,18 +93,18 @@ public abstract partial class TcpListenerBase
                 }
                 catch (ObjectDisposedException closeEx)
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug(
+                        this.Logger.LogDebug(
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] " +
                             $"ipv6-fallback-close-ignored reason={closeEx.GetType().Name}");
                     }
                 }
                 catch (Exception closeEx) when (ExceptionClassifier.IsNonFatal(closeEx))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                     {
-                        _logger.LogWarning(
+                        this.Logger.LogWarning(
                             closeEx,
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] ipv6-fallback-close-failed");
                     }
@@ -116,9 +116,9 @@ public abstract partial class TcpListenerBase
                 }
                 catch (Exception disposeEx) when (ExceptionClassifier.IsNonFatal(disposeEx))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                     {
-                        _logger.LogWarning(
+                        this.Logger.LogWarning(
                             disposeEx,
                             $"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] ipv6-fallback-dispose-failed");
                     }
@@ -143,17 +143,17 @@ public abstract partial class TcpListenerBase
 
         IPEndPoint epV4Any = new(IPAddress.Any, _port);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
+            this.Logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-bind {epV4Any}.v4");
         }
 
         _listener.Bind(epV4Any);
         _listener.Listen(_config.Backlog);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
+            this.Logger.LogDebug($"[NW.{nameof(TcpListenerBase)}:{nameof(Initialize)}] config-listen {_listener.LocalEndPoint}");
         }
     }
 
@@ -318,9 +318,9 @@ public abstract partial class TcpListenerBase
             catch (SocketException ex) when (ex.SocketErrorCode is SocketError.OperationNotSupported or SocketError.ProtocolNotSupported)
             {
                 // Graceful fallback
-                if (_logger?.IsEnabled(LogLevel.Debug) == true)
+                if (this.Logger?.IsEnabled(LogLevel.Debug) == true)
                 {
-                    _logger.LogDebug($"[{nameof(TcpListenerBase)}:InitializeOptions] SO_REUSEPORT not-supported platform/kernel");
+                    this.Logger.LogDebug($"[{nameof(TcpListenerBase)}:InitializeOptions] SO_REUSEPORT not-supported platform/kernel");
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Ignore if not supported. */ }

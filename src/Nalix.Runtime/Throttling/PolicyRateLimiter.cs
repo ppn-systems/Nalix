@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Hashing;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Options;

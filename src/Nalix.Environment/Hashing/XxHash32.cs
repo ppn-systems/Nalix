@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
-namespace Nalix.Codec.Security.Hashing;
+namespace Nalix.Environment.Hashing;
 
 /// <summary>
 /// Provides a high-performance implementation of the xxHash32 hashing algorithm.

@@ -15,10 +15,10 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Fragments;
+using Nalix.Environment.Memory;
+using Nalix.Environment.Options;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -77,14 +77,8 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// One context per connection; returned to the pool on Dispose.
     /// </summary>
 
-#pragma warning disable CA2213 // Borrowed self-reference from Connection; SocketConnection must not dispose the owning IConnection.
     private IConnection _sender = null!;
-#pragma warning restore CA2213
-
-#pragma warning disable CA2213 // Borrowed cached event args owned by the connection dispatch pipeline.
     private IConnectEventArgs _cachedArgs = null!;
-#pragma warning restore CA2213
-
     private PooledSocketReceiveContext _recvCtx = null!;
     private EventHandler<IConnectEventArgs>? _callbackPost;
     private EventHandler<IConnectEventArgs>? _callbackClose;

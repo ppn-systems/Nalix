@@ -1,4 +1,4 @@
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Abstractions.Serialization;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.

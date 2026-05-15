@@ -1,12 +1,9 @@
-using Nalix.Codec.Memory;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Text;
-using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Framework.Memory.Buffers;
-using Xunit;
+using Nalix.Environment.Fragments;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Tests.DataFrames;
 

@@ -8,7 +8,7 @@ using System.Diagnostics.Contracts;
 using System.Net;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Networking;
-using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Hashing;
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]

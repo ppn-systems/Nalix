@@ -4,7 +4,7 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Benchmark.Framework.Abstractions;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Random;
 

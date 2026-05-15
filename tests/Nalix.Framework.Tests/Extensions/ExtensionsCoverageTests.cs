@@ -6,6 +6,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
+using Nalix.Environment.Extensions;
 using Nalix.Framework.Extensions;
 
 namespace Nalix.Framework.Tests.Extensions;

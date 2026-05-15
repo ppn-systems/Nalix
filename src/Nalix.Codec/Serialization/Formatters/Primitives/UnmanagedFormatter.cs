@@ -3,7 +3,7 @@
 
 using System;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 

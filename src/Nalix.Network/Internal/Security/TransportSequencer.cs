@@ -3,7 +3,7 @@
 
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.Security;
+using Nalix.Environment.Sequencing;
 
 namespace Nalix.Network.Internal.Security;
 

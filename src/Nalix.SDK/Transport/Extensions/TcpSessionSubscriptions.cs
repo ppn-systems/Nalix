@@ -9,7 +9,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.Extensions;
+using Nalix.Environment.Extensions;
 
 namespace Nalix.SDK.Transport.Extensions;
 

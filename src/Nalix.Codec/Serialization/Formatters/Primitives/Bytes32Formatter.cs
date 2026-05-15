@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 

@@ -7,12 +7,12 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
-using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Codec.Memory;
-using Nalix.Codec.Options;
-using Nalix.Codec.Security;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Fragments;
+using Nalix.Environment.Memory;
+using Nalix.Environment.Options;
+using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
 namespace Nalix.SDK.Transport.Internal;
