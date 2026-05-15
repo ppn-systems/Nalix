@@ -278,7 +278,14 @@ public static partial class Directories
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string COMBINE_SAFE([DisallowNull] string baseDir, [DisallowNull] string name)
     {
-        string full = Path.GetFullPath(Path.Join(baseDir, name));
+        ArgumentException.ThrowIfNullOrWhiteSpace(baseDir);
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+
+        if (Path.IsPathRooted(name))
+        {
+            throw new UnauthorizedAccessException($"Absolute path '{name}' is not allowed.");
+        }
+
         string baseFull = Path.GetFullPath(baseDir);
 
         if (!baseFull.EndsWith(Path.DirectorySeparatorChar))
@@ -286,13 +293,18 @@ public static partial class Directories
             baseFull += Path.DirectorySeparatorChar;
         }
 
+        string full = Path.GetFullPath(Path.Join(baseFull, name));
         string rel = Path.GetRelativePath(baseFull, full);
 
         char sep = Path.DirectorySeparatorChar;
-        StringComparison comp = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+
+        StringComparison comp = OperatingSystem.IsWindows()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
+
         return Path.IsPathRooted(rel) ||
-            rel.Equals("..", comp) ||
-            rel.StartsWith(".." + sep, comp)
+               rel.Equals("..", comp) ||
+               rel.StartsWith(".." + sep, comp)
             ? throw new UnauthorizedAccessException($"Path '{name}' escapes base directory.")
             : full;
     }
