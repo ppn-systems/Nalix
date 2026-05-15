@@ -101,6 +101,6 @@ For measured performance data across serialization, cryptography, compression, a
 
 - [Architecture](../fundamentals/architecture.md) — Layered component overview
 - [Packet System](../fundamentals/packet-system.md) — Serialization layouts and wire format
-- [Buffer Management](../../api/framework/memory/buffer-management.md) — Buffer pool API details
+- [Buffer Management](../../api/environment/memory/buffer-management.md) — Buffer pool API details
 - [Object Pooling](../../api/framework/memory/object-pooling.md) — Object recycling API details
 - [LZ4](../../api/codec/lz4.md) — Compression API details

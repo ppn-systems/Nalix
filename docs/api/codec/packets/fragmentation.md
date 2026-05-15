@@ -142,6 +142,6 @@ flowchart LR
 - [Frame Model](./frame-model.md)
 - [Packet Registry](./packet-registry.md)
 - [Built-in Frames](./built-in-frames.md)
-- [Buffer Management](../../framework/memory/buffer-management.md)
+- [Buffer Management](../../environment/memory/buffer-management.md)
 - [Object Pooling](../../framework/memory/object-pooling.md)
 - [LZ4](../lz4.md)

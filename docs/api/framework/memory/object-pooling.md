@@ -172,7 +172,7 @@ TrimIntervalMinutes = 5
 
 ## Related APIs
 
-- [Buffer Management](./buffer-management.md)
+- [Buffer Management](../../environment/memory/buffer-management.md)
 - [Object Map](./object-map.md)
 - [Typed Object Pools](./typed-object-pools.md)
 - [Zero-Allocation Path](../../../concepts/internals/zero-allocation.md)

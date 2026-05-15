@@ -81,7 +81,7 @@ That lets the serializer pick your formatter before falling back to the built-in
 ```csharp
 public interface IFormatter<T>
 {
-    void Serialize(ref DataWriter writer, T value);
+    void Serialize(ref DataWriter writer, in T value);
     T Deserialize(ref DataReader reader);
 }
 ```

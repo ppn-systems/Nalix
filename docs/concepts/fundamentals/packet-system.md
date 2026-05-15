@@ -276,7 +276,7 @@ public sealed class UserProfile
 // 2. Implement the specialized formatter
 public sealed class UserProfileFormatter : IFormatter<UserProfile>
 {
-    public void Serialize(ref DataWriter writer, UserProfile value)
+    public void Serialize(ref DataWriter writer, in UserProfile value)
     {
         writer.WriteInt32(value.UserId);
         writer.WriteString(value.DisplayName);
@@ -307,7 +307,7 @@ using Nalix.Abstractions.Serialization;
 
 public class GeoLocationFormatter : IFormatter<GeoLocation>
 {
-    public void Serialize(ref DataWriter writer, GeoLocation value)
+    public void Serialize(ref DataWriter writer, in GeoLocation value)
     {
         writer.WriteInt32(value.X);
         writer.WriteInt32(value.Y);

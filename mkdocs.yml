@@ -255,7 +255,6 @@ nav:
             - IO & Headers: api/codec/serialization/reader-writer-and-header-extensions.md
         - Memory & Pooling:
           - Packet Pooling: api/runtime/pooling/packet-pooling.md
-          - Buffer Management: api/framework/memory/buffer-management.md
           - Object Pooling: api/framework/memory/object-pooling.md
           - Object Map: api/framework/memory/object-map.md
           - Typed Object Pools: api/framework/memory/typed-object-pools.md

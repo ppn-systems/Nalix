@@ -176,6 +176,6 @@ The `BufferPoolManager` provides deep insights into memory health via the `Gener
 
 ## Related APIs
 
-- [Object Pooling](./object-pooling.md)
+- [Object Pooling](../../framework/memory/object-pooling.md)
 - [Network Options](../../options/network/options.md)
 - [Zero-Allocation Path](../../../concepts/internals/zero-allocation.md)

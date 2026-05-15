@@ -1,4 +1,4 @@
-﻿# Cryptography
+# Cryptography
 
 Nalix ships several cryptography primitives in `Nalix.Codec.Security`, but they are easier to read as separate topics than as one long page.
 
@@ -45,7 +45,7 @@ Pbkdf2.Hash("secret", out byte[] salt, out byte[] hash);
 
 ## Randomness helper
 
-Nalix also ships `Csprng` in `Nalix.Framework.Random`:
+Nalix also ships `Csprng` in `Nalix.Environment.Random`:
 
 - `src/Nalix.Environment/Random/Csprng.cs`
 

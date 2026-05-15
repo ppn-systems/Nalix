@@ -147,7 +147,7 @@ using (restored)
 
 ## Related APIs
 
-- [Buffer Management](../framework/memory/buffer-management.md)
+- [Buffer Management](../environment/memory/buffer-management.md)
 - [Object Pooling](../framework/memory/object-pooling.md)
 - [Serialization](../../benchmarks/serialization.md)
 - [Compression Options](../options/network/compression-options.md)

@@ -74,4 +74,4 @@ When a `TypedObjectPool<T>` is created via `ObjectPoolManager`, it automatically
 
 - [Object Pooling](./object-pooling.md)
 - [Object Map](./object-map.md)
-- [Buffer Management](./buffer-management.md)
+- [Buffer Management](../../environment/memory/buffer-management.md)
