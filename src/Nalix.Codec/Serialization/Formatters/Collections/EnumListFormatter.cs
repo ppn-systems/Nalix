@@ -104,21 +104,10 @@ internal sealed class EnumListFormatter<
             return null!;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        int totalBytes = CollectionGuard.EnsureCan(ref reader, count, s_elementSize);
 
         System.Collections.Generic.List<T> result = new(count);
         CollectionsMarshal.SetCount(result, count);
-
-        long totalBytesLong = (long)count * s_elementSize;
-        if (totalBytesLong > int.MaxValue)
-        {
-            Throw.Overflow();
-        }
-
-        int totalBytes = (int)totalBytesLong;
         Span<T> span = CollectionsMarshal.AsSpan(result);
         ref byte source = ref reader.GetSpanReference(totalBytes);
         ref T destination = ref MemoryMarshal.GetReference(span);
@@ -146,18 +135,7 @@ internal sealed class EnumListFormatter<
             return;
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
-
-        long totalBytesLong = (long)length * s_elementSize;
-        if (totalBytesLong > int.MaxValue)
-        {
-            Throw.Overflow();
-        }
-
-        int totalBytes = (int)totalBytesLong;
+        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);
@@ -170,4 +148,3 @@ internal sealed class EnumListFormatter<
         reader.Advance(totalBytes);
     }
 }
-

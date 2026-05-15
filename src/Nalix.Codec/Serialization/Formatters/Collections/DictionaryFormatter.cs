@@ -183,10 +183,7 @@ internal sealed class DictionaryFormatter<
             return null;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         System.Collections.Generic.Dictionary<TKey, TValue> dict = new(count);
 
@@ -217,10 +214,7 @@ internal sealed class DictionaryFormatter<
             return;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         for (int i = 0; i < count; i++)
         {
@@ -230,4 +224,3 @@ internal sealed class DictionaryFormatter<
         }
     }
 }
-

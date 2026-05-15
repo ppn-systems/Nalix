@@ -97,27 +97,7 @@ internal sealed class EnumArrayFormatter<
             return null!;
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            throw new SerializationFailureException("Array length out of range");
-        }
-
-        long totalBytesLong = (long)length * s_elementSize;
-        if (totalBytesLong > int.MaxValue)
-        {
-            throw new SerializationFailureException(
-                $"Enum array data size overflow: {totalBytesLong} bytes exceeds int.MaxValue.");
-        }
-
-        int totalBytes = (int)totalBytesLong;
-
-#if DEBUG
-        if (reader.BytesRemaining < totalBytes)
-        {
-            throw new SerializationFailureException(
-                $"Buffer underrun when reading array of {typeof(T)}. Needed {totalBytes} bytes.");
-        }
-#endif
+        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
 
         T[] result = System.GC.AllocateUninitializedArray<T>(length);
         ref byte src = ref reader.GetSpanReference(totalBytes);
@@ -131,4 +111,3 @@ internal sealed class EnumArrayFormatter<
         return result;
     }
 }
-

@@ -26,6 +26,12 @@ public sealed partial class SerializationOptions : ConfigurationLoader
     public int MaxStringLength { get; set; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxStringLength)
 
     /// <summary>
+    /// Gets or sets the maximum nested formatter depth during deserialization.
+    /// </summary>
+    [IniComment("Maximum nested formatter depth during deserialization (default 256)")]
+    public int MaxDeserializationDepth { get; set; } = 256;
+
+    /// <summary>
     /// Validates the configuration options.
     /// </summary>
     public void Validate()
@@ -38,6 +44,11 @@ public sealed partial class SerializationOptions : ConfigurationLoader
         if (this.MaxStringLength <= 0)
         {
             throw new ValidationException($"MaxStringLength must be positive.");
+        }
+
+        if (this.MaxDeserializationDepth <= 0)
+        {
+            throw new ValidationException($"MaxDeserializationDepth must be positive.");
         }
     }
 }

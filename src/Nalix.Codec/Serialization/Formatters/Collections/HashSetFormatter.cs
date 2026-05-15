@@ -169,10 +169,7 @@ internal sealed class HashSetFormatter<
             return null;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         System.Collections.Generic.HashSet<T> set = new(count);
 
@@ -202,10 +199,7 @@ internal sealed class HashSetFormatter<
             return;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         for (int i = 0; i < count; i++)
         {
@@ -213,4 +207,3 @@ internal sealed class HashSetFormatter<
         }
     }
 }
-

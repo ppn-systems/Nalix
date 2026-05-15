@@ -93,21 +93,11 @@ internal sealed class ListFormatter<
             return [];
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
-
-        long totalBytesLong = (long)length * s_elementSize;
-        if (totalBytesLong > int.MaxValue)
-        {
-            Throw.Overflow();
-        }
+        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
 
         System.Collections.Generic.List<T> list = new(length);
         CollectionsMarshal.SetCount(list, length);
 
-        int totalBytes = (int)totalBytesLong;
         Span<T> span = CollectionsMarshal.AsSpan(list);
         ref byte source = ref reader.GetSpanReference(totalBytes);
         ref T destination = ref MemoryMarshal.GetReference(span);
@@ -135,19 +125,7 @@ internal sealed class ListFormatter<
             return;
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
-
-        long totalBytesLong = (long)length * s_elementSize;
-
-        if (totalBytesLong > int.MaxValue)
-        {
-            Throw.LengthOutOfRange();
-        }
-
-        int totalBytes = (int)totalBytesLong;
+        int totalBytes = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);
@@ -164,4 +142,3 @@ internal sealed class ListFormatter<
         reader.Advance(totalBytes);
     }
 }
-
