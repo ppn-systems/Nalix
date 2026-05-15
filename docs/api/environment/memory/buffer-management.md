@@ -147,6 +147,27 @@ await session.SendAsync(lease.Memory);
 - **Shell Pool**: The `BufferLease` object itself is rented from a thread-local free-list.
 - **Value Types**: `lease.Memory` is a `ReadOnlyMemory<byte>` (value type), avoiding boxing.
 
+## Configuring for Server
+
+To enable the zero-allocation path in a Nalix server, you must register the `BufferPoolManager` during the application setup. If omitted, the framework may fall back to standard allocations.
+
+### Using the Hosting Builder
+
+```csharp
+using Nalix.Hosting;
+using Nalix.Framework.Memory.Buffers;
+
+var app = NetworkApplication.CreateBuilder()
+    // 1. Explicitly enable and configure the buffer pool
+    .ConfigureBufferPoolManager(new BufferPoolManager(logger) 
+    {
+        TotalBuffers = 50000,
+        InitialCapacity = 1024,
+        BufferAllocations = "512,0.2; 1024,0.3; 4096,0.5" // size,ratio; ...
+    })
+    .Build();
+```
+
 ## BufferOptions
 
 Global tuning for the buffer system is managed via `BufferOptions`.

@@ -108,6 +108,28 @@ public interface IPoolRentable
 | `Uptime` | `TimeSpan` | Uptime of the pool manager. |
 | `UnhealthyPoolCount` | `int` | Number of unhealthy pools. |
 
+## Configuring for Server
+
+To enable global object pooling for packets and internal components, register the `ObjectPoolManager` with the builder.
+
+### Using the Hosting Builder
+
+```csharp
+using Nalix.Hosting;
+using Nalix.Framework.Memory.Objects;
+
+var app = NetworkApplication.CreateBuilder()
+    // 1. Initialize the global object pool manager
+    .ConfigureObjectPoolManager(new ObjectPoolManager(logger))
+    
+    // 2. Optional: Pre-configure pool sizes for specific hot types
+    .Configure<ObjectPoolOptions>(opt => 
+    {
+        opt.DefaultMaxPoolSize = 2048;
+    })
+    .Build();
+```
+
 ## TypedObjectPool<`T`>
 
 For performance-critical code, it is recommended to cache a `TypedObjectPool<T>` rather than calling the manager directly.
