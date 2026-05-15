@@ -32,6 +32,14 @@ namespace Nalix.Framework.Injection;
     DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)]
 public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportable
 {
+    #region Constants
+
+    private const int MaxCachedInstances = 4096;
+    private const int MaxSignatureInstances = 4096;
+    private const int MaxActivatorFactories = 8192;
+
+    #endregion Constants
+
     #region Fields
 
     private static readonly Lazy<Assembly> s_entryAssemblyLazy = new(() => Assembly.GetEntryAssembly() ?? Assembly.GetExecutingAssembly());
@@ -380,6 +388,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
                     continue;
                 }
                 // No existing value; try to add.
+                this.THROW_IF_CACHE_LIMIT_REACHED(
+                    _instanceCache.Count,
+                    MaxCachedInstances,
+                    nameof(_instanceCache));
+
                 if (_instanceCache.TryAdd(handleKey, instanceObj))
                 {
                     Volatile.Write(ref s_slotsInvalidated, 0);
@@ -522,6 +535,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
             TRY_PUBLISH_SLOT_BY_TYPE(type, sigExisting);
             return sigExisting;
         }
+
+        this.THROW_IF_CACHE_LIMIT_REACHED(
+            _signatureInstanceCache.Count,
+            MaxSignatureInstances,
+            nameof(_signatureInstanceCache));
 
         // Create then insert into signature cache (avoid losing created instance or double-dispose)
         return this.CREATE_OR_GET_SIGNATURE_INSTANCE(type, args, sigKey);
@@ -970,6 +988,11 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
     [MethodImpl(MethodImplOptions.NoInlining)]
     private object CREATE_OR_GET_SIGNATURE_INSTANCE(Type type, object?[] args, ActivatorKey sigKey)
     {
+        this.THROW_IF_CACHE_LIMIT_REACHED(
+            _signatureInstanceCache.Count,
+            MaxSignatureInstances,
+            nameof(_signatureInstanceCache));
+
         // Create instance
         object created = this.CREATE_VIA_ACTIVATOR(type, args);
 
@@ -1094,6 +1117,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
                 return existing;
             }
 
+            this.THROW_IF_CACHE_LIMIT_REACHED(
+                _instanceCache.Count,
+                MaxCachedInstances,
+                nameof(_instanceCache));
 
             object instance = this.CREATE_VIA_ACTIVATOR(type, args);
 
@@ -1131,6 +1158,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
 
             return instance;
         }
+        catch (InvalidOperationException)
+        {
+            throw;
+        }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.Emit("GET_OR_CREATE_INSTANCE_SLOW", "CreateFailed", new { Type = type.Name, Error = ex.Message }, isFailure: true);
@@ -1145,11 +1176,36 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
         ActivatorKey sigKey = new(type, args);
         if (!_activatorCache.TryGetValue(sigKey, out Func<object?[], object>? factory))
         {
+            this.THROW_IF_CACHE_LIMIT_REACHED(
+                _activatorCache.Count,
+                MaxActivatorFactories,
+                nameof(_activatorCache));
+
             ConstructorInfo ctor = RESOLVE_BEST_CONSTRUCTOR(type, args);
             factory = BUILD_DYNAMIC_FACTORY(type, ctor);
             _ = _activatorCache.TryAdd(sigKey, factory);
         }
         return factory(args);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void THROW_IF_CACHE_LIMIT_REACHED(int currentCount, int maxCount, string cacheName)
+    {
+        if (currentCount < maxCount)
+        {
+            return;
+        }
+
+        this.Emit(
+            "CacheLimit",
+            "Exceeded",
+            new { Cache = cacheName, Count = currentCount, Limit = maxCount },
+            isFailure: true);
+
+        throw new InvalidOperationException(
+            string.Create(
+                CultureInfo.InvariantCulture,
+                $"InstanceManager cache limit reached for {cacheName}: {currentCount}/{maxCount}. Call Lockdown() after startup or reduce dynamic service creation."));
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
