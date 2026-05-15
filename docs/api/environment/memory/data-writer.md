@@ -1,6 +1,6 @@
 # DataWriter
 
-`Nalix.Codec.Memory.DataWriter` is a mutable, growable, high-performance write buffer implemented as a `ref struct`. It is specifically designed to handle high-throughput serialization with minimal overhead.
+`Nalix.Environment.Memory.DataWriter` is a mutable, growable, high-performance write buffer implemented as a `ref struct`. It is specifically designed to handle high-throughput serialization with minimal overhead.
 
 ## Buffer Modes
 

@@ -190,6 +190,7 @@ nav:
       - Overview: packages/index.md
       - Nalix.Abstractions: packages/nalix-abstractions.md
       - Nalix.Environment: packages/nalix-environment.md
+      - Nalix.Codec: packages/nalix-codec.md
       - Nalix.Framework: packages/nalix-framework.md
       - Nalix.Logging: packages/nalix-logging.md
       - Nalix.Network: packages/nalix-network.md
@@ -215,11 +216,17 @@ nav:
       - Framework:
         - Overview: api/framework/index.md
         - Environment:
+          - Overview: api/environment/index.md
           - Directories: api/environment/directories.md
           - Clock: api/environment/clock.md
           - Random: api/environment/random.md
           - Timing Scope: api/environment/timing-scope.md
           - Configuration: api/environment/configuration.md
+          - Memory:
+            - Buffer Management: api/environment/memory/buffer-management.md
+            - BufferLease: api/environment/memory/buffer-lease.md
+            - DataReader: api/environment/memory/data-reader.md
+            - DataWriter: api/environment/memory/data-writer.md
         - Runtime:
           - Snowflake: api/framework/snowflake.md
           - Task Manager: api/framework/task-manager.md
@@ -228,13 +235,14 @@ nav:
         - Options:
           - Worker Options: api/framework/options/worker-options.md
           - Recurring Options: api/framework/options/recurring-options.md
+        - Memory:
+          - Object Pooling: api/framework/memory/object-pooling.md
+          - Object Map: api/framework/memory/object-map.md
+          - Typed Object Pools: api/framework/memory/typed-object-pools.md
         - Codec:
-          - Overview: packages/nalix-codec.md
+          - Overview: api/codec/index.md
           - LZ4: api/codec/lz4.md
-          - Memory:
-            - BufferLease: api/codec/memory/buffer-lease.md
-            - DataReader: api/codec/memory/data-reader.md
-            - DataWriter: api/codec/memory/data-writer.md
+
           - Packets:
             - Frame Model: api/codec/packets/frame-model.md
             - Fragmentation: api/codec/packets/fragmentation.md

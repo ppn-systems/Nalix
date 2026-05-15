@@ -1,6 +1,6 @@
 # Buffer Management
 
-`Nalix.Framework.Memory` provides a high-performance byte buffer management system designed to minimize GC pressure and maximize throughput in networking hot paths.
+`Nalix.Environment.Memory` and `Nalix.Framework.Memory` provide a high-performance byte buffer management system designed to minimize GC pressure and maximize throughput in networking hot paths.
 
 ## Buffer Rental & Disposal Lifecycle
 
@@ -42,7 +42,7 @@ sequenceDiagram
 ## Source Mapping
 
 - `src/Nalix.Abstractions/IBufferLease.cs`
-- `src/Nalix.Codec/Memory/BufferLease.cs`
+- `src/Nalix.Environment/Memory/BufferLease.cs`
 - `src/Nalix.Framework/Memory/Buffers/BufferPoolManager.cs`
 - `src/Nalix.Framework/Options/BufferOptions.cs`
 - `src/Nalix.Framework/Memory/Internal/Buffers/SlabBucket.cs`
