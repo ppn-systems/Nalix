@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Extensions;

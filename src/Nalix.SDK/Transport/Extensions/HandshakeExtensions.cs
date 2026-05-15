@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Asymmetric;
 using Nalix.Environment.Random;

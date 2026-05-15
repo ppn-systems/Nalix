@@ -6,9 +6,10 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
 using Nalix.Environment.Time;
 
-namespace Nalix.Codec.DataFrames.SignalFrames;
+namespace Nalix.Codec.ProtocolFrames;
 
 /// <summary>
 /// Represents a binary data packet used for transmitting raw bytes over the network.

@@ -3,7 +3,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Memory;
 using Nalix.Codec.Transforms;
 

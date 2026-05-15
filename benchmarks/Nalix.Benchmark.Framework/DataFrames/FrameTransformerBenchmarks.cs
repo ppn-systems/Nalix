@@ -3,7 +3,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Memory;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Random;
@@ -66,7 +66,7 @@ public class FrameTransformerBenchmarks : NalixBenchmarkBase
     [BenchmarkCategory("Transformation"), Benchmark(Description = "Encrypt Frame (ChaCha20-Poly1305)")]
     public int EncryptFrame()
     {
-        FrameTransformer.Encrypt(_source, _encrypted, _key, CipherSuiteType.Chacha20Poly1305);
+        FrameTransformer.Encrypt(_source, _encrypted, _key, null, CipherSuiteType.Chacha20Poly1305);
         return _encrypted.Length;
     }
 }

@@ -1,6 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Environment.Hashing;
+using Nalix.Codec.Security.Hashing;
 
 namespace Nalix.Benchmark.Framework.Security;
 

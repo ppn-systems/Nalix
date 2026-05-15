@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.SDK.Transport.Internal;
 
 namespace Nalix.SDK.Transport.Extensions;

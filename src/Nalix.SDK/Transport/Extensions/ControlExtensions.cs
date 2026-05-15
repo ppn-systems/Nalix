@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Time;
 using Nalix.SDK.Transport.Internal;
 

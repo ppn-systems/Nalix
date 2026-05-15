@@ -1,7 +1,7 @@
 
 using System;
 using Xunit;
-using Nalix.Codec.DataFrames.SignalFrames;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Serialization;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Injection;
