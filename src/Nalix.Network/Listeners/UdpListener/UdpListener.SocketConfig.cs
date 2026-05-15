@@ -38,9 +38,9 @@ public abstract partial class UdpListenerBase
             try { _socket.DualMode = true; }
             catch (Exception ex) when (ex is SocketException or NotSupportedException or ObjectDisposedException or InvalidOperationException)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug(
+                    this.Logger.LogDebug(
                         $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
                         $"dualmode-not-applied port={_port} reason={ex.GetType().Name}");
                 }
@@ -56,9 +56,9 @@ public abstract partial class UdpListenerBase
         // ReceiveFromAsync can populate it without an address-family mismatch.
         _anyEndPoint = new IPEndPoint(bindAddress, 0);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug(
+            this.Logger.LogDebug(
                 $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
                 $"init-ok port={_port} af={af} reuse={_options.ReuseAddress} buf={_options.BufferSize}");
         }
@@ -128,9 +128,9 @@ public abstract partial class UdpListenerBase
             }
             catch (SocketException ex)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(ex,
+                    this.Logger.LogError(ex,
                         "Failed to set SIO_UDP_CONNRESET. " +
                         "UDP sockets on Windows may throw SocketException(ConnectionReset) when receiving datagrams from unreachable clients.");
                 }

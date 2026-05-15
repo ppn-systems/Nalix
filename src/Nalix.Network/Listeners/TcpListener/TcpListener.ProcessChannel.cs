@@ -122,9 +122,9 @@ public abstract partial class TcpListenerBase
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (Logger != null && Logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+                Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
                                  $"process-channel-unavailable remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
             }
 
@@ -135,9 +135,9 @@ public abstract partial class TcpListenerBase
 
         if (processChannel.Writer.TryWrite(connection))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (Logger != null && Logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
+                Logger.LogTrace(
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
                     $"queued remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
             }
@@ -153,9 +153,9 @@ public abstract partial class TcpListenerBase
         //   optimize ProcessConnection for faster execution.
         this.Metrics.RECORD_REJECTED();
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+        if (Logger != null && Logger.IsEnabled(LogLevel.Warning))
         {
-            _logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
+            Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(DISPATCH_CONNECTION)}] " +
                              $"channel-full remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port} - dropped");
         }
 
@@ -169,9 +169,9 @@ public abstract partial class TcpListenerBase
 
     private async ValueTask PROCESS_CHANNEL_LOOP_ASYNC(IWorkerContext ctx, CancellationToken cancellationToken)
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (Logger != null && Logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace(
+            Logger.LogTrace(
                 $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] " +
                 $"worker-started port={_port}");
         }
@@ -216,9 +216,9 @@ public abstract partial class TcpListenerBase
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (Logger != null && Logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] unhandled-error port={_port}");
+                Logger.LogError(ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] unhandled-error port={_port}");
             }
         }
         finally
@@ -234,9 +234,9 @@ public abstract partial class TcpListenerBase
                 this.INVOKE_PROCESS(connection);
             }
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (Logger != null && Logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] worker-exited port={_port}");
+                Logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] worker-exited port={_port}");
             }
         }
     }
@@ -262,9 +262,9 @@ public abstract partial class TcpListenerBase
         {
             this.Metrics.RECORD_ERROR();
 
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            if (Logger != null && Logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(
+                Logger.LogError(
                     ex,
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(INVOKE_PROCESS)}] " +
                     $"error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");

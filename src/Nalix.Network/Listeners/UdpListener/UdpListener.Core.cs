@@ -37,13 +37,10 @@ public abstract partial class UdpListenerBase
     #region Fields
 
     private readonly NetworkSocketOptions _options;
-    private readonly SequenceOptions _sequenceOptions;
     private readonly DatagramGuardOptions _datagramGuardOptions;
     private readonly ConnectionLimitOptions _connectionLimitOptions;
-    private readonly ILogger? _logger;
 
     private readonly ushort _port;
-    private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
     private readonly DatagramGuard _rateLimiter;
@@ -71,15 +68,24 @@ public abstract partial class UdpListenerBase
 
     #region Properties
 
-    /// <summary>
-    /// Gets the current lifecycle state of the listener (thread-safe volatile read).
-    /// </summary>
-    private ListenerState State => (ListenerState)Volatile.Read(ref _state);
+    /// <inheritdoc/>
+    protected ILogger? Logger { get; init; }
+
+    /// <inheritdoc/>
+    protected IProtocol Protocol { get; init; }
+
+    /// <inheritdoc/>
+    protected SequenceOptions SequenceOptions { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether the UDP listener is currently running and listening for datagrams.
     /// </summary>
     public bool IsListening => this.State == ListenerState.RUNNING;
+
+    /// <summary>
+    /// Gets the current lifecycle state of the listener (thread-safe volatile read).
+    /// </summary>
+    private ListenerState State => (ListenerState)Volatile.Read(ref _state);
 
     #endregion Properties
 
@@ -98,10 +104,10 @@ public abstract partial class UdpListenerBase
         ArgumentNullException.ThrowIfNull(protocol, nameof(protocol));
         ArgumentNullException.ThrowIfNull(hub, nameof(hub));
 
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        _sequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
+        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         _connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
 
@@ -110,7 +116,7 @@ public abstract partial class UdpListenerBase
 
         _hub = hub;
         _port = port;
-        _protocol = protocol;
+        this.Protocol = protocol;
         _lock = new SemaphoreSlim(1, 1);
         _state = (int)ListenerState.STOPPED;
         _rateLimiter = new(
@@ -126,9 +132,9 @@ public abstract partial class UdpListenerBase
         // Default to IPv4 any-address; Initialize() may switch to IPv6 based on config.
         _anyEndPoint = new IPEndPoint(IPAddress.Any, 0);
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+            this.Logger.LogDebug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
         }
     }
 
@@ -175,18 +181,18 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug(
+                    this.Logger.LogDebug(
                         $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    _logger.LogWarning(ex,
+                    this.Logger.LogWarning(ex,
                         $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                         $"cts-dispose-failed port={_port}");
                 }
@@ -202,18 +208,18 @@ public abstract partial class UdpListenerBase
             }
             catch (ObjectDisposedException ex)
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug(
+                    this.Logger.LogDebug(
                         $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                         $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    _logger.LogWarning(ex,
+                    this.Logger.LogWarning(ex,
                         $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
                         $"socket-dispose-failed port={_port}");
                 }
@@ -225,9 +231,9 @@ public abstract partial class UdpListenerBase
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
 
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
+            this.Logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
         }
     }
 
