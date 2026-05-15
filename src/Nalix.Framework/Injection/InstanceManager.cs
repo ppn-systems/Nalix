@@ -9,10 +9,12 @@ using System.Diagnostics.Contracts;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection.DI;
 
 namespace Nalix.Framework.Injection;
@@ -40,10 +42,10 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
     private static readonly Lock s_processMutexInitSync = new();
 
     /// <inheritdoc/>
-    public static readonly string ApplicationMutexName = "Global\\Nalix.Framework.Lock." + (s_entryAssemblyLazy.Value?.GetName().Name ?? "GenericApp");
+    public static readonly string ApplicationMutexName = CreateApplicationMutexName();
 
-    private static bool s_processMutexOwner;
     private static Mutex? s_processMutex;
+    private static bool s_processMutexOwner;
 
     /// <summary>
     /// Track disposables uniquely to avoid duplicate dispose calls.
@@ -163,6 +165,33 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
     #endregion Struct Keys
 
     #region Process Single-Instance (Fixed & Cheap)
+
+    private static string CreateApplicationMutexName()
+    {
+        string assemblyName = s_entryAssemblyLazy.Value?.GetName().Name ?? "GenericApp";
+        string userSid = GetCurrentUserSid();
+        string hashInput = string.Concat(assemblyName, "|", AppContext.BaseDirectory, "|", userSid);
+        uint suffix = XxHash32.Compute(Encoding.UTF8.GetBytes(hashInput));
+
+        return string.Create(CultureInfo.InvariantCulture, $"Global\\Nalix.Framework.Lock.{assemblyName}.{suffix:X8}");
+    }
+
+    private static string GetCurrentUserSid()
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return System.Environment.UserName;
+        }
+
+        try
+        {
+            return WindowsIdentity.GetCurrent().User?.Value ?? "UnknownUser";
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            return "UnknownUser";
+        }
+    }
 
     /// <summary>
     /// Checks if this application is the only instance currently running.
