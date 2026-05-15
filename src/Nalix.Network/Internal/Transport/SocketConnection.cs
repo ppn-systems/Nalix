@@ -26,6 +26,7 @@ using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
 
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
