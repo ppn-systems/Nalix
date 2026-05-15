@@ -59,6 +59,6 @@ if (isValid)
  
 ## Related APIs
  
-- [AEAD and Envelope](../../security/aead-and-envelope.md)
-- [Handshake Protocol](../../security/handshake.md)
-- [Frame Model](../../codec/packets/frame-model.md)
+- [AEAD and Envelope](../security/aead-and-envelope.md)
+- [Handshake Protocol](../security/handshake.md)
+- [Frame Model](../codec/packets/frame-model.md)

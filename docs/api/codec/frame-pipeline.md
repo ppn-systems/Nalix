@@ -60,7 +60,7 @@ FramePipeline.ProcessOutbound(
 ## Related APIs
  
 - [Frame Model](./packets/frame-model.md)
-- [AEAD and Envelope](../../security/aead-and-envelope.md)
+- [AEAD and Envelope](../security/aead-and-envelope.md)
 - [LZ4](./lz4.md)
-- [BufferLease](../../environment/memory/buffer-lease.md)
-- [Sequencing](../../environment/sequencing.md)
+- [BufferLease](../environment/memory/buffer-lease.md)
+- [Sequencing](../environment/sequencing.md)
