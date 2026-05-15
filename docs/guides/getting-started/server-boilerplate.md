@@ -112,17 +112,27 @@ builder.ConfigureDispatchOptions(options =>
     Use this path only if you are building specialized transport libraries or need to bypass the Hosting layer for extreme performance tuning.
 
 ```csharp
-// Manual setup of all components without the Hosting builder.
-// Prefer the Hosting Builder above unless you are writing transport-level code.
+public sealed class SampleTcpListener : TcpListenerBase
+{
+    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
 
+    public override void ProcessFrame(object? sender, IConnectEventArgs args)
+    {
+        // Custom frame logic or forward to protocol
+        this.Protocol.ProcessMessage(sender, args);
+    }
+}
+
+// Manual setup of all components without the Hosting builder.
 PacketDispatchChannel dispatch = new(options =>
 {
     options.WithHandler(() => new MyPingHandler());
 });
 
-IConnectionHub hub = new ConnectionHub();
+IConnectionHub hub = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>();
 DefaultProtocol protocol = new(dispatch);
-TcpServerListener listener = new(5000, protocol, hub);
+SampleTcpListener listener = new(5000, protocol, hub);
 
 dispatch.Activate();
 listener.Activate();
