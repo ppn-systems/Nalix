@@ -1,4 +1,4 @@
-﻿# Common Enumerations
+# Common Enumerations
 
 This page provides a comprehensive reference for all enumerations defined in `Nalix.Abstractions`. These constants ensure binary and semantic compatibility across the networking, security, and serialization layers.
 
@@ -80,15 +80,11 @@ Identifies the kind of control message used by the protocol layer.
 | `NONE` | `0x00` | No control message specified. |
 | `PING` | `0x01` | Check connection liveness. |
 | `PONG` | `0x02` | Response to a ping. |
-| `ACK` | `0x03` | Confirm receipt. |
 | `DISCONNECT` | `0x04` | Termination request. |
 | `ERROR` | `0x05` | Failure description. |
-| `HEARTBEAT` | `0x07` | Keep connection active. |
-| `NACK` | `0x08` | Negative acknowledgement. |
 | `RESUME` | `0x09` | Resume interrupted session. |
 | `SHUTDOWN` | `0x0A` | Request graceful shutdown. |
 | `REDIRECT` | `0x0B` | Redirect to another endpoint. |
-| `THROTTLE` | `0x0C` | Reduce transmission rate. |
 | `NOTICE` | `0x0D` | Maintenance notice. |
 | `TIMEOUT` | `0x10` | Operation timed out. |
 | `FAIL` | `0x11` | Generic failure. |

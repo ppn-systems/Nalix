@@ -15,19 +15,19 @@ tracking caps, sharded storage, cleanup, and diagnostic report sizing.
 
 | Property | Default | Valid range | Runtime effect |
 | --- | ---: | --- | --- |
-| `CapacityTokens` | `12` | `1..int.MaxValue` | Maximum whole-token burst capacity for each endpoint. |
-| `RefillTokensPerSecond` | `6.0` | `0.001..double.MaxValue` | Sustained refill rate converted to fixed-point microtokens. |
-| `HardLockoutSeconds` | `0` | `0..int.MaxValue` | Stopwatch-tick duration for hard lockout after soft violations escalate. |
-| `StaleEntrySeconds` | `300` | `1..int.MaxValue` | Idle age before an endpoint can be removed by stale cleanup. |
-| `CleanupIntervalSeconds` | `120` | `1..int.MaxValue` | Recurring cleanup cadence registered with `TaskManager`. |
-| `TokenScale` | `1000` | `1..1000000` | Fixed-point units per whole token. One consumed request costs `TokenScale`. |
-| `ShardCount` | `32` | `1..int.MaxValue`; power of two | Number of endpoint-map shards used by hash masking. |
-| `SoftViolationWindowSeconds` | `5` | `1..int.MaxValue` | Window used to accumulate soft-throttle violations. |
-| `MaxSoftViolations` | `3` | `1..int.MaxValue` | Violation count at which the endpoint escalates to hard lockout. |
+| `CapacityTokens` | `64` | `1..int.MaxValue` | Maximum whole-token burst capacity for each endpoint. |
+| `RefillTokensPerSecond` | `32.0` | `0.001..double.MaxValue` | Sustained refill rate converted to fixed-point microtokens. |
+| `HardLockoutSeconds` | `30` | `0..int.MaxValue` | Stopwatch-tick duration for hard lockout after soft violations escalate. |
+| `StaleEntrySeconds` | `180` | `1..int.MaxValue` | Idle age before an endpoint can be removed by stale cleanup. |
+| `CleanupIntervalSeconds` | `45` | `1..int.MaxValue` | Recurring cleanup cadence registered with `TaskManager`. |
+| `TokenScale` | `100` | `1..1000000` | Fixed-point units per whole token. One consumed request costs `TokenScale`. |
+| `ShardCount` | `256` | `1..int.MaxValue`; power of two | Number of endpoint-map shards used by hash masking. |
+| `SoftViolationWindowSeconds` | `8` | `1..int.MaxValue` | Window used to accumulate soft-throttle violations. |
+| `MaxSoftViolations` | `5` | `1..int.MaxValue` | Violation count at which the endpoint escalates to hard lockout. |
 | `CooldownResetSec` | `10` | `1..int.MaxValue` | Configured and reported as cooldown policy; not read by current limiter logic. |
-| `MaxTrackedEndpoints` | `10000` | `0..int.MaxValue` | Maximum tracked endpoints; `0` disables the cap. |
+| `MaxTrackedEndpoints` | `100000` | `0..int.MaxValue` | Maximum tracked endpoints; `0` disables the cap. |
 | `InitialTokens` | `-1` | No DataAnnotation range | Initial tokens for new endpoints: `<0` full, `0` empty, `>0` clamped to capacity. |
-| `MaxEvictionCapacity` | `4096` | `64..65536` | Initial pooled candidate-list capacity cap for over-limit eviction scans. |
+| `MaxEvictionCapacity` | `8192` | `64..65536` | Initial pooled candidate-list capacity cap for over-limit eviction scans. |
 | `MinReportCapacity` | `256` | `64..8192` | Minimum pooled snapshot-list capacity used by report generation. |
 
 `Validate()` first runs DataAnnotation validation and then enforces:

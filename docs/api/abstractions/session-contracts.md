@@ -18,7 +18,7 @@
 
 | Type | Public members |
 |---|---|
-| `ISessionStore` | `CreateSession(...)`, `StoreAsync(...)`, `RetrieveAsync(...)`, `RemoveAsync(...)` |
+| `ISessionStore` | `CreateSession(...)`, `StoreAsync(...)`, `RetrieveAsync(...)`, `RemoveAsync(...)`, `ConsumeAsync(...)` |
 | `SessionEntry` | `Snapshot`, `ConnectionId`, `Return()` |
 | `SessionSnapshot` | `SessionToken`, `CreatedAtUnixMilliseconds`, `ExpiresAtUnixMilliseconds`, `Secret`, `Algorithm`, `Level`, `Attributes` |
 
@@ -32,6 +32,7 @@ It is responsible for:
 - persisting the session entry
 - looking up a stored session by token
 - removing a stored session when it is no longer valid
+- atomically retrieving and removing a session via `ConsumeAsync`
 
 ### Common pitfalls
 
