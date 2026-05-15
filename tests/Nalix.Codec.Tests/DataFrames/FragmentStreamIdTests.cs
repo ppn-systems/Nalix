@@ -2,8 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Reflection;
-using Nalix.Environment.DataFrames.Chunks;
-using Xunit;
+using Nalix.Environment.Fragments;
 
 namespace Nalix.Codec.Tests.DataFrames;
 

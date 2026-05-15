@@ -1,14 +1,7 @@
-using Nalix.Environment.Options;
-using Nalix.Environment.Memory;
-
-using System;
-using System.IO;
 using System.Text;
-using System.Threading;
-using Nalix.Environment.DataFrames.Chunks;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Options;
-using Xunit;
+using Nalix.Environment.Fragments;
+using Nalix.Environment.Memory;
+using Nalix.Environment.Options;
 
 namespace Nalix.Codec.Tests.DataFrames;
 
