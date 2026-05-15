@@ -106,6 +106,6 @@ Console.WriteLine(report);
 
 ## Related Information
 
-- [Buffer Management API](../../api/framework/memory/buffer-management.md)
+- [Buffer Management API](../../api/environment/memory/buffer-management.md)
 - [Zero-Allocation Hot Path](../low-level/zero-allocation-hot-path.md)
 - [Server Boilerplate](../getting-started/server-boilerplate.md)

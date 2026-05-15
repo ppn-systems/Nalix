@@ -20,7 +20,6 @@ using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Abstractions.Abstractions;
 
 public sealed class UserShardProxy : IConnection
 {
@@ -42,6 +41,7 @@ public sealed class UserShardProxy : IConnection
     // Ensure that handlers can still send data back to the physical connection.
     public IConnection.ITransport TCP => _physical.TCP;
     public IConnection.ITransport UDP => _physical.UDP;
+    public bool IsUdpCreated => _physical.IsUdpCreated;
 
     // --- STATE DELEGATION ---
     public IObjectMap<string, object> Attributes => _physical.Attributes;
@@ -49,19 +49,25 @@ public sealed class UserShardProxy : IConnection
     public CipherSuiteType Algorithm { get => _physical.Algorithm; set => _physical.Algorithm = value; }
     public Bytes32 Secret { get => _physical.Secret; set => _physical.Secret = value; }
     
+    // --- METRICS ---
+    public long UpTime => _physical.UpTime;
+    public long BytesSent => _physical.BytesSent;
+    public long BytesReceived => _physical.BytesReceived;
+    public long LastPingTime => _physical.LastPingTime;
+
     // --- ERROR TRACKING ---
     public int ErrorCount => _physical.ErrorCount;
     public void IncrementErrorCount() => _physical.IncrementErrorCount();
-    public void ResetErrorCount() => _physical.ResetErrorCount();
 
     // --- LIFECYCLE ---
     public bool IsDisposed => _physical.IsDisposed;
     public void Disconnect(string? reason = null) => _physical.Disconnect(reason);
     public void Dispose() => _physical.Dispose();
 
-    // Event delegation...
+    // --- EVENT DELEGATION ---
     public event EventHandler<IConnectEventArgs> OnCloseEvent { add => _physical.OnCloseEvent += value; remove => _physical.OnCloseEvent -= value; }
-    // ... (delegate other events similarly)
+    public event EventHandler<IConnectEventArgs> OnProcessEvent { add => _physical.OnProcessEvent += value; remove => _physical.OnProcessEvent -= value; }
+    public event EventHandler<IConnectEventArgs> OnPostProcessEvent { add => _physical.OnPostProcessEvent += value; remove => _physical.OnPostProcessEvent -= value; }
 }
 ```
 
@@ -72,7 +78,6 @@ Implement the `IPacketDispatch` interface to intercept incoming packets and reso
 ```csharp
 using Nalix.Runtime.Dispatching;
 using Nalix.Abstractions.Networking;
-using Nalix.Framework.Memory.Buffers;
 
 public class UserBasedRouter : IPacketDispatch
 {

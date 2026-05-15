@@ -26,7 +26,7 @@ connection error cutoffs, and per-endpoint cleanup behavior used by
 | `InactivityThreshold` | `00:05:00` | `00:00:01..1.00:00:00` | Age cutoff for removing inactive zero-connection entries. |
 | `MaxUdpDatagramSize` | `1400` | `64..65507` | Maximum UDP payload size accepted for outbound sends. |
 | `MaxErrorThreshold` | `50` | `1..int.MaxValue` | Per-connection error count threshold before disconnect. |
-| `UdpReplayWindowSize` | `1024` | `64..65536` | Sliding replay-protection window size allocated by `Connection`. |
+| `UdpReplayWindowSize` | `512` | `64..65536` | Sliding replay-protection window size allocated by `Connection`. |
 | `MaxPacketPerSecond` | `128` | `1..10_000_000` | UDP listener rate limiter budget per connection. |
 | `MaxCleanupKeysPerRun` | `0` | `0..10_000_000` | Max endpoint keys scanned per cleanup cycle; `0` auto-scales based on tracked entry count. |
 | `DailyResetTimeOffset` | `00:00:00` | `-14:00:00..14:00:00` | UTC offset used to determine the start-of-day for daily connection-limit resets. |

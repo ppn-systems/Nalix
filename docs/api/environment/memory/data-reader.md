@@ -1,6 +1,6 @@
 # DataReader
 
-`Nalix.Codec.Memory.DataReader` is a high-performance, allocation-free `ref struct` used for reading serialized data from various buffer types. 
+`Nalix.Environment.Memory.DataReader` is a high-performance, allocation-free `ref struct` used for reading serialized data from various buffer types. 
 
 It provides a unified reading abstraction over managed arrays, unmanaged memory pointers, spans, and memories, avoiding the need for multiple overloads in serialization code.
 

@@ -53,7 +53,6 @@ Manually instantiate `TcpListenerBase` and `Protocol` (as shown in the example b
 
 ```csharp
 InstanceManager.Instance.Register<ILogger>(logger);
-InstanceManager.Instance.Register<IPacketRegistry>(packetRegistry);
 ```
 
 ### 2. Create handler

@@ -36,6 +36,8 @@ setup.
 | `DualMode` | `true` | none | Enables IPv4-mapped traffic on IPv6 listener sockets when `EnableIPv6` is true and the platform supports it. |
 | `ProcessChannelCapacity` | `256` | `1..int.MaxValue` | Capacity of the bounded TCP accept-processing channel. |
 | `ProcessChannelDrainTimeout` | `5000` | `0..60000` (ms) | Maximum time in milliseconds to wait for the process channel to drain gracefully during shutdown before forceful termination. |
+| `ReusePort` | `true` | none | Allows multiple sockets to bind to the same port for load balancing and high availability. |
+| `TcpFastOpen` | `true` | none | Enables TCP Fast Open to reduce latency by sending data during the initial handshake. |
 
 `Validate()` runs `Validator.ValidateObject(..., validateAllProperties: true)`. TCP
 listeners call validation in the static constructor and again during instance
@@ -140,6 +142,7 @@ During `UdpListenerBase.Initialize()`:
 - `SendBufferSize = BufferSize`;
 - `ReceiveBufferSize = BufferSize`;
 - socket-level `ReuseAddress` when enabled;
+- socket-level `ReusePort` when enabled;
 - `DontFragment = true` as best effort;
 - on Windows, disables `SIO_UDP_CONNRESET` so ICMP port-unreachable messages do not
   surface as disruptive receive exceptions.

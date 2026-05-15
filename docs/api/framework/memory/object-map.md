@@ -82,4 +82,4 @@ finally
 
 - [Object Pooling](./object-pooling.md)
 - [Typed Object Pools](./typed-object-pools.md)
-- [Buffer Management](./buffer-management.md)
+- [Buffer Management](../../environment/memory/buffer-management.md)

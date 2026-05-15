@@ -17,14 +17,14 @@ The following diagram illustrates how a raw network buffer is transformed into a
 ```mermaid
 sequenceDiagram
     participant OS as Network Stack
-    participant LP as Slab Pool (SlabPoolManager)
+    participant LP as Buffer Pool (BufferPoolManager)
     participant DC as Dispatch Loop (Worker)
     participant FR as Frozen Registry (O(1))
     participant CH as Compiled Handler (Expression Trees)
     participant CP as Context Pool (ObjectPoolManager)
 
     OS->>LP: Receive raw bytes
-    LP-->>OS: Return IBufferLease (Slab Segment)
+    LP-->>OS: Return IBufferLease (Buffer Segment)
     OS->>DC: Push(Lease)
     DC->>DC: Worker drain loop
     DC->>FR: TryDeserialize(Lease.Span)
@@ -147,11 +147,11 @@ Exception handling can be expensive. In the hot path, Nalix provides mechanisms 
 
 ### Zero-Allocation Exception Caching
 
-Standard exceptions are expensive due to stack trace generation. Nalix uses a **Cached Exception Pattern** via the `NetworkErrors` class for common transport failures (e.g., `ConnectionReset`, `SendFailed`, `MessageTooLarge`, `UdpPayloadTooLarge`, `UdpPartialSend`, `UdpSendFailed`).
+Standard exceptions are expensive due to stack trace generation. Nalix uses a **Cached Exception Pattern** via the `Throw` class for common transport failures (e.g., `ConnectionReset`, `SendFailed`, `MessageTooLarge`, `UdpPayloadTooLarge`, `UdpPartialSend`, `UdpSendFailed`).
 
 - **Static Instances**: Common exceptions are pre-instantiated as static readonly fields.
 - **Overridden StackTrace**: These cached exceptions override the `StackTrace` property to return a static string, bypassing the expensive stack crawl entirely.
-- **Socket Error Mapping**: `NetworkErrors.GetSocketError(SocketError)` returns a cached `SocketException` for standard OS errors, ensuring that even low-level networking failures don't trigger allocations.
+- **Socket Error Mapping**: `Throw.GetSocketError(SocketError)` returns a cached `SocketException` for standard OS errors, ensuring that even low-level networking failures don't trigger allocations.
 
 ### Pattern: Result-Based Flow
 
@@ -312,6 +312,6 @@ dotnet-counters monitor -p <PID> --counters Nalix.Framework,System.Runtime[alloc
 - [x] Use SIMD primitives (`Bytes32`) for security checks.
 - [x] Return `ValueTask` from handlers.
 - [x] Avoid `new`, `LINQ`, and closures inside handlers.
-- [x] Use `NetworkErrors` for zero-allocation exception propagation.
+- [x] Use `Throw` for zero-allocation exception propagation.
 - [x] Register handlers via assembly scanning to enable compilation.
 - [x] Verify with `BenchmarkDotNet` [MemoryDiagnoser].

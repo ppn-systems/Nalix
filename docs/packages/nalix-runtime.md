@@ -19,12 +19,29 @@
 ## Where It Fits
 
 ```mermaid
-flowchart LR
-    A["Nalix.Network (Transport)"] --> B["Nalix.Runtime (Dispatch)"]
-    B --> C["Nalix.Codec (Serialization)"]
-    B --> D["Nalix.Framework (Registry)"]
-    B --> E["Nalix.Abstractions (Contracts)"]
-    B --> F["Handler Logic"]
+flowchart TD
+    subgraph Svc ["Service Layer"]
+        Runtime["Nalix.Runtime (Dispatch)"]
+        Network["Nalix.Network (Transport)"]
+    end
+
+    subgraph Core ["Core Layer"]
+        Codec["Nalix.Codec (Registry & Serialization)"]
+        Framework["Nalix.Framework (DI & Utils)"]
+    end
+
+    subgraph Base ["Base Layer"]
+        Env["Nalix.Environment (Memory & IO)"]
+        Abstractions["Nalix.Abstractions (Contracts)"]
+    end
+
+    Runtime --> Codec
+    Runtime --> Framework
+    Network --> Framework
+    
+    Codec --> Env
+    Framework --> Env
+    Env --> Abstractions
 ```
 
 
@@ -145,7 +162,8 @@ Call `dispatch.GenerateReport()` to inspect runtime state:
 
 - [Nalix.Network](./nalix-network.md) — Transport and listeners
 - [Nalix.Hosting](./nalix-hosting.md) — Fluent bootstrap
-- [Nalix.Framework](./nalix-framework.md) — Packet registry and serialization
+- [Nalix.Codec](./nalix-codec.md) — Packet registry and serialization
+- [Nalix.Framework](./nalix-framework.md) — Shared services and utilities
 - [Nalix.Abstractions](./nalix-abstractions.md) — Shared contracts and primitives
 
 ## Key API Pages

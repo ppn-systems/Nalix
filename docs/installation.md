@@ -23,7 +23,7 @@ dotnet add package Nalix.Hosting
 dotnet add package Nalix.Logging
 ```
 
-`Nalix.Hosting` transitively references `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, and `Nalix.Abstractions`.
+`Nalix.Hosting` transitively references `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Codec`, `Nalix.Environment`, and `Nalix.Abstractions`.
 
 ### Server (manual wiring)
 
@@ -43,7 +43,7 @@ dotnet add package Nalix.Logging
 dotnet add package Nalix.SDK
 ```
 
-`Nalix.SDK` transitively references `Nalix.Framework` and `Nalix.Abstractions`.
+`Nalix.SDK` transitively references `Nalix.Codec`, `Nalix.Environment`, and `Nalix.Abstractions`.
 
 ### Shared contracts
 
@@ -51,7 +51,7 @@ If your packet definitions live in a separate assembly:
 
 ```bash
 dotnet add package Nalix.Abstractions
-dotnet add package Nalix.Framework
+dotnet add package Nalix.Codec
 ```
 
 ### Summary
@@ -61,7 +61,7 @@ dotnet add package Nalix.Framework
 | Hosted server | `Nalix.Hosting`, `Nalix.Logging` |
 | Manual server | `Nalix.Network`, `Nalix.Runtime`, `Nalix.Framework`, `Nalix.Abstractions`, `Nalix.Logging` |
 | Client | `Nalix.SDK` |
-| Shared contracts | `Nalix.Abstractions`, `Nalix.Framework` |
+| Shared contracts | `Nalix.Abstractions`, `Nalix.Codec` |
 | Full stack | Server set + Client set, sharing one contracts assembly |
 
 ## Configuration File
@@ -110,7 +110,7 @@ TransportOptions transport = ConfigurationManager.Instance.Get<TransportOptions>
 ## Package Dependency Graph
 
 ```mermaid
-flowchart LR
+flowchart TD
     subgraph App ["Application Layer"]
         direction TB
         Hosting["Nalix.Hosting"]
@@ -133,14 +133,16 @@ flowchart LR
     subgraph Base ["Base Layer"]
         direction TB
         Env["Nalix.Environment"]
-        Common["Nalix.Abstractions"]
+        Abstractions["Nalix.Abstractions"]
     end
 
     Hosting --> Network
     Hosting --> Runtime
+    Hosting --> Framework
+    Hosting --> Codec
+    
     SDK --> Codec
 
-    Network --> Codec
     Network --> Framework
     Runtime --> Codec
     Runtime --> Framework
@@ -148,7 +150,7 @@ flowchart LR
 
     Codec --> Env
     Framework --> Env
-    Env --> Common
+    Env --> Abstractions
 ```
 
 ## What to Read Next

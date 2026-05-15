@@ -4,6 +4,7 @@
 
 ## Key Responsibilities
 
+- **Memory**: Foundation for zero-allocation IO with `BufferLease`, `DataReader`, and `DataWriter`.
 - **Configuration**: Loading and managing typed options from INI files.
 - **IO**: Specialized file and directory handling for Nalix applications.
 - **Time**: Monotonic clock, time-related primitives, and `TimingScope` for lightweight latency measurement.
@@ -12,15 +13,25 @@
 ## Where it fits
 
 ```mermaid
-flowchart LR
-    A["Nalix.Environment"] --> B["Configuration"]
-    A --> C["IO"]
-    A --> D["Time"]
-    B --> E["Nalix.Framework"]
-    B --> F["Nalix.Codec"]
+flowchart TD
+    subgraph Base ["Nalix.Environment"]
+        Memory["Memory (BufferLease/Reader/Writer)"]
+        Config["ConfigurationManager"]
+        Time["Monotonic Clock"]
+    end
+
+    Codec["Nalix.Codec"] --> Base
+    Framework["Nalix.Framework"] --> Base
+    Network["Nalix.Network"] --> Base
 ```
 
-## Core Components
+### `BufferLease`
+
+A high-performance wrapper around pooled `byte[]` segments, providing `Span<byte>` and `Memory<byte>` access without allocations.
+
+### `DataReader` and `DataWriter`
+
+Unified primitives for high-speed, zero-allocation binary IO. They support both `Span<byte>` and `IBufferLease` targets.
 
 ### `ConfigurationManager`
 

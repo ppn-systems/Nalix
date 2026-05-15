@@ -1,6 +1,6 @@
 # BufferLease
 
-`Nalix.Codec.Memory.BufferLease` is a core type in the Nalix ecosystem representing an owned lease of a pooled `byte[]` array. It is rented from the underlying `IBufferPoolManager` and supports advanced features like slice ownership, reference counting, and zero-allocation object pooling for the lease shells themselves.
+`Nalix.Environment.Memory.BufferLease` is a core type in the Nalix ecosystem representing an owned lease of a pooled `byte[]` array. It is rented from the underlying `IBufferPoolManager` and supports advanced features like slice ownership, reference counting, and zero-allocation object pooling for the lease shells themselves.
 
 ## Core Concepts
 

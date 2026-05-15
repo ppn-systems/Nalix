@@ -20,11 +20,17 @@ Choose TCP when you need ordered, reliable byte streams by default.
 ```csharp
 public sealed class SampleUdpListener : UdpListenerBase
 {
-    public SampleUdpListener(IProtocol protocol, IConnectionHub hub)
-        : base(protocol, hub) { }
+    public SampleUdpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub) { }
 
-    protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
+    public override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
         => true;
+
+    public override void ProcessFrame(object? sender, IConnectEventArgs args)
+    {
+        // Custom UDP frame logic or forward to protocol
+        this.Protocol.ProcessMessage(sender, args);
+    }
 }
 ```
 
@@ -86,12 +92,13 @@ Also decide intentionally whether you want time sync and timeout behavior enable
 
 The safest startup order is:
 
-1. validate socket and dispatch options
-2. register logger and packet registry
-3. build dispatch
-4. build protocol
-5. build `UdpListenerBase`
-6. activate dispatch, then activate the listener
+1. Initialize core managers (`ObjectPoolManager`, `BufferPoolManager`)
+2. Validate socket and dispatch options
+3. Register logger and build `PacketRegistry`
+4. Build dispatch channel (`PacketDispatchChannel`)
+5. Build protocol handler
+6. Build `UdpListenerBase`
+7. Activate dispatch, then activate the listener
 
 That keeps transport setup and application setup aligned.
 

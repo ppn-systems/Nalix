@@ -1,4 +1,4 @@
-﻿# Control Type
+# Control Type
 
 `ControlType` identifies the kind of system-level message used by the Nalix protocol layer for signaling and state management.
 
@@ -13,15 +13,11 @@
 | `0x00` | `NONE` | No control message specified. |
 | `0x01` | `PING` | Check connection liveness. |
 | `0x02` | `PONG` | Response sent to a ping. |
-| `0x03` | `ACK` | Confirmation of receipt. |
 | `0x04` | `DISCONNECT` | Graceful disconnect notification. |
 | `0x05` | `ERROR` | Description of a protocol-level failure. |
-| `0x07` | `HEARTBEAT` | Regular pulse to keep a connection active. |
-| `0x08` | `NACK` | Indication that processing failed. |
 | `0x09` | `RESUME` | Resume an interrupted session. |
 | `0x0A` | `SHUTDOWN` | Request server-side graceful shutdown. |
 | `0x0B` | `REDIRECT` | Instruct client to reconnect elsewhere. |
-| `0x0C` | `THROTTLE` | Request client to reduce transmission rate. |
 | `0x0D` | `NOTICE` | Informational maintenance or system notice. |
 | `0x10` | `TIMEOUT` | Operation timed out server-side. |
 | `0x11` | `FAIL` | Generic operation failure. |

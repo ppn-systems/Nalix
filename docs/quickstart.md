@@ -152,7 +152,10 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
         public PingProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
 
         public override void ProcessMessage(object? sender, IConnectEventArgs args)
-            => _dispatch.HandlePacket(args.Lease, args.Connection);
+        {
+            if (args.Lease is null) return;
+            _dispatch.HandlePacket(args.Lease, args.Connection);
+        }
     }
     ```
 
@@ -168,7 +171,7 @@ The server requires a **Handler** for logic and a **Protocol** bridge to the net
     using var app = NetworkApplication.CreateBuilder()
         .AddHandler<PingHandler>()
         .Configure<NetworkSocketOptions>(opt => opt.Port = 5000)
-        .BindTcp<PingProtocol>().Bind()
+        .BindTcp<DefaultProtocol>().Bind()
         .Build();
 
     await app.RunAsync();
@@ -186,12 +189,10 @@ using Contracts;
 using Nalix.Codec.DataFrames;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
-using Nalix.SDK.Transport.Extensions;
 
 // 1. Build the packet registry (The 'Catalog')
 // Note: In modern Nalix, this is handled via Source Generators.
 // Simply configure and build the static registry.
-PacketRegistry.Configure(poolManager); // Optional
 PacketRegistry.Build();
 
 // 2. Open the session

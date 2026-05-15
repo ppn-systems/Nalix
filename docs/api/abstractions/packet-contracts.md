@@ -1,4 +1,4 @@
-﻿# Packet Contracts
+# Packet Contracts
 
 `Nalix.Abstractions.Networking.Packets` defines the shared packet contracts used by both server and client packages.
 
@@ -9,6 +9,7 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 ## Source Mapping
 
 - `src/Nalix.Abstractions/Networking/Packets/IPacket.cs`
+- `src/Nalix.Abstractions/Networking/Packets/IPacketHeader.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketContext.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketDeserializer.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketRegistry.cs`
@@ -16,6 +17,7 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 - `src/Nalix.Abstractions/Networking/Packets/PacketDeserializer.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketTimestamped.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketReasoned.cs`
+- `src/Nalix.Abstractions/Networking/Packets/IPacketValidatable.cs`
 
 ## Main Types
 
@@ -23,7 +25,7 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 
 `IPacket` is the wire contract. It includes:
 
-- header metadata (`MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`)
+- standard header metadata via `Header` (`MagicNumber`, `OpCode`, `Flags`, `Priority`, `SequenceId`)
 - `Length`
 - serialization methods (`Serialize()`, `Serialize(Span<byte>)`)
 
@@ -50,8 +52,8 @@ Handler context contract shared with runtime context implementations:
 Metadata-aware send contract:
 
 - `Initialize<TPacket>(IPacketContext<TPacket> context)`
-- `SendAsync(IPacket packet, CancellationToken ct = default)`
-- `SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default)`
+- `ValueTask SendAsync(IPacket packet, CancellationToken ct = default)`
+- `ValueTask SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default)`
 
 ### Supporting Contracts
 
@@ -59,8 +61,10 @@ Metadata-aware send contract:
 - `PacketDeserializerInto<TPacket>`: delegate that deserializes into an existing instance via `ref`
 - `IPacketDeserializer<TPacket>`:
   - `Deserialize(ReadOnlySpan<byte> buffer)` — returns a new `TPacket` instance
+- `IPacketHeader`: contract for zero-copy header access
 - `IPacketTimestamped`: packet contract with timestamp semantics
 - `IPacketReasoned`: packet contract exposing `ProtocolReason Reason` property
+- `IPacketValidatable`: packet contract for non-generic validation
 
 ## Responsibility Boundaries
 

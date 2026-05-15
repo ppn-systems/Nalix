@@ -6,7 +6,7 @@ This page covers the low-level helper APIs around `DataReader`, `DataWriter`, an
 
 - `src/Nalix.Codec/Extensions/DataReaderExtensions.cs`
 - `src/Nalix.Codec/Extensions/DataWriterExtensions.cs`
-- `src/Nalix.Codec/Extensions/HeaderExtensions.cs`
+- `src/Nalix.Environment/Extensions/HeaderExtensions.cs`
 
 ## Main types
 
@@ -20,7 +20,7 @@ This page covers the low-level helper APIs around `DataReader`, `DataWriter`, an
 |---|---|
 | `DataReaderExtensions` | `ReadByte`, `ReadInt16`, `ReadUInt16`, `ReadInt32`, `ReadUInt32`, `ReadInt64`, `ReadUInt64`, `ReadSByte`, `ReadChar`, `ReadSingle`, `ReadDouble`, `ReadBoolean`, `ReadEnumByte`, `ReadEnumUInt16`, `ReadEnumUInt32`, `ReadBytes`, `ReadRemainingBytes`, `ReadUnmanaged`, `Remaining` |
 | `DataWriterExtensions` | `Write`, `WriteEnum`, `WriteUnmanaged` overloads for primitive, span, enum, and unmanaged values |
-| `HeaderExtensions` | `ReadHeaderLE`, `WriteHeaderLE` |
+| `HeaderExtensions` | `AsHeaderRef` overloads for `Span<byte>` and `ReadOnlySpan<byte>` |
 
 ## When to use these helpers
 
@@ -78,14 +78,13 @@ Useful methods include:
 
 ## HeaderExtensions
 
-`HeaderExtensions` provides fixed-offset packet header readers over raw byte spans.
+`HeaderExtensions` provides zero-copy packet header access over raw byte spans using `MemoryMarshal`.
 
-This is useful when you want to inspect protocol information before creating a full packet instance.
+This is useful when you want to inspect or modify protocol information without copying or allocating.
 
 Useful methods include:
 
-- `ReadHeaderLE()` — returns a `PacketHeader` struct (10 bytes) from the span
-- `WriteHeaderLE(header)` — writes a `PacketHeader` struct (10 bytes) to the span
+- `AsHeaderRef()` — returns a `ref PacketHeader` (or `ref readonly PacketHeader`) pointing directly into the span.
 
 Individual fields are accessed through the returned `PacketHeader` struct:
 
@@ -110,7 +109,9 @@ DataReader reader = new(writer.WrittenSpan);
 ushort decodedOpcode = reader.ReadUInt16();
 PacketPriority decodedPriority = reader.ReadEnumByte<PacketPriority>();
 
-ushort headerOpcode = writer.WrittenSpan.ReadHeaderLE().OpCode;
+ref PacketHeader header = span.AsHeaderRef();
+ushort headerOpcode = header.OpCode;
+header.SequenceId = 123; // Direct mutation
 ```
 
 ## Design notes

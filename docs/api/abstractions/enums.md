@@ -1,4 +1,4 @@
-﻿# Common Enumerations
+# Common Enumerations
 
 This page provides a comprehensive reference for all enumerations defined in `Nalix.Abstractions`. These constants ensure binary and semantic compatibility across the networking, security, and serialization layers.
 
@@ -80,15 +80,11 @@ Identifies the kind of control message used by the protocol layer.
 | `NONE` | `0x00` | No control message specified. |
 | `PING` | `0x01` | Check connection liveness. |
 | `PONG` | `0x02` | Response to a ping. |
-| `ACK` | `0x03` | Confirm receipt. |
 | `DISCONNECT` | `0x04` | Termination request. |
 | `ERROR` | `0x05` | Failure description. |
-| `HEARTBEAT` | `0x07` | Keep connection active. |
-| `NACK` | `0x08` | Negative acknowledgement. |
 | `RESUME` | `0x09` | Resume interrupted session. |
 | `SHUTDOWN` | `0x0A` | Request graceful shutdown. |
 | `REDIRECT` | `0x0B` | Redirect to another endpoint. |
-| `THROTTLE` | `0x0C` | Reduce transmission rate. |
 | `NOTICE` | `0x0D` | Maintenance notice. |
 | `TIMEOUT` | `0x10` | Operation timed out. |
 | `FAIL` | `0x11` | Generic failure. |
@@ -346,7 +342,7 @@ This page is an enum reference first. Enums alone are not a full wire protocol s
 | Header endianness | **Defined**: header read helpers are little-endian (`ReadHeaderLE` / `WriteHeaderLE` using `MemoryMarshal`). | `src/Nalix.Codec/Extensions/HeaderExtensions.cs` |
 | TCP framing | **Defined**: stream is length-prefixed with `UInt16 LE` where prefix value is total frame size (including the 2-byte prefix). | `src/Nalix.SDK/Transport/Internal/FrameSender.cs`, `src/Nalix.SDK/Transport/Internal/FrameReader.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.Send.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.cs` |
 | UDP framing | **Defined**: outbound datagram is `[SessionToken(8 bytes) | Payload]`; token is `Snowflake` in little-endian layout. | `src/Nalix.SDK/Transport/UdpSession.cs`, `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`, `src/Nalix.Framework/Identifiers/Snowflake.Serialization.cs` |
-| Fragment chunk format | **Defined**: per-chunk payload starts with 8-byte `FragmentHeader` (`Magic=0xF0`, `StreamId u16 LE`, `ChunkIndex u16 LE`, `TotalChunks u16 LE`, `Flags`). | `src/Nalix.Codec/DataFrames/Chunks/FragmentHeader.cs`, `src/Nalix.Codec/DataFrames/Chunks/FragmentAssembler.cs`, `src/Nalix.SDK/Transport/Internal/FrameSender.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.Send.cs` |
+| Fragment chunk format | **Defined**: per-chunk payload starts with 8-byte `FragmentHeader` (`Magic=0xF0`, `StreamId u16 LE`, `ChunkIndex u16 LE`, `TotalChunks u16 LE`, `Flags`). | `src/Nalix.Environment/Fragments/FragmentHeader.cs`, `src/Nalix.Environment/Fragments/FragmentAssembler.cs`, `src/Nalix.SDK/Transport/Internal/FrameSender.cs`, `src/Nalix.Network/Internal/Transport/SocketConnection.Send.cs` |
 | Handshake packet structure | **Defined**: fixed-size `Handshake` frame with stage/reason/token/pubkey/nonce/proof/transcript fields. | `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`, `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`, `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`, `src/Nalix.Codec/Security/HandshakeX25519.cs` |
 | Crypto envelope | **Defined**: envelope header is 12 bytes (`NALX`, version, suite, flags, nonceLen, seq LE); AEAD payload is `header||nonce||ciphertext||tag(16)`. | `src/Nalix.Codec/Security/Internal/EnvelopeHeader.cs`, `src/Nalix.Codec/Security/Internal/EnvelopeFormat.cs`, `src/Nalix.Codec/Security/Engine/AeadEngine.cs`, `src/Nalix.Codec/Security/EnvelopeCipher.cs` |
 | Session resume packet and proof | **Defined**: `SessionResume` is fixed size (`52` bytes total frame) and proof is HMAC-Keccak256 over 8-byte token. | `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`, `src/Nalix.Runtime/Handlers/SessionHandlers.cs` |

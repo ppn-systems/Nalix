@@ -67,13 +67,19 @@ public sealed class SampleUdpListener : UdpListenerBase
 {
     public SampleUdpListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
 
-    protected override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
+    public override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
     {
         // Add your own checks here:
         // - allowed endpoint
         // - session state
         // - region / shard ownership
-        return connection.Secret is not null && connection.Secret.Length > 0;
+        return connection.Secret.IsAllZeros == false;
+    }
+
+    public override void ProcessFrame(object? sender, IConnectEventArgs args)
+    {
+        // Custom frame logic or forward to protocol
+        this.Protocol.ProcessMessage(sender, args);
     }
 }
 ```

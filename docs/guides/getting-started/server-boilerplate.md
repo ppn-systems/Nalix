@@ -59,22 +59,11 @@ In a real project, you should split these into separate files. This boilerplate 
 
 The protocol translates raw frames into clean objects. Keep this thin; its only job is to forward data to the dispatcher.
 
-```csharp
-using Nalix.Abstractions.Networking;
-using Nalix.Network.Protocols;
-using Nalix.Runtime.Dispatching;
-
-public sealed class MyProtocol : Protocol
-{
-    private readonly IPacketDispatch _dispatch;
-
-    // The hosting builder automatically injects the IPacketDispatch instance
-    public MyProtocol(IPacketDispatch dispatch) => _dispatch = dispatch;
-
-    public override void ProcessMessage(object? sender, IConnectEventArgs args)
-        => _dispatch.HandlePacket(args.Lease, args.Connection);
-}
-```
+!!! tip "Built-in Option"
+    For 99% of use cases, you can skip writing a custom protocol class and use `DefaultProtocol` from the `Nalix.Hosting` namespace:
+    ```csharp
+    builder.BindTcp<DefaultProtocol>().Bind();
+    ```
 
 ### The Handler (Business Logic)
 
@@ -123,22 +112,27 @@ builder.ConfigureDispatchOptions(options =>
     Use this path only if you are building specialized transport libraries or need to bypass the Hosting layer for extreme performance tuning.
 
 ```csharp
-// Manual setup of all components without the Hosting builder.
-// Prefer the Hosting Builder above unless you are writing transport-level code.
-public sealed class ManualTcpListener : TcpListenerBase
+public sealed class SampleTcpListener : TcpListenerBase
 {
-    public ManualTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
         : base(port, protocol, hub) { }
+
+    public override void ProcessFrame(object? sender, IConnectEventArgs args)
+    {
+        // Custom frame logic or forward to protocol
+        this.Protocol.ProcessMessage(sender, args);
+    }
 }
 
+// Manual setup of all components without the Hosting builder.
 PacketDispatchChannel dispatch = new(options =>
 {
     options.WithHandler(() => new MyPingHandler());
 });
 
-IConnectionHub hub = new ConnectionHub();
-MyProtocol protocol = new(dispatch);
-ManualTcpListener listener = new(5000, protocol, hub);
+IConnectionHub hub = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>();
+DefaultProtocol protocol = new(dispatch);
+SampleTcpListener listener = new(5000, protocol, hub);
 
 dispatch.Activate();
 listener.Activate();
@@ -151,9 +145,7 @@ dispatch.Dispose();
 ```
 
 !!! warning "Manual dependency wiring"
-    `TcpListenerBase` is abstract and its current constructors require an
-    `IConnectionHub`. The Hosting builder creates the concrete internal listener
-    and hub automatically; manual composition must provide both explicitly.
+    `TcpServerListener` and its variants require an `IConnectionHub`. The Hosting builder creates the concrete internal listener and hub automatically; manual composition must provide both explicitly.
 
 ---
 
@@ -162,7 +154,7 @@ dispatch.Dispose();
 - [x] **Contracts**: Keep packet POCOs in a separate project shared with the client.
 - [x] **Logging**: Always use `NLogix` or a production-ready `ILogger`.
 - [x] **Validation**: Call `.Validate()` on all Options objects before booting.
-- [x] **Protocols**: Use `ValidateConnection(...)`, `IsAccepting`, and `SetConnectionAcceptance(bool)` intentionally. `src/Nalix.Network/Protocols/Protocol.Core.cs` and `src/Nalix.Network/Protocols/Protocol.PublicMethods.cs` show that the protocol exposes both the atomic property and the public helper method, while `src/Nalix.Hosting/DefaultProtocol.cs` already enables acceptance for the common dispatch-forwarding path.
+- [x] **Protocols**: Use `ValidateConnection(...)`, `IsAccepting`, and `SetConnectionAcceptance(bool)` intentionally. `DefaultProtocol` already enables acceptance for the common dispatch-forwarding path.
 
 ## Read this next
 

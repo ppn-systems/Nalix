@@ -7,28 +7,31 @@
 - **Serialization**: Fast, low-allocation binary serialization for packets.
 - **Compression**: Integrated LZ4 compression for reducing network bandwidth.
 - **Security**: Framed packet encryption and hashing.
-- **Memory**: Efficient buffer leasing and IO primitives (`DataReader`, `DataWriter`).
+- **Registry**: Process-wide catalog for packet discovery and deserialization.
 
 ## Where it fits
 
 ```mermaid
-flowchart LR
-    A["Nalix.Codec"] --> B["Serialization"]
-    A --> C["Transforms"]
-    A --> D["Memory"]
-    B --> E["Nalix.Network"]
-    B --> F["Nalix.SDK"]
+flowchart TD
+    subgraph Core ["Nalix.Codec"]
+        Serialization["Serialization"]
+        Registry["PacketRegistry"]
+        Transforms["Transforms (LZ4/Cipher)"]
+    end
+
+    subgraph Base ["Nalix.Environment"]
+        Memory["Memory (BufferLease/Reader/Writer)"]
+    end
+
+    Codec --> Env
+    Codec --> Abstractions
 ```
 
 ## Core Components
 
-### `LiteSerializer`
+### `PacketRegistry`
 
-A high-performance binary serializer that uses attributes to define layout.
-
-### `BufferLease`
-
-A lightweight wrapper around pooled memory that ensures safe disposal and reuse.
+The process-wide catalog for packet discovery and deserialization.
 
 ### `FrameCipher` and `FrameCompression`
 
@@ -61,7 +64,6 @@ flowchart LR
 - `FrameBase` / `PacketBase<TSelf>` — base abstractions for headers, auto-magic, serialization, and pooling.
 - `SerializePackableAttribute` / `SerializeOrderAttribute` / `SerializeIgnoreAttribute` / `SerializeHeaderAttribute` / `SerializeDynamicSizeAttribute` — low-level serialization layout controls.
 - `LiteSerializer` / `FormatterProvider` / `IFormatter<T>` — serializer entry points and formatter resolution.
-- `DataReader` / `DataWriter` / `HeaderExtensions` — low-level read/write and header inspection helpers.
 - `PacketRegistry` — process-wide registry for packet discovery and deserialization.
 - `Handshake` — default handshake frame used to exchange ephemeral keys, nonces, proofs, and transcript hash.
 - `SessionResume` — unified session signal packet for resume request/response flows (uses `SessionResumeStage` for stage disambiguation).
@@ -70,15 +72,17 @@ flowchart LR
 - `FrameCipher` / `FrameCompression` — framed packet encrypt/decrypt and compress/decompress helpers.
 - `LZ4Codec` — pooled block compression and decompression.
 
+!!! info "Memory Primitives"
+    While `Nalix.Codec` performs serialization, the low-level memory primitives (`BufferLease`, `DataReader`, `DataWriter`) reside in **`Nalix.Environment`**.
+
 ### Quick example
 
 ```csharp
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 // Initialize the registry (usually called by NetworkApplicationBuilder)
-PacketRegistry.Configure(poolManager); // optional: enable packet pooling
 PacketRegistry.Build(); // Freeze the registry
 
 // Handshake frame
@@ -94,7 +98,7 @@ byte[] bytes = hs.Serialize();
 ## Key API pages
 
 - [Serialization](../api/codec/serialization/serialization-basics.md)
-- [Buffer Management](../api/framework/memory/buffer-management.md)
+- [Buffer Management](../api/environment/memory/buffer-management.md)
 - [LZ4](../api/codec/lz4.md)
 - [Frame Model](../api/codec/packets/frame-model.md)
 - [Packet Registry](../api/codec/packets/packet-registry.md)

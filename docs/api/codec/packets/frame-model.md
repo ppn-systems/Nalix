@@ -112,10 +112,11 @@ For higher-level frame workflows, prefer the shared helpers:
 | Discover or deserialize packets at runtime | [Packet Registry](./packet-registry.md) |
 
 ## Related APIs
-
+ 
+- [Frame Pipeline](../frame-pipeline.md)
 - [Packet Registry](./packet-registry.md)
 - [Built-in Frames](./built-in-frames.md)
 - [Fragmentation](./fragmentation.md)
 - [Serialization](../serialization/serialization-basics.md)
-- [Buffer Management](../../framework/memory/buffer-management.md)
+- [Buffer Management](../../environment/memory/buffer-management.md)
 - [Object Pooling](../../framework/memory/object-pooling.md)

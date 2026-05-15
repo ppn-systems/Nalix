@@ -8,7 +8,7 @@
 ## Client flow
 
 ```mermaid
-flowchart LR
+flowchart TD
     A["TransportOptions"] --> B["TransportSession / TcpSession / UdpSession"]
     B --> C["ConnectAsync"]
     C --> D["Session resume / handshake"]
@@ -45,7 +45,7 @@ TransportOptions options = ConfigurationManager.Instance.Get<TransportOptions>()
 options.Address = "127.0.0.1";
 options.Port = 57206;
 
-TcpSession client = new(options, catalog);
+TcpSession client = new(options);
 client.OnConnected += (_, _) => { };
 client.OnDisconnected += (_, ex) => { };
 

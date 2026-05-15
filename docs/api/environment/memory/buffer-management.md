@@ -1,6 +1,6 @@
 # Buffer Management
 
-`Nalix.Framework.Memory` provides a high-performance byte buffer management system designed to minimize GC pressure and maximize throughput in networking hot paths.
+`Nalix.Environment.Memory` and `Nalix.Framework.Memory` provide a high-performance byte buffer management system designed to minimize GC pressure and maximize throughput in networking hot paths.
 
 ## Buffer Rental & Disposal Lifecycle
 
@@ -42,7 +42,7 @@ sequenceDiagram
 ## Source Mapping
 
 - `src/Nalix.Abstractions/IBufferLease.cs`
-- `src/Nalix.Codec/Memory/BufferLease.cs`
+- `src/Nalix.Environment/Memory/BufferLease.cs`
 - `src/Nalix.Framework/Memory/Buffers/BufferPoolManager.cs`
 - `src/Nalix.Framework/Options/BufferOptions.cs`
 - `src/Nalix.Framework/Memory/Internal/Buffers/SlabBucket.cs`
@@ -147,6 +147,27 @@ await session.SendAsync(lease.Memory);
 - **Shell Pool**: The `BufferLease` object itself is rented from a thread-local free-list.
 - **Value Types**: `lease.Memory` is a `ReadOnlyMemory<byte>` (value type), avoiding boxing.
 
+## Configuring for Server
+
+To enable the zero-allocation path in a Nalix server, you must register the `BufferPoolManager` during the application setup. If omitted, the framework may fall back to standard allocations.
+
+### Using the Hosting Builder
+
+```csharp
+using Nalix.Hosting;
+using Nalix.Framework.Memory.Buffers;
+
+var app = NetworkApplication.CreateBuilder()
+    // 1. Explicitly enable and configure the buffer pool
+    .ConfigureBufferPoolManager(new BufferPoolManager(logger) 
+    {
+        TotalBuffers = 50000,
+        InitialCapacity = 1024,
+        BufferAllocations = "512,0.2; 1024,0.3; 4096,0.5" // size,ratio; ...
+    })
+    .Build();
+```
+
 ## BufferOptions
 
 Global tuning for the buffer system is managed via `BufferOptions`.
@@ -176,6 +197,6 @@ The `BufferPoolManager` provides deep insights into memory health via the `Gener
 
 ## Related APIs
 
-- [Object Pooling](./object-pooling.md)
+- [Object Pooling](../../framework/memory/object-pooling.md)
 - [Network Options](../../options/network/options.md)
 - [Zero-Allocation Path](../../../concepts/internals/zero-allocation.md)

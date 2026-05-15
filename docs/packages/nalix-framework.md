@@ -56,7 +56,7 @@ manager.ScheduleRecurring(
 
 ## Memory Management
 
-`Nalix.Framework` owns the management logic for resource pools. While the actual leasing primitives (like `BufferLease`) live in `Nalix.Codec`, the managers that own the underlying arrays and objects live here.
+`Nalix.Framework` owns the management logic for resource pools. While the actual leasing primitives (like `BufferLease`) live in `Nalix.Environment`, the managers that own the underlying arrays and objects live here.
 
 - `BufferPoolManager`: Manages pooled pinned byte arrays and buffer trimming policy.
 - `ObjectPoolManager`: Manages pools of reusable class instances to minimize GC pressure.
@@ -67,7 +67,7 @@ manager.ScheduleRecurring(
 - [Task Manager](../api/framework/task-manager.md)
 - [Timing Scope](../api/environment/timing-scope.md)
 - [Snowflake](../api/framework/snowflake.md)
-- [Buffer Management](../api/framework/memory/buffer-management.md)
+- [Buffer Management](../api/environment/memory/buffer-management.md)
 - [Object Pooling](../api/framework/memory/object-pooling.md)
 - [Object Map](../api/framework/memory/object-map.md)
 - [Typed Object Pools](../api/framework/memory/typed-object-pools.md)

@@ -4,10 +4,10 @@ This page covers the built-in packet types that Nalix ships out of the box.
 
 ## Source mapping
 
-- `src/Nalix.Codec/DataFrames/SignalFrames/Control.cs`
-- `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`
-- `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
-- `src/Nalix.Codec/DataFrames/SignalFrames/Directive.cs`
+- `src/Nalix.Codec/ProtocolFrames/Control.cs`
+- `src/Nalix.Codec/ProtocolFrames/Handshake.cs`
+- `src/Nalix.Codec/ProtocolFrames/SessionResume.cs`
+- `src/Nalix.Codec/ProtocolFrames/Directive.cs`
 
 ## Main types
 

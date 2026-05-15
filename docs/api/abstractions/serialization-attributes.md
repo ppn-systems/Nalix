@@ -8,6 +8,7 @@ Use this page when you need to understand the attribute layer before you work wi
 
 ## Source mapping
 
+- `src/Nalix.Abstractions/Serialization/GenerateFormatterAttribute.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketAttribute.cs`
 - `src/Nalix.Abstractions/Serialization/SerializePackableAttribute.cs`
 - `src/Nalix.Abstractions/Serialization/SerializeOrderAttribute.cs`
@@ -21,6 +22,7 @@ Use this page when you need to understand the attribute layer before you work wi
 ## Main types
 
 - `PacketAttribute` (aliased as `[Packet]`)
+- `GenerateFormatterAttribute`
 - `SerializePackableAttribute`
 - `SerializeOrderAttribute`
 - `SerializeIgnoreAttribute`
@@ -59,13 +61,16 @@ For `LiteSerializer` automatic object and struct serialization, the effective ru
 
 Marks a class for automatic discovery and registration. It allows the **Source Generator** to detect the type and generate registration code, which is then finalized via `PacketRegistry.Build()` at runtime.
 
+### `GenerateFormatterAttribute`
+
+Marks a class or struct so that the source generator will automatically create a high-performance formatter at compile time. This avoids reflection and IL Emit overhead, making it ideal for AOT-compatible scenarios.
+
 ### `SerializePackableAttribute`
 
-Marks a type as packable and tells the serializer to treat it as an explicitly supported wire model.
+Marks a type as participating in Nalix serialization and selects the layout strategy (Auto, Explicit).
 
 Common use:
-
-- packet models
+- complex models that need structured field serialization
 - value objects that should serialize without a nullable wrapper path
 
 ### `SerializeOrderAttribute`

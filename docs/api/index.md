@@ -31,7 +31,9 @@ If you're looking for the core interfaces and classes that drive Nalix:
 Nalix is split into focused packages with explicit layering:
 
 - `Nalix.Abstractions` defines shared contracts and attributes.
-- `Nalix.Framework` provides reusable framework primitives (packet model, configuration, memory, security, tasking).
+- `Nalix.Environment` provides foundational memory types, configuration, and environment primitives.
+- `Nalix.Codec` handles serialization, built-in frames, and data transforms.
+- `Nalix.Framework` provides reusable runtime services, instance management, and tasking.
 - `Nalix.Runtime` turns packets into handler execution and provides reusable middleware/throttling components.
 - `Nalix.Network` owns listeners, connections, protocols, and session stores.
 - `Nalix.Hosting` adds host/builder composition on top of runtime + network.
@@ -44,11 +46,13 @@ This keeps server runtime internals, transport lifecycle, and client APIs indepe
 | Package | Primary responsibility | Use when | Avoid when |
 | --- | --- | --- | --- |
 | `Nalix.Abstractions` | Core interfaces/enums/attributes | You need shared contracts across packages | You need concrete runtime behavior |
-| `Nalix.Framework` | Core framework implementations and infrastructure | You need packet registry, serialization, memory/security utilities | You only need transport/session lifecycle |
-| `Nalix.Runtime` | Packet dispatch and middleware execution | You are building handler execution pipelines or need throttling components | You only need socket listener primitives |
-| `Nalix.Network` | Connection + listener + protocol runtime | You are implementing server transport/runtime loops | You only need pure client transport |
+| `Nalix.Environment` | Memory, Config, IO, Clock | You need zero-allocation memory primitives | You only need high-level networking |
+| `Nalix.Codec` | Serialization, Frames, Transforms | You need to pack/unpack data or register packets | You only need transport lifecycle |
+| `Nalix.Framework` | Runtime services and identifiers | You need instance management or task scheduling | You only need pure client transport |
+| `Nalix.Runtime` | Packet dispatch and middleware | You are building handler execution pipelines | You only need socket listener primitives |
+| `Nalix.Network` | Connection + listener + protocol | You are implementing server transport loops | You only need pure client transport |
 | `Nalix.Hosting` | Host-style startup composition | You want builder-driven server bootstrapping | You prefer manual wiring |
-| `Nalix.SDK` | Client transport sessions and request/response helpers | You build Nalix clients | You implement server listeners |
+| `Nalix.SDK` | Client transport and sessions | You build Nalix clients | You implement server listeners |
 
 ## Progressive API Path
 

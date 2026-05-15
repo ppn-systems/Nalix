@@ -13,23 +13,30 @@ The framework layer is designed to be transport-agnostic and provides the follow
 
 ## Configuration & Environment
 
-Configuration and environmental helpers have moved to [Nalix.Environment](../environment/directories.md).
+Environmental and memory primitives have moved to [Nalix.Environment](../environment/memory/buffer-lease.md).
 
+- [**Buffer Management**](../environment/memory/buffer-management.md): High-performance byte buffer management.
 - [**Configuration**](../environment/configuration.md): High-performance INI-based runtime with automatic reloading.
 
-## Data and Codec
+## Memory & Pooling
 
-Memory management and serialization components have moved to [Nalix.Codec](./memory/buffer-management.md).
+Nalix.Framework provides high-level object pooling and caching services.
 
 - [**Object Pooling**](./memory/object-pooling.md): Reusable object stores to minimize GC pressure.
 - [**Object Map**](./memory/object-map.md): High-performance pooled concurrent dictionaries.
 - [**Typed Object Pools**](./memory/typed-object-pools.md): Performance-optimized typed facades for pooling.
 
+## Data & Codec
+
+Serialization and packet registry have moved to [Nalix.Codec](../codec/index.md).
+
+- [**Packet Registry**](../codec/index.md): Centralized discovery and deserialization.
+
 ## Related Packages
 
 - [Nalix.Abstractions](../abstractions/index.md)
-- [Nalix.Environment](../environment/directories.md)
-- [Nalix.Codec](./memory/buffer-management.md)
+- [Nalix.Environment](../environment/index.md)
+- [Nalix.Codec](../codec/index.md)
 - [Nalix.Network](../network/index.md)
 - [Nalix.Runtime](../runtime/index.md)
 

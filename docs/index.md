@@ -102,9 +102,13 @@ graph TD
         Middleware["Middleware Pipeline"]
     end
 
-    subgraph Base ["Nalix.Abstractions / Framework"]
+    subgraph Base ["Nalix.Environment / Framework"]
         Registry["PacketRegistry"]
         Pool["BufferPoolManager"]
+    end
+
+    subgraph Core ["Nalix.Codec"]
+        Serialization["LiteSerializer"]
         Crypto["FrameCipher / FrameCompression"]
     end
 
@@ -113,6 +117,9 @@ graph TD
     Dispatch --> Registry
     Dispatch --> Middleware
     Middleware --> Handlers["Handler Logic"]
+    
+    Dispatch --> Serialization
+    Session --> Serialization
 ```
 
 ## Start Here
@@ -152,11 +159,13 @@ Choose the path that matches your role.
 | Package | Purpose |
 | :--- | :--- |
 | [**Nalix.Network**](./packages/nalix-network.md) | TCP/UDP listeners, connections, protocol logic, and transport infrastructure |
-| [**Nalix.Runtime**](./packages/nalix-runtime.md) | Packet dispatch, middleware execution, handler compilation, and session resume |
+| [**Nalix.Runtime**](./packages/nalix-runtime.md) | Packet dispatch, middleware execution, and handler orchestration |
 | [**Nalix.SDK**](./packages/nalix-sdk.md) | Client-side transport sessions, request/response helpers, and handshake flows |
-| [**Nalix.Framework**](./packages/nalix-framework.md) | Configuration, service registry, serialization, packet registry, pooling, compression, and identifiers |
+| [**Nalix.Codec**](./packages/nalix-codec.md) | Serialization, buffer leasing, transforms, and compression |
+| [**Nalix.Environment**](./packages/nalix-environment.md) | Configuration, environment IO, random generation, and monotonic time |
+| [**Nalix.Framework**](./packages/nalix-framework.md) | Shared runtime services, instance registration, scheduling, and identifiers |
 | [**Nalix.Hosting**](./packages/nalix-hosting.md) | Fluent builder and application lifecycle for server bootstrap |
-| [**Nalix.Abstractions**](./packages/nalix-abstractions.md) | Shared contracts, packet attributes, middleware primitives, and connection abstractions |
+| [**Nalix.Abstractions**](./packages/nalix-abstractions.md) | Shared contracts, packet attributes, and connection abstractions |
 
 For the full package map, see [Packages Overview](./packages/index.md).
 
