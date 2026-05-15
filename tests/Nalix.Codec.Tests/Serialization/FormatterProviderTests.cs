@@ -67,7 +67,25 @@ public sealed class FormatterProviderTests
         FormatterProvider.Register<StubType>(formatter);
         IFormatter<StubType> resolved = FormatterProvider.Get<StubType>();
 
-        Assert.Same(formatter, resolved);
+        DataReader reader = new([]);
+        StubType value = resolved.Deserialize(ref reader);
+        Assert.NotNull(value);
+    }
+
+    [Fact]
+    public void DeserializeWhenFormatterRecursesTooDeepThrowsSerializationFailureException()
+    {
+        FormatterProvider.Register<RecursiveType>(new RecursiveFormatter());
+        IFormatter<RecursiveType> formatter = FormatterProvider.Get<RecursiveType>();
+
+        SerializationFailureException ex = Assert.Throws<SerializationFailureException>(
+            () =>
+            {
+                DataReader reader = new([]);
+                _ = formatter.Deserialize(ref reader);
+            });
+
+        Assert.Contains("Maximum deserialization depth exceeded", ex.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -88,6 +106,18 @@ public sealed class FormatterProviderTests
         public void Serialize(ref DataWriter writer, in StubType value) { }
     }
 
+    private sealed class RecursiveType
+    {
+    }
+
+    private sealed class RecursiveFormatter : IFormatter<RecursiveType>
+    {
+        public RecursiveType Deserialize(ref DataReader reader)
+            => FormatterProvider.Get<RecursiveType>().Deserialize(ref reader);
+
+        public void Serialize(ref DataWriter writer, in RecursiveType value) { }
+    }
+
     private interface IUnsupported
     {
     }
@@ -98,9 +128,6 @@ public sealed class FormatterProviderTests
         public void Serialize(ref DataWriter writer, in IUnsupported value) { }
     }
 }
-
-
-
 
 
 
