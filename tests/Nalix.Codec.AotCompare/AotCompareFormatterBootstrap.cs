@@ -10,8 +10,8 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.AotCompare;
 using Nalix.Codec.DataFrames;
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Extensions;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization;
 
 internal static class AotCompareFormatterBootstrap

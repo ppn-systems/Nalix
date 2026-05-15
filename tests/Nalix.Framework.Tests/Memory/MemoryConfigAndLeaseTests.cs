@@ -1,4 +1,4 @@
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 using System;
 using System.ComponentModel.DataAnnotations;

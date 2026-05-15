@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Abstractions.Primitives;
 
-namespace Nalix.Codec.Extensions;
+namespace Nalix.Environment.Extensions;
 
 /// <summary>
 /// Provides high-performance helpers for reading and writing the <see cref="PacketHeader"/>

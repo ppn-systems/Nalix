@@ -8,10 +8,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using Nalix.Codec.Internal;
-using Nalix.Codec.Serialization.Internal;
+using Nalix.Environment.Configuration;
+using Nalix.Environment.Internal;
+using Nalix.Environment.Options;
 
-namespace Nalix.Codec.Memory;
+namespace Nalix.Environment.Memory;
 
 /// <summary>
 /// A mutable, growable write buffer for high-performance serialization.
@@ -189,7 +190,7 @@ public ref struct DataWriter
         // Use checked arithmetic to prevent integer overflow attacks
         // and enforce a hard limit to prevent OOM-based DoS.
         // The limit is read from global configuration to allow per-deployment tuning.
-        int limit = SerializationStaticOptions.Instance.MaxWriterCapacity;
+        int limit = ConfigurationManager.Instance.Get<MemoryOptions>().MaxWriterCapacity;
 
         int current = _owner?.Length ?? 0;
         int needed = this.WrittenCount + minimumSize;
@@ -205,7 +206,7 @@ public ref struct DataWriter
             if (newSize > limit)
             {
                 throw new Abstractions.Exceptions.SerializationFailureException(
-                    $"DataWriter expansion failed: requested capacity {newSize} bytes exceeds the allowed limit of {limit} bytes. (Config: Serialization.MaxWriterCapacity)");
+                    $"DataWriter expansion failed: requested capacity {newSize} bytes exceeds the allowed limit of {limit} bytes. (Config: Memory.MaxWriterCapacity)");
             }
         }
         catch (OverflowException)

@@ -1,4 +1,4 @@
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 #if DEBUG
 using System;
 using System.Diagnostics.CodeAnalysis;

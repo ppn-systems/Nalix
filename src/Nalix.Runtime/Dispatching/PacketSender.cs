@@ -8,7 +8,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Options;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;

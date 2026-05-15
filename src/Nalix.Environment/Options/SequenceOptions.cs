@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
-namespace Nalix.Codec.Options;
+namespace Nalix.Environment.Options;
 
 /// <summary>
 /// Configuration for sequence number validation windows (anti-replay + reordering support).

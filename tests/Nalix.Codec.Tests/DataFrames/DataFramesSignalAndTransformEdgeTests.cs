@@ -3,10 +3,10 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Environment.DataFrames.Chunks;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Extensions;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Transforms;
 
 namespace Nalix.Codec.Tests.DataFrames;

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Security;
 

@@ -90,9 +90,9 @@ internal sealed class UdpServerListener : UdpListenerBase
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                    this.Logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
                 }
 #endif
             }

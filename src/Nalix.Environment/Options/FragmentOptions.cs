@@ -5,10 +5,10 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.DataFrames.Chunks;
 using Nalix.Environment.Configuration.Binding;
+using Nalix.Environment.Fragments;
 
-namespace Nalix.Codec.Options;
+namespace Nalix.Environment.Options;
 
 /// <summary>
 /// Options for fragmentation and reassembly of large frames.

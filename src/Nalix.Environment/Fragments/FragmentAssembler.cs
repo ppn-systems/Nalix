@@ -7,9 +7,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
-namespace Nalix.Codec.DataFrames.Chunks;
+namespace Nalix.Environment.Fragments;
 
 /// <summary>
 /// Reassembly engine: collects each received chunk and returns a complete reassembly result

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 using Nalix.Framework.Memory.Pools;
 namespace Nalix.Benchmark.Framework.Memory.Objects;

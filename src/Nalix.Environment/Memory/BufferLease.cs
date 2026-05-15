@@ -9,7 +9,7 @@ using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 
-namespace Nalix.Codec.Memory;
+namespace Nalix.Environment.Memory;
 
 /// <summary>
 /// Represents an owned lease of a pooled byte[] rented from <see cref="IBufferPoolManager"/>.

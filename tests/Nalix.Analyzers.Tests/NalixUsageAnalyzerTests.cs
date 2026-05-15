@@ -1,4 +1,4 @@
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Abstractions.Serialization;
 using Nalix.Analyzers.CodeFixes;
 using System.Threading.Tasks;

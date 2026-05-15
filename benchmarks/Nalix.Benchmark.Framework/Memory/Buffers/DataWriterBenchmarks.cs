@@ -1,7 +1,7 @@
 using System;
 using BenchmarkDotNet.Attributes;
 using Nalix.Benchmark.Framework.Abstractions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Benchmark.Framework.Memory.Buffers;
 

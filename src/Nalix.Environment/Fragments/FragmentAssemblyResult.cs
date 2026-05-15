@@ -2,9 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
-namespace Nalix.Codec.DataFrames.Chunks;
+namespace Nalix.Environment.Fragments;
 
 /// <summary>
 /// Represents a completed fragment reassembly operation.

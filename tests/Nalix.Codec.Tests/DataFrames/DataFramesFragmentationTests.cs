@@ -1,11 +1,11 @@
-using Nalix.Codec.Options;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Options;
+using Nalix.Environment.Memory;
 
 using System;
 using System.IO;
 using System.Text;
 using System.Threading;
-using Nalix.Codec.DataFrames.Chunks;
+using Nalix.Environment.DataFrames.Chunks;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Options;
 using Xunit;

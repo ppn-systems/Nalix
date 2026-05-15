@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace Nalix.Codec.DataFrames.Chunks;
+namespace Nalix.Environment.Fragments;
 
 /// <summary>
 /// Thread-safe generator for <see cref="FragmentHeader.StreamId"/>.

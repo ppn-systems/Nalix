@@ -4,7 +4,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.DataFrames.SignalFrames;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Transforms;
 
 namespace Nalix.Codec.Tests.DataFrames;

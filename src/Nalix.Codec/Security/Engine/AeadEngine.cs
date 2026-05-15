@@ -4,7 +4,7 @@
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Internal;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Security.Aead;
 using Nalix.Codec.Security.Internal;
 using Nalix.Environment.Random;

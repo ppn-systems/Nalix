@@ -3,6 +3,7 @@
 
 using Nalix.Codec.Options;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Options;
 
 namespace Nalix.Codec.Serialization.Internal;
 
@@ -16,4 +17,6 @@ internal static class SerializationStaticOptions
     /// Since the manager re-initializes the same instance on reload, this reference remains valid.
     /// </summary>
     public static readonly SerializationOptions Instance = ConfigurationManager.Instance.Get<SerializationOptions>();
+
+    public static int MaxWriterCapacity => ConfigurationManager.Instance.Get<MemoryOptions>().MaxWriterCapacity;
 }

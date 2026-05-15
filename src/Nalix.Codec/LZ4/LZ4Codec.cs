@@ -7,7 +7,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.LZ4.Engine;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.LZ4;
 

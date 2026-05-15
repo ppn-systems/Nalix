@@ -10,8 +10,9 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Extensions;
+using Nalix.Environment.Extensions;
 using Nalix.Codec.Internal;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Transforms;
 

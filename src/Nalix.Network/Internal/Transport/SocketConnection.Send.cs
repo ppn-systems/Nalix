@@ -10,8 +10,8 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.DataFrames.Chunks;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Fragments;
+using Nalix.Environment.Memory;
 using Nalix.Network.Connections;
 
 namespace Nalix.Network.Internal.Transport;

@@ -14,8 +14,8 @@ using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
-using Nalix.Codec.Extensions;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Extensions;
+using Nalix.Environment.Memory;
 using Nalix.Framework.Identifiers;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
@@ -266,9 +266,9 @@ public abstract partial class UdpListenerBase
             lease?.Dispose();
 
 #if DEBUG
-            if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(
+                this.Logger.LogDebug(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
                     $"short-packet len={lease?.Length} from={remoteEndPoint}");
             }
@@ -372,9 +372,9 @@ public abstract partial class UdpListenerBase
             }
 
 #if DEBUG
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
+                this.Logger.LogTrace(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
                     $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
             }

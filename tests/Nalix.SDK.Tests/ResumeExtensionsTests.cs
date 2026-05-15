@@ -15,7 +15,7 @@ using Nalix.Codec.DataFrames;
 using Nalix.Codec.DataFrames.SignalFrames;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
-using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Hashing;
 using Nalix.Hosting;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Handlers;

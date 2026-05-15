@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Internal.Memory;
-using Nalix.Codec.Memory;
+using Nalix.Environment.Memory;
 using Nalix.Codec.Security.Primitives;
 
 namespace Nalix.Codec.LZ4.Engine;

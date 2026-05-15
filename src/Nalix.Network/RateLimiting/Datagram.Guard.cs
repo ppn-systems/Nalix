@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
-using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Hashing;
 
 namespace Nalix.Network.RateLimiting;
 
