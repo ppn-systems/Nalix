@@ -34,4 +34,4 @@ The analyzer will automatically provide suggestions in Visual Studio, Rider, and
 
 ## Documentation
 
-For a complete list of all 55+ rules, visit the [Diagnostic Catalog](https://ppn-systems.me/api/analyzers/diagnostic-codes).
+For a complete list of all 55+ rules, visit the [Diagnostic Catalog](https://ppn-system.me/api/analyzers/diagnostic-codes).

@@ -27,4 +27,4 @@ dotnet add package Nalix.Abstractions
 
 ## Documentation
 
-For detailed API reference, see the [Nalix.Abstractions package guide](https://ppn-systems.me/api/Abstractions/index).
+For detailed API reference, see the [Nalix.Abstractions package guide](https://ppn-system.me/api/Abstractions/index).

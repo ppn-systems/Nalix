@@ -28,4 +28,4 @@ logger.LogInformation("Nalix system initialized successfully.");
 
 ## Documentation
 
-See [Logging Targets](https://ppn-systems.me/api/logging/targets) for a list of available sinks and configuration options.
+See [Logging Targets](https://ppn-system.me/api/logging/targets) for a list of available sinks and configuration options.

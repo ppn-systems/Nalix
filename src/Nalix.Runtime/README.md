@@ -36,4 +36,4 @@ public class MyLoggingMiddleware<T> : IPacketMiddleware<T> where T : IPacket
 
 ## Documentation
 
-Learn about the [Middleware Pipeline](https://ppn-systems.me/concepts/middleware) and [Shard-Aware Dispatch](https://ppn-systems.me/concepts/architecture).
+Learn about the [Middleware Pipeline](https://ppn-system.me/concepts/middleware) and [Shard-Aware Dispatch](https://ppn-system.me/concepts/architecture).

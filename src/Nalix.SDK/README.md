@@ -1,6 +1,6 @@
 # Nalix.SDK
 
-> Client-side transport sessions, request helpers, and bootstrap defaults for Nalix applications.
+> Client-side transport sessions and request helpers for Nalix applications.
 
 ## Key Features
 
@@ -11,24 +11,12 @@
 | 🤝 **Handshake / Resume** | `Transport/Extensions/HandshakeExtensions.cs`, `ResumeExtensions.cs` | X25519 handshake and optional session resume helpers. |
 | 🔐 **Cipher Updates** | `Transport/Extensions/CipherExtensions.cs` | Runtime cipher switching for TCP sessions. |
 | 📡 **Typed Subscriptions** | `Transport/Extensions/TcpSessionSubscriptions.cs` | `On<TPacket>()` and `OnExact<TPacket>()` packet subscription helpers. |
-| ⚙️ **Client Bootstrap** | `Bootstrap.cs` | Uses `client.ini`, disables packet pooling, initializes `TransportOptions`, and flushes defaults. |
 
 ## Installation
 
 ```bash
 dotnet add package Nalix.SDK
 ```
-
-## Bootstrap Defaults
-
-Loading the assembly invokes `Bootstrap.Initialize()` automatically through a module initializer. Source defaults include:
-
-- configuration file: `client.ini`
-- `PacketOptions.EnablePooling = false`
-- `TransportOptions.Address = "127.0.0.1"`
-- `TransportOptions.Port = 57206`
-- `TransportOptions.EncryptionEnabled = true`
-- `TransportOptions.CompressionEnabled = true`
 
 ## Quick Example: Sending a Request
 
@@ -48,4 +36,4 @@ Console.WriteLine(response.Data);
 
 ## Documentation
 
-See [Nalix.SDK](https://ppn-systems.me/packages/nalix-sdk/) for the source-mapped package reference.
+See [Nalix.SDK](https://ppn-system.me/packages/nalix-sdk/) for the source-mapped package reference.
