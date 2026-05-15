@@ -203,7 +203,12 @@ nav:
         - Overview: api/analyzers/index.md
         - Diagnostic Codes: api/analyzers/diagnostic-codes.md
         - Code Fixes: api/analyzers/code-fixes.md
-        - Auto Generation: api/analyzers/autogen.md
+        - AutoGen:
+          - Overview: api/analyzers/autogen/index.md
+          - Serialization: api/analyzers/autogen/serialization-generator.md
+          - Packet Registry: api/analyzers/autogen/packet-registry-generator.md
+          - Packet Schema: api/analyzers/autogen/packet-schema-generator.md
+          - Configuration: api/analyzers/autogen/configuration-generator.md
       - Abstractions:
         - Overview: api/abstractions/index.md
         - Control Type: api/abstractions/protocols/control-type.md
