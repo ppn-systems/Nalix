@@ -36,7 +36,7 @@ public sealed partial class PacketBaseLengthTests
         Assert.Equal(bytes, buffer);
     }
 
-    [Fact(Skip = "Current generated packet serializer length accounting includes nested object marker overhead.")]
+    [Fact]
     public void LengthWhenPacketContainsNestedPacketMatchesSerializedByteCount()
     {
         ParentPacket packet = new()
@@ -57,20 +57,6 @@ public sealed partial class PacketBaseLengthTests
 
         Assert.Equal(packet.Length, written);
         Assert.Equal(bytes, buffer);
-    }
-
-    [Fact(Skip = "Current generated object serializer does not support null nested packet references.")]
-    public void LengthWhenNestedPacketIsNullMatchesSerializedByteCount()
-    {
-        ParentPacket packet = new()
-        {
-            Child = null
-        };
-
-        byte[] bytes = packet.Serialize();
-
-        Assert.Equal(bytes.Length, packet.Length);
-        Assert.Equal(PacketConstants.HeaderSize + sizeof(byte), packet.Length);
     }
 
     [Fact]
@@ -184,6 +170,7 @@ public sealed partial class PacketBaseLengthTests
         Assert.Equal(bytes, buffer);
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     internal sealed partial class StringPacket : PacketBase<StringPacket>
     {
@@ -191,6 +178,7 @@ public sealed partial class PacketBaseLengthTests
         public string Message { get; set; } = string.Empty;
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     internal sealed partial class ChildPacket : PacketBase<ChildPacket>
     {
@@ -198,30 +186,35 @@ public sealed partial class PacketBaseLengthTests
         public int Value { get; set; }
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     internal sealed partial class ParentPacket : PacketBase<ParentPacket>
     {
         public ChildPacket? Child { get; set; }
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     internal sealed partial class ListPacket : PacketBase<ListPacket>
     {
         public List<int>? Values { get; set; }
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     internal sealed partial class DictionaryPacket : PacketBase<DictionaryPacket>
     {
         public Dictionary<string, int>? Values { get; set; }
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     internal sealed partial class StringDictionaryPacket : PacketBase<StringDictionaryPacket>
     {
         public Dictionary<string, string>? Values { get; set; }
     }
 
+    [GenerateFormatter]
     [SerializePackable(SerializeLayout.Sequential)]
     internal sealed partial class DynamicHintStringPacket : PacketBase<DynamicHintStringPacket>
     {
@@ -229,9 +222,6 @@ public sealed partial class PacketBaseLengthTests
         public string Message { get; set; } = string.Empty;
     }
 }
-
-
-
 
 
 

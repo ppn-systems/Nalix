@@ -2,19 +2,13 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
-#if !NALIX_AOT
-using System.Reflection.Emit;
-#endif
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Codec.Serialization.Formatters.Automatic;
 using Nalix.Codec.Serialization.Formatters.Cache;
 using Nalix.Codec.Serialization.Formatters.Collections;
 using Nalix.Codec.Serialization.Formatters.Primitives;
@@ -54,16 +48,6 @@ public static class FormatterProvider
         { 4, typeof(ValueTupleFormatter<,,,>)  },
         { 5, typeof(ValueTupleFormatter<,,,,>) },
     };
-
-    // IL-emit factory cache:
-    //   Key   = concrete formatter type, such as ArrayFormatter<int>
-    //   Value = a compiled parameterless constructor delegate.
-    //
-    // This cache exists because formatter types are assembled dynamically with
-    // MakeGenericType, so we cannot rely on a compile-time generic cache here.
-    // By caching the constructor delegate per concrete formatter type, repeated
-    // lookups stay O(1) and avoid reflection after the first hit.
-    private static readonly ConcurrentDictionary<Type, Func<object>> s_factoryCache = new();
 
     #endregion Fields
 
@@ -192,30 +176,16 @@ public static class FormatterProvider
 
     #endregion Static Constructor
 
-    #region IL-Emit Factory
+    #region Formatter Factory
 
     /// <summary>
-    /// Returns a cached <see cref="Func{Object}"/> that calls the parameterless
-    /// constructor of <paramref name="concreteFormatterType"/> via a
-    /// <c>DynamicMethod</c>.
-    /// <para>
-    /// Generated IL (conceptually):
-    /// <code>() => new ConcreteFormatter()</code>
-    /// </para>
+    /// Returns a factory that creates <paramref name="concreteFormatterType"/>
+    /// through its public parameterless constructor.
     /// </summary>
     /// <remarks>
-    /// <b>Why DynamicMethod instead of Expression.Compile?</b><br/>
-    /// <c>Expression.Lambda.Compile()</c> builds an expression tree first, then
-    /// lowers it to IL — roughly 3–5× more work than emitting IL directly.
-    /// The DynamicMethod path emits two opcodes (<c>newobj</c> + <c>ret</c>) and
-    /// hands the result straight to the JIT with zero intermediate objects.
-    ///
-    /// <b>Why not Activator.CreateInstance?</b><br/>
-    /// <c>Activator.CreateInstance</c> resolves the constructor via reflection on
-    /// every call and boxes the return value.  The emitted delegate is a plain
-    /// <c>Func&lt;object&gt;</c> — zero reflection, zero boxing after the first call.
+    /// Formatter instances are cached by <see cref="FormatterCache{T}"/> after
+    /// resolution, so the reflection cost is paid only on the cold lookup path.
     /// </remarks>
-#if NALIX_AOT
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static Func<object> BuildCtorFactory(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type concreteFormatterType)
@@ -226,53 +196,15 @@ public static class FormatterProvider
 
         return () => Activator.CreateInstance(concreteFormatterType)!;
     }
-#else
-    [MethodImpl(MethodImplOptions.NoInlining)] // cold path — emit once, cache forever
-    private static Func<object> BuildCtorFactory(Type concreteFormatterType)
-    {
-        // Build a tiny factory once so repeated formatter creation stays reflection-free.
-        // The goal is to pay the reflection cost only when a new formatter type is
-        // first requested, not on every serialization operation.
-        ConstructorInfo ctor = concreteFormatterType.GetConstructor(Type.EmptyTypes)
-            ?? throw new SerializationFailureException(
-                $"No parameterless constructor on '{concreteFormatterType.FullName}'.");
-
-        // Use the concrete formatter type as the dynamic method owner so the JIT
-        // can access internal constructors when necessary.
-        DynamicMethod dm = new(
-            name: $"__new_{concreteFormatterType.Name}",
-            returnType: typeof(object),
-            parameterTypes: Type.EmptyTypes,
-            owner: concreteFormatterType,
-            skipVisibility: true);
-
-        ILGenerator il = dm.GetILGenerator();
-
-        // IL:
-        //   newobj <ctor>    ; allocate + call ctor, push ref onto stack
-        //   ret              ; return the object reference
-        // Emit the minimum possible IL: construct the formatter and return it.
-        il.Emit(OpCodes.Newobj, ctor);
-        il.Emit(OpCodes.Ret);
-
-        return dm.CreateDelegate<Func<object>>();
-    }
-#endif
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Func<object> GetOrAddFactory(
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type concreteFormatterType)
-#if NALIX_AOT
         => BuildCtorFactory(concreteFormatterType);
-#else
-        => s_factoryCache.GetOrAdd(concreteFormatterType, static t => BuildCtorFactory(t));
-#endif
-
 
     /// <summary>
     /// Resolves the concrete formatter type from a generic definition + type args,
-    /// then returns a live <see cref="IFormatter{T}"/> instance — zero reflection
-    /// invoke, zero boxing after the first call per type.
+    /// then returns a live <see cref="IFormatter{T}"/> instance.
     /// </summary>
     /// <typeparam name="T">The serialization target type.</typeparam>
     /// <param name="genericFormatterDef">
@@ -281,9 +213,8 @@ public static class FormatterProvider
     /// <param name="typeArg">
     /// Type argument used to close the generic, e.g. <c>typeof(int)</c>.
     /// </param>
-#if NALIX_AOT
     [UnconditionalSuppressMessage("AOT", "IL3050",
-        Justification = "AOT path only closes formatter instantiations exercised by explicit registration/source-generated manifests.")]
+        Justification = "Formatter definitions are closed over known type arguments and validated by NativeAOT compare tests.")]
     [UnconditionalSuppressMessage("Trimming", "IL2055",
         Justification = "Formatter definitions are closed over known type arguments and validated by NativeAOT compare tests.")]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -317,34 +248,8 @@ public static class FormatterProvider
         Type concrete = genericFormatterDef.MakeGenericType(typeArgs);
         return (IFormatter<T>)GetOrAddFactory(concrete)();
     }
-#else
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> EmitCreate<T>(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type typeArg)
-    {
-        // Close the open generic formatter type at runtime, then instantiate the cached constructor.
-        Type concrete = genericFormatterDef.MakeGenericType([typeArg]);
-        return (IFormatter<T>)GetOrAddFactory(concrete)();
-    }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> EmitCreate<T>(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type typeArg1, Type typeArg2)
-    {
-        Type concrete = genericFormatterDef.MakeGenericType([typeArg1, typeArg2]);
-        return (IFormatter<T>)GetOrAddFactory(concrete)();
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static IFormatter<T> EmitCreate<T>(
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] Type genericFormatterDef, Type[] typeArgs)
-    {
-        Type concrete = genericFormatterDef.MakeGenericType(typeArgs);
-        return (IFormatter<T>)GetOrAddFactory(concrete)();
-    }
-#endif
-
-    #endregion IL-Emit Factory
+    #endregion Formatter Factory
 
     #region APIs
 
@@ -512,7 +417,7 @@ public static class FormatterProvider
     }
 
     /// <summary>
-    /// Retrieves (or emits) the formatter for a complex struct or class type.
+    /// Retrieves the registered formatter for a complex struct or class type.
     /// </summary>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -538,9 +443,7 @@ public static class FormatterProvider
                 return existing;
             }
 
-            // ── IL Emit: new StructFormatter<T>() ────────────────────────
-            RegisterComplex(EmitCreate<T>(typeof(StructFormatter<>), type));
-            return ComplexTypeCache<T>.Struct;
+            throw MissingGeneratedFormatter(type, "struct");
         }
 
         if (type.IsClass)
@@ -551,9 +454,7 @@ public static class FormatterProvider
                 return existing;
             }
 
-            // ── IL Emit: new ObjectFormatter<T>() ────────────────────────
-            RegisterComplex(EmitCreate<T>(typeof(ObjectFormatter<>), type));
-            return ComplexTypeCache<T>.Class;
+            throw MissingGeneratedFormatter(type, "class");
         }
 
         throw new SerializationFailureException($"No formatter registered for type {type}.");
@@ -575,10 +476,11 @@ public static class FormatterProvider
         return existing ?? created;
     }
 
-    // ------------------------------------------------------------------
-    // All TryCreate* methods now call EmitCreate<T>(...) instead of
-    // Activator.CreateInstance — zero reflection invoke, zero boxing.
-    // ------------------------------------------------------------------
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static SerializationFailureException MissingGeneratedFormatter(Type type, string kind)
+        => new(
+            $"No formatter registered for {kind} '{type.FullName}'. " +
+            "Mark the type with [GenerateFormatter] or register a custom IFormatter<T> manually.");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static EnumFormatter<T>? TryCreateEnumFormatter<
@@ -815,4 +717,3 @@ public static class FormatterProvider
 
     #endregion Private Methods
 }
-

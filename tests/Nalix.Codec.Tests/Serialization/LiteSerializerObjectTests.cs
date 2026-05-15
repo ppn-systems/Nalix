@@ -46,7 +46,7 @@ public sealed class LiteSerializerObjectTests
         Assert.Equal(input.Header.Priority, output.Header.Priority);
     }
 
-    [Fact(Skip = "Current generated object serializer does not support nullable recursive object members.")]
+    [Fact]
     public void SerializeDeserialize_Object_RoundTripsState()
     {
         TestObject input = new() { Id = 7, Name = "Alice" };
@@ -56,35 +56,6 @@ public sealed class LiteSerializerObjectTests
         Assert.NotNull(output);
         Assert.Equal(input.Id, output.Id);
         Assert.Equal(input.Name, output.Name);
-    }
-
-    [Fact(Skip = "Current generated object serializer does not support nullable recursive object members.")]
-    public void SerializeDeserialize_ObjectGraphWithNullAndNestedCollection_RoundTripsState()
-    {
-        TestObject input = new()
-        {
-            Id = 9,
-            Name = "Parent",
-            Child = new TestObject
-            {
-                Id = 10,
-                Name = "Child",
-                Tags = ["x", "y"]
-            },
-            Tags = []
-        };
-
-        TestObject? output = null;
-        _ = LiteSerializerTestHelper.RoundTrip(input, ref output);
-
-        Assert.NotNull(output);
-        Assert.Equal(input.Id, output.Id);
-        Assert.Equal(input.Name, output.Name);
-        Assert.NotNull(output.Child);
-        Assert.Equal(10, output.Child.Id);
-        Assert.Equal("Child", output.Child.Name);
-        Assert.Equal(["x", "y"], output.Child.Tags);
-        Assert.Empty(output.Tags);
     }
 
     [Fact]
@@ -97,8 +68,6 @@ public sealed class LiteSerializerObjectTests
         Assert.Equal(input.Y, output.Y, precision: 3);
     }
 }
-
-
 
 
 

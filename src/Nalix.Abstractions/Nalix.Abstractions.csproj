@@ -13,7 +13,6 @@
 		
 		<LangVersion>latest</LangVersion>
 		<TrimMode>partial</TrimMode>
-		<PublishAot>true</PublishAot>
 		<IsAotCompatible>true</IsAotCompatible>
 
 		<Description><![CDATA[

@@ -470,7 +470,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             // ---- IPacket (concrete or polymorphic) ----
             if (IMPLEMENTSI_PACKET(named))
             {
-                return $"({accessor} is null ? 1 : 1 + {accessor}.Length)";
+                return $"({accessor} is null ? 0 : {accessor}.Length)";
             }
         }
 
@@ -519,7 +519,7 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             string sum = string.Join(" + ", parts);
             if (type.IsReferenceType)
             {
-                return $"({accessor} is null ? 1 : 1 + {sum})";
+                return $"({accessor} is null ? 0 : {sum})";
             }
             return $"({sum})";
         }

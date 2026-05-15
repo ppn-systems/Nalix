@@ -11,7 +11,6 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Memory;
-using Nalix.Codec.Serialization.Formatters.Automatic;
 using Nalix.Codec.Serialization.Formatters.Primitives;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
@@ -796,8 +795,8 @@ public static class LiteSerializer
 
         IFillableFormatter<T>? fillable = RootFormatterCache<T>.Fillable ?? throw new SerializationFailureException(
                 $"Fill API is not supported for type '{typeof(T).FullName}'. " +
-                "Only types with IFillableFormatter (ObjectFormatter for classes, and supported collections) are allowed. " +
-                "Unmanaged structs and plain StructFormatter value types must use Deserialize<T>(buffer, ref value) instead.");
+                "Only registered IFillableFormatter implementations, source-generated class formatters, and supported collections are allowed. " +
+                "Unmanaged structs and non-fillable value types must use Deserialize<T>(buffer, ref value) instead.");
         if (value is null && typeof(T).IsClass)
         {
             throw new SerializationFailureException(
@@ -873,7 +872,8 @@ public static class LiteSerializer
             Type t when t == typeof(TimeSpan[]) => GC.AllocateUninitializedArray<TimeSpan>(length),
             Type t when t == typeof(TimeOnly[]) => GC.AllocateUninitializedArray<TimeOnly>(length),
             Type t when t == typeof(DateTimeOffset[]) => GC.AllocateUninitializedArray<DateTimeOffset>(length),
-            _ => throw new SerializationFailureException($"AOT array allocation is not registered for '{typeof(T).FullName}'.")
+            _ => Array.CreateInstance(typeof(T).GetElementType()
+                ?? throw new SerializationFailureException($"Type '{typeof(T).FullName}' is not an array."), length)
         };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -915,21 +915,8 @@ public static class LiteSerializer
 
         static RootFormatterCache()
         {
-            IFormatter<T> formatter = FormatterProvider.Get<T>();
-
-            if (typeof(T).IsClass &&
-                typeof(T) != typeof(string) &&
-                formatter.GetType().IsGenericType &&
-                formatter.GetType().GetGenericTypeDefinition() == typeof(NullableObjectFormatter<>))
-            {
-                ThrowsOnNull = true;
-                Formatter = FormatterProvider.GetComplex<T>();
-            }
-            else
-            {
-                ThrowsOnNull = false;
-                Formatter = formatter;
-            }
+            Formatter = FormatterProvider.Get<T>();
+            ThrowsOnNull = false;
 
             Fillable = Formatter as IFillableFormatter<T>;
         }

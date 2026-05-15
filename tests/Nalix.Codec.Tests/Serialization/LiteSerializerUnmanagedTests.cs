@@ -25,18 +25,16 @@ public sealed class LiteSerializerUnmanagedTests
     }
 
     [Fact]
-    public void SerializeDeserialize_NullClass_RoundTripsValue()
+    public void SerializeDeserialize_UnmarkedClass_ThrowsSerializationFailureException()
     {
         NullClass input = new() { I32 = [], I16 = null };
-        byte[] data = LiteSerializer.Serialize(in input);
 
-        NullClass? output = null;
-        int read = LiteSerializer.Deserialize(data, ref output);
+        TypeInitializationException ex = Assert.Throws<TypeInitializationException>(
+            () => LiteSerializer.Serialize(in input));
 
-        Assert.Equal(data.Length, read);
-        Assert.NotNull(output);
-        Assert.Equal(input.I32, output.I32);
-        Assert.Equal(input.I16, output.I16);
+        SerializationFailureException inner = Assert.IsType<SerializationFailureException>(ex.InnerException);
+        Assert.Contains("No formatter registered", inner.Message, StringComparison.Ordinal);
+        Assert.Contains("[GenerateFormatter]", inner.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -79,7 +77,6 @@ public sealed class LiteSerializerUnmanagedTests
         _ = Assert.ThrowsAny<SerializationFailureException>(() => LiteSerializer.Deserialize(shortBuffer, ref destination));
     }
 }
-
 
 
 
