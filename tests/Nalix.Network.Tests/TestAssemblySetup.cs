@@ -2,6 +2,9 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Nalix.Environment.IO;
+using Xunit;
+
+[assembly: CollectionBehavior(CollectionBehavior.CollectionPerAssembly, MaxParallelThreads = 1)]
 
 namespace Nalix.Network.Tests;
 

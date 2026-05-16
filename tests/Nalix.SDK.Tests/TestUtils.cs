@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Net;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
@@ -22,28 +23,27 @@ internal static class TestUtils
         string? current = AppDomain.CurrentDomain.BaseDirectory;
         string? certPath = null;
 
-        while (current != null)
+        for (int i = 0; i < 10 && current != null; i++)
         {
-            string candidate = System.IO.Path.Combine(current, "shared", "certificate.private");
-            if (System.IO.File.Exists(candidate))
+            string candidate = Path.Combine(current, "shared", "certificate.private");
+            if (File.Exists(candidate))
             {
                 certPath = candidate;
                 break;
             }
-            current = System.IO.Path.GetDirectoryName(current);
+            current = Path.GetDirectoryName(current);
+        }
+
+        if (certPath == null)
+        {
+            // Try absolute fallback
+            string fallback = @"e:\Cs\Nalix\shared\certificate.private";
+            if (File.Exists(fallback)) certPath = fallback;
         }
 
         if (certPath != null)
         {
             Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(certPath);
-        }
-        else
-        {
-            // Try one more: absolute path if we know we are in e:\Cs\Nalix
-            if (System.IO.File.Exists(@"e:\Cs\Nalix\shared\certificate.private"))
-            {
-                Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(@"e:\Cs\Nalix\shared\certificate.private");
-            }
         }
     }
 
@@ -60,23 +60,21 @@ internal static class TestUtils
         string? current = AppDomain.CurrentDomain.BaseDirectory;
         string? pubPath = null;
 
-        while (current != null)
+        for (int i = 0; i < 10 && current != null; i++)
         {
-            string candidate = System.IO.Path.Combine(current, "shared", "certificate.public");
-            if (System.IO.File.Exists(candidate))
+            string candidate = Path.Combine(current, "shared", "certificate.public");
+            if (File.Exists(candidate))
             {
                 pubPath = candidate;
                 break;
             }
-            current = System.IO.Path.GetDirectoryName(current);
+            current = Path.GetDirectoryName(current);
         }
 
         if (pubPath == null)
         {
-            if (System.IO.File.Exists(@"e:\Cs\Nalix\shared\certificate.public"))
-            {
-                pubPath = @"e:\Cs\Nalix\shared\certificate.public";
-            }
+            string fallback = @"e:\Cs\Nalix\shared\certificate.public";
+            if (File.Exists(fallback)) pubPath = fallback;
         }
 
         if (pubPath != null)
@@ -101,7 +99,7 @@ internal static class TestUtils
 /// A simple protocol for integration testing that dispatches packets to the Nalix runtime.
 /// Copied from NetworkApplicationIntegrationTests to satisfy "real server" requirement in SDK tests.
 /// </summary>
-public sealed class IntegrationTestProtocol : Protocol
+public class IntegrationTestProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
 

@@ -53,8 +53,11 @@ public sealed class ConnectionHubTests
     [Fact]
     public async Task UnregisterConnection_WhenSessionStoreFails_ReclaimsSessionSnapshot()
     {
+        Nalix.Environment.Configuration.ConfigurationManager.Instance.Get<Nalix.Network.Options.SessionStoreOptions>().MinAttributesForPersistence = 0;
+
         using FailingSessionStore failingStore = new();
-        using ConnectionHub hub = new(failingStore);
+        using SessionService sessionService = new(store: failingStore);
+        using ConnectionHub hub = new(sessionService);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
 
@@ -126,7 +129,7 @@ public sealed class ConnectionHubTests
         }
     }
 
-    private sealed class FailingSessionStore : SessionStoreBase, IDisposable
+    private sealed class FailingSessionStore : ISessionStore, IDisposable
     {
         private readonly TaskCompletionSource<SessionEntry> _storeAttempt =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -143,26 +146,14 @@ public sealed class ConnectionHubTests
             return await _storeAttempt.Task;
         }
 
-        public override ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default)
+        public ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             _storeAttempt.TrySetResult(entry);
             throw new InvalidOperationException("Simulated session-store failure.");
         }
 
-        public override ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.CompletedTask;
-        }
-
-        public override ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            return ValueTask.FromResult<SessionEntry?>(null);
-        }
-
-        public override ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+        public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested();
             return ValueTask.FromResult<SessionEntry?>(null);

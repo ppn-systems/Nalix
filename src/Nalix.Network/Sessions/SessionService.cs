@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
@@ -103,10 +104,14 @@ public sealed class SessionService : ISessionService, IDisposable
     {
         if (_scavenger is not null)
         {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_scavenger.Id);
-
-            _scavenger.Dispose();
+            try
+            {
+                // TaskManager might already be disposing or the worker might be cancelled.
+                // We call Dispose() which triggers the internal Cts.Cancel().
+                _scavenger.Dispose();
+            }
+            catch (ObjectDisposedException) { }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { /* Safety catch for disposal races */ }
         }
     }
 }

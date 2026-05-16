@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
+using FluentAssertions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -22,6 +23,9 @@ using Nalix.Runtime.Handlers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
+using Nalix.Network.Sessions;
+using Nalix.Network.Connections;
+using Nalix.Runtime.Dispatching;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -45,9 +49,15 @@ TestUtils.SetupCertificate();
         secretBytes[0] = 0xAA;
         Bytes32 secret = new(secretBytes);
 
+        InMemorySessionStore store = new();
+        SessionService sessionService = new(store: store);
+        ConnectionHub hub = new(sessionService: sessionService);
+
         // 1. Setup Server with real SessionStore
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ConfigureConnectionHub(hub);
+        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
+        builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
         using NetworkApplication app = builder.Build();
@@ -55,8 +65,9 @@ TestUtils.SetupCertificate();
 
         try
         {
-            // 2. Pre-populate SessionStore
-            IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
+            // 2. Pre-populate SessionStore via the injected store
+            // We can use 'store' directly since we have the reference
+            hub.Count.Should().Be(0); // Sanity check
             
             // Create a fake connection object to represent the "previous" connection
             SessionSnapshot snapshot = new()
@@ -68,7 +79,7 @@ TestUtils.SetupCertificate();
             };
             SessionEntry entry = new(snapshot, 0UL);
 
-            await hub.SessionStore.StoreAsync(entry);
+            await store.StoreAsync(entry);
 
             // 3. Setup Client
             using TcpSession session = new(new TransportOptions 
@@ -108,9 +119,15 @@ TestUtils.SetupCertificate();
         clientSecretBytes[0] = 0xBB; // Different secret -> invalid proof
         Bytes32 clientSecret = new(clientSecretBytes);
 
+        InMemorySessionStore store = new();
+        SessionService sessionService = new(store: store);
+        ConnectionHub hub = new(sessionService: sessionService);
+
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ConfigureConnectionHub(hub);
+        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
+        builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
         using NetworkApplication app = builder.Build();
@@ -118,7 +135,7 @@ TestUtils.SetupCertificate();
 
         try
         {
-            IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()!;
+            // 2. Pre-populate SessionStore via the injected store
             SessionSnapshot snapshot = new()
             {
                 SessionToken = token,
@@ -126,7 +143,7 @@ TestUtils.SetupCertificate();
                 ExpiresAtUnixMilliseconds = long.MaxValue
             };
             SessionEntry entry = new(snapshot, 0UL);
-            await hub.SessionStore.StoreAsync(entry);
+            await store.StoreAsync(entry);
 
             // 2. Setup Client with WRONG secret
             using TcpSession session = new(new TransportOptions 
@@ -162,9 +179,15 @@ TestUtils.SetupCertificate();
         secretBytes[0] = 0xCC;
         Bytes32 secret = new(secretBytes);
 
+        InMemorySessionStore store = new();
+        SessionService sessionService = new(store: store);
+        ConnectionHub hub = new(sessionService: sessionService);
+
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
-        builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.ConfigureConnectionHub(hub);
+        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
+        builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
         using NetworkApplication app = builder.Build();
@@ -204,6 +227,21 @@ TestUtils.SetupCertificate();
             await app.DeactivateAsync();
         }
     }
+    public class RobustIntegrationTestProtocol : IntegrationTestProtocol
+    {
+        private readonly IConnectionHub _hub;
+        public RobustIntegrationTestProtocol(IPacketDispatch dispatch, IConnectionHub hub) : base(dispatch)
+        {
+            _hub = hub;
+        }
+
+        public override void OnAccept(IConnection connection, CancellationToken cancellationToken = default)
+        {
+            connection.Attributes[ConnectionAttributes.OwnerHub] = _hub;
+            base.OnAccept(connection, cancellationToken);
+        }
+    }
+
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif

@@ -10,6 +10,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
+using Nalix.Network.Sessions;
 using Xunit;
 
 namespace Nalix.Network.Tests;
@@ -20,6 +21,7 @@ public sealed class ConnectionHubSessionTests
     [Fact]
     public async Task CreateSession_CapturesConnectionState()
     {
+        ISessionFactory factory = new SessionFactory();
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
@@ -29,7 +31,7 @@ public sealed class ConnectionHubSessionTests
         connection.Level = Abstractions.Security.PermissionLevel.OWNER;
         connection.Attributes["test"] = "value";
 
-        SessionEntry session = hub.SessionStore.CreateSession(connection);
+        SessionEntry session = factory.CreateSession(connection);
 
         _ = session.Should().NotBeNull();
         _ = session.Snapshot.Secret.Should().Be(connection.Secret);
@@ -42,58 +44,68 @@ public sealed class ConnectionHubSessionTests
     [Fact]
     public async Task TryResumeSession_RestoresState_AndFailsIfOldConnectionActive()
     {
-        using ConnectionHub hub = new();
+        InMemorySessionStore store = new();
+        SessionService service = new(store: store);
+        using ConnectionHub hub = new(service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket);
 
         connection1.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection1.Attributes["test"] = "value";
+        connection1.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         hub.RegisterConnection(connection1);
 
-        SessionEntry sessionInfo = hub.SessionStore.CreateSession(connection1);
+        ISessionFactory factory = new SessionFactory();
+        SessionEntry sessionInfo = factory.CreateSession(connection1);
 
-        await hub.SessionStore.StoreAsync(sessionInfo);
+        await store.StoreAsync(sessionInfo);
 
         // Resume should fail while connection1 is still in Hub
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
         using Connection connection2 = new(scope2.ServerSocket);
 
         // Simulator of TryResumeSession logic:
-        SessionEntry? s = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        // We use ConsumeAsync but since we want to check multiple times, we'll store it back or use the reference
+        SessionEntry? s = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
         _ = s.Should().NotBeNull();
+        await store.StoreAsync(s!);
 
         // Security validation (hub.GetConnection)
-        _ = hub.GetConnection(s.ConnectionId).Should().NotBeNull();
+        _ = hub.GetConnection(s!.ConnectionId).Should().NotBeNull();
 
         // Unregister connection1 (this will dispose it and wipe its secret)
         var expectedSecret = connection1.Secret;
         hub.UnregisterConnection(connection1);
 
         // Resume should now succeed
-        SessionEntry? ss = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        SessionEntry? ss = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
         _ = ss.Should().NotBeNull();
-        _ = hub.GetConnection(ss.ConnectionId).Should().BeNull();
+        _ = hub.GetConnection(ss!.ConnectionId).Should().BeNull();
 
         // Manual state restoration
         ApplySession(connection2, ss);
 
         _ = connection2.Secret.Should().Be(expectedSecret);
         _ = connection2.Attributes["test"].Should().Be("value");
-        _ = connection2.Attributes["nalix.handshake.established"].Should().Be(true);
+        _ = connection2.Attributes[ConnectionAttributes.HandshakeEstablished].Should().Be(true);
     }
 
     [Fact]
     public async Task TryResumeSession_PersistsState_AfterModifications()
     {
-        using ConnectionHub hub = new();
+        InMemorySessionStore store = new();
+        SessionService service = new(store: store);
+        using ConnectionHub hub = new(service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket);
 
+        connection1.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         hub.RegisterConnection(connection1);
 
         // 1. Create session (Initial state)
-        SessionEntry sessionInfo = hub.SessionStore.CreateSession(connection1);
-        await hub.SessionStore.StoreAsync(sessionInfo);
+        ISessionFactory factory = new SessionFactory();
+        SessionEntry sessionInfo = factory.CreateSession(connection1);
+        await store.StoreAsync(sessionInfo);
 
         // 2. Modify state AFTER session creation
         connection1.Attributes["user_id"] = 12345;
@@ -101,7 +113,7 @@ public sealed class ConnectionHubSessionTests
 
         // 3. Update session before unregistering (required now because Unregister doesn't auto-update)
         SyncSession(connection1, sessionInfo);
-        await hub.SessionStore.StoreAsync(sessionInfo);
+        await store.StoreAsync(sessionInfo);
 
         // 4. Unregister connection
         hub.UnregisterConnection(connection1);
@@ -109,10 +121,10 @@ public sealed class ConnectionHubSessionTests
         // 5. Resume session with new connection
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
         using Connection connection2 = new(scope2.ServerSocket);
-        SessionEntry? s = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        SessionEntry? s = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
         _ = s.Should().NotBeNull();
 
-        ApplySession(connection2, s);
+        ApplySession(connection2, s!);
 
         // 6. Verify that modifications were persisted
         _ = connection2.Attributes.Should().ContainKey("user_id").WhoseValue.Should().Be(12345);
@@ -122,39 +134,45 @@ public sealed class ConnectionHubSessionTests
     [Fact]
     public async Task UpdateSession_ManuallySyncsState()
     {
-        using ConnectionHub hub = new();
+        InMemorySessionStore store = new();
+        SessionService service = new(store: store);
+        using ConnectionHub hub = new(service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
 
         hub.RegisterConnection(connection);
-        SessionEntry sessionInfo = hub.SessionStore.CreateSession(connection);
-        await hub.SessionStore.StoreAsync(sessionInfo);
+        ISessionFactory factory = new SessionFactory();
+        SessionEntry sessionInfo = factory.CreateSession(connection);
+        await store.StoreAsync(sessionInfo);
 
         // Modify state
         connection.Attributes["custom"] = "data";
 
         // Manual sync
         SyncSession(connection, sessionInfo);
-        await hub.SessionStore.StoreAsync(sessionInfo);
+        await store.StoreAsync(sessionInfo);
 
-        // Verify snapshot from Hub store
-        SessionEntry? updated = await hub.SessionStore.RetrieveAsync(sessionInfo.Snapshot.SessionToken);
+        // Verify snapshot from store
+        SessionEntry? updated = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
         _ = updated.Should().NotBeNull();
-        _ = updated.Snapshot.Attributes.Should().ContainKey("custom").WhoseValue.Should().Be("data");
+        _ = updated!.Snapshot.Attributes.Should().ContainKey("custom").WhoseValue.Should().Be("data");
     }
 
     [Fact]
     public async Task StoreAsync_WhenTokenIsOverwritten_ReturnsPreviousEntry()
     {
-        using ConnectionHub hub = new();
+        InMemorySessionStore store = new();
+        SessionService service = new(store: store);
+        using ConnectionHub hub = new(service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
 
         connection.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection.Attributes["marker"] = "old";
 
-        SessionEntry original = hub.SessionStore.CreateSession(connection);
-        await hub.SessionStore.StoreAsync(original);
+        ISessionFactory factory = new SessionFactory();
+        SessionEntry original = factory.CreateSession(connection);
+        await store.StoreAsync(original);
 
         SessionSnapshot replacementSnapshot = new()
         {
@@ -169,15 +187,13 @@ public sealed class ConnectionHubSessionTests
         replacementSnapshot.Attributes!["marker"] = "new";
 
         SessionEntry replacement = new(replacementSnapshot, original.ConnectionId);
-        await hub.SessionStore.StoreAsync(replacement);
+        await store.StoreAsync(replacement);
 
         _ = original.Snapshot.Secret.Should().Be(Abstractions.Primitives.Bytes32.Zero);
         _ = original.Snapshot.Attributes.Should().BeNull();
 
-        SessionEntry? stored = await hub.SessionStore.RetrieveAsync(original.Snapshot.SessionToken);
+        SessionEntry? stored = await service.ConsumeAsync(original.Snapshot.SessionToken);
         _ = stored.Should().BeSameAs(replacement);
-
-        await hub.SessionStore.RemoveAsync(original.Snapshot.SessionToken);
     }
 
     private static void SyncSession(IConnection connection, SessionEntry session)
