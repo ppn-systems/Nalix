@@ -17,17 +17,9 @@ namespace Nalix.Network.Sessions;
 /// An in-memory implementation of <see cref="ISessionStore"/> backed by a <see cref="ConcurrentDictionary{TKey,TValue}"/>.
 /// Suitable for single-node deployments. For distributed scenarios, replace with a Redis-backed store.
 /// </summary>
-public sealed class InMemorySessionStore : SessionStoreBase
+public sealed class InMemorySessionStore : ISessionStore
 {
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
-
-    /// <inheritdoc/>
-    public override ISessionFactory Factory { get; }
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="InMemorySessionStore"/> class.
-    /// </summary>
-    public InMemorySessionStore() => this.Factory = new SessionFactory();
 
     /// <summary>
     /// Executes the scavenging loop. This method is intended to be called by a <see cref="ITaskManager"/> worker.
@@ -56,7 +48,7 @@ public sealed class InMemorySessionStore : SessionStoreBase
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default)
+    public ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(entry);
         cancellationToken.ThrowIfCancellationRequested();
@@ -97,7 +89,7 @@ public sealed class InMemorySessionStore : SessionStoreBase
     /// retrieve-and-remove. Only one concurrent caller can successfully consume a given token.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+    public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
