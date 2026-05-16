@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Concurrent;
+using System.Reflection;
+using System.Reflection.Emit;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Framework.Injection;
 
@@ -215,6 +217,12 @@ public sealed class InstanceManagerTests : IDisposable
         bool only = InstanceManager.IsTheOnlyInstance;
 
         _ = Assert.IsType<bool>(only);
+
+        string assemblyName = InstanceManager.EntryAssembly.GetName().Name ?? "GenericApp";
+        string expectedPrefix = $"Global\\Nalix.Framework.Lock.{assemblyName}.";
+
+        Assert.StartsWith(expectedPrefix, InstanceManager.ApplicationMutexName, StringComparison.Ordinal);
+        Assert.Equal(expectedPrefix.Length + 8, InstanceManager.ApplicationMutexName.Length);
     }
 
     [Fact(DisplayName = "CreateInstance with null for struct parameter should throw")]
@@ -232,6 +240,22 @@ public sealed class InstanceManagerTests : IDisposable
         NullableStructParamService instance = (NullableStructParamService)_manager.CreateInstance(typeof(NullableStructParamService), [null]);
         Assert.NotNull(instance);
         Assert.Null(instance.S);
+    }
+
+    [Fact(DisplayName = "GetOrCreateInstance refuses new type cache entries after the cache limit")]
+    public void GetOrCreateInstanceRejectsNewEntriesAfterCacheLimit()
+    {
+        Type[] types = CreateDynamicTypes(4097);
+
+        for (int i = 0; i < 4096; i++)
+        {
+            _ = _manager.GetOrCreateInstance(types[i]);
+        }
+
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(
+            () => _manager.GetOrCreateInstance(types[4096]));
+
+        Assert.Contains("_instanceCache", ex.Message, StringComparison.Ordinal);
     }
 
     private sealed class DisposableCounter : IDisposable
@@ -266,9 +290,27 @@ public sealed class InstanceManagerTests : IDisposable
     private sealed class StructParamService(MyStruct s) { public MyStruct S { get; } = s; }
 
     private sealed class NullableStructParamService(MyStruct? s) { public MyStruct? S { get; } = s; }
+
+    private static Type[] CreateDynamicTypes(int count)
+    {
+        AssemblyName assemblyName = new("Nalix.Framework.Tests.DynamicInstances");
+        AssemblyBuilder assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+        ModuleBuilder module = assembly.DefineDynamicModule("Main");
+        Type[] types = new Type[count];
+
+        for (int i = 0; i < count; i++)
+        {
+            TypeBuilder builder = module.DefineType(
+                "GeneratedService" + i.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                TypeAttributes.Public | TypeAttributes.Class);
+
+            _ = builder.DefineDefaultConstructor(MethodAttributes.Public);
+            types[i] = builder.CreateTypeInfo()!.AsType();
+        }
+
+        return types;
+    }
 }
-
-
 
 
 

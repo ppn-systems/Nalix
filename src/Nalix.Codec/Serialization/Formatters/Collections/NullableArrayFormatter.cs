@@ -75,11 +75,7 @@ internal sealed class NullableArrayFormatter<
             return [];
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            throw new Abstractions.Exceptions.SerializationFailureException(
-                $"Nullable array length out of range: {length}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
-        }
+        CollectionGuard.EnsureRead(ref reader, length);
 
         T?[] array = new T?[length];
 
@@ -91,4 +87,3 @@ internal sealed class NullableArrayFormatter<
         return array;
     }
 }
-

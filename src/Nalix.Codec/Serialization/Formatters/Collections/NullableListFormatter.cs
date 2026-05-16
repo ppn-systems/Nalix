@@ -80,11 +80,7 @@ internal sealed class NullableValueListFormatter<
             return [];
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            throw new Abstractions.Exceptions.SerializationFailureException(
-                $"Nullable list length out of range: {length}. Max allowed is {SerializationStaticOptions.Instance.MaxArrayLength}.");
-        }
+        CollectionGuard.EnsureRead(ref reader, length);
 
         System.Collections.Generic.List<T?> list = new(length);
         CollectionsMarshal.SetCount(list, length);
@@ -111,10 +107,7 @@ internal sealed class NullableValueListFormatter<
             return;
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, length);
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);
@@ -127,4 +120,3 @@ internal sealed class NullableValueListFormatter<
         }
     }
 }
-

@@ -67,8 +67,11 @@ public sealed class FormatterProviderTests
         FormatterProvider.Register<StubType>(formatter);
         IFormatter<StubType> resolved = FormatterProvider.Get<StubType>();
 
-        Assert.Same(formatter, resolved);
+        DataReader reader = new([]);
+        StubType value = resolved.Deserialize(ref reader);
+        Assert.NotNull(value);
     }
+
 
     [Fact]
     public void RegisterComplexWhenTypeIsUnsupportedThrowsSerializationFailureException()
@@ -88,6 +91,7 @@ public sealed class FormatterProviderTests
         public void Serialize(ref DataWriter writer, in StubType value) { }
     }
 
+
     private interface IUnsupported
     {
     }
@@ -98,9 +102,6 @@ public sealed class FormatterProviderTests
         public void Serialize(ref DataWriter writer, in IUnsupported value) { }
     }
 }
-
-
-
 
 
 

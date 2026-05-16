@@ -171,10 +171,7 @@ internal sealed class QueueFormatter<
             return null;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         System.Collections.Generic.Queue<T> queue = new(count);
 
@@ -203,10 +200,7 @@ internal sealed class QueueFormatter<
             return;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         for (int i = 0; i < count; i++)
         {
@@ -214,4 +208,3 @@ internal sealed class QueueFormatter<
         }
     }
 }
-

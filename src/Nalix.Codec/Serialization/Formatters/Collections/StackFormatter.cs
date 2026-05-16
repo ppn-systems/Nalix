@@ -5,9 +5,8 @@ using System;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
-using Nalix.Codec.Internal;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization.Internal;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
@@ -166,10 +165,7 @@ internal sealed class StackFormatter<
             return null;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         System.Collections.Generic.Stack<T> stack = new(count);
 
@@ -213,10 +209,7 @@ internal sealed class StackFormatter<
             return;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         T[] buffer = new T[count];
         for (int i = 0; i < count; i++)
@@ -230,4 +223,3 @@ internal sealed class StackFormatter<
         }
     }
 }
-

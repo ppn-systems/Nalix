@@ -82,10 +82,7 @@ internal sealed class ReferenceListFormatter<
             return null!;
         }
 
-        if (count < 0 || count > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, count);
 
         System.Collections.Generic.List<T> list = new(count);
         CollectionsMarshal.SetCount(list, count);
@@ -111,10 +108,7 @@ internal sealed class ReferenceListFormatter<
             return;
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, length);
 
         value.Clear();
         CollectionsMarshal.SetCount(value, length);
@@ -126,4 +120,3 @@ internal sealed class ReferenceListFormatter<
         }
     }
 }
-

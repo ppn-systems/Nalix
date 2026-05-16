@@ -76,10 +76,7 @@ internal sealed class ReferenceArrayFormatter<
             return [];
         }
 
-        if (length < 0 || length > SerializationStaticOptions.Instance.MaxArrayLength)
-        {
-            Throw.LengthOutOfRange();
-        }
+        CollectionGuard.EnsureRead(ref reader, length);
 
         T[] array = new T[length];
         for (int i = 0; i < length; i++)
@@ -90,4 +87,3 @@ internal sealed class ReferenceArrayFormatter<
         return array;
     }
 }
-

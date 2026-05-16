@@ -93,24 +93,10 @@ internal sealed class ArrayFormatter<
             return null!;
         }
 
-        int limit = SerializationStaticOptions.Instance.MaxArrayLength;
-        if (length < 0 || length > limit)
-        {
-            throw new SerializationFailureException($"Array length {length} out of range (Config: Serialization.MaxArrayLength)");
-        }
-
-        long totalLong = (long)length * s_elementSize;
-        if (totalLong > int.MaxValue)
-        {
-            throw new SerializationFailureException(
-                $"Array data size overflow: {totalLong} bytes exceeds int.MaxValue.");
-        }
-
-        int total = (int)totalLong;
-
-        ref byte src = ref reader.GetSpanReference(total);
+        int total = CollectionGuard.EnsureCan(ref reader, length, s_elementSize);
 
         T[] result = System.GC.AllocateUninitializedArray<T>(length);
+        ref byte src = ref reader.GetSpanReference(total);
         ref T dst = ref MemoryMarshal.GetArrayDataReference(result);
 
         System.Runtime.CompilerServices.Unsafe.CopyBlockUnaligned(
