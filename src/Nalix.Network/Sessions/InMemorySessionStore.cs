@@ -23,51 +23,88 @@ namespace Nalix.Network.Sessions;
 /// </summary>
 public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
 {
-    private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
-    private readonly IWorkerHandle _scavenger;
-#pragma warning disable CA2213 // Intentional: GC will handle it to avoid ObjectDisposedException on background threads
-    private readonly CancellationTokenSource _cts = new();
-#pragma warning restore CA2213
     private int _disposed;
 
+    private readonly IWorkerHandle _scavenger;
+    private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
+
+    /// <inheritdoc/>
+    public override ISessionFactory Factory { get; }
+
     /// <summary>
-    /// Initializes a new instance of the <see cref="InMemorySessionStore"/> class
-    /// and starts the background scavenger for cleaning up expired sessions.
+    /// Initializes a new instance of the <see cref="InMemorySessionStore"/> class.
     /// </summary>
     public InMemorySessionStore()
     {
+        this.Factory = new SessionFactory();
+
         _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",
             group: TaskNaming.Tags.Cleanup,
-            work: this.SCAVENGE_LOOP,
+            work: this.ExecuteAsync,
             options: new WorkerOptions
             {
+                RetainFor = TimeSpan.Zero,
                 Tag = TaskNaming.Tags.Cleanup,
-                IdType = SnowflakeType.System,
-                CancellationToken = _cts.Token,
-                RetainFor = TimeSpan.Zero
+                IdType = SnowflakeType.System
             }
         );
     }
 
-    private async ValueTask SCAVENGE_LOOP(IWorkerContext ctx, CancellationToken ct)
+    /// <summary>
+    /// Executes the scavenging loop. This method is intended to be called by a <see cref="ITaskManager"/> worker.
+    /// </summary>
+    /// <param name="ctx">The worker context provided by the task manager.</param>
+    /// <param name="ct">A cancellation token to stop the loop.</param>
+    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
+    public async ValueTask ExecuteAsync(IWorkerContext ctx, CancellationToken ct)
     {
         using PeriodicTimer timer = new(TimeSpan.FromMinutes(1));
+
         while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
         {
-            ctx.Beat();
+            ctx?.Beat();
+
             try
             {
                 await this.ScavengeAsync(ct).ConfigureAwait(false);
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
-                // Ignore background cleanup errors
+                // Background cleanup errors should not crash the scavenger worker
             }
         }
     }
 
-    private async ValueTask ScavengeAsync(CancellationToken ct)
+    /// <inheritdoc />
+    public void Dispose()
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                    .CancelWorker(_scavenger.Id);
+            _scavenger.Dispose();
+        }
+        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        {
+            // Best-effort cleanup
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
+    /// <summary>
+    /// Scans the store and removes expired sessions.
+    /// This method is intended to be called by an external manager or scavenger.
+    /// </summary>
+    /// <param name="ct">A cancellation token to stop the operation.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    internal async ValueTask ScavengeAsync(CancellationToken ct)
     {
         long now = Clock.UnixMillisecondsNow();
         int count = 0;
@@ -155,7 +192,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
             return ValueTask.FromResult<SessionEntry?>(null);
         }
 
-        // Lazy expiration — check TTL immediately upon retrieval because background cleanup is running
+        // Lazy expiration — check TTL immediately upon retrieval
         if (entry.Snapshot.ExpiresAtUnixMilliseconds <= Clock.UnixMillisecondsNow())
         {
             // Exact reference removal to prevent race condition deleting a newer session on same ID
@@ -194,38 +231,4 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
 
         return ValueTask.FromResult<SessionEntry?>(entry);
     }
-
-    /// <inheritdoc/>
-    public void Dispose()
-    {
-        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-        {
-            return;
-        }
-
-        try
-        {
-            _cts.Cancel();
-            // _cts.Dispose() is intentionally omitted to avoid ObjectDisposedException
-            // if timer.WaitForNextTickAsync(ct) is still running in the background.
-        }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-        {
-            // Ignore cancel errors
-        }
-
-        try
-        {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_scavenger.Id);
-            _scavenger.Dispose();
-        }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-        {
-            // Best-effort cleanup
-        }
-
-        GC.SuppressFinalize(this);
-    }
 }
-

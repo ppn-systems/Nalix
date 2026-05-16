@@ -12,17 +12,9 @@ namespace Nalix.Abstractions.Networking.Sessions;
 public interface ISessionStore
 {
     /// <summary>
-    /// Creates a new resumable session for the specified connection.
+    /// Defines a contract for creating resumable session entries from active connections.
     /// </summary>
-    /// <param name="connection">The connection to create a session for.</param>
-    /// <returns>The created session entry.</returns>
-    SessionEntry CreateSession(IConnection connection);
-
-    /// <summary>
-    /// Persists the session for the specified connection. 
-    /// Enforces policies (handshake state, min attributes) and throws if they are not met.
-    /// </summary>
-    ValueTask StoreAsync(IConnection connection, CancellationToken cancellationToken = default);
+    ISessionFactory Factory { get; }
 
     /// <summary>
     /// Persists the specified session entry directly to the store.

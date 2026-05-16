@@ -134,7 +134,8 @@ public sealed class SessionHandlers
         // Generate a new session entry with a rotated token for subsequent resume attempts.
         if (hub is not null)
         {
-            await hub.SessionStore.StoreAsync(context.Connection).ConfigureAwait(false);
+            SessionEntry entry = hub.SessionStore.Factory.CreateSession(context.Connection);
+            await hub.SessionStore.StoreAsync(entry).ConfigureAwait(false);
         }
 
         ulong newToken = context.Connection.ID.ToUInt64();

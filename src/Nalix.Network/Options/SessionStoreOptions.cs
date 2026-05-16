@@ -31,9 +31,9 @@ public sealed partial class SessionStoreOptions : ConfigurationLoader
     /// Gets or sets the minimum number of attributes in the ObjectMap required to persist a session.
     /// This helps prevent DDoS by not saving "empty" sessions from handshake-only connections.
     /// </summary>
-    [IniComment("Minimum number of attributes required to persist a session (excluding internal flags, default 4)")]
+    [IniComment("Minimum number of attributes required to persist a session (excluding internal flags, default 10)")]
     [Range(0, int.MaxValue, ErrorMessage = "MinAttributesForPersistence cannot be negative.")]
-    public int MinAttributesForPersistence { get; set; } = 4;
+    public int MinAttributesForPersistence { get; set; } = 10;
 
     /// <summary>
     /// Validates the configuration options.

@@ -55,6 +55,7 @@ public sealed class ConnectionHub : IConnectionHub
     private readonly ConcurrentDictionary<ulong, IConnection>[] _shards;
 
     private readonly ISessionStore _sessionStore;
+    private readonly SessionService _sessionService;
     private readonly SessionStoreOptions _sessionOptions;
 
     private readonly ILogger? _logger;
@@ -122,6 +123,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         _logger = logger;
         _sessionStore = sessionStore ?? new InMemorySessionStore();
+        _sessionService = new SessionService(new SessionFactory(), _sessionStore);
         _sessionOptions = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         /*
@@ -697,18 +699,18 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (_sessionOptions.AutoSaveOnUnregister)
         {
-            _ = PersistBackgroundAsync(_sessionStore, removedConnection);
+            _ = PersistBackgroundAsync(_sessionService, removedConnection);
         }
 
-        static async Task PersistBackgroundAsync(ISessionStore store, IConnection connection)
+        static async Task PersistBackgroundAsync(SessionService service, IConnection connection)
         {
             try
             {
-                await store.StoreAsync(connection).ConfigureAwait(false);
+                await service.SaveSessionAsync(connection).ConfigureAwait(false);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                // Background persistence failures (including policy violations) are ignored in fire-and-forget scenarios
+                // Background persistence failures are ignored in fire-and-forget scenarios
             }
         }
 
