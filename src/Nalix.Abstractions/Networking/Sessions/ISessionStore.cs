@@ -18,24 +18,6 @@ public interface ISessionStore
     ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Retrieves a session entry given its session token.
-    /// </summary>
-    /// <param name="sessionToken">The session token identifier.</param>
-    /// <param name="cancellationToken">The cancellation token for the operation.</param>
-    /// <returns>
-    /// A <see cref="ValueTask{TResult}"/> whose result is the <see cref="SessionEntry"/> if found; otherwise, <c>null</c>.
-    /// </returns>
-    ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Removes the session entry with the specified session token from the store.
-    /// </summary>
-    /// <param name="sessionToken">The session token identifier.</param>
-    /// <param name="cancellationToken">The cancellation token for the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that represents the asynchronous remove operation.</returns>
-    ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
-
-    /// <summary>
     /// Atomically retrieves and removes a session entry from the store.
     /// This prevents TOCTOU race conditions where two concurrent callers both
     /// successfully retrieve the same token before either removes it (SEC-33).

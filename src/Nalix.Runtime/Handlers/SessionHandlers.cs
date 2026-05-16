@@ -69,8 +69,8 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await hub.SessionService.Store.ConsumeAsync(packet.SessionToken)
-                                                              .ConfigureAwait(false);
+        SessionEntry? session = await hub.SessionService.ConsumeAsync(packet.SessionToken)
+                                                        .ConfigureAwait(false);
         if (session == null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);

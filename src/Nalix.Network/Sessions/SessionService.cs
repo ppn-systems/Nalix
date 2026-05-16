@@ -27,12 +27,6 @@ public sealed class SessionService : ISessionService, IDisposable
     private readonly ISessionFactory _factory;
     private readonly SessionStoreOptions _options;
 
-    /// <inheritdoc/>
-    public ISessionStore Store => _store;
-
-    /// <inheritdoc/>
-    public ISessionFactory Factory => _factory;
-
     /// <summary>
     /// Coordinates session persistence by applying lifecycle policies and delegating to factory and storage.
     /// </summary>
@@ -99,6 +93,9 @@ public sealed class SessionService : ISessionService, IDisposable
             throw;
         }
     }
+
+    /// <inheritdoc/>
+    public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default) => _store.ConsumeAsync(sessionToken, cancellationToken);
 
     /// <inheritdoc/>
     public void Dispose()

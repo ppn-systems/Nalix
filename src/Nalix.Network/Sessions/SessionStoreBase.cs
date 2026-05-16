@@ -17,14 +17,8 @@ public abstract class SessionStoreBase : ISessionStore
     public abstract ISessionFactory Factory { get; }
 
     /// <inheritdoc/>
-    public abstract ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
-
-    /// <inheritdoc/>
-    public abstract ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default);
+    public abstract ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);
 
     /// <inheritdoc/>
     public abstract ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
-
-    /// <inheritdoc/>
-    public abstract ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default);
 }

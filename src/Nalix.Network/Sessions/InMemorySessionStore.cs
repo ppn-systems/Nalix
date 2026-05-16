@@ -92,46 +92,6 @@ public sealed class InMemorySessionStore : SessionStoreBase
     }
 
     /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override ValueTask RemoveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (_store.TryRemove(sessionToken, out SessionEntry? entry))
-        {
-            entry.Return();
-        }
-
-        return ValueTask.CompletedTask;
-    }
-
-    /// <inheritdoc />
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override ValueTask<SessionEntry?> RetrieveAsync(ulong sessionToken, CancellationToken cancellationToken = default)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        if (!_store.TryGetValue(sessionToken, out SessionEntry? entry))
-        {
-            return ValueTask.FromResult<SessionEntry?>(null);
-        }
-
-        // Lazy expiration — check TTL immediately upon retrieval
-        if (entry.Snapshot.ExpiresAtUnixMilliseconds <= Clock.UnixMillisecondsNow())
-        {
-            // Exact reference removal to prevent race condition deleting a newer session on same ID
-            if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(new KeyValuePair<ulong, SessionEntry>(sessionToken, entry)))
-            {
-                entry.Return();
-            }
-
-            return ValueTask.FromResult<SessionEntry?>(null);
-        }
-
-        return ValueTask.FromResult<SessionEntry?>(entry);
-    }
-
-    /// <inheritdoc />
     /// <remarks>
     /// SEC-33 fix: Uses <c>ConcurrentDictionary.TryRemove</c> for atomic
     /// retrieve-and-remove. Only one concurrent caller can successfully consume a given token.

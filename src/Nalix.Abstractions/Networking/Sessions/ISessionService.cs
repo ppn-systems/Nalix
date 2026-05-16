@@ -13,20 +13,13 @@ namespace Nalix.Abstractions.Networking.Sessions;
 public interface ISessionService : IDisposable
 {
     /// <summary>
-    /// Session store used to persist and retrieve session snapshots.
-    /// </summary>
-    ISessionStore Store { get; }
-
-    /// <summary>
-    /// Factory used to create session snapshots and enforce policies before persistence.
-    /// </summary>
-    ISessionFactory Factory { get; }
-
-    /// <summary>
     /// Attempts to persist the session for the specified connection if it meets the required policies.
     /// </summary>
     /// <param name="connection">The connection to persist.</param>
     /// <param name="cancellationToken">A cancellation token for the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
     ValueTask SaveSessionAsync(IConnection connection, CancellationToken cancellationToken = default);
+
+    /// <inheritdoc/>
+    ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default);
 }
