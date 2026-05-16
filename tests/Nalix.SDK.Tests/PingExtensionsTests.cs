@@ -7,6 +7,7 @@ using Nalix.Hosting;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
+using Nalix.Runtime.Handlers;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -27,6 +28,7 @@ public sealed class PingExtensionsTests : IDisposable
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.AddHandler<SystemControlHandlers>();
         
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();

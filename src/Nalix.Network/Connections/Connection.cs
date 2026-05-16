@@ -207,7 +207,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     internal SlidingWindow UdpReplayWindow => _udpReplayWindow ??= new(s_options.UdpReplayWindowSize);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void ReleasePendingPacket() => this.Socket.OnPacketProcessed();
+    internal void ReleasePendingPacket() => this.Socket.ReleasePendingPacket();
 
 #if DEBUG
     /// <summary>

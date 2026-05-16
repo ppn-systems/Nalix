@@ -19,7 +19,7 @@ public sealed class InMemorySessionStoreTests : IDisposable
     }
 
     [Fact]
-    public async Task StoreAsync_And_RetrieveAsync_WorkCorrectly()
+    public async Task StoreAsync_And_ConsumeAsync_WorkCorrectly()
     {
         ulong token = (ulong)123456789UL;
         SessionSnapshot snapshot = new()
@@ -30,15 +30,15 @@ public sealed class InMemorySessionStoreTests : IDisposable
         SessionEntry entry = new(snapshot, (ulong)1UL);
 
         await _store.StoreAsync(entry);
-        SessionEntry? retrieved = await _store.RetrieveAsync(token);
+        SessionEntry? retrieved = await _store.ConsumeAsync(token);
 
         Assert.NotNull(retrieved);
         Assert.Same(entry, retrieved);
-        Assert.Equal(token, retrieved.Snapshot.SessionToken);
+        Assert.Equal(token, retrieved!.Snapshot.SessionToken);
     }
 
     [Fact]
-    public async Task RetrieveAsync_WhenExpired_ReturnsNullAndRemoves()
+    public async Task ConsumeAsync_WhenExpired_ReturnsNull()
     {
         ulong token = (ulong)999UL;
         SessionSnapshot snapshot = new()
@@ -51,57 +51,13 @@ public sealed class InMemorySessionStoreTests : IDisposable
         await _store.StoreAsync(entry);
         
         // This should trigger lazy expiration
-        SessionEntry? retrieved = await _store.RetrieveAsync(token);
-
-        Assert.Null(retrieved);
-        
-        // Verify it was removed (double check)
-        SessionEntry? secondAttempt = await _store.RetrieveAsync(token);
-        Assert.Null(secondAttempt);
-    }
-
-    [Fact]
-    public async Task ConsumeAsync_RemovesEntry()
-    {
-        ulong token = (ulong)456UL;
-        SessionSnapshot snapshot = new()
-        {
-            SessionToken = token,
-            ExpiresAtUnixMilliseconds = long.MaxValue
-        };
-        SessionEntry entry = new(snapshot, (ulong)1UL);
-
-        await _store.StoreAsync(entry);
-        
         SessionEntry? consumed = await _store.ConsumeAsync(token);
-        Assert.NotNull(consumed);
-        Assert.Same(entry, consumed);
 
-        SessionEntry? retrieved = await _store.RetrieveAsync(token);
-        Assert.Null(retrieved);
-    }
-
-    [Fact]
-    public async Task RemoveAsync_WorksCorrectly()
-    {
-        ulong token = (ulong)789UL;
-        SessionSnapshot snapshot = new()
-        {
-            SessionToken = token,
-            ExpiresAtUnixMilliseconds = long.MaxValue
-        };
-        SessionEntry entry = new(snapshot, (ulong)1UL);
-
-        await _store.StoreAsync(entry);
-        await _store.RemoveAsync(token);
-
-        SessionEntry? retrieved = await _store.RetrieveAsync(token);
-        Assert.Null(retrieved);
+        Assert.Null(consumed);
     }
 
     public void Dispose()
     {
-        _store.Dispose();
     }
 }
 

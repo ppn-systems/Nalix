@@ -308,7 +308,7 @@ public sealed class HandshakeHandlers
         IConnectionHub? hub = connection.GetHub();
         if (hub is not null)
         {
-            await hub.SessionStore.StoreAsync(connection).ConfigureAwait(false);
+            await hub.SessionService.SaveSessionAsync(connection).ConfigureAwait(false);
         }
 
         using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();

@@ -21,17 +21,31 @@ public sealed class HandshakeIntegrationTests : IDisposable
         if (!PacketRegistry.IsBuilt)
             PacketRegistry.Build();
         // Setup Server Identity
-        _certPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../shared/certificate.private"));
-
-        if (!File.Exists(_certPath))
+        string? current = AppDomain.CurrentDomain.BaseDirectory;
+        _certPath = null!;
+        while (current != null)
         {
-            // Fallback for different test runners
-            _certPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "shared/certificate.private"));
+            string candidate = Path.Combine(current, "shared", "certificate.private");
+            if (File.Exists(candidate))
+            {
+                _certPath = candidate;
+                break;
+            }
+            current = Path.GetDirectoryName(current);
         }
 
-        if (!File.Exists(_certPath))
+        if (_certPath == null)
         {
-            _certPath = Path.GetFullPath("shared/certificate.private");
+            // Try absolute fallback if we know we are on user's machine
+            if (File.Exists(@"e:\Cs\Nalix\shared\certificate.private"))
+            {
+                _certPath = @"e:\Cs\Nalix\shared\certificate.private";
+            }
+        }
+
+        if (_certPath == null)
+        {
+            throw new FileNotFoundException("Could not find certificate.private in any parent directory.");
         }
 
         // Load the public key corresponding to the private key in certificate.private
@@ -43,8 +57,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         // HandshakeHandlers.SetCertificatePath(_certPath);
 
         // Load the public key from certificate.public
-        string pubPath = Path.Combine(Path.GetDirectoryName(_certPath)!, "certificate.public");
-        _serverPublicKey = Bytes32.Parse(READ_HEX_FROM_FILE(pubPath));
+        _serverPublicKey = Bytes32.Parse(TestUtils.GetServerPublicKey());
 
         // Initialize HandshakeHandlers with the private key path
         HandshakeHandlers.SetCertificatePath(_certPath);

@@ -7,7 +7,7 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
 using FluentAssertions;
-using Nalix.Environment.DataFrames.Chunks;
+using Nalix.Environment.Fragments;
 using Nalix.Network.Connections;
 using Xunit;
 using TransportAsyncCallback = Nalix.Network.Internal.Transport.AsyncCallback;

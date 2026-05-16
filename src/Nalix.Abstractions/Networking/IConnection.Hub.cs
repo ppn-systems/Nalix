@@ -20,9 +20,9 @@ public interface IConnectionHub : IReportable, IDisposable
     int Count { get; }
 
     /// <summary>
-    /// Gets the session store used to persist connection sessions.
+    /// Gets the session service used to persist connection sessions.
     /// </summary>
-    ISessionStore SessionStore { get; }
+    ISessionService SessionService { get; }
 
     /// <summary>
     /// Raised after a connection is successfully unregistered.

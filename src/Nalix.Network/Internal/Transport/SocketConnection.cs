@@ -113,7 +113,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// Persistent receive buffer for opportunistic reads. 
     /// Rented once for the lifetime of the connection.
     /// </summary>
-    private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MaxChunkSize <= 0 ? 4096 : s_fragmentOptions.MaxChunkSize * 2);
+    private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(GET_RECEIVE_BUFFER_SIZE());
 
     private int _bufferDataLength;
     private string _endpointString = "<unknown>";
@@ -205,14 +205,16 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     /// counter so the receive loop can accept the next packet from this connection.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void OnPacketProcessed() => Interlocked.Decrement(ref _pendingProcessCallbacks);
+    internal void ReleasePendingPacket() => Interlocked.Decrement(ref _pendingProcessCallbacks);
 
+#if DEBUG
     /// <summary>
-    /// Manually increments the per-connection pending counter.
-    /// Used by InjectIncoming in testing scenarios.
+    /// Manually increments the pending callback counter.
+    /// Used by test injection paths to respect the connection throttle.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     internal void IncrementPendingCallbacks() => Interlocked.Increment(ref _pendingProcessCallbacks);
+#endif
 
     /// <summary>
     /// Starts the SAEA-backed receive loop exactly once.
@@ -264,6 +266,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
         _receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
     }
+
     #endregion Public Methods
 
     #region Dispose Pattern
@@ -286,6 +289,18 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     #endregion Dispose Pattern
 
     #region Private: SAEA Receive Loop
+
+    private static int GET_RECEIVE_BUFFER_SIZE()
+    {
+        if (s_fragmentOptions.MaxChunkSize <= 0)
+        {
+            throw new InvalidOperationException(
+                $"[{nameof(SocketConnection)}] Invalid configuration: " +
+                $"MaxChunkSize must be > 0, got {s_fragmentOptions.MaxChunkSize}.");
+        }
+
+        return sizeof(ushort) + FragmentHeader.WireSize + s_fragmentOptions.MaxChunkSize;
+    }
 
     /// <summary>
     /// Main receive loop — uses <see cref="PooledSocketReceiveContext"/> (SAEA) for zero-alloc receives.

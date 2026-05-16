@@ -238,7 +238,14 @@ public partial class TaskManager
         /// Requests cancellation of the worker token source.
         /// </summary>
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public void Cancel() => this.Cts.Cancel();
+        public void Cancel()
+        {
+            try
+            {
+                this.Cts?.Cancel();
+            }
+            catch (ObjectDisposedException) { }
+        }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
         void IDisposable.Dispose() => this.Cancel();
