@@ -322,7 +322,7 @@ public sealed class InstanceManager : SingletonBase<InstanceManager>, IReportabl
                 if (itf.Name is "IReportable" or
                     "IPoolable" or "IPoolRentable" or
                     "IDisposable" or "IAsyncDisposable" or
-                    "IActivatable" or "IActivatableAsync")
+                    "IActivatable" or "IActivatableAsync" or "IHostedWorker")
                 {
                     continue;
                 }

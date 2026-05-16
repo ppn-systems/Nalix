@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -38,7 +39,7 @@ public sealed class SessionService : ISessionService, IDisposable
         _store = store ?? new InMemorySessionStore();
         _options = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
-        if (_store is InMemorySessionStore inMemoryStore)
+        if (_store is IHostedWorker inMemoryStore)
         {
             _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                 name: $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",

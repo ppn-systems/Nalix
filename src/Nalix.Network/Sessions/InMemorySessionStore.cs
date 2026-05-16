@@ -7,7 +7,9 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Time;
 
@@ -17,31 +19,53 @@ namespace Nalix.Network.Sessions;
 /// An in-memory implementation of <see cref="ISessionStore"/> backed by a <see cref="ConcurrentDictionary{TKey,TValue}"/>.
 /// Suitable for single-node deployments. For distributed scenarios, replace with a Redis-backed store.
 /// </summary>
-public sealed class InMemorySessionStore : ISessionStore
+public sealed class InMemorySessionStore : ISessionStore, IHostedWorker
 {
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
 
     /// <summary>
     /// Executes the scavenging loop. This method is intended to be called by a <see cref="ITaskManager"/> worker.
     /// </summary>
-    /// <param name="ctx">The worker context provided by the task manager.</param>
-    /// <param name="ct">A cancellation token to stop the loop.</param>
-    /// <returns>A <see cref="ValueTask"/> representing the asynchronous operation.</returns>
-    public async ValueTask ExecuteAsync(IWorkerContext ctx, CancellationToken ct)
+    public async ValueTask ExecuteAsync(IWorkerContext context, CancellationToken cancellationToken)
     {
         using PeriodicTimer timer = new(TimeSpan.FromMinutes(1));
 
-        while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false))
+        while (await timer.WaitForNextTickAsync(cancellationToken).ConfigureAwait(false))
         {
-            ctx?.Beat();
+            context?.Beat();
 
             try
             {
-                await this.ScavengeAsync(ct).ConfigureAwait(false);
+                await SCAVENGE_ASYNC(_store, cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // Background cleanup errors should not crash the scavenger worker
+            }
+        }
+
+        static async ValueTask SCAVENGE_ASYNC(ConcurrentDictionary<ulong, SessionEntry> store, CancellationToken cancellationToken)
+        {
+            long now = Clock.UnixMillisecondsNow();
+            int count = 0;
+
+            foreach (KeyValuePair<ulong, SessionEntry> pair in store)
+            {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+
+                if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now &&
+                    ((ICollection<KeyValuePair<ulong, SessionEntry>>)store).Remove(pair))
+                {
+                    pair.Value.Return();
+                }
+
+                if (++count % 1000 == 0)
+                {
+                    await Task.Yield();
+                }
             }
         }
     }
@@ -107,37 +131,4 @@ public sealed class InMemorySessionStore : ISessionStore
 
         return ValueTask.FromResult<SessionEntry?>(entry);
     }
-
-    /// <summary>
-    /// Scans the store and removes expired sessions.
-    /// This method is intended to be called by an external manager or scavenger.
-    /// </summary>
-    /// <param name="ct">A cancellation token to stop the operation.</param>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private async ValueTask ScavengeAsync(CancellationToken ct)
-    {
-        long now = Clock.UnixMillisecondsNow();
-        int count = 0;
-        foreach (KeyValuePair<ulong, SessionEntry> pair in _store)
-        {
-            if (ct.IsCancellationRequested)
-            {
-                break;
-            }
-
-            if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now)
-            {
-                if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(pair))
-                {
-                    pair.Value.Return();
-                }
-            }
-
-            if (++count % 1000 == 0)
-            {
-                await Task.Yield();
-            }
-        }
-    }
-
 }
