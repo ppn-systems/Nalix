@@ -54,8 +54,7 @@ public sealed class ConnectionHub : IConnectionHub
     private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<ulong, IConnection>[] _shards;
 
-    private readonly ISessionStore _sessionStore;
-    private readonly SessionService _sessionService;
+    private readonly ISessionService _sessionService;
     private readonly SessionStoreOptions _sessionOptions;
 
     private readonly ILogger? _logger;
@@ -86,8 +85,8 @@ public sealed class ConnectionHub : IConnectionHub
     /// </summary>
     public int Count => Volatile.Read(ref _count);
 
-    /// <inheritdoc />
-    public ISessionStore SessionStore => _sessionStore;
+    /// <inheritdoc/>
+    public ISessionService SessionService => _sessionService;
 
     /// <summary>
     /// Raised after a connection is successfully unregistered.
@@ -111,19 +110,18 @@ public sealed class ConnectionHub : IConnectionHub
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
     /// </summary>
-    /// <param name="sessionStore">
-    /// The session store used to persist connection sessions.
+    /// <param name="sessionService">
+    /// The session service used to manage connection sessions.
     /// Defaults to <see cref="InMemorySessionStore"/> when <c>null</c>.
     /// </param>
     /// <param name="logger">The logger instance to use for logging.</param>
-    public ConnectionHub(ISessionStore? sessionStore = null, ILogger? logger = null)
+    public ConnectionHub(ISessionService? sessionService = null, ILogger? logger = null)
     {
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
         _logger = logger;
-        _sessionStore = sessionStore ?? new InMemorySessionStore();
-        _sessionService = new SessionService(new SessionFactory(), _sessionStore);
+        _sessionService = sessionService ?? new SessionService();
         _sessionOptions = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         /*
@@ -570,9 +568,9 @@ public sealed class ConnectionHub : IConnectionHub
         _disposed = true;
         this.CloseAllConnections("disposed");
 
-        if (_sessionStore is IDisposable disposableStore)
+        if (_sessionService is IDisposable disposableService)
         {
-            disposableStore.Dispose();
+            disposableService.Dispose();
         }
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
@@ -702,7 +700,7 @@ public sealed class ConnectionHub : IConnectionHub
             _ = PersistBackgroundAsync(_sessionService, removedConnection);
         }
 
-        static async Task PersistBackgroundAsync(SessionService service, IConnection connection)
+        static async Task PersistBackgroundAsync(ISessionService service, IConnection connection)
         {
             try
             {

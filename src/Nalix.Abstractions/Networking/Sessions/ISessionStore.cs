@@ -12,11 +12,6 @@ namespace Nalix.Abstractions.Networking.Sessions;
 public interface ISessionStore
 {
     /// <summary>
-    /// Defines a contract for creating resumable session entries from active connections.
-    /// </summary>
-    ISessionFactory Factory { get; }
-
-    /// <summary>
     /// Persists the specified session entry directly to the store.
     /// This is a low-level operation that bypasses connection-level policy checks.
     /// </summary>

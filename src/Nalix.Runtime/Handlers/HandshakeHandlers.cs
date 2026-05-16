@@ -11,7 +11,6 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
-using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
@@ -309,8 +308,7 @@ public sealed class HandshakeHandlers
         IConnectionHub? hub = connection.GetHub();
         if (hub is not null)
         {
-            SessionEntry entry = hub.SessionStore.Factory.CreateSession(connection);
-            await hub.SessionStore.StoreAsync(entry).ConfigureAwait(false);
+            await hub.SessionService.SaveSessionAsync(connection).ConfigureAwait(false);
         }
 
         using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();

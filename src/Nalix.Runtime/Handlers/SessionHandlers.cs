@@ -69,8 +69,8 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await hub.SessionStore.ConsumeAsync(packet.SessionToken)
-                                                       .ConfigureAwait(false);
+        SessionEntry? session = await hub.SessionService.Store.ConsumeAsync(packet.SessionToken)
+                                                              .ConfigureAwait(false);
         if (session == null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
@@ -134,8 +134,7 @@ public sealed class SessionHandlers
         // Generate a new session entry with a rotated token for subsequent resume attempts.
         if (hub is not null)
         {
-            SessionEntry entry = hub.SessionStore.Factory.CreateSession(context.Connection);
-            await hub.SessionStore.StoreAsync(entry).ConfigureAwait(false);
+            await hub.SessionService.SaveSessionAsync(context.Connection).ConfigureAwait(false);
         }
 
         ulong newToken = context.Connection.ID.ToUInt64();

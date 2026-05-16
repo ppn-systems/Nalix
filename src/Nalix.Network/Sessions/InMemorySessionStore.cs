@@ -8,12 +8,8 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Time;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
-using Nalix.Framework.Tasks;
 
 namespace Nalix.Network.Sessions;
 
@@ -21,11 +17,8 @@ namespace Nalix.Network.Sessions;
 /// An in-memory implementation of <see cref="ISessionStore"/> backed by a <see cref="ConcurrentDictionary{TKey,TValue}"/>.
 /// Suitable for single-node deployments. For distributed scenarios, replace with a Redis-backed store.
 /// </summary>
-public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
+public sealed class InMemorySessionStore : SessionStoreBase
 {
-    private int _disposed;
-
-    private readonly IWorkerHandle _scavenger;
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
 
     /// <inheritdoc/>
@@ -34,22 +27,7 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="InMemorySessionStore"/> class.
     /// </summary>
-    public InMemorySessionStore()
-    {
-        this.Factory = new SessionFactory();
-
-        _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",
-            group: TaskNaming.Tags.Cleanup,
-            work: this.ExecuteAsync,
-            options: new WorkerOptions
-            {
-                RetainFor = TimeSpan.Zero,
-                Tag = TaskNaming.Tags.Cleanup,
-                IdType = SnowflakeType.System
-            }
-        );
-    }
+    public InMemorySessionStore() => this.Factory = new SessionFactory();
 
     /// <summary>
     /// Executes the scavenging loop. This method is intended to be called by a <see cref="ITaskManager"/> worker.
@@ -72,60 +50,6 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
                 // Background cleanup errors should not crash the scavenger worker
-            }
-        }
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
-        {
-            return;
-        }
-
-        try
-        {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(_scavenger.Id);
-            _scavenger.Dispose();
-        }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
-        {
-            // Best-effort cleanup
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
-    /// <summary>
-    /// Scans the store and removes expired sessions.
-    /// This method is intended to be called by an external manager or scavenger.
-    /// </summary>
-    /// <param name="ct">A cancellation token to stop the operation.</param>
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    internal async ValueTask ScavengeAsync(CancellationToken ct)
-    {
-        long now = Clock.UnixMillisecondsNow();
-        int count = 0;
-        foreach (KeyValuePair<ulong, SessionEntry> pair in _store)
-        {
-            if (ct.IsCancellationRequested)
-            {
-                break;
-            }
-
-            if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now)
-            {
-                if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(pair))
-                {
-                    pair.Value.Return();
-                }
-            }
-
-            if (++count % 1000 == 0)
-            {
-                await Task.Yield();
             }
         }
     }
@@ -231,4 +155,37 @@ public sealed class InMemorySessionStore : SessionStoreBase, IDisposable
 
         return ValueTask.FromResult<SessionEntry?>(entry);
     }
+
+    /// <summary>
+    /// Scans the store and removes expired sessions.
+    /// This method is intended to be called by an external manager or scavenger.
+    /// </summary>
+    /// <param name="ct">A cancellation token to stop the operation.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private async ValueTask ScavengeAsync(CancellationToken ct)
+    {
+        long now = Clock.UnixMillisecondsNow();
+        int count = 0;
+        foreach (KeyValuePair<ulong, SessionEntry> pair in _store)
+        {
+            if (ct.IsCancellationRequested)
+            {
+                break;
+            }
+
+            if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now)
+            {
+                if (((ICollection<KeyValuePair<ulong, SessionEntry>>)_store).Remove(pair))
+                {
+                    pair.Value.Return();
+                }
+            }
+
+            if (++count % 1000 == 0)
+            {
+                await Task.Yield();
+            }
+        }
+    }
+
 }

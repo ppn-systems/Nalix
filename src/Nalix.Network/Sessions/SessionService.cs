@@ -4,9 +4,14 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
+using Nalix.Framework.Tasks;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Sessions;
@@ -14,11 +19,46 @@ namespace Nalix.Network.Sessions;
 /// <summary>
 /// Coordinates session persistence by applying lifecycle policies and delegating to factory and storage.
 /// </summary>
-/// <param name="factory">The factory used to create session snapshots.</param>
-/// <param name="store">The underlying storage engine.</param>
-public sealed class SessionService(ISessionFactory factory, ISessionStore store)
+public sealed class SessionService : ISessionService, IDisposable
 {
-    private readonly SessionStoreOptions _options = ConfigurationManager.Instance.Get<SessionStoreOptions>();
+    private readonly IWorkerHandle? _scavenger;
+
+    private readonly ISessionStore _store;
+    private readonly ISessionFactory _factory;
+    private readonly SessionStoreOptions _options;
+
+    /// <inheritdoc/>
+    public ISessionStore Store => _store;
+
+    /// <inheritdoc/>
+    public ISessionFactory Factory => _factory;
+
+    /// <summary>
+    /// Coordinates session persistence by applying lifecycle policies and delegating to factory and storage.
+    /// </summary>
+    /// <param name="factory">The factory used to create session snapshots.</param>
+    /// <param name="store">The underlying storage engine.</param>
+    public SessionService(ISessionFactory? factory = null, ISessionStore? store = null)
+    {
+        _factory = factory ?? new SessionFactory();
+        _store = store ?? new InMemorySessionStore();
+        _options = ConfigurationManager.Instance.Get<SessionStoreOptions>();
+
+        if (_store is InMemorySessionStore inMemoryStore)
+        {
+            _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                name: $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",
+                group: TaskNaming.Tags.Cleanup,
+                work: inMemoryStore.ExecuteAsync,
+                options: new WorkerOptions
+                {
+                    RetainFor = TimeSpan.Zero,
+                    Tag = TaskNaming.Tags.Cleanup,
+                    IdType = SnowflakeType.System
+                }
+            );
+        }
+    }
 
     /// <summary>
     /// Attempts to persist the session for the specified connection if it meets the required policies.
@@ -48,15 +88,27 @@ public sealed class SessionService(ISessionFactory factory, ISessionStore store)
             return;
         }
 
-        SessionEntry entry = factory.CreateSession(connection);
+        SessionEntry entry = _factory.CreateSession(connection);
         try
         {
-            await store.StoreAsync(entry, cancellationToken).ConfigureAwait(false);
+            await _store.StoreAsync(entry, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception)
         {
             entry.Return(); // Reclaim pooled resources on failure
             throw;
+        }
+    }
+
+    /// <inheritdoc/>
+    public void Dispose()
+    {
+        if (_scavenger is not null)
+        {
+            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                    .CancelWorker(_scavenger.Id);
+
+            _scavenger.Dispose();
         }
     }
 }
