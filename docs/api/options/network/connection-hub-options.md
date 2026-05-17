@@ -16,7 +16,7 @@ for `ConnectionHub`.
 | --- | ---: | --- | --- |
 | `MaxConnections` | `-1` | `-1..int.MaxValue`; `0` rejected by `Validate()` | Global active-connection capacity in `TryReserveCapacitySlot(...)`. |
 | `DropPolicy` | `DropNewest` | Must be a `DropPolicy` enum value | Capacity handling strategy when `MaxConnections` is reached. |
-| `ParallelDisconnectDegree` | `-1` | `-1..int.MaxValue`; `0` rejected by `Validate()` | `ParallelOptions.MaxDegreeOfParallelism` in `CloseAllConnections(...)`. |
+| `ParallelDisconnectDegree` | `-1` | `-1..int.MaxValue`; `0` rejected by `Validate()` | `ParallelOptions.MaxDegreeOfParallelism` in hub disposal cleanup. |
 | `BroadcastBatchSize` | `0` | `0..int.MaxValue` | Enables `BroadcastBatchedAsync(...)` when greater than zero. |
 | `ShardCount` | `max(1, Environment.ProcessorCount)` | `1..int.MaxValue` | Number of internal `ConcurrentDictionary` shards. |
 | `IsEnableLatency` | `true` | Boolean | Gates performance timing logs for register, unregister, and broadcast paths. |
@@ -130,7 +130,7 @@ Failed asynchronous sends are mapped back to owning connections for diagnostic l
 
 ## Bulk Close Behavior
 
-`CloseAllConnections(...)` snapshots current connections, detaches the close event
+Hub disposal snapshots current connections, detaches the close event
 handler from each connection, then disposes connections through `Parallel.ForEach`.
 `ParallelDisconnectDegree` is passed directly to
 `ParallelOptions.MaxDegreeOfParallelism`:
@@ -184,4 +184,3 @@ enabled.
 - [Connection Limiter](../../network/connection/connection-limiter.md)
 - [Connection Limit Options](./connection-limit-options.md)
 - [Session Store Options](./session-store-options.md)
-

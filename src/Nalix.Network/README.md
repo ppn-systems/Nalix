@@ -72,12 +72,12 @@ await hub.BroadcastAsync(
     new SystemNotice { Text = "Server is undergoing maintenance in 5 minutes." },
     async (conn, msg) => await conn.TCP.SendAsync(msg));
 
-// Evict/Force close connections originating from a malicious IP address
-int closedConnections = hub.ForceClose(new NetworkEndpoint("192.168.1.100", 0));
+// Evict/force close connections originating from a malicious IP address
+IConnectionTerminator terminator = new ConnectionTerminator(hub);
+int closedConnections = terminator.CloseByEndpoint(new NetworkEndpoint("192.168.1.100", 0));
 Console.WriteLine($"Force closed {closedConnections} connections.");
 ```
 
 ## Documentation
 
 For deep technical details on listeners, session persistence, and admission guard limits, see the [Transport & Networking Guide](https://ppn-system.me/api/network/index).
-

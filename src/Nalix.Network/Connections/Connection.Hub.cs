@@ -53,6 +53,7 @@ public sealed class ConnectionHub : IConnectionHub
     private readonly bool _trackEvictionQueue;
     private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<ulong, IConnection>[] _shards;
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>> _endpointIndex;
 
     private readonly ISessionService _sessionService;
     private readonly SessionStoreOptions _sessionOptions;
@@ -138,6 +139,7 @@ public sealed class ConnectionHub : IConnectionHub
         _trackEvictionQueue = _maxConnections > 0 && _options.DropPolicy == DropPolicy.DropOldest;
         _anonymousQueue = new ConcurrentQueue<ulong>();
         _shards = new ConcurrentDictionary<ulong, IConnection>[_shardCount];
+        _endpointIndex = new ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>>(StringComparer.Ordinal);
 
         int perShardCapacity = _maxConnections > 0
             ? Math.Max(4, (_maxConnections + _shardCount - 1) / _shardCount)
@@ -257,6 +259,27 @@ public sealed class ConnectionHub : IConnectionHub
         return this.CaptureConnectionSnapshot();
     }
 
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public IReadOnlyCollection<IConnection> ListConnections(INetworkEndpoint networkEndpoint)
+    {
+        ArgumentNullException.ThrowIfNull(networkEndpoint);
+
+        if (_disposed || Volatile.Read(ref _count) == 0)
+        {
+            return Array.Empty<IConnection>();
+        }
+
+        if (!_endpointIndex.TryGetValue(networkEndpoint.Address,
+                out ConcurrentDictionary<ulong, IConnection>? bucket))
+        {
+            return Array.Empty<IConnection>();
+        }
+
+        IConnection[] snapshot = [.. bucket.Values];
+        return snapshot.Length == 0 ? Array.Empty<IConnection>() : snapshot;
+    }
+
     /// <summary>
     /// Broadcasts a message to all active connections.
     /// </summary>
@@ -344,115 +367,6 @@ public sealed class ConnectionHub : IConnectionHub
             connections, message, sendFunc,
             predicate, cancellation,
             nameof(BroadcastWhereAsync)).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Forcibly closes all connections matching the specified IP address.
-    /// </summary>
-    /// <param name="networkEndpoint">The IP address to forcefully close.</param>
-    /// <returns>Number of connections closed.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public int ForceClose(INetworkEndpoint networkEndpoint)
-    {
-        ArgumentNullException.ThrowIfNull(networkEndpoint);
-
-        if (_disposed)
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning($"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] called on disposed instance.");
-            }
-            return 0;
-        }
-
-        int closedCount = 0;
-        string targetAddress = networkEndpoint.Address;
-
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
-        {
-            foreach (IConnection conn in shard.Values)
-            {
-                if (conn.NetworkEndpoint.Address != targetAddress)
-                {
-                    continue;
-                }
-
-                try
-                {
-                    conn.Disconnect("Force disconnected by IP.");
-                    closedCount++;
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    conn.ThrottledError(
-                        _logger,
-                        "hub.force_close_error",
-                        $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
-                }
-            }
-        }
-
-        if (closedCount > 0)
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation(
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] closed={closedCount} ip={targetAddress}");
-            }
-        }
-
-        return closedCount;
-    }
-
-    /// <summary>
-    /// Closes all active connections with an optional reason.
-    /// </summary>
-    /// <param name="reason">The reason for closing the connections, if any.</param>
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public void CloseAllConnections(string? reason = null)
-    {
-        IConnection[] connections = this.CaptureConnectionSnapshot();
-
-        foreach (IConnection connection in connections)
-        {
-            connection.OnCloseEvent -= this.OnClientDisconnected;
-        }
-
-        ParallelOptions parallelOptions = new()
-        {
-            MaxDegreeOfParallelism = _options.ParallelDisconnectDegree
-        };
-
-        _ = Parallel.ForEach(connections, parallelOptions, connection =>
-        {
-            try
-            {
-                connection.Dispose();
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                connection.ThrottledError(
-                    _logger,
-                    "hub.close_all_error",
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-error id={connection.ID}",
-                    ex);
-            }
-        });
-
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
-        {
-            shard.Clear();
-        }
-
-        _anonymousQueue.Clear();
-        _ = Interlocked.Exchange(ref _count, 0);
-
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation(
-                $"[NW.{nameof(ConnectionHub)}:{nameof(CloseAllConnections)}] disconnect-all total={connections.Length}");
-        }
     }
 
     /// <summary>
@@ -566,7 +480,7 @@ public sealed class ConnectionHub : IConnectionHub
         }
 
         _disposed = true;
-        this.CloseAllConnections("disposed");
+        this.DisposeAllConnections();
 
         if (_sessionService is IDisposable disposableService)
         {
@@ -591,8 +505,19 @@ public sealed class ConnectionHub : IConnectionHub
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int GetShardIndex(ulong id)
     {
-        int hash = id.GetHashCode() & int.MaxValue;
-        return _isPowerOfTwoShardCount ? (hash & _shardMask) : (hash % _shardCount);
+        ulong hash = MIX64(id);
+        return _isPowerOfTwoShardCount ? (int)(hash & (uint)_shardMask) : (int)(hash % (uint)_shardCount);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        static ulong MIX64(ulong value)
+        {
+            value ^= value >> 33;
+            value *= 0xff51afd7ed558ccdUL;
+            value ^= value >> 33;
+            value *= 0xc4ceb9fe1a85ec53UL;
+            value ^= value >> 33;
+            return value;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -639,6 +564,7 @@ public sealed class ConnectionHub : IConnectionHub
             }
 
             added = true;
+            this.TrackEndpoint(connectionKey, connection);
             if (_trackEvictionQueue && this.IsAnonymousConnection(connection))
             {
                 _anonymousQueue.Enqueue(connectionKey);
@@ -693,6 +619,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         IConnection removedConnection = existing ?? connection;
         removedConnection.OnCloseEvent -= this.OnClientDisconnected;
+        this.UntrackEndpoint(connectionKey, removedConnection);
         _ = Interlocked.Decrement(ref _count);
 
         if (_sessionOptions.AutoSaveOnUnregister)
@@ -857,6 +784,7 @@ public sealed class ConnectionHub : IConnectionHub
 #pragma warning restore CA2000 // Dispose objects before losing scope
 
             evictedConnection.OnCloseEvent -= this.OnClientDisconnected;
+            this.UntrackEndpoint(oldestId, evictedConnection);
             _ = Interlocked.Decrement(ref _count);
             _ = Interlocked.Increment(ref _evictedConnections);
 
@@ -890,6 +818,32 @@ public sealed class ConnectionHub : IConnectionHub
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsAnonymousConnection(IConnection connection) => connection.Level == PermissionLevel.NONE;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void TrackEndpoint(ulong connectionKey, IConnection connection)
+    {
+        ConcurrentDictionary<ulong, IConnection> endpointConnections = _endpointIndex.GetOrAdd(
+            connection.NetworkEndpoint.Address,
+            static _ => new ConcurrentDictionary<ulong, IConnection>());
+
+        endpointConnections[connectionKey] = connection;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void UntrackEndpoint(ulong connectionKey, IConnection connection)
+    {
+        string address = connection.NetworkEndpoint.Address;
+        if (!_endpointIndex.TryGetValue(address, out ConcurrentDictionary<ulong, IConnection>? endpointConnections))
+        {
+            return;
+        }
+
+        _ = endpointConnections.TryRemove(connectionKey, out _);
+        if (endpointConnections.IsEmpty)
+        {
+            _ = _endpointIndex.TryRemove(new KeyValuePair<string, ConcurrentDictionary<ulong, IConnection>>(address, endpointConnections));
+        }
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private int CountAnonymousConnections()
@@ -968,6 +922,47 @@ public sealed class ConnectionHub : IConnectionHub
         {
             s_connectionPool.Return(buffer, clearArray: true);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private void DisposeAllConnections()
+    {
+        IConnection[] connections = this.CaptureConnectionSnapshot();
+
+        foreach (IConnection connection in connections)
+        {
+            connection.OnCloseEvent -= this.OnClientDisconnected;
+        }
+
+        ParallelOptions parallelOptions = new()
+        {
+            MaxDegreeOfParallelism = _options.ParallelDisconnectDegree
+        };
+
+        _ = Parallel.ForEach(connections, parallelOptions, connection =>
+        {
+            try
+            {
+                connection.Dispose();
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                connection.ThrottledError(
+                    _logger,
+                    "hub.dispose_all_error",
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(DisposeAllConnections)}] dispose-error id={connection.ID}",
+                    ex);
+            }
+        });
+
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
+        {
+            shard.Clear();
+        }
+
+        _endpointIndex.Clear();
+        _anonymousQueue.Clear();
+        _ = Interlocked.Exchange(ref _count, 0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -1197,7 +1192,6 @@ public sealed class ConnectionHub : IConnectionHub
         _ = this.TryUnregisterCore(args.Connection);
     }
 
-
     private enum RegisterResult : byte
     {
         Success = 0,
@@ -1218,4 +1212,3 @@ public sealed class ConnectionHub : IConnectionHub
 /// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
 /// <param name="reason">Reason token that describes the applied action.</param>
 public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);
-

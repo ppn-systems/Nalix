@@ -57,7 +57,7 @@ flowchart TD
     D -->|No| F["Trim timestamps older than ConnectionRateWindow"]
     F --> G{"Recent attempts >= MaxConnectionsPerWindow?"}
     G -->|Yes| H["Set BannedUntilTicks"]
-    H --> I["Schedule force-close callback outside lock"]
+    H --> I["Schedule endpoint-termination callback outside lock"]
     G -->|No| J["Increment CurrentConnections"]
     J --> K["Enqueue current timestamp"]
 ```
@@ -70,7 +70,7 @@ The entry lock protects mutations to the `ConnectionLimitInfo` value snapshot. T
 recent-attempt queue is a `ConcurrentQueue<DateTime>` and is trimmed against
 `ConnectionRateWindow` before each admission check.
 
-## Ban and Force-Close Behavior
+## Ban and Endpoint-Termination Behavior
 
 When an endpoint reaches `MaxConnectionsPerWindow` within `ConnectionRateWindow`,
 `ConnectionGuard`:
@@ -78,9 +78,9 @@ When an endpoint reaches `MaxConnectionsPerWindow` within `ConnectionRateWindow`
 1. sets `BannedUntilTicks` to `now + BanDuration`;
 2. emits a throttled DDoS warning;
 3. rejects the connection attempt;
-4. schedules a `TaskManager` worker to invoke the registered force-close callback.
+4. schedules a `TaskManager` worker to invoke the registered endpoint-termination callback.
 
-The force-close callback is scheduled **after** the per-entry lock is released. This
+The endpoint-termination callback is scheduled **after** the per-entry lock is released. This
 avoids lock-ordering risks between the connection-limit entry and upstream
 connection-hub or worker infrastructure.
 

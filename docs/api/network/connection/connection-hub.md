@@ -85,8 +85,8 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 - `ListConnections()`: Returns a read-only collection of all active connections.
 - `BroadcastAsync<T>(msg, sendFunc)`: High-performance fan-out.
 - `BroadcastWhereAsync<T>(msg, sendFunc, predicate)`: Broadcasts only to connections matching the predicate.
-- `CloseAllConnections(reason?)`: Closes all active connections with an optional reason.
-- `ForceClose(INetworkEndpoint)`: Terminates all active connections from a specific IP (used by `ConnectionGuard` during DDoS detection).
+- `ListConnections(INetworkEndpoint)`: Returns active connections from a specific endpoint address.
+- Bulk termination is handled by `IConnectionTerminator.CloseAll(...)` and `IConnectionTerminator.CloseByEndpoint(...)`.
 - `Dispose()`: Releases all resources and closes all connections.
 
 ## Best Practices

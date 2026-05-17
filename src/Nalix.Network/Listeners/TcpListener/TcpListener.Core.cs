@@ -10,11 +10,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Environment.Options;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
+using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
@@ -32,6 +33,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
     private readonly ConnectionGuard _limiter;
+    private readonly IConnectionTerminator _terminator;
 
     private int _state;
     private int _isDisposed;
@@ -106,6 +108,7 @@ public abstract partial class TcpListenerBase : IListener
 
         // Fetch infrastructure instances via InstanceManager for proper test isolation
         this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _terminator = new ConnectionTerminator(hub, this.Logger);
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
@@ -113,8 +116,8 @@ public abstract partial class TcpListenerBase : IListener
         _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
 
-        // Register force-close action to ConnectionGuard for DDoS protection
-        _ = _limiter.WithForceClose(key => _hub.ForceClose(key));
+        // Register endpoint termination action to ConnectionGuard for DDoS protection.
+        _ = _limiter.WithEndpointTermination(key => _terminator.CloseEndpoint(key, "Force disconnected by endpoint policy."));
 
         _config.Validate();
 
