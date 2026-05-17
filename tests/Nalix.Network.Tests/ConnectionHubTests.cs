@@ -1,15 +1,20 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
+using Nalix.Environment.Configuration;
 using Nalix.Network.Connections;
+using Nalix.Network.Options;
 using Nalix.Network.Sessions;
 using Xunit;
 
@@ -48,6 +53,78 @@ public sealed class ConnectionHubTests
         observed.Should().NotBeNull();
         observed!.ID.Should().Be(connection.ID);
         hub.GetConnection(connection.ID).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ListConnections_ByEndpoint_UsesAddressIndex()
+    {
+        using ConnectionHub hub = new();
+        using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
+        using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
+        using Connection connection1 = new(scope1.ServerSocket);
+        using Connection connection2 = new(scope2.ServerSocket);
+
+        hub.RegisterConnection(connection1);
+        hub.RegisterConnection(connection2);
+
+        hub.ListConnections(connection1.NetworkEndpoint)
+           .Should()
+           .Contain(connection1)
+           .And.Contain(connection2);
+
+        hub.UnregisterConnection(connection1);
+
+        hub.ListConnections(connection1.NetworkEndpoint)
+           .Should()
+           .NotContain(connection1)
+           .And.Contain(connection2);
+    }
+
+    [Fact]
+    public async Task ConnectionTerminator_CloseByEndpoint_ClosesMatchingAddress()
+    {
+        using ConnectionHub hub = new();
+        using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
+        using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
+        using Connection connection1 = new(scope1.ServerSocket);
+        using Connection connection2 = new(scope2.ServerSocket);
+
+        hub.RegisterConnection(connection1);
+        hub.RegisterConnection(connection2);
+
+        ConnectionTerminator terminator = new(hub);
+
+        terminator.CloseEndpoint(connection1.NetworkEndpoint).Should().Be(2);
+
+        connection1.IsDisposed.Should().BeTrue();
+        connection2.IsDisposed.Should().BeTrue();
+        hub.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void GetShardIndex_MixesSnowflakeUlongBeforePowerOfTwoMasking()
+    {
+        ConnectionHubOptions options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
+        int previousShardCount = options.ShardCount;
+
+        try
+        {
+            options.ShardCount = 16;
+            using ConnectionHub hub = new();
+            MethodInfo method = typeof(ConnectionHub).GetMethod("GetShardIndex", BindingFlags.Instance | BindingFlags.NonPublic)
+                ?? throw new MissingMethodException(nameof(ConnectionHub), "GetShardIndex");
+
+            int[] indexes = Enumerable.Range(0, 256)
+                                      .Select(sequence => ComposeSnowflakeId((uint)sequence))
+                                      .Select(id => (int)method.Invoke(hub, [id])!)
+                                      .ToArray();
+
+            indexes.Distinct().Count().Should().BeGreaterThan(8);
+        }
+        finally
+        {
+            options.ShardCount = previousShardCount;
+        }
     }
 
     [Fact]
@@ -129,6 +206,12 @@ public sealed class ConnectionHubTests
         }
     }
 
+    private static ulong ComposeSnowflakeId(uint sequence)
+        => ((ulong)(byte)SnowflakeType.Session << 56)
+         | ((ulong)0x12345678u << 24)
+         | ((ulong)(sequence & 0x3FFFu) << 10)
+         | 1UL;
+
     private sealed class FailingSessionStore : ISessionStore, IDisposable
     {
         private readonly TaskCompletionSource<SessionEntry> _storeAttempt =
@@ -164,7 +247,6 @@ public sealed class ConnectionHubTests
         }
     }
 }
-
 
 
 
