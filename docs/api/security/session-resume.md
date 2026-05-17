@@ -6,7 +6,9 @@ Session resumption enables low-latency reconnection by bypassing the full X25519
 
 - `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
 - `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
-- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+- `src/Nalix.Network/Sessions/SessionService.cs`
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionService.cs`
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionFactory.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`
 - `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
 
@@ -56,10 +58,10 @@ When a `SessionResume` request arrives at `SessionHandlers.Handle`:
 
 1. The incoming packet is validated to ensure the `Stage`, `SessionToken`, and `Proof` fields are structurally sound for a `REQUEST`.
 2. The server extracts the `SessionToken` from the payload.
-3. It resolves and validates a resumable `SessionEntry` through the active `ISessionStore`.
+3. It resolves and validates a resumable `SessionEntry` through the active `ISessionService`.
 4. It validates `Proof` using `HmacKeccak256` over the 8-byte session token and the stored session secret.
 5. If validation succeeds, the runtime restores the connection's `Secret`, `Algorithm`, `Level`, and saved `Attributes`, then marks `ConnectionAttributes.HandshakeEstablished = true`.
-6. The runtime stores the live connection back into `IConnectionHub.SessionStore`, computes a response proof for the new token, and sends a `RESPONSE` with `ProtocolReason.NONE`.
+6. The runtime stores the live connection back into `IConnectionHub.SessionService` via `SaveSessionAsync(...)`, computes a response proof for the new token, and sends a `RESPONSE` with `ProtocolReason.NONE`.
 7. If validation, token lookup, or proof verification fails, the server sends an error reason and disconnects.
 
 ---

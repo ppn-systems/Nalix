@@ -107,13 +107,13 @@ Handler methods are discovered and compiled during `Build()`:
 
 ### Session Resume
 
-The built-in session resume flow is handled by `SessionHandlers` and backed by `ISessionStore`. It uses the unified `SessionResume` packet with `SessionResumeStage` to manage request/response stages:
+The built-in session resume flow is handled by `SessionHandlers` and backed by `ISessionService`. It uses the unified `SessionResume` packet with `SessionResumeStage` to manage request/response stages:
 
 1. Client sends a `SessionResume` with `Stage = REQUEST` and a session token
-2. Server validates the token against `ISessionStore`
+2. Server validates the token against `ISessionService`
 3. Server restores connection state and sends `SessionResume` with `Stage = RESPONSE`
 
-In the current source, `src/Nalix.Runtime/Handlers/SessionHandlers.cs` validates proof-of-possession with `HmacKeccak256`, restores the snapshot onto the live connection, stores the connection back into the session store, and returns a fresh session token for the next reconnect.
+In the current source, `src/Nalix.Runtime/Handlers/SessionHandlers.cs` validates proof-of-possession with `HmacKeccak256`, restores the snapshot onto the live connection, stores the connection back into the session service, and returns a fresh session token for the next reconnect.
 
 ### Routing
 

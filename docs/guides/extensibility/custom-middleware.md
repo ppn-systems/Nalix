@@ -31,8 +31,6 @@ using Nalix.Framework.Injection;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
 {
-    private readonly IConnectionHub? _hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
-
     public async ValueTask InvokeAsync(
         IPacketContext<IPacket> context,
         Func<CancellationToken, ValueTask> next)
@@ -48,44 +46,16 @@ public sealed class SessionAuthorizationMiddleware : IPacketMiddleware<IPacket>
             return;
         }
 
-        // 2) Session token gate from connection attributes + session store.
-        if (!TryGetSessionToken(context.Connection, out ulong sessionToken))
+        // 2) Session establishment gate: verify that the connection has successfully
+        // completed its handshake or resumption.
+        if (!context.Connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) ||
+            established is not true)
         {
-            context.Connection.Disconnect("Missing session token.");
+            context.Connection.Disconnect("Session not established.");
             return;
         }
 
-        if (_hub is null)
-        {
-            context.Connection.Disconnect("Session service unavailable.");
-            return;
-        }
-
-        SessionEntry? entry = await _hub.SessionStore
-            .RetrieveAsync(sessionToken, context.CancellationToken)
-            .ConfigureAwait(false);
-
-        if (entry is null)
-        {
-            context.Connection.Disconnect("Session expired or revoked.");
-            return;
-        }
-
-        entry.Return();
         await next(context.CancellationToken).ConfigureAwait(false);
-    }
-
-    private static bool TryGetSessionToken(IConnection connection, out ulong token)
-    {
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.SessionToken, out object? raw) &&
-            raw is ulong sessionToken)
-        {
-            token = sessionToken;
-            return true;
-        }
-
-        token = default;
-        return false;
     }
 }
 ```

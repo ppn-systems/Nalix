@@ -1,16 +1,21 @@
-# Session Store
+# Session Store & Service
 
-`ISessionStore` is the state management layer responsible for persisting, retrieving, and expiring resumable session data. In the Nalix architecture, a "Session" represents the cryptographic state (Session Token, Symmetric Secret) that allows a client to disconnect and reconnect without performing a full X25519 handshake.
+`ISessionService`, `ISessionFactory`, and `ISessionStore` form the core state management layer responsible for persisting, retrieving, and expiring resumable session data. In the Nalix architecture, a "Session" represents the cryptographic state (Session Token, Symmetric Secret) that allows a client to disconnect and reconnect without performing a full X25519 handshake.
 
 ## Source Mapping
 
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionService.cs`
+- `src/Nalix.Abstractions/Networking/Sessions/ISessionFactory.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`
+- `src/Nalix.Network/Sessions/SessionService.cs`
+- `src/Nalix.Network/Sessions/SessionFactory.cs`
 - `src/Nalix.Network/Sessions/InMemorySessionStore.cs`
 
-## Why This Type Exists
+## Why These Types Exist
 
 Maintaining session state across disconnects requires a storage mechanism that is:
 
+- **Decoupled**: Clean separation of concerns between lifecycle policy, serialization snapshots, and low-level data storage.
 - **Fast**: Session retrieval happens during the connection "Hot Path" (Resume).
 - **Atomic**: Prevents multiple clients from attempting to resume the same session simultaneously.
 - **Auto-Cleaning**: Expired sessions must be evicted to prevent memory leaks or replay window bloat.
@@ -23,20 +28,24 @@ The following diagram illustrates how a session is created during a full handsha
 sequenceDiagram
     participant C as Client
     participant S as Server
+    participant SSV as SessionService
     participant ST as SessionStore
 
     Note over C,S: Full Handshake (TCP)
     C->>S: Handshake Request (X25519)
     S->>S: Generate SessionToken & Secret
-    S->>ST: StoreAsync(SessionEntry)
+    S->>SSV: SaveSessionAsync(connection)
+    SSV->>ST: StoreAsync(SessionEntry)
     S->>C: Handshake Success (Returns Token)
 
     Note over C,S: Disconnect / Network Drop
 
     Note over C,S: Resumption (TCP)
     C->>S: ResumeRequest(SessionToken, Nonce)
-    S->>ST: ConsumeAsync(SessionToken)
-    ST-->>S: Return Entry & Delete from Store
+    S->>SSV: ConsumeAsync(SessionToken)
+    SSV->>ST: ConsumeAsync(SessionToken)
+    ST-->>SSV: Return Entry & Delete from Store
+    SSV-->>S: Return SessionEntry
     
     alt Session Valid
         S->>C: Resume Success
@@ -49,20 +58,21 @@ sequenceDiagram
 
 ### 1. Atomic Consumption (SEC-33)
 
-The most critical method in the store is `ConsumeAsync(ulong sessionToken)`.
+The most critical method in the lifecycle is `ConsumeAsync(ulong sessionToken)`.
 
-- It retrieves the session entry and **immediately removes it** from the store in a single atomic operation.
+- `SessionService.ConsumeAsync(...)` delegates to the underlying `ISessionStore.ConsumeAsync(...)`.
+- The store retrieves the session entry and **immediately removes it** from the storage medium in a single atomic operation (e.g., using `ConcurrentDictionary.TryRemove` in-memory, or a Lua script in Redis).
 - This prevents "Resumption Replay" where a stolen token could be used by two different clients to gain access simultaneously. Only the first caller succeeds.
 
 !!! danger "Security Requirement"
     Custom implementations of `ISessionStore` (e.g., Redis implementations) **MUST** implement `ConsumeAsync` as an atomic operation (e.g., using a Lua script in Redis) to comply with SEC-33.
 
-### 2. Lazy and Active Expiration
+### 2. Active Expiration via Hosted Workers
 
 The `InMemorySessionStore` employs a dual-layered expiration strategy:
 
-- **Active Scavenger**: A cleanup worker scheduled through `TaskManager` owns a `PeriodicTimer` that ticks every minute, scanning the `ConcurrentDictionary` and evicting keys where `ExpiresAtUnixMilliseconds <= now`.
-- **Lazy Check**: Every time `RetrieveAsync` or `ConsumeAsync` is called, the TTL is checked immediately. If the session has expired, it is treated as "NotFound" and removed even if the scavenger hasn't reached it yet.
+- **Active Scavenger (`IHostedWorker`)**: The store directly implements `IHostedWorker`. Its `ExecuteAsync` loop is automatically scheduled by the `SessionService` constructor using the runtime's global `TaskManager`. The scavenger runs a `PeriodicTimer` that ticks every minute, scanning the `ConcurrentDictionary` and evicting expired keys.
+- **Lazy Check**: Every time `ConsumeAsync` is called, the TTL is checked immediately. If the session has expired, the entry is behandled as expired, its resources are reclaimed, and it returns `null` even if the active scavenger has not run yet.
 
 ### 3. Session Entry Pooling
 
@@ -70,11 +80,13 @@ To keep the resumption path zero-allocation, `SessionEntry` objects are tracked 
 
 ## Public APIs
 
-- `StoreAsync(IConnection connection)`: Persists the session for the specified connection, enforcing handshake-state and minimum-attribute policies. **Preferred path for normal unregister flow.** Requires `HandshakeEstablished` attribute to be `true`; persistence is skipped when `Attributes.Count <= MinAttributesForPersistence`.
-- `StoreAsync(entry)`: Persists a `SessionEntry` directly, bypassing connection-level policy checks (low-level).
-- `RetrieveAsync(token)`: Peeks at a session without removing it (useful for diagnostics).
+### `ISessionService`
+- `SaveSessionAsync(connection)`: Persists the session for the specified connection, enforcing handshake-state and minimum-attribute policies. **Preferred path for normal unregister flows.**
 - `ConsumeAsync(token)`: Atomically retrieves and removes the session. **Primary method for Resumption logic.**
-- `RemoveAsync(token)`: Explicitly terminates a session.
+
+### `ISessionStore`
+- `StoreAsync(entry)`: Direct, low-level persistence of a `SessionEntry`, bypassing connection-level policy checks.
+- `ConsumeAsync(token)`: Atomically retrieves and removes a session from storage.
 
 ## Configuration
 

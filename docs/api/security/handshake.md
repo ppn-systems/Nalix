@@ -64,7 +64,7 @@ Upon `CLIENT_FINISH` verification, the handler:
 1. Derives the 32-byte session key.
 2. Sets `connection.Secret` and `connection.Algorithm` (ChaCha20Poly1305).
 3. Marks the connection as established through the built-in connection attribute key.
-4. Persists resumable session state through `IConnectionHub.SessionStore.StoreAsync(connection)` when a hub is available.
+4. Persists resumable session state through `IConnectionHub.SessionService.SaveSessionAsync(connection)` when a hub is available.
 5. Returns a `SessionToken` to the client in `SERVER_FINISH`.
 
 ---

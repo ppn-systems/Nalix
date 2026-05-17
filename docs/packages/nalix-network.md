@@ -67,13 +67,13 @@ public sealed class MyProtocol : Protocol
 - **`ConnectionHub`** - In-memory registry of active connections. Supports lookup by ID, forced disconnects, bulk broadcast, and `GenerateReport()`.
 - **`ConnectionGuard`** â€” Socket-level admission control that rejects endpoints before application resources are allocated.
 
-### Session Store
+### Session Store & Service
 
-`Nalix.Network.Sessions` contains the runtime session-store implementations. The `ISessionStore` interface provides:
+`Nalix.Network.Sessions` contains the runtime session-store and session-service implementations. The `ISessionService`, `ISessionFactory`, and `ISessionStore` interfaces provide:
 
-- Session creation and retrieval
-- TTL-based session retention
-- Connection state snapshot and restore (for session resume flows)
+- Decoupled session persistence lifecycle coordination
+- High-performance connection state snapshots and restoration
+- TTL-based session retention with active scavenging via `IHostedWorker`
 
 ## Options
 
@@ -109,5 +109,5 @@ Several network option types support `Validate()` for startup-time verification,
 - [UDP Listener](../api/network/udp-listener.md)
 - [Connection](../api/network/connection/connection.md)
 - [Connection Hub](../api/network/connection/connection-hub.md)
-- [Session Store](../api/network/session-store.md)
+- [Session Store & Service](../api/network/session-store.md)
 - [Network Options](../api/options/network/options.md)

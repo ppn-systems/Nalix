@@ -54,7 +54,7 @@ Manages the server-side **X25519 Handshake** flow.
 
 Manages the **Session Resumption** protocol.
 
-- **Token Verification**: Validates session tokens against the `ISessionStore`.
+- **Token Verification**: Validates session tokens against the `ISessionService`.
 - **State Restoration**: Reloads secret keys, permission levels, and connection attributes to restore a dropped connection instantly.
 
 ### `SystemControlHandlers`
