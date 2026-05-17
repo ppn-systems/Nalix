@@ -6,12 +6,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Options;
 
@@ -41,7 +39,8 @@ public sealed class SessionService : ISessionService, IDisposable
 
         if (_store is IWorker hostedWorker)
         {
-            _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(hostedWorker);
+            _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                                 .ScheduleWorker(hostedWorker);
         }
     }
 
@@ -51,37 +50,56 @@ public sealed class SessionService : ISessionService, IDisposable
     /// <param name="connection">The connection to persist.</param>
     /// <param name="cancellationToken">A cancellation token for the operation.</param>
     /// <returns>A <see cref="ValueTask"/> representing the operation.</returns>
-    public async ValueTask SaveSessionAsync(IConnection connection, CancellationToken cancellationToken = default)
+    public ValueTask SaveSessionAsync(IConnection connection, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(connection);
 
         if (connection.IsDisposed)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         // Policy 1: Only persist if the handshake was established
         if (!connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeEstablished, out object? established) || established is not true)
         {
             // We don't throw here as it might be a legitimate disconnection before handshake completion
-            return;
+            return ValueTask.CompletedTask;
         }
 
         // Policy 2: Only persist if there is meaningful metadata beyond internal flags.
         if (connection.Attributes.Count <= _options.MinAttributesForPersistence)
         {
-            return;
+            return ValueTask.CompletedTask;
         }
 
         SessionEntry entry = _factory.CreateSession(connection);
         try
         {
-            await _store.StoreAsync(entry, cancellationToken).ConfigureAwait(false);
+            ValueTask task = _store.StoreAsync(entry, cancellationToken);
+            if (task.IsCompleted)
+            {
+                return task;
+            }
+
+            return AWAIT_STORE_ASYNC(task, entry);
         }
         catch (Exception)
         {
             entry.Return(); // Reclaim pooled resources on failure
             throw;
+        }
+
+        static async ValueTask AWAIT_STORE_ASYNC(ValueTask task, SessionEntry entry)
+        {
+            try
+            {
+                await task.ConfigureAwait(false);
+            }
+            catch (Exception)
+            {
+                entry.Return(); // Reclaim pooled resources on failure
+                throw;
+            }
         }
     }
 
