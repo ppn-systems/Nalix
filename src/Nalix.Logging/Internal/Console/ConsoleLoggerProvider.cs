@@ -28,7 +28,11 @@ namespace Nalix.Logging.Internal.Console;
 /// <summary>
 /// High-throughput channel console logger backend.
 /// </summary>
-internal sealed class ConsoleLoggerProvider : IDisposable
+[Worker(
+    "log.console.worker", 
+    "log", 
+    Tag = "console-consumer", GroupConcurrencyLimit = 3)]
+internal sealed class ConsoleLoggerProvider : IDisposable, IWorker
 {
     private readonly Channel<LogMessage> _channel;
     private readonly INLogixFormatter _formatter;
@@ -78,22 +82,7 @@ internal sealed class ConsoleLoggerProvider : IDisposable
         _writer = _channel.Writer;
         _reader = _channel.Reader;
         _cts = new CancellationTokenSource();
-
-        _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: "log.console.worker",
-            group: "log",
-            work: async (ctx, ct) =>
-            {
-                using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
-                await this.CONSUME_LOOP_ASYNC(ctx, linkedCts.Token).ConfigureAwait(false);
-            },
-            options: new WorkerOptions
-            {
-                Tag = "console-consumer",
-                GroupConcurrencyLimit = ConfigurationManager.Instance.Get<NLogixOptions>().GroupConcurrencyLimit,
-                OnFailed = (st, ex) => Debug.WriteLine($"[LG.WebhookLogger] Worker failed: {st.Name}, {ex.Message}"),
-                OnCompleted = st => Debug.WriteLine($"[LG.WebhookLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
-            });
+        _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(this);
     }
 
     public bool TryEnqueue(
@@ -256,4 +245,11 @@ internal sealed class ConsoleLoggerProvider : IDisposable
         EventId EventId,
         string Message,
         Exception? Exception);
+
+    /// <inheritdoc/>
+    public async ValueTask ExecuteAsync(IWorkerContext context, CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+        await this.CONSUME_LOOP_ASYNC(context, linkedCts.Token).ConfigureAwait(false);
+    }
 }
