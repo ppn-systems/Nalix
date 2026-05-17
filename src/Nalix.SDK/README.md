@@ -21,12 +21,16 @@ dotnet add package Nalix.SDK
 ## Quick Example: Sending a Request
 
 ```csharp
+using System;
 using Nalix.SDK.Options;
+using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 
-await using TcpSession session = new(options, registry);
+// Initialize a TCP session using the client options
+await using TcpSession session = new(options);
 await session.ConnectAsync(options.Address, options.Port);
 
+// Send a request and wait for a response of a specific type
 MyResponse response = await session.RequestAsync<MyResponse>(
     new MyRequest { Id = 1 },
     RequestOptions.Default.WithTimeout(5_000));

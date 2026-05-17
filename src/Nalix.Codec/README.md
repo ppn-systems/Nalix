@@ -22,11 +22,22 @@ dotnet add package Nalix.Codec
 ## Quick Example: Packet Definition
 
 ```csharp
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
+
+[Packet]
 [GenerateFormatter]
-[SerializeHeader(Opcode = 101)]
+[SerializePackable(SerializeLayout.Explicit)]
 public partial class MyPacket : PacketBase<MyPacket>
 {
-    [SerializeOrder(0)] public string Message { get; set; } = string.Empty;
+    [SerializeOrder(0)] 
+    public string Message { get; set; } = string.Empty;
+
+    public MyPacket()
+    {
+        this.OpCode = 101; // Assign custom opcode
+    }
 }
 ```
 

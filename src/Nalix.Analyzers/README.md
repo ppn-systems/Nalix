@@ -21,7 +21,7 @@
 | :--- | :--- | :---: | :--- |
 | `NALIX013` | Missing `SerializeOrder` | **Error** | Layout is explicit but member has no order index. |
 | `NALIX014` | Duplicate `SerializeOrder` | **Error** | Two members share the same order; order must be unique. |
-| `NALIX022` | Header Overlap | **Warning** | Payload member overlaps the reserved 12-byte header. |
+| `NALIX022` | Header Overlap | **Warning** | Payload member overlaps the reserved 10-byte header. |
 | `NALIX037` | Hot Path Allocation | **Info** | Method is high-frequency; avoid `new` where possible. |
 
 ## Installation

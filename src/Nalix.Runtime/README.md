@@ -20,16 +20,20 @@ dotnet add package Nalix.Runtime
 ## Quick Example: Middleware
 
 ```csharp
-using Nalix.Runtime.Middleware;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Nalix.Abstractions.Middleware;
+using Nalix.Abstractions.Networking.Packets;
 
 public class MyLoggingMiddleware<T> : IPacketMiddleware<T> where T : IPacket
 {
-    public async Task InvokeAsync(
-        PacketContext<T> ctx,
-        Func<CancellationToken, Task> next)
+    public async ValueTask InvokeAsync(
+        IPacketContext<T> context,
+        Func<CancellationToken, ValueTask> next)
     {
-        Console.WriteLine($"In-flight: {typeof(T).Name}");
-        await next(ctx.CancellationToken);
+        Console.WriteLine($"In-flight packet: {typeof(T).Name}");
+        await next(context.CancellationToken);
     }
 }
 ```

@@ -40,10 +40,11 @@ await app.RunAsync();
 For simple scenarios, use the built-in `DefaultProtocol` instead of creating your own:
 
 ```csharp
+using Nalix.Hosting;
+
 using var app = NetworkApplication.CreateBuilder()
     .BindTcp<DefaultProtocol>().OnPort(8080).Bind()
-    .ScanPackets<MyPacket>()
-    .ScanHandlers<MyHandlers>()
+    .ScanHandlers<Program>() // Scans for PacketControllers in assembly
     .Build();
 ```
 
