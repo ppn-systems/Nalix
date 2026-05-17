@@ -1,5 +1,6 @@
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Hosting;
@@ -153,6 +154,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
             // 2. Second connect (should resume)
             bool resumed2 = await session.ConnectWithResumeAsync();
             Assert.True(resumed2);
+            
             Assert.NotEqual(0UL, session.Options.SessionToken);
             Assert.Equal(secret, session.Options.Secret);
             Assert.True(session.Options.EncryptionEnabled);

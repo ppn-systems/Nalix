@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
@@ -282,6 +283,40 @@ public sealed partial class TaskManager : ITaskManager
         }
 
         return st;
+    }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public IWorkerHandle ScheduleWorker(IWorker worker)
+    {
+        ArgumentNullException.ThrowIfNull(worker);
+        ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
+
+        Type type = worker.GetType();
+        WorkerAttribute? attr = type.GetCustomAttribute<WorkerAttribute>();
+
+        string name = attr?.Name ?? type.Name.ToLowerInvariant();
+        string group = attr?.Group ?? "hosted";
+
+        if (attr is { Enabled: false })
+        {
+            return NoOpWorkerHandle.Instance;
+        }
+
+        WorkerOptions options = new()
+        {
+            Tag = attr?.Tag ?? attr?.Group ?? "hosted",
+            IdType = (SnowflakeType)(attr?.IdType ?? 1),
+            RetainFor = TimeSpan.FromMilliseconds(attr?.RetainForMs ?? 0),
+            Priority = (WorkerPriority)(attr?.Priority ?? 0)
+        };
+
+        if (attr is not null && attr.GroupConcurrencyLimit > 0)
+        {
+            options.GroupConcurrencyLimit = attr.GroupConcurrencyLimit;
+        }
+
+        return this.ScheduleWorker(name, group, worker.ExecuteAsync, options);
     }
 
     /// <inheritdoc/>

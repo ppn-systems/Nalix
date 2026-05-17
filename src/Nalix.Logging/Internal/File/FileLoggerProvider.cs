@@ -15,7 +15,6 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.IO;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Logging.Options;
 
@@ -31,7 +30,11 @@ namespace Nalix.Logging.Internal.File;
 /// Optimized for low contention and minimal system calls.
 /// </summary>
 [DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
-internal sealed class FileLoggerProvider : IDisposable, IReportable
+[Worker(
+    $"{TaskNaming.Tags.Logging}.file.worker",
+    TaskNaming.Tags.Logging,
+    Tag = TaskNaming.Tags.Logging, GroupConcurrencyLimit = 3)]
+internal sealed class FileLoggerProvider : IDisposable, IReportable, IWorker
 {
     private readonly Channel<LogMessage> _channel;
     private readonly ChannelWriter<LogMessage> _writer;
@@ -82,23 +85,7 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         _writer = _channel.Writer;
         _reader = _channel.Reader;
         _fileWriter = new FileWriter(this);
-
-        _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-            .ScheduleWorker(
-                name: "log.file.worker",
-                group: "log",
-                work: async (ctx, ct) =>
-                {
-                    using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _cts.Token);
-                    await this.CONSUME_LOOP_ASYNC(ctx, linkedCts.Token).ConfigureAwait(false);
-                },
-                options: new WorkerOptions
-                {
-                    Tag = "file-consumer",
-                    GroupConcurrencyLimit = ConfigurationManager.Instance.Get<NLogixOptions>().GroupConcurrencyLimit,
-                    OnFailed = (st, ex) => Debug.WriteLine($"[LG.FileLogger] Worker failed: {st.Name}, {ex.Message}"),
-                    OnCompleted = st => Debug.WriteLine($"[LG.FileLogger] Worker completed: {st.Name} Runs={st.TotalRuns}"),
-                });
+        _workerHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(this);
     }
 
     public FileLogOptions Options { get; }
@@ -313,4 +300,11 @@ internal sealed class FileLoggerProvider : IDisposable, IReportable
         EventId EventId,
         string Message,
         Exception? Exception);
+
+    /// <inheritdoc/>
+    public async ValueTask ExecuteAsync(IWorkerContext context, CancellationToken cancellationToken)
+    {
+        using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _cts.Token);
+        await this.CONSUME_LOOP_ASYNC(context, linkedCts.Token).ConfigureAwait(false);
+    }
 }

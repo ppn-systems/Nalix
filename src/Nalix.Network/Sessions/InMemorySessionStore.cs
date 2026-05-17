@@ -7,11 +7,11 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Time;
+using Nalix.Framework.Tasks;
 
 namespace Nalix.Network.Sessions;
 
@@ -19,7 +19,11 @@ namespace Nalix.Network.Sessions;
 /// An in-memory implementation of <see cref="ISessionStore"/> backed by a <see cref="ConcurrentDictionary{TKey,TValue}"/>.
 /// Suitable for single-node deployments. For distributed scenarios, replace with a Redis-backed store.
 /// </summary>
-public sealed class InMemorySessionStore : ISessionStore, IHostedWorker
+[Worker(
+    $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",
+    TaskNaming.Tags.Cleanup,
+    Tag = TaskNaming.Tags.Cleanup, IdType = 1, RetainForMs = 0)]
+public sealed class InMemorySessionStore : ISessionStore, IWorker
 {
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
 

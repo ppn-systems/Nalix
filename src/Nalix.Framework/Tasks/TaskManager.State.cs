@@ -466,4 +466,24 @@ public partial class TaskManager
 
         public bool IsCancellationRequested => _st.Cts.IsCancellationRequested;
     }
+
+    private sealed class NoOpWorkerHandle : IWorkerHandle
+    {
+        public static readonly NoOpWorkerHandle Instance = new();
+
+        private NoOpWorkerHandle() { }
+
+        public ISnowflake Id => Nalix.Framework.Identifiers.Snowflake.Empty;
+        public string Name => "noop";
+        public string Group => "noop";
+        public long TotalRuns => 0;
+        public long Progress => 0;
+        public string? LastNote => null;
+        public IWorkerOptions Options => new Nalix.Framework.Options.WorkerOptions { Tag = "noop" };
+        public bool IsRunning => false;
+        public DateTimeOffset StartedUtc => DateTimeOffset.UnixEpoch;
+        public DateTimeOffset? LastHeartbeatUtc => null;
+
+        public void Dispose() { }
+    }
 }
