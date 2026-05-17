@@ -64,22 +64,16 @@ public interface IConnectionHub : IReportable, IDisposable
     void UnregisterConnection(IConnection connection);
 
     /// <summary>
-    /// Forcibly closes all connections matching the specified IP address.
-    /// </summary>
-    /// <param name="networkEndpoint">The IP address to forcefully close.</param>
-    /// <returns>Number of connections closed.</returns>
-    /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
-    int ForceClose(INetworkEndpoint networkEndpoint);
-
-    /// <summary>
-    /// Closes all active client connections with an optional reason.
-    /// </summary>
-    /// <param name="reason">The reason for closing connections, if any. Can be <c>null</c>.</param>
-    void CloseAllConnections(string? reason = null);
-
-    /// <summary>
     /// Retrieves a read-only view of all active client connections.
     /// </summary>
     /// <returns>An enumerable collection of all active <see cref="IConnection"/> instances.</returns>
     IReadOnlyCollection<IConnection> ListConnections();
+
+    /// <summary>
+    /// Retrieves a read-only view of active client connections from the specified endpoint address.
+    /// </summary>
+    /// <param name="networkEndpoint">The endpoint address to match.</param>
+    /// <returns>An enumerable collection of matching active <see cref="IConnection"/> instances.</returns>
+    /// <exception cref="ArgumentNullException">Thrown if <paramref name="networkEndpoint"/> is null.</exception>
+    IReadOnlyCollection<IConnection> ListConnections(INetworkEndpoint networkEndpoint);
 }
