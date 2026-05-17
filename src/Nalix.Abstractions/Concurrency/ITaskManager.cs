@@ -54,6 +54,17 @@ public interface ITaskManager : IDisposable, IReportable
     ValueTask RunOnceAsync(string name, Func<CancellationToken, ValueTask> work, CancellationToken ct = default);
 
     /// <summary>
+    /// Schedules an <see cref="IWorker"/> using configuration metadata provided by
+    /// a <see cref="WorkerAttribute"/> annotated on the worker's type.
+    /// </summary>
+    /// <param name="worker">The hosted worker to schedule.</param>
+    /// <returns>A handle to manage the scheduled worker, or a no-op handle if disabled.</returns>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="worker"/> is null.</exception>
+    /// <exception cref="InvalidOperationException">Thrown when the worker cannot be registered.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+    IWorkerHandle ScheduleWorker(IWorker worker);
+
+    /// <summary>
     /// Starts a long-running worker task.
     /// </summary>
     /// <param name="name">The name of the worker.</param>
