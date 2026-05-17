@@ -20,6 +20,7 @@ dotnet add package Nalix.Logging
 ## Quick Example
 
 ```csharp
+using Microsoft.Extensions.Logging;
 using Nalix.Logging;
 
 ILogger logger = NLogix.Host.Instance;

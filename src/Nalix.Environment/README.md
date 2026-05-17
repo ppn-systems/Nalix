@@ -23,15 +23,24 @@ dotnet add package Nalix.Environment
 ## Quick Example: Using DataWriter
 
 ```csharp
+using System;
 using Nalix.Environment.Memory;
 
-// Rents a buffer and writes data efficiently
-using var writer = new DataWriter();
-writer.WriteInt32(12345);
-writer.WriteString("Hello Nalix");
+// Rent a DataWriter with an initial capacity of 256 bytes from the pool
+using var writer = new DataWriter(256);
 
-// Get the written span
-ReadOnlySpan<byte> encoded = writer.AsSpan();
+// Access the free buffer span directly
+Span<byte> freeSpace = writer.FreeBuffer;
+
+// Write values directly into the span
+freeSpace[0] = 0xAA;
+freeSpace[1] = 0xBB;
+
+// Advance the write cursor to commit the 2 written bytes
+writer.Advance(2);
+
+// Copy the written data to a tightly-sized array
+byte[] encoded = writer.ToArray();
 ```
 
 ## Documentation

@@ -19,35 +19,65 @@
 dotnet add package Nalix.Network
 ```
 
-## Usage Guidance
+## Quick Example: Implementing a Custom Listener
 
-`Nalix.Network` is the low-level package. Its listener types are abstract bases
-that require an `IProtocol` and an `IConnectionHub`:
+`Nalix.Network` provides high-concurrency abstract listener types (`TcpListenerBase` and `UdpListenerBase`) that manage system socket loops, connection limits, and timing wheels. To write a custom transport listener, simply extend the base class:
 
 ```csharp
-public sealed class MyTcpListener : TcpListenerBase
-{
-    public MyTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
-        : base(port, protocol, hub) { }
-}
+using System;
+using Nalix.Abstractions.Networking;
+using Nalix.Network.Listeners.Tcp;
 
-IConnectionHub hub = new ConnectionHub();
-using var listener = new MyTcpListener(5000, new MyProtocol(), hub);
-listener.Activate();
+public sealed class CustomTcpListener : TcpListenerBase
+{
+    public CustomTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
+        : base(port, protocol, hub)
+    {
+    }
+
+    // Must implement the abstract ProcessFrame method to handle incoming frames
+    public override void ProcessFrame(object? sender, IConnectEventArgs args)
+    {
+        // Custom logic to process raw connection frames before protocol dispatch
+    }
+}
 ```
 
-For normal server applications, prefer `Nalix.Network.Hosting`. The hosting
-builder creates the concrete internal listeners, connection hub, packet dispatch,
-and lifecycle orchestration for you:
+## Quick Example: Managing Connections with ConnectionHub
+
+The `ConnectionHub` manages all concurrent active client connections. You can use it to fetch connections, monitor active counts, force evictions, or broadcast real-time payloads asynchronously:
 
 ```csharp
-using var app = NetworkApplication.CreateBuilder()
-    .BindTcp<MyProtocol>().OnPort(5000).Bind()
-    .Build();
+using System;
+using System.Threading.Tasks;
+using Nalix.Abstractions.Networking;
+using Nalix.Network.Connections;
 
-await app.RunAsync();
+// Initialize the ConnectionHub
+IConnectionHub hub = new ConnectionHub();
+
+// Check the active connection count
+int activeCount = hub.Count;
+Console.WriteLine($"Active connections: {activeCount}");
+
+// Retrieve a connection by its 64-bit Snowflake ID
+IConnection? client = hub.GetConnection(1234567890UL);
+if (client is not null)
+{
+    Console.WriteLine($"Found client: {client.ID} (IP: {client.NetworkEndpoint.Address})");
+}
+
+// Broadcast a system-wide broadcast message to all active TCP clients
+await hub.BroadcastAsync(
+    new SystemNotice { Text = "Server is undergoing maintenance in 5 minutes." },
+    async (conn, msg) => await conn.TCP.SendAsync(msg));
+
+// Evict/Force close connections originating from a malicious IP address
+int closedConnections = hub.ForceClose(new NetworkEndpoint("192.168.1.100", 0));
+Console.WriteLine($"Force closed {closedConnections} connections.");
 ```
 
 ## Documentation
 
-See [Transport & Networking](https://ppn-system.me/api/network/index) for detailed configuration options and listener lifecycles.
+For deep technical details on listeners, session persistence, and admission guard limits, see the [Transport & Networking Guide](https://ppn-system.me/api/network/index).
+

@@ -51,7 +51,6 @@ public abstract class PacketBase<
 
     #endregion Constructor
 
-
     #region APIs
 
     /// <inheritdoc/>

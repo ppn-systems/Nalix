@@ -22,27 +22,37 @@ dotnet add package Nalix.Framework
 ## Quick Example: Buffer Pooling
 
 ```csharp
-using Nalix.Framework.Memory.Buffers;
+using System;
+using Nalix.Environment.Memory;
 
-// Rent a buffer from the global pool
-using IBufferLease lease = BufferPoolManager.Rent(1024);
-Span<byte> data = lease.Span;
+// Rent a buffer lease of at least 1024 bytes
+using BufferLease lease = BufferLease.Rent(1024);
 
-// No need to manually return — lease.Dispose() handles it.
+// Write data into the full writable span of the lease
+Span<byte> buffer = lease.SpanFull;
+buffer[0] = 0x12;
+buffer[1] = 0x34;
+
+// Commit the written length
+lease.CommitLength(2);
+
+// Access the active payload span
+Span<byte> payload = lease.Span;
 ```
 
-## Quick Example: Serialization
+## Quick Example: Unique ID Generation (Snowflake)
 
 ```csharp
-using Nalix.Framework.Serialization;
+using System;
+using Nalix.Abstractions.Identity;
+using Nalix.Framework.Identifiers;
 
-[SerializePackable(SerializeLayout.Explicit)]
-public class MyData
-{
-    [SerializeOrder(0)] public int Id { get; set; }
-}
+// Generate a new 64-bit unique Snowflake ID for a Session entity
+Snowflake sessionId = Snowflake.NewId(SnowflakeType.System);
 
-byte[] encoded = LiteSerializer.Serialize(new MyData { Id = 1 });
+Console.WriteLine($"Generated ID: {sessionId}");
+Console.WriteLine($"Timestamp Component: {sessionId.Value}");
+Console.WriteLine($"Machine ID Component: {sessionId.MachineId}");
 ```
 
 ## Documentation

@@ -156,13 +156,14 @@ Nalix is composed of several modular packages — install only what you need.
 Build a high-performance network application in minutes:
 
 ```csharp
-using Nalix.Network.Hosting;
+using Nalix.Hosting;
+using Nalix.Network.Options;
 
 // Initialize and configure the application host
 using var host = NetworkApplication.CreateBuilder()
-    .BindTcp<MyPacketProtocol>().Bind()
-    .AddHandler<MyPacketHandler>()
-    .Configure<NetworkSocketOptions>(opt => opt.Port = 8080)
+    .BindTcp<DefaultProtocol>().OnPort(8080).Bind()
+    .ScanHandlers<Program>() // Auto-discovers all custom PacketController types in the assembly
+    .Configure<NetworkSocketOptions>(opt => opt.NoDelay = true)
     .Build();
 
 // Run the server

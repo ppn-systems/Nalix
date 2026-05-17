@@ -22,12 +22,41 @@ dotnet add package Nalix.Codec
 ## Quick Example: Packet Definition
 
 ```csharp
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
+
+[Packet]
 [GenerateFormatter]
-[SerializeHeader(Opcode = 101)]
+[SerializePackable(SerializeLayout.Explicit)]
 public partial class MyPacket : PacketBase<MyPacket>
 {
-    [SerializeOrder(0)] public string Message { get; set; } = string.Empty;
+    [SerializeOrder(0)] 
+    public string Message { get; set; } = string.Empty;
+
+    public MyPacket()
+    {
+        this.OpCode = 101; // Assign custom opcode
+    }
 }
+```
+
+## Quick Example: Using LiteSerializer
+
+```csharp
+using System;
+using Nalix.Codec.Serialization;
+
+// Create a custom serializable packet instance
+MyPacket packet = new MyPacket { Message = "Hello Nalix!" };
+
+// Serialize the packet into a byte array
+byte[] encoded = LiteSerializer.Serialize(packet);
+
+// Deserialize the byte array back to the packet type
+MyPacket decoded = LiteSerializer.Deserialize<MyPacket>(encoded, out int bytesRead);
+
+Console.WriteLine($"Decoded Message: {decoded.Message} (Read {bytesRead} bytes)");
 ```
 
 ## Performance Principles

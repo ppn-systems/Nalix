@@ -37,14 +37,45 @@ using var app = NetworkApplication.CreateBuilder()
 await app.RunAsync();
 ```
 
-For simple scenarios, use the built-in `DefaultProtocol` instead of creating your own:
+## Advanced Example: Enterprise Server Bootstrap
+
+For production environments, `NetworkApplicationBuilder` integrates deeply with Microsoft Dependency Injection, logging frameworks, and custom configuration options:
 
 ```csharp
-using var app = NetworkApplication.CreateBuilder()
-    .BindTcp<DefaultProtocol>().OnPort(8080).Bind()
-    .ScanPackets<MyPacket>()
-    .ScanHandlers<MyHandlers>()
-    .Build();
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Nalix.Hosting;
+using Nalix.Network.Options;
+
+// Initialize the builder
+var builder = NetworkApplication.CreateBuilder();
+
+// 1. Bind TCP listeners and assign ports
+builder.BindTcp<DefaultProtocol>()
+    .OnPort(57200)
+    .Bind();
+
+// 2. Configure network socket options via builder API
+builder.Configure<NetworkSocketOptions>(options =>
+{
+    options.NoDelay = true;             // Disable Nagle's algorithm for low-latency
+    options.MaxParallel = 8;            // High concurrency acceptor loops
+    options.BufferSize = 65536;         // Socket buffer size (64KB)
+});
+
+// 3. Register custom application services in the DI container
+builder.Services.AddSingleton<IMyDatabase, MyDatabase>();
+
+// 4. Discover custom PacketController types in the assembly
+builder.ScanHandlers<Program>();
+
+// Build and run the server application host
+using var host = builder.Build();
+
+var logger = host.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("Server bootstrap completed successfully!");
+
+await host.RunAsync();
 ```
 
 ## Documentation
