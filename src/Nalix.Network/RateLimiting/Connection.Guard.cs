@@ -57,7 +57,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private int _disposed;
 
-    private Action<INetworkEndpoint>? _onForceCloseDetected;
+    private Action<INetworkEndpoint>? _onEndpointTerminationRequested;
 
     /// <summary>
     /// Metrics for monitoring
@@ -129,14 +129,14 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     }
 
     /// <summary>
-    /// Registers a callback to be invoked when an endpoint should be forcibly closed.
+    /// Registers a callback to be invoked when an endpoint should be terminated.
     /// </summary>
     /// <param name="action">The action to invoke with the network endpoint.</param>
     /// <returns>The current <see cref="ConnectionGuard"/> instance.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ConnectionGuard WithForceClose(Action<INetworkEndpoint> action)
+    public ConnectionGuard WithEndpointTermination(Action<INetworkEndpoint> action)
     {
-        _onForceCloseDetected += action ?? throw new ArgumentNullException(nameof(action));
+        _onEndpointTerminationRequested += action ?? throw new ArgumentNullException(nameof(action));
         return this;
     }
 
@@ -371,7 +371,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
 
             // Declare the lock beforehand to use after exiting the lock.
-            bool shouldForceClose = false;
+            bool shouldTerminateEndpoint = false;
             ConnectionAllowResult result;
 
             // Lock-free trim before taking the SpinLock to avoid holding the lock during potentially long loops
@@ -393,7 +393,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
 
                     this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
-                    shouldForceClose = true;
+                    shouldTerminateEndpoint = true;
 
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
@@ -439,25 +439,25 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 }
             }
 
-            // WHY: Schedule ForceClose AFTER exiting the lock.
-            // ForceClose needs to close all connections to this IP — possibly locking ConnectionHub.
+            // WHY: Schedule endpoint termination AFTER exiting the lock.
+            // Termination closes all connections to this IP — possibly touching ConnectionHub indexes.
             // Nothing prevents ScheduleWorker from running immediately after this line; TaskManager puts it in the queue.
-            if (shouldForceClose)
+            if (shouldTerminateEndpoint)
             {
                 _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
-                    group: $"{TaskNaming.Tags.Worker}/",
+                    group: $"{TaskNaming.Tags.Worker}",
                     work: async (_, _) =>
                     {
                         try
                         {
-                            this.TRIGGER_FORCE_CLOSE_UPSTREAM(key);
+                            this.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(key);
                         }
                         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                             {
-                                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] force-close-failed ip={key.Address}");
+                                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={key.Address}");
                             }
                         }
 
@@ -685,7 +685,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRIGGER_FORCE_CLOSE_UPSTREAM(INetworkEndpoint key) => _onForceCloseDetected?.Invoke(key);
+    private void TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(INetworkEndpoint key) => _onEndpointTerminationRequested?.Invoke(key);
 
     #endregion Connection Slot Management
 
