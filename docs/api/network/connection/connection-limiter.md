@@ -48,7 +48,7 @@ The guard uses a `ConcurrentQueue<DateTime>` per endpoint to track connection at
 
 ### 2. Force Close on Ban
 
-When an IP is banned, `ConnectionGuard` doesn't just block *new* attempts. It schedules a background worker to call `IConnectionHub.ForceClose(ip)`, which terminates all currently active sessions associated with that address, effectively neutralizing the attacker.
+When an IP is banned, `ConnectionGuard` doesn't just block *new* attempts. It schedules a background worker to call `IConnectionTerminator.CloseByEndpoint(ip)`, which terminates all currently active sessions associated with that address, effectively neutralizing the attacker.
 
 ### 3. DDoS Log Suppression
 
