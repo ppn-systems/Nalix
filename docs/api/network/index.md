@@ -26,7 +26,7 @@ flowchart TD
 
     subgraph Support[Layer 4: Utilities]
         TW[TimingWheel]
-        SS[SessionStore]
+        SS[SessionService]
         Lim[ConnectionGuard]
     end
 
@@ -68,7 +68,7 @@ To understand the Nalix networking stack, we recommend reading the documentation
 - [Socket Connection](./socket-connection.md)
 - [TCP Listener](./tcp-listener.md)
 - [UDP Listener](./udp-listener.md)
-- [Session Store](./session-store.md)
+- [Session Store & Service](./session-store.md)
 
 ### Network Options
 

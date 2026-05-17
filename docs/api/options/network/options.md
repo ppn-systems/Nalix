@@ -26,7 +26,7 @@ flowchart LR
         AC[AsyncCallback]
         Hub[ConnectionHub]
         TW[TimingWheel]
-        SS[SessionStore]
+        SS[SessionService]
     end
 
     NSO --> SC

@@ -20,7 +20,7 @@
 | Type | Public members |
 |---|---|
 | `IConnection` | `ID`, `UpTime`, `BytesSent`, `BytesReceived`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `IsUdpCreated`, `TCP`, `UDP`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
-| `IConnectionHub` | `Count`, `SessionStore`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ForceClose(...)`, `CloseAllConnections(...)`, `ListConnections(...)` |
+| `IConnectionHub` | `Count`, `SessionService`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ForceClose(...)`, `CloseAllConnections(...)`, `ListConnections(...)` |
 | `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
 
 ## IConnection
@@ -51,7 +51,7 @@ It supports:
 - lookup by ID
 - register and unregister
 - listing active connections
-- session store access via `SessionStore`
+- session service access via `SessionService`
 - close-all operations
 
 ### Common pitfalls

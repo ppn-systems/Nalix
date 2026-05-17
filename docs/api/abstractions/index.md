@@ -1,4 +1,4 @@
-﻿# Abstractions API
+# Abstractions API
 
 The `Nalix.Abstractions` package defines the fundamental interfaces, attributes, and data structures that are shared across the entire Nalix stack, including both the server-side runtime and the client-side SDK.
 
@@ -6,7 +6,7 @@ The `Nalix.Abstractions` package defines the fundamental interfaces, attributes,
 
 - [**Packet Contracts**](./packet-contracts.md) — `IPacket`, `PacketOpcodeAttribute`, and basic framing.
 - [**Connection Contracts**](./connection-contracts.md) — `IConnection`, `IConnectionHub`, and state tracking.
-- [**Session Contracts**](./session-contracts.md) — `ISession`, `ISessionStore`, and resumption tokens.
+- [**Session Contracts**](./session-contracts.md) — `ISessionService`, `ISessionFactory`, `ISessionStore`, and `IHostedWorker` background scheduling.
 - [**Concurrency Contracts**](./concurrency-contracts.md) — `IConcurrencyGate` and throttling interfaces.
 
 ## High-Level Primitives

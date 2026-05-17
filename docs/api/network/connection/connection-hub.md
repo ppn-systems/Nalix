@@ -6,7 +6,7 @@
 
 - `src/Nalix.Abstractions/Networking/IConnection.Hub.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.cs`
-- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+- `src/Nalix.Network/Sessions/SessionService.cs`
 
 ## Why This Type Exists
 
@@ -14,7 +14,7 @@ As a stateful server scales, managing the lifecycle of tens of thousands of conc
 
 - **Shard-Aware Storage**: Fragmenting the connection pool into multiple internal dictionaries to eliminate lock contention during high-concurrency registration and removal.
 - **Atomic Admission Control**: Enforcing global connection limits with configurable drop policies (Drop Oldest vs. Drop Newest).
-- **Session Integration**: Acting as the gateway to the `ISessionStore` for resuming cryptographic states.
+- **Session Integration**: Acting as the gateway to the `ISessionService` for resuming cryptographic states.
 
 ## Connection Registry Architecture
 
@@ -63,8 +63,8 @@ When `MaxConnections` is enabled:
 
 To protect the server from memory exhaustion and ensure reliable state recovery:
 
-- **Auto-Persist on Unregister**: When `_sessionOptions.AutoSaveOnUnregister` is enabled, `TryUnregisterCore(...)` starts a background `StoreAsync(connection)` call on the configured `ISessionStore`.
-- **Policy lives in the session store**: The "only persist established, meaningful sessions" rule is enforced by `SessionStoreBase.StoreAsync(IConnection)`, including the handshake-established check and `MinAttributesForPersistence` threshold.
+- **Auto-Persist on Unregister**: When `_sessionOptions.AutoSaveOnUnregister` is enabled, `TryUnregisterCore(...)` starts a background `SaveSessionAsync(connection)` call on the configured `ISessionService`.
+- **Policy lives in the session service**: The "only persist established, meaningful sessions" rule is enforced by `SessionService.SaveSessionAsync(IConnection)`, including the handshake-established check and `MinAttributesForPersistence` threshold.
 - **Fire-and-forget storage**: Unregister stays low-latency because persistence failures are swallowed in the background helper instead of blocking removal.
 
 ### 4. Batched Broadcasting
@@ -76,7 +76,7 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 ## Public APIs
 
 - `Count`: The total number of live connections (uses `Volatile.Read` for accuracy).
-- `SessionStore`: Access to the underlying session persistence layer.
+- `SessionService`: Access to the underlying session persistence layer.
 - `ConnectionUnregistered`: Event raised after a connection is successfully unregistered.
 - `CapacityLimitReached`: Event raised when a limit is reached and a connection is rejected.
 - `RegisterConnection(conn)`: Enrolls a new connection (Thread-safe).
@@ -102,4 +102,4 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 - [Connection](./connection.md)
 - [Connection Hub Options](../../options/network/connection-hub-options.md)
 - [Timing Wheel](../time/timing-wheel.md)
-- [Session Store](../session-store.md)
+- [Session Store & Service](../session-store.md)

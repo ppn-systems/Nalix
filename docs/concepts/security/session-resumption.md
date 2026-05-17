@@ -7,7 +7,7 @@ Session Resumption is a high-performance protocol in Nalix that allows clients t
 - `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
 - `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
 - `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
-- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+- `src/Nalix.Network/Sessions/SessionService.cs`
 
 ## Key Features
 
@@ -24,20 +24,24 @@ The following diagram illustrates how the **Nalix SDK** uses a stored token to r
 sequenceDiagram
     participant SDK as Nalix SDK (Client)
     participant Srv as Nalix Server
+    participant SSv as Session Service
     participant Store as Session Store
 
     Note over SDK: Load Stored Session Token & Secret<br/>Compute MAC Proof: HMAC(Secret, Token)
     
     SDK->>Srv: SESSION_SIGNAL (REQUEST)<br/>[SessionToken, MAC Proof]
     
-    Note over Srv: Resolve SessionHandlers<br/>Atomically Consume Token from Store
+    Note over Srv: Resolve SessionHandlers<br/>Atomically Consume Token via Service
     
-    Srv->>Store: ConsumeAsync(Token)
-    Store-->>Srv: SessionEntry (Snapshot)
+    Srv->>SSv: ConsumeAsync(Token)
+    SSv->>Store: ConsumeAsync(Token)
+    Store-->>SSv: SessionEntry (Snapshot)
+    SSv-->>Srv: SessionEntry (Snapshot)
     
     Note over Srv: Verify MAC Proof using Snapshot Secret<br/>Apply Snapshot to Live Connection<br/>Store Current Connection
     
-    Srv->>Store: StoreAsync(CurrentConnection)
+    Srv->>SSv: SaveSessionAsync(CurrentConnection)
+    SSv->>Store: StoreAsync(SessionEntry)
     
     Srv->>SDK: SESSION_SIGNAL (RESPONSE)<br/>[NewSessionToken, SUCCESS]
     
@@ -48,7 +52,7 @@ sequenceDiagram
 
 To prevent **Race Conditions** and **Double-Resume** attacks, Nalix uses "Atomic Consumption". When a resume request arrives:
 
-1. The server attempts to remove the token from the `ISessionStore` immediately through `ConsumeAsync(...)`.
+1. The server attempts to remove the token from the `ISessionService` immediately through `ConsumeAsync(...)`.
 2. If the token was already used or doesn't exist, the request is rejected instantly.
 3. This ensures that a stolen token cannot be used twice, even if two requests arrive at the same millisecond.
 

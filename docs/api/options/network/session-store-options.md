@@ -6,7 +6,7 @@ persistence policy used when connections leave `ConnectionHub`.
 ## Source Mapping
 
 - `src/Nalix.Network/Options/SessionStoreOptions.cs`
-- `src/Nalix.Network/Sessions/SessionStoreBase.cs`
+- `src/Nalix.Network/Sessions/SessionService.cs`
 - `src/Nalix.Network/Sessions/InMemorySessionStore.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.cs`
 - `src/Nalix.Hosting/Bootstrap.cs`
@@ -15,9 +15,9 @@ persistence policy used when connections leave `ConnectionHub`.
 
 | Property | Default | Validation | Runtime consumer |
 | --- | ---: | --- | --- |
-| `SessionTtl` | `00:30:00` | Required and `> TimeSpan.Zero` | `SessionStoreBase.CreateSession(...)` sets `ExpiresAtUnixMilliseconds`. |
+| `SessionTtl` | `00:30:00` | Required and `> TimeSpan.Zero` | `ISessionFactory.CreateSession(...)` sets `ExpiresAtUnixMilliseconds`. |
 | `AutoSaveOnUnregister` | `true` | None | `ConnectionHub.TryUnregisterCore(...)` gates automatic persistence. |
-| `MinAttributesForPersistence` | `4` | `0..int.MaxValue` | `SessionStoreBase.StoreAsync(IConnection)` skips low-value sessions. |
+| `MinAttributesForPersistence` | `4` | `0..int.MaxValue` | `SessionService.SaveSessionAsync(IConnection)` skips low-value sessions. |
 
 `Validate()` uses manual range checks and throws `ArgumentOutOfRangeException` when constraints are violated. It rejects non-positive `SessionTtl` values and negative `MinAttributesForPersistence`.
 
@@ -38,17 +38,17 @@ and persistence policy alongside the other network-level options.
 flowchart TD
     A["ConnectionHub unregisters connection"] --> B{"AutoSaveOnUnregister?"}
     B -->|No| Z["Skip session persistence"]
-    B -->|Yes| C["TryUnregisterCore(...) starts background StoreAsync(connection)"]
+    B -->|Yes| C["TryUnregisterCore(...) starts background SaveSessionAsync(connection)"]
     C --> D{"HandshakeEstablished attribute == true?"}
     D -->|No| Z
     D -->|Yes| E{"Attributes.Count > MinAttributesForPersistence?"}
     E -->|No| Z
-    E -->|Yes| F["CreateSession copies connection attributes"]
+    E -->|Yes| F["ISessionFactory.CreateSession copies connection attributes"]
     F --> G["ExpiresAt = now + SessionTtl"]
-    G --> H["StoreAsync(session)"]
+    G --> H["ISessionStore.StoreAsync(session)"]
 ```
 
-`SessionStoreBase.CreateSession(...)` snapshots the connection into a `SessionEntry`:
+`ISessionFactory.CreateSession(...)` snapshots the connection into a `SessionEntry`:
 
 - `SessionToken` is derived from `connection.ID.Toulong()`.
 - `CreatedAtUnixMilliseconds` uses `Clock.UnixMillisecondsNow()`.
@@ -70,14 +70,14 @@ The attribute threshold is an anti-abuse filter. It avoids retaining handshake-o
 or nearly empty sessions that could otherwise be created in bulk by short-lived
 connections.
 
-If `StoreAsync(...)` completes synchronously and successfully, the session is owned
+If `SaveSessionAsync(...)` completes synchronously and successfully, the session is owned
 by the store. If storing throws immediately, the newly created `SessionEntry` is
 returned. If storing completes asynchronously, `PersistSessionAsync(...)` awaits it
 without blocking unregistration and returns the session only if persistence fails.
 
 ## In-Memory Store Behavior
 
-`InMemorySessionStore` is the default store used by `ConnectionHub` when no custom
+`InMemorySessionStore` is the default store used by `SessionService` when no custom
 `ISessionStore` is injected.
 
 ### Storage and Replacement
@@ -93,8 +93,8 @@ session token:
 
 Expiration is enforced in two places:
 
-- a background scavenger runs every minute and removes expired entries;
-- `RetrieveAsync(...)` and `ConsumeAsync(...)` also perform lazy TTL checks.
+- a background scavenger implemented via `IHostedWorker` runs every minute and removes expired entries;
+- `ConsumeAsync(...)` also performs lazy TTL checks.
 
 Expired entries are removed from the dictionary and returned to their backing pools
 through `SessionEntry.Return()`.
@@ -107,9 +107,7 @@ it. Expired consumed entries are returned and reported as `null`.
 
 ### Disposal
 
-`InMemorySessionStore.Dispose()` cancels the scavenger token, cancels the scheduled
-cleanup worker through `TaskManager`, disposes the worker handle, and suppresses
-finalization. Cleanup errors are handled best-effort for non-fatal exceptions.
+`SessionService.Dispose()` disposes the scavenger worker handle (`IWorkerHandle`) scheduled on `TaskManager` if `InMemorySessionStore` was used as the backing store, cleanly canceling the background execution loop.
 
 ## Memory Management Notes
 
