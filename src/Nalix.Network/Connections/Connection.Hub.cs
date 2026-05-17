@@ -54,6 +54,13 @@ public sealed class ConnectionHub : IConnectionHub
     private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<ulong, IConnection>[] _shards;
 
+    /// <summary>
+    /// Reverse index: IP address → set of connection IDs for O(1) IP-based lookup.
+    /// Used by <see cref="ForceClose"/> to avoid O(N) full scans.
+    /// Uses <c>ConcurrentDictionary&lt;ulong, byte&gt;</c> as a lock-free concurrent hash set.
+    /// </summary>
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<ulong, byte>> _ipIndex;
+
     private readonly ISessionService _sessionService;
     private readonly SessionStoreOptions _sessionOptions;
 
@@ -138,6 +145,7 @@ public sealed class ConnectionHub : IConnectionHub
         _trackEvictionQueue = _maxConnections > 0 && _options.DropPolicy == DropPolicy.DropOldest;
         _anonymousQueue = new ConcurrentQueue<ulong>();
         _shards = new ConcurrentDictionary<ulong, IConnection>[_shardCount];
+        _ipIndex = new ConcurrentDictionary<string, ConcurrentDictionary<ulong, byte>>(StringComparer.Ordinal);
 
         int perShardCapacity = _maxConnections > 0
             ? Math.Max(4, (_maxConnections + _shardCount - 1) / _shardCount)
@@ -366,30 +374,42 @@ public sealed class ConnectionHub : IConnectionHub
             return 0;
         }
 
-        int closedCount = 0;
         string targetAddress = networkEndpoint.Address;
 
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
+        /*
+         * [IP Reverse Index Lookup]
+         * Instead of scanning all connections across all shards — O(N) — we
+         * use the _ipIndex to find only the connection IDs belonging to this
+         * IP address in O(K) where K = connections from the target IP.
+         */
+        if (!_ipIndex.TryGetValue(targetAddress, out ConcurrentDictionary<ulong, byte>? connectionIds) ||
+            connectionIds is null ||
+            connectionIds.IsEmpty)
         {
-            foreach (IConnection conn in shard.Values)
-            {
-                if (conn.NetworkEndpoint.Address != targetAddress)
-                {
-                    continue;
-                }
+            return 0;
+        }
 
-                try
-                {
-                    conn.Disconnect("Force disconnected by IP.");
-                    closedCount++;
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    conn.ThrottledError(
-                        _logger,
-                        "hub.force_close_error",
-                        $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
-                }
+        int closedCount = 0;
+
+        foreach (ulong connId in connectionIds.Keys)
+        {
+            ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(connId);
+            if (!shard.TryGetValue(connId, out IConnection? conn) || conn is null)
+            {
+                continue;
+            }
+
+            try
+            {
+                conn.Disconnect("Force disconnected by IP.");
+                closedCount++;
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                conn.ThrottledError(
+                    _logger,
+                    "hub.force_close_error",
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(ForceClose)}] disconnect failed id={conn.ID}", ex);
             }
         }
 
@@ -445,6 +465,7 @@ public sealed class ConnectionHub : IConnectionHub
             shard.Clear();
         }
 
+        _ipIndex.Clear();
         _anonymousQueue.Clear();
         _ = Interlocked.Exchange(ref _count, 0);
 
@@ -585,13 +606,21 @@ public sealed class ConnectionHub : IConnectionHub
 
     /*
      * [Shard Index Calculation]
-     * If shard count is power-of-two, we use bitwise AND (extremely fast).
-     * Otherwise, we fallback to modulo operator.
+     * Uses a murmur-inspired hash finalizer on the raw ulong ID to ensure
+     * uniform shard distribution. This avoids ulong.GetHashCode() which is
+     * a simple XOR fold — inadequate for Snowflake IDs where MachineId (low
+     * 10 bits) and Type (high 8 bits) are constant per-server, causing
+     * severe clustering on power-of-two shard counts.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private int GetShardIndex(ulong id)
     {
-        int hash = id.GetHashCode() & int.MaxValue;
+        ulong h = id;
+        h ^= h >> 33;
+        h *= 0xff51afd7ed558ccdUL;
+        h ^= h >> 33;
+
+        int hash = (int)h & int.MaxValue;
         return _isPowerOfTwoShardCount ? (hash & _shardMask) : (hash % _shardCount);
     }
 
@@ -639,6 +668,8 @@ public sealed class ConnectionHub : IConnectionHub
             }
 
             added = true;
+            this.AddToIpIndex(connection.NetworkEndpoint.Address, connectionKey);
+
             if (_trackEvictionQueue && this.IsAnonymousConnection(connection))
             {
                 _anonymousQueue.Enqueue(connectionKey);
@@ -694,6 +725,7 @@ public sealed class ConnectionHub : IConnectionHub
         IConnection removedConnection = existing ?? connection;
         removedConnection.OnCloseEvent -= this.OnClientDisconnected;
         _ = Interlocked.Decrement(ref _count);
+        this.RemoveFromIpIndex(removedConnection.NetworkEndpoint.Address, connectionKey);
 
         if (_sessionOptions.AutoSaveOnUnregister)
         {
@@ -859,6 +891,7 @@ public sealed class ConnectionHub : IConnectionHub
             evictedConnection.OnCloseEvent -= this.OnClientDisconnected;
             _ = Interlocked.Decrement(ref _count);
             _ = Interlocked.Increment(ref _evictedConnections);
+            this.RemoveFromIpIndex(evictedConnection.NetworkEndpoint.Address, oldestId);
 
             this.NotifyCapacityLimit(incomingConnection, "evict-oldest");
             ConnectionUnregistered?.Invoke(evictedConnection);
@@ -890,6 +923,38 @@ public sealed class ConnectionHub : IConnectionHub
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsAnonymousConnection(IConnection connection) => connection.Level == PermissionLevel.NONE;
+
+    /// <summary>
+    /// Adds a connection ID to the IP reverse index.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void AddToIpIndex(string address, ulong connectionKey)
+    {
+        ConcurrentDictionary<ulong, byte> set = _ipIndex.GetOrAdd(
+            address, static _ => new ConcurrentDictionary<ulong, byte>());
+        _ = set.TryAdd(connectionKey, 0);
+    }
+
+    /// <summary>
+    /// Removes a connection ID from the IP reverse index.
+    /// Eagerly cleans up the entry when the last connection from an IP disconnects.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void RemoveFromIpIndex(string address, ulong connectionKey)
+    {
+        if (!_ipIndex.TryGetValue(address, out ConcurrentDictionary<ulong, byte>? set) || set is null)
+        {
+            return;
+        }
+
+        _ = set.TryRemove(connectionKey, out _);
+
+        // Eagerly remove empty entries to prevent unbounded memory growth
+        if (set.IsEmpty)
+        {
+            _ = _ipIndex.TryRemove(address, out _);
+        }
+    }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private int CountAnonymousConnections()
