@@ -89,7 +89,6 @@ internal sealed class CancellableValueTaskSource<T> : IValueTaskSource<T>, IPool
     {
         this.IsActive = false;
         _cancellationReg = default;
-        s_pool.Return(this);
     }
 
     #endregion IPoolable
@@ -167,7 +166,7 @@ internal sealed class CancellableValueTaskSource<T> : IValueTaskSource<T>, IPool
         finally
         {
             // Trả về pool bất kể kết quả — đây là điểm duy nhất return
-            this.ResetForPool();
+            s_pool.Return(this);
         }
     }
 
