@@ -4,7 +4,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
@@ -40,19 +39,9 @@ public sealed class SessionService : ISessionService, IDisposable
         _store = store ?? new InMemorySessionStore();
         _options = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
-        if (_store is IHostedWorker inMemoryStore)
+        if (_store is IWorker hostedWorker)
         {
-            _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                name: $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",
-                group: TaskNaming.Tags.Cleanup,
-                work: inMemoryStore.ExecuteAsync,
-                options: new WorkerOptions
-                {
-                    RetainFor = TimeSpan.Zero,
-                    Tag = TaskNaming.Tags.Cleanup,
-                    IdType = SnowflakeType.System
-                }
-            );
+            _scavenger = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(hostedWorker);
         }
     }
 
