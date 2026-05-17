@@ -252,6 +252,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
             this.EnsureConnectionHubRegistered();
             this.EnsureBufferPoolManagerRegistered();
+            this.EnsureConnectionTerminatorRegistered();
 
             if (_state.IdentityCertificatePath is not null)
             {
@@ -435,6 +436,27 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         catch
         {
             hub.Dispose();
+            throw;
+        }
+    }
+
+    private void EnsureConnectionTerminatorRegistered()
+    {
+        if (InstanceManager.Instance.GetExistingInstance<IConnectionTerminator>() is not null)
+        {
+            return;
+        }
+
+        IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
+            ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+
+        ConnectionTerminator terminator = new(hub, _state.Logger);
+        try
+        {
+            InstanceManager.Instance.Register<IConnectionTerminator>(terminator);
+        }
+        catch
+        {
             throw;
         }
     }
