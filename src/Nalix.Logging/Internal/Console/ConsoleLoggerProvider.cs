@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Channels;
@@ -13,14 +12,13 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Logging.Internal.Pooling;
 using Nalix.Logging.Options;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
 #endif
 
 namespace Nalix.Logging.Internal.Console;
@@ -29,9 +27,9 @@ namespace Nalix.Logging.Internal.Console;
 /// High-throughput channel console logger backend.
 /// </summary>
 [Worker(
-    "log.console.worker", 
-    "log", 
-    Tag = "console-consumer", GroupConcurrencyLimit = 3)]
+    $"{TaskNaming.Tags.Logging}.console.worker",
+    TaskNaming.Tags.Logging,
+    Tag = TaskNaming.Tags.Logging, GroupConcurrencyLimit = 3)]
 internal sealed class ConsoleLoggerProvider : IDisposable, IWorker
 {
     private readonly Channel<LogMessage> _channel;

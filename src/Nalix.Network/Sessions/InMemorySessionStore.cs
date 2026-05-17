@@ -11,6 +11,7 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Time;
+using Nalix.Framework.Tasks;
 
 namespace Nalix.Network.Sessions;
 
@@ -19,9 +20,9 @@ namespace Nalix.Network.Sessions;
 /// Suitable for single-node deployments. For distributed scenarios, replace with a Redis-backed store.
 /// </summary>
 [Worker(
-    "service.cleanup.sessions",
-    "cleanup",
-    Tag = "cleanup", IdType = 1, RetainForMs = 0)]
+    $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",
+    TaskNaming.Tags.Cleanup,
+    Tag = TaskNaming.Tags.Cleanup, IdType = 1, RetainForMs = 0)]
 public sealed class InMemorySessionStore : ISessionStore, IWorker
 {
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();

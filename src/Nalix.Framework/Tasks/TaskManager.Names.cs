@@ -83,6 +83,11 @@ public static class TaskNaming
         /// Tag for tasks that dispatch work or messages.
         /// </summary>
         public const string Dispatch = "dispatch";
+
+        /// <summary>
+        /// Tag for tasks that handle logging or telemetry.
+        /// </summary>
+        public const string Logging = "log";
     }
 
     /// <summary>

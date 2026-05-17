@@ -30,7 +30,10 @@ namespace Nalix.Logging.Internal.File;
 /// Optimized for low contention and minimal system calls.
 /// </summary>
 [DebuggerDisplay("Queued={QueuedEntryCount}, Written={TotalEntriesWritten}, Dropped={EntriesDroppedCount}")]
-[Worker("log.file.worker", "log", Tag = "file-consumer", GroupConcurrencyLimit = 3)]
+[Worker(
+    $"{TaskNaming.Tags.Logging}.file.worker",
+    TaskNaming.Tags.Logging,
+    Tag = TaskNaming.Tags.Logging, GroupConcurrencyLimit = 3)]
 internal sealed class FileLoggerProvider : IDisposable, IReportable, IWorker
 {
     private readonly Channel<LogMessage> _channel;
