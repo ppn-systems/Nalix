@@ -3,14 +3,13 @@
 
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions.Concurrency;
 
-namespace Nalix.Abstractions;
+namespace Nalix.Abstractions.Concurrency;
 
 /// <summary>
 /// Represents a long-running worker that is executed by the runtime.
 /// </summary>
-public interface IHostedWorker
+public interface IWorker
 {
     /// <summary>
     /// Executes the worker asynchronously.
