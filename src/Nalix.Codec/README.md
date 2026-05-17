@@ -41,6 +41,24 @@ public partial class MyPacket : PacketBase<MyPacket>
 }
 ```
 
+## Quick Example: Using LiteSerializer
+
+```csharp
+using System;
+using Nalix.Codec.Serialization;
+
+// Create a custom serializable packet instance
+MyPacket packet = new MyPacket { Message = "Hello Nalix!" };
+
+// Serialize the packet into a byte array
+byte[] encoded = LiteSerializer.Serialize(packet);
+
+// Deserialize the byte array back to the packet type
+MyPacket decoded = LiteSerializer.Deserialize<MyPacket>(encoded, out int bytesRead);
+
+Console.WriteLine($"Decoded Message: {decoded.Message} (Read {bytesRead} bytes)");
+```
+
 ## Performance Principles
 
 - **Zero-Allocation:** All hot paths use `Span<byte>` and pooled buffers.
