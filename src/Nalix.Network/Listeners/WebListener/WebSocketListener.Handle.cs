@@ -25,7 +25,9 @@ public abstract partial class WebSocketListenerBase
 {
     #region Fields
 
+#pragma warning disable CA2213
     private IWorkerHandle? _processWorker;
+#pragma warning restore CA2213
     private Channel<IConnection>? _processChannel;
 
     #endregion Fields

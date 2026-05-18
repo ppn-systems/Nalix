@@ -26,6 +26,12 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader
     public string Path { get; set; } = "/ws/";
 
     /// <summary>
+    /// Gets or sets the host to bind the listener to (e.g., *, +, localhost).
+    /// </summary>
+    [IniComment("Host address to bind to (default *)")]
+    public string Host { get; set; } = "*";
+
+    /// <summary>
     /// Gets or sets the subprotocol to negotiate.
     /// </summary>
     [IniComment("WebSocket subprotocol identifier (default nalix.v1)")]

@@ -14,7 +14,7 @@ using Nalix.Environment.Memory;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
-namespace Nalix.SDK.Transport.Internal;
+namespace Nalix.SDK.Transport.Internal.Udp;
 
 /// <summary>
 /// Handles sending UDP datagrams with session token prefix.

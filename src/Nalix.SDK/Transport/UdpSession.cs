@@ -12,7 +12,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Memory;
 using Nalix.SDK.Options;
-using Nalix.SDK.Transport.Internal;
+using Nalix.SDK.Transport.Internal.Udp;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
 

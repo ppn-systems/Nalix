@@ -15,7 +15,7 @@ using Nalix.Environment.Options;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
-namespace Nalix.SDK.Transport.Internal;
+namespace Nalix.SDK.Transport.Internal.Tcp;
 
 internal sealed class TcpFrameSender : IDisposable
 {

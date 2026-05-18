@@ -209,7 +209,12 @@ public abstract partial class WebSocketListenerBase
 
         _listener = new HttpListener();
 
-        string prefix = $"http://*:{_port}{_path}";
+        string host = _config.Host;
+        if (string.IsNullOrEmpty(host))
+        {
+            host = "*";
+        }
+        string prefix = $"http://{host}:{_port}{_path}";
         if (!prefix.EndsWith('/'))
         {
             prefix += "/";

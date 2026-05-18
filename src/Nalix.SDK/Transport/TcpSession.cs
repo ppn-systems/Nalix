@@ -8,7 +8,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Memory;
 using Nalix.SDK.Options;
-using Nalix.SDK.Transport.Internal;
+using Nalix.SDK.Transport.Internal.Tcp;
 
 namespace Nalix.SDK.Transport;
 

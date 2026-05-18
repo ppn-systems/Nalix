@@ -20,6 +20,7 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
 
@@ -29,7 +30,7 @@ namespace Nalix.Network.Connections;
 /// Represents a network connection that manages WebSocket communication, stream
 /// transformation, and event handling.
 /// </summary>
-public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection
+public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection
 {
     #region Fields
 
@@ -94,7 +95,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     public ISnowflake ID { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITransport TCP => _tcp ??= new WebSocketTransportAdapter(this);
+    public IConnection.ITransport TCP => _tcp ??= new WebSocketTransport(this);
 
     /// <inheritdoc/>
     public IConnection.ITransport UDP => throw new NotSupportedException("UDP is not supported over WebSocket connections.");
@@ -401,13 +402,20 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     /// <summary>
     /// Adapter class that implements <see cref="IConnection.ITransport"/> for WebSocket.
     /// </summary>
-    private sealed class WebSocketTransportAdapter(WebSocketConnection owner) : IConnection.ITransport
+    private sealed class WebSocketTransport : IConnection.ITransport
     {
-        private readonly WebSocketConnection _owner = owner;
+        private TransportSequencer _sequencer;
+        private readonly WebSocketConnection _owner;
 
-        public ISequenceCounter SendSequence => throw new NotImplementedException();
+        public WebSocketTransport(WebSocketConnection owner)
+        {
+            _owner = owner;
+            _sequencer = new TransportSequencer();
+        }
 
-        public ISequenceCounter ReceiveSequence => throw new NotImplementedException();
+        public ISequenceCounter SendSequence => _sequencer.SendSequence;
+
+        public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
 
         public void Send(IPacket packet) => this.SendAsync(packet).AsTask().GetAwaiter().GetResult();
 

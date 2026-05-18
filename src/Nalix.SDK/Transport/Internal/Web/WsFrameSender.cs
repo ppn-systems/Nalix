@@ -14,7 +14,7 @@ using Nalix.Environment.Options;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
-namespace Nalix.SDK.Transport.Internal;
+namespace Nalix.SDK.Transport.Internal.Web;
 
 internal sealed class WsFrameSender : IDisposable
 {

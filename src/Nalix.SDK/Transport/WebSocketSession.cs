@@ -11,7 +11,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Memory;
 using Nalix.SDK.Options;
-using Nalix.SDK.Transport.Internal;
+using Nalix.SDK.Transport.Internal.Web;
 
 namespace Nalix.SDK.Transport;
 
@@ -288,7 +288,10 @@ public class WebSocketSession : TransportSession
                 {
                     _ = dispatchTask.ContinueWith(static (task, state) =>
                     {
-                        if (state is not Tuple<WebSocketSession, IBufferLease> payload) return;
+                        if (state is not Tuple<WebSocketSession, IBufferLease> payload)
+                        {
+                            return;
+                        }
 
                         WebSocketSession self = payload.Item1;
                         IBufferLease retained = payload.Item2;
