@@ -17,6 +17,7 @@ using Nalix.Network.Protocols;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Network.Options;
+using Nalix.Framework.Options;
 
 [assembly: CollectionBehavior(DisableTestParallelization = true)]
 
@@ -216,6 +217,170 @@ public class WebSocketTransportTests : IDisposable
         }
         finally
         {
+            await app.DeactivateAsync();
+        }
+    }
+
+    [Fact]
+    public async Task WebSocketHosting_WhenClientSendsManyMessages_DoesNotLeakConnectionEventArgs()
+    {
+        ObjectPoolOptions poolOptions = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
+        bool previousDiagnostics = poolOptions.EnableDiagnostics;
+        bool previousCaptureStacks = poolOptions.CaptureStackTraces;
+        TextWriter originalOut = Console.Out;
+        using StringWriter consoleOutput = new();
+
+        poolOptions.EnableDiagnostics = true;
+        poolOptions.CaptureStackTraces = true;
+        Console.SetOut(consoleOutput);
+
+        ushort port = GetFreePort();
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
+        EnsureCertificate();
+
+        var builder = Nalix.Hosting.NetworkApplication.CreateBuilder();
+        builder.ConfigureCertificate(_certificatePath);
+        var protocol = new IntegrationTestProtocol();
+        builder.BindWebSocket<IntegrationTestProtocol>()
+               .OnPort(port)
+               .WithPath("/ws/")
+               .WithFactory(_ => protocol);
+
+        using var app = builder.Build();
+
+        try
+        {
+            await app.ActivateAsync();
+            await Task.Delay(1000);
+
+            var options = new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = port,
+                EncryptionEnabled = false,
+                CompressionEnabled = false
+            };
+
+            using var client = new WebSocketSession(options);
+            TaskCompletionSource firstEcho = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            client.OnMessageReceived += (_, lease) =>
+            {
+                if (lease.Length > 10)
+                {
+                    firstEcho.TrySetResult();
+                }
+            };
+
+            await client.ConnectAsync();
+
+            for (int i = 0; i < 256; i++)
+            {
+                await client.SendAsync(CreatePayload($"spam-{i}"));
+            }
+
+            Task completed = await Task.WhenAny(firstEcho.Task, Task.Delay(10000));
+            Assert.Equal(firstEcho.Task, completed);
+
+            await client.DisconnectAsync();
+            await app.DeactivateAsync();
+
+            for (int i = 0; i < 3; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                await Task.Delay(100);
+            }
+
+            Assert.DoesNotContain("LEAK DETECTED: Object of type ConnectionEventArgs", consoleOutput.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            poolOptions.EnableDiagnostics = previousDiagnostics;
+            poolOptions.CaptureStackTraces = previousCaptureStacks;
+            await app.DeactivateAsync();
+        }
+    }
+
+    [Fact]
+    public async Task WebSocketHosting_WhenClientSendsMessagesLargerThanReceiveChunk_DoesNotLeakConnectionEventArgs()
+    {
+        ObjectPoolOptions poolOptions = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
+        bool previousDiagnostics = poolOptions.EnableDiagnostics;
+        bool previousCaptureStacks = poolOptions.CaptureStackTraces;
+        TextWriter originalOut = Console.Out;
+        using StringWriter consoleOutput = new();
+
+        poolOptions.EnableDiagnostics = true;
+        poolOptions.CaptureStackTraces = true;
+        Console.SetOut(consoleOutput);
+
+        ushort port = GetFreePort();
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
+        EnsureCertificate();
+
+        var builder = Nalix.Hosting.NetworkApplication.CreateBuilder();
+        builder.ConfigureCertificate(_certificatePath);
+        builder.BindWebSocket<IntegrationTestProtocol>()
+               .OnPort(port)
+               .WithPath("/ws/")
+               .WithFactory(_ => new IntegrationTestProtocol());
+
+        using var app = builder.Build();
+
+        try
+        {
+            await app.ActivateAsync();
+            await Task.Delay(1000);
+
+            var options = new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = port,
+                EncryptionEnabled = false,
+                CompressionEnabled = false
+            };
+
+            using var client = new WebSocketSession(options);
+            TaskCompletionSource firstEcho = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            client.OnMessageReceived += (_, lease) =>
+            {
+                if (lease.Length > 1400)
+                {
+                    firstEcho.TrySetResult();
+                }
+            };
+
+            await client.ConnectAsync();
+
+            string largeText = new('x', 2_048);
+            for (int i = 0; i < 64; i++)
+            {
+                await client.SendAsync(CreatePayload($"{i:D4}-{largeText}"));
+            }
+
+            Task completed = await Task.WhenAny(firstEcho.Task, Task.Delay(10000));
+            Assert.Equal(firstEcho.Task, completed);
+
+            await client.DisconnectAsync();
+            await app.DeactivateAsync();
+
+            for (int i = 0; i < 3; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+                await Task.Delay(100);
+            }
+
+            Assert.DoesNotContain("LEAK DETECTED: Object of type ConnectionEventArgs", consoleOutput.ToString(), StringComparison.Ordinal);
+        }
+        finally
+        {
+            Console.SetOut(originalOut);
+            poolOptions.EnableDiagnostics = previousDiagnostics;
+            poolOptions.CaptureStackTraces = previousCaptureStacks;
             await app.DeactivateAsync();
         }
     }
