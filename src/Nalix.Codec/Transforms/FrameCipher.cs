@@ -11,11 +11,10 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.Extensions;
-using Nalix.Environment.Extensions;
 using Nalix.Codec.Internal;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Security;
+using Nalix.Environment.Extensions;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Transforms;
 

@@ -297,11 +297,11 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         try
         {
             // Break timing wheel reference
-            Nalix.Network.Internal.Time.TimingWheel.TimeoutTask? task = ((Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
+            TimingWheel.TimeoutTask? task = ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
             if (task is not null)
             {
                 task.Conn = null;
-                ((Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
+                ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
 
             if (Interlocked.Exchange(ref _closeSignaled, 1) == 0 && _onCloseEvent != null)

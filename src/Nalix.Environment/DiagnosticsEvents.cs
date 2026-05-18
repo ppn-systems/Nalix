@@ -1,6 +1,7 @@
 using System.Diagnostics;
+using Nalix.Environment.Diagnostics;
 
-namespace Nalix.Environment.Diagnostics;
+namespace Nalix.Environment;
 
 /// <summary>
 /// Central registry for all diagnostic event names used within the Environment module.

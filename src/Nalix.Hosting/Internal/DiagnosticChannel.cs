@@ -5,7 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
-using Nalix.Environment.Diagnostics;
+using Nalix.Environment;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Hosting.Internal;
