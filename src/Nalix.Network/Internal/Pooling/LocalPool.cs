@@ -55,6 +55,12 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     private long _mask;
 
     /// <summary>
+    /// Flag indicating whether the pool has been destroyed.
+    /// 0 = active, 1 = destroyed.
+    /// </summary>
+    private int _destroyed;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="LocalPool{T}"/> class.
     /// </summary>
     /// <param name="globalPool">The global pool manager used for fallback operations.</param>
@@ -76,9 +82,18 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T? Acquire(System.Action<T> initialize)
     {
+        if (Volatile.Read(ref _destroyed) != 0)
+        {
+            return null;
+        }
+
         this.EnsureInitialized(initialize);
 
-        T[] items = _items!;
+        T[]? items = _items;
+        if (items == null)
+        {
+            return null;
+        }
         for (int i = 0; i < Size; i++)
         {
             long bit = 1L << i;
@@ -117,7 +132,7 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     {
         T[]? items = _items;
 
-        if (items != null)
+        if (items != null && Volatile.Read(ref _destroyed) == 0)
         {
             for (int i = 0; i < Size; i++)
             {
@@ -163,6 +178,11 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     /// </remarks>
     public void Destroy()
     {
+        if (Interlocked.Exchange(ref _destroyed, 1) != 0)
+        {
+            return;
+        }
+
         T[]? items = Interlocked.Exchange(ref _items, null);
         if (items == null)
         {
@@ -207,14 +227,14 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void EnsureInitialized(System.Action<T> initialize)
     {
-        if (_items != null)
+        if (_items != null || Volatile.Read(ref _destroyed) != 0)
         {
             return;
         }
 
         lock (this)
         {
-            if (_items != null)
+            if (_items != null || Volatile.Read(ref _destroyed) != 0)
             {
                 return;
             }
