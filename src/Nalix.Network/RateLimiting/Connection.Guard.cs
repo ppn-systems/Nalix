@@ -23,6 +23,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
@@ -52,7 +53,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     private readonly TimeSpan _cleanupInterval;
     private readonly TimeSpan _inactivityThreshold;
     private readonly ConnectionLimitOptions _config;
-    private readonly BannedIpStoreOptions _storeConfig;
+    private readonly ConnectionBanStoreOptions _storeConfig;
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
     private readonly List<IPNetwork> _trustedProxies = new();
     private readonly HashSet<IPAddress> _blacklistedIps = new();
@@ -94,7 +95,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         _config = config ?? ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
         _config.Validate();
 
-        _storeConfig = ConfigurationManager.Instance.Get<BannedIpStoreOptions>();
+        _storeConfig = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
         _storeConfig.Validate();
 
         this.PARSE_IP_CONFIG();
@@ -162,9 +163,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         string path = System.IO.Path.Combine(Directories.DataDirectory, _storeConfig.StoreFileName);
         DateTime now = Clock.NowUtc();
 
-        List<BannedIpRecord> records = BannedIpStore.Load(path, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
+        List<ConnectionBanRecord> records = ConnectionBanStore.Load(path, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
 
-        foreach (BannedIpRecord record in records)
+        foreach (ConnectionBanRecord record in records)
         {
             ConnectionLimitEntry entry = new()
             {
@@ -1167,7 +1168,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         try
         {
-            List<BannedIpRecord> snapshot = new();
+            List<ConnectionBanRecord> snapshot = new();
             DateTime now = Clock.NowUtc();
 
             // Minimal lock to collect snapshot
@@ -1197,14 +1198,14 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                         }
                     }
 
-                    snapshot.Add(new BannedIpRecord(kvp.Key, bannedUntil, banCount, lastBanTime, lastSeen));
+                    snapshot.Add(new ConnectionBanRecord(kvp.Key, bannedUntil, banCount, lastBanTime, lastSeen));
                 }
             }
 
             if (snapshot.Count > 0)
             {
                 string path = System.IO.Path.Combine(Directories.DataDirectory, _storeConfig.StoreFileName);
-                BannedIpStore.Save(path, snapshot, snapshot.Count);
+                ConnectionBanStore.Save(path, snapshot, snapshot.Count);
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
