@@ -33,6 +33,7 @@ public static class ExceptionClassifier
             AccessViolationException or
             AppDomainUnloadedException or
             BadImageFormatException or
-            CannotUnloadAppDomainException);
+            CannotUnloadAppDomainException or
+            InvalidProgramException);
     }
 }

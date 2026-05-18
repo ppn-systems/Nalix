@@ -7,6 +7,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Internal;
@@ -44,7 +45,7 @@ public static class FrameCompression
 
             return dest;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             dest.Dispose();
             throw;
@@ -76,7 +77,7 @@ public static class FrameCompression
 
             return dest;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             dest.Dispose();
             throw;

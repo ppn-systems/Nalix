@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Logging.Extensions;
 
@@ -77,7 +78,7 @@ public static partial class NLogixFx
 
             return s;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             return "-";
         }

@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Framework.Injection.DI;
 
@@ -323,7 +324,7 @@ public static class Singleton
                     _ = s_services.TryAdd(type, lazyInstance);
                     return (TClass)lazyInstance.Value;
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     throw new InvalidOperationException(
                         $"Failed to create instance of type {implementationType.Name}", ex);
@@ -369,7 +370,7 @@ public static class Singleton
             {
                 disposable.Dispose();
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 // Log exception but continue disposing other services
                 // In production: consider logging the exception

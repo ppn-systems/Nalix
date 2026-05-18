@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Logging.Options;
@@ -184,7 +185,7 @@ public sealed partial class NLogixOptions : ConfigurationLoader, IDisposable
         {
             this.Publisher?.Dispose();
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
 #if DEBUG
             Debug.WriteLine($"ERROR disposing NLogixOptions: {ex.Message}");

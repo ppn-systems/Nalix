@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers.Binary;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Security.Primitives;
@@ -151,7 +152,7 @@ public static class HandshakeX25519
 
             return buffer;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             MemorySecurity.ZeroMemory(buffer);
             throw;

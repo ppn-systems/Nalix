@@ -7,9 +7,10 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Environment.Options;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
@@ -188,7 +189,7 @@ public abstract partial class UdpListenerBase
                         $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
@@ -215,7 +216,7 @@ public abstract partial class UdpListenerBase
                         $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
                 }
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {

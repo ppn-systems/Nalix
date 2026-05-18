@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
@@ -167,7 +168,7 @@ public static class FramePipeline
             // DO NOT call current.Dispose() here to preserve the original lease ownership rule.
             current = singleLease;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             singleLease.Dispose();
             throw;

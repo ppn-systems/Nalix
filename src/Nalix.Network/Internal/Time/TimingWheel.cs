@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
@@ -369,7 +370,7 @@ internal sealed class TimingWheel : IActivatable
                     $"cts-cancel-ignored reason={ex.GetType().Name}");
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
@@ -392,7 +393,7 @@ internal sealed class TimingWheel : IActivatable
                     $"cts-dispose-ignored reason={ex.GetType().Name}");
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
@@ -406,7 +407,7 @@ internal sealed class TimingWheel : IActivatable
         {
             worker?.Dispose();
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
@@ -487,7 +488,7 @@ internal sealed class TimingWheel : IActivatable
                 // Link the task to the connection for instant cleanup during Dispose.
                 connection.TimeoutTask = task;
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (task is not null && !queued)
                 {
@@ -671,7 +672,7 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 connection.Disconnect();
                             }
-                            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                             {
                                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                                 {
@@ -716,7 +717,7 @@ internal sealed class TimingWheel : IActivatable
         {
             // Expected on shutdown
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
