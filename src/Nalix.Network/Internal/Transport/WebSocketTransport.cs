@@ -4,7 +4,6 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.IO;
 using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -29,12 +28,16 @@ namespace Nalix.Network.Internal.Transport;
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class WebSocketTransport : IConnection.ITransport
+internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
 {
     #region Fields
 
     private readonly WebSocketConnection _owner;
     private readonly NetworkWebSocketOptions _options;
+
+    private int _disposed;
+    private int _receiveStarted;
+    private Task? _receiveLoopTask;
     private TransportSequencer _sequencer;
 
     #endregion Fields
@@ -63,17 +66,22 @@ internal sealed class WebSocketTransport : IConnection.ITransport
     #region APIs
 
     [StackTraceHidden]
-    public void Send(IPacket packet) => this.SendAsync(packet).AsTask().GetAwaiter().GetResult();
+    public void Send(IPacket packet) => Throw.WebSocketSyncSendNotSupported();
 
     [StackTraceHidden]
-    public void Send(ReadOnlySpan<byte> message) => this.SendAsync(message.ToArray()).AsTask().GetAwaiter().GetResult();
+    public void Send(ReadOnlySpan<byte> message) => Throw.WebSocketSyncSendNotSupported();
 
     [StackTraceHidden]
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
     public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
     {
-        byte[] bytes = packet.Serialize();
-        await this.SendAsync(bytes, cancellationToken).ConfigureAwait(false);
+        ArgumentNullException.ThrowIfNull(packet);
+
+        using BufferLease lease = BufferLease.Rent(packet.Length);
+        int bytesWritten = packet.Serialize(lease.SpanFull);
+        lease.CommitLength(bytesWritten);
+
+        await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
     }
 
     [StackTraceHidden]
@@ -82,7 +90,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport
     {
         if (_owner.IsDisposed || _owner.WebSocket.State != WebSocketState.Open)
         {
-            throw new InvalidOperationException("WebSocket is closed.");
+            Throw.WebSocketClosed();
         }
 
         // WebSockets handle framing natively, so we just send the message as binary.
@@ -102,7 +110,17 @@ internal sealed class WebSocketTransport : IConnection.ITransport
     }
 
     [StackTraceHidden]
-    public void BeginReceive(CancellationToken cancellationToken = default) => _ = this.StartReceiveLoopAsync(cancellationToken);
+    public void BeginReceive(CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_owner.IsDisposed, nameof(WebSocketConnection));
+
+        if (Interlocked.CompareExchange(ref _receiveStarted, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _receiveLoopTask = this.RECEIVE_LOOP_ASYNC(cancellationToken);
+    }
 
     #endregion APIs
 
@@ -114,19 +132,17 @@ internal sealed class WebSocketTransport : IConnection.ITransport
     {
         if (s_fragmentOptions.MaxChunkSize <= 0)
         {
-            throw new InvalidOperationException(
-                $"[{nameof(WebSocketTransport)}] Invalid configuration: " +
-                $"MaxChunkSize must be > 0, got {s_fragmentOptions.MaxChunkSize}.");
+            Throw.WebSocketInvalidReceiveBuffer();
         }
 
         return s_fragmentOptions.MaxChunkSize;
     }
 
-    private async Task StartReceiveLoopAsync(CancellationToken cancellationToken = default)
+    private async Task RECEIVE_LOOP_ASYNC(CancellationToken cancellationToken = default)
     {
         // Allocate a buffer matching FragmentOptions.MaxChunkSize (typically 1.4KB) to eliminate 64KB per-connection bloat.
         int length = GET_RECEIVE_BUFFER_SIZE();
-        byte[] buffer = BufferLease.ByteArrayPool.Rent(GET_RECEIVE_BUFFER_SIZE());
+        byte[] buffer = BufferLease.ByteArrayPool.Rent(length);
 
         try
         {
@@ -145,13 +161,26 @@ internal sealed class WebSocketTransport : IConnection.ITransport
                 if (result.EndOfMessage)
                 {
                     // Fast path: the entire message fit in our buffer
-                    this.ValidateMessageSize(result.Count);
-                    this.DispatchPayload(buffer, 0, result.Count);
+                    if (result.Count > _options.MaxMessageSize)
+                    {
+                        Throw.WebSocketMessageTooLarge();
+                    }
+
+                    if (result.Count == 0)
+                    {
+                        return;
+                    }
+
+                    // Rent a lease and copy data so the receive loop can continue immediately
+                    BufferLease lease = BufferLease.CopyFrom(new ReadOnlySpan<byte>(buffer, 0, result.Count));
+                    lease.IsReliable = true;
+
+                    _owner.TriggerProcessEvent(lease);
                 }
                 else
                 {
                     // Slow path: the message is larger than the buffer, we need to assemble it
-                    await this.HandleLargeMessageAsync(buffer, result.Count, cancellationToken).ConfigureAwait(false);
+                    await this.HANDLE_LARGE_MESSAGE_ASYNC(buffer, result.Count, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -177,14 +206,20 @@ internal sealed class WebSocketTransport : IConnection.ITransport
         }
     }
 
-    private async Task HandleLargeMessageAsync(byte[] initialBuffer, int initialBytes, CancellationToken cancellationToken)
+    private async Task HANDLE_LARGE_MESSAGE_ASYNC(byte[] initialBuffer, int initialBytes, CancellationToken cancellationToken)
     {
-        using MemoryStream ms = new();
-        await ms.WriteAsync(initialBuffer.AsMemory(0, initialBytes), cancellationToken).ConfigureAwait(false);
-        this.ValidateMessageSize(ms.Length);
+        if (initialBytes > _options.MaxMessageSize)
+        {
+            Throw.WebSocketMessageTooLarge();
+        }
+
+        byte[] payload = BufferLease.ByteArrayPool.Rent(_options.MaxMessageSize);
+        int written = initialBytes;
+        initialBuffer.AsSpan(0, initialBytes).CopyTo(payload);
 
         int length = GET_RECEIVE_BUFFER_SIZE();
         byte[] buffer = BufferLease.ByteArrayPool.Rent(length);
+        bool ownershipTransferred = false;
         try
         {
             WebSocketReceiveResult result;
@@ -196,51 +231,94 @@ internal sealed class WebSocketTransport : IConnection.ITransport
                     return;
                 }
 
-                await ms.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken).ConfigureAwait(false);
-                this.ValidateMessageSize(ms.Length);
+                int nextWritten = checked(written + result.Count);
+
+                if (nextWritten > _options.MaxMessageSize)
+                {
+                    Throw.WebSocketMessageTooLarge();
+                }
+
+                buffer.AsSpan(0, result.Count).CopyTo(payload.AsSpan(written));
+                written = nextWritten;
                 _owner.AddBytesReceived(result.Count);
 
             } while (!result.EndOfMessage);
 
-            // Dispatch the fully assembled message
-            if (ms.TryGetBuffer(out ArraySegment<byte> segment))
+            if (written == 0)
             {
-                this.DispatchPayload(segment.Array!, segment.Offset, segment.Count);
+                BufferLease.ByteArrayPool.Return(buffer);
+                return;
             }
-            else
-            {
-                byte[] array = ms.ToArray();
-                this.DispatchPayload(array, 0, array.Length);
-            }
+
+            BufferLease lease = BufferLease.TakeOwnership(payload, 0, written);
+            lease.IsReliable = true;
+
+            _owner.TriggerProcessEvent(lease);
+
+            ownershipTransferred = true;
         }
         finally
         {
             BufferLease.ByteArrayPool.Return(buffer);
+
+            if (!ownershipTransferred)
+            {
+                BufferLease.ByteArrayPool.Return(payload);
+            }
         }
     }
 
-    private void DispatchPayload(byte[] buffer, int offset, int count)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void OBSERVE_RECEIVE_LOOP_SHUTDOWN(Task receiveLoopTask)
     {
-        if (count == 0)
+        if (receiveLoopTask.IsCompleted)
         {
+            if (receiveLoopTask.Exception?.GetBaseException() is Exception ex)
+            {
+                LOG_RECEIVE_LOOP_FAULT(_owner, ex, "during-dispose");
+            }
             return;
         }
 
-        // Rent a lease and copy data so the receive loop can continue immediately
-        BufferLease lease = BufferLease.CopyFrom(new ReadOnlySpan<byte>(buffer, offset, count));
-        lease.IsReliable = true;
+        _ = receiveLoopTask.ContinueWith(static (task, state) =>
+        {
+            if (state is not WebSocketConnection owner)
+            {
+                return;
+            }
 
-        _owner.TriggerProcessEvent(lease);
+            if (task.Exception?.GetBaseException() is Exception ex)
+            {
+                LOG_RECEIVE_LOOP_FAULT(owner, ex, "after-dispose");
+            }
+        }, _owner, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
     }
 
-    private void ValidateMessageSize(long size)
+    private static void LOG_RECEIVE_LOOP_FAULT(WebSocketConnection owner, Exception ex, string phase)
     {
-        if (size > _options.MaxMessageSize)
+        if (owner.Logger != null && owner.Logger.IsEnabled(LogLevel.Debug))
         {
-            throw new InvalidOperationException(
-                $"WebSocket message size {size} exceeds maximum {_options.MaxMessageSize}.");
+            owner.Logger.LogDebug(ex, $"[NW.{nameof(WebSocketTransport)}:{nameof(Dispose)}] receive-loop-faulted-{phase}");
         }
     }
 
     #endregion Receive Loop
+
+    #region Dispose
+
+    public void Dispose()
+    {
+        if (Interlocked.CompareExchange(ref _disposed, 1, 0) != 0)
+        {
+            return;
+        }
+
+        Task? receiveLoopTask = Interlocked.Exchange(ref _receiveLoopTask, null);
+        if (receiveLoopTask is not null)
+        {
+            this.OBSERVE_RECEIVE_LOOP_SHUTDOWN(receiveLoopTask);
+        }
+    }
+
+    #endregion Dispose
 }

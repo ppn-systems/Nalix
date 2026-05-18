@@ -43,6 +43,10 @@ internal static class Throw
     private static readonly InternalErrorException s_connectionNotAvailable = new CachedInternalErrorException("Connection is not available for this event.");
     private static readonly InternalErrorException s_udpTransportNotCreated = new CachedInternalErrorException("UDP transport has not been created yet.");
     private static readonly InternalErrorException s_eventArgsMustHaveLease = new CachedInternalErrorException("Event args must have Lease.");
+    private static readonly InvalidOperationException s_webSocketClosed = new CachedInvalidOperationException("WebSocket is closed.");
+    private static readonly InvalidOperationException s_webSocketInvalidReceiveBuffer = new CachedInvalidOperationException("WebSocket receive buffer size must be greater than zero.");
+    private static readonly InvalidOperationException s_webSocketMessageTooLarge = new CachedInvalidOperationException("WebSocket message size exceeds configured maximum.");
+    private static readonly NotSupportedException s_webSocketSyncSendNotSupported = new CachedNotSupportedException("Synchronous send is not supported for WebSocket transport. Use SendAsync instead.");
 
     #endregion Cached Exceptions (private)
 
@@ -77,6 +81,12 @@ internal static class Throw
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static ObjectDisposedException GetPooledContextDisposed() => s_pooledContextDisposed;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static InvalidOperationException GetWebSocketClosed() => s_webSocketClosed;
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static InvalidOperationException GetWebSocketMessageTooLarge() => s_webSocketMessageTooLarge;
 
     #endregion Getters (return exception, do not throw)
 
@@ -157,6 +167,26 @@ internal static class Throw
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void UdpTransportNotCreated() => throw s_udpTransportNotCreated;
 
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void WebSocketClosed() => throw s_webSocketClosed;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void WebSocketInvalidReceiveBuffer() => throw s_webSocketInvalidReceiveBuffer;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void WebSocketMessageTooLarge() => throw s_webSocketMessageTooLarge;
+
+    [StackTraceHidden]
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void WebSocketSyncSendNotSupported() => throw s_webSocketSyncSendNotSupported;
+
     #endregion Throw Helpers
 
     #region Private Cached Exception Types
@@ -186,6 +216,11 @@ internal static class Throw
     }
 
     private sealed class CachedInvalidOperationException(string message) : InvalidOperationException(message)
+    {
+        public override string? StackTrace => "   at Nalix.Network.Internal.Transport (Cached Exception)";
+    }
+
+    private sealed class CachedNotSupportedException(string message) : NotSupportedException(message)
     {
         public override string? StackTrace => "   at Nalix.Network.Internal.Transport (Cached Exception)";
     }

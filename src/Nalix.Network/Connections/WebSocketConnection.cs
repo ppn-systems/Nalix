@@ -51,7 +51,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     private int _pendingProcessCallbacks;
 
     private IObjectMap<string, object>? _attributes;
-    private IConnection.ITransport? _tcp;
+    private WebSocketTransport? _tcp;
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
@@ -342,6 +342,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
             _attributes?.Return();
             _attributes = null;
+
+            try { Interlocked.Exchange(ref _tcp, null)?.Dispose(); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
 
             try { _argsPool.Destroy(); }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
