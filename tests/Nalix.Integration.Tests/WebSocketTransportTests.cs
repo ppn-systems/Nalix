@@ -79,7 +79,7 @@ public class WebSocketTransportTests : IDisposable
         var protocol = new IntegrationTestProtocol();
         var hub = new ConnectionHub(); // Real hub
 
-        using var server = new TestWebSocketListener(port, "/", protocol, hub);
+        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
         server.Activate();
 
         // Wait a little for server to start
@@ -150,7 +150,7 @@ public class WebSocketTransportTests : IDisposable
         // Bind WebSocket using the fluent API
         builder.BindWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
-               .WithPath("/")
+               .WithPath("/ws/")
                .WithFactory(dispatch => new IntegrationTestProtocol());
 
         using var app = builder.Build();

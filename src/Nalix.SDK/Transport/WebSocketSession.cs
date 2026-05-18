@@ -104,11 +104,14 @@ public class WebSocketSession : TransportSession
 
             _socket = new ClientWebSocket();
 
-            // Set up subprotocols if necessary
-            _socket.Options.AddSubProtocol("nalix.v1");
+            if (!string.IsNullOrWhiteSpace(this.Options.WebSocketSubProtocol))
+            {
+                _socket.Options.AddSubProtocol(this.Options.WebSocketSubProtocol);
+            }
 
-            string scheme = this.Options.EncryptionEnabled ? "wss" : "ws";
-            Uri uri = new($"{scheme}://{effectiveHost}:{effectivePort}");
+            string scheme = this.Options.WebSocketUseTls ? "wss" : "ws";
+            string path = NormalizeWebSocketPath(this.Options.WebSocketPath);
+            Uri uri = new($"{scheme}://{effectiveHost}:{effectivePort}{path}");
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (this.Options.ConnectTimeoutMillis > 0)
@@ -251,6 +254,17 @@ public class WebSocketSession : TransportSession
     #endregion APIs
 
     #region Private
+
+    private static string NormalizeWebSocketPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "/";
+        }
+
+        string normalized = path.Trim();
+        return normalized[0] == '/' ? normalized : "/" + normalized;
+    }
 
     private void HandleError(Exception ex)
     {

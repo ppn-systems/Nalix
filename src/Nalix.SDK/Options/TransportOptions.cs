@@ -126,6 +126,24 @@ public sealed partial class TransportOptions : ConfigurationLoader
     public int MaxUdpDatagramSize { get; set; } = 1400;
 
     /// <summary>
+    /// Gets or sets the WebSocket endpoint path used by <c>WebSocketSession</c>.
+    /// </summary>
+    [IniComment("WebSocket endpoint path (default /ws/)")]
+    public string WebSocketPath { get; set; } = "/ws/";
+
+    /// <summary>
+    /// Gets or sets the WebSocket subprotocol requested by <c>WebSocketSession</c>.
+    /// </summary>
+    [IniComment("WebSocket subprotocol identifier (default nalix.v1)")]
+    public string WebSocketSubProtocol { get; set; } = "nalix.v1";
+
+    /// <summary>
+    /// Gets or sets a value indicating whether WebSocket transport should use TLS.
+    /// </summary>
+    [IniComment("Use secure WebSocket transport (wss://)")]
+    public bool WebSocketUseTls { get; set; }
+
+    /// <summary>
     /// Gets or sets the pinned Server Identity Public Key (required for protecting against MitM attacks).
     /// </summary>
     [IniComment("Pinned X25519 Public Key representation in HEX for Identity Authentication (MitM protection).")]
