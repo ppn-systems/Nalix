@@ -320,14 +320,6 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
         try
         {
-            // Break timing wheel reference
-            TimingWheel.TimeoutTask? task = ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
-            if (task is not null)
-            {
-                task.Conn = null;
-                ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
-            }
-
             if (Interlocked.Exchange(ref _closeSignaled, 1) == 0 && _onCloseEvent != null)
             {
                 ConnectionEventArgs args = this.AcquireEventArgs();
@@ -347,6 +339,15 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
                 {
                     args.Dispose();
                 }
+            }
+
+            // Break timing wheel reference AFTER close handlers have run
+            // so TimingWheel.Unregister can retrieve and remove the TimeoutTask from the bucket.
+            TimingWheel.TimeoutTask? task = ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
+            if (task is not null)
+            {
+                task.Conn = null;
+                ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
         }
         finally
