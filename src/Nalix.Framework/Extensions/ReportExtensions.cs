@@ -5,6 +5,7 @@ using System;
 using System.Globalization;
 using System.IO;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.IO;
 
 namespace Nalix.Framework.Extensions;
@@ -130,7 +131,7 @@ public static class ReportExtensions
 
             _ = Directory.CreateDirectory(s_reportDir);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             s_reportDir = Path.Combine(AppContext.BaseDirectory, "reports");
         }

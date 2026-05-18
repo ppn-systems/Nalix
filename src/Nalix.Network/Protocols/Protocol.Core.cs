@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 
 namespace Nalix.Network.Protocols;
@@ -65,7 +66,7 @@ public abstract partial class Protocol : IProtocol
                 }
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _ = Interlocked.Increment(ref _totalErrors);
 

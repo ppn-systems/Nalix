@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
@@ -175,7 +176,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             if (_packetDispatch is not null)
             {
                 try { _packetDispatch.Deactivate(cancellationToken); }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
                 _packetDispatch = null;
             }
 
@@ -185,7 +186,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             {
                 InstanceManager.Instance.Register<IPacketDispatch>(_packetDispatch);
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _logger.LogDebug(ex, "IPacketDispatch registration replaced existing instance.");
             }
@@ -232,21 +233,21 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         for (int i = _listeners.Count - 1; i >= 0; i--)
         {
             try { _listeners[i].Deactivate(cancellationToken); }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
             try { _listeners[i].Dispose(); }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
         }
         _listeners.Clear();
 
         for (int i = _protocols.Count - 1; i >= 0; i--)
         {
             try { _protocols[i].Dispose(); }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
         }
         _protocols.Clear();
 
         try { _packetDispatch?.Deactivate(cancellationToken); }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex)) { }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
         _packetDispatch = null;
     }
 
@@ -268,7 +269,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                     _listeners[i].Deactivate(cancellationToken);
                     _listeners[i].Dispose();
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_stopListenerFailedMessage(_logger, ex);
                 }
@@ -282,7 +283,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                 {
                     _protocols[i].Dispose();
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     s_disposeProtocolFailedMessage(_logger, ex);
                 }
@@ -294,7 +295,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             {
                 _packetDispatch?.Deactivate(cancellationToken);
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger.IsEnabled(LogLevel.Error))
                 {
@@ -318,7 +319,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
                     await taskManager.WaitGroupAsync("net/*", cancellationToken).ConfigureAwait(false);
                     await taskManager.WaitGroupAsync("time/*", cancellationToken).ConfigureAwait(false);
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     _logger.LogWarning(ex, "Failed to wait for background workers during shutdown.");
                 }
@@ -342,7 +343,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
         {
             await this.DeactivateAsync(CancellationToken.None).ConfigureAwait(false);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger.IsEnabled(LogLevel.Warning))
             {
@@ -379,7 +380,7 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             {
                 deactivateTask.GetAwaiter().GetResult();
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger.IsEnabled(LogLevel.Warning))
                 {

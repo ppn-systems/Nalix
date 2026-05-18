@@ -32,7 +32,7 @@ namespace Nalix.Network.Connections;
 /// This is the high-level owner for the socket transport and the per-connection
 /// event pipeline.
 /// </summary>
-public sealed partial class Connection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection
+public sealed partial class Connection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection, IPooledConnectContextPool
 {
     #region Fields
 
@@ -207,9 +207,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
 
     internal SlidingWindow UdpReplayWindow => _udpReplayWindow ??= new(s_options.UdpReplayWindowSize);
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void ReleasePendingPacket() => this.Socket.ReleasePendingPacket();
-
 #if DEBUG
     /// <summary>
     /// Injects a packet directly into the process pipeline for testing.
@@ -230,7 +227,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
 
         if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
         {
-            this.ReleasePendingPacket();
+            ((IPooledConnectContextPool)this).ReleasePendingPacket();
             args.Dispose();
             lease.Dispose();
         }
@@ -392,11 +389,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
             // High-Performance Cleanup: Break the TimingWheel reference chain instantly.
             // This allows the GC to collect the Connection immediately instead of 
             // waiting for the 102s wheel rotation.
-            Internal.Time.TimingWheel.TimeoutTask? task = ((Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
+            TimingWheel.TimeoutTask? task = ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
             if (task is not null)
             {
                 task.Conn = null;
-                ((Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
+                ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
 
             try { this.Socket.Dispose(); }
@@ -471,11 +468,13 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
         return arg_global;
     }
 
+    internal void ReturnEventArgs(ConnectionEventArgs args) => _argsPool.Return(args);
+
     /// <summary>
     /// Acquires a transition context from the connection's local pool.
     /// Used by AsyncCallback to execute packet handoffs without global pooling.
     /// </summary>
-    internal PooledConnectEventContext AcquireContext()
+    PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
     {
         PooledConnectEventContext? arg_local = _contextPool.Acquire(ctx => ctx.LocalOwner = this);
         if (arg_local != null)
@@ -489,9 +488,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
         return arg_global;
     }
 
-    internal void ReturnEventArgs(ConnectionEventArgs args) => _argsPool.Return(args);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    void IPooledConnectContextPool.ReleasePendingPacket() => this.Socket.ReleasePendingPacket();
 
-    internal void ReturnContext(PooledConnectEventContext ctx) => _contextPool.Return(ctx);
+    void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context) => _contextPool.Return(context);
 
     #endregion Internal Pooling
 

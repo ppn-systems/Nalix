@@ -1,0 +1,240 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using Xunit;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Networking;
+using Nalix.Environment.Configuration;
+using Nalix.Network.Connections;
+using Nalix.Network.Listeners.Web;
+using Nalix.Network.Internal.Time;
+using Nalix.Network.Options;
+using Nalix.SDK.Options;
+using Nalix.SDK.Transport;
+using Nalix.Network.Protocols;
+using FluentAssertions;
+
+#if DEBUG
+namespace Nalix.Network.Tests;
+
+public class WebSocketConnectionTimeoutTests : IDisposable
+{
+    private readonly string _certificatePath = Path.Combine(Path.GetTempPath(), $"nalix-ws-test-{Guid.NewGuid():N}.private");
+
+    private sealed class IntegrationTestProtocol : Protocol
+    {
+        public IntegrationTestProtocol()
+        {
+            this.SetConnectionAcceptance(true);
+        }
+
+        public override void ProcessMessage(object? sender, IConnectEventArgs args)
+        {
+            if (args.Lease != null && args.Lease.Length > 0)
+            {
+                args.Connection.TCP.SendAsync(args.Lease.Memory).AsTask().Wait();
+            }
+        }
+    }
+
+    private sealed class TestWebSocketListener : WebSocketListenerBase
+    {
+        public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub)
+            : base(port, path, protocol, hub) { }
+
+        public override void ProcessFrame(object? sender, IConnectEventArgs args)
+        {
+            this.Protocol.ProcessMessage(sender, args);
+        }
+    }
+
+    private static ushort GetFreePort()
+    {
+        using Socket socket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        return (ushort)((IPEndPoint)socket.LocalEndPoint!).Port;
+    }
+
+    [Fact]
+    public async Task WebSocketSession_DisconnectBeforeTimeout_RemovesTimeoutTask()
+    {
+        ushort port = GetFreePort();
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableTimeout = true;
+
+        var protocol = new IntegrationTestProtocol();
+        var hub = new ConnectionHub();
+
+        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+        server.Activate();
+        await Task.Delay(2000); // 2-second delay for server startup on slow CI
+
+        try
+        {
+            var options = new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = port,
+                EncryptionEnabled = false,
+                CompressionEnabled = false
+            };
+
+            using var client = new WebSocketSession(options);
+            await client.ConnectAsync();
+            client.IsConnected.Should().BeTrue();
+
+            // Wait for the connection to be fully registered in the hub and initialized (up to 10 seconds)
+            bool registered = false;
+            for (int i = 0; i < 1000; i++)
+            {
+                if (hub.Count > 0)
+                {
+                    registered = true;
+                    break;
+                }
+                await Task.Delay(10);
+            }
+            registered.Should().BeTrue("Connection should be registered in the hub within 10 seconds.");
+
+            // Verify a connection is registered in the hub and has a TimeoutTask
+            var connections = hub.ListConnections().ToArray();
+            connections.Should().ContainSingle();
+            var conn = connections[0];
+            
+            conn.Should().BeOfType<WebSocketConnection>();
+            var wsConn = (WebSocketConnection)conn;
+            
+            var timeoutTracked = (TimingWheel.ITimeoutTrackedConnection)wsConn;
+            timeoutTracked.IsRegisteredInWheel.Should().BeTrue();
+            
+            var taskReference = timeoutTracked.TimeoutTask;
+            taskReference.Should().NotBeNull();
+            taskReference!.Bucket.Should().NotBeNull(); // It must be registered inside a bucket
+
+            // Now disconnect client
+            await client.DisconnectAsync();
+            
+            // Wait for disconnect event to propagate and Unregister to be called (up to 10 seconds)
+            bool unregistered = false;
+            for (int i = 0; i < 1000; i++)
+            {
+                if (!timeoutTracked.IsRegisteredInWheel)
+                {
+                    unregistered = true;
+                    break;
+                }
+                await Task.Delay(10);
+            }
+            unregistered.Should().BeTrue("Connection should be unregistered from the wheel.");
+
+            // Check that it's no longer registered in wheel, and TimeoutTask was immediately removed from bucket!
+            timeoutTracked.IsRegisteredInWheel.Should().BeFalse();
+            timeoutTracked.TimeoutTask.Should().BeNull();
+            taskReference.Bucket.Should().BeNull(); // The task was successfully removed from the bucket!
+            taskReference.Conn.Should().BeNull(); // The task was returned to the pool (Conn was nullified)!
+        }
+        finally
+        {
+            server.Deactivate();
+        }
+    }
+
+    [Fact]
+    public async Task WebSocketSession_IdleTimeout_DisconnectsClient()
+    {
+        ushort port = GetFreePort();
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().EnableTimeout = true;
+
+        // Configure dynamic short timeout for TimingWheel (generous enough for slow CI runner CPUs)
+        var timingOptions = ConfigurationManager.Instance.Get<TimingWheelOptions>();
+        int oldTick = timingOptions.TickDuration;
+        int oldTimeout = timingOptions.IdleTimeoutMs;
+        
+        timingOptions.TickDuration = 200; // 200ms ticks (reduced thread-scheduling overhead)
+        timingOptions.IdleTimeoutMs = 1000; // 1000ms idle timeout
+
+        try
+        {
+            var protocol = new IntegrationTestProtocol();
+            var hub = new ConnectionHub();
+
+            using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+            server.Activate();
+            await Task.Delay(2000); // 2-second delay for server startup on slow CI
+
+            try
+            {
+                var options = new TransportOptions
+                {
+                    Address = "127.0.0.1",
+                    Port = port,
+                    EncryptionEnabled = false,
+                    CompressionEnabled = false
+                };
+
+                using var client = new WebSocketSession(options);
+                
+                TaskCompletionSource<Exception> disconnectTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+                client.OnDisconnected += (_, ex) => disconnectTcs.TrySetResult(ex);
+
+                await client.ConnectAsync();
+                client.IsConnected.Should().BeTrue();
+
+                // Wait for the connection to be fully registered in the hub and initialized (up to 10 seconds)
+                bool registered = false;
+                for (int i = 0; i < 1000; i++)
+                {
+                    if (hub.Count > 0)
+                    {
+                        registered = true;
+                        break;
+                    }
+                    await Task.Delay(10);
+                }
+                registered.Should().BeTrue("Connection should be registered in the hub within 10 seconds.");
+
+                // Wait for the TimingWheel loop to tick and trigger the timeout (up to 15 seconds)
+                var completedTask = await Task.WhenAny(disconnectTcs.Task, Task.Delay(15000));
+                completedTask.Should().Be(disconnectTcs.Task); // Should have disconnected due to idle timeout!
+
+                client.IsConnected.Should().BeFalse();
+            }
+            finally
+            {
+                server.Deactivate();
+            }
+        }
+        finally
+        {
+            // Restore TimingWheel options
+            timingOptions.TickDuration = oldTick;
+            timingOptions.IdleTimeoutMs = oldTimeout;
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            if (File.Exists(_certificatePath))
+            {
+                File.Delete(_certificatePath);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup only.
+        }
+
+        Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
+    }
+}
+#endif

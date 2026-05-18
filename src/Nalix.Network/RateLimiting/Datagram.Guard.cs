@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Hashing;
 
 namespace Nalix.Network.RateLimiting;
@@ -255,7 +256,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
                     _logger.LogWarning(ex, $"[NW.{nameof(DatagramGuard)}] Cleanup error.");
                 }
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {

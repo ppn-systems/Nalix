@@ -1,6 +1,7 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Internal;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Codec.Security.Primitives;
@@ -124,7 +125,7 @@ public static class Salsa20Poly1305
             {
                 poly.Clear();
             }
-            catch (System.Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (System.Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 System.Diagnostics.Debug.WriteLine($"[Salsa20Poly1305] Poly1305.Clear failed: {ex}");
             }

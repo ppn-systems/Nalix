@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Environment.IO;
 
@@ -89,13 +90,13 @@ public static partial class Directories
                         deleted++;
                     }
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     Debug.WriteLine($"[Directories] DeleteOldFiles skipped '{filePath}': {ex}");
                 }
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] DeleteOldFiles failed for '{directoryPath}': {ex}");
         }

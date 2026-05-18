@@ -7,21 +7,23 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
-namespace Nalix.SDK.Transport.Internal.Web;
+namespace Nalix.SDK.Transport.Internal.Ws;
 
 internal sealed class WsFrameReader : IDisposable
 {
     private readonly SequenceCounter _sequence;
+    private readonly Action<Exception> _onError;
+    private readonly Action<IBufferLease> _onMessage;
+    private readonly Func<ClientWebSocket> _getSocket;
+
     private readonly TransportOptions _options;
     private readonly WebSocketTransportOptions _webSocketOptions;
-    private readonly Func<ClientWebSocket> _getSocket;
-    private readonly Action<IBufferLease> _onMessage;
-    private readonly Action<Exception> _onError;
 
     private int _disposed;
 
@@ -44,6 +46,7 @@ internal sealed class WsFrameReader : IDisposable
     {
         ClientWebSocket socket = _getSocket();
         byte[] buffer = BufferLease.ByteArrayPool.Rent(8192);
+        Exception? disconnectReason = null;
 
         try
         {
@@ -53,13 +56,19 @@ internal sealed class WsFrameReader : IDisposable
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
+                    disconnectReason = new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "The WebSocket session was closed by the remote host.");
                     break;
                 }
 
                 if (result.EndOfMessage)
                 {
                     // Fast path: the whole message fits in the rented buffer
-                    ValidateMessageSize(result.Count);
+                    if (result.Count > _webSocketOptions.MaxMessageSize)
+                    {
+                        throw new InvalidOperationException(
+                            $"WebSocket message size {result.Count} exceeds maximum {_webSocketOptions.MaxMessageSize}.");
+                    }
+
                     this.PROCESS_FRAME(buffer.AsSpan(0, result.Count));
                 }
                 else
@@ -70,14 +79,25 @@ internal sealed class WsFrameReader : IDisposable
             }
         }
         catch (OperationCanceledException) { }
-        catch (WebSocketException) { }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (WebSocketException ex)
         {
-            _onError?.Invoke(ex);
+            disconnectReason = ex;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            disconnectReason = ex;
         }
         finally
         {
             BufferLease.ByteArrayPool.Return(buffer);
+            if (disconnectReason != null)
+            {
+                _onError?.Invoke(disconnectReason);
+            }
+            else if (!ct.IsCancellationRequested)
+            {
+                _onError?.Invoke(new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "The WebSocket session was disconnected."));
+            }
         }
     }
 
@@ -85,7 +105,12 @@ internal sealed class WsFrameReader : IDisposable
     {
         using MemoryStream ms = new();
         await ms.WriteAsync(initialBuffer.AsMemory(0, initialCount), ct).ConfigureAwait(false);
-        ValidateMessageSize(ms.Length);
+
+        if (ms.Length > _webSocketOptions.MaxMessageSize)
+        {
+            throw new InvalidOperationException(
+                $"WebSocket message size {ms.Length} exceeds maximum {_webSocketOptions.MaxMessageSize}.");
+        }
 
         byte[] tempBuffer = BufferLease.ByteArrayPool.Rent(65536);
         try
@@ -98,8 +123,14 @@ internal sealed class WsFrameReader : IDisposable
                 {
                     return;
                 }
+
                 await ms.WriteAsync(tempBuffer.AsMemory(0, result.Count), ct).ConfigureAwait(false);
-                ValidateMessageSize(ms.Length);
+
+                if (ms.Length > _webSocketOptions.MaxMessageSize)
+                {
+                    throw new InvalidOperationException(
+                        $"WebSocket message size {ms.Length} exceeds maximum {_webSocketOptions.MaxMessageSize}.");
+                }
             }
             while (!result.EndOfMessage);
 
@@ -145,7 +176,7 @@ internal sealed class WsFrameReader : IDisposable
                 _sequence.UpdateTo(seq.Value);
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
         }
@@ -157,15 +188,6 @@ internal sealed class WsFrameReader : IDisposable
             }
 
             original.Dispose();
-        }
-    }
-
-    private void ValidateMessageSize(long size)
-    {
-        if (size > _webSocketOptions.MaxMessageSize)
-        {
-            throw new InvalidOperationException(
-                $"WebSocket message size {size} exceeds maximum {_webSocketOptions.MaxMessageSize}.");
         }
     }
 

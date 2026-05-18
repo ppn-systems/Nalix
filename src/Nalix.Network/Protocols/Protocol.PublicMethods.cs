@@ -4,6 +4,7 @@
 using System;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
 
@@ -116,7 +117,7 @@ public abstract partial class Protocol
 
             connection.Disconnect();
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Log exception if a logger is available
             this.OnConnectionError(connection, ex);

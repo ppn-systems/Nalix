@@ -10,6 +10,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.IO;
 using Nalix.Logging.Exceptions;
 
@@ -151,7 +152,7 @@ internal sealed class FileWriter : IDisposable
 
                 _writer.Flush();
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _provider.Options.HandleFileError?.Invoke(
                     new FileError(ex, _currentPath ?? "<unknown>"));
@@ -159,7 +160,7 @@ internal sealed class FileWriter : IDisposable
                 {
                     this.CLOSE_LOG_FILE_LOCKED();
                 }
-                catch (Exception closeEx) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(closeEx))
+                catch (Exception closeEx) when (ExceptionClassifier.IsNonFatal(closeEx))
                 {
                     _provider.Options.HandleFileError?.Invoke(
                         new FileError(closeEx, _currentPath ?? "<unknown>"));
@@ -175,7 +176,7 @@ internal sealed class FileWriter : IDisposable
         lock (_fileLock)
         {
             try { _writer?.Flush(); }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _provider.Options.HandleFileError?.Invoke(
                     new FileError(ex, _currentPath ?? "<unknown>"));
@@ -208,7 +209,7 @@ internal sealed class FileWriter : IDisposable
         {
             _writer?.Flush();
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));
@@ -218,7 +219,7 @@ internal sealed class FileWriter : IDisposable
         {
             _writer?.Dispose();
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));
@@ -228,7 +229,7 @@ internal sealed class FileWriter : IDisposable
         {
             _stream?.Dispose();
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));
@@ -252,7 +253,7 @@ internal sealed class FileWriter : IDisposable
         {
             _ = Directory.CreateDirectory(Directories.LogsDirectory);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(new FileError(ex, Directories.LogsDirectory));
             this.CLOSE_LOG_FILE_LOCKED();
@@ -306,7 +307,7 @@ internal sealed class FileWriter : IDisposable
 
                 return; // Thành công
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _provider.Options.HandleFileError?.Invoke(new FileError(ex, filename));
                 this.CLOSE_LOG_FILE_LOCKED();
@@ -345,7 +346,7 @@ internal sealed class FileWriter : IDisposable
 
             _writtenBytesForCurrentFile += s_utf8NoBom.GetByteCount(header);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _provider.Options.HandleFileError?.Invoke(
                 new FileError(ex, _currentPath ?? "<unknown>"));

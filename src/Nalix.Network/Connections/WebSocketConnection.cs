@@ -29,7 +29,7 @@ namespace Nalix.Network.Connections;
 /// Represents a network connection that manages WebSocket communication, stream
 /// transformation, and event handling.
 /// </summary>
-public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection
+public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection, IPooledConnectContextPool
 {
     #region Fields
 
@@ -57,8 +57,8 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
     private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
-    // Per-connection local pool for packet arguments to mirror TCP ownership semantics.
     internal readonly LocalPool<ConnectionEventArgs> _argsPool;
+    internal readonly LocalPool<PooledConnectEventContext> _contextPool;
 
     #endregion Fields
 
@@ -80,6 +80,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0));
         this.Secret = Bytes32.Zero;
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
+        _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
@@ -185,9 +186,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     #region Internal Helpers
 
+    internal ILogger? Logger => _logger;
     internal WebSocket WebSocket => _webSocket;
     internal SemaphoreSlim SendLock => _sendLock;
-    internal ILogger? Logger => _logger;
 
     internal void AddBytesSent(long count) => Interlocked.Add(ref _bytesSent, count);
     internal void AddBytesReceived(long count) => Interlocked.Add(ref _bytesReceived, count);
@@ -195,18 +196,17 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     internal void TriggerPostProcessEvent()
     {
-        if (_onPostProcessEvent != null)
+        if (_onPostProcessEvent is null)
         {
-            ConnectionEventArgs args = this.AcquireEventArgs();
-            args.Initialize(this);
-            try
-            {
-                _onPostProcessEvent.Invoke(this, args);
-            }
-            finally
-            {
-                args.Dispose();
-            }
+            return;
+        }
+
+        ConnectionEventArgs args = this.AcquireEventArgs();
+        args.Initialize(this);
+
+        if (!Internal.Transport.AsyncCallback.Invoke(OnPostProcessEventBridge, this, args))
+        {
+            args.Dispose();
         }
     }
 
@@ -228,32 +228,56 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(lease, this);
 
-        // Ensure dispatch is offloaded to avoid blocking the receive loop
-        bool queued = ThreadPool.UnsafeQueueUserWorkItem(state =>
-        {
-            (WebSocketConnection? self, ConnectionEventArgs? evArgs) = ((WebSocketConnection, ConnectionEventArgs))state;
-            try
-            {
-                self._onProcessEvent?.Invoke(self, evArgs);
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
-                {
-                    self._logger.LogError(ex, $"[NW.{nameof(WebSocketConnection)}] Process event error");
-                }
-            }
-            finally
-            {
-                _ = Interlocked.Decrement(ref self._pendingProcessCallbacks);
-                evArgs.Dispose(); // This also disposes the lease
-            }
-        }, (this, args), preferLocal: true);
-
-        if (!queued)
+        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
         {
             _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
             args.Dispose();
+        }
+    }
+
+    private static void OnProcessEventBridge(object? sender, IConnectEventArgs e)
+    {
+        if (e is null)
+        {
+            return;
+        }
+
+        if (sender is not WebSocketConnection self)
+        {
+            e.Dispose();
+            return;
+        }
+
+        try
+        {
+            self._onProcessEvent?.Invoke(self, e);
+        }
+        finally
+        {
+            e.Dispose();
+        }
+    }
+
+    private static void OnPostProcessEventBridge(object? sender, IConnectEventArgs e)
+    {
+        if (e is null)
+        {
+            return;
+        }
+
+        if (sender is not WebSocketConnection self)
+        {
+            e.Dispose();
+            return;
+        }
+
+        try
+        {
+            self._onPostProcessEvent?.Invoke(self, e);
+        }
+        finally
+        {
+            e.Dispose();
         }
     }
 
@@ -296,14 +320,6 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
         try
         {
-            // Break timing wheel reference
-            TimingWheel.TimeoutTask? task = ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
-            if (task is not null)
-            {
-                task.Conn = null;
-                ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
-            }
-
             if (Interlocked.Exchange(ref _closeSignaled, 1) == 0 && _onCloseEvent != null)
             {
                 ConnectionEventArgs args = this.AcquireEventArgs();
@@ -323,6 +339,15 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
                 {
                     args.Dispose();
                 }
+            }
+
+            // Break timing wheel reference AFTER close handlers have run
+            // so TimingWheel.Unregister can retrieve and remove the TimeoutTask from the bucket.
+            TimingWheel.TimeoutTask? task = ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
+            if (task is not null)
+            {
+                task.Conn = null;
+                ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
         }
         finally
@@ -349,6 +374,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
             try { _argsPool.Destroy(); }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
 
+            try { _contextPool.Destroy(); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
+
             try { _sendLock.Dispose(); }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
         }
@@ -366,13 +394,31 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
             return argLocal;
         }
 
-        ConnectionEventArgs argGlobal = s_pool.Get<ConnectionEventArgs>();
-        argGlobal.Initialize(this);
+        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        args.Initialize(this);
 
-        return argGlobal;
+        return args;
     }
 
     internal void ReturnEventArgs(ConnectionEventArgs args) => _argsPool.Return(args);
+
+    PooledConnectEventContext IPooledConnectContextPool.AcquireContext()
+    {
+        PooledConnectEventContext? ctxLocal = _contextPool.Acquire(ctx => ctx.LocalOwner = this);
+        if (ctxLocal != null)
+        {
+            return ctxLocal;
+        }
+
+        PooledConnectEventContext ctxGlobal = s_pool.Get<PooledConnectEventContext>();
+        ctxGlobal.LocalOwner = this;
+
+        return ctxGlobal;
+    }
+
+    void IPooledConnectContextPool.ReleasePendingPacket() => Interlocked.Decrement(ref _pendingProcessCallbacks);
+
+    void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context) => _contextPool.Return(context);
 
     #endregion Internal Pooling
 }

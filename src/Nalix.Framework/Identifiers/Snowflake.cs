@@ -20,6 +20,7 @@ using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Serialization;
 using Nalix.Environment.Configuration;
@@ -267,7 +268,7 @@ public readonly partial struct Snowflake : ISnowflake
             result = FromBytes(bytes);
             return true;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             return false;
         }

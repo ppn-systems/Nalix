@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
@@ -340,7 +341,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                     {
                                         h(ts);
                                     }
-                                    catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                                     {
                                         if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                                         {
@@ -355,7 +356,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                 {
                                     handler(timestamp);
                                 }
-                                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                                 {
                                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                                     {
@@ -383,7 +384,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     // Expected during shutdown
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                     {

@@ -8,6 +8,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Threading;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Environment.IO;
 
@@ -85,7 +86,7 @@ public static partial class Directories
                 }
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             Debug.WriteLine($"[Directories] container detection failed: {ex}");
         }

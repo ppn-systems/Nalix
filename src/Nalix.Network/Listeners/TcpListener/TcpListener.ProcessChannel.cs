@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Options;
@@ -22,8 +23,6 @@ public abstract partial class TcpListenerBase
     // WHY separate thread: This thread runs continuously; using ThreadPool will occupy the thread pool
     // and compete with more important async callback I/O.
     private System.Threading.Channels.Channel<IConnection>? _processChannel;
-
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "<Pending>")]
     private IWorkerHandle? _processWorker;
 
     #endregion Fields
@@ -214,7 +213,7 @@ public abstract partial class TcpListenerBase
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
@@ -258,7 +257,7 @@ public abstract partial class TcpListenerBase
             // - Dedicated worker thread BelowNormal -> does not compete with I/O callbacks.
             this.ProcessConnection(connection);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             this.Metrics.RECORD_ERROR();
 

@@ -7,8 +7,8 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Internal;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization.Internal;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 
@@ -31,7 +31,7 @@ public sealed class StringFormatter : IFormatter<string>
     /// Serializes a string value into the provided writer.
     /// </summary>
     /// <remarks>
-    /// The encoded form starts with a 16-bit length prefix. A special sentinel is
+    /// The encoded form starts with a 32-bit length prefix. A special sentinel is
     /// used for <see langword="null"/> so null and empty strings remain distinct.
     /// </remarks>
     /// <param name="writer">The serialization writer used to store the serialized data.</param>

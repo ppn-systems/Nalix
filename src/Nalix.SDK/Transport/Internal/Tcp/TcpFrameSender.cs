@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Fragments;
@@ -19,20 +20,22 @@ namespace Nalix.SDK.Transport.Internal.Tcp;
 
 internal sealed class TcpFrameSender : IDisposable
 {
-    private readonly SequenceCounter _sequence;
-    private readonly TransportOptions _options;
-    private readonly FragmentOptions _fragmentOptions;
-    private readonly Func<Socket> _getSocket;
-    private readonly Action<Exception> _onError;
-    private readonly SemaphoreSlim _sendLock = new(16, 16);
-
     private const int MaxTcpFrameLength = ushort.MaxValue;
     private const int HeaderSize = TcpSession.HeaderSize;
+
+    private readonly Func<Socket> _getSocket;
+    private readonly SemaphoreSlim _sendLock;
+    private readonly SequenceCounter _sequence;
+    private readonly Action<Exception> _onError;
+
+    private readonly TransportOptions _options;
+    private readonly FragmentOptions _fragmentOptions;
 
     private int _disposed;
 
     public TcpFrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
     {
+        _sendLock = new(1, 1);
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
@@ -78,7 +81,7 @@ internal sealed class TcpFrameSender : IDisposable
                 ? await this.SEND_FRAGMENTED_ASYNC(current.Memory, sync, ct).ConfigureAwait(false)
                 : await this.SEND_SINGLE_FRAME_ASYNC(current.Memory, sync, ct).ConfigureAwait(false);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
             return false;

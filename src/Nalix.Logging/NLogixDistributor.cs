@@ -9,6 +9,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Logging;
 
@@ -108,7 +109,7 @@ public sealed class NLogixDistributor : INLogixDistributor
                 targets[i].Publish(timestampUtc, logLevel, eventId, message, exception);
                 _ = Interlocked.Increment(ref _totalTargetInvocations);
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 _ = Interlocked.Increment(ref _totalPublishErrors);
                 HandleTargetError(targets[i], ex, timestampUtc, logLevel, eventId, message, exception);
@@ -191,7 +192,7 @@ public sealed class NLogixDistributor : INLogixDistributor
                 errorHandler.HandleError(exception, timestampUtc, logLevel, eventId, message, originalException);
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Ignore errors in the error handler to prevent cascading failures
         }
@@ -219,7 +220,7 @@ public sealed class NLogixDistributor : INLogixDistributor
                 {
                     target.Dispose();
                 }
-                catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
                     // Log disposal errors to debug output
 #if DEBUG
@@ -233,7 +234,7 @@ public sealed class NLogixDistributor : INLogixDistributor
 
             _targets.Clear();
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             // Log final disposal errors to debug output
 #if DEBUG

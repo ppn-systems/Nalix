@@ -11,7 +11,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Memory;
 using Nalix.SDK.Options;
-using Nalix.SDK.Transport.Internal.Web;
+using Nalix.SDK.Transport.Internal.Ws;
 
 namespace Nalix.SDK.Transport;
 

@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 
 #if DEBUG
@@ -71,7 +72,7 @@ internal static partial class TypeMetadata
                     }
                 }
             }
-            catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 IsUnmanagedSZArray = false;
                 IsFixedSizeSerializable = false;
