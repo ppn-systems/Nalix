@@ -110,6 +110,40 @@ public sealed partial class ConnectionLimitOptions : ConfigurationLoader
     public System.TimeSpan DailyResetTimeOffset { get; set; } = System.TimeSpan.Zero;
 
     /// <summary>
+    /// Gets or sets a comma-separated list of trusted proxy IP networks (e.g. Cloudflare IPs).
+    /// These IPs will bypass normal limits and use the trusted ceilings instead.
+    /// Example: "103.21.244.0/22,103.22.200.0/22".
+    /// </summary>
+    [IniComment("Comma-separated list of trusted proxy CIDRs/IPs (e.g. Cloudflare). These IPs use the trusted proxy ceilings instead of normal limits.")]
+    public string TrustedProxiesString { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the maximum number of concurrent connections allowed per trusted proxy.
+    /// </summary>
+    [IniComment("Max concurrent connections from a single trusted proxy (1–100,000)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 100_000, ErrorMessage = "MaxConnectionsPerTrustedProxy must be between 1 and 100,000.")]
+    public int MaxConnectionsPerTrustedProxy { get; set; } = 5000;
+
+    /// <summary>
+    /// Gets or sets the maximum number of connection attempts allowed within the configured rate window for a trusted proxy.
+    /// </summary>
+    [IniComment("Max connection attempts from a trusted proxy within the rate window (1–10,000,000)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 10_000_000, ErrorMessage = "MaxAttemptsPerTrustedProxyWindow must be between 1 and 10,000,000.")]
+    public int MaxAttemptsPerTrustedProxyWindow { get; set; } = 2000;
+
+    /// <summary>
+    /// Gets or sets a comma-separated list of permanently blacklisted IP networks or addresses.
+    /// </summary>
+    [IniComment("Comma-separated list of permanently blacklisted CIDRs/IPs.")]
+    public string BlacklistedIpsString { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether progressive banning is enabled.
+    /// </summary>
+    [IniComment("Enable progressive banning schedules (e.g. ban for 1m, then 5m, then 15m) (default true)")]
+    public bool EnableProgressiveBanning { get; set; } = true;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
@@ -180,6 +214,16 @@ public sealed partial class ConnectionLimitOptions : ConfigurationLoader
         if (this.DailyResetTimeOffset < System.TimeSpan.FromHours(-14) || this.DailyResetTimeOffset > System.TimeSpan.FromHours(14))
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.DailyResetTimeOffset), "DailyResetTimeOffset must be between -14:00:00 and 14:00:00.");
+        }
+
+        if (this.MaxConnectionsPerTrustedProxy < 1 || this.MaxConnectionsPerTrustedProxy > 100_000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnectionsPerTrustedProxy), "MaxConnectionsPerTrustedProxy must be between 1 and 100,000.");
+        }
+
+        if (this.MaxAttemptsPerTrustedProxyWindow < 1 || this.MaxAttemptsPerTrustedProxyWindow > 10_000_000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxAttemptsPerTrustedProxyWindow), "MaxAttemptsPerTrustedProxyWindow must be between 1 and 10,000,000.");
         }
     }
 }
