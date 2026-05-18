@@ -18,6 +18,7 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
@@ -56,6 +57,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
     private EventHandler<IConnectEventArgs>? _onPostProcessEvent;
 
+    // Per-connection local pool for packet arguments to mirror TCP ownership semantics.
+    internal readonly LocalPool<ConnectionEventArgs> _argsPool;
+
     #endregion Fields
 
     #region Constructor
@@ -75,6 +79,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0));
         this.Secret = Bytes32.Zero;
+        _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
@@ -192,7 +197,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     {
         if (_onPostProcessEvent != null)
         {
-            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+            ConnectionEventArgs args = this.AcquireEventArgs();
             args.Initialize(this);
             try
             {
@@ -210,7 +215,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
         if (pending > s_callbackOptions.MaxPerConnectionPendingPackets)
         {
-            Interlocked.Decrement(ref _pendingProcessCallbacks);
+            _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
             lease.Dispose();
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
@@ -220,7 +225,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
             return;
         }
 
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+        ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(lease, this);
 
         // Ensure dispatch is offloaded to avoid blocking the receive loop
@@ -240,14 +245,14 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
             }
             finally
             {
-                Interlocked.Decrement(ref self._pendingProcessCallbacks);
+                _ = Interlocked.Decrement(ref self._pendingProcessCallbacks);
                 evArgs.Dispose(); // This also disposes the lease
             }
         }, (this, args), preferLocal: true);
 
         if (!queued)
         {
-            Interlocked.Decrement(ref _pendingProcessCallbacks);
+            _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
             args.Dispose();
         }
     }
@@ -299,10 +304,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
                 ((Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
 
-            // Signal close event first
             if (Interlocked.Exchange(ref _closeSignaled, 1) == 0 && _onCloseEvent != null)
             {
-                ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+                ConnectionEventArgs args = this.AcquireEventArgs();
                 args.Initialize(this);
                 try
                 {
@@ -339,10 +343,33 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
             _attributes?.Return();
             _attributes = null;
 
+            try { _argsPool.Destroy(); }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
+
             try { _sendLock.Dispose(); }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
         }
     }
 
     #endregion Dispose Pattern
+
+    #region Internal Pooling
+
+    internal ConnectionEventArgs AcquireEventArgs()
+    {
+        ConnectionEventArgs? argLocal = _argsPool.Acquire(arg => arg.Initialize(this));
+        if (argLocal != null)
+        {
+            return argLocal;
+        }
+
+        ConnectionEventArgs argGlobal = s_pool.Get<ConnectionEventArgs>();
+        argGlobal.Initialize(this);
+
+        return argGlobal;
+    }
+
+    internal void ReturnEventArgs(ConnectionEventArgs args) => _argsPool.Return(args);
+
+    #endregion Internal Pooling
 }

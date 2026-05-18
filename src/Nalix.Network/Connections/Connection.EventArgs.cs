@@ -118,6 +118,12 @@ public sealed class ConnectionEventArgs : EventArgs, IConnectEventArgs, IPoolabl
             owner.ReturnEventArgs(this);
             return;
         }
+
+        if (_connection is WebSocketConnection webSocketOwner)
+        {
+            webSocketOwner.ReturnEventArgs(this);
+            return;
+        }
     }
 
     #endregion APIs
