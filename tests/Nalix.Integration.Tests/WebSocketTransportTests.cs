@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -23,6 +24,8 @@ namespace Nalix.Integration.Tests;
 
 public class WebSocketTransportTests : IDisposable
 {
+    private readonly string _certificatePath = Path.Combine(Path.GetTempPath(), $"nalix-ws-test-{Guid.NewGuid():N}.private");
+
     /// <summary>
     /// A real protocol implementation for testing, inheriting from Nalix.Network.Protocols.Protocol
     /// </summary>
@@ -144,8 +147,10 @@ public class WebSocketTransportTests : IDisposable
         
         // Configure Host to 127.0.0.1
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
+        EnsureCertificate();
 
         var builder = Nalix.Hosting.NetworkApplication.CreateBuilder();
+        builder.ConfigureCertificate(_certificatePath);
         
         // Bind WebSocket using the fluent API
         builder.BindWebSocket<IntegrationTestProtocol>()
@@ -318,6 +323,21 @@ public class WebSocketTransportTests : IDisposable
 
     public void Dispose()
     {
+        try
+        {
+            if (File.Exists(_certificatePath))
+            {
+                File.Delete(_certificatePath);
+            }
+        }
+        catch
+        {
+            // Best-effort cleanup only.
+        }
+
         Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
     }
+
+    private void EnsureCertificate()
+        => File.WriteAllText(_certificatePath, "0000000000000000000000000000000000000000000000000000000000000001");
 }
