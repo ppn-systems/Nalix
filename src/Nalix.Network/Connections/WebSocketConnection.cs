@@ -2,17 +2,14 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
 using System.Net;
 using System.Net.WebSockets;
 using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Memory;
@@ -20,7 +17,6 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
 
@@ -177,132 +173,35 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     #endregion Events
 
-    #region Methods
+    #region Internal Helpers
 
-    /// <inheritdoc/>
-    public void Disconnect(string? reason = null)
+    internal WebSocket WebSocket => _webSocket;
+    internal SemaphoreSlim SendLock => _sendLock;
+    internal ILogger? Logger => _logger;
+
+    internal void AddBytesSent(long count) => Interlocked.Add(ref _bytesSent, count);
+    internal void AddBytesReceived(long count) => Interlocked.Add(ref _bytesReceived, count);
+    internal void UpdateLastPingTime() => this.LastPingTime = Clock.UnixMillisecondsNow();
+
+    internal void TriggerPostProcessEvent()
     {
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (_onPostProcessEvent != null)
         {
-            _logger.LogDebug($"[NW.{nameof(WebSocketConnection)}] disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}");
-        }
-        this.Dispose();
-    }
-
-    /// <inheritdoc/>
-    public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
-
-    #endregion Methods
-
-    #region Receive Loop
-
-    /// <summary>
-    /// Starts the asynchronous receive loop for the WebSocket connection.
-    /// </summary>
-    public async Task StartReceiveLoopAsync(CancellationToken cancellationToken = default)
-    {
-        // Allocate a buffer for reading frames (default 64KB)
-        const int receiveBufferSize = 65536;
-        byte[] buffer = BufferLease.ByteArrayPool.Rent(receiveBufferSize);
-
-        try
-        {
-            while (!cancellationToken.IsCancellationRequested && _webSocket.State == WebSocketState.Open && !_disposed)
+            ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
+            args.Initialize(this);
+            try
             {
-                WebSocketReceiveResult result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken).ConfigureAwait(false);
-
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    break;
-                }
-
-                _ = Interlocked.Add(ref _bytesReceived, result.Count);
-                this.LastPingTime = Clock.UnixMillisecondsNow();
-
-                if (result.EndOfMessage)
-                {
-                    // Fast path: the entire message fit in our buffer
-                    this.DispatchPayload(buffer, 0, result.Count);
-                }
-                else
-                {
-                    // Slow path: the message is larger than the buffer, we need to assemble it
-                    await this.HandleLargeMessageAsync(buffer, result.Count, cancellationToken).ConfigureAwait(false);
-                }
+                _onPostProcessEvent.Invoke(this, args);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            // Normal shutdown
-        }
-        catch (WebSocketException)
-        {
-            // Disconnected
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            finally
             {
-                _logger.LogError(ex, $"[NW.{nameof(WebSocketConnection)}] Receive loop error");
+                args.Dispose();
             }
-        }
-        finally
-        {
-            BufferLease.ByteArrayPool.Return(buffer);
-            this.Disconnect("Receive loop exited");
         }
     }
 
-    private async Task HandleLargeMessageAsync(byte[] initialBuffer, int initialBytes, CancellationToken cancellationToken)
+    internal void TriggerProcessEvent(BufferLease lease)
     {
-        using MemoryStream ms = new();
-        await ms.WriteAsync(initialBuffer.AsMemory(0, initialBytes), cancellationToken).ConfigureAwait(false);
-
-        byte[] buffer = BufferLease.ByteArrayPool.Rent(65536);
-        try
-        {
-            WebSocketReceiveResult result;
-            do
-            {
-                result = await _webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken).ConfigureAwait(false);
-                if (result.MessageType == WebSocketMessageType.Close)
-                {
-                    return;
-                }
-
-                await ms.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken).ConfigureAwait(false);
-                _ = Interlocked.Add(ref _bytesReceived, result.Count);
-
-            } while (!result.EndOfMessage);
-
-            // Dispatch the fully assembled message
-            if (ms.TryGetBuffer(out ArraySegment<byte> segment))
-            {
-                this.DispatchPayload(segment.Array!, segment.Offset, segment.Count);
-            }
-            else
-            {
-                byte[] array = ms.ToArray();
-                this.DispatchPayload(array, 0, array.Length);
-            }
-        }
-        finally
-        {
-            BufferLease.ByteArrayPool.Return(buffer);
-        }
-    }
-
-    private void DispatchPayload(byte[] buffer, int offset, int count)
-    {
-        if (count == 0)
-        {
-            return;
-        }
-
-        // Rent a lease and copy data so the receive loop can continue immediately
-        BufferLease lease = BufferLease.CopyFrom(new ReadOnlySpan<byte>(buffer, offset, count));
-        lease.IsReliable = true;
-
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
 
@@ -328,7 +227,24 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         }, (this, args), preferLocal: true);
     }
 
-    #endregion Receive Loop
+    #endregion Internal Helpers
+
+    #region Methods
+
+    /// <inheritdoc/>
+    public void Disconnect(string? reason = null)
+    {
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        {
+            _logger.LogDebug($"[NW.{nameof(WebSocketConnection)}] disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}");
+        }
+        this.Dispose();
+    }
+
+    /// <inheritdoc/>
+    public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
+
+    #endregion Methods
 
     #region Dispose Pattern
 
@@ -396,76 +312,4 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     }
 
     #endregion Dispose Pattern
-
-    #region Adapter
-
-    /// <summary>
-    /// Adapter class that implements <see cref="IConnection.ITransport"/> for WebSocket.
-    /// </summary>
-    private sealed class WebSocketTransport : IConnection.ITransport
-    {
-        private TransportSequencer _sequencer;
-        private readonly WebSocketConnection _owner;
-
-        public WebSocketTransport(WebSocketConnection owner)
-        {
-            _owner = owner;
-            _sequencer = new TransportSequencer();
-        }
-
-        public ISequenceCounter SendSequence => _sequencer.SendSequence;
-
-        public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
-
-        public void Send(IPacket packet) => this.SendAsync(packet).AsTask().GetAwaiter().GetResult();
-
-        public void Send(ReadOnlySpan<byte> message) => this.SendAsync(message.ToArray()).AsTask().GetAwaiter().GetResult();
-
-        public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-        {
-            byte[] bytes = packet.Serialize();
-            await this.SendAsync(bytes, cancellationToken).ConfigureAwait(false);
-        }
-
-        public async ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
-        {
-            if (_owner._disposed || _owner._webSocket.State != WebSocketState.Open)
-            {
-                throw new InvalidOperationException("WebSocket is closed.");
-            }
-
-            // WebSockets handle framing natively, so we just send the message as binary.
-            // A SemaphoreSlim is used because WebSocket.SendAsync doesn't support concurrent calls.
-            await _owner._sendLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-            try
-            {
-                await _owner._webSocket.SendAsync(message, WebSocketMessageType.Binary, true, cancellationToken).ConfigureAwait(false);
-            }
-            finally
-            {
-                _ = _owner._sendLock.Release();
-            }
-
-            _ = Interlocked.Add(ref _owner._bytesSent, message.Length);
-
-            // Invoke post process
-            if (_owner._onPostProcessEvent != null)
-            {
-                ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-                args.Initialize(_owner);
-                try
-                {
-                    _owner._onPostProcessEvent.Invoke(_owner, args);
-                }
-                finally
-                {
-                    args.Dispose();
-                }
-            }
-        }
-
-        public void BeginReceive(CancellationToken cancellationToken = default) => _ = _owner.StartReceiveLoopAsync(cancellationToken);
-    }
-
-    #endregion Adapter
 }
