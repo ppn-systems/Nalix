@@ -52,7 +52,7 @@ namespace Nalix.Network.Internal.Time;
 ///   </item>
 /// </list>
 /// </para>
-/// <para><b>Thread safety:</b> <see cref="Register(Connection)"/> and <see cref="Unregister(Connection)"/> are thread-safe.
+/// <para><b>Thread safety:</b> <see cref="Register(ITimeoutTrackedConnection)"/> and <see cref="Unregister(ITimeoutTrackedConnection)"/> are thread-safe.
 /// The background loop is single-consumer and advances the wheel using <see cref="PeriodicTimer"/>.</para>
 /// <para><b>Pool ownership:</b> <see cref="RUN_LOOP"/> is the <em>only</em> place that returns
 /// <see cref="TimeoutTask"/> to the pool. <see cref="Unregister"/> only removes the connection from
@@ -116,13 +116,20 @@ internal sealed class TimingWheel : IActivatable
 
     #region Nested types
 
+    internal interface ITimeoutTrackedConnection : IConnection
+    {
+        bool IsRegisteredInWheel { get; set; }
+        int TimeoutVersion { get; set; }
+        TimeoutTask? TimeoutTask { get; set; }
+    }
+
     /// <summary>
     /// Represents a single timeout task in the wheel.
     /// One instance is reused per registered connection via the object pool.
     /// </summary>
     internal sealed class TimeoutTask : IPoolable
     {
-        public Connection? Conn;
+        public ITimeoutTrackedConnection? Conn;
         public int Rounds;
         public int Version;
 
@@ -432,7 +439,7 @@ internal sealed class TimingWheel : IActivatable
     /// the connection is automatically unregistered when it closes.
     /// </remarks>
     [MethodImpl(MethodImplOptions.NoInlining)]
-    public void Register(Connection connection)
+    public void Register(ITimeoutTrackedConnection connection)
     {
         ArgumentNullException.ThrowIfNull(connection);
 
@@ -479,10 +486,7 @@ internal sealed class TimingWheel : IActivatable
                 queued = true;
 
                 // Link the task to the connection for instant cleanup during Dispose.
-                if (connection is Connection conn)
-                {
-                    conn._timeoutTask = task;
-                }
+                connection.TimeoutTask = task;
             }
             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
             {
@@ -512,7 +516,7 @@ internal sealed class TimingWheel : IActivatable
     /// object pool immediately, preventing memory exhaustion under high connection churn.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Unregister(Connection connection)
+    public void Unregister(ITimeoutTrackedConnection connection)
     {
         if (connection is null)
         {
@@ -533,7 +537,7 @@ internal sealed class TimingWheel : IActivatable
                 connection.TimeoutVersion++;
                 connection.OnCloseEvent -= this.OnConnectionClosed;
 
-                if (connection is Connection conn && conn._timeoutTask is TimeoutTask task)
+                if (connection.TimeoutTask is TimeoutTask task)
                 {
                     TimingWheelBucket? bucket = task.Bucket;
                     if (bucket != null)
@@ -550,7 +554,7 @@ internal sealed class TimingWheel : IActivatable
 
                         if (removed)
                         {
-                            conn._timeoutTask = null;
+                            connection.TimeoutTask = null;
                             _poolManager.Return(task);
                         }
                     }
@@ -628,10 +632,7 @@ internal sealed class TimingWheel : IActivatable
                         // If version mismatch or connection is marked as not in wheel, it's stale.
                         if (task.Conn.TimeoutVersion != task.Version || !task.Conn.IsRegisteredInWheel)
                         {
-                            if (task.Conn is Connection conn)
-                            {
-                                conn._timeoutTask = null;
-                            }
+                            task.Conn.TimeoutTask = null;
 
                             _poolManager.Return(task);
                             task = next;
@@ -682,10 +683,7 @@ internal sealed class TimingWheel : IActivatable
                             task.Conn.IsRegisteredInWheel = false;
                             task.Conn.TimeoutVersion++;
 
-                            if (task.Conn is Connection conn)
-                            {
-                                conn._timeoutTask = null;
-                            }
+                            task.Conn.TimeoutTask = null;
                             _poolManager.Return(task);
                             task = next;
                             continue;
@@ -733,7 +731,7 @@ internal sealed class TimingWheel : IActivatable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OnConnectionClosed(object? sender, IConnectEventArgs args)
     {
-        if (args?.Connection is Connection conn)
+        if (args?.Connection is ITimeoutTrackedConnection conn)
         {
             this.Unregister(conn);
         }

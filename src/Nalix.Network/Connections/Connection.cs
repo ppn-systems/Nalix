@@ -20,6 +20,7 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Security;
+using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
@@ -31,7 +32,7 @@ namespace Nalix.Network.Connections;
 /// This is the high-level owner for the socket transport and the per-connection
 /// event pipeline.
 /// </summary>
-public sealed partial class Connection : IConnection, IConnectionErrorTracked
+public sealed partial class Connection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection
 {
     #region Fields
 
@@ -62,12 +63,6 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
     internal readonly LocalPool<ConnectionEventArgs> _argsPool;
 
     internal readonly LocalPool<PooledConnectEventContext> _contextPool;
-
-    /// <summary>
-    /// Tracks the current timeout task in the TimingWheel.
-    /// Used for manual reference breaking during Dispose to allow instant GC.
-    /// </summary>
-    internal Internal.Time.TimingWheel.TimeoutTask? _timeoutTask;
 
     #endregion Fields
 
@@ -165,6 +160,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
 
     /// <inheritdoc />
     public bool IsRegisteredInWheel { get; set; }
+
+    /// <summary>
+    /// Tracks the current timeout task in the TimingWheel.
+    /// Used for manual reference breaking during Dispose to allow instant GC.
+    /// </summary>
+    TimingWheel.TimeoutTask? TimingWheel.ITimeoutTrackedConnection.TimeoutTask { get; set; }
 
     /// <summary>
     /// Gets the total number of bytes sent over the life of the connection.
@@ -391,11 +392,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked
             // High-Performance Cleanup: Break the TimingWheel reference chain instantly.
             // This allows the GC to collect the Connection immediately instead of 
             // waiting for the 102s wheel rotation.
-            Internal.Time.TimingWheel.TimeoutTask? task = _timeoutTask;
+            Internal.Time.TimingWheel.TimeoutTask? task = ((Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask;
             if (task is not null)
             {
                 task.Conn = null;
-                _timeoutTask = null;
+                ((Nalix.Network.Internal.Time.TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
 
             try { this.Socket.Dispose(); }
