@@ -7,10 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
 using Nalix.Codec.Transforms;
-using Nalix.Environment.Configuration;
-using Nalix.Environment.Fragments;
 using Nalix.Environment.Memory;
-using Nalix.Environment.Options;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
