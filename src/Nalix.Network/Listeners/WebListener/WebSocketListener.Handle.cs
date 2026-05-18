@@ -25,9 +25,7 @@ public abstract partial class WebSocketListenerBase
 {
     #region Fields
 
-#pragma warning disable CA2213
     private IWorkerHandle? _processWorker;
-#pragma warning restore CA2213
     private Channel<IConnection>? _processChannel;
 
     #endregion Fields
@@ -141,18 +139,29 @@ public abstract partial class WebSocketListenerBase
                     WebSocketConnection connection = new(wsContext.WebSocket, realEndpoint, this.Logger);
 #pragma warning restore CA2000
 
-                    this.InitializeConnection(connection);
-
-                    if (_processChannel != null)
+                    try
                     {
-                        if (!_processChannel.Writer.TryWrite(connection))
+                        this.InitializeConnection(connection);
+
+                        if (_processChannel != null)
                         {
-                            connection.Disconnect();
+                            if (!_processChannel.Writer.TryWrite(connection))
+                            {
+                                connection.Disconnect("Queue full");
+                            }
+                        }
+                        else
+                        {
+                            connection.Disconnect("Queue completed");
                         }
                     }
-                    else
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        connection.Disconnect();
+                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                        {
+                            this.Logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}] Failed to initialize connection");
+                        }
+                        connection.Dispose();
                     }
                 }
                 else
