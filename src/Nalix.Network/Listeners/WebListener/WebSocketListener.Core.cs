@@ -108,12 +108,13 @@ public abstract partial class WebSocketListenerBase : IListener
         _state = (int)ListenerState.STOPPED;
 
         this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        _terminator = new ConnectionTerminator(hub, this.Logger);
+        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
+
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
+        _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
-        _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
-        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
+        _terminator = new ConnectionTerminator(_hub, this.Logger);
 
         _ = _limiter.WithEndpointTermination(key => _terminator.CloseEndpoint(key, "Force disconnected by endpoint policy."));
 
