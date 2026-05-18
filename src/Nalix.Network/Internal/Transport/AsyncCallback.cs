@@ -13,7 +13,6 @@ using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
 
@@ -254,11 +253,13 @@ internal static class AsyncCallback
         bool isHigh,
         bool releasePendingPacketOnCompletion)
     {
-        PooledConnectEventContext wrapper =
-            sender is Connection connection
-                ? connection.AcquireContext()
-                    ?? throw new InvalidOperationException("Failed to acquire context.")
-                : throw new InvalidOperationException("Invalid sender type.");
+        if (sender is not IPooledConnectContextPool owner)
+        {
+            throw new InvalidOperationException("Invalid sender type.");
+        }
+
+        PooledConnectEventContext wrapper = owner.AcquireContext()
+            ?? throw new InvalidOperationException("Failed to acquire context.");
 
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
@@ -497,9 +498,9 @@ internal static class AsyncCallback
         }
         finally
         {
-            if (w.ReleasePendingPacketOnCompletion && w.Sender is Connection conn)
+            if (w.ReleasePendingPacketOnCompletion && w.Sender is IPooledConnectContextPool owner)
             {
-                conn.ReleasePendingPacket();
+                owner.ReleasePendingPacket();
             }
 
             w.Dispose();

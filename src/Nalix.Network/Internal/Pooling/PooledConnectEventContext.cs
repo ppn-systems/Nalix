@@ -91,7 +91,7 @@ internal sealed class PooledConnectEventContext : IPoolable
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (this.LocalOwner is Connections.Connection owner)
+        if (this.LocalOwner is IPooledConnectContextPool owner)
         {
             owner.ReturnContext(this);
             return;

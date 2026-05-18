@@ -17,7 +17,6 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Connections;
 using Nalix.Network.Options;
 
 
@@ -620,7 +619,9 @@ internal sealed class TimingWheel : IActivatable
                         TimeoutTask? next = task.Next;
 
                         // ── Defensive null-guard ──────────────────────────────────────────
-                        if (task.Conn is null)
+                        ITimeoutTrackedConnection? connection = task.Conn;
+
+                        if (connection is null)
                         {
                             _poolManager.Return(task);
                             task = next;
@@ -630,9 +631,9 @@ internal sealed class TimingWheel : IActivatable
 
                         // ── Stale-task check ──────────────────────────────────────────────
                         // If version mismatch or connection is marked as not in wheel, it's stale.
-                        if (task.Conn.TimeoutVersion != task.Version || !task.Conn.IsRegisteredInWheel)
+                        if (connection.TimeoutVersion != task.Version || !connection.IsRegisteredInWheel)
                         {
-                            task.Conn.TimeoutTask = null;
+                            connection.TimeoutTask = null;
 
                             _poolManager.Return(task);
                             task = next;
@@ -655,7 +656,7 @@ internal sealed class TimingWheel : IActivatable
                         }
 
                         // ── Idle-time check ───────────────────────────────────────────────
-                        long idleMs = Clock.UnixMillisecondsNow() - task.Conn.LastPingTime;
+                        long idleMs = Clock.UnixMillisecondsNow() - connection.LastPingTime;
 
                         if (idleMs >= _idleTimeoutMs)
                         {
@@ -663,12 +664,12 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 _logger.LogDebug(
                                 $"[NW.{nameof(TimingWheel)}] timeout " +
-                                $"remote={task.Conn.NetworkEndpoint?.Address} idle={idleMs}ms");
+                                $"remote={connection.NetworkEndpoint?.Address} idle={idleMs}ms");
                             }
 
                             try
                             {
-                                task.Conn.Disconnect();
+                                connection.Disconnect();
                             }
                             catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
                             {
@@ -676,14 +677,14 @@ internal sealed class TimingWheel : IActivatable
                                 {
                                     _logger.LogError(ex,
                                         $"[NW.{nameof(TimingWheel)}] close-error " +
-                                        $"remote={task.Conn.NetworkEndpoint?.Address}");
+                                        $"remote={connection.NetworkEndpoint?.Address}");
                                 }
                             }
 
-                            task.Conn.IsRegisteredInWheel = false;
-                            task.Conn.TimeoutVersion++;
+                            connection.IsRegisteredInWheel = false;
+                            connection.TimeoutVersion++;
+                            connection.TimeoutTask = null;
 
-                            task.Conn.TimeoutTask = null;
                             _poolManager.Return(task);
                             task = next;
                             continue;
@@ -693,7 +694,7 @@ internal sealed class TimingWheel : IActivatable
                         long remainingMs = _idleTimeoutMs - idleMs;
                         long ticksMore = Math.Max(1, remainingMs / _tickMs);
 
-                        task.Version = task.Conn.TimeoutVersion;
+                        task.Version = connection.TimeoutVersion;
                         task.Rounds = (int)((ticksMore - 1) / _wheelSize);
 
                         int nextBucket = _useMask
