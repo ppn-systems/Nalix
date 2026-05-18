@@ -18,6 +18,7 @@ internal sealed class WsFrameReader : IDisposable
 {
     private readonly SequenceCounter _sequence;
     private readonly TransportOptions _options;
+    private readonly WebSocketTransportOptions _webSocketOptions;
     private readonly Func<ClientWebSocket> _getSocket;
     private readonly Action<IBufferLease> _onMessage;
     private readonly Action<Exception> _onError;
@@ -27,11 +28,13 @@ internal sealed class WsFrameReader : IDisposable
     public WsFrameReader(
         Func<ClientWebSocket> getSocket,
         TransportOptions options,
+        WebSocketTransportOptions webSocketOptions,
         Action<IBufferLease> onMessage,
         Action<Exception> onError)
     {
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _webSocketOptions = webSocketOptions ?? throw new ArgumentNullException(nameof(webSocketOptions));
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
@@ -56,6 +59,7 @@ internal sealed class WsFrameReader : IDisposable
                 if (result.EndOfMessage)
                 {
                     // Fast path: the whole message fits in the rented buffer
+                    ValidateMessageSize(result.Count);
                     this.PROCESS_FRAME(buffer.AsSpan(0, result.Count));
                 }
                 else
@@ -81,6 +85,7 @@ internal sealed class WsFrameReader : IDisposable
     {
         using MemoryStream ms = new();
         await ms.WriteAsync(initialBuffer.AsMemory(0, initialCount), ct).ConfigureAwait(false);
+        ValidateMessageSize(ms.Length);
 
         byte[] tempBuffer = BufferLease.ByteArrayPool.Rent(65536);
         try
@@ -94,6 +99,7 @@ internal sealed class WsFrameReader : IDisposable
                     return;
                 }
                 await ms.WriteAsync(tempBuffer.AsMemory(0, result.Count), ct).ConfigureAwait(false);
+                ValidateMessageSize(ms.Length);
             }
             while (!result.EndOfMessage);
 
@@ -151,6 +157,15 @@ internal sealed class WsFrameReader : IDisposable
             }
 
             original.Dispose();
+        }
+    }
+
+    private void ValidateMessageSize(long size)
+    {
+        if (size > _webSocketOptions.MaxMessageSize)
+        {
+            throw new InvalidOperationException(
+                $"WebSocket message size {size} exceeds maximum {_webSocketOptions.MaxMessageSize}.");
         }
     }
 

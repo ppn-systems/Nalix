@@ -40,6 +40,9 @@ public class WebSocketSession : TransportSession
     /// <inheritdoc/>
     public override TransportOptions Options { get; }
 
+    /// <summary>Gets the WebSocket-specific options for this session.</summary>
+    public WebSocketTransportOptions WebSocketOptions { get; }
+
     /// <inheritdoc/>
     public override bool IsConnected => _socket?.State == WebSocketState.Open && Volatile.Read(ref _disposed) == 0;
 
@@ -68,12 +71,15 @@ public class WebSocketSession : TransportSession
 
     /// <summary>Initializes a new instance of the <see cref="WebSocketSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
-    public WebSocketSession(TransportOptions options)
+    /// <param name="webSocketOptions">The WebSocket-specific transport options for this session.</param>
+    public WebSocketSession(TransportOptions options, WebSocketTransportOptions? webSocketOptions = null)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
+        this.WebSocketOptions = webSocketOptions ?? new WebSocketTransportOptions();
+        this.WebSocketOptions.Validate();
 
         _sender = new WsFrameSender(() => _socket!, options, this.HandleError);
-        _reader = new WsFrameReader(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
+        _reader = new WsFrameReader(() => _socket!, options, this.WebSocketOptions, this.HandleReceiveMessage, this.HandleError);
     }
 
     #endregion Constructor
@@ -104,13 +110,13 @@ public class WebSocketSession : TransportSession
 
             _socket = new ClientWebSocket();
 
-            if (!string.IsNullOrWhiteSpace(this.Options.WebSocketSubProtocol))
+            if (!string.IsNullOrWhiteSpace(this.WebSocketOptions.SubProtocol))
             {
-                _socket.Options.AddSubProtocol(this.Options.WebSocketSubProtocol);
+                _socket.Options.AddSubProtocol(this.WebSocketOptions.SubProtocol);
             }
 
-            string scheme = this.Options.WebSocketUseTls ? "wss" : "ws";
-            string path = NormalizeWebSocketPath(this.Options.WebSocketPath);
+            string scheme = this.WebSocketOptions.UseTls ? "wss" : "ws";
+            string path = NormalizeWebSocketPath(this.WebSocketOptions.Path);
             Uri uri = new($"{scheme}://{effectiveHost}:{effectivePort}{path}");
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);

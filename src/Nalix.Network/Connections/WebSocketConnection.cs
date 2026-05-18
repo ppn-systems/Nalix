@@ -12,6 +12,7 @@ using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
@@ -19,6 +20,7 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.Connections;
 
@@ -31,6 +33,8 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     #region Fields
 
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+    private static readonly ConnectionLimitOptions s_limitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+    private static readonly NetworkCallbackOptions s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
     private readonly ILogger? _logger;
     private readonly WebSocket _webSocket;
@@ -43,6 +47,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     private long _bytesSent;
     private long _bytesReceived;
+    private int _pendingProcessCallbacks;
 
     private IObjectMap<string, object>? _attributes;
     private IConnection.ITransport? _tcp;
@@ -202,11 +207,24 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     internal void TriggerProcessEvent(BufferLease lease)
     {
+        int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
+        if (pending > s_callbackOptions.MaxPerConnectionPendingPackets)
+        {
+            Interlocked.Decrement(ref _pendingProcessCallbacks);
+            lease.Dispose();
+
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(WebSocketConnection)}] receive throttle triggered remote={this.NetworkEndpoint}");
+            }
+            return;
+        }
+
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
         args.Initialize(lease, this);
 
         // Ensure dispatch is offloaded to avoid blocking the receive loop
-        _ = ThreadPool.UnsafeQueueUserWorkItem(state =>
+        bool queued = ThreadPool.UnsafeQueueUserWorkItem(state =>
         {
             (WebSocketConnection? self, ConnectionEventArgs? evArgs) = ((WebSocketConnection, ConnectionEventArgs))state;
             try
@@ -222,9 +240,16 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
             }
             finally
             {
+                Interlocked.Decrement(ref self._pendingProcessCallbacks);
                 evArgs.Dispose(); // This also disposes the lease
             }
         }, (this, args), preferLocal: true);
+
+        if (!queued)
+        {
+            Interlocked.Decrement(ref _pendingProcessCallbacks);
+            args.Dispose();
+        }
     }
 
     #endregion Internal Helpers
@@ -242,7 +267,15 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     }
 
     /// <inheritdoc/>
-    public void IncrementErrorCount() => Interlocked.Increment(ref _errorCount);
+    public void IncrementErrorCount()
+    {
+        int count = Interlocked.Increment(ref _errorCount);
+
+        if (s_limitOptions.MaxErrorThreshold > 0 && count >= s_limitOptions.MaxErrorThreshold)
+        {
+            this.Disconnect("Exceeded maximum error threshold.");
+        }
+    }
 
     #endregion Methods
 

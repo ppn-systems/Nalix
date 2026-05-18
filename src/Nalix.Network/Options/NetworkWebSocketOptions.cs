@@ -60,6 +60,13 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader
     public int ProcessChannelCapacity { get; set; } = 256;
 
     /// <summary>
+    /// Maximum inbound WebSocket message size in bytes.
+    /// </summary>
+    [IniComment("Maximum inbound WebSocket message size in bytes (default 1048576)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxMessageSize must be positive.")]
+    public int MaxMessageSize { get; set; } = 1_048_576;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

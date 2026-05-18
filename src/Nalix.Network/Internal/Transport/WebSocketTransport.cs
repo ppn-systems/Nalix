@@ -19,6 +19,7 @@ using Nalix.Environment.Memory;
 using Nalix.Environment.Options;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Security;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -33,6 +34,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport
     #region Fields
 
     private readonly WebSocketConnection _owner;
+    private readonly NetworkWebSocketOptions _options;
     private TransportSequencer _sequencer;
 
     #endregion Fields
@@ -42,6 +44,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport
     public WebSocketTransport(WebSocketConnection owner)
     {
         _owner = owner ?? throw new ArgumentNullException(nameof(owner));
+        _options = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _sequencer = new TransportSequencer();
     }
 
@@ -142,6 +145,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport
                 if (result.EndOfMessage)
                 {
                     // Fast path: the entire message fit in our buffer
+                    this.ValidateMessageSize(result.Count);
                     this.DispatchPayload(buffer, 0, result.Count);
                 }
                 else
@@ -177,6 +181,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport
     {
         using MemoryStream ms = new();
         await ms.WriteAsync(initialBuffer.AsMemory(0, initialBytes), cancellationToken).ConfigureAwait(false);
+        this.ValidateMessageSize(ms.Length);
 
         int length = GET_RECEIVE_BUFFER_SIZE();
         byte[] buffer = BufferLease.ByteArrayPool.Rent(length);
@@ -192,6 +197,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport
                 }
 
                 await ms.WriteAsync(buffer.AsMemory(0, result.Count), cancellationToken).ConfigureAwait(false);
+                this.ValidateMessageSize(ms.Length);
                 _owner.AddBytesReceived(result.Count);
 
             } while (!result.EndOfMessage);
@@ -225,6 +231,15 @@ internal sealed class WebSocketTransport : IConnection.ITransport
         lease.IsReliable = true;
 
         _owner.TriggerProcessEvent(lease);
+    }
+
+    private void ValidateMessageSize(long size)
+    {
+        if (size > _options.MaxMessageSize)
+        {
+            throw new InvalidOperationException(
+                $"WebSocket message size {size} exceeds maximum {_options.MaxMessageSize}.");
+        }
     }
 
     #endregion Receive Loop
