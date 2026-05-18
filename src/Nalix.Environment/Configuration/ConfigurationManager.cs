@@ -634,6 +634,11 @@ public sealed class ConfigurationManager : IDisposable
 
     private void SETUP_FILE_WATCHER()
     {
+        if (OperatingSystem.IsBrowser())
+        {
+            return; // WebAssembly has no native file system to watch.
+        }
+
         if (_isDisposed)
         {
             return;

@@ -42,6 +42,9 @@ public static class TaskNaming
         /// Tag for UDP-related tasks.
         public const string Udp = "udp";
 
+        /// Tag for WebSocket-related tasks.
+        public const string WebSocket = "ws";
+
         /// Tag for generic network tasks.
         public const string Net = "net";
 

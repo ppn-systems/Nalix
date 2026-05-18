@@ -1,5 +1,8 @@
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
 using System;
-using System.Net.Sockets;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -8,41 +11,40 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Memory;
 using Nalix.SDK.Options;
-using Nalix.SDK.Transport.Internal.Tcp;
+using Nalix.SDK.Transport.Internal.Web;
 
 namespace Nalix.SDK.Transport;
 
 /// <summary>
-/// Provides a TCP transport session built on <see cref="TcpFrameReader"/> and <see cref="TcpFrameSender"/>.
+/// Provides a WebSocket transport session built on <see cref="WsFrameReader"/> and <see cref="WsFrameSender"/>.
 /// </summary>
-public class TcpSession : TransportSession
+public class WebSocketSession : TransportSession
 {
     #region Fields
 
-    // Low-level components for reading and sending frames
-    private readonly TcpFrameSender _sender;
-    private readonly TcpFrameReader _reader;
-
+    private readonly WsFrameSender _sender;
+    private readonly WsFrameReader _reader;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
-#pragma warning disable CA2213 // Disposed through Interlocked.Exchange locals inside DisconnectInternalAsync/Dispose(bool).
-    private Socket? _socket;
+
+#pragma warning disable CA2213
+    private ClientWebSocket? _socket;
     private CancellationTokenSource? _loopCts;
 #pragma warning restore CA2213
+
     private int _disposed;
 
     #endregion Fields
 
     #region Properties
 
-    /// <summary>Gets the fixed framing header size in bytes.</summary>
-    public const int HeaderSize = 2;
-
     /// <inheritdoc/>
     public override TransportOptions Options { get; }
 
+    /// <summary>Gets the WebSocket-specific options for this session.</summary>
+    public WebSocketTransportOptions WebSocketOptions { get; }
 
     /// <inheritdoc/>
-    public override bool IsConnected => _socket?.Connected == true && Volatile.Read(ref _disposed) == 0;
+    public override bool IsConnected => _socket?.State == WebSocketState.Open && Volatile.Read(ref _disposed) == 0;
 
     #endregion Properties
 
@@ -67,15 +69,17 @@ public class TcpSession : TransportSession
 
     #region Constructor
 
-    /// <summary>Initializes a new instance of the <see cref="TcpSession"/> class.</summary>
+    /// <summary>Initializes a new instance of the <see cref="WebSocketSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
-    public TcpSession(TransportOptions options)
+    /// <param name="webSocketOptions">The WebSocket-specific transport options for this session.</param>
+    public WebSocketSession(TransportOptions options, WebSocketTransportOptions? webSocketOptions = null)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
+        this.WebSocketOptions = webSocketOptions ?? new WebSocketTransportOptions();
+        this.WebSocketOptions.Validate();
 
-        // Initialize frame helpers with a factory to get the latest socket instance
-        _sender = new TcpFrameSender(() => _socket!, options, this.HandleError);
-        _reader = new TcpFrameReader(() => _socket!, options, this.HandleReceiveMessage, this.HandleError);
+        _sender = new WsFrameSender(() => _socket!, options, this.HandleError);
+        _reader = new WsFrameReader(() => _socket!, options, this.WebSocketOptions, this.HandleReceiveMessage, this.HandleError);
     }
 
     #endregion Constructor
@@ -85,7 +89,7 @@ public class TcpSession : TransportSession
     /// <inheritdoc/>
     public override async Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default)
     {
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(WebSocketSession));
 
         if (!PacketRegistry.IsBuilt)
         {
@@ -99,14 +103,21 @@ public class TcpSession : TransportSession
             string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
             ushort effectivePort = port ?? this.Options.Port;
 
-            // Ensure single connection at a time
             if (this.IsConnected)
             {
                 await this.DisconnectInternalAsync().ConfigureAwait(false);
             }
 
-            // Initialize socket with NoDelay to reduce latency
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            _socket = new ClientWebSocket();
+
+            if (!string.IsNullOrWhiteSpace(this.WebSocketOptions.SubProtocol))
+            {
+                _socket.Options.AddSubProtocol(this.WebSocketOptions.SubProtocol);
+            }
+
+            string scheme = this.WebSocketOptions.UseTls ? "wss" : "ws";
+            string path = NormalizeWebSocketPath(this.WebSocketOptions.Path);
+            Uri uri = new($"{scheme}://{effectiveHost}:{effectivePort}{path}");
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (this.Options.ConnectTimeoutMillis > 0)
@@ -114,10 +125,9 @@ public class TcpSession : TransportSession
                 connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
             }
 
-            await _socket.ConnectAsync(effectiveHost, effectivePort, connectCts.Token).ConfigureAwait(false);
+            await _socket.ConnectAsync(uri, connectCts.Token).ConfigureAwait(false);
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
-            // Start background worker for reading frames
             _loopCts = new CancellationTokenSource();
 
             _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
@@ -127,7 +137,7 @@ public class TcpSession : TransportSession
         {
             await this.DisconnectInternalAsync().ConfigureAwait(false);
             this.OnError?.Invoke(this, ex);
-            throw new NetworkException($"Connection failed: {ex.Message}", ex);
+            throw new NetworkException($"WebSocket Connection failed: {ex.Message}", ex);
         }
         finally
         {
@@ -154,14 +164,14 @@ public class TcpSession : TransportSession
         }
     }
 
-    private Task DisconnectInternalAsync()
+    private async Task DisconnectInternalAsync()
     {
         CancellationTokenSource? loopCts = Interlocked.Exchange(ref _loopCts, null);
-        Socket? socket = Interlocked.Exchange(ref _socket, null);
+        ClientWebSocket? socket = Interlocked.Exchange(ref _socket, null);
 
         try
         {
-#pragma warning disable CA1849 // DisconnectInternalAsync is synchronous teardown; callers cannot await CancelAsync without changing API shape.
+#pragma warning disable CA1849
             loopCts?.Cancel();
 #pragma warning restore CA1849
         }
@@ -181,19 +191,13 @@ public class TcpSession : TransportSession
         {
             try
             {
-                if (socket.Connected)
+                if (socket.State == WebSocketState.Open || socket.State == WebSocketState.CloseReceived || socket.State == WebSocketState.CloseSent)
                 {
-                    socket.Shutdown(SocketShutdown.Both);
+                    using CancellationTokenSource cts = new(TimeSpan.FromSeconds(2));
+                    await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnected", cts.Token).ConfigureAwait(false);
                 }
             }
-            catch (SocketException ex)
-            {
-                if (Volatile.Read(ref _disposed) == 0)
-                {
-                    this.OnError?.Invoke(this, ex);
-                }
-            }
-            catch (ObjectDisposedException ex)
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (Volatile.Read(ref _disposed) == 0)
                 {
@@ -202,14 +206,12 @@ public class TcpSession : TransportSession
             }
 
             socket.Dispose();
-            this.OnDisconnected?.Invoke(this, new NetworkException("The TCP session was disconnected."));
+            this.OnDisconnected?.Invoke(this, new NetworkException("The WebSocket session was disconnected."));
         }
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
-    /// Sends raw binary data synchronously (zero-allocation friendly for native).
+    /// Sends raw binary data synchronously.
     /// </summary>
     public void Send(ReadOnlySpan<byte> data, bool encrypt = true) => _sender.Send(data, encrypt);
 
@@ -217,10 +219,7 @@ public class TcpSession : TransportSession
     public override async Task SendAsync(IPacket packet, CancellationToken ct = default)
         => await this.SendAsync(packet, this.Options.EncryptionEnabled, ct).ConfigureAwait(false);
 
-    /// <summary>Sends a packet asynchronously with an optional encryption override.</summary>
-    /// <param name="packet">The packet to serialize and send.</param>
-    /// <param name="encrypt">A value that overrides packet encryption when provided.</param>
-    /// <param name="ct">The token to observe while sending.</param>
+    /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
@@ -236,7 +235,7 @@ public class TcpSession : TransportSession
 
         if (!sent)
         {
-            throw new NetworkException("Failed to send TCP packet: the frame was not delivered to the socket.");
+            throw new NetworkException("Failed to send WebSocket packet: the frame was not delivered to the socket.");
         }
     }
 
@@ -262,23 +261,29 @@ public class TcpSession : TransportSession
 
     #region Private
 
+    private static string NormalizeWebSocketPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "/";
+        }
+
+        string normalized = path.Trim();
+        return normalized[0] == '/' ? normalized : "/" + normalized;
+    }
+
     private void HandleError(Exception ex)
     {
         this.OnError?.Invoke(this, ex);
         _ = this.DisconnectAsync();
     }
 
-    /// <summary>
-    /// Handles messages received by <see cref="TcpFrameReader"/>.
-    /// </summary>
     private void HandleReceiveMessage(IBufferLease lease)
     {
         try
         {
-            // Direct synchronous dispatch (hot path for benchmarks)
             this.OnMessageReceived?.Invoke(this, lease);
 
-            // Concurrent asynchronous dispatch
             if (this.OnMessageAsync is { } asyncHandler)
             {
                 lease.Retain();
@@ -303,12 +308,12 @@ public class TcpSession : TransportSession
                 {
                     _ = dispatchTask.ContinueWith(static (task, state) =>
                     {
-                        if (state is not Tuple<TcpSession, IBufferLease> payload)
+                        if (state is not Tuple<WebSocketSession, IBufferLease> payload)
                         {
                             return;
                         }
 
-                        TcpSession self = payload.Item1;
+                        WebSocketSession self = payload.Item1;
                         IBufferLease retained = payload.Item2;
                         try
                         {

@@ -41,7 +41,18 @@ public abstract partial class TcpListenerBase
 
         try
         {
-            this.DoAccept(connection);
+            this.Protocol.OnAccept(connection, _cancellationToken);
+
+            if (!connection.IsDisposed)
+            {
+                _hub.RegisterConnection(connection);
+                this.Metrics.RECORD_ACCEPTED();
+            }
+            else
+            {
+                this.Metrics.RECORD_REJECTED();
+            }
+
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
                 this.Logger.LogTrace(

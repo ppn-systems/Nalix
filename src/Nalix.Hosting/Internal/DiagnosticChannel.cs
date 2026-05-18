@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
+using Nalix.Environment;
 using Nalix.Framework.Injection;
 
 namespace Nalix.Hosting.Internal;
@@ -20,7 +21,7 @@ internal sealed class DiagnosticChannel :
 {
     private static readonly HashSet<string> s_targetListeners = new(StringComparer.Ordinal)
     {
-        Environment.DiagnosticsEvents.ListenerName,
+        DiagnosticsEvents.ListenerName,
         Framework.DiagnosticsEvents.ListenerName
     };
 
@@ -50,24 +51,24 @@ internal sealed class DiagnosticChannel :
         [Framework.DiagnosticsEvents.Injection.Registered] = LogLevel.Debug,
 
         // Environment.Configuration
-        [Environment.DiagnosticsEvents.Configuration.Flush] = LogLevel.Debug,
-        [Environment.DiagnosticsEvents.Configuration.Cache] = LogLevel.Debug,
-        [Environment.DiagnosticsEvents.Configuration.Container] = LogLevel.Debug,
-        [Environment.DiagnosticsEvents.Configuration.Directory] = LogLevel.Debug,
-        [Environment.DiagnosticsEvents.Configuration.Failure] = LogLevel.Warning,
-        [Environment.DiagnosticsEvents.Configuration.Reload] = LogLevel.Information,
-        [Environment.DiagnosticsEvents.Configuration.PathChanged] = LogLevel.Information,
+        [DiagnosticsEvents.Configuration.Flush] = LogLevel.Debug,
+        [DiagnosticsEvents.Configuration.Cache] = LogLevel.Debug,
+        [DiagnosticsEvents.Configuration.Container] = LogLevel.Debug,
+        [DiagnosticsEvents.Configuration.Directory] = LogLevel.Debug,
+        [DiagnosticsEvents.Configuration.Failure] = LogLevel.Warning,
+        [DiagnosticsEvents.Configuration.Reload] = LogLevel.Information,
+        [DiagnosticsEvents.Configuration.PathChanged] = LogLevel.Information,
 
         // Environment.IO
-        [Environment.DiagnosticsEvents.IO.Cleanup] = LogLevel.Debug,
-        [Environment.DiagnosticsEvents.IO.Directory] = LogLevel.Debug,
+        [DiagnosticsEvents.IO.Cleanup] = LogLevel.Debug,
+        [DiagnosticsEvents.IO.Directory] = LogLevel.Debug,
 
         // Environment.Random
-        [Environment.DiagnosticsEvents.Random.Init] = LogLevel.Information,
+        [DiagnosticsEvents.Random.Init] = LogLevel.Information,
 
         // Environment.Time
-        [Environment.DiagnosticsEvents.Time.Reset] = LogLevel.Information,
-        [Environment.DiagnosticsEvents.Time.Synchronized] = LogLevel.Information,
+        [DiagnosticsEvents.Time.Reset] = LogLevel.Information,
+        [DiagnosticsEvents.Time.Synchronized] = LogLevel.Information,
     };
 
     private IDisposable? _listenerSubscription;

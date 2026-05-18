@@ -35,6 +35,17 @@ public sealed class SdkOptionsAndExtensionsTests
     }
 
     [Fact]
+    public void WebSocketTransportOptionsValidate_WhenMaxMessageSizeInvalid_ThrowsValidationException()
+    {
+        WebSocketTransportOptions options = new()
+        {
+            MaxMessageSize = 0
+        };
+
+        _ = Assert.Throws<System.ComponentModel.DataAnnotations.ValidationException>(options.Validate);
+    }
+
+    [Fact]
     public void ProtocolStringExtensions_ForKnownValues_ReturnExpectedFriendlyText()
     {
         Assert.Equal("Please reconnect.", ProtocolAdvice.RECONNECT.ToDisplayString());
@@ -91,7 +102,6 @@ public sealed class SdkOptionsAndExtensionsTests
         public void Dispose() => this.Disposed = true;
     }
 }
-
 
 
 

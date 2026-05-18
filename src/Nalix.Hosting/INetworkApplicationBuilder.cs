@@ -140,4 +140,11 @@ public interface INetworkApplicationBuilder
     /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
     /// <returns>A fluent builder to configure the binding.</returns>
     IProtocolBindingBuilder BindUdp<TProtocol>() where TProtocol : class, IProtocol;
+
+    /// <summary>
+    /// Binds a WebSocket protocol using a fluent builder for port, path, and factory configuration.
+    /// </summary>
+    /// <typeparam name="TProtocol">The protocol type to host.</typeparam>
+    /// <returns>A fluent builder to configure the WebSocket binding.</returns>
+    IWebSocketBindingBuilder BindWebSocket<TProtocol>() where TProtocol : class, IProtocol;
 }

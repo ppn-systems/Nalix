@@ -15,7 +15,7 @@ using Nalix.Environment.Options;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
-namespace Nalix.SDK.Transport.Internal;
+namespace Nalix.SDK.Transport.Internal.Tcp;
 
 /// <summary>
 /// Optimized frame recipient that handles reassembly of fragmented packets,

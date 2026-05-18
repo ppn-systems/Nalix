@@ -241,6 +241,23 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     }
 
     /// <inheritdoc />
+    public IWebSocketBindingBuilder BindWebSocket<TProtocol>() where TProtocol : class, IProtocol
+    {
+        WebSocketBindingBuilder builder = new(this);
+
+        _state.WebSocketBindings.Add(new WebSocketProtocolBinding(
+            typeof(TProtocol),
+            dispatch => builder.Factory is not null
+                ? builder.Factory(dispatch)
+                : CreateProtocol(typeof(TProtocol), dispatch),
+            Port: null,
+            Path: null,
+            BindingBuilder: builder));
+
+        return builder;
+    }
+
+    /// <inheritdoc />
     public NetworkApplication Build()
     {
         RegisterPacketRegistry();
@@ -318,6 +335,31 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                         : new(protocol, hub));
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
+            });
+        }
+
+        foreach (WebSocketProtocolBinding registration in _state.WebSocketBindings)
+        {
+            serverFactories.Add(dispatch =>
+            {
+                IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
+                    ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+                IProtocol protocol = registration.Factory(dispatch);
+
+                ushort? port = registration.Port;
+                string? path = registration.Path;
+
+                if (registration.BindingBuilder is WebSocketBindingBuilder wsBuilder)
+                {
+                    port = wsBuilder.Port ?? port;
+                    path = wsBuilder.Path ?? path;
+                }
+
+                WebSocketServerListener listener = (port.HasValue && path is not null)
+                    ? new(port.Value, path, protocol, hub)
+                    : new(protocol, hub);
+
+                return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
             });
         }
 

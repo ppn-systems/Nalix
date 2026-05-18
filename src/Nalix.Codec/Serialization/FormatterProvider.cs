@@ -26,7 +26,7 @@ public static class FormatterProvider
 {
     #region Fields
 
-    private static readonly DiagnosticListener s_listener = new("Nalix.Environment");
+    private static readonly DiagnosticListener s_listener = DiagnosticsEvents.Source;
 
     private static int s_cntTotal, s_cntPrimitives, s_cntNullables, s_cntArrays,
                        s_cntNullableArrays, s_cntLists, s_cntEnums, s_cntStrings;
@@ -155,7 +155,7 @@ public static class FormatterProvider
         Register(new NullableArrayFormatter<ulong>());
 
 #if !NALIX_AOT
-        if (s_listener.IsEnabled("init"))
+        if (s_listener?.IsEnabled("init") == true)
         {
             s_listener.Write("init", new
             {

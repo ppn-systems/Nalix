@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Nalix.Environment.Diagnostics;
 
 namespace Nalix.Environment;
 
@@ -21,7 +22,7 @@ public static class DiagnosticsEvents
     /// <summary>
     /// Global diagnostic source for emitting events.
     /// </summary>
-    public static readonly DiagnosticListener Source = new(ListenerName);
+    public static readonly DiagnosticListener Source = DiagnosticListenerFactory.Create(ListenerName);
 
     /// <summary>
     /// Emits a diagnostic payload through <see cref="Source"/>.

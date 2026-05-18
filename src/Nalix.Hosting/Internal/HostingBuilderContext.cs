@@ -55,6 +55,11 @@ internal sealed class HostingBuilderContext
     public List<UdpProtocolBinding> UdpBindings { get; } = [];
 
     /// <summary>
+    /// Gets the WebSocket protocol bindings configured for the host.
+    /// </summary>
+    public List<WebSocketProtocolBinding> WebSocketBindings { get; } = [];
+
+    /// <summary>
     /// Gets the configuration delegates applied to
     /// <see cref="PacketDispatchOptions{TPacket}"/>.
     /// </summary>
@@ -212,4 +217,22 @@ internal sealed record UdpProtocolBinding(
     Func<IPacketDispatch, IProtocol> Factory,
     ushort? Port = null,
     Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? Authentication = null,
+    object? BindingBuilder = null);
+
+/// <summary>
+/// Represents a binding between a protocol type and its creation factory for WebSocket.
+/// </summary>
+/// <param name="ProtocolType">The type of the protocol.</param>
+/// <param name="Factory">The factory used to create the protocol instance.</param>
+/// <param name="Port">The optional port to listen on.</param>
+/// <param name="Path">The optional HTTP path prefix to listen on.</param>
+/// <param name="BindingBuilder">
+/// Optional mutable builder populated by <c>BindWebSocket</c> fluent API.
+/// When present, <see cref="Port"/> and <see cref="Path"/> are resolved from this builder at build time.
+/// </param>
+internal sealed record WebSocketProtocolBinding(
+    Type ProtocolType,
+    Func<IPacketDispatch, IProtocol> Factory,
+    ushort? Port = null,
+    string? Path = null,
     object? BindingBuilder = null);
