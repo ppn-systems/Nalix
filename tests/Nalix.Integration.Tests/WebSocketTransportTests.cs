@@ -215,6 +215,107 @@ public class WebSocketTransportTests : IDisposable
         }
     }
 
+    [Fact]
+    public async Task WebSocketSession_WhenInboundMessageExceedsClientLimit_RaisesError()
+    {
+        ushort port = GetFreePort();
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
+        ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().MaxMessageSize = 1_048_576;
+
+        var protocol = new IntegrationTestProtocol();
+        var hub = new ConnectionHub();
+
+        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+        server.Activate();
+        await Task.Delay(1000);
+
+        try
+        {
+            var options = new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = port,
+                EncryptionEnabled = false,
+                CompressionEnabled = false
+            };
+
+            var webSocketOptions = new WebSocketTransportOptions
+            {
+                MaxMessageSize = 16
+            };
+
+            using var client = new WebSocketSession(options, webSocketOptions);
+            TaskCompletionSource<Exception> errorTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            client.OnError += (_, ex) => errorTcs.TrySetResult(ex);
+
+            await client.ConnectAsync();
+            await client.SendAsync(CreatePayload("this message is larger than sixteen bytes"));
+
+            Task completed = await Task.WhenAny(errorTcs.Task, Task.Delay(5000));
+            Assert.Equal(errorTcs.Task, completed);
+            Assert.Contains("WebSocket message size", errorTcs.Task.Result.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            server.Deactivate();
+        }
+    }
+
+    [Fact]
+    public async Task WebSocketServer_WhenInboundMessageExceedsServerLimit_DisconnectsWithoutEcho()
+    {
+        ushort port = GetFreePort();
+        NetworkWebSocketOptions serverOptions = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        serverOptions.Host = "127.0.0.1";
+        serverOptions.MaxMessageSize = 16;
+
+        var protocol = new IntegrationTestProtocol();
+        var hub = new ConnectionHub();
+
+        using var server = new TestWebSocketListener(port, "/ws/", protocol, hub);
+        server.Activate();
+        await Task.Delay(1000);
+
+        try
+        {
+            var options = new TransportOptions
+            {
+                Address = "127.0.0.1",
+                Port = port,
+                EncryptionEnabled = false,
+                CompressionEnabled = false
+            };
+
+            using var client = new WebSocketSession(options);
+            TaskCompletionSource<IBufferLease> messageTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            TaskCompletionSource<Exception> disconnectTcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            client.OnMessageReceived += (_, lease) => messageTcs.TrySetResult(lease);
+            client.OnDisconnected += (_, ex) => disconnectTcs.TrySetResult(ex);
+
+            await client.ConnectAsync();
+            await client.SendAsync(CreatePayload("this message is larger than sixteen bytes"));
+
+            Task completed = await Task.WhenAny(disconnectTcs.Task, messageTcs.Task, Task.Delay(5000));
+            Assert.NotEqual(messageTcs.Task, completed);
+        }
+        finally
+        {
+            serverOptions.MaxMessageSize = 1_048_576;
+            server.Deactivate();
+        }
+    }
+
+    private static byte[] CreatePayload(string text)
+    {
+        byte[] rawText = System.Text.Encoding.UTF8.GetBytes(text);
+        byte[] payload = new byte[10 + rawText.Length];
+        payload[4] = 0x34;
+        payload[5] = 0x12;
+        rawText.CopyTo(payload.AsSpan(10));
+        return payload;
+    }
+
     public void Dispose()
     {
         Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
