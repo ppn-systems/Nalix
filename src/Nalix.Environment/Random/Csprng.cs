@@ -5,6 +5,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Serialization;
+using Nalix.Environment.Diagnostics;
 
 namespace Nalix.Environment.Random;
 

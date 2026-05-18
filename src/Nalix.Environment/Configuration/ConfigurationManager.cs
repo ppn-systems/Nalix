@@ -11,6 +11,7 @@ using System.Security;
 using System.Threading;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
+using Nalix.Environment.Diagnostics;
 using Nalix.Environment.IO;
 
 namespace Nalix.Environment.Configuration;
@@ -634,6 +635,11 @@ public sealed class ConfigurationManager : IDisposable
 
     private void SETUP_FILE_WATCHER()
     {
+        if (OperatingSystem.IsBrowser())
+        {
+            return; // WebAssembly has no native file system to watch.
+        }
+
         if (_isDisposed)
         {
             return;

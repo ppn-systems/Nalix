@@ -21,7 +21,7 @@ public static class DiagnosticsEvents
     /// <summary>
     /// Global diagnostic source for emitting events.
     /// </summary>
-    public static readonly DiagnosticListener Source = new(ListenerName);
+    public static readonly DiagnosticListener Source = Environment.Diagnostics.DiagnosticListenerFactory.Create(ListenerName);
 
     /// <summary>
     /// Task-related diagnostic events.

@@ -4,6 +4,7 @@
 using System;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
+using Nalix.Codec.Extensions;
 using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization.Internal;
 
@@ -27,7 +28,6 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
 {
     private static string DebuggerDisplay => "StringFormatter<SYSTEM.String[]>";
 
-    private static readonly IFormatter<int> s_uInt16Formatter = FormatterProvider.Get<int>();
     private static readonly IFormatter<string> s_stringFormatterInstance = FormatterProvider.Get<string>();
 
     /// <summary>
@@ -48,14 +48,14 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
         // Null array is represented by the reserved sentinel value.
         if (value is null)
         {
-            s_uInt16Formatter.Serialize(ref writer, SerializerBounds.Null);
+            writer.Write(SerializerBounds.Null);
             return;
         }
 
         // Empty arrays are encoded with a zero count and no element payloads.
         if (value.Length == 0)
         {
-            s_uInt16Formatter.Serialize(ref writer, 0);
+            writer.Write(0);
             return;
         }
 
@@ -65,7 +65,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
             throw new SerializationFailureException("The string array exceeds the maximum encodable length.");
         }
 
-        s_uInt16Formatter.Serialize(ref writer, value.Length);
+        writer.Write(value.Length);
 
         for (int i = 0; i < value.Length; i++)
         {
@@ -89,7 +89,7 @@ internal sealed class StringArrayFormatter : IFormatter<string[]>
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public string[] Deserialize(ref DataReader reader)
     {
-        int length = s_uInt16Formatter.Deserialize(ref reader);
+        int length = reader.ReadInt32();
 
         // Zero means an empty array, not a null array.
         if (length == 0)

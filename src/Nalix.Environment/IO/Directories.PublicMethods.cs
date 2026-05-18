@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using Nalix.Environment.Diagnostics;
 
 namespace Nalix.Environment.IO;
 
