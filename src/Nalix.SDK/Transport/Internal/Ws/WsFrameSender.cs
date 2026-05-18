@@ -6,12 +6,13 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
-namespace Nalix.SDK.Transport.Internal.Web;
+namespace Nalix.SDK.Transport.Internal.Ws;
 
 internal sealed class WsFrameSender : IDisposable
 {
@@ -69,7 +70,7 @@ internal sealed class WsFrameSender : IDisposable
                 ? this.SEND_RAW(current.Memory)
                 : await this.SEND_RAW_ASYNC(current.Memory, ct).ConfigureAwait(false);
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
             return false;
@@ -99,7 +100,7 @@ internal sealed class WsFrameSender : IDisposable
             socket.SendAsync(frame, WebSocketMessageType.Binary, true, CancellationToken.None).AsTask().GetAwaiter().GetResult();
             return true;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
             return false;
@@ -124,7 +125,7 @@ internal sealed class WsFrameSender : IDisposable
             await socket.SendAsync(frame, WebSocketMessageType.Binary, true, ct).ConfigureAwait(false);
             return true;
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
             return false;

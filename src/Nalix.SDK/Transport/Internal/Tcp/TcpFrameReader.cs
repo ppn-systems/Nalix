@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Fragments;
@@ -107,7 +108,7 @@ internal sealed class TcpFrameReader : IDisposable
 
                             this.PROCESS_NORMAL_FRAME(lease);
                         }
-                        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                         {
                             if (rented != null)
                             {
@@ -130,7 +131,7 @@ internal sealed class TcpFrameReader : IDisposable
             }
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _onError(ex);
         }

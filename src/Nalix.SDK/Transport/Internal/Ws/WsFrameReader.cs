@@ -7,12 +7,13 @@ using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Codec.Transforms;
 using Nalix.Environment.Memory;
 using Nalix.Environment.Sequencing;
 using Nalix.SDK.Options;
 
-namespace Nalix.SDK.Transport.Internal.Web;
+namespace Nalix.SDK.Transport.Internal.Ws;
 
 internal sealed class WsFrameReader : IDisposable
 {
@@ -45,6 +46,7 @@ internal sealed class WsFrameReader : IDisposable
     {
         ClientWebSocket socket = _getSocket();
         byte[] buffer = BufferLease.ByteArrayPool.Rent(8192);
+        Exception? disconnectReason = null;
 
         try
         {
@@ -54,6 +56,7 @@ internal sealed class WsFrameReader : IDisposable
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {
+                    disconnectReason = new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "The WebSocket session was closed by the remote host.");
                     break;
                 }
 
@@ -76,14 +79,25 @@ internal sealed class WsFrameReader : IDisposable
             }
         }
         catch (OperationCanceledException) { }
-        catch (WebSocketException) { }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (WebSocketException ex)
         {
-            _onError?.Invoke(ex);
+            disconnectReason = ex;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            disconnectReason = ex;
         }
         finally
         {
             BufferLease.ByteArrayPool.Return(buffer);
+            if (disconnectReason != null)
+            {
+                _onError?.Invoke(disconnectReason);
+            }
+            else if (!ct.IsCancellationRequested)
+            {
+                _onError?.Invoke(new WebSocketException(WebSocketError.ConnectionClosedPrematurely, "The WebSocket session was disconnected."));
+            }
         }
     }
 
@@ -162,7 +176,7 @@ internal sealed class WsFrameReader : IDisposable
                 _sequence.UpdateTo(seq.Value);
             }
         }
-        catch (Exception ex) when (Abstractions.Exceptions.ExceptionClassifier.IsNonFatal(ex))
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             _onError?.Invoke(ex);
         }
