@@ -12,7 +12,7 @@ namespace Nalix.Codec.Serialization.Formatters.Primitives;
 /// High-performance zero-allocation formatter for the unmanaged <see cref="PacketHeader"/> struct.
 /// Writes and reads the full 10-byte header as a single unmanaged block.
 /// </summary>
-public sealed class PacketHeaderFormatter : IFormatter<PacketHeader>
+internal sealed class PacketHeaderFormatter : IFormatter<PacketHeader>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

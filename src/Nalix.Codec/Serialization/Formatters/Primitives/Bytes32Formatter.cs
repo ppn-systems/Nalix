@@ -11,7 +11,7 @@ namespace Nalix.Codec.Serialization.Formatters.Primitives;
 /// <summary>
 /// High-performance zero-allocation formatter for the unmanaged Bytes32 struct.
 /// </summary>
-public sealed class Bytes32Formatter : IFormatter<Bytes32>
+internal sealed class Bytes32Formatter : IFormatter<Bytes32>
 {
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -4,9 +4,9 @@
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Serialization.Formatters.Collections;
 
