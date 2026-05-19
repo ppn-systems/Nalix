@@ -27,83 +27,35 @@ public static class DataWriterExtensions
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, sbyte value)
-    {
-        writer.Expand(sizeof(sbyte));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(sbyte));
-    }
+    public static void Write(this ref DataWriter writer, sbyte value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, byte value)
-    {
-        writer.Expand(sizeof(byte));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        ptr = value;
-        writer.Advance(sizeof(byte));
-    }
+    public static void Write(this ref DataWriter writer, byte value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, short value)
-    {
-        writer.Expand(sizeof(short));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(short));
-    }
+    public static void Write(this ref DataWriter writer, short value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, ushort value)
-    {
-        writer.Expand(sizeof(ushort));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(ushort));
-    }
+    public static void Write(this ref DataWriter writer, ushort value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, uint value)
-    {
-        writer.Expand(sizeof(uint));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(uint));
-    }
+    public static void Write(this ref DataWriter writer, uint value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, int value)
-    {
-        writer.Expand(sizeof(int));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(int));
-    }
+    public static void Write(this ref DataWriter writer, int value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, long value)
-    {
-        writer.Expand(sizeof(long));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(long));
-    }
+    public static void Write(this ref DataWriter writer, long value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, ulong value)
-    {
-        writer.Expand(sizeof(ulong));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(ulong));
-    }
+    public static void Write(this ref DataWriter writer, ulong value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -111,33 +63,15 @@ public static class DataWriterExtensions
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, char value)
-    {
-        writer.Expand(sizeof(char));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(char));
-    }
+    public static void Write(this ref DataWriter writer, char value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, float value)
-    {
-        writer.Expand(sizeof(float));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(float));
-    }
+    public static void Write(this ref DataWriter writer, float value) => writer.Write(value);
 
     /// <inheritdoc/>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, double value)
-    {
-        writer.Expand(sizeof(double));
-        ref byte ptr = ref writer.GetFreeBufferReference();
-        Unsafe.WriteUnaligned(ref ptr, value);
-        writer.Advance(sizeof(double));
-    }
+    public static void Write(this ref DataWriter writer, double value) => writer.Write(value);
 
     #endregion Primitive Types
 
@@ -196,29 +130,7 @@ public static class DataWriterExtensions
     /// <exception cref="InvalidOperationException">Thrown when the writer wraps a fixed buffer that cannot expand to fit <paramref name="value"/>.</exception>
     /// <exception cref="OutOfMemoryException">Thrown when the writer cannot rent a larger backing buffer.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, byte[] value)
-    {
-        if (value is null || value.Length == 0)
-        {
-            return;
-        }
-
-        writer.Expand(value.Length);
-        ref byte dst = ref writer.GetFreeBufferReference();
-
-        unsafe
-        {
-            fixed (byte* pSrc = value)
-            {
-                fixed (byte* pDst = &dst)
-                {
-                    Unsafe.CopyBlockUnaligned(pDst, pSrc, (uint)value.Length);
-                }
-            }
-        }
-
-        writer.Advance(value.Length);
-    }
+    public static void Write(this ref DataWriter writer, byte[] value) => writer.Write(value);
 
     /// <summary>
     /// Writes a span of bytes to the buffer.
@@ -228,17 +140,7 @@ public static class DataWriterExtensions
     /// <exception cref="InvalidOperationException">Thrown when the writer wraps a fixed buffer that cannot expand to fit <paramref name="value"/>.</exception>
     /// <exception cref="OutOfMemoryException">Thrown when the writer cannot rent a larger backing buffer.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Write(this ref DataWriter writer, ReadOnlySpan<byte> value)
-    {
-        if (value.IsEmpty)
-        {
-            return;
-        }
-
-        writer.Expand(value.Length);
-        value.CopyTo(writer.FreeBuffer);
-        writer.Advance(value.Length);
-    }
+    public static void Write(this ref DataWriter writer, ReadOnlySpan<byte> value) => writer.Write(value);
 
     #endregion Array Types
 
@@ -253,20 +155,7 @@ public static class DataWriterExtensions
     /// <exception cref="InvalidOperationException">Thrown when the writer wraps a fixed buffer that cannot expand to fit the unmanaged value.</exception>
     /// <exception cref="OutOfMemoryException">Thrown when the writer cannot rent a larger backing buffer.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void WriteUnmanaged<T>(this ref DataWriter writer, T value) where T : unmanaged
-    {
-        int size = Unsafe.SizeOf<T>();
-
-        writer.Expand(size);
-
-        Unsafe.CopyBlockUnaligned(
-            ref writer.GetFreeBufferReference(),
-            ref Unsafe.As<T, byte>(ref value),
-            (uint)size
-        );
-
-        writer.Advance(size);
-    }
+    public static void WriteUnmanaged<T>(this ref DataWriter writer, T value) where T : unmanaged => writer.Write(value);
 
     #endregion Generic Unmanaged
 }
