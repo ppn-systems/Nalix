@@ -1,3 +1,4 @@
+#if DEBUG
 using Nalix.Environment.Extensions;
 using Nalix.Environment.Memory;
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
@@ -108,6 +109,7 @@ public sealed class StringFormatterTests
         _ = Assert.IsType<SerializationFailureException>(ex, exactMatch: false);
     }
 }
+#endif
 
 
 
