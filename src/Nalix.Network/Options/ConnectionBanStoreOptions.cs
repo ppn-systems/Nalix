@@ -11,7 +11,7 @@ namespace Nalix.Network.Options;
 /// Configuration options for the persistent Banned IP store.
 /// </summary>
 [IniComment("Configuration for persisting banned IP addresses to disk")]
-public sealed partial class BannedIpStoreOptions : ConfigurationLoader
+public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader
 {
     /// <summary>
     /// Gets or sets a value indicating whether disk persistence is enabled.
