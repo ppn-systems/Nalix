@@ -182,5 +182,7 @@ enabled.
 
 - [Connection Hub](../../network/connection/connection-hub.md)
 - [Connection Limiter](../../network/connection/connection-limiter.md)
-- [Connection Limit Options](./connection-limit-options.md)
+- [Connection Quota Options](./connection-quota-options.md)
+- [Connection Guard Options](./connection-guard-options.md)
+- [Trusted Proxy Options](./trusted-proxy-options.md)
 - [Session Store Options](./session-store-options.md)
