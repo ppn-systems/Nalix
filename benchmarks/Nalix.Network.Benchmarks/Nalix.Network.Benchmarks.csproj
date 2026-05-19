@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Nalix.Benchmarks.Shared\Nalix.Benchmarks.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
+  </ItemGroup>
+</Project>
