@@ -1,12 +1,11 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Logging.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Logging.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Logging.Benchmarks")]
 #endif
 
 namespace Nalix.Logging.Internal.Formatters;
