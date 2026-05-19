@@ -11,7 +11,6 @@ using Nalix.SDK.Native.Results;
 using Nalix.SDK.Native.Wrappers;
 using Nalix.SDK.Transport.Extensions;
 
-#pragma warning disable IDE0058 // Expression value is never used
 #pragma warning disable CA2012 // Use ValueTasks correctly
 
 namespace Nalix.SDK.Native;
@@ -39,7 +38,7 @@ public static unsafe partial class Nalix
         try
         {
             string hostStr = Marshal.PtrToStringUTF8((IntPtr)host) ?? "";
-            wrapper.UnderlyingSession.ConnectWithResumeAsync(hostStr, port).GetAwaiter().GetResult();
+            _ = wrapper.UnderlyingSession.ConnectWithResumeAsync(hostStr, port).GetAwaiter().GetResult();
             return ErrorCode.Success;
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
