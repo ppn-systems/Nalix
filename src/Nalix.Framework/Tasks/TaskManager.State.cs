@@ -473,7 +473,7 @@ public partial class TaskManager
 
         private NoOpWorkerHandle() { }
 
-        public ISnowflake Id => Nalix.Framework.Identifiers.Snowflake.Empty;
+        public ISnowflake Id => Identifiers.Snowflake.Empty;
         public string Name => "noop";
         public string Group => "noop";
         public long TotalRuns => 0;
