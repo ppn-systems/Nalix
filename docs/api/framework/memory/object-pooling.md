@@ -4,28 +4,38 @@ The Object Pooling system in `Nalix.Framework` provides a thread-safe, high-perf
 
 ## Object Pool Interaction Flow
 
-The following diagram illustrates the lifecycle of a poolable object from creation to reuse.
+The following diagram illustrates the lifecycle of a poolable object from creation to reuse, featuring the optimized thread-local and type-indexed fast paths.
 
 ```mermaid
-flowchart LR
-    Start[Request Object] --> Cache{Available in Pool?}
-    Cache -- Yes --> Get[Retrieve from Storage]
-    Cache -- No --> Build[Create new Instance]
+flowchart TD
+    Start[Request Object] --> TLC{Available in ThreadLocalCache?}
+    TLC -- Yes --> PopTLC[Retrieve from ThreadLocalCache]
+    TLC -- No --> TypeIndex[Lookup type-indexed pool array]
+    TypeIndex --> TypeBucket{Available in TypePool?}
+    TypeBucket -- Yes --> PopTB[Retrieve from TypePool]
+    TypeBucket -- No --> Build[Create new Instance]
     
-    Get --> Use[Use Object]
+    PopTLC --> Use[Use Object]
+    PopTB --> Use
     Build --> Use
     
     Use --> Return[Return to Pool]
     Return --> Reset[Reset State IPoolable]
-    Reset --> Check{Capacity Full?}
+    Reset --> PushTLC{ThreadLocalCache slot free?}
     
-    Check -- No --> Save[Store for Reuse]
-    Check -- Yes --> Dispose[Dispose and GC]
+    PushTLC -- Yes --> StoreTLC[Store in ThreadLocalCache]
+    PushTLC -- No --> PushBucket{TypePool capacity full?}
+    PushBucket -- No --> StoreTB[Store in TypePool]
+    PushBucket -- Yes --> GC[Discard for GC]
 ```
 
 ## Source Mapping
 
 - `src/Nalix.Abstractions/IPoolable.cs`
+- `src/Nalix.Framework/Memory/Internal/PoolTypes/PoolType.cs`
+- `src/Nalix.Framework/Memory/Internal/PoolTypes/PoolTypeRegistry.cs`
+- `src/Nalix.Framework/Memory/Internal/PoolTypes/ThreadLocalCache.cs`
+- `src/Nalix.Framework/Memory/Internal/PoolTypes/TypePool.cs`
 - `src/Nalix.Framework/Memory/Pools/ObjectPool.cs`
 - `src/Nalix.Framework/Memory/Objects/ObjectPoolManager.cs`
 - `src/Nalix.Framework/Memory/Objects/TypedObjectPool.cs`
@@ -67,6 +77,8 @@ public interface IPoolRentable
 
 ### Key Features
 
+- **Thread-Local Caching**: Integrates a lock-free, single-slot cache (`ThreadLocalCache<T>`) per poolable type on the active thread, delivering ultra-low-latency reuse on the thread hot path.
+- **Type-Indexed Buckets**: Allocates unique numeric identifiers for each pooled type (`PoolType<T>.Id`), routing lookups via a flat index-lookup array to avoid thread contention, lock acquisitions, and dictionary hashing during renting and returning.
 - **Dynamic Creation**: Pools are created lazily for each type as needed.
 - **Typed Pools**: Provides `TypedObjectPool<T>` for high-performance, type-safe access.
 - **Health Monitoring**: Tracks cache hits, misses, and **Peak Concurrent Usage**.

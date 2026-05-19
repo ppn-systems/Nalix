@@ -4,12 +4,14 @@ Typed Object Pools provide a high-performance, type-safe facade for interacting 
 
 ## Architecture
 
-The `TypedObjectPool<T>` sits between your application and either a central `ObjectPoolManager` or a standalone `ObjectPool`.
+The `TypedObjectPool<T>` sits between your application and either a central `ObjectPoolManager` or a standalone `ObjectPool`. By delegating directly to `ObjectPool`, it leverages the lock-free `ThreadLocalCache<T>` and the type-indexed array fast-path lookups.
 
 ```mermaid
-graph LR
+graph TD
     App[Application Code] -- Direct Call --> TypedPool[TypedObjectPool T]
-    TypedPool -- Optimized Access --> Pool[Internal Type Bucket]
+    TypedPool -- Fast-path Thread-Local --> TLC[ThreadLocalCache T]
+    TypedPool -- Fast-path Type-Indexed --> ArrayLookup[Flat Type-Indexed Array]
+    ArrayLookup --> Pool[TypePool Bucket]
     TypedPool -- Optional Metrics --> Manager[ObjectPoolManager Global]
 ```
 
@@ -69,6 +71,7 @@ When a `TypedObjectPool<T>` is created via `ObjectPoolManager`, it automatically
 - **Outstanding Tracking**: Tracks objects rented but not yet returned (requires `EnableDiagnostics`).
 - **Cache Statistics**: Tracks hits, misses, and throughput.
 - **Leak Detection**: Integrated with `PoolSentinel` for GC-based leak reporting.
+- **Optimization Bypass**: When diagnostics are disabled, `Get()` and `Return()` execute through the optimized fast paths (`ThreadLocalCache<T>` and index-based `_typePoolsArray` lookup) without any lock overhead or generic dispatch lookups.
 
 ## Related APIs
 
