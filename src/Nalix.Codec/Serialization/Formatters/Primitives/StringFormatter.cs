@@ -6,7 +6,6 @@ using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Extensions;
-using Nalix.Codec.Internal;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Environment.Memory;
 
@@ -22,7 +21,7 @@ namespace Nalix.Codec.Serialization.Formatters.Primitives;
 [System.Diagnostics.DebuggerNonUserCode]
 [System.Runtime.CompilerServices.SkipLocalsInit]
 [System.Diagnostics.DebuggerDisplay("{DebuggerDisplay,nq}")]
-public sealed class StringFormatter : IFormatter<string>
+internal sealed class StringFormatter : IFormatter<string>
 {
     private static readonly System.Text.Encoding s_utf8 = System.Text.Encoding.UTF8;
     private static string DebuggerDisplay => "StringFormatter<System.String>";
@@ -56,29 +55,28 @@ public sealed class StringFormatter : IFormatter<string>
             return;
         }
 
-        // Guard the payload size before we expand the writer buffer.
+        // Calculate exact UTF-8 byte count to avoid over-reserving on fixed-size buffers
         int byteCount = s_utf8.GetByteCount(value);
+
         int limit = SerializationStaticOptions.Instance.MaxStringLength;
         if (byteCount > limit)
         {
             throw new SerializationFailureException($"String encoded size {byteCount} exceeds the allowed limit of {limit} (Config: Serialization.MaxStringLength)");
         }
 
-        // Write the length first so the reader knows exactly how many bytes to consume.
-        writer.Write(byteCount);
+        // Expand the writer buffer to accommodate the length prefix (4 bytes) + exact bytes
+        writer.Expand(sizeof(int) + byteCount);
 
-        // Expand once and encode directly into the writer's free buffer to avoid extra copies.
-        writer.Expand(byteCount);
-        int bytesWritten = s_utf8.GetBytes(
-            value.AsSpan(),
-            writer.FreeBuffer[..byteCount]);
+        Span<byte> freeBuffer = writer.FreeBuffer;
 
-        if (bytesWritten != byteCount)
-        {
-            Throw.DataMismatch();
-        }
+        // Encode directly into the free buffer starting at offset 4
+        int bytesWritten = s_utf8.GetBytes(value.AsSpan(), freeBuffer[sizeof(int)..]);
 
-        writer.Advance(byteCount);
+        // Write the actual encoded length at offset 0
+        MemoryMarshal.Write(freeBuffer[..sizeof(int)], in bytesWritten);
+
+        // Advance by the length prefix (4 bytes) + the actual written bytes
+        writer.Advance(sizeof(int) + bytesWritten);
     }
 
     /// <summary>
@@ -120,8 +118,7 @@ public sealed class StringFormatter : IFormatter<string>
 
         // Build a read-only span over the exact UTF-8 byte range and decode it directly.
         ref byte start = ref reader.GetSpanReference(length);
-        string result = s_utf8.GetString(
-            MemoryMarshal.CreateReadOnlySpan(ref start, length));
+        string result = s_utf8.GetString(MemoryMarshal.CreateReadOnlySpan(ref start, length));
 
         reader.Advance(length);
         return result;
