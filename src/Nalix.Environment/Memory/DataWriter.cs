@@ -263,6 +263,66 @@ public ref struct DataWriter
     }
 
     /// <summary>
+    /// Writes any unmanaged value directly to the buffer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Write<T>(T value) where T : unmanaged
+    {
+        int size = Unsafe.SizeOf<T>();
+        int needed = this.WrittenCount + size;
+        if ((uint)needed > (uint)_span.Length)
+        {
+            this.Expand(size);
+        }
+
+        ref byte ptr = ref Unsafe.Add(ref MemoryMarshal.GetReference(_span), this.WrittenCount);
+        Unsafe.WriteUnaligned(ref ptr, value);
+        this.WrittenCount = needed;
+    }
+
+    /// <summary>
+    /// Writes a span of bytes directly to the buffer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Write(ReadOnlySpan<byte> value)
+    {
+        if (value.IsEmpty)
+        {
+            return;
+        }
+
+        int needed = this.WrittenCount + value.Length;
+        if ((uint)needed > (uint)_span.Length)
+        {
+            this.Expand(value.Length);
+        }
+
+        value.CopyTo(_span[this.WrittenCount..]);
+        this.WrittenCount = needed;
+    }
+
+    /// <summary>
+    /// Writes a byte array directly to the buffer.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Write(byte[] value)
+    {
+        if (value is null || value.Length == 0)
+        {
+            return;
+        }
+
+        int needed = this.WrittenCount + value.Length;
+        if ((uint)needed > (uint)_span.Length)
+        {
+            this.Expand(value.Length);
+        }
+
+        value.AsSpan().CopyTo(_span[this.WrittenCount..]);
+        this.WrittenCount = needed;
+    }
+
+    /// <summary>
     /// Copies the committed data into a new tightly sized array.
     /// </summary>
     [Pure]

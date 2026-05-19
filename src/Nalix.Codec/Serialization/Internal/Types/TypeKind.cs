@@ -2,11 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.ComponentModel;
-using System.Runtime.CompilerServices;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.Codec.Tests")]
-[assembly: InternalsVisibleTo("Nalix.Codec.Benchmarks")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Codec.Benchmarks")]
 #endif
 
 namespace Nalix.Codec.Serialization.Internal.Types;

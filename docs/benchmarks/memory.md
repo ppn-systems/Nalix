@@ -1,84 +1,58 @@
 # Memory & Storage Benchmarks
 
-Nalix uses a specialized memory management system designed to eliminate Garbage Collection (GC) pauses in the hot path.
+Nalix uses a highly optimized memory management subsystem designed to eliminate Garbage Collection (GC) pauses in high-throughput workloads.
 
 ## Buffer Pooling & Leases
 
-Standardized rental system for high-performance I/O operations.
+Comparison of memory acquisition strategies across various sizes (64 B, 1 KB, and 16 KB).
 
-### Basic Pooling
+### Buffer Allocation Metrics (Size = 64)
 
-| Operation | Latency (Mean) | StdDev | Allocation |
-| :--- | :--- | :--- | :--- |
-| **Rent & Return** (Segment/Array) | **51 - 53 ns** | 0.15 ns | 0 B |
-| **Allocation Size Check** | **0.3 - 3.1 ns** | 0.01 ns | 0 B |
+| Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **RawAllocation** | **19.07 ns** | 0.544 ns | 0.582 ns | 19.81 ns | 1.00 | 88 B | 1.00 |
+| **ArrayPool_Shared** | **10.50 ns** | 0.267 ns | 0.308 ns | 10.94 ns | 0.55 | 0 B | 0.00 |
+| **BufferPoolManager_RentReturn** | **48.89 ns** | 1.907 ns | 2.196 ns | 51.30 ns | 2.57 | 0 B | 0.00 |
+| **BufferLease_RentDispose** | **113.93 ns** | 5.300 ns | 5.891 ns | 124.09 ns | 5.98 | 32 B | 0.36 |
 
-### Buffer Leases
+### Buffer Allocation Metrics (Size = 1024)
 
-High-performance temporary leases for local data processing.
+| Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **RawAllocation** | **202.23 ns** | 5.746 ns | 6.387 ns | 212.76 ns | 1.00 | 1048 B | 1.00 |
+| **ArrayPool_Shared** | **10.48 ns** | 0.279 ns | 0.321 ns | 10.83 ns | 0.05 | 0 B | 0.00 |
+| **BufferPoolManager_RentReturn** | **49.99 ns** | 0.989 ns | 1.099 ns | 50.83 ns | 0.25 | 0 B | 0.00 |
+| **BufferLease_RentDispose** | **114.38 ns** | 3.450 ns | 3.972 ns | 119.47 ns | 0.57 | 32 B | 0.03 |
 
-| Operation | Latency (128B) | Latency (2KB) | StdDev | Allocation |
-| :--- | :--- | :--- | :--- | :--- |
-| **Rent & Dispose** | **23.39 ns** | **37.47 ns** | 0.15 ns | 48 B |
-| **Copy & Dispose** | **23.30 ns** | **41.24 ns** | 0.19 ns | 48 B |
+### Buffer Allocation Metrics (Size = 16384)
+
+| Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **RawAllocation** | **2,856.89 ns** | 32.918 ns | 36.589 ns | 2,913.87 ns | 1.000 | 16408 B | 1.000 |
+| **ArrayPool_Shared** | **10.87 ns** | 0.121 ns | 0.139 ns | 11.03 ns | 0.004 | 0 B | 0.000 |
+| **BufferPoolManager_RentReturn** | **56.79 ns** | 1.219 ns | 1.305 ns | 58.22 ns | 0.020 | 0 B | 0.000 |
+| **BufferLease_RentDispose** | **336.11 ns** | 20.650 ns | 23.780 ns | 368.53 ns | 0.118 | 32 B | 0.002 |
 
 ### Why Nalix Memory?
 
-The Nalix memory sub-system is designed to eliminate the costs of the .NET Garbage Collector in high-load scenarios.
-
-- **Tiered Buffer Rental**: The `BufferPoolManager` optimizes throughput using a three-path strategy:
-    -**Fast Path**: Common sizes (256B to 4KB) bypass resolution logic via direct pool indexing.
-    -**Adaptive Cache**: A `suitablePoolSizeCache` tracks optimal pool matches for irregular request sizes.
-    -**Fallback**: Integration with `ArrayPool<byte>.Shared` ensures the system remains operational even during extreme allocation spikes.
-- **Buffer Stability (Trimming)**: Implements a **ShrinkSafetyPolicy** that conservatively returns memory to the OS. It requires a 50% idle threshold and uses a multi-cycle step-down approach to prevent pool oscillation.
-- **Type-Specific Object Pooling**: The `ObjectPool` utilizes dedicated `TypePool` buckets for every pooled type, ensuring zero-allocation reuse of `IPoolable` objects with mandatory `ResetForPool` calls on return.
+- **Tiered Buffer Rental**: The `BufferPoolManager` optimizes throughput using a multi-path strategy:
+    - **Fast Path**: Common block sizes (256B to 4KB) bypass expensive lookup logic via direct array index resolutions.
+    - **Adaptive Allocation**: Large allocations fall back to standard `ArrayPool<byte>.Shared` to prevent memory spikes, but return memory cleanly to avoid fragmentation.
+- **Lease Safety**: `BufferLease` provides a scope-bound, auto-disposed rental wrapper. Despite a small allocation overhead of 32 bytes for the lease reference wrapper, it ensures memory leaks are completely prevented in high-complexity code.
+- **Trimming & Stability**: The system implements automated shrinking policies to safely return unused memory blocks to the operating system during long periods of low load, keeping the application footprint minimal.
 
 ---
 
-## Object & Collection Pooling
+## Object Pooling
 
-Reusable pools for lists, maps, and class instances.
+Memory metrics for reusing class instances via object pools.
 
-### Generic Object Pooling
-
-| Operation | Scenario | Latency (Mean) | StdDev | Allocation |
-| :--- | :--- | :--- | :--- | :--- |
-| **Preallocate Pool** | 10 Items | **13.00 ns** | 0.26 ns | 24 B |
-| **Object Pool Get/Return** | Typed | **32.45 ns** | 0.38 ns | 32 B |
-
-### List & Map Collections
-
-| Operation | Scenario | Latency (Mean) | StdDev | Allocation |
-| :--- | :--- | :--- | :--- | :--- |
-| **List Pool Trim** | 256 Items | **24.54 ns** | 0.07 ns | 0 B |
-| **List Pool Rent/Fill** | 32 Items | **70.75 ns** | 2.60 ns | 0 B |
-| **Object Map (Rent/Add/Read)** | 32 Items | **1.42 μs** | 0.03 μs | 2.98 KB |
-
-### Pool Management (Health Checks)
-
-| Operation | Latency (Mean) | StdDev |
-| :--- | :--- | :--- |
-| **Health Check (No Cleanup)** | **36.31 ns** | 0.05 ns |
-| **Typed Pool Management Cycle** | **40.31 ns** | 0.34 ns |
+| Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **RawAllocation** | **7.576 ns** | 0.2994 ns | 0.3328 ns | 8.034 ns | 1.00 | 32 B | 1.00 |
+| **RentAndReturn_ObjectPool** | **188.019 ns** | 11.4471 ns | 13.1825 ns | 204.252 ns | 24.86 | 32 B | 1.00 |
 
 ### Behind the design
 
-- **Pre-warming**: Pools can be pre-warmed during application startup to avoid first-allocation latency spikes.
-- **Dynamic Sizing**: The `ObjectPoolManager` monitors usage frequency and automatically trims idle objects to maintain a minimal memory footprint.
-
----
-
-## Data Writers
-
-Fast, low-allocation builders for binary protocols.
-
-| Strategy | Latency (Mean) | StdDev | Allocation |
-| :--- | :--- | :--- | :--- |
-| **Fixed Array Writer** | **2.38 ns** | 0.09 ns | 0 B |
-| **Rented Buffer Writer** | **10.05 ns** | 0.04 ns | 0 B |
-| **Expandable Writer** | **21.28 ns** | 0.22 ns | 0 B |
-
-### Optimization Strategy
-
-- **Direct Span Access**: Writers operate directly on `Span<byte>`, leveraging SIMD instructions and avoiding intermediate copying during serialization.
-- **Zero-allocation Expansion**: When a buffer needs to grow, the writer rents a new, larger segment from the pool and returns the old one immediately.
+- **Object Reusability**: Reusing instances of complex structures (like session states, packet envelopes, and processing contexts) prevents Gen 0 GC thrashing.
+- **Reset Logic**: To prevent state pollution across rentals, pooled objects implement an reset interface that automatically wipes data and prepares the instance for reuse upon its return to the pool.
