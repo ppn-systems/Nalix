@@ -116,6 +116,14 @@ To further eliminate overhead, `BufferLease` instances (shells) are themselves p
 using BufferLease lease = BufferLease.Rent(1024);
 ```
 
+### Object Pooling (Zero-Lock / Zero-Allocation)
+
+To keep the pipeline zero-allocation, Nalix pools incoming context metadata and other hot-path objects using a hybrid `ObjectPool` model. This bypasses thread-contention bottleneck limits:
+- **Thread-Local Lock-Free Cache**: A fast single-slot cache (`ThreadLocalCache<T>`) bypasses the central pool, saving/retrieving objects on the same thread with zero synchronization overhead.
+- **Flat Index ID Resolution**: Unique type compile-time IDs (`PoolType<T>.Id`) index directly into a pre-allocated array of pools, eliminating the need to lock, scan, or compute hashes on generic type lookups.
+
+This ensures renting and returning objects executes in **~22 ns** with **0 B** allocated.
+
 ### Pattern: High-Performance Handler
 
 To keep the path zero-allocation, your handler must follow these constraints:

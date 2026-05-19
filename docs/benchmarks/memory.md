@@ -49,10 +49,13 @@ Memory metrics for reusing class instances via object pools.
 
 | Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **RawAllocation** | **7.576 ns** | 0.2994 ns | 0.3328 ns | 8.034 ns | 1.00 | 32 B | 1.00 |
-| **RentAndReturn_ObjectPool** | **188.019 ns** | 11.4471 ns | 13.1825 ns | 204.252 ns | 24.86 | 32 B | 1.00 |
+| **RawAllocation** | **5.817 ns** | 0.1946 ns | 0.2083 ns | 6.012 ns | 1.00 | 32 B | 1.00 |
+| **RentAndReturn_ObjectPool** | **22.817 ns** | 0.3043 ns | 0.3504 ns | 23.398 ns | 3.93 | 0 B | 0.00 |
 
 ### Behind the design
 
 - **Object Reusability**: Reusing instances of complex structures (like session states, packet envelopes, and processing contexts) prevents Gen 0 GC thrashing.
-- **Reset Logic**: To prevent state pollution across rentals, pooled objects implement an reset interface that automatically wipes data and prepares the instance for reuse upon its return to the pool.
+- **Hybrid Fast-Path Architecture**:
+    - **Thread-Local Cache**: First-level lock-free lookup caches object instances in thread-local storage (`ThreadLocalCache<T>`) for ultra-low latency reuse on the same thread.
+    - **Type-Indexed Buckets**: When thread-local slots are empty or full, retrieval falls back to an array-backed lookup using compiled type IDs (`PoolType<T>.Id`) to bypass slow hashing or generic dictionary lookups.
+- **Reset Logic**: To prevent state pollution across rentals, pooled objects implement a reset interface (`IPoolable`) that automatically wipes data and prepares the instance for reuse upon its return to the pool.

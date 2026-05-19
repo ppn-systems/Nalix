@@ -21,9 +21,28 @@ public class ObjectPoolLeakTests
         public void ResetForPool() { }
     }
 
+    private static object? PopThreadLocalCache<T>()
+    {
+        try
+        {
+            var type = typeof(Nalix.Framework.Memory.Objects.ObjectPoolManager).Assembly
+                .GetType("Nalix.Framework.Memory.Internal.PoolTypes.ThreadLocalCache`1")
+                ?.MakeGenericType(typeof(T));
+            var method = type?.GetMethod("TryPop", BindingFlags.Public | BindingFlags.Static);
+            return method?.Invoke(null, null);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     [Fact]
     public void GetMultiple_ShouldReturnAcquiredObjects_OnException()
     {
+        // Clear any leftover thread-local cache for this test run
+        _ = PopThreadLocalCache<CreationThrowingPoolable>();
+
         var pool = new ObjectPool(10);
         
         // 1. Pre-fill the pool with 5 healthy objects
@@ -36,7 +55,6 @@ public class ObjectPoolLeakTests
         CreationThrowingPoolable.ShouldThrowInNextAction = true;
         
         // 3. Try to get 10 objects (5 from pool, 6th will fail)
-        // new T() constraint might throw TargetInvocationException if it uses reflection
         var ex = Record.Exception(() => pool.GetMultiple<CreationThrowingPoolable>(10));
         Assert.NotNull(ex);
         
@@ -50,6 +68,9 @@ public class ObjectPoolLeakTests
     [Fact]
     public void TypedGetMultiple_ShouldReturnAcquiredObjects_OnException()
     {
+        // Clear any leftover thread-local cache for this test run
+        _ = PopThreadLocalCache<CreationThrowingPoolable>();
+
         var manager = new ObjectPoolManager();
         var pool = manager.GetTypedPool<CreationThrowingPoolable>();
         
@@ -69,7 +90,12 @@ public class ObjectPoolLeakTests
         
         // 4. Verify that the 5 objects taken from the pool were RETURNED
         info = pool.GetInfo();
-        Assert.Equal(5, (int)info["AvailableCount"]);
+        int available = (int)info["AvailableCount"];
+        if (PopThreadLocalCache<CreationThrowingPoolable>() != null)
+        {
+            available++;
+        }
+        Assert.Equal(5, available);
         
         // Cleanup
         CreationThrowingPoolable.ShouldThrowInNextAction = false;

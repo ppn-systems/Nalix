@@ -35,6 +35,10 @@ public class ObjectPoolBenchmarks
         options.EnableLeakDetection = false;
 
         _poolManager = new ObjectPoolManager(options);
+
+        // Preallocate (warmup) to ensure the pool has cached instances ready
+        var obj = _poolManager.Get<SamplePoolable>();
+        _poolManager.Return(obj);
     }
 
     [Benchmark(Baseline = true)]

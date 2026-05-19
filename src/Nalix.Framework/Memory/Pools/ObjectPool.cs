@@ -38,6 +38,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     /// Each concrete type gets its own bucket so instances never cross type boundaries.
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, TypePool> _typePools = new();
+    private TypePool?[] _typePoolsArray = new TypePool?[64];
 
     /// <summary>
     /// Statistics tracking for diagnostics and capacity tuning.
@@ -125,23 +126,25 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
     #region Public Methods
 
-    /// <summary>
-    /// Gets an object from the pool and returns whether it was a cache hit (reused from pool) or miss (newly created).
-    /// This is the single source of truth for hit/miss counting → eliminates TOCTOU in ObjectPoolManager.
-    /// </summary>
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
-    public (T obj, bool isCacheHit) GetWithInfo<T>() where T : IPoolable, new()
+    internal (T obj, bool isCacheHit) GetWithInfoFast<T>(int id) where T : IPoolable, new()
     {
+        // Try the fast-path thread-local slot first
+        T? localObj = ThreadLocalCache<T>.TryPop();
+        if (localObj != null)
+        {
+            _ = Interlocked.Increment(ref _totalRented);
+            return (localObj, true);
+        }
+
         /*
          * [Type-Sharded Retrieval]
          * We resolve the bucket for this specific type. Each type has its 
          * own lock-free stack of available instances.
          */
-        Type type = typeof(T);
-
-        // Resolve the bucket for this type once per rent call.
-        TypePool typePool = _typePools.GetOrAdd(type, _ => new TypePool(_defaultMaxItemsPerType));
+        TypePool? typePool = id < _typePoolsArray.Length ? _typePoolsArray[id] : null;
+        typePool ??= this.InitializeTypePoolFast<T>(id);
 
         // Rent from the bucket when possible; otherwise create a fresh instance.
         if (typePool.TryPop(out IPoolable? obj) && obj != null)
@@ -155,8 +158,59 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
 
         _ = Interlocked.Increment(ref _totalCreated);
         _ = Interlocked.Increment(ref _totalRented);
-
         return (newObj, false);
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    internal void ReturnFast<T>(T obj, int id) where T : IPoolable
+    {
+        obj.ResetForPool();
+
+        // Try the fast-path thread-local slot first
+        if (ThreadLocalCache<T>.TryPush(obj))
+        {
+            _ = Interlocked.Increment(ref _totalReturned);
+            return;
+        }
+
+        TypePool? typePool = id < _typePoolsArray.Length ? _typePoolsArray[id] : null;
+        typePool ??= this.InitializeTypePoolFast<T>(id);
+
+        if (typePool.TryPush(obj))
+        {
+            _ = Interlocked.Increment(ref _totalReturned);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private TypePool InitializeTypePoolFast<T>(int id) where T : IPoolable
+    {
+        lock (_typePools)
+        {
+            if (id >= _typePoolsArray.Length)
+            {
+                int newSize = Math.Max(id + 1, _typePoolsArray.Length * 2);
+                Array.Resize(ref _typePoolsArray, newSize);
+            }
+        }
+
+        TypePool typePool = _typePools.GetOrAdd(typeof(T), _ => new TypePool(_defaultMaxItemsPerType));
+        _typePoolsArray[id] = typePool;
+        return typePool;
+    }
+
+    /// <summary>
+    /// Gets an object from the pool and returns whether it was a cache hit (reused from pool) or miss (newly created).
+    /// This is the single source of truth for hit/miss counting → eliminates TOCTOU in ObjectPoolManager.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+    public (T obj, bool isCacheHit) GetWithInfo<T>() where T : IPoolable, new()
+    {
+        int id = PoolType<T>.Id;
+        return this.GetWithInfoFast<T>(id);
     }
 
     /// <summary>
@@ -167,7 +221,11 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     [System.Runtime.CompilerServices.MethodImpl(
         System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
     [return: System.Diagnostics.CodeAnalysis.NotNull]
-    public T Get<T>() where T : IPoolable, new() => this.GetWithInfo<T>().obj;
+    public T Get<T>() where T : IPoolable, new()
+    {
+        int id = PoolType<T>.Id;
+        return this.GetWithInfoFast<T>(id).obj;
+    }
 
     /// <summary>
     /// Returns an instance of <typeparamref name="T"/> to the pool for future reuse.
@@ -190,22 +248,8 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             throw new ArgumentNullException(nameof(obj));
         }
 
-        Type type = obj.GetType();
-
-        // Reset first so the next renter always sees a clean object.
-        obj.ResetForPool();
-
-        // Return to the same bucket used for rent.
-        TypePool typePool = _typePools.GetOrAdd(type, _ => new TypePool(_defaultMaxItemsPerType));
-
-        // If the bucket is full we simply drop the instance and let GC reclaim it.
-        if (typePool.TryPush(obj))
-        {
-            _ = Interlocked.Increment(ref _totalReturned);
-            return;
-        }
-
-        // Capacity reached: discard instead of growing without bound.
+        int id = PoolType<T>.Id;
+        this.ReturnFast(obj, id);
     }
 
     /// <summary>
