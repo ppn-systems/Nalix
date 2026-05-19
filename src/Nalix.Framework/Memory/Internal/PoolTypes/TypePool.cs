@@ -30,6 +30,7 @@ internal class TypePool(int maxCapacity)
 
     private int _maxCapacity = maxCapacity;
     private readonly ConcurrentStack<IPoolable> _objects = new();
+    private int _count;
 
     #endregion Fields
 
@@ -38,7 +39,7 @@ internal class TypePool(int maxCapacity)
     /// <summary>
     /// Gets the number of objects available in this pool.
     /// </summary>
-    public int AvailableCount => _objects.Count;
+    public int AvailableCount => Volatile.Read(ref _count);
 
     /// <summary>
     /// Gets the maximum capacity of this pool.
@@ -78,14 +79,21 @@ internal class TypePool(int maxCapacity)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryPush(IPoolable obj)
     {
-        if (_objects.Count >= Volatile.Read(ref _maxCapacity))
+        int max = Volatile.Read(ref _maxCapacity);
+        int current = Volatile.Read(ref _count);
+        if (current >= max)
         {
             return false;
         }
 
-        _objects.Push(obj);
+        if (Interlocked.Increment(ref _count) <= max)
+        {
+            _objects.Push(obj);
+            return true;
+        }
 
-        return true;
+        _ = Interlocked.Decrement(ref _count);
+        return false;
     }
 
     /// <summary>
@@ -94,7 +102,16 @@ internal class TypePool(int maxCapacity)
     /// <param name="obj">The object from the pool.</param>
     /// <returns>True if an object was retrieved, false if the pool is empty.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool TryPop(out IPoolable? obj) => _objects.TryPop(out obj);
+    public bool TryPop(out IPoolable? obj)
+    {
+        if (_objects.TryPop(out obj))
+        {
+            _ = Interlocked.Decrement(ref _count);
+            return true;
+        }
+
+        return false;
+    }
 
     /// <summary>
     /// Clears all objects from this pool.
@@ -105,6 +122,7 @@ internal class TypePool(int maxCapacity)
     {
         int count = _objects.Count;
         _objects.Clear();
+        Volatile.Write(ref _count, 0);
         return count;
     }
 
@@ -133,7 +151,9 @@ internal class TypePool(int maxCapacity)
 
         int toRemove = currentCount - targetSize;
 
-        return RemoveObjects(_objects, toRemove);
+        int removed = RemoveObjects(_objects, toRemove);
+        Volatile.Write(ref _count, _objects.Count);
+        return removed;
 
         static int RemoveObjects(ConcurrentStack<IPoolable> stack, int count)
         {

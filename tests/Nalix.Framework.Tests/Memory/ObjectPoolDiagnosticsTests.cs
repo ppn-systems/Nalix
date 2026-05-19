@@ -15,7 +15,8 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void Get_PeakOutstanding_AlwaysTracked()
     {
-        ObjectPoolManager manager = new();
+        ObjectPoolOptions config = new() { EnableDiagnostics = true };
+        ObjectPoolManager manager = new(config);
 
         // Rent 3 items
         TestPoolable item1 = manager.Get<TestPoolable>();
@@ -99,33 +100,25 @@ public sealed class ObjectPoolDiagnosticsTests
     [Fact]
     public void Finalizer_LeakDetection_IncrementsCount()
     {
-        ObjectPoolOptions config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
-        config.EnableDiagnostics = true;
-        config.EnableLeakDetection = true;
-
-        try
+        ObjectPoolOptions config = new()
         {
-            ObjectPoolManager manager = new();
+            EnableDiagnostics = true,
+            EnableLeakDetection = true
+        };
 
-            // Rent and drop reference (leak)
-            this.CreateLeak(manager);
+        ObjectPoolManager manager = new(config);
 
-            // Force GC
-            System.GC.Collect();
-            System.GC.WaitForPendingFinalizers();
-            System.GC.Collect();
+        // Rent and drop reference (leak)
+        this.CreateLeak(manager);
 
-            string report = manager.GenerateReport();
-            Assert.Contains("GC Leak Detected", report);
-            // Note: TotalLeaked is static and might be > 0 from other tests, 
-            // but in a fresh run it should be at least 1.
-            Assert.True(Framework.Memory.Internal.PoolTypes.PoolSentinel.TotalLeaked > 0);
-        }
-        finally
-        {
-            config.EnableDiagnostics = false;
-            config.EnableLeakDetection = false;
-        }
+        // Force GC
+        System.GC.Collect();
+        System.GC.WaitForPendingFinalizers();
+        System.GC.Collect();
+
+        string report = manager.GenerateReport();
+        Assert.Contains("GC Leak Detected", report);
+        Assert.True(Framework.Memory.Internal.PoolTypes.PoolSentinel.TotalLeaked > 0);
     }
 
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]

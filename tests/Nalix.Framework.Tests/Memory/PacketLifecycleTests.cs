@@ -14,15 +14,10 @@ namespace Nalix.Framework.Tests.Memory;
 public sealed class PacketLifecycleTests : IDisposable
 {
     private readonly ObjectPoolManager _manager;
-    private readonly bool _previousDiagnostics;
     public PacketLifecycleTests()
     {
-        // Enable diagnostics globally for the duration of the test
-        var config = ConfigurationManager.Instance.Get<ObjectPoolOptions>();
-        _previousDiagnostics = config.EnableDiagnostics;
-        config.EnableDiagnostics = true;
-
-        _manager = new ObjectPoolManager();
+        var config = new ObjectPoolOptions { EnableDiagnostics = true };
+        _manager = new ObjectPoolManager(config);
         PacketRegistry.Configure(_manager);
     }
 
@@ -30,9 +25,6 @@ public sealed class PacketLifecycleTests : IDisposable
     {
         // Restore previous manager if any, otherwise clear
         PacketRegistry.Configure(null!);
-
-        // Restore diagnostics setting
-        ConfigurationManager.Instance.Get<ObjectPoolOptions>().EnableDiagnostics = _previousDiagnostics;
 
         _manager.ResetStatistics();
     }

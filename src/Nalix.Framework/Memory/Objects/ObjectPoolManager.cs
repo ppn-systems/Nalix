@@ -81,11 +81,13 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     /// Thread-safe storage for pools
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, ObjectPool> _poolDict = new();
+    private ObjectPool?[] _pools = new ObjectPool?[64];
 
     /// <summary>
     /// Per-pool metrics tracking
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, PoolMetrics> _metricsDict = new();
+    private PoolMetrics?[] _metrics = new PoolMetrics?[64];
 
     /// <summary>
     /// Configuration for object pool diagnostics.
@@ -239,52 +241,87 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
 
     #region APIs
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void InitializePoolAndMetricsFast<T>(int id, out ObjectPool pool, out PoolMetrics metrics) where T : IPoolable
+    {
+        lock (_poolDict)
+        {
+            if (id >= _pools.Length)
+            {
+                int newSize = Math.Max(id + 1, _pools.Length * 2);
+                Array.Resize(ref _pools, newSize);
+                Array.Resize(ref _metrics, newSize);
+            }
+        }
+
+        pool = this.GetOrCreatePool<T>();
+        metrics = _metricsDict.GetOrAdd(typeof(T), _ => new PoolMetrics());
+
+        _pools[id] = pool;
+        _metrics[id] = metrics;
+    }
+
     /// <summary>Gets or creates and returns an instance of <typeparamref name="T"/>.</summary>
     /// <typeparam name="T">The poolable type to retrieve.</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public T Get<T>() where T : IPoolable, new()
     {
         _ = Interlocked.Increment(ref _totalGetOperations);
-        ObjectPool pool = this.GetOrCreatePool<T>();
 
-        Type type = typeof(T);
-        PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
+        int id = PoolType<T>.Id;
+        ObjectPool? pool = id < _pools.Length ? _pools[id] : null;
+        PoolMetrics? metrics = id < _metrics.Length ? _metrics[id] : null;
 
-        (T? result, bool isCacheHit) = pool.GetWithInfo<T>();
+        if (pool == null || metrics == null)
+        {
+            this.InitializePoolAndMetricsFast<T>(id, out pool, out metrics);
+        }
+
+        (T? result, bool isCacheHit) = pool.GetWithInfoFast<T>(id);
 
         if (isCacheHit)
         {
             _ = Interlocked.Increment(ref _totalCacheHits);
-            _ = Interlocked.Increment(ref metrics.CacheHits);
         }
         else
         {
             _ = Interlocked.Increment(ref _totalCacheMisses);
             _ = Interlocked.Increment(ref _totalCreated);
-            _ = Interlocked.Increment(ref metrics.CacheMisses);
-            _ = Interlocked.Increment(ref metrics.TotalCreated);
         }
 
-        metrics.LastAccessUtc = DateTime.UtcNow;
-        metrics.LastAccessType = "Get";
-        _ = Interlocked.Increment(ref metrics.TotalGets);
-
-        // Track outstanding objects so we can detect leaks (Gets - Returns)
-        long outstanding = Interlocked.Increment(ref metrics.Outstanding);
-
-        // Update peak outstanding
-        long currentPeak;
-        while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
-        {
-            if (Interlocked.CompareExchange(ref metrics.PeakOutstanding, outstanding, currentPeak) == currentPeak)
-            {
-                break;
-            }
-        }
-
-        // Diagnostics Path
         if (_config.EnableDiagnostics)
         {
+            if (isCacheHit)
+            {
+                _ = Interlocked.Increment(ref metrics.CacheHits);
+            }
+            else
+            {
+                _ = Interlocked.Increment(ref metrics.CacheMisses);
+                _ = Interlocked.Increment(ref metrics.TotalCreated);
+            }
+
+            _ = Interlocked.Increment(ref metrics.TotalGets);
+
+            // Track outstanding objects so we can detect leaks (Gets - Returns)
+            long outstanding = Interlocked.Increment(ref metrics.Outstanding);
+
+            // Update peak outstanding (always tracked for pool metrics)
+            if (outstanding > Volatile.Read(ref metrics.PeakOutstanding))
+            {
+                long currentPeak;
+                while (outstanding > (currentPeak = Interlocked.Read(ref metrics.PeakOutstanding)))
+                {
+                    if (Interlocked.CompareExchange(ref metrics.PeakOutstanding, outstanding, currentPeak) == currentPeak)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            metrics.LastAccessUtc = DateTime.UtcNow;
+            metrics.LastAccessType = "Get";
+
             PoolSentinel sentinel = new(result, _config.CaptureStackTraces);
 
             // CWT keeps sentinel alive as long as 'result' is alive
@@ -315,61 +352,70 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         }
 
         _ = Interlocked.Increment(ref _totalReturnOperations);
-        ObjectPool pool = this.GetOrCreatePool<T>();
 
-        Type type = obj.GetType();
-        PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
+        int id = PoolType<T>.Id;
+        ObjectPool? pool = id < _pools.Length ? _pools[id] : null;
+        PoolMetrics? metrics = id < _metrics.Length ? _metrics[id] : null;
+
+        if (pool == null || metrics == null)
+        {
+            this.InitializePoolAndMetricsFast<T>(id, out pool, out metrics);
+        }
 
         // Diagnostics Path
-        if (_config.EnableDiagnostics && _activeSentinels.TryGetValue(obj, out PoolSentinel? sentinel))
+        if (_config.EnableDiagnostics)
         {
-            sentinel.MarkReturned();
-            _ = _activeSentinels.Remove(obj);
+            metrics.LastAccessType = "Return";
+            metrics.LastAccessUtc = DateTime.UtcNow;
 
-            long elapsedTicks = Stopwatch.GetTimestamp() - sentinel.RentTimestamp;
-            _ = Interlocked.Add(ref metrics.TotalLifetimeTicks, elapsedTicks);
-
-            long currentMax;
-            while (elapsedTicks > (currentMax = Interlocked.Read(ref metrics.MaxLifetimeTicks)))
+            if (_activeSentinels.TryGetValue(obj, out PoolSentinel? sentinel))
             {
-                if (Interlocked.CompareExchange(ref metrics.MaxLifetimeTicks, elapsedTicks, currentMax) == currentMax)
+                sentinel.MarkReturned();
+                _ = _activeSentinels.Remove(obj);
+
+                long elapsedTicks = Stopwatch.GetTimestamp() - sentinel.RentTimestamp;
+                _ = Interlocked.Add(ref metrics.TotalLifetimeTicks, elapsedTicks);
+
+                long currentMax;
+                while (elapsedTicks > (currentMax = Interlocked.Read(ref metrics.MaxLifetimeTicks)))
                 {
-                    break;
+                    if (Interlocked.CompareExchange(ref metrics.MaxLifetimeTicks, elapsedTicks, currentMax) == currentMax)
+                    {
+                        break;
+                    }
+                }
+
+                // Update reservoir for p95
+                if (metrics.LifetimeReservoir == null)
+                {
+                    _ = Interlocked.CompareExchange(ref metrics.LifetimeReservoir, new long[_config.LifetimeReservoirSize], null);
+                }
+
+                if (metrics.LifetimeReservoir != null)
+                {
+                    int index = Interlocked.Increment(ref metrics.ReservoirIndex) % metrics.LifetimeReservoir.Length;
+                    metrics.LifetimeReservoir[index] = elapsedTicks;
                 }
             }
 
-            // Update reservoir for p95
-            if (metrics.LifetimeReservoir == null)
-            {
-                _ = Interlocked.CompareExchange(ref metrics.LifetimeReservoir, new long[_config.LifetimeReservoirSize], null);
-            }
+            _ = Interlocked.Increment(ref metrics.TotalReturns);
 
-            if (metrics.LifetimeReservoir != null)
+            // Decrement outstanding; ensure it doesn't go negative
+            long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
+
+            if (outstandingAfter < 0)
             {
-                int index = Interlocked.Increment(ref metrics.ReservoirIndex) % metrics.LifetimeReservoir.Length;
-                metrics.LifetimeReservoir[index] = elapsedTicks;
+                // Log and reset to zero to avoid negative counters due to bugs
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = "Return", Type = obj.GetType().Name, Outstanding = outstandingAfter, Status = "outstanding-negative" });
+                }
+
+                _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
             }
         }
 
-        pool.Return(obj);
-
-        metrics.LastAccessType = "Return";
-        metrics.LastAccessUtc = DateTime.UtcNow;
-        _ = Interlocked.Increment(ref metrics.TotalReturns);
-
-        // Decrement outstanding; ensure it doesn't go negative
-        long outstandingAfter = Interlocked.Decrement(ref metrics.Outstanding);
-
-        if (outstandingAfter < 0)
-        {
-            // Log and reset to zero to avoid negative counters due to bugs
-            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolReturned))
-            {
-                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolReturned, new { Manager = nameof(ObjectPoolManager), Operation = "Return", Type = type.Name, Outstanding = outstandingAfter, Status = "outstanding-negative" });
-            }
-
-            _ = Interlocked.Exchange(ref metrics.Outstanding, 0);
-        }
+        pool.ReturnFast(obj, id);
     }
 
     /// <summary>Gets or creates a type-specific pool adapter for <typeparamref name="T"/>.</summary>
