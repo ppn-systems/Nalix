@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
@@ -10,7 +9,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.SDK.Transport.Extensions;
 
 #if DEBUG
-[assembly: InternalsVisibleTo("Nalix.SDK.Tests")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.SDK.Tests")]
 #endif
 
 namespace Nalix.SDK.Transport.Internal;

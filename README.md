@@ -86,37 +86,16 @@
 - CPU: 13th Gen Intel Core i7-13620H (10C/16T)
 - Runtime: .NET `10.0.5` (X64 RyuJIT, Server GC)
 - SDK: .NET SDK `10.0.201`
-- Job config: `IterationCount=15`, `LaunchCount=3`, `WarmupCount=10`, `RunStrategy=Throughput`
+- Job config: `IterationCount=20`, `LaunchCount=3`, `WarmupCount=10`, `RunStrategy=Throughput`
 
-### 🔒 Envelope Encryption
+### 🔄 Serialization (128 items, DTO payload)
 
-| Method | Payload (B) | Algorithm | Mean | Allocated |
-| :--- | :---: | :---: | ---: | ---: |
-| Encrypt | 128 | SALSA20 | 356 ns | — |
-| Decrypt | 128 | SALSA20 | 281 ns | 48 B |
-| Encrypt | 8192 | CHACHA20_POLY1305 | 48,649 ns | — |
-| Decrypt | 8192 | CHACHA20_POLY1305 | 26,153 ns | 48 B |
-
-### 🏎️ X25519 ECC
-
-| Method | Keys | Mean | Allocated |
-| :--- | :---: | ---: | ---: |
-| GenerateKeyPair (CSPRNG + scalar mult) | 1 | 65.36 μs | 112 B |
-| GenerateKeyFromPrivateKey (scalar only) | 1 | 67.35 μs | 112 B |
-| Agreement (shared secret) | 1 | 66.59 μs | 56 B |
-
-### 🔄 Serialization
-
-| Method | Item Count | Mean (ns) | Allocated |
+| Serializer | Serialize | Deserialize | Allocated |
 | :--- | ---: | ---: | ---: |
-| LiteSerializer Serialize | 16 | 77.6 | 216 B |
-| LiteSerializer Serialize | 128 | 149.9 | 664 B |
-| LiteSerializer Deserialize | 16 | 83.9 | 408 B |
-| LiteSerializer Deserialize | 1024 | 572.5 | 4,440 B |
-| MessagePack Serialize | 128 | 422.5 | 504 B |
-| MessagePack Deserialize | 128 | 1,095.2 | 888 B |
-| System.Text.Json Serialize | 128 | 897.7 | 7,200 B |
-| System.Text.Json Deserialize | 128 | 2,548.2 | 1,976 B |
+| LiteSerializer | 149.9 ns | 142.9 ns | 664–856 B |
+| MemoryPack | 121.6 ns | 145.0 ns | 664–888 B |
+| MessagePack | 422.5 ns | 1,095.2 ns | 504–888 B |
+| System.Text.Json | 897.7 ns | 2,548.2 ns | 1,976–7,200 B |
 
 > **More details:** See the [`docs/benchmarks`](docs/benchmarks/) folder for full data and additional test cases.
 
@@ -190,16 +169,9 @@ dotnet add package Nalix.Logging
 dotnet add package Nalix.SDK
 
 # Optional: Roslyn analyzers
-dotnet add package Nalix.Analyzers
+# Optional: Roslyn analyzers generators
+dotnet add package Nalix.Abstractions 
 ```
-
----
-
-## 🏗️ Architecture Overview
-
-<p align="center">
-  <img src="docs/assets/!/architecture.svg" alt="Nalix Architecture" width="100%">
-</p>
 
 ---
 

@@ -5,8 +5,8 @@ using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Nalix.Codec.Internal;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization.Internal;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Extensions;
 

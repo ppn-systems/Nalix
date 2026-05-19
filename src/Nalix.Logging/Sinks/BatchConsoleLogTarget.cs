@@ -85,6 +85,7 @@ public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
 #endif
     }
 
+
     #endregion API
 
     #region Private Methods

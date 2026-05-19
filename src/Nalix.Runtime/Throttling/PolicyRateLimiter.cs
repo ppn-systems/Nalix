@@ -13,8 +13,8 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Environment.Hashing;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Hashing;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Options;
 
@@ -92,8 +92,16 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         public bool Equals(ScopedEndpoint? other)
         {
-            if (other is null) return false;
-            if (ReferenceEquals(this, other)) return true;
+            if (other is null)
+            {
+                return false;
+            }
+
+            if (ReferenceEquals(this, other))
+            {
+                return true;
+            }
+
             return _op == other._op &&
                    string.Equals(_policyId, other._policyId, StringComparison.Ordinal) &&
                    string.Equals(_ip, other._ip, StringComparison.Ordinal);
