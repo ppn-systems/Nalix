@@ -130,7 +130,9 @@ Nalix is composed of several modular packages — install only what you need.
 
 | Package | Description |
 | :--- | :--- |
-| **[Nalix.Common](src/Nalix.Common)** | Base abstractions, enums, and shared contracts for the Nalix ecosystem. |
+| **[Nalix.Abstractions](src/Nalix.Abstractions)** | Base abstractions, enums, and shared contracts for the Nalix ecosystem. |
+| **[Nalix.Codec](src/Nalix.Codec)** | cryptography, serialization |
+| **[Nalix.Environment](src/Nalix.Environment)** |  |
 | **[Nalix.Framework](src/Nalix.Framework)** | High-performance core: cryptography, identity, DI, serialization, and task orchestration. |
 | **[Nalix.Runtime](src/Nalix.Runtime)** | Packet dispatching, middleware pipelines, protection primitives, and throttling. |
 
@@ -145,9 +147,10 @@ Nalix is composed of several modular packages — install only what you need.
 
 | Package | Description |
 | :--- | :--- |
-| **[Nalix.Logging](src/Nalix.Logging)** | Asynchronous logging with pluggable sinks and high-throughput batching. |
+| **[Nalix.Logging](src/Nalix.Logging)** | Lightweight asynchronous logging for debugging and diagnostics. |
 | **[Nalix.SDK](src/Nalix.SDK)** | Client-side SDK: transport sessions, request/response patterns, and encryption. |
 | **[Nalix.Analyzers](src/Nalix.Analyzers)** | Roslyn analyzers and code fixes to enforce Nalix best practices. |
+| **[Nalix.Analyzers.Generators](src/Nalix.Analyzers.Generators)** | Source generators and analyzers. |
 
 ---
 
