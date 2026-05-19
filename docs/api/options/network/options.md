@@ -11,7 +11,9 @@ flowchart LR
     subgraph Config[Options Layer]
         NSO[NetworkSocketOptions]
         PO[PoolingOptions]
-        CLO[ConnectionLimitOptions]
+        CQO[ConnectionQuotaOptions]
+        CGO[ConnectionGuardOptions]
+        TPO[TrustedProxyOptions]
         DGO[DatagramGuardOptions]
         NCO[NetworkCallbackOptions]
         CHO[ConnectionHubOptions]
@@ -33,7 +35,9 @@ flowchart LR
     PO --> SC
     PO --> AC
     
-    CLO --> CG
+    CQO --> CG
+    CGO --> CG
+    TPO --> CG
     DGO --> DG
     NCO --> AC
     
@@ -50,7 +54,9 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 | --- | --- | --- | --- |
 | `NetworkSocketOptions` | `Nalix.Network` | Low-level OS socket settings. | Throughput / Latency |
 | `PoolingOptions` | `Nalix.Network` | Memory and object pool limits. | GC Pressure |
-| `ConnectionLimitOptions` | `Nalix.Network` | Anti-DDoS, per-IP caps, UDP datagram size, and replay window. | Security |
+| `ConnectionQuotaOptions` | `Nalix.Network` | Per-IP concurrent connection caps and window-based rate limits. | Security |
+| `ConnectionGuardOptions` | `Nalix.Network` | Ban duration, packet rate limit, blacklist, and error thresholds. | Security |
+| `TrustedProxyOptions` | `Nalix.Network` | Trusted reverse proxy / CDN definitions and customized limits. | Security |
 | `DatagramGuardOptions` | `Nalix.Network` | Bounded UDP source-window tracking. | Security / Memory |
 | `ConnectionHubOptions` | `Nalix.Network` | Hub sharding and total capacity. | Concurrency |
 | `TimingWheelOptions` | `Nalix.Network` | Idle cleanup granularity. | CPU Overhead |
@@ -75,12 +81,12 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 
 ### 3. Startup Validation
 
-Many network/runtime option types in the current source tree expose a `Validate()` method, including `NetworkSocketOptions`, `ConnectionLimitOptions`, `DatagramGuardOptions`, `DispatchOptions`, `ConcurrencyOptions`, and `DirectiveGuardOptions`.
+Many network/runtime option types in the current source tree expose a `Validate()` method, including `NetworkSocketOptions`, `ConnectionQuotaOptions`, `ConnectionGuardOptions`, `TrustedProxyOptions`, `DatagramGuardOptions`, `DispatchOptions`, `ConcurrencyOptions`, and `DirectiveGuardOptions`.
 
 Do not assume every Nalix option type has a validation method. Validate the specific option class you are using when the type actually exposes one.
 
 !!! tip "Operational Recommendation"
-    In production deployments, prioritize tuning `NetworkCallbackOptions` and `ConnectionLimitOptions` first. These provide the highest protection against noisy or malicious traffic.
+    In production deployments, prioritize tuning `NetworkCallbackOptions`, `ConnectionQuotaOptions`, and `ConnectionGuardOptions` first. These provide the highest protection against noisy or malicious traffic.
 
 ## Related Information Paths
 

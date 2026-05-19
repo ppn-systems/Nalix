@@ -39,7 +39,7 @@ public abstract partial class UdpListenerBase
 
     private readonly NetworkSocketOptions _options;
     private readonly DatagramGuardOptions _datagramGuardOptions;
-    private readonly ConnectionLimitOptions _connectionLimitOptions;
+    private readonly ConnectionGuardOptions _connectionGuardOptions;
 
     private readonly ushort _port;
     private readonly SemaphoreSlim _lock;
@@ -110,10 +110,10 @@ public abstract partial class UdpListenerBase
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
-        _connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
-
+        _connectionGuardOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+        _options.Validate();
         _datagramGuardOptions.Validate();
-        _connectionLimitOptions.Validate();
+        _connectionGuardOptions.Validate();
 
         _hub = hub;
         _port = port;
@@ -121,7 +121,7 @@ public abstract partial class UdpListenerBase
         _lock = new SemaphoreSlim(1, 1);
         _state = (int)ListenerState.STOPPED;
         _rateLimiter = new(
-            _connectionLimitOptions.MaxPacketPerSecond,
+            _connectionGuardOptions.MaxPacketPerSecond,
             _datagramGuardOptions.IPv4Windows,
             _datagramGuardOptions.IPv6Windows,
             _datagramGuardOptions.CleanupInterval,

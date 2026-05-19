@@ -9,9 +9,9 @@ namespace Nalix.Network.Tests;
 public sealed class NetworkSmokeTests
 {
     [Fact]
-    public void Validate_ConnectionLimitOptions_DefaultsAreValid()
+    public void Validate_ConnectionQuotaOptions_DefaultsAreValid()
     {
-        ConnectionLimitOptions options = new();
+        ConnectionQuotaOptions options = new();
 
         options.Validate();
 
@@ -33,9 +33,9 @@ public sealed class NetworkSmokeTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Validate_ConnectionLimitOptions_InvalidMaxPacketPerSecond_ThrowsArgumentOutOfRangeException(int value)
+    public void Validate_ConnectionGuardOptions_InvalidMaxPacketPerSecond_ThrowsArgumentOutOfRangeException(int value)
     {
-        ConnectionLimitOptions options = new()
+        ConnectionGuardOptions options = new()
         {
             MaxPacketPerSecond = value
         };

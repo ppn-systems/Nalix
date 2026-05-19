@@ -18,7 +18,7 @@ public sealed class ConnectionGuardTests
     [Fact]
     public void TryAccept_WhenUnderLimit_ReturnsTrue()
     {
-        ConnectionLimitOptions options = new() { MaxConnectionsPerIpAddress = 2 };
+        ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 2 };
         using ConnectionGuard guard = new(options);
         IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
 
@@ -29,7 +29,7 @@ public sealed class ConnectionGuardTests
     [Fact]
     public void TryAccept_WhenOverLimit_ReturnsFalse()
     {
-        ConnectionLimitOptions options = new() { MaxConnectionsPerIpAddress = 1 };
+        ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 1 };
         using ConnectionGuard guard = new(options);
         IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
 
@@ -41,7 +41,7 @@ public sealed class ConnectionGuardTests
     [Fact]
     public void OnConnectionClosed_DecrementsCounter()
     {
-        ConnectionLimitOptions options = new() { MaxConnectionsPerIpAddress = 1 };
+        ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 1 };
         using ConnectionGuard guard = new(options);
         IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
 
@@ -61,11 +61,11 @@ public sealed class ConnectionGuardTests
     [Fact]
     public void TryAccept_WhenBurstTooHigh_BansEndpoint()
     {
-        ConnectionLimitOptions options = new()
+        Nalix.Environment.Configuration.ConfigurationManager.Instance.Get<ConnectionGuardOptions>().BanDuration = TimeSpan.FromSeconds(10);
+        ConnectionQuotaOptions options = new()
         {
             MaxConnectionsPerWindow = 2,
-            ConnectionRateWindow = TimeSpan.FromSeconds(10),
-            BanDuration = TimeSpan.FromSeconds(10)
+            ConnectionRateWindow = TimeSpan.FromSeconds(10)
         };
         using ConnectionGuard guard = new(options);
         IPEndPoint endpoint = new(IPAddress.Parse("5.6.7.8"), 12345);

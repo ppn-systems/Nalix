@@ -212,7 +212,7 @@ public abstract partial class UdpListenerBase
                 return;
             }
 
-            if (args.BytesTransferred > _connectionLimitOptions.MaxUdpDatagramSize)
+            if (args.BytesTransferred > _options.MaxUdpDatagramSize)
             {
                 _ = Interlocked.Increment(ref _dropOversize);
                 return;

@@ -49,14 +49,17 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     #region Fields
 
+    private readonly ConnectionQuotaOptions _config;
+    private readonly TrustedProxyOptions _proxyConfig;
+    private readonly ConnectionBanStoreOptions _storeConfig;
+    private readonly ConnectionGuardOptions _protectionConfig;
+
     private readonly int _maxPerEndpoint;
     private readonly TimeSpan _cleanupInterval;
     private readonly TimeSpan _inactivityThreshold;
-    private readonly ConnectionLimitOptions _config;
-    private readonly ConnectionBanStoreOptions _storeConfig;
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
     private readonly List<IPNetwork> _trustedProxies = new();
     private readonly HashSet<IPAddress> _blacklistedIps = new();
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
     private ILogger? _logger;
 
@@ -90,10 +93,16 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// </summary>
     /// <param name="config">Configuration options. If null, uses global configuration.</param>
     /// <exception cref="InternalErrorException">Thrown when configuration validation fails.</exception>
-    public ConnectionGuard(ConnectionLimitOptions? config = null)
+    public ConnectionGuard(ConnectionQuotaOptions? config = null)
     {
-        _config = config ?? ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+        _config = config ?? ConfigurationManager.Instance.Get<ConnectionQuotaOptions>();
         _config.Validate();
+
+        _protectionConfig = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+        _protectionConfig.Validate();
+
+        _proxyConfig = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
+        _proxyConfig.Validate();
 
         _storeConfig = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
         _storeConfig.Validate();
@@ -124,9 +133,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private void PARSE_IP_CONFIG()
     {
-        if (!string.IsNullOrWhiteSpace(_config.TrustedProxiesString))
+        if (!string.IsNullOrWhiteSpace(_proxyConfig.TrustedProxiesString))
         {
-            string[] parts = _config.TrustedProxiesString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            string[] parts = _proxyConfig.TrustedProxiesString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             foreach (string part in parts)
             {
                 if (IPNetwork.TryParse(part, out IPNetwork network))
@@ -140,9 +149,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(_config.BlacklistedIpsString))
+        if (!string.IsNullOrWhiteSpace(_protectionConfig.BlacklistedIpsString))
         {
-            string[] parts = _config.BlacklistedIpsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            string[] parts = _protectionConfig.BlacklistedIpsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             foreach (string part in parts)
             {
                 if (IPAddress.TryParse(part, out IPAddress? ip))
@@ -257,7 +266,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
             {
                 long nowTicks = Clock.NowUtc().Ticks;
-                long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+                long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
                 if (TRY_ACQUIRE_LOG_SLOT(
                         ref entry.LastRejectLogTicks,
@@ -325,7 +334,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         if (released && _map.TryGetValue(args.Connection.NetworkEndpoint, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
             long nowTicks = Clock.NowUtc().Ticks;
-            long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+            long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
             if (TRY_ACQUIRE_LOG_SLOT(
                     ref closedEntry.LastClosedLogTicks,
@@ -447,8 +456,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
         }
 
-        int maxConnections = isTrustedProxy ? _config.MaxConnectionsPerTrustedProxy : _maxPerEndpoint;
-        int maxAttempts = isTrustedProxy ? _config.MaxAttemptsPerTrustedProxyWindow : _config.MaxConnectionsPerWindow;
+        int maxConnections = isTrustedProxy ? _proxyConfig.MaxConnectionsPerTrustedProxy : _maxPerEndpoint;
+        int maxAttempts = isTrustedProxy ? _proxyConfig.MaxAttemptsPerTrustedProxyWindow : _config.MaxConnectionsPerWindow;
 
         while (true)
         {
@@ -617,9 +626,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private TimeSpan CALCULATE_PROGRESSIVE_BAN_DURATION(int banCount)
     {
-        if (!_config.EnableProgressiveBanning)
+        if (!_protectionConfig.EnableProgressiveBanning)
         {
-            return _config.BanDuration;
+            return _protectionConfig.BanDuration;
         }
 
         // Progressive schedule: 1m, 5m, 15m, 1h, 6h, 24h
@@ -715,7 +724,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     {
         long nowTicks = Clock.NowUtc().Ticks;
         long lastTicks = Interlocked.Read(ref entry.LastDDoSLogTicks);
-        long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+        long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
         if (nowTicks - lastTicks < windowTicks)
         {
@@ -742,7 +751,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             {
                 _logger.LogWarning(
                     $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address} " +
-                    $"(+{suppressed} suppressed-in-last={_config.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
+                    $"(+{suppressed} suppressed-in-last={_protectionConfig.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
             }
         }
         else
@@ -807,7 +816,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     private void LOG_BANNED_THROTTLED(ConnectionLimitEntry entry, INetworkEndpoint key, DateTime bannedUntil)
     {
         long nowTicks = Clock.NowUtc().Ticks;
-        long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+        long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
         if (TRY_ACQUIRE_LOG_SLOT(
                 ref entry.LastRejectLogTicks,

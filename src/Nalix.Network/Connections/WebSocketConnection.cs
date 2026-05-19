@@ -34,7 +34,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     #region Fields
 
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-    private static readonly ConnectionLimitOptions s_limitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+    private static readonly ConnectionGuardOptions s_limitOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
     private static readonly NetworkCallbackOptions s_callbackOptions = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
     private readonly ILogger? _logger;

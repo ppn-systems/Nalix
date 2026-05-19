@@ -144,6 +144,14 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader
     [IniComment("Enable TCP Fast Open to reduce latency for subsequent connections (default: true)")]
     public bool TcpFastOpen { get; set; } = true;
 
+    /// <summary>
+    /// Gets or sets the maximum size (in bytes) allowed for a single UDP datagram.
+    /// Default 1400 avoids IP fragmentation.
+    /// </summary>
+    [IniComment("Maximum allowed UDP datagram size in bytes to avoid fragmentation (default 1400)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
+    public int MaxUdpDatagramSize { get; set; } = 1400;
+
     #endregion Properties
 
     /// <summary>
