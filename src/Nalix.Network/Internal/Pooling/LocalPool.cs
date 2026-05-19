@@ -148,8 +148,7 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
                     long bit = 1L << i;
                     long oldMask;
                     long newMask;
-                    bool success = false;
-
+                    bool success;
                     do
                     {
                         oldMask = Volatile.Read(ref _mask);

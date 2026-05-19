@@ -12,7 +12,6 @@ using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Internal.Transport;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
 
