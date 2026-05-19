@@ -3,8 +3,8 @@
 
 using Nalix.Codec.Extensions;
 using Nalix.Codec.Internal;
-using Nalix.Environment.Memory;
 using Nalix.Codec.Serialization.Internal;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Codec.Serialization.Formatters.Primitives;
 

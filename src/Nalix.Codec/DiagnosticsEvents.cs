@@ -18,7 +18,7 @@ public static class DiagnosticsEvents
     /// <summary>
     /// Global diagnostic source for emitting events.
     /// </summary>
-    public static readonly DiagnosticListener Source = Nalix.Environment.Diagnostics.DiagnosticListenerFactory.Create(ListenerName);
+    public static readonly DiagnosticListener Source = Environment.Diagnostics.DiagnosticListenerFactory.Create(ListenerName);
 
     /// <summary>
     /// Serialization and deserialization related diagnostic events.

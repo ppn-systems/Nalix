@@ -3,8 +3,8 @@
 
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Nalix.Codec.LZ4;
 using Nalix.Codec.Internal.Memory;
+using Nalix.Codec.LZ4;
 
 #if DEBUG
 using System.Diagnostics;
