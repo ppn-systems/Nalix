@@ -109,14 +109,14 @@
 
 | Method | Item Count | Mean (ns) | Allocated |
 | :--- | ---: | ---: | ---: |
-| LiteSerializer Serialize | 16 | 148.4 | 152 B |
-| LiteSerializer Serialize | 128 | 298.2 | 600 B |
-| LiteSerializer Deserialize | 16 | 165.0 | 392 B |
-| LiteSerializer Deserialize | 1024 | 1,048.9 | 4,424 B |
-| MessagePack Serialize | 128 | 262.0 | 240 B |
-| MessagePack Deserialize | 128 | 851.4 | 840 B |
-| System.Text.Json Serialize | 128 | 1,266.8 | 856 B |
-| System.Text.Json Deserialize | 128 | 3,695.8 | 2,584 B |
+| LiteSerializer Serialize | 16 | 77.6 | 216 B |
+| LiteSerializer Serialize | 128 | 149.9 | 664 B |
+| LiteSerializer Deserialize | 16 | 83.9 | 408 B |
+| LiteSerializer Deserialize | 1024 | 572.5 | 4,440 B |
+| MessagePack Serialize | 128 | 422.5 | 504 B |
+| MessagePack Deserialize | 128 | 1,095.2 | 888 B |
+| System.Text.Json Serialize | 128 | 897.7 | 7,200 B |
+| System.Text.Json Deserialize | 128 | 2,548.2 | 1,976 B |
 
 > **More details:** See the [`docs/benchmarks`](docs/benchmarks/) folder for full data and additional test cases.
 
