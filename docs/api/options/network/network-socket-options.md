@@ -176,5 +176,7 @@ parallelism is controlled by `MaxParallelUDP`.
 
 - [TCP Listener](../../network/tcp-listener.md)
 - [UDP Listener](../../network/udp-listener.md)
-- [Connection Limit Options](./connection-limit-options.md)
+- [Connection Quota Options](./connection-quota-options.md)
+- [Connection Guard Options](./connection-guard-options.md)
+- [Trusted Proxy Options](./trusted-proxy-options.md)
 - [Timing Wheel Options](./timing-wheel-options.md)

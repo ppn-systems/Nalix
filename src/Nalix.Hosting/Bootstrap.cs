@@ -99,7 +99,9 @@ public static partial class Bootstrap
         _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _ = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
-        _ = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+        _ = ConfigurationManager.Instance.Get<ConnectionQuotaOptions>();
+        _ = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+        _ = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
         _ = ConfigurationManager.Instance.Get<Network.Options.PoolingOptions>();
 

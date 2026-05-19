@@ -45,7 +45,7 @@ public abstract partial class TcpListenerBase
 
         if (_config.MaxParallel < 1)
         {
-            throw new InternalErrorException("s_connectionLimitOptions.MaxParallel must be at least 1.");
+            throw new InternalErrorException("_config.MaxParallel must be at least 1.");
         }
 
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))

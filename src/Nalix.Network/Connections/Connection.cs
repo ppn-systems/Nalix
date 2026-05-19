@@ -37,7 +37,8 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
     #region Fields
 
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-    private static readonly ConnectionLimitOptions s_options = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+    private static readonly ConnectionGuardOptions s_options = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+    private static readonly DatagramGuardOptions s_datagramOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
 
     private readonly ILogger? _logger;
 
@@ -205,7 +206,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
 
     internal SocketUdpTransport? UdpTransport { get; private set; }
 
-    internal SlidingWindow UdpReplayWindow => _udpReplayWindow ??= new(s_options.UdpReplayWindowSize);
+    internal SlidingWindow UdpReplayWindow => _udpReplayWindow ??= new(s_datagramOptions.UdpReplayWindowSize);
 
 #if DEBUG
     /// <summary>

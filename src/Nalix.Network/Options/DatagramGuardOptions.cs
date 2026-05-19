@@ -62,6 +62,14 @@ public sealed partial class DatagramGuardOptions : ConfigurationLoader
     public bool FailOpenWhenFull { get; set; } = false;
 
     /// <summary>
+    /// Gets or sets the bit-size of the UDP replay protection sliding window.
+    /// SEC-27: Larger windows consume more memory but are more resilient to packet out-of-order arrival.
+    /// </summary>
+    [IniComment("UDP replay protection window size in bits (default 512)")]
+    [System.ComponentModel.DataAnnotations.Range(64, 65536, ErrorMessage = "UdpReplayWindowSize must be between 64 and 65536.")]
+    public int UdpReplayWindowSize { get; set; } = 512;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     public void Validate()

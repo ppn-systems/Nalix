@@ -22,7 +22,7 @@ internal static class TestAssemblySetup
         string configDir = Path.Combine(testDir, "data", "config");
         _ = Directory.CreateDirectory(configDir);
         string defaultIniPath = Path.Combine(configDir, "default.ini");
-        File.WriteAllText(defaultIniPath, @"[ConnectionLimitOptions]
+        File.WriteAllText(defaultIniPath, @"[ConnectionQuotaOptions]
 MaxConnectionsPerIpAddress = 10000
 MaxConnectionsPerWindow = 10000000
 ");

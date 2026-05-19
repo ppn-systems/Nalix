@@ -339,7 +339,9 @@ nav:
         - Network:
           - Overview: api/options/network/options.md
           - Network Socket: api/options/network/network-socket-options.md
-          - Connection Limit: api/options/network/connection-limit-options.md
+          - Connection Quota: api/options/network/connection-quota-options.md
+          - Connection Guard: api/options/network/connection-guard-options.md
+          - Trusted Proxy: api/options/network/trusted-proxy-options.md
           - Connection Hub: api/options/network/connection-hub-options.md
           - Datagram Guard: api/options/network/datagram-guard-options.md
           - Timing Wheel: api/options/network/timing-wheel-options.md

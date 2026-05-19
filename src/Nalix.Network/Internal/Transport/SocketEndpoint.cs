@@ -169,7 +169,7 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
     // Hash by IP only — port is excluded to match the IP-only Equals semantics.
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public override int GetHashCode() => XxHash32.Compute(_hi, _lo, _port, isIPv6: this.IsIPv6);
+    public override int GetHashCode() => XxHash32.Compute(_hi, _lo, isIPv6: this.IsIPv6);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool operator ==(SocketEndpoint left, SocketEndpoint right) => left.Equals(right);

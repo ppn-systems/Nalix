@@ -17,11 +17,13 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.IO;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Pools;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
+using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
@@ -47,15 +49,22 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     #region Fields
 
+    private readonly ConnectionQuotaOptions _config;
+    private readonly TrustedProxyOptions _proxyConfig;
+    private readonly ConnectionBanStoreOptions _storeConfig;
+    private readonly ConnectionGuardOptions _protectionConfig;
+
     private readonly int _maxPerEndpoint;
     private readonly TimeSpan _cleanupInterval;
     private readonly TimeSpan _inactivityThreshold;
-    private readonly ConnectionLimitOptions _config;
+    private readonly List<IPNetwork> _trustedProxies = new();
+    private readonly HashSet<IPAddress> _blacklistedIps = new();
     private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
 
     private ILogger? _logger;
 
     private int _disposed;
+    private int _persistenceDirty;
 
     private Action<INetworkEndpoint>? _onEndpointTerminationRequested;
 
@@ -84,10 +93,21 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// </summary>
     /// <param name="config">Configuration options. If null, uses global configuration.</param>
     /// <exception cref="InternalErrorException">Thrown when configuration validation fails.</exception>
-    public ConnectionGuard(ConnectionLimitOptions? config = null)
+    public ConnectionGuard(ConnectionQuotaOptions? config = null)
     {
-        _config = config ?? ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
+        _config = config ?? ConfigurationManager.Instance.Get<ConnectionQuotaOptions>();
         _config.Validate();
+
+        _protectionConfig = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+        _protectionConfig.Validate();
+
+        _proxyConfig = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
+        _proxyConfig.Validate();
+
+        _storeConfig = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
+        _storeConfig.Validate();
+
+        this.PARSE_IP_CONFIG();
 
         _maxPerEndpoint = _config.MaxConnectionsPerIpAddress;
         _cleanupInterval = _config.CleanupInterval;
@@ -95,10 +115,12 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         _map = new System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry>();
 
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        this.LOAD_BANNED_IPS();
+
         this.INITIALIZE_METRICS();
         this.SCHEDULE_CLEANUP_JOB();
-
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
@@ -106,6 +128,68 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                           $"maxPerEndpoint={_maxPerEndpoint} " +
                           $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
                           $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
+        }
+    }
+
+    private void PARSE_IP_CONFIG()
+    {
+        if (!string.IsNullOrWhiteSpace(_proxyConfig.TrustedProxiesString))
+        {
+            string[] parts = _proxyConfig.TrustedProxiesString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (string part in parts)
+            {
+                if (IPNetwork.TryParse(part, out IPNetwork network))
+                {
+                    _trustedProxies.Add(network);
+                }
+                else if (IPAddress.TryParse(part, out IPAddress? ip))
+                {
+                    _trustedProxies.Add(new IPNetwork(ip, ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_protectionConfig.BlacklistedIpsString))
+        {
+            string[] parts = _protectionConfig.BlacklistedIpsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (string part in parts)
+            {
+                if (IPAddress.TryParse(part, out IPAddress? ip))
+                {
+                    _ = _blacklistedIps.Add(ip);
+                }
+            }
+        }
+    }
+
+    private void LOAD_BANNED_IPS()
+    {
+        if (!_storeConfig.Enabled)
+        {
+            return;
+        }
+
+        string path = System.IO.Path.Combine(Directories.DataDirectory, _storeConfig.StoreFileName);
+        DateTime now = Clock.NowUtc();
+
+        List<ConnectionBanRecord> records = ConnectionBanStore.Load(path, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
+
+        foreach (ConnectionBanRecord record in records)
+        {
+            ConnectionLimitEntry entry = new()
+            {
+                BannedUntilTicks = record.BannedUntilTicks,
+                BanCount = record.BanCount,
+                LastBanTimeTicks = record.LastBanTimeTicks,
+                LastSeenAtTicks = record.LastSeenAtTicks
+            };
+
+            _ = _map.TryAdd(record.Endpoint, entry);
+        }
+
+        if (records.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[NW.{nameof(ConnectionGuard)}] Loaded {records.Count} persisted bans.");
         }
     }
 
@@ -156,8 +240,23 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         _ = Interlocked.Increment(ref _totalConnectionAttempts);
 
         DateTime now = Clock.NowUtc();
+
+        // 1. Invalid endpoint -> Reject
+        if (endPoint.Address is null || endPoint.Address.Equals(IPAddress.Any) || endPoint.Address.Equals(IPAddress.IPv6Any))
+        {
+            _ = Interlocked.Increment(ref _totalRejections);
+            return false;
+        }
+
+        // 2. Blacklist -> Reject (O(1) lookup)
+        if (_blacklistedIps.Contains(endPoint.Address))
+        {
+            _ = Interlocked.Increment(ref _totalRejections);
+            return false;
+        }
+
         INetworkEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
-        ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now);
+        ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now, endPoint.Address);
 
         if (!result.Allowed)
         {
@@ -167,7 +266,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
             {
                 long nowTicks = Clock.NowUtc().Ticks;
-                long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+                long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
                 if (TRY_ACQUIRE_LOG_SLOT(
                         ref entry.LastRejectLogTicks,
@@ -235,7 +334,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         if (released && _map.TryGetValue(args.Connection.NetworkEndpoint, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
             long nowTicks = Clock.NowUtc().Ticks;
-            long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+            long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
             if (TRY_ACQUIRE_LOG_SLOT(
                     ref closedEntry.LastClosedLogTicks,
@@ -340,15 +439,38 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// </summary>
     /// <param name="key"></param>
     /// <param name="now"></param>
-    private ConnectionAllowResult TRY_ACQUIRE_CONNECTION_SLOT(INetworkEndpoint key, DateTime now)
+    /// <param name="address"></param>
+    private ConnectionAllowResult TRY_ACQUIRE_CONNECTION_SLOT(INetworkEndpoint key, DateTime now, IPAddress address)
     {
+        // 3. Trusted proxy check
+        bool isTrustedProxy = false;
+        if (_trustedProxies.Count > 0)
+        {
+            foreach (IPNetwork network in _trustedProxies)
+            {
+                if (network.Contains(address))
+                {
+                    isTrustedProxy = true;
+                    break;
+                }
+            }
+        }
+
+        int maxConnections = isTrustedProxy ? _proxyConfig.MaxConnectionsPerTrustedProxy : _maxPerEndpoint;
+        int maxAttempts = isTrustedProxy ? _proxyConfig.MaxAttemptsPerTrustedProxyWindow : _config.MaxConnectionsPerWindow;
+
         while (true)
         {
             // GetOrAdd is atomic w.r.t. insertion; the returned entry is always the canonical one.
             ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
 
+            // Update LastSeen (Lock-free since it's just a long write and we don't strictly need exact consistency for cleanup/debug)
+            _ = Interlocked.Exchange(ref entry.LastSeenAtTicks, now.Ticks);
+
             long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
-            if (bannedUntil > now.Ticks)
+
+            // 4. Runtime ban active -> Reject (Trusted proxies are never banned at runtime)
+            if (!isTrustedProxy && bannedUntil > now.Ticks)
             {
                 this.LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
 
@@ -387,17 +509,26 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     continue; // Retry with a fresh GetOrAdd, this one is tombstoned
                 }
 
-                if (entry.RecentConnectionTimestamps.Count >= _config.MaxConnectionsPerWindow)
+                if (entry.RecentConnectionTimestamps.Count >= maxAttempts)
                 {
-                    DateTime banUntil = now + _config.BanDuration;
-                    _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
-
-                    this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
-                    shouldTerminateEndpoint = true;
-
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    // 6. On violation -> Update ban state (if not trusted)
+                    if (!isTrustedProxy)
                     {
-                        _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} until={banUntil:HH:mm:ss}");
+                        entry.BanCount++;
+                        entry.LastBanTimeTicks = now.Ticks;
+
+                        TimeSpan banDuration = this.CALCULATE_PROGRESSIVE_BAN_DURATION(entry.BanCount);
+                        DateTime banUntil = now + banDuration;
+                        _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
+                        _ = Interlocked.Exchange(ref _persistenceDirty, 1);
+
+                        this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
+                        shouldTerminateEndpoint = true;
+
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                        {
+                            _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} count={entry.BanCount} until={banUntil:HH:mm:ss}");
+                        }
                     }
 
                     result = new ConnectionAllowResult
@@ -406,7 +537,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                         CurrentConnections = entry.Info.CurrentConnections
                     };
                 }
-                else if (entry.Info.CurrentConnections >= _maxPerEndpoint)
+                else if (entry.Info.CurrentConnections >= maxConnections)
                 {
                     // Concurrent connection limit reached for this IP
                     result = new ConnectionAllowResult
@@ -493,6 +624,25 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
     }
 
+    private TimeSpan CALCULATE_PROGRESSIVE_BAN_DURATION(int banCount)
+    {
+        if (!_protectionConfig.EnableProgressiveBanning)
+        {
+            return _protectionConfig.BanDuration;
+        }
+
+        // Progressive schedule: 1m, 5m, 15m, 1h, 6h, 24h
+        return banCount switch
+        {
+            <= 1 => TimeSpan.FromMinutes(1),
+            2 => TimeSpan.FromMinutes(5),
+            3 => TimeSpan.FromMinutes(15),
+            4 => TimeSpan.FromHours(1),
+            5 => TimeSpan.FromHours(6),
+            _ => TimeSpan.FromHours(24) // Cap at 24 hours
+        };
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int CALCULATE_TOTAL_CONNECTIONS_TODAY(ConnectionLimitInfo info, DateTime now, TimeSpan offset)
     {
@@ -574,7 +724,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     {
         long nowTicks = Clock.NowUtc().Ticks;
         long lastTicks = Interlocked.Read(ref entry.LastDDoSLogTicks);
-        long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+        long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
         if (nowTicks - lastTicks < windowTicks)
         {
@@ -601,7 +751,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             {
                 _logger.LogWarning(
                     $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address} " +
-                    $"(+{suppressed} suppressed-in-last={_config.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
+                    $"(+{suppressed} suppressed-in-last={_protectionConfig.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
             }
         }
         else
@@ -666,7 +816,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     private void LOG_BANNED_THROTTLED(ConnectionLimitEntry entry, INetworkEndpoint key, DateTime bannedUntil)
     {
         long nowTicks = Clock.NowUtc().Ticks;
-        long windowTicks = _config.DDoSLogSuppressWindow.Ticks;
+        long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
         if (TRY_ACQUIRE_LOG_SLOT(
                 ref entry.LastRejectLogTicks,
@@ -978,7 +1128,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void SCHEDULE_CLEANUP_JOB()
     {
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+        TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
+
+        _ = taskManager.ScheduleRecurring(
             name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: _cleanupInterval,
             work: _ =>
@@ -995,6 +1147,90 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 ExecutionTimeout = TimeSpan.FromSeconds(2)
             }
         );
+
+        if (_storeConfig.Enabled)
+        {
+            _ = taskManager.ScheduleRecurring(
+                name: TaskNaming.Recurring.CleanupJobId(RecurringName + ".save", this.GetHashCode()),
+                interval: _storeConfig.AutoSaveInterval,
+                work: _ =>
+                {
+                    this.SAVE_BANNED_IPS();
+                    return ValueTask.CompletedTask;
+                },
+                options: new RecurringOptions
+                {
+                    NonReentrant = true,
+                    Tag = TaskNaming.Tags.Service,
+                    ExecutionTimeout = TimeSpan.FromSeconds(10)
+                }
+            );
+        }
+    }
+
+    private void SAVE_BANNED_IPS()
+    {
+        if (Interlocked.CompareExchange(ref _persistenceDirty, 0, 1) == 0)
+        {
+            return; // No changes to save
+        }
+
+        try
+        {
+            List<ConnectionBanRecord> snapshot = new();
+            DateTime now = Clock.NowUtc();
+
+            // Minimal lock to collect snapshot
+            foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
+            {
+                long bannedUntil = Interlocked.Read(ref kvp.Value.BannedUntilTicks);
+                int banCount = kvp.Value.BanCount;
+
+                // Only save entries that are currently banned or have a progressive ban count (to retain decay state)
+                if (bannedUntil > now.Ticks || banCount > 0)
+                {
+                    bool lockTaken = false;
+                    long lastBanTime;
+                    long lastSeen;
+
+                    try
+                    {
+                        kvp.Value.SpinLock.Enter(ref lockTaken);
+                        lastBanTime = kvp.Value.LastBanTimeTicks;
+                        lastSeen = Interlocked.Read(ref kvp.Value.LastSeenAtTicks);
+                    }
+                    finally
+                    {
+                        if (lockTaken)
+                        {
+                            kvp.Value.SpinLock.Exit();
+                        }
+                    }
+
+                    snapshot.Add(new ConnectionBanRecord(kvp.Key, bannedUntil, banCount, lastBanTime, lastSeen));
+                }
+            }
+
+            if (snapshot.Count > 0)
+            {
+                string path = System.IO.Path.Combine(Directories.DataDirectory, _storeConfig.StoreFileName);
+                ConnectionBanStore.Save(path, snapshot, snapshot.Count);
+
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] Persisted {snapshot.Count} bans to disk.");
+                }
+            }
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            // Restore dirty flag if save failed
+            _ = Interlocked.Exchange(ref _persistenceDirty, 1);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] failed to save banned ips.");
+            }
+        }
     }
 
     #endregion Initialization
@@ -1011,9 +1247,15 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         try
         {
-            InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                    .CancelRecurring(TaskNaming.Recurring
-                                    .CleanupJobId(RecurringName, this.GetHashCode()));
+            TaskManager? taskManager = InstanceManager.Instance.GetExistingInstance<TaskManager>();
+
+            taskManager?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()));
+            taskManager?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName + ".save", this.GetHashCode()));
+
+            if (_storeConfig.Enabled)
+            {
+                this.SAVE_BANNED_IPS(); // Save snapshot BEFORE clearing the map
+            }
 
             _map.Clear();
 
@@ -1092,6 +1334,21 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     {
         public bool IsRemoved;
         public long BannedUntilTicks;
+
+        /// <summary>
+        /// Track the progressive ban tier.
+        /// </summary>
+        public int BanCount;
+
+        /// <summary>
+        /// Last time this IP was banned. Used for ban count decay.
+        /// </summary>
+        public long LastBanTimeTicks;
+
+        /// <summary>
+        /// Last time any network activity was seen from this IP.
+        /// </summary>
+        public long LastSeenAtTicks;
 
         /// <summary>
         /// lần cuối log DDoS warn

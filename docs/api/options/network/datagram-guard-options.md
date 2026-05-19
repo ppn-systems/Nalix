@@ -2,7 +2,7 @@
 
 `DatagramGuardOptions` configures the bounded source-window tracking used by the UDP
 listener's `DatagramGuard`. The guard limits per-source packet rate through
-`ConnectionLimitOptions.MaxPacketPerSecond`, while this options type controls how
+`ConnectionGuardOptions.MaxPacketPerSecond`, while this options type controls how
 many IPv4/IPv6 source windows can be tracked and how stale windows are cleaned up.
 
 ## Source Mapping
@@ -22,7 +22,7 @@ s_datagramGuardOptions.Validate();
 
 Each listener instance then constructs a `DatagramGuard` with:
 
-- `ConnectionLimitOptions.MaxPacketPerSecond`
+- `ConnectionGuardOptions.MaxPacketPerSecond`
 - `DatagramGuardOptions.IPv4Windows`
 - `DatagramGuardOptions.IPv6Windows`
 - `DatagramGuardOptions.CleanupInterval`
@@ -32,7 +32,7 @@ Each listener instance then constructs a `DatagramGuard` with:
 
 ```mermaid
 flowchart LR
-    A["UdpListenerBase"] --> B["ConnectionLimitOptions.MaxPacketPerSecond"]
+    A["UdpListenerBase"] --> B["ConnectionGuardOptions.MaxPacketPerSecond"]
     A --> C["DatagramGuardOptions"]
     B --> D["DatagramGuard"]
     C --> D
@@ -95,11 +95,13 @@ and clears both IPv4 and IPv6 maps.
 - Increase `IPv4Windows` / `IPv6Windows` only when legitimate source cardinality is
   high enough to require it.
 - Keep `IdleTimeout` short for public UDP endpoints under spoofed-source pressure.
-- Tune `ConnectionLimitOptions.MaxPacketPerSecond` separately; it is the per-source
+- Tune `ConnectionGuardOptions.MaxPacketPerSecond` separately; it is the per-source
   packet-rate limit consumed by `DatagramGuard`.
 
 ## Related APIs
 
 - [Network Options](./options.md)
-- [Connection Limit Options](./connection-limit-options.md)
+- [Connection Quota Options](./connection-quota-options.md)
+- [Connection Guard Options](./connection-guard-options.md)
+- [Trusted Proxy Options](./trusted-proxy-options.md)
 - [UDP Listener](../../network/udp-listener.md)

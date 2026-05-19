@@ -145,9 +145,6 @@ public static class XxHash32
     /// <param name="lo">
     /// The low 64 bits of the address.
     /// </param>
-    /// <param name="port">
-    /// The endpoint port number.
-    /// </param>
     /// <param name="isIPv6">
     /// <see langword="true"/> if the endpoint uses IPv6;
     /// otherwise, <see langword="false"/>.
@@ -160,17 +157,14 @@ public static class XxHash32
     /// where allocating temporary endpoint objects should be avoided.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public static int Compute(ulong hi, ulong lo, int port, bool isIPv6)
+    public static int Compute(ulong hi, ulong lo, bool isIPv6)
     {
-        Span<byte> buffer = stackalloc byte[21];
+        Span<byte> buffer = stackalloc byte[17];
 
         Unsafe.WriteUnaligned(ref buffer[0], hi);
         Unsafe.WriteUnaligned(ref buffer[8], lo);
-        Unsafe.WriteUnaligned(ref buffer[16], port);
 
-        buffer[20] = isIPv6
-            ? (byte)1
-            : (byte)0;
+        buffer[16] = isIPv6 ? (byte)1 : (byte)0;
 
         return (int)(Compute(buffer) & 0x7FFFFFFF);
     }

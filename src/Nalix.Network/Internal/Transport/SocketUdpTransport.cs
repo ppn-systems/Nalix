@@ -43,7 +43,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Static Factory
 
     private static readonly NetworkSocketOptions s_options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-    private static readonly ConnectionLimitOptions s_connectionLimitOptions = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
     private TransportSequencer _sequencer = new();
@@ -240,7 +239,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
+        if (message.Length > s_options.MaxUdpDatagramSize)
         {
             Throw.UdpPayloadTooLargeNow();
         }
@@ -284,7 +283,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             return;
         }
 
-        if (message.Length > s_connectionLimitOptions.MaxUdpDatagramSize)
+        if (message.Length > s_options.MaxUdpDatagramSize)
         {
             Throw.UdpPayloadTooLargeNow();
         }

@@ -74,7 +74,9 @@ To understand the Nalix networking stack, we recommend reading the documentation
 
 - [Options Overview](../options/network/options.md)
 - [Network Socket Options](../options/network/network-socket-options.md)
-- [Connection Limit Options](../options/network/connection-limit-options.md)
+- [Connection Quota Options](../options/network/connection-quota-options.md)
+- [Connection Guard Options](../options/network/connection-guard-options.md)
+- [Trusted Proxy Options](../options/network/trusted-proxy-options.md)
 - [Connection Hub Options](../options/network/connection-hub-options.md)
 - [Timing Wheel Options](../options/network/timing-wheel-options.md)
 - [Pooling Options](../options/network/pooling-options.md)

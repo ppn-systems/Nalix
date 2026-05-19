@@ -38,6 +38,11 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     private const int Size = 8;
 
     /// <summary>
+    /// Bit 63 represents whether the pool is destroyed.
+    /// </summary>
+    private const long DestroyedBit = 1L << 63;
+
+    /// <summary>
     /// Reference to the global pool manager used as a fallback and source of objects.
     /// </summary>
     private readonly ObjectPoolManager _globalPool;
@@ -140,9 +145,29 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
                 {
                     item.ResetForPool();
 
-                    // Mark slot as free
-                    _ = Interlocked.And(ref _mask, ~(1L << i));
-                    return;
+                    long bit = 1L << i;
+                    long oldMask;
+                    long newMask;
+                    bool success = false;
+
+                    do
+                    {
+                        oldMask = Volatile.Read(ref _mask);
+                        if ((oldMask & DestroyedBit) != 0)
+                        {
+                            success = false;
+                            break;
+                        }
+                        newMask = oldMask & ~bit;
+                        success = Interlocked.CompareExchange(ref _mask, newMask, oldMask) == oldMask;
+                    } while (!success);
+
+                    if (success)
+                    {
+                        return;
+                    }
+
+                    break;
                 }
             }
         }
@@ -178,18 +203,23 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     /// </remarks>
     public void Destroy()
     {
-        if (Interlocked.Exchange(ref _destroyed, 1) != 0)
+        long oldMask;
+        do
         {
-            return;
-        }
+            oldMask = Volatile.Read(ref _mask);
+            if ((oldMask & DestroyedBit) != 0)
+            {
+                return;
+            }
+        } while (Interlocked.CompareExchange(ref _mask, oldMask | DestroyedBit, oldMask) != oldMask);
+
+        Volatile.Write(ref _destroyed, 1);
 
         T[]? items = Interlocked.Exchange(ref _items, null);
         if (items == null)
         {
             return;
         }
-
-        long mask = Interlocked.Read(ref _mask);
 
         for (int i = 0; i < Size; i++)
         {
@@ -199,9 +229,9 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
                 continue;
             }
 
-            bool isBusy = (mask & (1L << i)) != 0;
+            bool wasIdle = (oldMask & (1L << i)) == 0;
 
-            if (!isBusy)
+            if (wasIdle)
             {
                 // Immediately return idle items to global pool
                 item.ResetForPool();

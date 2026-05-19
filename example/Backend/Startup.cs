@@ -52,11 +52,14 @@ internal class Startup
                 o.Backlog = 1024;
             })
             .Configure<ConnectionHubOptions>(o => o.MaxConnections = -1)
-            .Configure<ConnectionLimitOptions>(o =>
+            .Configure<ConnectionQuotaOptions>(o =>
             {
-                o.MaxPacketPerSecond = 1_000_000;
                 o.MaxConnectionsPerIpAddress = 10_000;
                 o.MaxConnectionsPerWindow = 10_000_000;
+            })
+            .Configure<ConnectionGuardOptions>(o =>
+            {
+                o.MaxPacketPerSecond = 1_000_000;
             })
             .Configure<NetworkCallbackOptions>(o =>
             {
