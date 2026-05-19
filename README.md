@@ -131,8 +131,8 @@ Nalix is composed of several modular packages — install only what you need.
 | Package | Description |
 | :--- | :--- |
 | **[Nalix.Abstractions](src/Nalix.Abstractions)** | Base abstractions, enums, and shared contracts for the Nalix ecosystem. |
-| **[Nalix.Codec](src/Nalix.Codec)** | cryptography, serialization |
-| **[Nalix.Environment](src/Nalix.Environment)** |  |
+| **[Nalix.Codec](src/Nalix.Codec)** | High-performance framing, cryptography, and serialization. |
+| **[Nalix.Environment](src/Nalix.Environment)** | Low-level IO primitives, buffer leasing, and configuration loading. |
 | **[Nalix.Framework](src/Nalix.Framework)** | High-performance core: cryptography, identity, DI, serialization, and task orchestration. |
 | **[Nalix.Runtime](src/Nalix.Runtime)** | Packet dispatching, middleware pipelines, protection primitives, and throttling. |
 
