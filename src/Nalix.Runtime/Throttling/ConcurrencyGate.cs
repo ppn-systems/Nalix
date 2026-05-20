@@ -841,9 +841,7 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Entry GET_OR_CREATE_ENTRY(
-        ushort opcode,
-        PacketConcurrencyLimitAttribute attr)
+    private Entry GET_OR_CREATE_ENTRY(ushort opcode, PacketConcurrencyLimitAttribute attr)
     {
         return _table.TryGetValue(opcode, out Entry? entry)
             ? entry
