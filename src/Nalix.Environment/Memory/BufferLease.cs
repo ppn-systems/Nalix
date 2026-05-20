@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Options;
 
 namespace Nalix.Environment.Memory;
@@ -39,10 +40,10 @@ public sealed class BufferLease : IBufferLease, IPoolable
     [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static ThreadLocalLeaseCache? t_localCache;
 
-    private static int s_sharedPoolSize = 64;
-    private static int s_sharedPoolMask = 63;
-    private static int s_threadLocalMaxSlots = 8;
-    private static BufferLease?[] s_sharedPool = new BufferLease?[64];
+    private static readonly int s_sharedPoolSize;
+    private static readonly int s_sharedPoolMask;
+    private static readonly int s_threadLocalMaxSlots;
+    private static readonly BufferLease?[] s_sharedPool;
 
     /// <summary>
     /// Gets or sets whether BufferLease pooling is enabled. Default is true.
@@ -61,7 +62,7 @@ public sealed class BufferLease : IBufferLease, IPoolable
      * This makes BufferLease essentially allocation-free when rented.
      */
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static BufferLease RentLeaseShell()
+    private static BufferLease RENT_LEASE_SHELL()
     {
         if (!IsPoolingEnabled)
         {
@@ -135,21 +136,6 @@ public sealed class BufferLease : IBufferLease, IPoolable
     }
 
     /// <summary>
-    /// Configures the BufferLease pools from memory options.
-    /// </summary>
-    public static void Configure(MemoryOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        s_threadLocalMaxSlots = options.BufferLeaseThreadLocalCacheMaxSlots;
-
-        int poolSize = options.BufferLeaseSharedPoolSize;
-        s_sharedPoolSize = poolSize;
-        s_sharedPoolMask = poolSize - 1;
-        s_sharedPool = new BufferLease?[poolSize];
-    }
-
-    /// <summary>
     /// Maximum buffer size for stack allocation in <see cref="CopyFrom"/>. Larger buffers will be heap-allocated.
     /// </summary>
     public static readonly int StackAllocThreshold = 512;
@@ -177,6 +163,18 @@ public sealed class BufferLease : IBufferLease, IPoolable
     #endregion Fields
 
     #region Constructors
+
+    static BufferLease()
+    {
+        MemoryOptions options = ConfigurationManager.Instance.Get<MemoryOptions>();
+
+        int poolSize = options.BufferLeaseSharedPoolSize;
+        s_threadLocalMaxSlots = options.BufferLeaseThreadLocalCacheMaxSlots;
+
+        s_sharedPoolSize = poolSize;
+        s_sharedPoolMask = poolSize - 1;
+        s_sharedPool = new BufferLease?[poolSize];
+    }
 
     /// <summary>
     /// Parameterless constructor for free-list reuse.
@@ -497,7 +495,7 @@ public sealed class BufferLease : IBufferLease, IPoolable
         bool zeroOnDispose = false)
     {
         byte[] arr = ByteArrayPool.Rent(capacity);
-        BufferLease lease = RentLeaseShell();
+        BufferLease lease = RENT_LEASE_SHELL();
         lease.Initialize(arr, start: 0, length: 0, zeroOnDispose);
         return lease;
     }
@@ -512,7 +510,7 @@ public sealed class BufferLease : IBufferLease, IPoolable
     {
         byte[] arr = ByteArrayPool.Rent(src.Length);
         src.CopyTo(arr);
-        BufferLease lease = RentLeaseShell();
+        BufferLease lease = RENT_LEASE_SHELL();
         lease.Initialize(arr, start: 0, length: src.Length, zeroOnDispose);
         return lease;
     }
@@ -533,7 +531,7 @@ public sealed class BufferLease : IBufferLease, IPoolable
         bool zeroOnDispose = false)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        BufferLease lease = RentLeaseShell();
+        BufferLease lease = RENT_LEASE_SHELL();
         lease.Initialize(buffer, start: 0, length: length, zeroOnDispose);
         return lease;
     }
@@ -556,7 +554,7 @@ public sealed class BufferLease : IBufferLease, IPoolable
         bool zeroOnDispose = false)
     {
         ArgumentNullException.ThrowIfNull(buffer);
-        BufferLease lease = RentLeaseShell();
+        BufferLease lease = RENT_LEASE_SHELL();
         lease.Initialize(buffer, start, length, zeroOnDispose);
         return lease;
     }

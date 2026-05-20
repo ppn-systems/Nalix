@@ -50,6 +50,38 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
         return new SocketEndpoint(hi, lo, ipEndPoint.Port, isV6, hasPort: true);
     }
 
+    /// <summary>
+    /// Converts an <see cref="INetworkEndpoint"/> instance to a concrete <see cref="SocketEndpoint"/>.
+    /// </summary>
+    /// <param name="endpoint">The network endpoint instance.</param>
+    /// <returns>A concrete <see cref="SocketEndpoint"/> representation.</returns>
+    /// <remarks>
+    /// <b>Explicit Contract</b>: This method expects <see cref="SocketEndpoint"/>-backed endpoints for maximum performance.
+    /// It will safely unbox using pattern matching. If a non-SocketEndpoint is passed (e.g., in unit testing mocks),
+    /// it falls back to parsing the IP address representation without throwing exceptions.
+    /// </remarks>
+    [Pure]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static SocketEndpoint FromNetworkEndpoint(INetworkEndpoint? endpoint)
+    {
+        if (endpoint is null)
+        {
+            return Empty;
+        }
+
+        if (endpoint is SocketEndpoint socketEndpoint)
+        {
+            return socketEndpoint;
+        }
+
+        if (IPAddress.TryParse(endpoint.Address, out IPAddress? ip))
+        {
+            return FromIpAddress(ip);
+        }
+
+        return Empty;
+    }
+
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private static void NormalizeAddress(IPAddress ip, out ulong hi, out ulong lo, out bool isV6)

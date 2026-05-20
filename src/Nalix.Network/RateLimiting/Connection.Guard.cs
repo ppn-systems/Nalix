@@ -54,12 +54,15 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     private readonly ConnectionBanStoreOptions _storeConfig;
     private readonly ConnectionGuardOptions _protectionConfig;
 
+    private readonly long _windowTicks;
     private readonly int _maxPerEndpoint;
+    private readonly long _logSuppressWindowTicks;
+
     private readonly TimeSpan _cleanupInterval;
     private readonly TimeSpan _inactivityThreshold;
     private readonly List<IPNetwork> _trustedProxies = new();
     private readonly HashSet<IPAddress> _blacklistedIps = new();
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry> _map;
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry> _map;
 
     private ILogger? _logger;
 
@@ -113,7 +116,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         _cleanupInterval = _config.CleanupInterval;
         _inactivityThreshold = _config.InactivityThreshold;
 
-        _map = new System.Collections.Concurrent.ConcurrentDictionary<INetworkEndpoint, ConnectionLimitEntry>();
+        _windowTicks = _config.ConnectionRateWindow.Ticks;
+        _logSuppressWindowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
+
+        _map = new System.Collections.Concurrent.ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry>();
 
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
@@ -184,7 +190,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 LastSeenAtTicks = record.LastSeenAtTicks
             };
 
-            _ = _map.TryAdd(record.Endpoint, entry);
+            _ = _map.TryAdd(SocketEndpoint.FromNetworkEndpoint(record.Endpoint), entry);
         }
 
         if (records.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
@@ -255,7 +261,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             return false;
         }
 
-        INetworkEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
+        SocketEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
         ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now, endPoint.Address);
 
         if (!result.Allowed)
@@ -265,8 +271,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             // Throttled reject log — chỉ log 1 lần mỗi suppress window per IP
             if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
             {
-                long nowTicks = Clock.NowUtc().Ticks;
-                long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
+                long nowTicks = now.Ticks;
+                long windowTicks = _logSuppressWindowTicks;
 
                 if (TRY_ACQUIRE_LOG_SLOT(
                         ref entry.LastRejectLogTicks,
@@ -294,6 +300,37 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
 
         return result.Allowed;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void SCHEDULE_ENDPOINT_TERMINATION(SocketEndpoint key)
+    {
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+            name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
+            group: $"{TaskNaming.Tags.Worker}",
+            work: async (_, _) =>
+            {
+                try
+                {
+                    this.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(key);
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={key.Address}");
+                    }
+                }
+
+                await Task.CompletedTask.ConfigureAwait(false);
+            },
+            options: new WorkerOptions
+            {
+                Tag = TaskNaming.Tags.Net,
+                RetainFor = TimeSpan.Zero,
+                IdType = SnowflakeType.System,
+            }
+        );
     }
 
     /// <summary>
@@ -329,12 +366,13 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
 
         DateTime now = Clock.NowUtc();
-        bool released = this.TRY_RELEASE_CONNECTION_SLOT(args.Connection.NetworkEndpoint, now);
+        SocketEndpoint key = SocketEndpoint.FromNetworkEndpoint(args.Connection.NetworkEndpoint);
+        bool released = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
 
-        if (released && _map.TryGetValue(args.Connection.NetworkEndpoint, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
+        if (released && _map.TryGetValue(key, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
-            long nowTicks = Clock.NowUtc().Ticks;
-            long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
+            long nowTicks = now.Ticks;
+            long windowTicks = _logSuppressWindowTicks;
 
             if (TRY_ACQUIRE_LOG_SLOT(
                     ref closedEntry.LastClosedLogTicks,
@@ -346,7 +384,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
-                    _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] closed endpoint={args.Connection.NetworkEndpoint.Address}{suffix}");
+                    _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] closed endpoint={key.Address}{suffix}");
                 }
             }
         }
@@ -429,7 +467,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     #region Connection Slot Management
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static INetworkEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint)
+    private static SocketEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint)
         => SocketEndpoint.FromIpAddress(endPoint.Address);
 
     /// <summary>
@@ -440,7 +478,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// <param name="key"></param>
     /// <param name="now"></param>
     /// <param name="address"></param>
-    private ConnectionAllowResult TRY_ACQUIRE_CONNECTION_SLOT(INetworkEndpoint key, DateTime now, IPAddress address)
+    private ConnectionAllowResult TRY_ACQUIRE_CONNECTION_SLOT(SocketEndpoint key, DateTime now, IPAddress address)
     {
         // 3. Trusted proxy check
         bool isTrustedProxy = false;
@@ -458,19 +496,22 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         int maxConnections = isTrustedProxy ? _proxyConfig.MaxConnectionsPerTrustedProxy : _maxPerEndpoint;
         int maxAttempts = isTrustedProxy ? _proxyConfig.MaxAttemptsPerTrustedProxyWindow : _config.MaxConnectionsPerWindow;
+        long nowTicks = now.Ticks;
 
         while (true)
         {
-            // GetOrAdd is atomic w.r.t. insertion; the returned entry is always the canonical one.
-            ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
+            if (!_map.TryGetValue(key, out ConnectionLimitEntry? entry) || entry is null)
+            {
+                entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
+            }
 
             // Update LastSeen (Lock-free since it's just a long write and we don't strictly need exact consistency for cleanup/debug)
-            _ = Interlocked.Exchange(ref entry.LastSeenAtTicks, now.Ticks);
+            _ = Interlocked.Exchange(ref entry.LastSeenAtTicks, nowTicks);
 
             long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
 
             // 4. Runtime ban active -> Reject (Trusted proxies are never banned at runtime)
-            if (!isTrustedProxy && bannedUntil > now.Ticks)
+            if (!isTrustedProxy && bannedUntil > nowTicks)
             {
                 this.LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
 
@@ -496,9 +537,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             bool shouldTerminateEndpoint = false;
             ConnectionAllowResult result;
 
-            // Lock-free trim before taking the SpinLock to avoid holding the lock during potentially long loops
-            this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
-
             bool spinLockTaken = false;
             try
             {
@@ -509,17 +547,19 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     continue; // Retry with a fresh GetOrAdd, this one is tombstoned
                 }
 
+                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, nowTicks);
+
                 if (entry.RecentConnectionTimestamps.Count >= maxAttempts)
                 {
                     // 6. On violation -> Update ban state (if not trusted)
                     if (!isTrustedProxy)
                     {
                         entry.BanCount++;
-                        entry.LastBanTimeTicks = now.Ticks;
+                        entry.LastBanTimeTicks = nowTicks;
 
                         TimeSpan banDuration = this.CALCULATE_PROGRESSIVE_BAN_DURATION(entry.BanCount);
-                        DateTime banUntil = now + banDuration;
-                        _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntil.Ticks);
+                        long banUntilTicks = nowTicks + banDuration.Ticks;
+                        _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntilTicks);
                         _ = Interlocked.Exchange(ref _persistenceDirty, 1);
 
                         this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
@@ -527,6 +567,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
                         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                         {
+                            DateTime banUntil = new(banUntilTicks, DateTimeKind.Utc);
                             _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} count={entry.BanCount} until={banUntil:HH:mm:ss}");
                         }
                     }
@@ -557,7 +598,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                         LastConnectionTime = now
                     };
 
-                    entry.RecentConnectionTimestamps.Enqueue(now);
+                    entry.RecentConnectionTimestamps.Enqueue(nowTicks);
 
                     result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
                 }
@@ -575,52 +616,26 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             // Nothing prevents ScheduleWorker from running immediately after this line; TaskManager puts it in the queue.
             if (shouldTerminateEndpoint)
             {
-                _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-                    name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
-                    group: $"{TaskNaming.Tags.Worker}",
-                    work: async (_, _) =>
-                    {
-                        try
-                        {
-                            this.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(key);
-                        }
-                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                        {
-                            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                            {
-                                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={key.Address}");
-                            }
-                        }
-
-                        await Task.CompletedTask.ConfigureAwait(false);
-                    },
-                    options: new WorkerOptions
-                    {
-                        Tag = TaskNaming.Tags.Net,
-                        RetainFor = TimeSpan.Zero,
-                        IdType = SnowflakeType.System,
-                    }
-                );
+                this.SCHEDULE_ENDPOINT_TERMINATION(key);
             }
 
             return result;
         }
     }
 
-    /// <summary>Removes timestamps outside the rate-window. Lock-free — ConcurrentQueue is safe.</summary>
+    /// <summary>Removes timestamps outside the rate-window.</summary>
     /// <param name="timestamps"></param>
-    /// <param name="now"></param>
+    /// <param name="nowTicks"></param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void TRIM_OLD_TIMESTAMPS(
-        System.Collections.Concurrent.ConcurrentQueue<DateTime> timestamps,
-        DateTime now)
+        System.Collections.Generic.Queue<long> timestamps,
+        long nowTicks)
     {
-        DateTime cutoff = now - _config.ConnectionRateWindow;
+        long cutoff = nowTicks - _windowTicks;
 
-        while (timestamps.TryPeek(out DateTime oldest) && oldest < cutoff)
+        while (timestamps.TryPeek(out long oldest) && oldest < cutoff)
         {
-            // In the lock -> TryDequeue always succeeds if TryPeek has just seen the item.
-            // No need to check the return value, but still check it so the compiler doesn't warn.
-            _ = timestamps.TryDequeue(out _);
+            _ = timestamps.Dequeue();
         }
     }
 
@@ -670,7 +685,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// </summary>
     /// <param name="key"></param>
     /// <param name="now"></param>
-    private bool TRY_RELEASE_CONNECTION_SLOT(INetworkEndpoint key, DateTime now)
+    private bool TRY_RELEASE_CONNECTION_SLOT(SocketEndpoint key, DateTime now)
     {
         if (!_map.TryGetValue(key, out ConnectionLimitEntry? entry) || entry is null)
         {
@@ -705,6 +720,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                     _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
                 }
             }
+
+            this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now.Ticks);
         }
         finally
         {
@@ -714,17 +731,14 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
         }
 
-        // Lock-free trim after releasing the SpinLock
-        this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, now);
-
         return true;
     }
 
-    private void LOG_DDOS_DETECTED_THROTTLED(ConnectionLimitEntry entry, INetworkEndpoint key)
+    private void LOG_DDOS_DETECTED_THROTTLED(ConnectionLimitEntry entry, SocketEndpoint key)
     {
         long nowTicks = Clock.NowUtc().Ticks;
         long lastTicks = Interlocked.Read(ref entry.LastDDoSLogTicks);
-        long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
+        long windowTicks = _logSuppressWindowTicks;
 
         if (nowTicks - lastTicks < windowTicks)
         {
@@ -813,10 +827,10 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         return false;
     }
 
-    private void LOG_BANNED_THROTTLED(ConnectionLimitEntry entry, INetworkEndpoint key, DateTime bannedUntil)
+    private void LOG_BANNED_THROTTLED(ConnectionLimitEntry entry, SocketEndpoint key, DateTime bannedUntil)
     {
         long nowTicks = Clock.NowUtc().Ticks;
-        long windowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
+        long windowTicks = _logSuppressWindowTicks;
 
         if (TRY_ACQUIRE_LOG_SLOT(
                 ref entry.LastRejectLogTicks,
@@ -835,7 +849,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(INetworkEndpoint key) => _onEndpointTerminationRequested?.Invoke(key);
+    private void TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(SocketEndpoint key) => _onEndpointTerminationRequested?.Invoke(key);
 
     #endregion Connection Slot Management
 
@@ -852,7 +866,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         ListPool<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> pool = ListPool<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>>.Instance;
         List<KeyValuePair<INetworkEndpoint, ConnectionLimitInfo>> snapshot = pool.Rent(minimumCapacity: estimatedCapacity);
 
-        foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
+        foreach (KeyValuePair<SocketEndpoint, ConnectionLimitEntry> kvp in _map)
         {
             ConnectionLimitInfo info;
             bool lockTaken = false;
@@ -1013,9 +1027,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 ? _config.MaxCleanupKeysPerRun
                 : Math.Max(1000, _map.Count / 4);
 
-            List<INetworkEndpoint> keysToRemove = new(Math.Min(maxCleanupKeys, _map.Count));
+            List<SocketEndpoint> keysToRemove = new(Math.Min(maxCleanupKeys, _map.Count));
 
-            foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
+            foreach (KeyValuePair<SocketEndpoint, ConnectionLimitEntry> kvp in _map)
             {
                 if (scanned++ >= maxCleanupKeys)
                 {
@@ -1045,7 +1059,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
 
             // Remove in separate pass to avoid holding locks
-            foreach (INetworkEndpoint key in keysToRemove)
+            foreach (SocketEndpoint key in keysToRemove)
             {
                 if (_map.TryGetValue(key, out ConnectionLimitEntry? entry) && entry is not null)
                 {
@@ -1181,7 +1195,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             DateTime now = Clock.NowUtc();
 
             // Minimal lock to collect snapshot
-            foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitEntry> kvp in _map)
+            foreach (KeyValuePair<SocketEndpoint, ConnectionLimitEntry> kvp in _map)
             {
                 long bannedUntil = Interlocked.Read(ref kvp.Value.BannedUntilTicks);
                 int banCount = kvp.Value.BanCount;
@@ -1383,9 +1397,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         /// <summary>
         /// Sliding-window timestamps for rate limiting.
-        /// Trim operations are lock-free; enqueue happens under the entry lock.
         /// </summary>
-        public readonly System.Collections.Concurrent.ConcurrentQueue<DateTime> RecentConnectionTimestamps = new();
+        public readonly System.Collections.Generic.Queue<long> RecentConnectionTimestamps = new();
     }
 
     #endregion Internal Types
