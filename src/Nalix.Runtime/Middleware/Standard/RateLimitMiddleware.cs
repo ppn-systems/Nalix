@@ -68,7 +68,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             if (rl is not null)
             {
                 // Attribute-driven policy: use centralized policy-based limiter
-                decision = _policy.Evaluate(context.Packet.Header.OpCode, context);
+                decision = _policy.Evaluate(context);
             }
             else
             {
