@@ -840,13 +840,21 @@ public sealed class ConcurrencyGate : IReportable, IWithLogging<ConcurrencyGate>
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private Entry GET_OR_CREATE_ENTRY(
         ushort opcode,
         PacketConcurrencyLimitAttribute attr)
     {
-        return _table.GetOrAdd(
-            opcode,
-            _ => new Entry(attr.Max, attr.Queue, attr.QueueMax, _logger));
+        return _table.TryGetValue(opcode, out Entry? entry)
+            ? entry
+            : this.GET_OR_CREATE_ENTRY_SLOW(opcode, attr);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private Entry GET_OR_CREATE_ENTRY_SLOW(ushort opcode, PacketConcurrencyLimitAttribute attr)
+    {
+        return _table.GetOrAdd(opcode,
+            static (_, arg) => new Entry(arg.attr.Max, arg.attr.Queue, arg.attr.QueueMax, arg.logger), (attr, logger: _logger));
     }
 
     private async ValueTask<Lease> ENTER_WITH_QUEUE_ASYNC(
