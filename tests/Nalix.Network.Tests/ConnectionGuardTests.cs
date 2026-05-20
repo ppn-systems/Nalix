@@ -85,18 +85,61 @@ public sealed class ConnectionGuardTests
         guard.TryAccept(endpoint).Should().BeFalse();
     }
 #endif
+
+    [Fact]
+    public void TestTryAccept_Allowed_ZeroAllocations()
+    {
+        ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 1000, MaxConnectionsPerWindow = 10000 };
+        using ConnectionGuard guard = new(options);
+        IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
+
+        // Warm up and pre-fill to ensure segments/internal state is initialized and pre-grown to capacity 1024
+        for (int i = 0; i < 600; i++)
+        {
+            guard.TryAccept(endpoint);
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        // Since limit is 1000, calling 100 times will be allowed
+        for (int i = 0; i < 100; i++)
+        {
+            guard.TryAccept(endpoint);
+        }
+        long after = GC.GetAllocatedBytesForCurrentThread();
+        long diff = after - before;
+
+        diff.Should().Be(0);
+    }
+
+    [Fact]
+    public void TestTryAccept_Rejected_ZeroAllocations()
+    {
+        ConnectionQuotaOptions options = new() { MaxConnectionsPerIpAddress = 1000, MaxConnectionsPerWindow = 10000 };
+        using ConnectionGuard guard = new(options);
+        IPEndPoint endpoint = new(IPAddress.Parse("1.2.3.4"), 12345);
+
+        // Pre-fill until concurrent connection limit is reached (1001 calls)
+        for (int i = 0; i < 1001; i++)
+        {
+            guard.TryAccept(endpoint);
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 100; i++)
+        {
+            guard.TryAccept(endpoint);
+        }
+        long after = GC.GetAllocatedBytesForCurrentThread();
+        long diff = after - before;
+
+        diff.Should().Be(0);
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
