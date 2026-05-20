@@ -58,11 +58,11 @@ public sealed class PolicyRateLimiterTests : IDisposable
         var attrB = new PacketRateLimitAttribute(1, 1) { PolicyId = "PolicyB" };
         var contextB = new TestPacketContext(connection, opB, attrB);
 
-        _limiter.Evaluate(opA, contextA).Allowed.Should().BeTrue();
-        _limiter.Evaluate(opB, contextB).Allowed.Should().BeTrue();
+        _limiter.Evaluate(contextA).Allowed.Should().BeTrue();
+        _limiter.Evaluate(contextB).Allowed.Should().BeTrue();
 
-        _limiter.Evaluate(opA, contextA).Allowed.Should().BeFalse();
-        _limiter.Evaluate(opB, contextB).Allowed.Should().BeFalse();
+        _limiter.Evaluate(contextA).Allowed.Should().BeFalse();
+        _limiter.Evaluate(contextB).Allowed.Should().BeFalse();
     }
 
     [Fact]
@@ -78,11 +78,11 @@ public sealed class PolicyRateLimiterTests : IDisposable
         var context1 = new TestPacketContext(connection, op1, attr);
         var context2 = new TestPacketContext(connection, op2, attr);
 
-        _limiter.Evaluate(op1, context1).Allowed.Should().BeTrue();
-        _limiter.Evaluate(op2, context2).Allowed.Should().BeTrue();
+        _limiter.Evaluate(context1).Allowed.Should().BeTrue();
+        _limiter.Evaluate(context2).Allowed.Should().BeTrue();
         
-        _limiter.Evaluate(op1, context1).Allowed.Should().BeFalse();
-        _limiter.Evaluate(op2, context2).Allowed.Should().BeFalse();
+        _limiter.Evaluate(context1).Allowed.Should().BeFalse();
+        _limiter.Evaluate(context2).Allowed.Should().BeFalse();
     }
 
     [Fact]
@@ -95,7 +95,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
         var attr = new PacketRateLimitAttribute(10, 0); 
         var context = new TestPacketContext(connection, op, attr);
 
-        var decision = _limiter.Evaluate(op, context);
+        var decision = _limiter.Evaluate(context);
         decision.Allowed.Should().BeFalse();
         decision.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.HardLockout);
     }
@@ -109,7 +109,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
         ushort op = NextOpCode();
         var context = new TestPacketContext(connection, op, null);
 
-        var decision = _limiter.Evaluate(op, context);
+        var decision = _limiter.Evaluate(context);
         decision.Allowed.Should().BeTrue();
         decision.Reason.Should().Be(TokenBucketLimiter.RateLimitReason.None);
     }

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.WebSockets;
 using System.Threading;
@@ -50,8 +51,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     private long _bytesReceived;
     private int _pendingProcessCallbacks;
 
-    private IObjectMap<string, object>? _attributes;
     private WebSocketTransport? _tcp;
+    private IObjectMap<string, object>? _attributes;
+    private ConcurrentDictionary<ushort, object>? _rateLimitCache;
 
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
     private EventHandler<IConnectEventArgs>? _onProcessEvent;
@@ -110,8 +112,11 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     /// <inheritdoc/>
     public INetworkEndpoint NetworkEndpoint { get; }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     public IObjectMap<string, object> Attributes => _attributes ??= ObjectMap<string, object>.Rent();
+
+    /// <inheritdoc />
+    public ConcurrentDictionary<ushort, object> RateLimitCache => _rateLimitCache ??= new();
 
     /// <inheritdoc/>
     public int ErrorCount => _errorCount;

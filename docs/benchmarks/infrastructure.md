@@ -27,7 +27,7 @@ The `ConnectionGuard` manages connection rate-limiting and connection-level IP b
 
 | Method | Mean | Error | StdDev | Allocated |
 | :--- | ---: | ---: | ---: | ---: |
-| **TryAccept_Allowed** | **122.73 ns** | 5.689 ns | 6.323 ns | 0 B |
+| **TryAccept_Allowed** | **122.73 ns** | 25.812 ns | 29.726 ns | 0 B |
 | **TryAccept_Blacklisted** | **65.35 ns** | 1.430 ns | 1.647 ns | 0 B |
 
 ### Behind the design
@@ -73,13 +73,19 @@ Nalix uses a token bucket limiter and concurrency gates to prevent server overlo
 
 | Method | Mean | Error | StdDev | Allocated |
 | :--- | ---: | ---: | ---: | ---: |
-| **TryEnterAndDispose** | **121.5 ns** | 3.52 ns | 4.06 ns | 32 B |
+| **TryEnterAndDispose** | **78.88 ns** | 1.618 ns | 1.863 ns | 0 B |
 
 ### Token Bucket Limiter
 
 | Method | Mean | Error | StdDev | Allocated |
 | :--- | ---: | ---: | ---: | ---: |
 | **Evaluate** | **77.95 ns** | 1.311 ns | 1.510 ns | 0 B |
+
+### Policy Rate Limiter
+
+| Method   | Mean     | Error   | StdDev  | P95      | Allocated |
+|--------- |---------:|--------:|--------:|---------:|----------:|
+| Evaluate | 115.3 ns | 4.12 ns | 4.74 ns | 122.3 ns |         - |
 
 ### Optimization Strategy
 

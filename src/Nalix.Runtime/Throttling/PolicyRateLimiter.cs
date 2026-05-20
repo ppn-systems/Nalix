@@ -78,15 +78,15 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         public ScopedEndpoint(ushort op, string? policyId, INetworkEndpoint inner)
         {
             _op = op;
-            _ip = inner?.Address ?? string.Empty;
             _policyId = policyId;
+            _ip = inner?.Address ?? string.Empty;
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
         }
 
-        public string Address => _inner.Address;
-        public bool HasPort => _inner.HasPort;
-        public bool IsIPv6 => _inner.IsIPv6;
         public int Port => _inner.Port;
+        public bool IsIPv6 => _inner.IsIPv6;
+        public bool HasPort => _inner.HasPort;
+        public string Address => _inner.Address;
 
         public override int GetHashCode() => ComputeHash(_op, _policyId, _ip);
 
@@ -168,7 +168,6 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// <summary>
     /// Performs a rate limit check for the specified operation code and packet context.
     /// </summary>
-    /// <param name="opCode">The operation code associated with the incoming packet.</param>
     /// <param name="context">The packet context containing connection, endpoint, and rate limit metadata.</param>
     /// <returns>
     /// A <see cref="TokenBucketLimiter.RateLimitDecision"/> indicating whether the request
@@ -177,7 +176,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     /// <exception cref="ObjectDisposedException">Thrown when the limiter has been disposed.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="context"/> is <c>null</c>.</exception>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public TokenBucketLimiter.RateLimitDecision Evaluate(ushort opCode, IPacketContext<IPacket> context)
+    public TokenBucketLimiter.RateLimitDecision Evaluate(IPacketContext<IPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
         ObjectDisposedException.ThrowIf(_disposed != 0, this);
@@ -202,7 +201,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         TokenBucketLimiter.RateLimitPolicy dynamicPolicy = this.EXTRACT_DYNAMIC_POLICY(rl);
 
-        return this.PERFORM_RATE_LIMIT_CHECK(opCode, rl.PolicyId, context, in dynamicPolicy);
+        return this.PERFORM_RATE_LIMIT_CHECK(rl.PolicyId, context, in dynamicPolicy);
     }
 
     /// <summary>
@@ -302,25 +301,40 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
     #region Rate Limit Check
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private TokenBucketLimiter.RateLimitDecision PERFORM_RATE_LIMIT_CHECK(ushort opCode, string? policyId, IPacketContext<IPacket> context, in TokenBucketLimiter.RateLimitPolicy policy)
+    private TokenBucketLimiter.RateLimitDecision PERFORM_RATE_LIMIT_CHECK(string? policyId, IPacketContext<IPacket> context, in TokenBucketLimiter.RateLimitPolicy policy)
     {
-        if (context.Connection?.NetworkEndpoint is null)
+        IConnection connection = context.Connection;
+
+        if (connection?.NetworkEndpoint is null)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={opCode}");
+                _logger.LogWarning($"[RT.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={context.Packet.Header.OpCode}");
             }
 
             return CREATE_DENIED_DECISION(isHard: false);
         }
 
-        // Isolate keyspace by hashing PolicyId (if present) or OpCode, and IP Address
-        ScopedEndpoint subject = new(opCode, policyId, context.Connection.NetworkEndpoint);
+        ConcurrentDictionary<ushort, object> dict = connection.RateLimitCache;
+
+        if (!dict.TryGetValue(context.Packet.Header.OpCode, out object? obj))
+        {
+            obj = this.GET_OR_CREATE_SCOPED_ENDPOINT_SLOW(dict, connection, context.Packet.Header.OpCode, policyId);
+        }
+
+        ScopedEndpoint subject = (ScopedEndpoint)obj;
 
         _ = Interlocked.Increment(ref _checkCounter);
 
         // Feed the subject and the dynamic policy directly into the shared engine
         return _shared.Evaluate(subject, in policy);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ScopedEndpoint GET_OR_CREATE_SCOPED_ENDPOINT_SLOW(ConcurrentDictionary<ushort, object> dict, IConnection connection, ushort opCode, string? policyId)
+    {
+        return (ScopedEndpoint)dict.GetOrAdd(opCode,
+            static (op, arg) => new ScopedEndpoint(op, arg.policyId, arg.connection.NetworkEndpoint), (policyId, connection));
     }
 
     #endregion Rate Limit Check

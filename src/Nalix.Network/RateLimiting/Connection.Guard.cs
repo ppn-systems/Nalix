@@ -467,8 +467,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     #region Connection Slot Management
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SocketEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint)
-        => SocketEndpoint.FromIpAddress(endPoint.Address);
+    private static SocketEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint) => SocketEndpoint.FromIpAddress(endPoint.Address);
 
     /// <summary>
     /// Attempts to acquire a connection slot.
@@ -627,9 +626,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// <param name="timestamps"></param>
     /// <param name="nowTicks"></param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRIM_OLD_TIMESTAMPS(
-        System.Collections.Generic.Queue<long> timestamps,
-        long nowTicks)
+    private void TRIM_OLD_TIMESTAMPS(System.Collections.Generic.Queue<long> timestamps, long nowTicks)
     {
         long cutoff = nowTicks - _windowTicks;
 

@@ -307,11 +307,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         {
             SignatureKind.MemoryNoToken or SignatureKind.MemoryWithToken => typeof(MemoryPacket),
             SignatureKind.LegacyConcreteNoToken or SignatureKind.LegacyConcreteWithToken => parms[0].ParameterType,
-            SignatureKind.ContextOnly or SignatureKind.ContextWithToken when parms[0].ParameterType.IsGenericType =>
-                parms[0].ParameterType.GetGenericArguments()[0] == typeof(TPacket) ? null : parms[0].ParameterType.GetGenericArguments()[0],
-            SignatureKind.LegacyNoToken => throw new NotImplementedException(),
-            SignatureKind.LegacyWithToken => throw new NotImplementedException(),
-            _ => null
+            SignatureKind.ContextOnly or SignatureKind.ContextWithToken when parms[0].ParameterType.IsGenericType => parms[0].ParameterType.GetGenericArguments()[0] == typeof(TPacket) ? null : parms[0].ParameterType.GetGenericArguments()[0],
+            SignatureKind.LegacyNoToken or SignatureKind.LegacyWithToken or _ => null
         };
 
         bool needsContextBridge =
