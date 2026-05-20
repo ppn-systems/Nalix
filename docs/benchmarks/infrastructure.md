@@ -8,8 +8,8 @@ The `ConnectionHub` acts as the central registry for active socket connections.
 
 | Method | Mean | Error | StdDev | Allocated |
 | :--- | ---: | ---: | ---: | ---: |
-| **RegisterAndUnregister** | *N/A* | *N/A* | *N/A* | *N/A* |
 | **GetConnection** | **6.889 ns** | 0.5410 ns | 0.6230 ns | 0 B |
+| **RegisterAndUnregister** | 269.944 ns | 8.3769 ns | 8.9631 ns | 0 B |
 
 !!! note
     `RegisterAndUnregister` was skipped in this run due to execution issues. It is currently under review for optimization.

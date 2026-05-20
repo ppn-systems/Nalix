@@ -19,6 +19,7 @@ public class ConnectionHubBenchmarks
     private Socket _serverSocket = null!;
     private ConnectionHub _hub = null!;
     private Connection _preRegisteredConnection = null!;
+    private Connection _benchmarkConnection = null!;
     private ISnowflake _preRegisteredId = null!;
 
     [GlobalSetup]
@@ -44,12 +45,15 @@ public class ConnectionHubBenchmarks
         _preRegisteredConnection = new Connection(_serverSocket);
         _preRegisteredId = _preRegisteredConnection.ID;
         _hub.RegisterConnection(_preRegisteredConnection);
+        
+        _benchmarkConnection = new Connection(_serverSocket);
     }
 
     [GlobalCleanup]
     public void Cleanup()
     {
         _preRegisteredConnection.Dispose();
+        _benchmarkConnection.Dispose();
         _hub.Dispose();
         _serverSocket.Dispose();
         _client.Dispose();
@@ -59,9 +63,8 @@ public class ConnectionHubBenchmarks
     [Benchmark]
     public void RegisterAndUnregister()
     {
-        var conn = new Connection(_serverSocket);
-        _hub.RegisterConnection(conn);
-        _hub.UnregisterConnection(conn);
+        _hub.RegisterConnection(_benchmarkConnection);
+        _hub.UnregisterConnection(_benchmarkConnection);
     }
 
     [Benchmark]
@@ -69,4 +72,5 @@ public class ConnectionHubBenchmarks
     {
         return _hub.GetConnection(_preRegisteredId);
     }
+
 }
