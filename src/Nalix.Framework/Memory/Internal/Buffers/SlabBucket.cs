@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -14,23 +15,7 @@ namespace Nalix.Framework.Memory.Internal.Buffers;
 /// <summary>
 /// Manages a pool of standalone pinned byte arrays for a single buffer size class.
 /// Each buffer is an independent pinned array allocated on the Pinned Object Heap.
-/// This ensures that the public <c>byte[]</c> API always delivers arrays where data starts
-/// at offset 0, while maintaining the diagnostic and metrics benefits of slab management.
 /// </summary>
-/// <remarks>
-/// <b>Key design decisions:</b>
-/// <list type="bullet">
-///   <item>
-///     <b>Thread-local cache:</b> Each thread gets a small stack of recently returned buffers
-///     to avoid ring contention on the hot path.
-///   </item>
-///   <item>
-///     <b>Standalone Slabs:</b> Multi-segment slicing is removed in favor of individual pinned
-///     arrays. This eliminates complex offset management and ensures 100% compatibility with
-///     legacy APIs that expect data at <c>index 0</c>.
-///   </item>
-/// </list>
-/// </remarks>
 [DebuggerNonUserCode]
 [DebuggerDisplay("SIZE={_segmentSize}, Total={_totalBuffers}, Free={_freeRing.Count}")]
 [EditorBrowsable(EditorBrowsableState.Never)]
@@ -38,18 +23,24 @@ internal sealed class SlabBucket : IDisposable
 {
     #region Fields
 
+    private static int s_nextBucketId;
+    private readonly int _bucketId;
+
     private readonly int _segmentSize;
     private readonly int _initialCapacity;
     private readonly int _cacheDepth;
     private readonly Lock _slabLock;
     private readonly SlabBucketRing _freeRing;
-    private readonly ThreadLocal<ThreadLocalCache> _threadCache;
-    private readonly ConditionalWeakTable<byte[], object?> _ownedBuffers = new();
+
+    [ThreadStatic]
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
+    private static ThreadLocalCache?[]? t_bucketCaches;
+
+    private readonly List<WeakReference<ThreadLocalCache>> _allCaches = new();
+    private volatile IntPtr[] _sortedPinnedAddresses = Array.Empty<IntPtr>();
 
     private int _totalBuffers;
-    private int _rentedCount;
     private int _misses;
-    private int _hits;
     private int _expands;
     private int _shrinks;
     private bool _disposed;
@@ -65,6 +56,9 @@ internal sealed class SlabBucket : IDisposable
     {
         public readonly byte[]?[] Cache;
         public int Count;
+        public int Hits;
+        public int RentedCount;
+        public long TotalBytesRented;
 
         public ThreadLocalCache(int depth) => Cache = new byte[depth][];
     }
@@ -80,7 +74,7 @@ internal sealed class SlabBucket : IDisposable
     public int TotalBuffers => Volatile.Read(ref _totalBuffers);
 
     /// <summary>Gets the approximate number of free buffers available.</summary>
-    public int FreeBuffers => Math.Max(0, Volatile.Read(ref _totalBuffers) - Volatile.Read(ref _rentedCount));
+    public int FreeBuffers => Math.Max(0, Volatile.Read(ref _totalBuffers) - this.GetTotalRented());
 
     #endregion Properties
 
@@ -89,9 +83,6 @@ internal sealed class SlabBucket : IDisposable
     /// <summary>
     /// Initializes a new <see cref="SlabBucket"/> for standalone arrays of the given size.
     /// </summary>
-    /// <param name="segmentSize">The buffer size in bytes.</param>
-    /// <param name="initialCapacity">Number of buffers to preallocate.</param>
-    /// <param name="cacheDepth">Maximum depth for the per-thread cache.</param>
     public SlabBucket(int segmentSize, int initialCapacity, int cacheDepth = 8)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(segmentSize);
@@ -102,12 +93,13 @@ internal sealed class SlabBucket : IDisposable
         _cacheDepth = cacheDepth;
         _slabLock = new();
 
+        _bucketId = Interlocked.Increment(ref s_nextBucketId) - 1;
+
         int ringCapacity = initialCapacity <= 0
             ? 4
             : (int)System.Numerics.BitOperations.RoundUpToPowerOf2((uint)initialCapacity);
 
         _freeRing = new SlabBucketRing(ringCapacity);
-        _threadCache = new ThreadLocal<ThreadLocalCache>(() => new ThreadLocalCache(cacheDepth), trackAllValues: false);
 
         if (initialCapacity > 0)
         {
@@ -125,23 +117,25 @@ internal sealed class SlabBucket : IDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRent([NotNullWhen(true)] out byte[]? array)
     {
-        ThreadLocalCache cache = _threadCache.Value!;
+        ThreadLocalCache cache = this.GetThreadLocalCache();
         if (cache.Count > 0)
         {
             int idx = --cache.Count;
             byte[]? cached = cache.Cache[idx];
             cache.Cache[idx] = null;
 
-            _ = Interlocked.Increment(ref _hits);
-            _ = Interlocked.Increment(ref _rentedCount);
+            cache.Hits++;
+            cache.RentedCount++;
+            cache.TotalBytesRented += _segmentSize;
             array = cached!;
             return true;
         }
 
         if (_freeRing.TryDequeue(out array))
         {
-            _ = Interlocked.Increment(ref _hits);
-            _ = Interlocked.Increment(ref _rentedCount);
+            cache.Hits++;
+            cache.RentedCount++;
+            cache.TotalBytesRented += _segmentSize;
             return true;
         }
 
@@ -189,20 +183,34 @@ internal sealed class SlabBucket : IDisposable
 
         // Ownership check to prevent memory poisoning with non-pinned arrays.
         // POH objects are always in Gen 2 (or higher in future runtimes).
-        if (GC.GetGeneration(array) < 2 || !_ownedBuffers.TryGetValue(array, out _))
+        if (GC.GetGeneration(array) < 2)
         {
             return;
         }
 
-        _ = Interlocked.Decrement(ref _rentedCount);
+        IntPtr addr;
+        unsafe
+        {
+            fixed (byte* p = array)
+            {
+                addr = (IntPtr)p;
+            }
+        }
+
+        if (!this.IsOwnedAddress(addr))
+        {
+            return;
+        }
+
+        ThreadLocalCache cache = this.GetThreadLocalCache();
+        cache.RentedCount--;
 
         // Deferred shrink: if we have pending shrinks, drop this buffer instead of caching/returning it.
-        if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK())
+        if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK(addr))
         {
             return;
         }
 
-        ThreadLocalCache cache = _threadCache.Value!;
         if (cache.Count < _cacheDepth)
         {
             cache.Cache[cache.Count++] = array;
@@ -214,13 +222,14 @@ internal sealed class SlabBucket : IDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool TRY_DEFERRED_SHRINK()
+    private bool TRY_DEFERRED_SHRINK(IntPtr addr)
     {
         int pending = Volatile.Read(ref _pendingShrinkCount);
         while (pending > 0)
         {
             if (Interlocked.CompareExchange(ref _pendingShrinkCount, pending - 1, pending) == pending)
             {
+                this.RemovePinnedAddress(addr);
                 _ = Interlocked.Decrement(ref _totalBuffers);
                 _ = Interlocked.Increment(ref _shrinks);
                 return true;
@@ -266,7 +275,6 @@ internal sealed class SlabBucket : IDisposable
 
         try
         {
-            // NEW RULE: Do not shrink below the initial (default) capacity
             int currentTotal = Volatile.Read(ref _totalBuffers);
             int canRemove = Math.Min(capacityToRemove, currentTotal - _initialCapacity);
             if (canRemove <= 0)
@@ -280,9 +288,18 @@ internal sealed class SlabBucket : IDisposable
 
             for (int i = 0; i < immediateTarget; i++)
             {
-                if (_freeRing.TryDequeue(out _))
+                if (_freeRing.TryDequeue(out byte[]? arr))
                 {
                     removed++;
+                    IntPtr addr;
+                    unsafe
+                    {
+                        fixed (byte* p = arr)
+                        {
+                            addr = (IntPtr)p;
+                        }
+                    }
+                    this.RemovePinnedAddress(addr);
                 }
                 else
                 {
@@ -316,6 +333,140 @@ internal sealed class SlabBucket : IDisposable
 
     #region Private Helpers
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private ThreadLocalCache GetThreadLocalCache()
+    {
+        ThreadLocalCache?[]? caches = t_bucketCaches;
+        if (caches == null)
+        {
+            caches = new ThreadLocalCache[32];
+            t_bucketCaches = caches;
+        }
+
+        int id = _bucketId;
+        if (id >= caches.Length)
+        {
+            Array.Resize(ref caches, Math.Max(id + 1, caches.Length * 2));
+            t_bucketCaches = caches;
+        }
+
+        ThreadLocalCache? cache = caches[id];
+        if (cache == null)
+        {
+            cache = new ThreadLocalCache(_cacheDepth);
+            caches[id] = cache;
+
+            lock (_slabLock)
+            {
+                _allCaches.Add(new WeakReference<ThreadLocalCache>(cache));
+            }
+        }
+
+        return cache;
+    }
+
+    private int GetTotalRented()
+    {
+        int total = 0;
+        lock (_slabLock)
+        {
+            for (int i = _allCaches.Count - 1; i >= 0; i--)
+            {
+                if (_allCaches[i].TryGetTarget(out ThreadLocalCache? cache))
+                {
+                    total += Volatile.Read(ref cache.RentedCount);
+                }
+                else
+                {
+                    _allCaches.RemoveAt(i);
+                }
+            }
+        }
+        return total;
+    }
+
+    private int GetTotalHits()
+    {
+        int total = 0;
+        lock (_slabLock)
+        {
+            for (int i = _allCaches.Count - 1; i >= 0; i--)
+            {
+                if (_allCaches[i].TryGetTarget(out ThreadLocalCache? cache))
+                {
+                    total += Volatile.Read(ref cache.Hits);
+                }
+                else
+                {
+                    _allCaches.RemoveAt(i);
+                }
+            }
+        }
+        return total;
+    }
+
+    public long GetTotalBytesRented()
+    {
+        long total = 0;
+        lock (_slabLock)
+        {
+            for (int i = _allCaches.Count - 1; i >= 0; i--)
+            {
+                if (_allCaches[i].TryGetTarget(out ThreadLocalCache? cache))
+                {
+                    total += Volatile.Read(ref cache.TotalBytesRented);
+                }
+                else
+                {
+                    _allCaches.RemoveAt(i);
+                }
+            }
+        }
+        return total;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private bool IsOwnedAddress(IntPtr addr)
+    {
+        IntPtr[] array = _sortedPinnedAddresses;
+        int low = 0;
+        int high = array.Length - 1;
+        while (low <= high)
+        {
+            int mid = low + ((high - low) >> 1);
+            IntPtr midVal = array[mid];
+            if (midVal == addr)
+            {
+                return true;
+            }
+            if ((ulong)midVal < (ulong)addr)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid - 1;
+            }
+        }
+        return false;
+    }
+
+    private void RemovePinnedAddress(IntPtr addr)
+    {
+        lock (_slabLock)
+        {
+            IntPtr[] current = _sortedPinnedAddresses;
+            int idx = Array.IndexOf(current, addr);
+            if (idx >= 0)
+            {
+                IntPtr[] next = new IntPtr[current.Length - 1];
+                Array.Copy(current, 0, next, 0, idx);
+                Array.Copy(current, idx + 1, next, idx, current.Length - idx - 1);
+                _sortedPinnedAddresses = next;
+            }
+        }
+    }
+
     /// <summary>
     /// Allocates individual pinned arrays and enqueues them.
     /// </summary>
@@ -332,18 +483,33 @@ internal sealed class SlabBucket : IDisposable
         int enqueued = 0;
         lock (_slabLock)
         {
+            IntPtr[] newAddrs = new IntPtr[_sortedPinnedAddresses.Length + count];
+            Array.Copy(_sortedPinnedAddresses, newAddrs, _sortedPinnedAddresses.Length);
+            int origLength = _sortedPinnedAddresses.Length;
+
             for (int i = 0; i < count; i++)
             {
-                // Single pinned allocation — the entire point of standalone slab-based pooling.
-                // The array lives on the Pinned Object Heap and stays pinned for its lifetime.
                 byte[] array = GC.AllocateArray<byte>(_segmentSize, pinned: true);
-                _ownedBuffers.Add(array, null);
+                Debug.Assert(GC.GetGeneration(array) == 2); // Verify it lives on POH
+
+                IntPtr addr;
+                unsafe
+                {
+                    fixed (byte* p = array)
+                    {
+                        addr = (IntPtr)p;
+                    }
+                }
+                newAddrs[origLength + i] = addr;
 
                 if (_freeRing.TryEnqueue(array))
                 {
                     enqueued++;
                 }
             }
+
+            Array.Sort(newAddrs);
+            _sortedPinnedAddresses = newAddrs;
         }
 
         if (enqueued > 0)
@@ -365,14 +531,26 @@ internal sealed class SlabBucket : IDisposable
             byte[]? arr = cache.Cache[i];
             if (arr != null)
             {
+                IntPtr addr;
+                unsafe
+                {
+                    fixed (byte* p = arr)
+                    {
+                        addr = (IntPtr)p;
+                    }
+                }
+
                 // Also check for deferred shrink here
-                if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK())
+                if (Volatile.Read(ref _pendingShrinkCount) > 0 && this.TRY_DEFERRED_SHRINK(addr))
                 {
                     cache.Cache[i] = null;
                     continue;
                 }
 
-                _ = _freeRing.TryEnqueue(arr);
+                if (_freeRing.TryEnqueue(arr))
+                {
+                    cache.Cache[i] = null;
+                }
             }
         }
 
@@ -387,7 +565,7 @@ internal sealed class SlabBucket : IDisposable
     private BufferPoolState CreateSnapshot()
     {
         int total = Volatile.Read(ref _totalBuffers);
-        int rented = Volatile.Read(ref _rentedCount);
+        int rented = this.GetTotalRented();
 
         return new BufferPoolState
         {
@@ -398,7 +576,7 @@ internal sealed class SlabBucket : IDisposable
             Shrinks = Volatile.Read(ref _shrinks),
             BufferSize = _segmentSize,
             Misses = Volatile.Read(ref _misses),
-            Hits = Volatile.Read(ref _hits)
+            Hits = this.GetTotalHits()
         };
     }
 
@@ -424,7 +602,8 @@ internal sealed class SlabBucket : IDisposable
             }
 
             _ = _freeRing.DrainAll();
-            _threadCache.Dispose();
+            _allCaches.Clear();
+            _sortedPinnedAddresses = Array.Empty<IntPtr>();
             _disposed = true;
         }
     }
@@ -558,4 +737,3 @@ internal sealed class SlabBucket : IDisposable
 
     #endregion Inner: Ring Buffer
 }
-

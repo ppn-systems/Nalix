@@ -24,14 +24,17 @@ namespace Nalix.Framework.Memory.Internal.Buffers;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class SlabPoolManager : IDisposable
 {
-    /// <summary>Sorted bucket sizes for binary search lookup.</summary>
-    private volatile int[] _sortedSizes;
+    /// <summary>Buckets sorted by size for binary search lookup.</summary>
+    private volatile SlabBucket[] _sortedBuckets;
 
     /// <summary>Buckets keyed by segment size.</summary>
     private readonly Dictionary<int, SlabBucket> _buckets;
 
     private readonly Lock _lock;
-    private volatile int[]? _fastBucketMap; // Fast lookup for sizes up to 4KB
+
+    /// <summary>Fast lookup for sizes up to 4KB with 16-byte granularity (indices 0..256).</summary>
+    private volatile SlabBucket?[]? _fastBucketMap;
+
     private bool _disposed;
 
     /// <summary>Occurs when any bucket managed by this pool manager needs to resize.</summary>
@@ -42,7 +45,7 @@ internal sealed class SlabPoolManager : IDisposable
     /// </summary>
     public SlabPoolManager()
     {
-        _sortedSizes = [];
+        _sortedBuckets = Array.Empty<SlabBucket>();
         _buckets = new(8);
         _lock = new();
     }
@@ -69,15 +72,14 @@ internal sealed class SlabPoolManager : IDisposable
         }
     }
 
-
     /// <summary>
     /// Rents a standalone array of at least the requested size.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryRent(int size, [NotNullWhen(true)] out byte[]? array)
     {
-        int bucketSize = this.FindBestFitSize(size);
-        if (bucketSize > 0 && _buckets.TryGetValue(bucketSize, out SlabBucket? bucket))
+        SlabBucket? bucket = this.FindBucket(size);
+        if (bucket != null)
         {
             array = bucket.Rent();
             return true;
@@ -98,7 +100,8 @@ internal sealed class SlabPoolManager : IDisposable
             return false;
         }
 
-        if (_buckets.TryGetValue(array.Length, out SlabBucket? bucket))
+        SlabBucket? bucket = this.FindExactBucket(array.Length);
+        if (bucket != null)
         {
             bucket.Return(array);
             return true;
@@ -106,7 +109,6 @@ internal sealed class SlabPoolManager : IDisposable
 
         return false;
     }
-
 
     /// <summary>
     /// Gets all registered buckets for diagnostics and reporting.
@@ -120,45 +122,95 @@ internal sealed class SlabPoolManager : IDisposable
     }
 
     /// <summary>
-    /// Finds the smallest bucket size that can satisfy the requested size.
+    /// Finds the smallest bucket that can satisfy the requested size.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int FindBestFitSize(int size)
+    private SlabBucket? FindBucket(int size)
     {
         if (size <= 0)
         {
-            return 0;
+            return null;
         }
 
-        // O(1) Fast path for Abstractions small sizes
-        if (size <= 4096)
+        SlabBucket?[]? map = _fastBucketMap;
+        if (size <= 4096 && map != null)
         {
-            return _fastBucketMap?[size] ?? this.BINARY_SEARCH_BEST_FIT(size);
+            int index = (size + 15) >> 4;
+            return map[index];
         }
 
-        return this.BINARY_SEARCH_BEST_FIT(size);
+        return this.BinarySearchBestFit(size);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int BINARY_SEARCH_BEST_FIT(int size) => BINARY_SEARCH_INTERNAL(_sortedSizes, size);
+    private SlabBucket? BinarySearchBestFit(int size)
+    {
+        SlabBucket[] buckets = _sortedBuckets;
+        if (buckets.Length == 0)
+        {
+            return null;
+        }
+
+        int low = 0;
+        int high = buckets.Length - 1;
+        while (low <= high)
+        {
+            int mid = low + ((high - low) >> 1);
+            int midSize = buckets[mid].SegmentSize;
+            if (midSize == size)
+            {
+                return buckets[mid];
+            }
+            if (midSize < size)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid - 1;
+            }
+        }
+
+        return low < buckets.Length ? buckets[low] : null;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int BINARY_SEARCH_INTERNAL(int[] keys, int size)
+    private SlabBucket? FindExactBucket(int size)
     {
-        if (keys.Length == 0)
+        SlabBucket?[]? map = _fastBucketMap;
+        if (size <= 4096 && map != null)
         {
-            return 0;
+            int index = (size + 15) >> 4;
+            SlabBucket? bucket = map[index];
+            if (bucket != null && bucket.SegmentSize == size)
+            {
+                return bucket;
+            }
+            return null;
         }
 
-        int index = Array.BinarySearch(keys, size);
-        if (index >= 0)
+        SlabBucket[] buckets = _sortedBuckets;
+        int low = 0;
+        int high = buckets.Length - 1;
+        while (low <= high)
         {
-            return keys[index]; // Exact match
+            int mid = low + ((high - low) >> 1);
+            int midSize = buckets[mid].SegmentSize;
+            if (midSize == size)
+            {
+                return buckets[mid];
+            }
+            if (midSize < size)
+            {
+                low = mid + 1;
+            }
+            else
+            {
+                high = mid - 1;
+            }
         }
 
-        // ~index is the insertion point — first key greater than size
-        index = ~index;
-        return index < keys.Length ? keys[index] : 0;
+        return null;
     }
 
     /// <summary>
@@ -167,25 +219,40 @@ internal sealed class SlabPoolManager : IDisposable
     /// </summary>
     private void RebuildSortedKeys()
     {
-        int[] keys = new int[_buckets.Count];
+        SlabBucket[] sorted = new SlabBucket[_buckets.Count];
         int i = 0;
-        foreach (int k in _buckets.Keys)
+        foreach (SlabBucket b in _buckets.Values)
         {
-            keys[i++] = k;
+            sorted[i++] = b;
         }
 
-        Array.Sort(keys);
+        Array.Sort(sorted, static (a, b) => a.SegmentSize.CompareTo(b.SegmentSize));
 
-        // Build fast lookup map for sizes 0..4096 using local keys
-        // to avoid field read issues during concurrent rebuilds.
-        int[] map = new int[4097];
-        for (int s = 1; s <= 4096; s++)
+        // Build fast lookup map for sizes 0..4096 with 16-byte granularity (indices 0..256)
+        SlabBucket?[] map = new SlabBucket?[257];
+        for (int idx = 0; idx <= 256; idx++)
         {
-            map[s] = BINARY_SEARCH_INTERNAL(keys, s);
+            int targetSize = idx << 4;
+            if (targetSize == 0)
+            {
+                continue;
+            }
+
+            // Find the best fit for this targetSize
+            SlabBucket? bestFit = null;
+            foreach (SlabBucket b in sorted)
+            {
+                if (b.SegmentSize >= targetSize)
+                {
+                    bestFit = b;
+                    break;
+                }
+            }
+            map[idx] = bestFit;
         }
 
         // Atomic assignment — volatile ensures visibility and order
-        _sortedSizes = keys;
+        _sortedBuckets = sorted;
         _fastBucketMap = map;
     }
 
@@ -210,7 +277,8 @@ internal sealed class SlabPoolManager : IDisposable
             }
 
             _buckets.Clear();
-            _sortedSizes = [];
+            _sortedBuckets = Array.Empty<SlabBucket>();
+            _fastBucketMap = null;
             _disposed = true;
         }
     }
