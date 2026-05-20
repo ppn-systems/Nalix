@@ -4,7 +4,7 @@ This directory contains per-project Claude Code skills for the **Nalix** ecosyst
 
 ## Dependency Graph
 
-```
+```plaintext
 Level 0 : Nalix.Abstractions          (zero deps)
 Level 0 : Nalix.Analyzers             (Roslyn only, netstandard2.0)
 Level 0 : Nalix.Analyzers.CodeFixes   (→ Analyzers)
@@ -50,5 +50,11 @@ Level 5 : Nalix.SDK.Native            → SDK (Native AOT, C ABI)
 - **XML docs:** Required on all public APIs.
 - **Hot paths:** Zero-allocation. Use `Span<T>`, pooled buffers, no LINQ.
 - **Security:** Never invent crypto. Reuse existing primitives. Never log secrets.
+
+## Build & Test
+
 - **Build:** `dotnet build src/Nalix.sln --configuration Release`
 - **Test:** `dotnet test tests/Nalix.Tests.sln --configuration Release`
+- Run build and test only if files under `src/` or `tests/` were modified.
+- Changes outside `src/` and `tests/` do not require validation.
+- Do not run build or test for documentation, workflow, repository metadata, or other non-source changes.
