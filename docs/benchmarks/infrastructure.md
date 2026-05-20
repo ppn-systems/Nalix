@@ -27,8 +27,8 @@ The `ConnectionGuard` manages connection rate-limiting and connection-level IP b
 
 | Method | Mean | Error | StdDev | Allocated |
 | :--- | ---: | ---: | ---: | ---: |
-| **TryAccept_Allowed** | **205.38 ns** | 5.689 ns | 6.323 ns | 80 B |
-| **TryAccept_Blacklisted** | **66.33 ns** | 1.430 ns | 1.647 ns | 0 B |
+| **TryAccept_Allowed** | **122.73 ns** | 5.689 ns | 6.323 ns | 0 B |
+| **TryAccept_Blacklisted** | **65.35 ns** | 1.430 ns | 1.647 ns | 0 B |
 
 ### Behind the design
 
