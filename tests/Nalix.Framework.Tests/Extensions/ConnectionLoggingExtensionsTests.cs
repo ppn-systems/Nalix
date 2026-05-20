@@ -100,6 +100,10 @@ public sealed class ConnectionLoggingExtensionsTests
         public long LastPingTime => 0;
         public INetworkEndpoint NetworkEndpoint { get; } = new TestEndpoint();
         public IObjectMap<string, object> Attributes { get; } = new ObjectMap<string, object>();
+
+        private System.Collections.Concurrent.ConcurrentDictionary<ushort, object>? _rateLimitCache;
+        public System.Collections.Concurrent.ConcurrentDictionary<ushort, object> RateLimitCache => _rateLimitCache ??= new();
+
         public IConnection.ITransport TCP { get; } = new TestTransport();
         public IConnection.ITransport UDP { get; } = new TestTransport();
         public Bytes32 Secret { get; set; } = Bytes32.Zero;

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
@@ -49,9 +50,10 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
     private int _isDispatchingClose; // 0=no, 1=yes
 
-    private IObjectMap<string, object>? _attributes;
     private IConnection.ITransport? _tcp;
     private SlidingWindow? _udpReplayWindow;
+    private IObjectMap<string, object>? _attributes;
+    private ConcurrentDictionary<ushort, object>? _rateLimitCache;
 
     private volatile bool _disposed;
 
@@ -137,6 +139,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
 
     /// <inheritdoc />
     public IObjectMap<string, object> Attributes => _attributes ??= ObjectMap<string, object>.Rent();
+
+    /// <inheritdoc />
+    public ConcurrentDictionary<ushort, object> RateLimitCache => _rateLimitCache ??= new();
 
     /// <inheritdoc />
     public int ErrorCount => _errorCount;
