@@ -99,18 +99,25 @@ public sealed class ConnectionGuardTests
             guard.TryAccept(endpoint);
         }
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        // Since limit is 1000, calling 100 times will be allowed
-        for (int i = 0; i < 100; i++)
+        long diff = -1;
+        System.Threading.Thread thread = new(() =>
         {
-            guard.TryAccept(endpoint);
-        }
-        long after = GC.GetAllocatedBytesForCurrentThread();
-        long diff = after - before;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            // Since limit is 1000, calling 100 times will be allowed
+            for (int i = 0; i < 100; i++)
+            {
+                guard.TryAccept(endpoint);
+            }
+            long after = GC.GetAllocatedBytesForCurrentThread();
+            diff = after - before;
+        });
+
+        thread.Start();
+        thread.Join();
 
         diff.Should().Be(0);
     }
@@ -128,17 +135,24 @@ public sealed class ConnectionGuardTests
             guard.TryAccept(endpoint);
         }
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-
-        long before = GC.GetAllocatedBytesForCurrentThread();
-        for (int i = 0; i < 100; i++)
+        long diff = -1;
+        System.Threading.Thread thread = new(() =>
         {
-            guard.TryAccept(endpoint);
-        }
-        long after = GC.GetAllocatedBytesForCurrentThread();
-        long diff = after - before;
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            for (int i = 0; i < 100; i++)
+            {
+                guard.TryAccept(endpoint);
+            }
+            long after = GC.GetAllocatedBytesForCurrentThread();
+            diff = after - before;
+        });
+
+        thread.Start();
+        thread.Join();
 
         diff.Should().Be(0);
     }
