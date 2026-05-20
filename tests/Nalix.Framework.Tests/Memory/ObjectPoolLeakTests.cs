@@ -28,8 +28,12 @@ public class ObjectPoolLeakTests
             var type = typeof(Nalix.Framework.Memory.Objects.ObjectPoolManager).Assembly
                 .GetType("Nalix.Framework.Memory.Internal.PoolTypes.ThreadLocalCache`1")
                 ?.MakeGenericType(typeof(T));
-            var method = type?.GetMethod("TryPop", BindingFlags.Public | BindingFlags.Static);
-            return method?.Invoke(null, null);
+            FieldInfo? valueField = type?.GetField("t_value", BindingFlags.NonPublic | BindingFlags.Static);
+            FieldInfo? ownerField = type?.GetField("t_owner", BindingFlags.NonPublic | BindingFlags.Static);
+            object? value = valueField?.GetValue(null);
+            valueField?.SetValue(null, null);
+            ownerField?.SetValue(null, null);
+            return value;
         }
         catch
         {
@@ -101,4 +105,3 @@ public class ObjectPoolLeakTests
         CreationThrowingPoolable.ShouldThrowInNextAction = false;
     }
 }
-
