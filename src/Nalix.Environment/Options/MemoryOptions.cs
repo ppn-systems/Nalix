@@ -25,6 +25,18 @@ public sealed partial class MemoryOptions : ConfigurationLoader
     public int MaxWriterCapacity { get; set; } = 128 * 1024 * 1024;
 
     /// <summary>
+    /// Gets or sets the maximum number of slots in the thread-local lease cache.
+    /// </summary>
+    [IniComment("Max slots for BufferLease thread-local cache (default 8)")]
+    public int BufferLeaseThreadLocalCacheMaxSlots { get; set; } = 8;
+
+    /// <summary>
+    /// Gets or sets the size of the shared lease pool. Must be a power of 2.
+    /// </summary>
+    [IniComment("Shared pool size for BufferLease, must be a power of 2 (default 64)")]
+    public int BufferLeaseSharedPoolSize { get; set; } = 64;
+
+    /// <summary>
     /// Validates the configuration options.
     /// </summary>
     public void Validate()
@@ -32,6 +44,16 @@ public sealed partial class MemoryOptions : ConfigurationLoader
         if (this.MaxWriterCapacity < 1024)
         {
             throw new ValidationException($"MaxWriterCapacity must be at least 1024 bytes.");
+        }
+
+        if (this.BufferLeaseThreadLocalCacheMaxSlots < 0)
+        {
+            throw new ValidationException($"BufferLeaseThreadLocalCacheMaxSlots cannot be negative.");
+        }
+
+        if (this.BufferLeaseSharedPoolSize <= 0 || (this.BufferLeaseSharedPoolSize & (this.BufferLeaseSharedPoolSize - 1)) != 0)
+        {
+            throw new ValidationException($"BufferLeaseSharedPoolSize must be a positive power of 2.");
         }
     }
 }

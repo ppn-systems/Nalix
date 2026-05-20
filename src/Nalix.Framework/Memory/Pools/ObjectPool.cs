@@ -131,7 +131,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     internal (T obj, bool isCacheHit) GetWithInfoFast<T>(int id) where T : IPoolable, new()
     {
         // Try the fast-path thread-local slot first
-        T? localObj = ThreadLocalCache<T>.TryPop();
+        T? localObj = ThreadLocalCache<T>.TryPop(this);
         if (localObj != null)
         {
             _ = Interlocked.Increment(ref _totalRented);
@@ -168,7 +168,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         obj.ResetForPool();
 
         // Try the fast-path thread-local slot first
-        if (ThreadLocalCache<T>.TryPush(obj))
+        if (ThreadLocalCache<T>.TryPush(this, obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);
             return;
@@ -550,4 +550,3 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
         };
     }
 }
-

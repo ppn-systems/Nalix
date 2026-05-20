@@ -13,6 +13,7 @@ using Nalix.Codec.DataFrames;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Environment.Memory;
+using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -104,6 +105,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _state.HasCustomBufferPoolManager = true;
         InstanceManager.Instance.Register<BufferPoolManager>(manager);
         BufferLease.ByteArrayPool.Configure(manager);
+        BufferLease.Configure(ConfigurationManager.Instance.Get<MemoryOptions>());
 
         return this;
     }
@@ -517,6 +519,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         {
             InstanceManager.Instance.Register<BufferPoolManager>(manager);
             BufferLease.ByteArrayPool.Configure(manager);
+            BufferLease.Configure(ConfigurationManager.Instance.Get<MemoryOptions>());
         }
         catch
         {

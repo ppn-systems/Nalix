@@ -10,35 +10,35 @@ Comparison of memory acquisition strategies across various sizes (64 B, 1 KB, an
 
 | Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **RawAllocation** | **19.07 ns** | 0.544 ns | 0.582 ns | 19.81 ns | 1.00 | 88 B | 1.00 |
-| **ArrayPool_Shared** | **10.50 ns** | 0.267 ns | 0.308 ns | 10.94 ns | 0.55 | 0 B | 0.00 |
-| **BufferPoolManager_RentReturn** | **48.89 ns** | 1.907 ns | 2.196 ns | 51.30 ns | 2.57 | 0 B | 0.00 |
-| **BufferLease_RentDispose** | **113.93 ns** | 5.300 ns | 5.891 ns | 124.09 ns | 5.98 | 32 B | 0.36 |
+| **RawAllocation** | **12.621 ns** | 0.8303 ns | 0.9562 ns | 13.511 ns | 1.01 | 88 B | 1.00 |
+| **ArrayPool_Shared** | **6.651 ns** | 0.0902 ns | 0.1039 ns | 6.830 ns | 0.53 | 0 B | 0.00 |
+| **BufferPoolManager_RentReturn** | **24.164 ns** | 0.0915 ns | 0.0979 ns | 24.316 ns | 1.93 | 0 B | 0.00 |
+| **BufferLease_RentDispose** | **41.924 ns** | 0.3952 ns | 0.4551 ns | 42.584 ns | 3.34 | 0 B | 0.00 |
 
 ### Buffer Allocation Metrics (Size = 1024)
 
 | Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **RawAllocation** | **202.23 ns** | 5.746 ns | 6.387 ns | 212.76 ns | 1.00 | 1048 B | 1.00 |
-| **ArrayPool_Shared** | **10.48 ns** | 0.279 ns | 0.321 ns | 10.83 ns | 0.05 | 0 B | 0.00 |
-| **BufferPoolManager_RentReturn** | **49.99 ns** | 0.989 ns | 1.099 ns | 50.83 ns | 0.25 | 0 B | 0.00 |
-| **BufferLease_RentDispose** | **114.38 ns** | 3.450 ns | 3.972 ns | 119.47 ns | 0.57 | 32 B | 0.03 |
+| **RawAllocation** | **106.740 ns** | 4.1566 ns | 4.7868 ns | 111.626 ns | 1.00 | 1048 B | 1.00 |
+| **ArrayPool_Shared** | **6.674 ns** | 0.1748 ns | 0.2013 ns | 6.949 ns | 0.06 | 0 B | 0.00 |
+| **BufferPoolManager_RentReturn** | **24.385 ns** | 0.3877 ns | 0.4464 ns | 25.064 ns | 0.23 | 0 B | 0.00 |
+| **BufferLease_RentDispose** | **43.809 ns** | 0.8965 ns | 1.0324 ns | 45.152 ns | 0.41 | 0 B | 0.00 |
 
 ### Buffer Allocation Metrics (Size = 16384)
 
 | Method | Mean | Error | StdDev | P95 | Ratio | Allocated | Alloc Ratio |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **RawAllocation** | **2,856.89 ns** | 32.918 ns | 36.589 ns | 2,913.87 ns | 1.000 | 16408 B | 1.000 |
-| **ArrayPool_Shared** | **10.87 ns** | 0.121 ns | 0.139 ns | 11.03 ns | 0.004 | 0 B | 0.000 |
-| **BufferPoolManager_RentReturn** | **56.79 ns** | 1.219 ns | 1.305 ns | 58.22 ns | 0.020 | 0 B | 0.000 |
-| **BufferLease_RentDispose** | **336.11 ns** | 20.650 ns | 23.780 ns | 368.53 ns | 0.118 | 32 B | 0.002 |
+| **RawAllocation** | **1,502.927 ns** | 98.8369 ns | 113.8207 ns | 1,596.779 ns | 1.006 | 16408 B | 1.00 |
+| **ArrayPool_Shared** | **6.626 ns** | 0.1032 ns | 0.1147 ns | 6.859 ns | 0.004 | 0 B | 0.00 |
+| **BufferPoolManager_RentReturn** | **24.543 ns** | 0.2909 ns | 0.2987 ns | 25.069 ns | 0.016 | 0 B | 0.00 |
+| **BufferLease_RentDispose** | **106.207 ns** | 0.4275 ns | 0.4752 ns | 106.834 ns | 0.071 | 0 B | 0.00 |
 
 ### Why Nalix Memory?
 
 - **Tiered Buffer Rental**: The `BufferPoolManager` optimizes throughput using a multi-path strategy:
     - **Fast Path**: Common block sizes (256B to 4KB) bypass expensive lookup logic via direct array index resolutions.
     - **Adaptive Allocation**: Large allocations fall back to standard `ArrayPool<byte>.Shared` to prevent memory spikes, but return memory cleanly to avoid fragmentation.
-- **Lease Safety**: `BufferLease` provides a scope-bound, auto-disposed rental wrapper. Despite a small allocation overhead of 32 bytes for the lease reference wrapper, it ensures memory leaks are completely prevented in high-complexity code.
+- **Lease Safety**: `BufferLease` provides a scope-bound, auto-disposed rental wrapper that keeps rent/return usage allocation-free in the latest benchmark while reducing leak risk in high-complexity code.
 - **Trimming & Stability**: The system implements automated shrinking policies to safely return unused memory blocks to the operating system during long periods of low load, keeping the application footprint minimal.
 
 ---

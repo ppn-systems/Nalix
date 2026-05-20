@@ -59,6 +59,21 @@ public sealed partial class MemoryTests
     }
 
     [Fact]
+    public void Get_ObjectPoolThreadLocalCache_IsIsolatedPerPoolInstance()
+    {
+        ObjectPool sourcePool = new(defaultMaxItemsPerType: 4);
+        TestPoolable source = sourcePool.Get<TestPoolable>();
+        source.Value = 123;
+        sourcePool.Return(source);
+
+        ObjectPool targetPool = new(defaultMaxItemsPerType: 4);
+        TestPoolable target = targetPool.Get<TestPoolable>();
+
+        Assert.NotSame(source, target);
+        Assert.Equal(1, targetPool.TotalCreatedCount);
+    }
+
+    [Fact]
     public void Get_TypedObjectPoolStateUnderTest_UsesTypedOperations()
     {
         ObjectPool pool = new(defaultMaxItemsPerType: 4);
@@ -132,7 +147,6 @@ public sealed partial class MemoryTests
         Assert.Equal("count", exception.ParamName);
     }
 }
-
 
 
 

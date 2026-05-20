@@ -41,8 +41,8 @@ public sealed class BufferPoolManager : IBufferPoolManager
     private readonly (int BufferSize, double Allocation)[] _bufferAllocations;
     private readonly ArrayPool<byte> _fallbackArrayPool = ArrayPool<byte>.Shared;
 
-    private readonly ConditionalWeakTable<byte[], BufferSentinel> _activeSentinels = new();
     private ConcurrentBag<WeakReference<BufferSentinel>> _sentinelTracker = new();
+    private readonly ConditionalWeakTable<byte[], BufferSentinel> _activeSentinels = new();
 
     /// <summary>
     /// Slab-based buffer pool manager using standalone pinned arrays.
@@ -58,7 +58,6 @@ public sealed class BufferPoolManager : IBufferPoolManager
     private bool _isInitialized;
     private long _cachedMemoryBudget;
     private long _lastBudgetComputeTime;
-    private long _totalBytesRented;
     private long _peakMemoryUsage;
     private readonly DateTime _startTime;
 
@@ -266,8 +265,6 @@ public sealed class BufferPoolManager : IBufferPoolManager
         }
 
     ReturnArray:
-        _ = Interlocked.Add(ref _totalBytesRented, array.Length);
-
         if (_config.EnableBufferLeakDetection)
         {
             BufferSentinel sentinel = new(array, _config.EnableBufferLeakStackTrace);
@@ -400,7 +397,7 @@ public sealed class BufferPoolManager : IBufferPoolManager
         writer.WriteNumber("BucketCacheMisses", _suitablePoolSizeCacheMisses);
         writer.WriteNumber("PeakMemoryUsageBytes", _peakMemoryUsage);
         writer.WriteNumber("ThroughputMBps", (DateTime.UtcNow - _startTime).TotalSeconds > 0
-            ? (double)Volatile.Read(ref _totalBytesRented) / (1024 * 1024) / (DateTime.UtcNow - _startTime).TotalSeconds
+            ? (double)this.GetTotalBytesRented() / (1024 * 1024) / (DateTime.UtcNow - _startTime).TotalSeconds
             : 0);
 
         writer.WriteStartObject("ShrinkSafetyPolicy");
@@ -793,6 +790,17 @@ public sealed class BufferPoolManager : IBufferPoolManager
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private long GetTotalBytesRented()
+    {
+        long total = 0;
+        foreach (SlabBucket bucket in _slabPool.GetAllBuckets())
+        {
+            total += bucket.GetTotalBytesRented();
+        }
+        return total;
+    }
+
     #endregion Private: Allocation & Trimming
 
     #region Private: Resize Strategies
@@ -1109,7 +1117,7 @@ public sealed class BufferPoolManager : IBufferPoolManager
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Shrinks        : {totalShrinks}");
 
         double uptimeSec = (DateTime.UtcNow - _startTime).TotalSeconds;
-        double throughputMBps = uptimeSec > 0 ? (double)Volatile.Read(ref _totalBytesRented) / (1024 * 1024) / uptimeSec : 0;
+        double throughputMBps = uptimeSec > 0 ? (double)this.GetTotalBytesRented() / (1024 * 1024) / uptimeSec : 0;
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Throughput           : {throughputMBps:F2} MB/s");
 
         long currentMem = 0;

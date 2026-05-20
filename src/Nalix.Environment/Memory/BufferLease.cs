@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Environment.Options;
 
 namespace Nalix.Environment.Memory;
 
@@ -17,29 +18,37 @@ namespace Nalix.Environment.Memory;
 /// </summary>
 [DebuggerNonUserCode]
 [DebuggerDisplay("BufferLease Start={_start}, Len={Length}, Cap={Capacity}, Detached={_detached != 0}")]
-public sealed class BufferLease : IBufferLease
+public sealed class BufferLease : IBufferLease, IPoolable
 {
     #region Static
 
-    private const int PoolMaxSize = 8192;
+    private sealed class ThreadLocalLeaseCache
+    {
+        public readonly int MaxSlots;
+        public readonly BufferLease?[] Slots;
+        public int Count;
 
-    // Atomic counter for the free-list depth. ConcurrentStack.Count is O(n) — it
-    // traverses the entire linked list on every call. At millions of Dispose() calls
-    // per second this is a major hidden cost. The counter trades perfect accuracy
-    // for O(1) per-call overhead; off-by-one races are harmless (we just keep or
-    // drop one extra shell).
-    private static int s_freeListCount;
+        public ThreadLocalLeaseCache(int maxSlots)
+        {
+            MaxSlots = maxSlots;
+            Slots = new BufferLease?[maxSlots];
+        }
+    }
+
+    [ThreadStatic]
+    [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
+    private static ThreadLocalLeaseCache? t_localCache;
+
+    private static int s_sharedPoolSize = 64;
+    private static int s_sharedPoolMask = 63;
+    private static int s_threadLocalMaxSlots = 8;
+    private static BufferLease?[] s_sharedPool = new BufferLease?[64];
 
     /// <summary>
     /// Gets or sets whether BufferLease pooling is enabled. Default is true.
     /// Primarily used for testing to avoid A-B-A reuse issues.
     /// </summary>
     internal static bool IsPoolingEnabled { get; set; } = true;
-
-    // Tight lock-free free-list for BufferLease instance reuse.
-    // ConcurrentStack.TryPop/Push = single CAS operation — ~2ns vs ObjectPoolManager's
-    // ~150ns (3x Interlocked + ConcurrentDict + DateTime + string write per call).
-    private static readonly System.Collections.Concurrent.ConcurrentStack<BufferLease> s_freeList = new();
 
     /// <summary>
     /// Pops a lease shell from the free-list (or creates a new one).
@@ -54,12 +63,40 @@ public sealed class BufferLease : IBufferLease
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BufferLease RentLeaseShell()
     {
-        if (IsPoolingEnabled && s_freeList.TryPop(out BufferLease? cached))
+        if (!IsPoolingEnabled)
         {
-            _ = Interlocked.Decrement(ref s_freeListCount);
-            return cached;
+            return new BufferLease();
         }
 
+        // 1. Try thread-local cache
+        ThreadLocalLeaseCache? cache = t_localCache;
+        if (cache is not null && cache.Count > 0)
+        {
+            int idx = --cache.Count;
+            BufferLease? lease = cache.Slots[idx];
+            cache.Slots[idx] = null;
+            if (lease is not null)
+            {
+                return lease;
+            }
+        }
+
+        // 2. Try shared pool with striped index
+        int threadId = System.Environment.CurrentManagedThreadId;
+        int mask = s_sharedPoolMask;
+        int startIdx = threadId & mask;
+
+        for (int i = 0; i < s_sharedPoolSize; i++)
+        {
+            int idx = (startIdx + i) & mask;
+            BufferLease? lease = s_sharedPool[idx];
+            if (lease is not null && Interlocked.Exchange(ref s_sharedPool[idx], null) is { } rented)
+            {
+                return rented;
+            }
+        }
+
+        // 3. Fallback to allocation
         return new BufferLease();
     }
 
@@ -98,9 +135,24 @@ public sealed class BufferLease : IBufferLease
     }
 
     /// <summary>
+    /// Configures the BufferLease pools from memory options.
+    /// </summary>
+    public static void Configure(MemoryOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        s_threadLocalMaxSlots = options.BufferLeaseThreadLocalCacheMaxSlots;
+
+        int poolSize = options.BufferLeaseSharedPoolSize;
+        s_sharedPoolSize = poolSize;
+        s_sharedPoolMask = poolSize - 1;
+        s_sharedPool = new BufferLease?[poolSize];
+    }
+
+    /// <summary>
     /// Maximum buffer size for stack allocation in <see cref="CopyFrom"/>. Larger buffers will be heap-allocated.
     /// </summary>
-    public static readonly int StackAllocThreshold = 512; // 1KB threshold for stackalloc in CopyFrom
+    public static readonly int StackAllocThreshold = 512;
 
     #endregion Static
 
@@ -153,8 +205,11 @@ public sealed class BufferLease : IBufferLease
         this.ZeroOnDispose = zeroOnDispose;
     }
 
-    /// <summary>Resets all fields before returning to the free-list.</summary>
-    private void ResetForFreeList()
+    /// <summary>
+    /// Satisfies <see cref="IPoolable"/> contract. Internal pooling uses the free-list path;
+    /// external callers should not need to call this directly.
+    /// </summary>
+    public void ResetForPool()
     {
         _buffer = null;
         _start = 0;
@@ -164,12 +219,6 @@ public sealed class BufferLease : IBufferLease
         this.ZeroOnDispose = false;
         this.IsReliable = false;
     }
-
-    /// <summary>
-    /// Satisfies <see cref="IPoolable"/> contract. Internal pooling uses the free-list path;
-    /// external callers should not need to call this directly.
-    /// </summary>
-    public void ResetForPool() => this.ResetForFreeList();
 
 #if DEBUG
     /// <summary>
@@ -363,12 +412,32 @@ public sealed class BufferLease : IBufferLease
             ByteArrayPool.Return(buf);
         }
 
-        // Return the BufferLease shell to the free-list for reuse (single CAS, zero alloc).
-        if (IsPoolingEnabled && Volatile.Read(ref s_freeListCount) < PoolMaxSize)
+        // Return the BufferLease shell to the free-list for reuse.
+        if (IsPoolingEnabled)
         {
-            this.ResetForFreeList();
-            s_freeList.Push(this);
-            _ = Interlocked.Increment(ref s_freeListCount);
+            this.ResetForPool();
+
+            // 1. Try push to Thread-Local Cache
+            ThreadLocalLeaseCache cache = t_localCache ??= new ThreadLocalLeaseCache(s_threadLocalMaxSlots);
+            if (cache.Count < cache.MaxSlots)
+            {
+                cache.Slots[cache.Count++] = this;
+                return;
+            }
+
+            // 2. Try push to Shared Pool with striped index
+            int threadId = System.Environment.CurrentManagedThreadId;
+            int mask = s_sharedPoolMask;
+            int startIdx = threadId & mask;
+
+            for (int i = 0; i < s_sharedPoolSize; i++)
+            {
+                int idx = (startIdx + i) & mask;
+                if (s_sharedPool[idx] is null && Interlocked.CompareExchange(ref s_sharedPool[idx], this, null) is null)
+                {
+                    return;
+                }
+            }
         }
     }
 
