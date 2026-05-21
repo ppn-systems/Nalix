@@ -146,4 +146,18 @@ public interface ITaskManager : IDisposable, IReportable
     /// <param name="ct">Optional cancellation token.</param>
     /// <returns>A task that completes when all workers in the group have finished.</returns>
     Task WaitGroupAsync(string group, CancellationToken ct = default);
+
+    /// <summary>
+    /// Queues a lightweight fire-and-forget background task using the system ThreadPool,
+    /// bypassing full worker registration and Snowflake tracking to achieve near zero allocations
+    /// while still tracking overall execution and error metrics.
+    /// </summary>
+    /// <typeparam name="TState">The type of the state object passed to the work delegate.</typeparam>
+    /// <param name="name">The name of the background task.</param>
+    /// <param name="work">The delegate representing the task's work.</param>
+    /// <param name="state">The state object to pass to the work delegate.</param>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null, empty, or whitespace.</exception>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="work"/> is null.</exception>
+    /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
+    void ScheduleWorker<TState>(string name, Action<TState> work, TState state);
 }

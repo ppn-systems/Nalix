@@ -320,6 +320,47 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ScheduleWorker<TState>(string name, Action<TState> work, TState state)
+    {
+        ArgumentNullException.ThrowIfNull(work, nameof(work));
+        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
+
+        _ = Interlocked.Increment(ref _workerExecutionCount);
+
+        _ = ThreadPool.UnsafeQueueUserWorkItem(static tuple =>
+        {
+            (Action<TState>? w, TState? s, string? n, TaskManager? m) = tuple;
+            try
+            {
+                _ = Interlocked.Increment(ref m._runningWorkerCount);
+                int currentRunning = Volatile.Read(ref m._runningWorkerCount);
+                int peak = Volatile.Read(ref m._peakRunningWorkerCount);
+                while (currentRunning > peak)
+                {
+                    _ = Interlocked.CompareExchange(ref m._peakRunningWorkerCount, currentRunning, peak);
+                    peak = Volatile.Read(ref m._peakRunningWorkerCount);
+                }
+
+                w(s);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                _ = Interlocked.Increment(ref m._workerErrorCount);
+                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+                {
+                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new { Name = n, Exception = ex.Message });
+                }
+            }
+            finally
+            {
+                _ = Interlocked.Decrement(ref m._runningWorkerCount);
+            }
+        }, (work, state, name, this), preferLocal: false);
+    }
+
+    /// <inheritdoc/>
     /// <exception cref="ArgumentException">Thrown if the name is null or whitespace.</exception>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the interval is less than or equal to zero.</exception>
     /// <exception cref="ArgumentNullException">Thrown if the work delegate is null.</exception>
@@ -681,9 +722,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryGetWorker(
-        ISnowflake id,
-        [NotNullWhen(true)] out IWorkerHandle? handle)
+    public bool TryGetWorker(ISnowflake id, [NotNullWhen(true)] out IWorkerHandle? handle)
     {
         if (_workers.TryGetValue(id, out WorkerState? st)) { handle = st; return true; }
         handle = null;
@@ -693,8 +732,7 @@ public sealed partial class TaskManager : ITaskManager
     /// <inheritdoc/>
     [Pure]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool TryGetRecurring(string name,
-        [NotNullWhen(true)] out IRecurringHandle? handle)
+    public bool TryGetRecurring(string name, [NotNullWhen(true)] out IRecurringHandle? handle)
     {
         if (_recurring.TryGetValue(name, out RecurringState? st)) { handle = st; return true; }
         handle = null;
