@@ -106,6 +106,13 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader
     public int MinimumKeepObjects { get; set; } = 8;
 
     /// <summary>
+    /// Number of instances to preallocate when a new object type pool is created.
+    /// </summary>
+    [IniComment("Objects to warm up for each newly created type pool (default 0 = lazy allocation)")]
+    [Range(0, 1_000_000, ErrorMessage = "DefaultPreallocate must be between 0 and 1,000,000.")]
+    public int DefaultPreallocate { get; set; } = 0;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="ValidationException">

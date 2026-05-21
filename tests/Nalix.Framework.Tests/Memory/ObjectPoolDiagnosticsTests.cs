@@ -2,6 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Threading;
+using System.Diagnostics;
+using System.Reflection;
+using Nalix.Framework;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
@@ -95,6 +98,92 @@ public sealed class ObjectPoolDiagnosticsTests
         }
     }
 
+    [Fact]
+    public void PerformHealthCheck_LifetimeMissesWithoutNewTraffic_DoesNotSpamPoolFailure()
+    {
+        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
+        ObjectPoolManager manager = new(config);
+        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
+
+        for (int i = 0; i < 32; i++)
+        {
+            _ = manager.Get<HealthCheckPoolable>();
+        }
+
+        Assert.Equal(1, manager.PerformHealthCheck());
+        Assert.Equal(1, collector.Events.Count);
+
+        Assert.Equal(0, manager.PerformHealthCheck());
+        Assert.Equal(1, collector.Events.Count);
+    }
+
+    [Fact]
+    public void PerformHealthCheck_LowSampleMisses_AreWarmingNotUnhealthy()
+    {
+        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
+        ObjectPoolManager manager = new(config);
+        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
+
+        for (int i = 0; i < 6; i++)
+        {
+            _ = manager.Get<HealthCheckPoolable>();
+        }
+
+        Assert.Equal(0, manager.PerformHealthCheck());
+        Assert.Empty(collector.Events);
+        Assert.Equal("Warming", manager.GetTypeInfo<HealthCheckPoolable>()["Status"]);
+    }
+
+    [Fact]
+    public void PerformHealthCheck_HealthyWindowAfterFailure_ResetsStatus()
+    {
+        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
+        ObjectPoolManager manager = new(config);
+        List<HealthCheckPoolable> rented = new(32);
+
+        for (int i = 0; i < 32; i++)
+        {
+            rented.Add(manager.Get<HealthCheckPoolable>());
+        }
+
+        Assert.Equal(1, manager.PerformHealthCheck());
+
+        for (int i = 0; i < rented.Count; i++)
+        {
+            manager.Return(rented[i]);
+        }
+
+        for (int i = 0; i < 32; i++)
+        {
+            HealthCheckPoolable item = manager.Get<HealthCheckPoolable>();
+            manager.Return(item);
+        }
+
+        Assert.Equal(0, manager.PerformHealthCheck());
+        Assert.Equal("OK", manager.GetTypeInfo<HealthCheckPoolable>()["Status"]);
+    }
+
+    [Fact]
+    public void PerformHealthCheck_PoolFailurePayload_UsesReadableGenericTypeName()
+    {
+        ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
+        ObjectPoolManager manager = new(config);
+        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
+
+        for (int i = 0; i < 32; i++)
+        {
+            _ = manager.Get<GenericPoolable<HealthCheckPoolable>>();
+        }
+
+        Assert.Equal(1, manager.PerformHealthCheck());
+        object payload = Assert.Single(collector.Events);
+
+        Assert.Equal("GenericPoolable<HealthCheckPoolable>", DiagnosticCollector.GetProperty<string>(payload, "Type"));
+        Assert.Equal(32L, DiagnosticCollector.GetProperty<long>(payload, "WindowGets"));
+        Assert.Equal(32L, DiagnosticCollector.GetProperty<long>(payload, "WindowMisses"));
+        Assert.Equal("CapacityPressure", DiagnosticCollector.GetProperty<string>(payload, "Reason"));
+    }
+
 
 #if DEBUG
     [Fact]
@@ -124,12 +213,49 @@ public sealed class ObjectPoolDiagnosticsTests
     [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private void CreateLeak(ObjectPoolManager manager) => _ = manager.Get<TestPoolable>();
 #endif
+
+    private sealed class DiagnosticCollector : IObserver<KeyValuePair<string, object?>>, IDisposable
+    {
+        private readonly string _eventName;
+        private IDisposable? _listenerSubscription;
+
+        public DiagnosticCollector(string eventName)
+        {
+            _eventName = eventName;
+            _listenerSubscription = DiagnosticsEvents.Source.Subscribe(this, name => name == _eventName);
+        }
+
+        public List<object> Events { get; } = [];
+
+        public void OnNext(KeyValuePair<string, object?> value)
+        {
+            if (value.Key == _eventName && value.Value != null)
+            {
+                this.Events.Add(value.Value);
+            }
+        }
+
+        public void OnCompleted()
+        {
+        }
+
+        public void OnError(Exception error)
+        {
+        }
+
+        public void Dispose()
+        {
+            _listenerSubscription?.Dispose();
+        }
+
+        public static T GetProperty<T>(object payload, string name)
+        {
+            PropertyInfo property = payload.GetType().GetProperty(name)
+                ?? throw new InvalidOperationException($"Missing diagnostic property '{name}'.");
+            return Assert.IsType<T>(property.GetValue(payload));
+        }
+    }
 }
-
-
-
-
-
 
 
 
