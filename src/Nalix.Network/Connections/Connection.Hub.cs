@@ -17,7 +17,7 @@ using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
-using Nalix.Network.Internal.Manager;
+using Nalix.Network.Internal.Connections;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Connections;

@@ -21,7 +21,7 @@ internal interface ITransportEventSink
     /// (or fully assembled fragment) is ready for processing.
     /// <para>
     /// The implementation performs throttle checks (Layer 1) and
-    /// creates <see cref="Connections.ConnectionEventArgs"/> for
+    /// creates <see cref="Network.Connections.ConnectionEventArgs"/> for
     /// dispatch via <see cref="AsyncCallback"/>.
     /// </para>
     /// </summary>

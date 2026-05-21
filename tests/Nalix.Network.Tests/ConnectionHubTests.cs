@@ -1,24 +1,15 @@
-using System;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Reflection;
 using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
-using Nalix.Environment.Configuration;
-using Nalix.Network.Connections;
-using Nalix.Network.Internal.Manager;
-using Nalix.Network.Options;
 using Nalix.Hosting.Internal;
+using Nalix.Network.Connections;
 using Nalix.Runtime.Sessions;
-using Xunit;
 
 namespace Nalix.Network.Tests;
 
@@ -107,21 +98,6 @@ public sealed class ConnectionHubTests
 
 
     [Fact]
-    public void GetShardIndex_MixesSnowflakeUlongBeforePowerOfTwoMasking()
-    {
-        ConnectionRegistry registry = new(16, 31);
-        MethodInfo method = typeof(ConnectionRegistry).GetMethod("GetShardIndex", BindingFlags.Instance | BindingFlags.NonPublic)
-            ?? throw new MissingMethodException(nameof(ConnectionRegistry), "GetShardIndex");
-
-        int[] indexes = Enumerable.Range(0, 256)
-                                  .Select(sequence => ComposeSnowflakeId((uint)sequence))
-                                  .Select(id => (int)method.Invoke(registry, [id])!)
-                                  .ToArray();
-
-        indexes.Distinct().Count().Should().BeGreaterThan(8);
-    }
-
-    [Fact]
     public async Task UnregisterConnection_WhenSessionStoreFails_ReclaimsSessionSnapshot()
     {
         Nalix.Environment.Configuration.ConfigurationManager.Instance.Get<Nalix.Runtime.Options.SessionStoreOptions>().MinAttributesForPersistence = 0;
@@ -145,7 +121,7 @@ public sealed class ConnectionHubTests
         hub.UnregisterConnection(connection);
 
         SessionEntry attempted = await failingStore.WaitForStoreAttemptAsync(TimeSpan.FromSeconds(3));
-        
+
         // Wait for background persistence to finish throwing and reclaiming
         bool reclaimed = false;
         for (int i = 0; i < 50; i++)

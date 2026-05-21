@@ -9,10 +9,12 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Networking;
 
+#if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
 
-namespace Nalix.Network.Internal.Manager;
+namespace Nalix.Network.Internal.Connections;
 
 /// <summary>
 /// High-performance thread-safe registry for connection storage, sharding, and fast lookups.
