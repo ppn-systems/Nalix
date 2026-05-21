@@ -46,6 +46,7 @@ internal sealed class ConnectionRegistry
         _shardCount = Math.Max(1, shardCount);
         _isPowerOfTwoShardCount = (_shardCount & (_shardCount - 1)) == 0;
         _shardMask = _shardCount - 1;
+
         _shards = new ConcurrentDictionary<ulong, IConnection>[_shardCount];
         _endpointIndex = new ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>>(StringComparer.Ordinal);
 

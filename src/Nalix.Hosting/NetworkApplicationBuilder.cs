@@ -19,7 +19,6 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
-using Nalix.Network.RateLimiting;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
@@ -95,14 +94,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.HasCustomConnectionHub = true;
         InstanceManager.Instance.Register<IConnectionHub>(connectionHub);
-        return this;
-    }
-
-    /// <inheritdoc />
-    public INetworkApplicationBuilder ConfigureConnectionTerminator(IConnectionTerminator connectionTerminator)
-    {
-        ArgumentNullException.ThrowIfNull(connectionTerminator);
-        InstanceManager.Instance.Register<IConnectionTerminator>(connectionTerminator);
         return this;
     }
 
@@ -307,7 +298,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             this.EnsureConnectionHubRegistered();
             this.EnsureSessionServiceRegistered();
             this.EnsureBufferPoolManagerRegistered();
-            this.EnsureConnectionTerminatorRegistered();
 
             if (_state.IdentityCertificatePath is not null)
             {
@@ -518,23 +508,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             hub.Dispose();
             throw;
         }
-    }
-
-    private void EnsureConnectionTerminatorRegistered()
-    {
-        IConnectionTerminator? terminator = InstanceManager.Instance.GetExistingInstance<IConnectionTerminator>();
-
-        if (terminator is null)
-        {
-            IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-                ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
-
-            terminator = new ConnectionTerminator(hub, _state.Logger);
-            InstanceManager.Instance.Register<IConnectionTerminator>(terminator);
-        }
-
-        ConnectionGuard limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
-        _ = limiter.WithEndpointTermination(key => terminator.CloseEndpoint(key, "Force disconnected by endpoint policy."));
     }
 
     private void EnsureSessionServiceRegistered()
