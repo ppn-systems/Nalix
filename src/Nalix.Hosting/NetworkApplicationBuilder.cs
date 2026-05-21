@@ -56,6 +56,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         _state = state ?? throw new ArgumentNullException(nameof(state));
         _ = this.AddHandler<SessionHandlers>()
                 .AddHandler<HandshakeHandlers>()
+                .AddHandler<KeyExchangeHandlers>()
                 .AddHandler<SystemControlHandlers>();
     }
 

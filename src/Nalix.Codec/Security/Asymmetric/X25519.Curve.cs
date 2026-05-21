@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Codec.Security.Primitives;
 
 namespace Nalix.Codec.Security.Asymmetric;
 
@@ -143,6 +144,9 @@ internal static class Curve25519
 
         // 5. Serialize directly to output
         x2.ToBytes(output);
+
+        // 6. Zeroize scalar copy
+        MemorySecurity.ZeroMemory(e);
     }
 
     #endregion Core Montgomery ladder

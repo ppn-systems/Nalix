@@ -14,6 +14,7 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Extensions;
@@ -89,16 +90,29 @@ public sealed class SessionHandlers
             return;
         }
 
-        Span<byte> tokenBytes = stackalloc byte[8];
+        Span<byte> messageBytes = stackalloc byte[16];
         Span<byte> expectedProofBytes = stackalloc byte[32];
 
-        BinaryPrimitives.WriteUInt64LittleEndian(tokenBytes, packet.SessionToken);
+        BinaryPrimitives.WriteUInt64LittleEndian(messageBytes, packet.SessionToken);
 
-        // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption to prevent DoS.
-        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), tokenBytes, expectedProofBytes);
+        long currentWindow = Clock.UnixSecondsNow() / 30;
+        bool validProof = false;
 
-        Bytes32 expectedProof = new(expectedProofBytes);
-        if (packet.Proof != expectedProof)
+        // SEC-16: Validate proof-of-possession (MAC) using the stored session secret and sliding window.
+        // We compute HMAC-Keccak256(Secret, SessionToken || TimeWindow) for t-1, t, t+1.
+        for (long w = currentWindow - 1; w <= currentWindow + 1; w++)
+        {
+            BinaryPrimitives.WriteInt64LittleEndian(messageBytes[8..], w);
+            HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), messageBytes, expectedProofBytes);
+
+            if (packet.Proof == new Bytes32(expectedProofBytes))
+            {
+                validProof = true;
+                break;
+            }
+        }
+
+        if (!validProof)
         {
             session.Return();
             await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
@@ -138,10 +152,11 @@ public sealed class SessionHandlers
         ulong newToken = context.Connection.ID.ToUInt64();
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
 
-        Span<byte> newTokenBytes = stackalloc byte[8];
-        _ = newTokenSnowflake.TryWriteBytes(newTokenBytes);
+        Span<byte> responseMessageBytes = stackalloc byte[16];
+        _ = newTokenSnowflake.TryWriteBytes(responseMessageBytes);
+        BinaryPrimitives.WriteInt64LittleEndian(responseMessageBytes[8..], Clock.UnixSecondsNow() / 30);
         Span<byte> responseProofBytes = stackalloc byte[32];
-        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), newTokenBytes, responseProofBytes);
+        HmacKeccak256.Compute(session.Snapshot.Secret.AsSpan(), responseMessageBytes, responseProofBytes);
 
         using PacketScope<SessionResume> lease = PacketFactory<SessionResume>.Acquire();
         SessionResume ack = lease.Value;
