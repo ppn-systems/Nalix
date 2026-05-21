@@ -179,7 +179,7 @@ public abstract class PacketBase<
         if (Interlocked.Exchange(ref _isRented, 0) == 1)
         {
             // Reset state before returning to pool
-            this.ResetForPool();
+            // this.ResetForPool(); - Pool managers typically call ResetForPool after renting, but if needed, it can be called here before returning.
 
             // Use the concrete type TSelf to call the fast generic Return path.
             PacketRegistry.Manager?.Return((TSelf)this);

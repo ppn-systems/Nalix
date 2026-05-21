@@ -22,7 +22,7 @@ using Nalix.Environment.Options;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Connections;
+using Nalix.Network.Internal.Abstractions;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Options;
 
@@ -52,13 +52,15 @@ namespace Nalix.Network.Internal.Transport;
 /// starving legitimate connections.</para>
 /// </summary>
 /// <param name="socket">The accepted, connected socket.</param>
+/// <param name="owner"></param>
+/// <param name="sink"></param>
 /// <param name="logger"></param>
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("{ToString()}")]
 [ExcludeFromCodeCoverage]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed partial class SocketConnection(Socket socket, ILogger? logger = null) : IDisposable
+internal sealed partial class SocketConnection(Socket socket, IConnection owner, ITransportEventSink sink, ILogger? logger = null) : IDisposable
 {
     #region Const
 
@@ -68,29 +70,24 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
     #region Fields
 
+    private readonly Lock _sendLock = new();
     private readonly Socket _socket = socket;
     private readonly ILogger? _logger = logger;
-    private FragmentAssembler? _fragmentAssembler;
-    private readonly Lock _sendLock = new();
+    private readonly IConnection _owner = owner ?? throw new ArgumentNullException(nameof(owner));
+    private readonly ITransportEventSink _sink = sink ?? throw new ArgumentNullException(nameof(sink));
 
     /// <summary>
     /// PooledReceiveContext wraps a PooledSocketAsyncEventArgs from ObjectPoolManager.
     /// One context per connection; returned to the pool on Dispose.
     /// </summary>
-
-    private IConnection _sender = null!;
-    private IConnectEventArgs _cachedArgs = null!;
     private PooledSocketReceiveContext _recvCtx = null!;
-    private EventHandler<IConnectEventArgs>? _callbackPost;
-    private EventHandler<IConnectEventArgs>? _callbackClose;
-    private EventHandler<IConnectEventArgs>? _callbackProcess;
 
     private int _packetCount;
     private long _bytesSent;
     private long _bytesReceived;
     private int _openFragmentStreams;
-    private int _pendingProcessCallbacks;
     private Task? _receiveLoopTask;
+    private FragmentAssembler? _fragmentAssembler;
 
     /// <summary>
     /// 0 = no, 1 = yes
@@ -116,7 +113,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(GET_RECEIVE_BUFFER_SIZE());
 
     private int _bufferDataLength;
-    private string _endpointString = "<unknown>";
+    private readonly string _endpointString = FORMAT_ENDPOINT(socket);
 
     #endregion Fields
 
@@ -154,67 +151,14 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     } = Clock.UnixMillisecondsNow();
 
     /// <summary>
-    /// Returns the number of packets dispatched to <see cref="AsyncCallback"/>
-    /// that have not yet been processed by the protocol handler.
-    /// Used by diagnostics and the per-connection throttle check.
+    /// Returns the event sink (bridge) wired to this transport.
+    /// Used by <see cref="Connections.Connection"/> to delegate throttle queries.
     /// </summary>
-    public int PendingPackets => Volatile.Read(ref _pendingProcessCallbacks);
+    internal ITransportEventSink? EventSink => _sink;
 
     #endregion Properties
 
     #region Public Methods
-
-    /// <summary>
-    /// Registers the callbacks and state required before sending or receiving.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="args"></param>
-    /// <param name="close"></param>
-    /// <param name="post"></param>
-    /// <param name="process"></param>
-    /// <exception cref="ArgumentNullException"></exception>
-    [MemberNotNull(nameof(_sender), nameof(_cachedArgs))]
-    public void SetCallback(
-        IConnection sender,
-        IConnectEventArgs args,
-        EventHandler<IConnectEventArgs>? close,
-        EventHandler<IConnectEventArgs>? post,
-        EventHandler<IConnectEventArgs>? process)
-    {
-        _callbackPost = post;
-        _callbackClose = close;
-        _callbackProcess = process;
-
-        _sender = sender ?? throw new ArgumentNullException(nameof(sender));
-        _cachedArgs = args ?? throw new ArgumentNullException(nameof(args));
-
-        // Cache endpoint string now while socket is alive — avoids ObjectDisposedException later.
-        _endpointString = FORMAT_ENDPOINT(_socket);
-
-#if DEBUG
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
-        {
-            _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(SetCallback)}] configured ep={_endpointString}");
-        }
-#endif
-    }
-
-    /// <summary>
-    /// Called by the protocol handler (via the wrapped process callback in Connection.cs)
-    /// after each packet has been fully processed. Decrements the per-connection pending
-    /// counter so the receive loop can accept the next packet from this connection.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void ReleasePendingPacket() => Interlocked.Decrement(ref _pendingProcessCallbacks);
-
-#if DEBUG
-    /// <summary>
-    /// Manually increments the pending callback counter.
-    /// Used by test injection paths to respect the connection throttle.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal void IncrementPendingCallbacks() => Interlocked.Increment(ref _pendingProcessCallbacks);
-#endif
 
     /// <summary>
     /// Starts the SAEA-backed receive loop exactly once.
@@ -227,14 +171,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         "Reliability", "CA2016:Forward the 'CancellationToken' parameter to methods", Justification = "<Pending>")]
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
-        this.THROW_IF_NOT_CONFIGURED();
-
         if (Volatile.Read(ref _disposed) != 0)
         {
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] skip — already disposed ep={_endpointString}");
+                _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] skip \u2014 already disposed ep={_endpointString}");
             }
 #endif
             return;
@@ -246,7 +188,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] skip — already started ep={_endpointString}");
+                _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] skip \u2014 already started ep={_endpointString}");
             }
 #endif
             return;
@@ -283,7 +225,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         => $"FramedSocketConnection (Client={_endpointString}, " +
            $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
            $"UpTime={this.Uptime}ms, LastPing={this.LastPingTime}ms, " +
-           $"PendingPackets={this.PendingPackets}, " +
+           $"PendingPackets={(_sink as SocketEventBridge)?.PendingPackets ?? 0}, " +
            $"OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
 
     #endregion Dispose Pattern
@@ -378,9 +320,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                         {
                             Interlocked.Add(ref _openFragmentStreams, -evicted);
 
-                            _sender?.ThrottledWarn(
+                            _owner?.ThrottledWarn(
                                 _logger, "socket.receive.evicted_fragments",
-                                $"evicted {evicted} stale fragment stream(s) ep={_sender.NetworkEndpoint.Address}");
+                                $"evicted {evicted} stale fragment stream(s) ep={_owner.NetworkEndpoint.Address}");
                         }
                     }
 
@@ -420,7 +362,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             {
                 _logger.LogTrace(
                     $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"ended (peer closed/shutdown) ep={_sender?.NetworkEndpoint.Address}");
+                    $"ended (peer closed/shutdown) ep={_owner?.NetworkEndpoint.Address}");
             }
         }
         catch (OperationCanceledException)
@@ -429,7 +371,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             {
                 _logger.LogTrace(
                     $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"cancelled ep={_sender?.NetworkEndpoint.Address}");
+                    $"cancelled ep={_owner?.NetworkEndpoint.Address}");
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -438,9 +380,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             {
                 Exception e = (ex as AggregateException)?.Flatten() ?? ex;
 
-                _sender.ThrottledError(
+                _owner.ThrottledError(
                     _logger, "socket.receive.faulted",
-                    $"faulted ep={_sender.NetworkEndpoint.Address}", e);
+                    $"faulted ep={_owner.NetworkEndpoint.Address}", e);
             }
 
         }
@@ -513,24 +455,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
     private void PROCESS_FRAME_FROM_BUFFER(int offset, int payloadLen)
     {
         /*
-         * [Layer 1 Throttle Check]
-         * We check the number of packets already in the pipeline for this connection.
-         * If the connection is flooding, we drop the packet immediately at the 
-         * transport layer to protect the ThreadPool from exhaustion.
-         */
-        int pending = Interlocked.Increment(ref _pendingProcessCallbacks);
-        if (pending > s_opts.MaxPerConnectionPendingPackets)
-        {
-            Interlocked.Decrement(ref _pendingProcessCallbacks);
-
-            _sender?.ThrottledWarn(
-                _logger, "socket.receive.throttle",
-                $"throttle triggered — packet dropped ep={_endpointString}");
-
-            return;
-        }
-
-        /*
          * [Buffer Leasing]
          * We copy the frame into a new BufferLease so the receive loop can 
          * continue reading from the socket without waiting for the protocol 
@@ -541,7 +465,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
         ReadOnlySpan<byte> payloadSpan = lease.Span;
 
-        // 2. Fragment Assembly Check.
+        // Fragment Assembly Check.
         // A FragmentHeader is 8 bytes. If it's a fragment, we handle it separately.
         if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
         {
@@ -549,7 +473,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         }
         else
         {
-            // 3. Regular Frame Path.
             // Safety: The application protocol (FramePipeline) requires a 10-byte header.
             // If the payload is too small, it's a malformed packet that would cause OOB reads.
             if (payloadLen < PacketConstants.HeaderSize)
@@ -561,21 +484,27 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                                      $"length={payloadLen} (too small for protocol header) ep={_endpointString}");
                 }
 #endif
-                Interlocked.Decrement(ref _pendingProcessCallbacks);
                 lease.Dispose();
                 return;
             }
 
-            ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
-
-            args.Initialize(lease, _cachedArgs.Connection);
+            // Regular Frame Path.
+            // Update last-ping timestamp at the transport layer so the timing
+            // wheel sees activity even if the sink drops the frame.
             this.LastPingTime = Clock.UnixMillisecondsNow();
 
-            if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
+            // Delegate throttle check, event-args creation, and async dispatch
+            // to the event sink (SocketEventBridge).
+            if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
             {
-                Interlocked.Decrement(ref _pendingProcessCallbacks);
-                args.Dispose();
-                lease.Dispose();   // ← was missing: return buffer to pool when queue is full
+#if DEBUG
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                {
+                    _logger.LogWarning($"[NW.{nameof(SocketConnection)}] frame-dropped " +
+                                     $"length={payloadLen} ep={_endpointString}");
+                }
+#endif
+                lease.Dispose();
             }
         }
 
@@ -583,8 +512,8 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug(
-                $"[NW.{nameof(SocketConnection)}] handoff-to-cache " +
-                $"payload={payloadLen} pending={pending} ep={_endpointString}");
+                $"[NW.{nameof(SocketConnection)}] handoff-to-sink " +
+                $"payload={payloadLen} ep={_endpointString}");
         }
 #endif
     }
@@ -606,7 +535,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 if (openStreams > s_opts.MaxPerConnectionOpenFragmentStreams)
                 {
                     Interlocked.Decrement(ref _openFragmentStreams);
-                    Interlocked.Decrement(ref _pendingProcessCallbacks);
 
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
@@ -635,18 +563,12 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                 assembledLease.IsReliable = true;
                 assembledLease.Retain();
 
-
-                ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
-
                 this.LastPingTime = Clock.UnixMillisecondsNow();
-                args.Initialize(assembledLease, _cachedArgs.Connection);
 
-                if (!AsyncCallback.Invoke(_callbackProcess, _sender, args, releasePendingPacketOnCompletion: true))
+                if (!_sink.OnFrameReceived(_owner, assembledLease, isReliable: true))
                 {
-                    Interlocked.Decrement(ref _pendingProcessCallbacks);
                     Interlocked.Decrement(ref _openFragmentStreams);
-                    args.Dispose();
-                    assembledLease.Dispose();  // ← was missing: must dispose on both paths
+                    assembledLease.Dispose();
                 }
                 else
                 {
@@ -660,13 +582,9 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
                     assembledLease.Dispose();
                 }
             }
-            else
+            else if (streamEvicted)
             {
-                Interlocked.Decrement(ref _pendingProcessCallbacks);
-                if (streamEvicted)
-                {
-                    Interlocked.Decrement(ref _openFragmentStreams);
-                }
+                Interlocked.Decrement(ref _openFragmentStreams);
             }
         }
         finally
@@ -810,10 +728,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
 
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void WRITE_FRAME_HEADER(
-        Span<byte> buffer,
-        ushort totalLength,
-        ReadOnlySpan<byte> payload)
+    private static void WRITE_FRAME_HEADER(Span<byte> buffer, ushort totalLength, ReadOnlySpan<byte> payload)
     {
         BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
         payload.CopyTo(buffer[HeaderSize..]);
@@ -929,13 +844,7 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
             return;
         }
 
-        ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(_cachedArgs.Connection);
-
-        if (!AsyncCallback.InvokeHighPriority(_callbackClose, _sender, args))
-        {
-            args.Dispose();
-        }
+        _sink.OnTransportClosed(_owner);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -944,14 +853,6 @@ internal sealed partial class SocketConnection(Socket socket, ILogger? logger = 
         if (Interlocked.Exchange(ref _cancelSignaled, 1) != 0)
         {
             return;
-        }
-    }
-
-    private void THROW_IF_NOT_CONFIGURED()
-    {
-        if (_sender is null || _cachedArgs is null)
-        {
-            throw new InternalErrorException("SetCallback must be called before use");
         }
     }
 

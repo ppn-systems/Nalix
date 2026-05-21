@@ -117,6 +117,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     {
         ArgumentNullException.ThrowIfNull(manager);
         InstanceManager.Instance.Register<ObjectPoolManager>(manager);
+
+        BufferLease.Configure(manager);
         PacketRegistry.Configure(manager);
 
         return this;
