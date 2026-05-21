@@ -15,7 +15,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
-using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
@@ -225,7 +224,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 long nowTicks = now.Ticks;
                 long windowTicks = _logSuppressWindowTicks;
 
-                if (TRY_ACQUIRE_LOG_SLOT(
+                if (ThrottledLogGate.TryAcquire(
                         ref entry.LastRejectLogTicks,
                         ref entry.SuppressedRejectCount,
                         nowTicks, windowTicks,
@@ -299,7 +298,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             long nowTicks = now.Ticks;
             long windowTicks = _logSuppressWindowTicks;
 
-            if (TRY_ACQUIRE_LOG_SLOT(
+            if (ThrottledLogGate.TryAcquire(
                     ref closedEntry.LastClosedLogTicks,
                     ref closedEntry.SuppressedClosedCount,
                     nowTicks, windowTicks,
@@ -394,31 +393,25 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     [MethodImpl(MethodImplOptions.NoInlining)]
     private void SCHEDULE_ENDPOINT_TERMINATION(SocketEndpoint key)
     {
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+        // Use ScheduleBackgroundWork with a static lambda and a ValueTuple state to avoid closure allocations
+        InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
             name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
-            group: $"{TaskNaming.Tags.Worker}",
-            work: async (_, _) =>
+            work: static state =>
             {
+                (ConnectionGuard? guard, SocketEndpoint endpointKey) = state;
                 try
                 {
-                    this.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(key);
+                    guard.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(endpointKey);
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    if (guard._logger != null && guard._logger.IsEnabled(LogLevel.Error))
                     {
-                        _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={key.Address}");
+                        guard._logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={endpointKey.Address}");
                     }
                 }
-
-                await Task.CompletedTask.ConfigureAwait(false);
             },
-            options: new WorkerOptions
-            {
-                Tag = TaskNaming.Tags.Net,
-                RetainFor = TimeSpan.Zero,
-                IdType = SnowflakeType.System,
-            }
+            state: (Guard: this, Key: key)
         );
     }
 
@@ -457,7 +450,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             // 4. Runtime ban active -> Reject (Trusted proxies are never banned at runtime)
             if (!isTrustedProxy && bannedUntil > nowTicks)
             {
-                this.LOG_BANNED_THROTTLED(entry, key, new DateTime(bannedUntil, DateTimeKind.Utc));
+                ThrottledLogGate.LogBanned(_logger, entry, key.Address, nowTicks, _logSuppressWindowTicks, new DateTime(bannedUntil, DateTimeKind.Utc));
 
                 int currentConns;
                 bool lockTaken = false;
@@ -506,7 +499,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                         _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntilTicks);
                         _banRepository.MarkDirty();
 
-                        this.LOG_DDOS_DETECTED_THROTTLED(entry, key);
+                        ThrottledLogGate.LogDDoSDetected(_logger, entry, key.Address, nowTicks, _logSuppressWindowTicks);
                         shouldTerminateEndpoint = true;
 
                         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
@@ -674,115 +667,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
 
         return true;
-    }
-
-    private void LOG_DDOS_DETECTED_THROTTLED(ConnectionLimitEntry entry, SocketEndpoint key)
-    {
-        long nowTicks = Clock.NowUtc().Ticks;
-        long lastTicks = Interlocked.Read(ref entry.LastDDoSLogTicks);
-        long windowTicks = _logSuppressWindowTicks;
-
-        if (nowTicks - lastTicks < windowTicks)
-        {
-            // Đang trong suppress window -> chỉ đếm, không log
-            _ = Interlocked.Increment(ref entry.SuppressedDDoSCount);
-            return;
-        }
-
-        // Cố gắng "giành quyền" log bằng CAS
-        // Chỉ 1 thread thắng, các thread khác tiếp tục bị suppress
-        if (Interlocked.CompareExchange(
-                ref entry.LastDDoSLogTicks, nowTicks, lastTicks) != lastTicks)
-        {
-            _ = Interlocked.Increment(ref entry.SuppressedDDoSCount);
-            return;
-        }
-
-        // Thread thắng CAS -> log summary
-        long suppressed = Interlocked.Exchange(ref entry.SuppressedDDoSCount, 0);
-
-        if (suppressed > 0)
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning(
-                    $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address} " +
-                    $"(+{suppressed} suppressed-in-last={_protectionConfig.DDoSLogSuppressWindow.TotalSeconds:F0}s)");
-            }
-        }
-        else
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-            {
-                _logger.LogWarning(
-                    $"[NW.{nameof(ConnectionGuard)}] DDoS-detected ip={key.Address}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Generic throttled logger. Suppresses repeated messages within a time window.
-    /// Returns true nếu nên log (thread thắng CAS), false nếu bị suppress.
-    /// </summary>
-    /// <param name="lastLogTicks"></param>
-    /// <param name="suppressedCount"></param>
-    /// <param name="nowTicks"></param>
-    /// <param name="windowTicks"></param>
-    /// <param name="suppressed"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TRY_ACQUIRE_LOG_SLOT(ref long lastLogTicks, ref long suppressedCount, long nowTicks, long windowTicks, out long suppressed)
-    {
-        long lastTicks = Interlocked.Read(ref lastLogTicks);
-
-        if (nowTicks - lastTicks >= windowTicks)
-        {
-            // Try to acquire log slot
-            if (Interlocked.CompareExchange(
-                    ref lastLogTicks, nowTicks, lastTicks) == lastTicks)
-            {
-                suppressed = Interlocked.Exchange(ref suppressedCount, 0);
-                return true;
-            }
-        }
-
-        // Inside window or CAS failed -> suppress
-        _ = Interlocked.Increment(ref suppressedCount);
-
-        long newLastTicks = Interlocked.Read(ref lastLogTicks);
-        if (nowTicks - newLastTicks >= windowTicks)
-        {
-            // Window expired during our increment, retry once
-            if (Interlocked.CompareExchange(
-                    ref lastLogTicks, nowTicks, newLastTicks) == newLastTicks)
-            {
-                suppressed = Interlocked.Exchange(ref suppressedCount, 0);
-                return true;
-            }
-        }
-
-        suppressed = 0;
-        return false;
-    }
-
-    private void LOG_BANNED_THROTTLED(ConnectionLimitEntry entry, SocketEndpoint key, DateTime bannedUntil)
-    {
-        long nowTicks = Clock.NowUtc().Ticks;
-        long windowTicks = _logSuppressWindowTicks;
-
-        if (TRY_ACQUIRE_LOG_SLOT(
-                ref entry.LastRejectLogTicks,
-                ref entry.SuppressedRejectCount,
-                nowTicks, windowTicks,
-                out long suppressed))
-        {
-            string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
-
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-            {
-                _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] banned-reject ip={key.Address} " +
-                                 $"until={bannedUntil:HH:mm:ss}{suffix}");
-            }
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
