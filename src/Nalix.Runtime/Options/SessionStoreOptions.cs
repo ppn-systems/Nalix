@@ -17,9 +17,9 @@ public sealed partial class SessionStoreOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the time-to-live for resumable sessions.
     /// </summary>
-    [IniComment("Duration after which an inactive session expires (default 30m)")]
+    [IniComment("Duration after which an inactive session expires (default 1m)")]
     [Required(ErrorMessage = "SessionTtl is required.")]
-    public TimeSpan SessionTtl { get; set; } = TimeSpan.FromMinutes(30);
+    public TimeSpan SessionTtl { get; set; } = TimeSpan.FromMinutes(1);
 
     /// <summary>
     /// Gets or sets the minimum number of attributes in the ObjectMap required to persist a session.

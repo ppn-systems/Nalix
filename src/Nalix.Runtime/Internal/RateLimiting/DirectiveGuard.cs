@@ -94,7 +94,14 @@ internal static class DirectiveGuard
         }
 
         GuardState created = new();
-        attributes.Add(ConnectionAttributes.InboundDirectiveGuardLock, created);
+        try
+        {
+            attributes.Add(ConnectionAttributes.InboundDirectiveGuardLock, created);
+        }
+        catch (ArgumentException)
+        {
+            // Ignore race condition and fallback to TryGetValue below
+        }
 
         if (attributes.TryGetValue(ConnectionAttributes.InboundDirectiveGuardLock, out existing) &&
             existing is GuardState resolved)
