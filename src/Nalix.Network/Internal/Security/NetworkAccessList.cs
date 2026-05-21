@@ -85,7 +85,11 @@ internal sealed class NetworkAccessList
 
     private void LoadTrustedProxies(TrustedProxyOptions proxyConfig)
     {
-        string path = Path.Combine(Directories.DataDirectory, proxyConfig.StoreFileName);
+        string path = Path.Combine(Directories.ConfigurationDirectory, proxyConfig.StoreFileName);
+        if (!File.Exists(path))
+        {
+            NetworkStore.Save(path, System.Array.Empty<IPNetwork>(), "Trusted Proxies");
+        }
         List<IPNetwork> networks = NetworkStore.Load(path, proxyConfig.MaxTrustedProxies);
 
         foreach (IPNetwork network in networks)
@@ -106,7 +110,11 @@ internal sealed class NetworkAccessList
             return;
         }
 
-        string path = Path.Combine(Directories.DataDirectory, blacklistConfig.StoreFileName);
+        string path = Path.Combine(Directories.ConfigurationDirectory, blacklistConfig.StoreFileName);
+        if (!File.Exists(path))
+        {
+            NetworkStore.Save(path, System.Array.Empty<IPNetwork>(), "Blacklisted IPs/Networks");
+        }
         List<IPNetwork> networks = NetworkStore.Load(path, blacklistConfig.MaxBlacklistedIps);
 
         foreach (IPNetwork network in networks)

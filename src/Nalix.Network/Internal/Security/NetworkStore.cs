@@ -82,7 +82,25 @@ internal static class NetworkStore
             {
                 writer.WriteLine($"# Nalix Connection Guard - {listDescription}");
                 writer.WriteLine($"# Generated at {DateTime.UtcNow:u}");
-                writer.WriteLine("# Each non-empty line must be a valid IP address or CIDR range (e.g. 192.168.1.0/24).");
+                writer.WriteLine("# Each non-empty line must be a valid IP address or CIDR range.");
+                writer.WriteLine("# Empty lines and lines starting with '#' are ignored.");
+                writer.WriteLine("#");
+                writer.WriteLine("# Format examples:");
+                writer.WriteLine("# ------------------------------------------------------------------------------");
+                writer.WriteLine("# 1. Single IPv4 Address (Equivalent to /32):");
+                writer.WriteLine("#    192.168.1.15");
+                writer.WriteLine("#");
+                writer.WriteLine("# 2. IPv4 CIDR Range:");
+                writer.WriteLine("#    192.168.1.0/24      # Matches 192.168.1.0 to 192.168.1.255 (256 IPs)");
+                writer.WriteLine("#    172.16.0.0/16       # Matches 172.16.0.0 to 172.16.255.255 (65k IPs)");
+                writer.WriteLine("#    10.0.0.0/8          # Matches 10.0.0.0 to 10.255.255.255 (16.7M IPs)");
+                writer.WriteLine("#");
+                writer.WriteLine("# 3. Single IPv6 Address (Equivalent to /128):");
+                writer.WriteLine("#    2001:db8::1");
+                writer.WriteLine("#");
+                writer.WriteLine("# 4. IPv6 CIDR Range:");
+                writer.WriteLine("#    2001:db8::/32       # Matches all IPv6 addresses starting with 2001:db8");
+                writer.WriteLine("# ------------------------------------------------------------------------------");
                 writer.WriteLine();
 
                 foreach (IPNetwork network in records)

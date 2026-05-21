@@ -51,7 +51,6 @@ internal class Startup
                 o.BufferSize = 1024 * 64;
                 o.Backlog = 1024;
             })
-            .Configure<ConnectionHubOptions>(o => o.MaxConnections = -1)
             .Configure<ConnectionQuotaOptions>(o =>
             {
                 o.MaxConnectionsPerIpAddress = 10_000;
