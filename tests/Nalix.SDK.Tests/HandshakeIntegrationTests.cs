@@ -1,10 +1,12 @@
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Codec.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Hosting;
 using Nalix.Runtime.Handlers;
+using Nalix.Runtime.Sessions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -125,6 +127,8 @@ public sealed class HandshakeIntegrationTests : IDisposable
         {
             opt.MinAttributesForPersistence = 0;
         });
+        TrackingSessionStore store = new();
+        builder.ConfigureSessionStore(store);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
 
         using NetworkApplication app = builder.Build();
@@ -151,9 +155,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
             await session.DisconnectAsync();
 
-            // Give the server a moment to background-persist the session snapshot
-            // after it detects the TCP disconnect.
-            await Task.Delay(200);
+            await store.WaitForStoreAsync(token, TimeSpan.FromSeconds(3));
 
             // 2. Second connect (should resume)
             bool resumed2 = await session.ConnectWithResumeAsync();
@@ -170,9 +172,48 @@ public sealed class HandshakeIntegrationTests : IDisposable
     }
 
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
+
+    private sealed class TrackingSessionStore : ISessionStore
+    {
+        private readonly InMemorySessionStore _inner = new();
+        private readonly object _gate = new();
+        private readonly Dictionary<ulong, TaskCompletionSource> _storedTokens = new();
+
+        public async ValueTask StoreAsync(SessionEntry entry, CancellationToken cancellationToken = default)
+        {
+            await _inner.StoreAsync(entry, cancellationToken).ConfigureAwait(false);
+
+            TaskCompletionSource? waiter;
+            lock (_gate)
+            {
+                if (!_storedTokens.TryGetValue(entry.Snapshot.SessionToken, out waiter))
+                {
+                    waiter = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _storedTokens[entry.Snapshot.SessionToken] = waiter;
+                }
+            }
+
+            waiter.TrySetResult();
+        }
+
+        public ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, CancellationToken cancellationToken = default)
+            => _inner.ConsumeAsync(sessionToken, cancellationToken);
+
+        public Task WaitForStoreAsync(ulong sessionToken, TimeSpan timeout)
+        {
+            lock (_gate)
+            {
+                if (!_storedTokens.TryGetValue(sessionToken, out TaskCompletionSource? waiter))
+                {
+                    waiter = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _storedTokens[sessionToken] = waiter;
+                }
+
+                return waiter.Task.WaitAsync(timeout);
+            }
+        }
+    }
 }
-
-
 
 
 
