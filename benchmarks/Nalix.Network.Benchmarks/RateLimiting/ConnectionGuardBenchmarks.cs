@@ -3,6 +3,7 @@ using System.Net;
 using BenchmarkDotNet.Attributes;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.IO;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 using Nalix.Benchmarks.Shared;
@@ -23,8 +24,17 @@ public class ConnectionGuardBenchmarks
         quotaOptions.MaxConnectionsPerIpAddress = 1000;
         quotaOptions.MaxConnectionsPerWindow = 10000;
         
-        var guardOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
-        guardOptions.BlacklistedIpsString = "192.168.1.99";
+        var blacklistOptions = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
+        blacklistOptions.Enabled = true;
+        blacklistOptions.StoreFileName = "blacklist_benchmark.txt";
+
+        string path = System.IO.Path.Combine(Directories.DataDirectory, blacklistOptions.StoreFileName);
+        string? dir = System.IO.Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
+        {
+            System.IO.Directory.CreateDirectory(dir);
+        }
+        System.IO.File.WriteAllLines(path, new[] { "192.168.1.99" });
 
         var storeOptions = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
         storeOptions.Enabled = false;
@@ -38,6 +48,17 @@ public class ConnectionGuardBenchmarks
     public void Cleanup()
     {
         _guard.Dispose();
+
+        var blacklistOptions = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
+        string path = System.IO.Path.Combine(Directories.DataDirectory, blacklistOptions.StoreFileName);
+        if (System.IO.File.Exists(path))
+        {
+            try
+            {
+                System.IO.File.Delete(path);
+            }
+            catch {}
+        }
     }
 
     [Benchmark]
