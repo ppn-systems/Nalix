@@ -8,7 +8,8 @@
 - `src/Nalix.Network/Listeners/TcpListener/TcpListener.ProcessChannel.cs`
 - `src/Nalix.Network/Listeners/TcpListener/TcpListener.Core.cs`
 - `src/Nalix.Network/Options/NetworkSocketOptions.cs`
-- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
+- `src/Nalix.Network/Options/ConnectionQuotaOptions.cs`
+- `src/Nalix.Network/Options/ConnectionGuardOptions.cs`
 
 !!! note "Use Case"
     Application developers should use `NetworkApplicationBuilder` (the Hosting layer) which automatically orchestrates the TCP Listener. `TcpListenerBase` is primarily manipulated by framework developers building middleware or transport hooks.

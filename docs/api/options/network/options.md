@@ -61,7 +61,7 @@ Nalix uses a modular configuration system. Depending on the packages you have in
 | `ConnectionHubOptions` | `Nalix.Network` | Hub sharding and total capacity. | Concurrency |
 | `TimingWheelOptions` | `Nalix.Network` | Idle cleanup granularity. | CPU Overhead |
 | `NetworkCallbackOptions` | `Nalix.Network` | ThreadPool dispatch pressure. | Stability |
-| `SessionStoreOptions` | `Nalix.Network` | Token TTL and persistence. | Reliability |
+| `SessionStoreOptions` | `Nalix.Runtime` | Token TTL and persistence. | Reliability |
 | `DispatchOptions` | `Nalix.Runtime` | Internal message routing. | Parallelism |
 | `CompressionOptions` | `Nalix.Codec` | LZ4 threshold settings. | Bandwidth |
 | `TokenBucketOptions` | `Nalix.Runtime` | Token-bucket traffic shaping. | QoS |

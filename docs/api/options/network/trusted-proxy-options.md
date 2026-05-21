@@ -32,6 +32,7 @@ _ = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
 For incoming connections, `ConnectionGuard` identifies if the source IP matches one of the networks loaded from the file specified by `StoreFileName`.
 
 If the source matches a trusted proxy:
+
 - It allows a higher number of concurrent connections capped at `MaxConnectionsPerTrustedProxy`.
 - It allows a higher attempt limit capped at `MaxAttemptsPerTrustedProxyWindow` per window.
 

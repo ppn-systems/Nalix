@@ -1,4 +1,4 @@
-﻿# Configuration System
+# Configuration System
 
 !!! info "Learning Signals"
     - :fontawesome-solid-layer-group: **Level**: Intermediate
@@ -51,7 +51,8 @@ Nalix uses focused, granular option types instead of a monolithic "Settings" obj
 | :--- | :--- |
 | `NetworkSocketOptions` | Buffer sizes, ports, and IP properties |
 | `DispatchOptions` | Per-connection queue bounds, drop policy, and block timeout |
-| `ConnectionLimitOptions` | Security thresholds for the `ConnectionGuard` |
+| `ConnectionQuotaOptions` | Per-IP concurrent connection and rate limits |
+| `ConnectionGuardOptions` | Global connection ceiling, error thresholds, packet rate, and progressive bans |
 | `TimingWheelOptions` | O(1) timeout scheduling for idle connections |
 
 !!! tip "Validation Habit"

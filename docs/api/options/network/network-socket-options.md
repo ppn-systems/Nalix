@@ -75,6 +75,7 @@ During `TcpListenerBase.Initialize()`:
 
 - if `EnableIPv6` is true, the listener first attempts an IPv6 `Socket` with
   `DualMode = s_config.DualMode` before binding;
+
 - failed IPv6/DualMode setup is logged and falls back to IPv4;
 - `ExclusiveAddressUse` is set to `!ReuseAddress`;
 - `ReuseAddress` is set before bind;
@@ -129,8 +130,10 @@ During `UdpListenerBase.Initialize()`:
 
 - `EnableIPv6` selects `AddressFamily.InterNetworkV6` and `IPAddress.IPv6Any`; otherwise
   IPv4 `AddressFamily.InterNetwork` and `IPAddress.Any` are used;
+
 - if the socket is IPv6 and `DualMode` is true, `_socket.DualMode = true` is attempted
   as best effort;
+
 - UDP sockets are configured before bind;
 - the listener binds to the selected wildcard address and configured port;
 - `_anyEndPoint` is reset to the same address family for `ReceiveFromAsync` reuse.
@@ -164,11 +167,14 @@ parallelism is controlled by `MaxParallelUDP`.
 - Increase `Backlog` and `ProcessChannelCapacity` together for bursty TCP handshakes.
 - Increase `MaxParallel` only when accept workers are saturated; too many accept loops
   can add scheduling overhead.
+
 - Keep `MaxParallelUDP` proportional to datagram volume and CPU budget.
 - Size `BufferSize` for throughput, but remember it is applied per accepted TCP socket
   and to UDP sockets, so high values multiply memory pressure under many connections.
+
 - Use `EnableIPv6 + DualMode` when a single IPv6 socket should also accept IPv4-mapped
   traffic; keep IPv4 fallback behavior in mind for platforms without dual-stack support.
+
 - Enable `KeepAlive` for long-lived TCP sessions behind NAT/firewalls; the hard-coded
   keep-alive probe profile detects dead peers quickly.
 

@@ -66,8 +66,11 @@ socket.Validate();
 var dispatchOptions = ConfigurationManager.Instance.Get<DispatchOptions>();
 dispatchOptions.Validate();
 
-var connectionLimits = ConfigurationManager.Instance.Get<ConnectionLimitOptions>();
-connectionLimits.Validate();
+var connectionQuotas = ConfigurationManager.Instance.Get<ConnectionQuotaOptions>();
+connectionQuotas.Validate();
+
+var connectionGuard = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+connectionGuard.Validate();
 ```
 
 If you use the hosting builder, `src/Nalix.Hosting/NetworkApplicationBuilder.cs` already does this step for every `Configure<TOptions>(...)` registration by invoking public `Validate()` when the option type exposes it.
@@ -153,6 +156,7 @@ A production-ready blueprint always includes a way to query the internal health.
 - `WriteReportData(Utf8JsonWriter)`: Zero-allocation JSON output for monitoring APIs or dashboards.
 
 Available on:
+
 - `IListener`: Listener-side transport state and counters.
 - `IProtocol`: Protocol-side counters and post-process diagnostics.
 - `IPacketDispatch`: Dispatch runtime state and channel pressure.

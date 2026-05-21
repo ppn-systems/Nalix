@@ -31,14 +31,15 @@ graph TD
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/UdpSession.cs`
+- `src/Nalix.SDK/Transport/Internal/Udp/UdpFrameReader.cs`
+- `src/Nalix.SDK/Transport/Internal/Udp/UdpFrameSender.cs`
 - `src/Nalix.Codec/Transforms/FramePipeline.cs`
-- `src/Nalix.Codec/Transforms/FrameCipher.cs`
-- `src/Nalix.Codec/Transforms/FrameCompression.cs`
 
 ## Role and Design
 
 Unlike TCP, `UdpSession` is connectionless at the socket level but "session-aware" at the framework level. Every outbound datagram is prepended with an 8-byte `ulong` session token, which the server uses to map the packet to a trusted session.
 
+- **Framer Segregation**: Low-level datagram reading and sending is encapsulated in `UdpFrameReader` and `UdpFrameSender` respectively, mirroring the design of `TcpSession`.
 - **Zero-Allocation Receive**: Uses pooled `BufferLease` memory and direct `ReceiveAsync` to eliminate per-datagram allocations.
 - **MTU Enforcement**: Automatically prevents sending datagrams larger than `MaxUdpDatagramSize` (default: 1400 bytes) to avoid IP fragmentation.
 - **AEAD Integrated**: Automatically applies encryption if configured, utilizing the shared `FramePipeline`.

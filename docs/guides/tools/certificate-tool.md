@@ -41,6 +41,7 @@ By default, the tool saves two files into the shared Nalix configuration directo
 
 !!! tip "Standard Paths (Framework Directories API)"
     Nalix uses a standardized path resolution strategy based on the `Directories` API:
+
     - **Windows**: `%LOCALAPPDATA%\Nalix\Config\`
     - **Linux/macOS**: `~/.local/share/Nalix/Config/`
 

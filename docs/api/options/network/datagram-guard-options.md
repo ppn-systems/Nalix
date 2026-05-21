@@ -94,6 +94,7 @@ and clears both IPv4 and IPv6 maps.
 
 - Increase `IPv4Windows` / `IPv6Windows` only when legitimate source cardinality is
   high enough to require it.
+
 - Keep `IdleTimeout` short for public UDP endpoints under spoofed-source pressure.
 - Tune `ConnectionGuardOptions.MaxPacketPerSecond` separately; it is the per-source
   packet-rate limit consumed by `DatagramGuard`.

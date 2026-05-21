@@ -61,6 +61,16 @@ Runtime default flow:
 2. `ProcessMessage(...)` in the derived protocol handles payload semantics. This is the required override.
 3. `PostProcessMessage(...)` runs `OnPostProcess(...)`, updates counters, and optionally disconnects if `KeepConnectionOpen` is `false`.
 
+## WebSocket Protocol Integration
+
+When using WebSocket transport instead of raw TCP/UDP, the protocol processing integrates with the listener as follows:
+
+1. **Frame Capture**: `WebSocketListenerBase` listens for upgraded WebSocket connections and starts receiving payload messages.
+2. **Process Frame**: The listener triggers the `ProcessFrame(sender, args)` method when a WebSocket message is received.
+3. **Decryption and Decompression**: The active subclass (e.g., `WebSocketServerListener`) executes `FramePipeline.ProcessInbound(...)` on the incoming frame's `IBufferLease` using the derived connection `Secret` and `Algorithm`.
+4. **Sequence Verification**: The sequence number parsed from the frame is verified against `connection.TCP.ReceiveSequence` using the configured TCP sequence window size.
+5. **Protocol Hand-off**: If sequence verification succeeds, the decrypted/decompressed lease is exchanged in the event args and forwarded to `Protocol.ProcessMessage(sender, args)`.
+
 ## Implementation Contract
 
 To create a custom protocol, you must inherit from `Protocol` and provide the following:

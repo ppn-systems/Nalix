@@ -52,6 +52,7 @@ flowchart TD
 ## Internal Workflow (Source-Verified)
 
 1  **Resolution**: The `PacketDispatchOptions` uses a high-performance thread-safe dictionary to map `ushort` opcodes to pre-compiled `PacketHandler` descriptors.
+
 2. **Zero-Allocation Pooling**: For every request, a `PacketContext` is rented from the `ObjectPoolManager`. This context carries the connection state, metadata, and handles the `CancellationToken` linkage.
 3. **Type Safety Gate**: Before the handler runs, the dispatcher performs a runtime type check against the deserialized packet to ensure it matches the handler signature, preventing cast exceptions in the business logic.
 4. **Middleware Orchestration**: The `MiddlewarePipeline` executes in three stages (Inbound, OutboundAlways, Outbound), allowing for complex cross-cutting concerns like authentication or encryption updates.

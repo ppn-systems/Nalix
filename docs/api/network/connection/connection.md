@@ -5,8 +5,10 @@
 ## Source Mapping
 
 - `src/Nalix.Abstractions/Networking/IConnection.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.Transmission.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.RateLimit.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.ErrorTracked.cs`
 - `src/Nalix.Network/Connections/Connection.cs`
-- `src/Nalix.Network/Internal/Transport/AsyncCallback.cs`
 
 ## Why This Type Exists
 
@@ -14,12 +16,13 @@ The `Connection` type provides a unified interface for specialized transport pro
 
 - **Identity**: Every connection is assigned a unique `Snowflake` ID.
 - **Security Context**: Stores the `Secret` and active `Algorithm` derived during handshake.
-- **Event Orchestration**: Bridges low-level socket-read events into structured `OnProcess` and `OnPostProcess` hooks.
+- **Event Orchestration**: Bridges low-level socket-read events via `SocketEventBridge` into structured `OnProcess` and `OnPostProcess` hooks.
 - **Resource Lifecycle**: Manages pooled event args, attribute state, transport sockets, and teardown sequencing.
+- **Timing Wheel Integration**: Implements `TimingWheel.ITimeoutTrackedConnection` to support low-overhead connection timeout tracking and lazy removal.
 
 ## Architectural Pipeline
 
-The following diagram illustrates how `Connection` bridges the raw `SocketConnection` events into the application-facing event system.
+The following diagram illustrates how `Connection` bridges the raw `SocketConnection` events into the application-facing event system via the `SocketEventBridge`.
 
 ```mermaid
 flowchart TD
@@ -28,7 +31,7 @@ flowchart TD
         RawClose[Native Disconnect Signal]
     end
 
-    subgraph Hub[Connection Internal Bridges]
+    subgraph Hub[Connection Internal Bridges via SocketEventBridge]
         ProcessBridge[OnProcessEventBridge]
         PostBridge[OnPostProcessEventBridge]
         CloseBridge[OnCloseEventBridge]
@@ -53,42 +56,50 @@ flowchart TD
 
 ## Internal Responsibilities (Source-Verified)
 
-### 1. High-Priority Event Bridging
+### 1. High-Priority Event Bridging via SocketEventBridge
 
-`Connection` wires socket callbacks into bridge methods and forwards packet/close work through `AsyncCallback`.
+`Connection` delegates low-level frame callbacks to `SocketEventBridge`, which routes them to the connection-level events using `AsyncCallback`.
 
-- **High-priority close lane**: `OnCloseEventBridge(...)` uses `AsyncCallback.InvokeHighPriority(...)` so close/disconnect callbacks are not blocked by the normal packet queue.
-- **Normal packet lane**: `OnProcessEvent` and `OnPostProcessEvent` are still asynchronous work items, then each bridge disposes the pooled event args in `finally`.
+- **High-priority close lane**: `OnCloseEventBridge(...)` uses `AsyncCallback.InvokeHighPriority(...)` so close/disconnect callbacks bypass the normal queue and run immediately to ensure prompt resources teardown.
+- **Normal packet lane**: `OnProcessEvent` and `OnPostProcessEvent` are queued and run asynchronously on the ThreadPool. The bridge disposes of the pooled `ConnectionEventArgs` in a `finally` block.
 
 ### 2. Error Tracking (SEC-54)
 
-The connection maintains an internal `ErrorCount`.
+The connection implements `IConnectionErrorTracked` and maintains an internal `ErrorCount`.
 
-- **Threshold Enforcement**: If the count exceeds `MaxErrorThreshold` (from `ConnectionLimitOptions`), the connection is automatically disconnected with the reason "Exceeded maximum error threshold."
-- **Noise Mitigation**: This protects the server from malformed-packet-flood attacks or buggy clients.
+- **Threshold Enforcement**: If the count exceeds `MaxErrorThreshold` (configured in `ConnectionGuardOptions`), the connection is automatically disconnected with the reason `"Exceeded maximum error threshold."`
+- **Noise Mitigation**: This protects the server from malformed-packet-flood attacks or buggy/malicious clients.
 
 ### 3. UDP Replay Protection
 
-The connection exposes a lazily-created `UdpReplayWindow` used by UDP receive paths when replay protection is enabled. This window tracks seen sequence numbers for incoming UDP datagrams and lets the UDP pipeline reject stale or replayed packets.
+The connection exposes a `UdpReplayWindow` (an instance of `SlidingWindow` sized using `DatagramGuardOptions.UdpReplayWindowSize`) to track sequence numbers on incoming UDP datagrams. This allows the UDP transport pipeline to reject stale or replayed datagrams.
+
+### 4. Timing Wheel Tracking
+
+`Connection` implements `TimingWheel.ITimeoutTrackedConnection`.
+
+- It tracks `IsRegisteredInWheel` and `TimeoutVersion` to manage connection inactivity timeouts.
+- During destruction, it breaks the timing wheel reference immediately to prevent the wheel from holding onto the connection object, allowing instant garbage collection.
 
 ## Public APIs
 
-- `ID`: The 57-bit unique identifier for the session.
-- `Secret / Algorithm`: Zero-allocation `Bytes32` secret and active cipher suite.
-- `TCP / UDP`: Accessors to the underlying transport-specific send/receive primitives.
-- `Disconnect(reason)`: Safely terminates the connection with an optional reason.
-- `Attributes`: A pooled `IObjectMap` for attaching custom metadata to the connection.
-- `NetworkEndpoint`: The remote endpoint address for this connection.
-- `BytesSent`: Total number of bytes sent through this connection.
-- `UpTime`: Connection uptime in milliseconds.
-- `LastPingTime`: Timestamp (ms) of the last received ping.
+- `ID`: The unique `ISnowflake` identifier for the connection.
+- `Secret`: Zero-allocation `Bytes32` secret derived during the handshake.
+- `Algorithm`: Active cipher suite (`CipherSuiteType`).
 - `Level`: The permission level of the connection (`PermissionLevel`).
-- `IsRegisteredInWheel`: Whether the connection is registered in the timing wheel.
-- `TimeoutVersion`: Version counter used by the timing wheel for lazy removal.
-- `IsDisposed`: Whether the connection has been disposed.
-- `ErrorCount`: Current cumulative error count for the connection.
-- `IncrementErrorCount()`: Increments the error counter; auto-disconnects if `MaxErrorThreshold` is exceeded.
-- `Dispose()`: Releases all resources used by the connection.
+- `TCP`: Accessor to the TCP transport interface (`IConnection.ITransport`).
+- `UDP`: Accessor to the UDP transport interface (`IConnection.ITransport`). Throws `UdpTransportNotCreated` if UDP transport has not been established.
+- `IsUdpCreated`: Boolean indicating whether UDP transport is active and safe to query.
+- `NetworkEndpoint`: Remote client endpoint (`INetworkEndpoint`).
+- `Attributes`: A thread-safe, pooled `IObjectMap<string, object>` for attaching custom metadata to the connection.
+- `RateLimitCache`: A thread-safe cache (`ConcurrentDictionary<ushort, object>`) used for connection-level rate limiting.
+- `BytesSent` / `BytesReceived`: Total raw wire bytes transmitted.
+- `UpTime`: Total connection duration in milliseconds.
+- `LastPingTime`: Timestamp (ms) of the last received ping from the client.
+- `IsDisposed`: Returns whether the connection has been fully disposed.
+- `ErrorCount`: Current cumulative error count.
+- `IncrementErrorCount()`: Increments the error counter and disconnects the client if the configured limit is reached.
+- `Disconnect(reason)`: Safely terminates the connection with an optional reason.
 
 ## Best Practices
 

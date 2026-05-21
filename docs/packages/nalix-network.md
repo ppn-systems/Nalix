@@ -67,14 +67,6 @@ public sealed class MyProtocol : Protocol
 - **`ConnectionHub`** - In-memory registry of active connections. Supports lookup by ID, forced disconnects, bulk broadcast, and `GenerateReport()`.
 - **`ConnectionGuard`** â€” Socket-level admission control that rejects endpoints before application resources are allocated.
 
-### Session Store & Service
-
-`Nalix.Network.Sessions` contains the runtime session-store and session-service implementations. The `ISessionService`, `ISessionFactory`, and `ISessionStore` interfaces provide:
-
-- Decoupled session persistence lifecycle coordination
-- High-performance connection state snapshots and restoration
-- TTL-based session retention with active scavenging via `IHostedWorker`
-
 ## Options
 
 Nalix.Network provides focused option types for each transport concern:
@@ -82,15 +74,19 @@ Nalix.Network provides focused option types for each transport concern:
 | Options class | Controls |
 |---|---|
 | `NetworkSocketOptions` | Port, backlog, timeout enforcement |
-| `ConnectionLimitOptions` | Maximum connections, per-IP limits |
+| `ConnectionQuotaOptions` | Per-IP concurrent connection and rate limits |
+| `ConnectionGuardOptions` | Global connection ceiling, error thresholds, packet rate, and progressive bans |
+| `ConnectionBanStoreOptions` | Ban persistence store policies |
+| `ConnectionBlacklistStoreOptions` | IP blacklist store policies |
+| `TrustedProxyOptions` | Remote IP resolution behavior when behind load balancers/proxies |
+| `NetworkWebSocketOptions` | WebSocket handshakes, frame sizes, and protocols |
 | `ConnectionHubOptions` | Hub behavior and capacity |
 | `TimingWheelOptions` | Idle timeout configuration |
 | `PoolingOptions` | Buffer pool, accept context pool, receive context pool sizes |
 | `NetworkCallbackOptions` | Callback flood protection thresholds |
 | `DatagramGuardOptions` | UDP source rate limiting and cleanup |
-| `SessionStoreOptions` | Session retention TTL and persistence thresholds |
 
-Several network option types support `Validate()` for startup-time verification, including `NetworkSocketOptions`, `ConnectionLimitOptions`, and `DatagramGuardOptions`.
+Several network option types support `Validate()` for startup-time verification, including `NetworkSocketOptions`, `ConnectionQuotaOptions`, `ConnectionGuardOptions`, and `DatagramGuardOptions`.
 
 ## Relationship with Nalix.Runtime
 
@@ -107,7 +103,9 @@ Several network option types support `Validate()` for startup-time verification,
 - [Protocol](../api/network/protocol.md)
 - [TCP Listener](../api/network/tcp-listener.md)
 - [UDP Listener](../api/network/udp-listener.md)
+- [WebSocket Listener](../api/network/websocket-listener.md)
 - [Connection](../api/network/connection/connection.md)
+- [Connection Guard](../api/network/connection/connection-guard.md)
 - [Connection Hub](../api/network/connection/connection-hub.md)
-- [Session Store & Service](../api/network/session-store.md)
+- [WebSocket Connection](../api/network/websocket-connection.md)
 - [Network Options](../api/options/network/options.md)

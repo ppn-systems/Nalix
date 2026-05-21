@@ -11,10 +11,10 @@
 sequenceDiagram
     participant A as Application
     participant S as TcpSession
-    participant R as FrameReader
-    participant W as FrameSender
+    participant R as TcpFrameReader
+    participant W as TcpFrameSender
     participant N as TCP Socket
-
+ 
     A->>S: ConnectAsync(host, port, ct)
     S->>S: acquire connection lock
     S->>N: Socket.ConnectAsync()
@@ -22,7 +22,7 @@ sequenceDiagram
     S->>R: start ReceiveLoopAsync on LongRunning task
     A->>S: SendAsync(packet, encrypt, ct)
     S->>S: mark packet RELIABLE + serialize to BufferLease
-    S->>W: FrameSender.SendAsync(lease, encrypt, ct)
+    S->>W: TcpFrameSender.SendAsync(lease, encrypt, ct)
     W->>N: transform, frame, lock, Socket.SendAsync
     N-->>R: length-prefixed frame bytes
     R->>R: validate length, reassemble, ProcessInbound
@@ -34,16 +34,16 @@ sequenceDiagram
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/TcpSession.cs`
-- `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
-- `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
+- `src/Nalix.SDK/Transport/Internal/Tcp/TcpFrameReader.cs`
+- `src/Nalix.SDK/Transport/Internal/Tcp/TcpFrameSender.cs`
 - `src/Nalix.Codec/Transforms/FramePipeline.cs`
 
 ## Role and Design
 
 `TcpSession` acts as a high-level wrapper around a raw socket, providing a packet-oriented interface. It uses pooled `BufferLease` memory and the shared frame helpers to minimize GC pressure for high-throughput clients.
 
-- **Asynchronous Loop**: `ConnectAsync(...)` starts a long-running receive task through `FrameReader.ReceiveLoopAsync(...)`.
-- **Unified Framing**: Outbound and inbound payloads go through `FrameSender`, `FrameReader`, and `FramePipeline`.
+- **Asynchronous Loop**: `ConnectAsync(...)` starts a long-running receive task through `TcpFrameReader.ReceiveLoopAsync(...)`.
+- **Unified Framing**: Outbound and inbound payloads go through `TcpFrameSender`, `TcpFrameReader`, and `FramePipeline`.
 - **Error Handling**: Centralized `OnError` and `OnDisconnected` events for resilient client behavior.
 - **Request Helpers**: `RequestAsync<TResponse>()` and the higher-level extension helpers handle subscribe-before-send request flows.
 

@@ -270,6 +270,7 @@ To process thousands of concurrent connections without letting high-volume packe
 ### Concurrent Processing across Multiple Cores
 
 Nalix maps connection traffic to worker loops based on the connection's identity. This ensures:
+
 1. **Thread Affinity**: All packets from a single connection are processed sequentially on the same core, preventing race conditions without using locks.
 2. **Parallelism**: Different connections are spread across all available CPU cores.
 

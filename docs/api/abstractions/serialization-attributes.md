@@ -70,6 +70,7 @@ Marks a class or struct so that the source generator will automatically create a
 Marks a type as participating in Nalix serialization and selects the layout strategy (Auto, Explicit).
 
 Common use:
+
 - complex models that need structured field serialization
 - value objects that should serialize without a nullable wrapper path
 

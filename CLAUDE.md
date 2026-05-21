@@ -39,6 +39,8 @@ Level 5 : Nalix.SDK.Native            → SDK (Native AOT, C ABI)
 | [nalix-sdk-native](skills/nalix-sdk-native.md) | `Nalix.SDK.Native` | Native AOT, C ABI interop |
 | [nalix-analyzers](skills/nalix-analyzers.md) | `Nalix.Analyzers` | Roslyn diagnostic analyzers |
 | [nalix-analyzers-codefixes](skills/nalix-analyzers-codefixes.md) | `Nalix.Analyzers.CodeFixes` | IDE quick-fix providers |
+| [documentation](skills/documentation.md) | `Documentation` | Technical writing, formatting rules, MkDocs |
+
 
 ## Global Rules
 

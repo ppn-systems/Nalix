@@ -119,12 +119,13 @@ TCP is a byte-stream protocol and does not guarantee frame boundaries. `SocketCo
 - Prepending a **2-byte little-endian `ushort`** representing the total length of the frame.
 - Performing **Exact Receives** (`SAEA_RECEIVE_EXACTLY_ASYNC`) to ensure partial TCP bundles don't corrupt the protocol state.
 
-### 2. DDoS Protection (Layer 1 Throttle)
+### 2. Transport Event Sink & SocketEventBridge
 
-Before any heavy processing (like decryption or large memory slices) occurs, the receive loop checks `_pendingProcessCallbacks`.
+`SocketConnection` decouples transport events from the connection-level events (like `ConnectionEventArgs` or `AsyncCallback`) by using `ITransportEventSink`. In practice, it delegates to `SocketEventBridge`:
 
-- If a connection has more than `MaxPerConnectionPendingPackets` (configured in `NetworkCallbackOptions`) in-flight, subsequent packets are **immediately dropped**.
-- The buffer is returned to the pool, and the connection remains open, protecting the global ThreadPool from starvation.
+- **Decoupling**: `SocketConnection` fires simple frame events (e.g., passing raw `BufferLease`), while `SocketEventBridge` handles `ConnectionEventArgs` initialization and threadpool dispatching.
+- **Layer 1 Throttle**: `SocketEventBridge` tracks `_pendingProcessCallbacks`. If it exceeds `MaxPerConnectionPendingPackets` (configured in `NetworkCallbackOptions`), incoming packets are immediately discarded, and the lease is returned to the pool without invoking the callback.
+- **High-Priority Close**: Connection closure triggers `SocketEventBridge.OnTransportClosed` which invokes the close handler using `AsyncCallback.InvokeHighPriority` so teardown executes immediately.
 
 ### 3. Automatic Fragmentation
 

@@ -157,9 +157,11 @@ not hidden by the pipeline.
 
 - it only allows the request when `context.Attributes.Permission` exists and the required
   level is less than or equal to `context.Connection.Level`;
+
 - missing `[PacketPermission]` metadata is denied;
 - rejection sends `Directive(ControlType.FAIL, ProtocolReason.UNAUTHORIZED,
   ProtocolAdvice.NONE)` with `arg2 = opcode`;
+
 - directive emission is rate-gated by `DirectiveGuard` using
   `InboundDirectiveUnauthorizedLastSentAtMs`.
 
@@ -198,6 +200,7 @@ by `DirectiveGuard`.
 - no `[PacketTimeout]` or `TimeoutMilliseconds <= 0`: pass-through;
 - positive timeout: creates a linked cancellation token source when the context token is
   cancelable, otherwise creates an independent timeout token source;
+
 - calls downstream `next(token)` and catches only timeout-triggered
   `OperationCanceledException`.
 
@@ -224,6 +227,7 @@ socket receive
 - Keep security middleware at low order values so it rejects before expensive work.
 - Return without calling `next` only when the middleware intentionally terminates the
   pipeline.
+
 - Prefer `ValueTask` fast paths when middleware usually completes synchronously.
 - Avoid capturing per-packet closures in hot middleware where possible.
 - Use `AlwaysExecute` only for outbound middleware; analyzers flag inbound usage because

@@ -152,6 +152,7 @@ For long-lived public wire contracts, treat versioning as an application-level c
 
 !!! warning "Breaking changes"
     The following changes break wire compatibility:
+
     - Changing the `[SerializeOrder]` of an existing field
     - Removing a field without renumbering successors
     - Changing a field's type

@@ -46,6 +46,7 @@ then derives immutable runtime fields from the options:
 - `_shardMask` and `_isPowerOfTwoShardCount` optimize shard lookup for powers of two.
 - `_trackEvictionQueue` is enabled only when `MaxConnections > 0` and
   `DropPolicy == DropOldest`.
+
 - Each shard is a `ConcurrentDictionary<ulong, IConnection>` sized from the global
   capacity when a positive limit is configured.
 
@@ -119,6 +120,7 @@ admission. It rejects the incoming connection with reason `coalesce-not-supporte
 
 - `BroadcastBatchSize == 0`: send through `BroadcastCoreAsync(...)` and await all
   incomplete send tasks together.
+
 - `BroadcastBatchSize > 0`: send through `BroadcastBatchedAsync(...)`, renting arrays
   sized to the configured batch and awaiting each full batch before continuing.
 
@@ -168,13 +170,16 @@ enabled.
 
 - Use `MaxConnections = -1` for unlimited capacity only when an upstream limiter is
   already enforcing admission.
+
 - Prefer `DropNewest` for predictable overload rejection.
 - Use `DropOldest` only when anonymous connections are disposable and authenticated
   sessions should be preserved.
+
 - Avoid `Block` on public-facing listeners unless connection churn is very low.
 - Choose a power-of-two `ShardCount` for the fastest shard-index path.
 - Set `BroadcastBatchSize` when large broadcasts create too many simultaneous send
   tasks.
+
 - Tune `ParallelDisconnectDegree` for shutdown behavior; high values close faster but
   can create I/O bursts.
 

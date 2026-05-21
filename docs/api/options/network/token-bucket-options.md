@@ -114,6 +114,7 @@ the missing microtokens and the refill rate. It then records a soft violation:
 
 - if the previous violation is within `SoftViolationWindowSeconds`, increment
   `SoftViolations`;
+
 - otherwise reset `SoftViolations` to `1`;
 - update `LastViolationSw` to the current stopwatch tick.
 
@@ -139,6 +140,7 @@ remain blocked because the stored deadline is not greater than the new `now` tic
 
 1. before allocating a new endpoint state, the limiter rejects if the current count is
    already at or above the cap;
+
 2. after a successful concurrent add, it double-checks the count and removes the newly
    added endpoint if the cap was exceeded.
 
@@ -163,6 +165,7 @@ The cleanup body uses an internal `CancellationTokenSource` with a `5 s` timeout
 1. removes stale endpoints where `now - LastSeenSw > StaleEntrySeconds`;
 2. rotates the starting shard each cleanup run so timeout-limited scans do not always
    favor shard `0`;
+
 3. enforces `MaxTrackedEndpoints` if the count remains above the cap.
 
 Over-limit eviction collects candidate endpoints into a pooled list with initial
@@ -208,12 +211,16 @@ returns a denied `RateLimitDecision` with reason `HardLockout` and zero retry de
 
 - Use `CapacityTokens` for burst tolerance and `RefillTokensPerSecond` for sustained
   throughput; both are per endpoint.
+
 - Keep `ShardCount` a power of two and scale it with expected concurrent endpoint
   cardinality to reduce per-shard contention.
+
 - Set `HardLockoutSeconds > 0` only when repeated soft throttles should become a
   persistent block.
+
 - Avoid `MaxTrackedEndpoints = 0` on public servers unless another layer bounds
   endpoint cardinality.
+
 - Treat `MaxEvictionCapacity` as a cleanup allocation sizing knob, not as a strict
   per-cycle removal limit in the current implementation.
 
