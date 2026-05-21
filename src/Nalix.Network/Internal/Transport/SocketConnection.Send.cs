@@ -12,7 +12,6 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Fragments;
 using Nalix.Environment.Memory;
-using Nalix.Network.Connections;
 
 namespace Nalix.Network.Internal.Transport;
 
@@ -28,8 +27,6 @@ internal sealed partial class SocketConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Send(ReadOnlySpan<byte> data)
     {
-        this.THROW_IF_NOT_CONFIGURED();
-
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(SocketConnection));
 
         if (data.IsEmpty)
@@ -112,13 +109,7 @@ internal sealed partial class SocketConnection
                     }
                 }
 
-                ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
-                args.Initialize(_cachedArgs.Connection);
-
-                if (!AsyncCallback.Invoke(_callbackPost, _sender, args))
-                {
-                    args.Dispose();
-                }
+                _sink.OnFrameSent(_owner);
                 return;
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -135,7 +126,7 @@ internal sealed partial class SocketConnection
                 }
                 else
                 {
-                    _sender.ThrottledError(
+                    _owner.ThrottledError(
                         _logger,
                         "socket.send.stackalloc_error",
                         $"stackalloc-error ep={FORMAT_ENDPOINT(_socket)}", ex);
@@ -220,7 +211,7 @@ internal sealed partial class SocketConnection
             }
             else
             {
-                _sender.ThrottledError(
+                _owner.ThrottledError(
                     _logger,
                     "socket.send.pooled_error",
                     $"pooled-error ep={FORMAT_ENDPOINT(_socket)}", ex);
@@ -243,8 +234,6 @@ internal sealed partial class SocketConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ValueTask SendAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
-        this.THROW_IF_NOT_CONFIGURED();
-
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(SocketConnection));
 
         if (data.IsEmpty)
@@ -381,7 +370,7 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._sender.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
+                self._owner.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
             }
             return ValueTask.FromException(ex);
         }
@@ -390,7 +379,7 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._sender.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
+                self._owner.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
             }
             return ex;
         }
@@ -649,16 +638,7 @@ internal sealed partial class SocketConnection
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void INVOKE_POST_CALLBACK()
-    {
-        ConnectionEventArgs? args = (_sender as Connection)?.AcquireEventArgs() ?? s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(_cachedArgs.Connection);
-
-        if (!AsyncCallback.Invoke(_callbackPost, _sender, args))
-        {
-            args.Dispose();
-        }
-    }
+    private void INVOKE_POST_CALLBACK() => _sink.OnFrameSent(_owner);
 
     #endregion
 }

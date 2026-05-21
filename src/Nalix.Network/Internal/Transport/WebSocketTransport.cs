@@ -46,9 +46,9 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
 
     public WebSocketTransport(WebSocketConnection owner)
     {
+        _sequencer = new TransportSequencer();
         _owner = owner ?? throw new ArgumentNullException(nameof(owner));
         _options = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
-        _sequencer = new TransportSequencer();
     }
 
     #endregion Constructor

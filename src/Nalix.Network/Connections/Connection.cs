@@ -33,7 +33,11 @@ namespace Nalix.Network.Connections;
 /// This is the high-level owner for the socket transport and the per-connection
 /// event pipeline.
 /// </summary>
-public sealed partial class Connection : IConnection, IConnectionErrorTracked, TimingWheel.ITimeoutTrackedConnection, IPooledConnectContextPool
+public sealed partial class Connection :
+    IConnection,
+    IConnectionErrorTracked,
+    IPooledConnectContextPool,
+    TimingWheel.ITimeoutTrackedConnection
 {
     #region Fields
 
@@ -44,10 +48,12 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
     private readonly ILogger? _logger;
 
     private readonly Lock _lock;
+    private readonly SocketEventBridge _bridge;
     private readonly ConnectionEventArgs _args;
+
     private int _errorCount;
-    private int _closeSignaled;
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
+    private int _closeSignaled;
     private int _isDispatchingClose; // 0=no, 1=yes
 
     private IConnection.ITransport? _tcp;
@@ -77,9 +83,9 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="socket"/> is null.</exception>
     public Connection(Socket socket, ILogger? logger = null)
     {
-        _lock = new Lock();
-        _disposed = false;
         _logger = logger;
+        _disposed = false;
+        _lock = new Lock();
 
         this.Secret = Bytes32.Zero;
         // Snapshot the remote endpoint up front so the connection can be logged
@@ -93,10 +99,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
 
-        this.Socket = new SocketConnection(socket, logger);
+        // Create the event bridge that converts transport-level frame events
+        // into the connection-level callback pipeline.
+        _bridge = new SocketEventBridge(_args, OnProcessEventBridge, OnPostProcessEventBridge, this.OnCloseEventBridge);
 
-        // Wire the socket-level events into the connection-level callback pipeline.
-        this.Socket.SetCallback(this, _args, this.OnCloseEventBridge, OnPostProcessEventBridge, OnProcessEventBridge);
+        this.Socket = new SocketConnection(socket, this, _bridge, logger);
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
@@ -151,6 +158,11 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
 
     /// <inheritdoc />
     public long LastPingTime => this.Socket.LastPingTime;
+
+    /// <summary>
+    /// Returns the number of packets currently pending in the async callback pipeline.
+    /// </summary>
+    public int PendingPackets => _bridge.PendingPackets;
 
     /// <inheritdoc />
     public PermissionLevel Level { get; set; } = PermissionLevel.NONE;
@@ -228,7 +240,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
             return;
         }
 
-        this.Socket.IncrementPendingCallbacks();
+        _bridge.IncrementPendingCallbacks();
         args.Initialize(lease, this);
 
         if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
@@ -495,7 +507,7 @@ public sealed partial class Connection : IConnection, IConnectionErrorTracked, T
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    void IPooledConnectContextPool.ReleasePendingPacket() => this.Socket.ReleasePendingPacket();
+    void IPooledConnectContextPool.ReleasePendingPacket() => _bridge.ReleasePendingPacket();
 
     void IPooledConnectContextPool.ReturnContext(PooledConnectEventContext context) => _contextPool.Return(context);
 

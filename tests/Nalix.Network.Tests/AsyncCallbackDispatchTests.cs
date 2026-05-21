@@ -61,7 +61,7 @@ public sealed class AsyncCallbackDispatchTests
         await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         // Wait for the dispatcher's finally block to release the pending packet slot.
-        for (int i = 0; i < 100 && connection.Socket.PendingPackets > 0; i++)
+        for (int i = 0; i < 100 && connection.PendingPackets > 0; i++)
         {
             await Task.Delay(1);
         }
@@ -70,7 +70,7 @@ public sealed class AsyncCallbackDispatchTests
         _ = pendingNormal.Should().Be(0);
         _ = dropped.Should().Be(0);
         _ = total.Should().Be(1);
-        _ = connection.Socket.PendingPackets.Should().Be(0);
+        _ = connection.PendingPackets.Should().Be(0);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed class AsyncCallbackDispatchTests
         await postObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         // Wait for the dispatcher's finally block to release the pending packet slot.
-        for (int i = 0; i < 100 && connection.Socket.PendingPackets > 0; i++)
+        for (int i = 0; i < 100 && connection.PendingPackets > 0; i++)
         {
             await Task.Delay(1);
         }
@@ -115,7 +115,7 @@ public sealed class AsyncCallbackDispatchTests
         _ = pendingNormal.Should().Be(0);
         _ = dropped.Should().Be(0);
         _ = total.Should().Be(1);
-        _ = connection.Socket.PendingPackets.Should().Be(0);
+        _ = connection.PendingPackets.Should().Be(0);
     }
 
     private static void EnsureLoggerRegistered()

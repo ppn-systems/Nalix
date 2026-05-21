@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -19,7 +20,7 @@ namespace Nalix.Environment.Memory;
 /// </summary>
 [DebuggerNonUserCode]
 [DebuggerDisplay("BufferLease Start={_start}, Len={Length}, Cap={Capacity}, Detached={_detached != 0}")]
-public sealed class BufferLease : IBufferLease, IPoolable
+public sealed class BufferLease : IBufferLease, IPoolable, IPoolRentable
 {
     #region Static
 
@@ -52,6 +53,20 @@ public sealed class BufferLease : IBufferLease, IPoolable
     internal static bool IsPoolingEnabled { get; set; } = true;
 
     /// <summary>
+    /// Optional external pool manager for shell recycling.
+    /// When configured, <see cref="RENT_LEASE_SHELL"/> and <see cref="Dispose"/> delegate to this manager
+    /// instead of the built-in thread-local / shared pool.
+    /// </summary>
+    internal static IObjectPoolManager? ShellPoolManager;
+
+    /// <summary>
+    /// Configures an external pool manager for BufferLease shell recycling.
+    /// When set, shells are rented/returned via the manager instead of the built-in pool.
+    /// </summary>
+    /// <param name="manager">The pool manager to use for shell lifecycle.</param>
+    public static void Configure(IObjectPoolManager manager) => Volatile.Write(ref ShellPoolManager, manager);
+
+    /// <summary>
     /// Pops a lease shell from the free-list (or creates a new one).
     /// Maintains the atomic free-list count for O(1) capacity checks.
     /// </summary>
@@ -64,6 +79,13 @@ public sealed class BufferLease : IBufferLease, IPoolable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static BufferLease RENT_LEASE_SHELL()
     {
+        // Fast path: delegate to configured ObjectPoolManager
+        IObjectPoolManager? mgr = Volatile.Read(ref ShellPoolManager);
+        if (mgr is not null)
+        {
+            return mgr.Get<BufferLease>();
+        }
+
         if (!IsPoolingEnabled)
         {
             return new BufferLease();
@@ -83,9 +105,8 @@ public sealed class BufferLease : IBufferLease, IPoolable
         }
 
         // 2. Try shared pool with striped index
-        int threadId = System.Environment.CurrentManagedThreadId;
         int mask = s_sharedPoolMask;
-        int startIdx = threadId & mask;
+        int startIdx = System.Environment.CurrentManagedThreadId & mask;
 
         for (int i = 0; i < s_sharedPoolSize; i++)
         {
@@ -159,6 +180,12 @@ public sealed class BufferLease : IBufferLease, IPoolable
     private int _detached;
 
     private byte[]? _buffer;
+
+    /// <summary>
+    /// Indicates whether this packet was rented from a pool and should be returned on disposal.
+    /// 1 = Rented, 0 = Available/Returned.
+    /// </summary>
+    private int _isRented;
 
     #endregion Fields
 
@@ -305,6 +332,11 @@ public sealed class BufferLease : IBufferLease, IPoolable
 
 #endif
 
+    /// <inheritdoc/>
+    [EditorBrowsable(EditorBrowsableState.Never)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void OnRent() => Volatile.Write(ref _isRented, 1);
+
     /// <summary>
     /// Increases the reference count so multiple consumers can hold this lease safely.
     /// </summary>
@@ -413,6 +445,18 @@ public sealed class BufferLease : IBufferLease, IPoolable
         // Return the BufferLease shell to the free-list for reuse.
         if (IsPoolingEnabled)
         {
+            // Fast path: delegate to configured ObjectPoolManager
+            if (Interlocked.Exchange(ref _isRented, 0) == 1)
+            {
+                IObjectPoolManager? mgr = Volatile.Read(ref ShellPoolManager);
+
+                if (mgr is not null)
+                {
+                    mgr.Return(this);
+                    return;
+                }
+            }
+
             this.ResetForPool();
 
             // 1. Try push to Thread-Local Cache
