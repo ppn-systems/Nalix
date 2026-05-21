@@ -16,6 +16,7 @@ using Xunit;
 
 namespace Nalix.Network.Tests;
 
+#if DEBUG
 public sealed class NetworkBanRepositoryTests
 {
     [Fact]
@@ -157,3 +158,4 @@ public sealed class NetworkBanRepositoryTests
         }
     }
 }
+#endif

@@ -5,6 +5,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
@@ -14,6 +15,11 @@ using Nalix.Environment.Time;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
+
+#if DEBUG
+[assembly: InternalsVisibleTo("Nalix.Network.Tests")]
+[assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+#endif
 
 namespace Nalix.Network.Internal.Security;
 

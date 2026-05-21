@@ -13,6 +13,7 @@ using Xunit;
 
 namespace Nalix.Network.Tests;
 
+#if DEBUG
 public sealed class NetworkAccessListTests
 {
     [Fact]
@@ -145,3 +146,4 @@ public sealed class NetworkAccessListTests
         }
     }
 }
+#endif
