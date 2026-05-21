@@ -23,7 +23,7 @@ using Nalix.Runtime.Handlers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
-using Nalix.Network.Sessions;
+using Nalix.Runtime.Sessions;
 using Nalix.Network.Connections;
 using Nalix.Runtime.Dispatching;
 using Xunit;
@@ -51,12 +51,16 @@ TestUtils.SetupCertificate();
 
         InMemorySessionStore store = new();
         SessionService sessionService = new(store: store);
-        ConnectionHub hub = new(sessionService: sessionService);
+        ConnectionHub hub = new();
 
         // 1. Setup Server with real SessionStore
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigureConnectionHub(hub);
-        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
+        builder.ConfigureSessionService(sessionService);
+        builder.ConfigureSessionStore(store);
+        builder.ConfigureSessionService(sessionService);
+        builder.ConfigureSessionStore(store);
+        builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
         builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
@@ -121,12 +125,14 @@ TestUtils.SetupCertificate();
 
         InMemorySessionStore store = new();
         SessionService sessionService = new(store: store);
-        ConnectionHub hub = new(sessionService: sessionService);
+        ConnectionHub hub = new();
 
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigureConnectionHub(hub);
-        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
+        builder.ConfigureSessionService(sessionService);
+        builder.ConfigureSessionStore(store);
+        builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
         builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         
@@ -181,12 +187,14 @@ TestUtils.SetupCertificate();
 
         InMemorySessionStore store = new();
         SessionService sessionService = new(store: store);
-        ConnectionHub hub = new(sessionService: sessionService);
+        ConnectionHub hub = new();
 
         // 1. Setup Server
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigureConnectionHub(hub);
-        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
+        builder.ConfigureSessionService(sessionService);
+        builder.ConfigureSessionStore(store);
+        builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
         builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
         builder.AddHandler<SessionHandlers>();
         

@@ -121,7 +121,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt =>
+        builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt =>
         {
             opt.MinAttributesForPersistence = 0;
         });

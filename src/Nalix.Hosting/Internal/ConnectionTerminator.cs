@@ -8,12 +8,12 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 
-namespace Nalix.Network.Connections;
+namespace Nalix.Hosting.Internal;
 
 /// <summary>
 /// Terminates active connections without making <see cref="IConnectionHub"/> own policy decisions.
 /// </summary>
-public sealed class ConnectionTerminator : IConnectionTerminator
+internal sealed class ConnectionTerminator : IConnectionTerminator
 {
     private const string DefaultCloseAllReason = "Force disconnected by server policy.";
     private const string DefaultEndpointReason = "Force disconnected by endpoint policy.";

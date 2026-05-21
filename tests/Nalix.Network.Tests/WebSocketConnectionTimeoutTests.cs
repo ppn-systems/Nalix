@@ -26,6 +26,10 @@ namespace Nalix.Network.Tests;
 
 public class WebSocketConnectionTimeoutTests : IDisposable
 {
+    public WebSocketConnectionTimeoutTests()
+    {
+        Nalix.Framework.Injection.InstanceManager.Instance.Clear(dispose: false);
+    }
     private readonly string _certificatePath = Path.Combine(Path.GetTempPath(), $"nalix-ws-test-{Guid.NewGuid():N}.private");
 
     private sealed class IntegrationTestProtocol : Protocol

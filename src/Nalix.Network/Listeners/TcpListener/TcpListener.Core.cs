@@ -15,7 +15,6 @@ using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Connections;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
@@ -32,20 +31,23 @@ public abstract partial class TcpListenerBase : IListener
     private readonly ushort _port;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
+
+    private readonly ObjectPoolManager _pool;
+    private readonly NetworkSocketOptions _config;
+
+#pragma warning disable CA2213 // Disposable fields should be disposed
+    private readonly TimingWheel _timing;
     private readonly ConnectionGuard _limiter;
-    private readonly IConnectionTerminator _terminator;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
+
     private Socket? _listener;
     private CancellationTokenSource? _cts;
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
-
-    private readonly TimingWheel _timing;
-    private readonly NetworkSocketOptions _config;
-    private readonly ObjectPoolManager _pool;
 
     #endregion Fields
 
@@ -108,16 +110,12 @@ public abstract partial class TcpListenerBase : IListener
 
         // Fetch infrastructure instances via InstanceManager for proper test isolation
         this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        _terminator = new ConnectionTerminator(hub, this.Logger);
+        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
+
+        _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
-
-        _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
-
-        // Register endpoint termination action to ConnectionGuard for DDoS protection.
-        _ = _limiter.WithEndpointTermination(key => _terminator.CloseEndpoint(key, "Force disconnected by endpoint policy."));
 
         _config.Validate();
 
@@ -462,52 +460,6 @@ public abstract partial class TcpListenerBase : IListener
                 finally
                 {
                     _listener = null;
-                }
-
-                try
-                {
-                    _timing.Dispose();
-                }
-                catch (ObjectDisposedException ex)
-                {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        this.Logger.LogDebug(
-                            $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
-                            $"timing-dispose-ignored port={_port} reason={ex.GetType().Name}");
-                    }
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
-                    {
-                        this.Logger.LogWarning(ex,
-                            $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
-                            $"timing-dispose-failed port={_port}");
-                    }
-                }
-
-                try
-                {
-                    _limiter.Dispose();
-                }
-                catch (ObjectDisposedException ex)
-                {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-                    {
-                        this.Logger.LogDebug(
-                            $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
-                            $"limiter-dispose-ignored port={_port} reason={ex.GetType().Name}");
-                    }
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
-                    {
-                        this.Logger.LogWarning(ex,
-                            $"[NW.{nameof(TcpListenerBase)}:{nameof(Dispose)}] " +
-                            $"limiter-dispose-failed port={_port}");
-                    }
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

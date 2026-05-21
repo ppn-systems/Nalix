@@ -20,6 +20,9 @@ using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Pooling;
+using Nalix.Runtime.Sessions;
+using Nalix.Abstractions.Networking.Sessions;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -305,11 +308,7 @@ public sealed class HandshakeHandlers
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
-        IConnectionHub? hub = connection.GetHub();
-        if (hub is not null)
-        {
-            await hub.SessionService.SaveSessionAsync(connection).ConfigureAwait(false);
-        }
+        await InstanceManager.Instance.GetExistingInstance<ISessionService>()!.SaveSessionAsync(connection).ConfigureAwait(false);
 
         using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
 

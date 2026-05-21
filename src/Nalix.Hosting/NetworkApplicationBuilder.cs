@@ -9,6 +9,7 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Configuration.Binding;
@@ -18,9 +19,11 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
+using Nalix.Network.RateLimiting;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
+using Nalix.Runtime.Sessions;
 
 namespace Nalix.Hosting;
 
@@ -92,6 +95,38 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         _state.HasCustomConnectionHub = true;
         InstanceManager.Instance.Register<IConnectionHub>(connectionHub);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureConnectionTerminator(IConnectionTerminator connectionTerminator)
+    {
+        ArgumentNullException.ThrowIfNull(connectionTerminator);
+        InstanceManager.Instance.Register<IConnectionTerminator>(connectionTerminator);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureSessionService(ISessionService sessionService)
+    {
+        ArgumentNullException.ThrowIfNull(sessionService);
+        InstanceManager.Instance.Register<ISessionService>(sessionService);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureSessionStore(ISessionStore sessionStore)
+    {
+        ArgumentNullException.ThrowIfNull(sessionStore);
+        InstanceManager.Instance.Register<ISessionStore>(sessionStore);
+        return this;
+    }
+
+    /// <inheritdoc />
+    public INetworkApplicationBuilder ConfigureSessionFactory(ISessionFactory sessionFactory)
+    {
+        ArgumentNullException.ThrowIfNull(sessionFactory);
+        InstanceManager.Instance.Register<ISessionFactory>(sessionFactory);
         return this;
     }
 
@@ -270,6 +305,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             RegisterLogger(_state);
 
             this.EnsureConnectionHubRegistered();
+            this.EnsureSessionServiceRegistered();
             this.EnsureBufferPoolManagerRegistered();
             this.EnsureConnectionTerminatorRegistered();
 
@@ -486,22 +522,57 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
     private void EnsureConnectionTerminatorRegistered()
     {
-        if (InstanceManager.Instance.GetExistingInstance<IConnectionTerminator>() is not null)
-        {
-            return;
-        }
+        IConnectionTerminator? terminator = InstanceManager.Instance.GetExistingInstance<IConnectionTerminator>();
 
-        IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
-            ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
-
-        ConnectionTerminator terminator = new(hub, _state.Logger);
-        try
+        if (terminator is null)
         {
+            IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
+                ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+
+            terminator = new ConnectionTerminator(hub, _state.Logger);
             InstanceManager.Instance.Register<IConnectionTerminator>(terminator);
         }
-        catch
+
+        ConnectionGuard limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
+        _ = limiter.WithEndpointTermination(key => terminator.CloseEndpoint(key, "Force disconnected by endpoint policy."));
+    }
+
+    private void EnsureSessionServiceRegistered()
+    {
+        ISessionService? service = InstanceManager.Instance.GetExistingInstance<ISessionService>();
+
+        if (service == null)
         {
-            throw;
+            ISessionFactory? factory = InstanceManager.Instance.GetExistingInstance<ISessionFactory>();
+            ISessionStore? store = InstanceManager.Instance.GetExistingInstance<ISessionStore>();
+
+#pragma warning disable CA2000 // Dispose objects before losing scope
+            service = new SessionService(factory, store);
+#pragma warning restore CA2000 // Dispose objects before losing scope
+            try
+            {
+                InstanceManager.Instance.Register<ISessionService>(service);
+            }
+            catch
+            {
+                if (service is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+                throw;
+            }
+        }
+
+        if (InstanceManager.Instance.GetExistingInstance<SessionPersistenceObserver>() == null)
+        {
+            IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
+            if (hub is not null)
+            {
+#pragma warning disable CA2000 // Dispose objects before losing scope
+                SessionPersistenceObserver observer = new(hub, service);
+#pragma warning restore CA2000 // Dispose objects before losing scope
+                InstanceManager.Instance.Register<SessionPersistenceObserver>(observer);
+            }
         }
     }
 

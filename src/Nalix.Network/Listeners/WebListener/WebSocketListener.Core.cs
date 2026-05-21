@@ -14,7 +14,6 @@ using Nalix.Environment.Configuration;
 using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Connections;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
@@ -34,8 +33,7 @@ public abstract partial class WebSocketListenerBase : IListener
     private readonly string _path;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
-    private readonly ConnectionGuard _limiter;
-    private readonly IConnectionTerminator _terminator;
+    private readonly NetworkWebSocketOptions _config;
 
     private int _state;
     private int _isDisposed;
@@ -44,8 +42,10 @@ public abstract partial class WebSocketListenerBase : IListener
     private CancellationTokenSource? _cts;
     private CancellationTokenRegistration _cancelReg;
 
+#pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly TimingWheel _timing;
-    private readonly NetworkWebSocketOptions _config;
+    private readonly ConnectionGuard _limiter;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
     #endregion Fields
 
@@ -113,10 +113,6 @@ public abstract partial class WebSocketListenerBase : IListener
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
-
-        _terminator = new ConnectionTerminator(_hub, this.Logger);
-
-        _ = _limiter.WithEndpointTermination(key => _terminator.CloseEndpoint(key, "Force disconnected by endpoint policy."));
 
         _config.Validate();
 
@@ -259,10 +255,10 @@ public abstract partial class WebSocketListenerBase : IListener
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
-            finally { _listener = null; }
-
-            try { _timing.Dispose(); } catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
-            try { _limiter.Dispose(); } catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
+            finally
+            {
+                _listener = null;
+            }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 

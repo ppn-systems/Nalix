@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
-namespace Nalix.Network.Options;
+namespace Nalix.Runtime.Options;
 
 /// <summary>
 /// Store options for resumable sessions, controlling how long inactive sessions are retained before expiration.
@@ -20,12 +20,6 @@ public sealed partial class SessionStoreOptions : ConfigurationLoader
     [IniComment("Duration after which an inactive session expires (default 30m)")]
     [Required(ErrorMessage = "SessionTtl is required.")]
     public TimeSpan SessionTtl { get; set; } = TimeSpan.FromMinutes(30);
-
-    /// <summary>
-    /// Gets or sets a value indicating whether sessions should be automatically saved when a connection is unregistered.
-    /// </summary>
-    [IniComment("Enable automatic session saving when a connection is unregistered from the hub")]
-    public bool AutoSaveOnUnregister { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the minimum number of attributes in the ObjectMap required to persist a session.
