@@ -48,11 +48,7 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(1, 10_000_000, ErrorMessage = "MaxPacketPerSecond must be between 1 and 10,000,000.")]
     public int MaxPacketPerSecond { get; set; } = 128;
 
-    /// <summary>
-    /// Gets or sets a comma-separated list of permanently blacklisted IP networks or addresses.
-    /// </summary>
-    [IniComment("Comma-separated list of permanently blacklisted CIDRs/IPs.")]
-    public string BlacklistedIpsString { get; set; } = string.Empty;
+
 
     /// <summary>
     /// Gets or sets a value indicating whether progressive banning is enabled.

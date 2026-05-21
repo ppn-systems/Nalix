@@ -15,10 +15,9 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
 using Nalix.Framework.Identifiers;
+using Nalix.Framework.Injection;
 using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Pooling;
-using Nalix.Runtime.Sessions;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -73,7 +72,7 @@ public sealed class SessionHandlers
         // the second gets null because TryRemove is atomic.
         ISessionService sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>()!;
         SessionEntry? session = await sessionService.ConsumeAsync(packet.SessionToken)
-                                                         .ConfigureAwait(false);
+                                                    .ConfigureAwait(false);
         if (session == null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -53,6 +54,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     private readonly TrustedProxyOptions _proxyConfig;
     private readonly ConnectionBanStoreOptions _storeConfig;
     private readonly ConnectionGuardOptions _protectionConfig;
+    private readonly ConnectionBlacklistStoreOptions _blacklistConfig;
 
     private readonly long _windowTicks;
     private readonly int _maxPerEndpoint;
@@ -63,7 +65,8 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     private readonly TimeSpan _inactivityThreshold;
     private readonly List<IPNetwork> _trustedProxies = new();
     private readonly HashSet<IPAddress> _blacklistedIps = new();
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry> _map;
+    private readonly List<IPNetwork> _blacklistedNetworks = new();
+    private readonly ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry> _map;
 
     private ILogger? _logger;
 
@@ -112,7 +115,11 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         _storeConfig = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>();
         _storeConfig.Validate();
 
+        _blacklistConfig = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
+        _blacklistConfig.Validate();
+
         this.PARSE_IP_CONFIG();
+        this.LOAD_BLACKLISTED_IPS();
 
         _maxPerEndpoint = _config.MaxConnectionsPerIpAddress;
         _maxGlobalConnections = _protectionConfig.MaxConnections;
@@ -142,32 +149,46 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private void PARSE_IP_CONFIG()
     {
-        if (!string.IsNullOrWhiteSpace(_proxyConfig.TrustedProxiesString))
+        string path = System.IO.Path.Combine(Directories.DataDirectory, _proxyConfig.StoreFileName);
+        List<IPNetwork> networks = NetworkStore.Load(path, _proxyConfig.MaxTrustedProxies);
+
+        foreach (IPNetwork network in networks)
         {
-            string[] parts = _proxyConfig.TrustedProxiesString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            foreach (string part in parts)
+            _trustedProxies.Add(network);
+        }
+
+        if (networks.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[NW.{nameof(ConnectionGuard)}] Loaded {networks.Count} trusted proxies from disk.");
+        }
+    }
+
+    private void LOAD_BLACKLISTED_IPS()
+    {
+        if (!_blacklistConfig.Enabled)
+        {
+            return;
+        }
+
+        string path = System.IO.Path.Combine(Directories.DataDirectory, _blacklistConfig.StoreFileName);
+        List<IPNetwork> networks = NetworkStore.Load(path, _blacklistConfig.MaxBlacklistedIps);
+
+        foreach (IPNetwork network in networks)
+        {
+            if ((network.BaseAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && network.PrefixLength == 32) ||
+                (network.BaseAddress.AddressFamily == System.Net.Sockets.AddressFamily.InterNetworkV6 && network.PrefixLength == 128))
             {
-                if (IPNetwork.TryParse(part, out IPNetwork network))
-                {
-                    _trustedProxies.Add(network);
-                }
-                else if (IPAddress.TryParse(part, out IPAddress? ip))
-                {
-                    _trustedProxies.Add(new IPNetwork(ip, ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
-                }
+                _ = _blacklistedIps.Add(network.BaseAddress);
+            }
+            else
+            {
+                _blacklistedNetworks.Add(network);
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(_protectionConfig.BlacklistedIpsString))
+        if (networks.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            string[] parts = _protectionConfig.BlacklistedIpsString.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            foreach (string part in parts)
-            {
-                if (IPAddress.TryParse(part, out IPAddress? ip))
-                {
-                    _ = _blacklistedIps.Add(ip);
-                }
-            }
+            _logger.LogInformation($"[NW.{nameof(ConnectionGuard)}] Loaded {networks.Count} blacklisted IP/networks from disk (single IPs: {_blacklistedIps.Count}, CIDR networks: {_blacklistedNetworks.Count}).");
         }
     }
 
@@ -181,9 +202,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         string path = System.IO.Path.Combine(Directories.DataDirectory, _storeConfig.StoreFileName);
         DateTime now = Clock.NowUtc();
 
-        List<ConnectionBanRecord> records = ConnectionBanStore.Load(path, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
+        List<NetworkBanRecord> records = NetworkBanStore.Load(path, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
 
-        foreach (ConnectionBanRecord record in records)
+        foreach (NetworkBanRecord record in records)
         {
             ConnectionLimitEntry entry = new()
             {
@@ -257,11 +278,23 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             return false;
         }
 
-        // 2. Blacklist -> Reject (O(1) lookup)
+        // 2. Blacklist -> Reject (O(1) lookup + sequential fallback for CIDRs)
         if (_blacklistedIps.Contains(endPoint.Address))
         {
             _ = Interlocked.Increment(ref _totalRejections);
             return false;
+        }
+
+        if (_blacklistedNetworks.Count > 0)
+        {
+            foreach (IPNetwork network in _blacklistedNetworks)
+            {
+                if (network.Contains(endPoint.Address))
+                {
+                    _ = Interlocked.Increment(ref _totalRejections);
+                    return false;
+                }
+            }
         }
 
         if (_maxGlobalConnections > -1)
@@ -319,37 +352,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         }
 
         return result.Allowed;
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void SCHEDULE_ENDPOINT_TERMINATION(SocketEndpoint key)
-    {
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
-            group: $"{TaskNaming.Tags.Worker}",
-            work: async (_, _) =>
-            {
-                try
-                {
-                    this.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(key);
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                    {
-                        _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={key.Address}");
-                    }
-                }
-
-                await Task.CompletedTask.ConfigureAwait(false);
-            },
-            options: new WorkerOptions
-            {
-                Tag = TaskNaming.Tags.Net,
-                RetainFor = TimeSpan.Zero,
-                IdType = SnowflakeType.System,
-            }
-        );
     }
 
     /// <summary>
@@ -489,6 +491,37 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     #endregion Public API
 
     #region Connection Slot Management
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void SCHEDULE_ENDPOINT_TERMINATION(SocketEndpoint key)
+    {
+        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+            name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
+            group: $"{TaskNaming.Tags.Worker}",
+            work: async (_, _) =>
+            {
+                try
+                {
+                    this.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(key);
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={key.Address}");
+                    }
+                }
+
+                await Task.CompletedTask.ConfigureAwait(false);
+            },
+            options: new WorkerOptions
+            {
+                Tag = TaskNaming.Tags.Net,
+                RetainFor = TimeSpan.Zero,
+                IdType = SnowflakeType.System,
+            }
+        );
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SocketEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint) => SocketEndpoint.FromIpAddress(endPoint.Address);
@@ -1212,7 +1245,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         try
         {
-            List<ConnectionBanRecord> snapshot = new();
+            List<NetworkBanRecord> snapshot = new();
             DateTime now = Clock.NowUtc();
 
             // Minimal lock to collect snapshot
@@ -1242,14 +1275,14 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                         }
                     }
 
-                    snapshot.Add(new ConnectionBanRecord(kvp.Key, bannedUntil, banCount, lastBanTime, lastSeen));
+                    snapshot.Add(new NetworkBanRecord(kvp.Key, bannedUntil, banCount, lastBanTime, lastSeen));
                 }
             }
 
             if (snapshot.Count > 0)
             {
                 string path = System.IO.Path.Combine(Directories.DataDirectory, _storeConfig.StoreFileName);
-                ConnectionBanStore.Save(path, snapshot, snapshot.Count);
+                NetworkBanStore.Save(path, snapshot, snapshot.Count);
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
