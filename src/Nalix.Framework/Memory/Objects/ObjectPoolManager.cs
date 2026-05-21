@@ -68,6 +68,13 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         public long MaxLifetimeTicks;
         public long[]? LifetimeReservoir;
         public int ReservoirIndex;
+
+        public long LastHealthGets;
+        public long LastHealthHits;
+        public long LastHealthMisses;
+        public long LastHealthPeakOutstanding;
+        public long LastPoolFailureLogUtcTicks;
+        public int LastPoolFailureSeverity;
     }
 
     #endregion Nested Types
@@ -88,6 +95,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, PoolMetrics> _metricsDict = new();
     private PoolMetrics?[] _metrics = new PoolMetrics?[64];
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, byte> _defaultPreallocatedTypes = new();
 
     /// <summary>
     /// Configuration for object pool diagnostics.
@@ -126,6 +134,11 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     private int _disposed;
     private int _trimCycleCount;
     private long _totalTrimmedObjects;
+
+    private const int MinimumHealthSample = 32;
+    private const double FailureThreshold = 0.1;
+    private const double ElevatedFailureThreshold = 0.5;
+    private static readonly TimeSpan s_poolFailureLogCooldown = TimeSpan.FromMinutes(15);
 
     #endregion Fields
 
@@ -272,9 +285,16 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         ObjectPool? pool = id < _pools.Length ? _pools[id] : null;
         PoolMetrics? metrics = id < _metrics.Length ? _metrics[id] : null;
 
+        bool initialized = false;
         if (pool == null || metrics == null)
         {
             this.InitializePoolAndMetricsFast<T>(id, out pool, out metrics);
+            initialized = true;
+        }
+
+        if (initialized)
+        {
+            this.PREALLOC_DEFAULT_FOR_NEW_POOL<T>(pool);
         }
 
         (T? result, bool isCacheHit) = pool.GetWithInfoFast<T>(id);
@@ -440,6 +460,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
         ObjectPool pool = this.GetOrCreatePool<T>();
         Type type = typeof(T);
         PoolMetrics metrics = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
+        _ = _defaultPreallocatedTypes.TryAdd(type, 0);
 
         int allocated = pool.Prealloc<T>(count);
         _ = Interlocked.Add(ref _totalCreated, allocated);
@@ -513,6 +534,12 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             _ = Interlocked.Exchange(ref metrics.ConsecutiveFailures, 0);
             _ = Interlocked.Exchange(ref metrics.TotalCreated, 0);
             _ = Interlocked.Exchange(ref metrics.TotalDisposed, 0);
+            _ = Interlocked.Exchange(ref metrics.LastHealthGets, 0);
+            _ = Interlocked.Exchange(ref metrics.LastHealthHits, 0);
+            _ = Interlocked.Exchange(ref metrics.LastHealthMisses, 0);
+            _ = Interlocked.Exchange(ref metrics.LastHealthPeakOutstanding, 0);
+            _ = Interlocked.Exchange(ref metrics.LastPoolFailureLogUtcTicks, 0);
+            _ = Interlocked.Exchange(ref metrics.LastPoolFailureSeverity, 0);
         }
     }
 
@@ -567,7 +594,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             info["LastAccessType"] = metrics.LastAccessType ?? "None";
             info["Outstanding"] = metrics.Outstanding;
             info["PeakOutstanding"] = metrics.PeakOutstanding;
-            info["Status"] = metrics.ConsecutiveFailures > 0 ? "Unhealthy" : "OK";
+            info["Status"] = GET_POOL_STATUS(metrics);
 
             if (_config.EnableDiagnostics)
             {
@@ -630,32 +657,63 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     public int PerformHealthCheck()
     {
         int unhealthyCount = 0;
-        const double FailureThreshold = 0.1; // 10% failure rate
 
         foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
         {
             PoolMetrics metrics = kvp.Value;
 
-            if (metrics.TotalGets == 0)
+            long lifetimeGets = Interlocked.Read(ref metrics.TotalGets);
+            if (lifetimeGets == 0)
             {
                 continue;
             }
 
-            double missRate = metrics.CacheMisses / (double)metrics.TotalGets;
+            long lifetimeHits = Interlocked.Read(ref metrics.CacheHits);
+            long lifetimeMisses = Interlocked.Read(ref metrics.CacheMisses);
+            long previousGets = Interlocked.Exchange(ref metrics.LastHealthGets, lifetimeGets);
+            _ = Interlocked.Exchange(ref metrics.LastHealthHits, lifetimeHits);
+            long previousMisses = Interlocked.Exchange(ref metrics.LastHealthMisses, lifetimeMisses);
 
-            if (missRate > FailureThreshold)
+            long windowGets = Math.Max(0, lifetimeGets - previousGets);
+            long windowMisses = Math.Max(0, lifetimeMisses - previousMisses);
+
+            if (windowGets == 0)
             {
-                unhealthyCount++;
-                _ = Interlocked.Increment(ref metrics.ConsecutiveFailures);
+                continue;
+            }
 
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
+            double windowMissRate = windowMisses / (double)windowGets;
+            double lifetimeMissRate = lifetimeMisses / (double)lifetimeGets;
+
+            if (windowGets < MinimumHealthSample)
+            {
+                if (metrics.ConsecutiveFailures >= 2)
                 {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new { Manager = nameof(ObjectPoolManager), Operation = "HealthCheck", Type = kvp.Key.Name, MissRate = missRate });
+                    unhealthyCount++;
                 }
+
+                continue;
+            }
+
+            if (windowMissRate > FailureThreshold)
+            {
+                int consecutiveFailures = Interlocked.Increment(ref metrics.ConsecutiveFailures);
+                unhealthyCount++;
+
+                this.EMIT_POOL_FAILURE_IF_NEEDED(
+                    kvp.Key,
+                    metrics,
+                    windowGets,
+                    windowMisses,
+                    windowMissRate,
+                    lifetimeGets,
+                    lifetimeMissRate,
+                    consecutiveFailures);
             }
             else
             {
-                metrics.ConsecutiveFailures = 0;
+                _ = Interlocked.Exchange(ref metrics.ConsecutiveFailures, 0);
+                _ = Interlocked.Exchange(ref metrics.LastPoolFailureSeverity, 0);
             }
         }
 
@@ -797,10 +855,8 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
                 active = metrics.Outstanding;
                 hitPercent = gets > 0 ? (metrics.CacheHits / (double)gets * 100.0) : 0.0;
 
-                if (metrics.ConsecutiveFailures > 0)
-                {
-                    status = "⚠ FAIL";
-                }
+                string poolStatus = GET_POOL_STATUS(metrics);
+                status = poolStatus == "Unhealthy" ? "⚠ FAIL" : poolStatus;
             }
 
             string storage = ReportExtensions.FormatGroup(available, maxCap, compact: true);
@@ -837,7 +893,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
 
             foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
             {
-                if (kvp.Value.ConsecutiveFailures <= 0)
+                if (kvp.Value.ConsecutiveFailures < 2)
                 {
                     continue;
                 }
@@ -914,7 +970,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
                 writer.WriteString("LastAccessType", metrics.LastAccessType ?? "None");
                 writer.WriteNumber("Outstanding", metrics.Outstanding);
                 writer.WriteNumber("ConsecutiveFailures", metrics.ConsecutiveFailures);
-                writer.WriteString("Status", metrics.ConsecutiveFailures > 0 ? "Unhealthy" : "OK");
+                writer.WriteString("Status", GET_POOL_STATUS(metrics));
             }
             writer.WriteEndObject();
         }
@@ -925,7 +981,7 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
             writer.WriteStartArray("UnhealthyPools");
             foreach (KeyValuePair<Type, PoolMetrics> kvp in _metricsDict)
             {
-                if (kvp.Value.ConsecutiveFailures <= 0)
+                if (kvp.Value.ConsecutiveFailures < 2)
                 {
                     continue;
                 }
@@ -952,10 +1008,17 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     {
         Type type = typeof(T);
 
-        ObjectPool pool = _poolDict.GetOrAdd(type, _ =>
+        if (_poolDict.TryGetValue(type, out ObjectPool? existing))
         {
-            // Update peak pool count on new pool creation (this is executed while adding)
-            int currentCount = _poolDict.Count + 1; // approximate expected count after add
+            _ = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
+            return existing;
+        }
+
+        ObjectPool pool = new(this.DefaultMaxPoolSize);
+        if (_poolDict.TryAdd(type, pool))
+        {
+            // Update peak pool count on new pool creation.
+            int currentCount = _poolDict.Count;
             int observed;
             do
             {
@@ -966,13 +1029,12 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
                 }
             } while (Interlocked.CompareExchange(ref _peakPoolCount, currentCount, observed) != observed);
 
-            return new ObjectPool(this.DefaultMaxPoolSize);
-        });
+            _ = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
+            return pool;
+        }
 
-        // Ensure metrics exist for this type
         _ = _metricsDict.GetOrAdd(type, _ => new PoolMetrics());
-
-        return pool;
+        return _poolDict[type];
     }
 
     private void AppendSuspiciousObjects(StringBuilder sb)
@@ -1057,6 +1119,136 @@ public sealed class ObjectPoolManager : IObjectPoolManager, IReportable
     #endregion APIs
 
     #region Private Methods
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string GET_POOL_STATUS(PoolMetrics metrics)
+    {
+        if (Volatile.Read(ref metrics.ConsecutiveFailures) >= 2)
+        {
+            return "Unhealthy";
+        }
+
+        long gets = Interlocked.Read(ref metrics.TotalGets);
+        long misses = Interlocked.Read(ref metrics.CacheMisses);
+        return gets > 0 && gets < MinimumHealthSample && misses > 0 ? "Warming" : "OK";
+    }
+
+    private void EMIT_POOL_FAILURE_IF_NEEDED(
+        Type type,
+        PoolMetrics metrics,
+        long windowGets,
+        long windowMisses,
+        double windowMissRate,
+        long lifetimeGets,
+        double lifetimeMissRate,
+        int consecutiveFailures)
+    {
+        int available = 0;
+        if (_poolDict.TryGetValue(type, out ObjectPool? pool))
+        {
+            Dictionary<string, object> info = pool.GetTypeInfoByType(type);
+            if (info.TryGetValue("AvailableCount", out object? value))
+            {
+                available = Convert.ToInt32(value, CultureInfo.InvariantCulture);
+            }
+        }
+
+        long outstanding = Interlocked.Read(ref metrics.Outstanding);
+        long peakOutstanding = Interlocked.Read(ref metrics.PeakOutstanding);
+        long previousPeak = Interlocked.Exchange(ref metrics.LastHealthPeakOutstanding, peakOutstanding);
+        bool capacityPressure = outstanding > 0 && available == 0 && peakOutstanding > previousPeak;
+
+        int severity = capacityPressure ? 3 : windowMissRate >= ElevatedFailureThreshold ? 2 : 1;
+        long nowTicks = DateTime.UtcNow.Ticks;
+        long lastLogTicks = Interlocked.Read(ref metrics.LastPoolFailureLogUtcTicks);
+        int lastSeverity = Volatile.Read(ref metrics.LastPoolFailureSeverity);
+        bool cooldownElapsed = lastLogTicks == 0 ||
+            new TimeSpan(nowTicks - lastLogTicks) >= s_poolFailureLogCooldown;
+
+        if (!cooldownElapsed && severity <= lastSeverity)
+        {
+            return;
+        }
+
+        _ = Interlocked.Exchange(ref metrics.LastPoolFailureLogUtcTicks, nowTicks);
+        _ = Interlocked.Exchange(ref metrics.LastPoolFailureSeverity, severity);
+
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolFailure))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolFailure, new
+            {
+                Manager = nameof(ObjectPoolManager),
+                Operation = "HealthCheck",
+                Type = FORMAT_TYPE_NAME(type),
+                WindowGets = windowGets,
+                WindowMisses = windowMisses,
+                WindowMissRate = windowMissRate,
+                LifetimeGets = lifetimeGets,
+                LifetimeMissRate = lifetimeMissRate,
+                Available = available,
+                Outstanding = outstanding,
+                PeakOutstanding = peakOutstanding,
+                ConsecutiveFailures = consecutiveFailures,
+                Reason = capacityPressure ? "CapacityPressure" : "HighWindowMissRate"
+            });
+        }
+    }
+
+    private static string FORMAT_TYPE_NAME(Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return type.Name;
+        }
+
+        string name = type.Name;
+        int tick = name.IndexOf('`', StringComparison.Ordinal);
+        if (tick >= 0)
+        {
+            name = name[..tick];
+        }
+
+        Type[] args = type.GetGenericArguments();
+        string[] argNames = new string[args.Length];
+        for (int i = 0; i < args.Length; i++)
+        {
+            argNames[i] = FORMAT_TYPE_NAME(args[i]);
+        }
+
+        return string.Concat(name, "<", string.Join(", ", argNames), ">");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void PREALLOC_DEFAULT_FOR_NEW_POOL<T>(ObjectPool pool) where T : IPoolable, new()
+    {
+        int count = _config.DefaultPreallocate;
+        if (count <= 0 || !_defaultPreallocatedTypes.TryAdd(typeof(T), 0))
+        {
+            return;
+        }
+
+        int allocated = pool.Prealloc<T>(count);
+        if (allocated <= 0)
+        {
+            return;
+        }
+
+        _ = Interlocked.Add(ref _totalCreated, allocated);
+        PoolMetrics metrics = _metricsDict.GetOrAdd(typeof(T), _ => new PoolMetrics());
+        _ = Interlocked.Add(ref metrics.TotalCreated, allocated);
+
+        if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolExpanded))
+        {
+            DiagnosticsEvents.Source.Write(DiagnosticsEvents.Memory.PoolExpanded, new
+            {
+                Manager = nameof(ObjectPoolManager),
+                Operation = "DefaultPreallocate",
+                Type = FORMAT_TYPE_NAME(typeof(T)),
+                Requested = count,
+                Allocated = allocated
+            });
+        }
+    }
 
     private double CALCULATE_P95(PoolMetrics metrics)
     {
