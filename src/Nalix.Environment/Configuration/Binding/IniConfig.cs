@@ -1146,6 +1146,14 @@ public sealed class IniConfig : IDisposable
                 // Skip empty lines or comments
                 if (trimmedLine[0] == CommentChar)
                 {
+                    // Skip separator lines — WriteFile() emits its own framing separators,
+                    // so storing these in _comments would cause duplication on each round-trip.
+                    ReadOnlySpan<char> commentBody = trimmedLine.AsSpan(1).Trim();
+                    if (IsSeparatorLine(commentBody))
+                    {
+                        continue;
+                    }
+
                     if (pendingComments.Length > 0)
                     {
                         _ = pendingComments.Append('\n');
@@ -1316,6 +1324,30 @@ public sealed class IniConfig : IDisposable
         {
             // Ignore file access errors - we'll use the data we have
         }
+    }
+
+    /// <summary>
+    /// Returns <see langword="true"/> when the comment body (after removing the leading <c>';'</c>)
+    /// consists entirely of dash characters, matching the section-separator pattern
+    /// emitted by <see cref="WriteFile"/>.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsSeparatorLine(ReadOnlySpan<char> commentBody)
+    {
+        if (commentBody.IsEmpty)
+        {
+            return false;
+        }
+
+        foreach (char c in commentBody)
+        {
+            if (c != '-')
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

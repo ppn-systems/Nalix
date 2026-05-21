@@ -729,9 +729,31 @@ public sealed class TaskManagerTests : IDisposable
         _ = Assert.Throws<ObjectDisposedException>(() => manager.ScheduleRecurring("after-dispose", TimeSpan.FromMilliseconds(10), _ => ValueTask.CompletedTask));
     }
 
+    [Fact]
+    public async Task ScheduleBackgroundWorkExecutesSuccessfullyAndUpdatesMetrics()
+    {
+        using TaskManager manager = this.CreateManager();
+        TaskCompletionSource<int> tcs = TaskManagerTestHost.CreateCompletionSource<int>();
+
+        manager.ScheduleWorker(
+            name: "test.background.work",
+            work: static state =>
+            {
+                var (t, val) = state;
+                t.TrySetResult(val);
+            },
+            state: (Tcs: tcs, Value: 42)
+        );
+
+        int result = await tcs.Task.WaitAsync(TimeSpan.FromSeconds(15));
+        Assert.Equal(42, result);
+
+        // Verify that global metrics/Title were updated
+        Assert.True(manager.Title.Contains("Workers:"));
+    }
+
     private TaskManager CreateManager(TaskManagerOptions? options = null) => _host.CreateManager(options);
 }
-
 
 
 

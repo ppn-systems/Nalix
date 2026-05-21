@@ -11,6 +11,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
@@ -18,11 +19,8 @@ using Nalix.Codec.Security;
 using Nalix.Codec.Security.Asymmetric;
 using Nalix.Environment.IO;
 using Nalix.Environment.Random;
-using Nalix.Runtime.Extensions;
-using Nalix.Runtime.Pooling;
-using Nalix.Runtime.Sessions;
-using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Framework.Injection;
+using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
 

@@ -13,12 +13,18 @@ namespace Nalix.Network.Options;
 public sealed partial class TrustedProxyOptions : ConfigurationLoader
 {
     /// <summary>
-    /// Gets or sets a comma-separated list of trusted proxy IP networks (e.g. Cloudflare IPs).
-    /// These IPs will bypass normal limits and use the trusted ceilings instead.
-    /// Example: "103.21.244.0/22,103.22.200.0/22".
+    /// Gets or sets the file name used for storing trusted proxy IPs/CIDRs.
+    /// Default is "trusted_proxies.txt".
     /// </summary>
-    [IniComment("Comma-separated list of trusted proxy CIDRs/IPs (e.g. Cloudflare). These IPs use the trusted proxy ceilings instead of normal limits.")]
-    public string TrustedProxiesString { get; set; } = string.Empty;
+    [IniComment("File name for storing trusted proxy IPs/CIDRs in the data directory (default trusted_proxies.txt)")]
+    public string StoreFileName { get; set; } = "trusted_proxies.txt";
+
+    /// <summary>
+    /// Gets or sets the maximum number of trusted proxy IPs/CIDRs to load from disk.
+    /// </summary>
+    [IniComment("Maximum number of trusted proxy IPs/CIDRs to load from disk (10-1,000,000, default 100,000)")]
+    [System.ComponentModel.DataAnnotations.Range(10, 1_000_000, ErrorMessage = "MaxTrustedProxies must be between 10 and 1,000,000.")]
+    public int MaxTrustedProxies { get; set; } = 100_000;
 
     /// <summary>
     /// Gets or sets the maximum number of concurrent connections allowed per trusted proxy.
@@ -50,6 +56,11 @@ public sealed partial class TrustedProxyOptions : ConfigurationLoader
         if (this.MaxAttemptsPerTrustedProxyWindow < 1 || this.MaxAttemptsPerTrustedProxyWindow > 10_000_000)
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.MaxAttemptsPerTrustedProxyWindow), "MaxAttemptsPerTrustedProxyWindow must be between 1 and 10,000,000.");
+        }
+
+        if (this.MaxTrustedProxies < 10 || this.MaxTrustedProxies > 1_000_000)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxTrustedProxies), "MaxTrustedProxies must be between 10 and 1,000,000.");
         }
     }
 }

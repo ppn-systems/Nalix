@@ -152,7 +152,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
     /// <summary>
     /// Returns the event sink (bridge) wired to this transport.
-    /// Used by <see cref="Connections.Connection"/> to delegate throttle queries.
+    /// Used by <see cref="Network.Connections.Connection"/> to delegate throttle queries.
     /// </summary>
     internal ITransportEventSink? EventSink => _sink;
 

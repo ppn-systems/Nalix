@@ -14,7 +14,7 @@ namespace Nalix.Network.Internal.Security;
 /// <summary>
 /// Handles highly optimized binary persistence of banned IP addresses.
 /// </summary>
-internal static class ConnectionBanStore
+internal static class NetworkBanStore
 {
     private const byte Version = 1;
     private const int MagicNumber = 0x4E42414E; // 'N' 'B' 'A' 'N'
@@ -22,9 +22,9 @@ internal static class ConnectionBanStore
     /// <summary>
     /// Loads banned IPs from disk, filtering expired entries and applying BanCount decay.
     /// </summary>
-    public static List<ConnectionBanRecord> Load(string filePath, int maxRecords, TimeSpan decayWindow, long nowTicks)
+    public static List<NetworkBanRecord> Load(string filePath, int maxRecords, TimeSpan decayWindow, long nowTicks)
     {
-        List<ConnectionBanRecord> records = new();
+        List<NetworkBanRecord> records = new();
         if (!File.Exists(filePath))
         {
             return records;
@@ -92,7 +92,7 @@ internal static class ConnectionBanStore
                 IPAddress ipAddress = new(addressBytes);
                 INetworkEndpoint endpoint = SocketEndpoint.FromIpAddress(ipAddress);
 
-                records.Add(new ConnectionBanRecord(endpoint, bannedUntil, banCount, lastBanTime, lastSeenAt));
+                records.Add(new NetworkBanRecord(endpoint, bannedUntil, banCount, lastBanTime, lastSeenAt));
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -107,33 +107,36 @@ internal static class ConnectionBanStore
     /// <summary>
     /// Saves banned IPs to disk using an atomic write approach.
     /// </summary>
-    public static void Save(string filePath, IEnumerable<ConnectionBanRecord> records, int recordCount)
+    public static void Save(string filePath, IEnumerable<NetworkBanRecord> records, int recordCount)
     {
         string tmpPath = filePath + ".tmp";
 
         try
         {
+            List<(NetworkBanRecord Record, byte[] AddrBytes)> validRecords = new(recordCount);
+            foreach (NetworkBanRecord record in records)
+            {
+                if (IPAddress.TryParse(record.Endpoint.Address, out IPAddress? ip))
+                {
+                    validRecords.Add((record, ip.GetAddressBytes()));
+                }
+            }
+
             using (FileStream fs = new(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
             using (BinaryWriter writer = new(fs))
             {
                 writer.Write(MagicNumber);
                 writer.Write(Version);
-                writer.Write(recordCount);
+                writer.Write(validRecords.Count);
 
-                foreach (ConnectionBanRecord record in records)
+                foreach ((NetworkBanRecord Record, byte[] AddrBytes) in validRecords)
                 {
-                    if (!IPAddress.TryParse(record.Endpoint.Address, out IPAddress? ip))
-                    {
-                        continue;
-                    }
-
-                    byte[] addrBytes = ip.GetAddressBytes();
-                    writer.Write((byte)addrBytes.Length);
-                    writer.Write(addrBytes);
-                    writer.Write(record.BannedUntilTicks);
-                    writer.Write(record.BanCount);
-                    writer.Write(record.LastBanTimeTicks);
-                    writer.Write(record.LastSeenAtTicks);
+                    writer.Write((byte)AddrBytes.Length);
+                    writer.Write(AddrBytes);
+                    writer.Write(Record.BannedUntilTicks);
+                    writer.Write(Record.BanCount);
+                    writer.Write(Record.LastBanTimeTicks);
+                    writer.Write(Record.LastSeenAtTicks);
                 }
 
                 fs.Flush(true); // Ensure physical write to disk
@@ -162,7 +165,7 @@ internal static class ConnectionBanStore
     }
 }
 
-internal readonly struct ConnectionBanRecord
+internal readonly struct NetworkBanRecord
 {
     public readonly int BanCount;
     public readonly long LastSeenAtTicks;
@@ -170,7 +173,7 @@ internal readonly struct ConnectionBanRecord
     public readonly long LastBanTimeTicks;
     public readonly INetworkEndpoint Endpoint;
 
-    public ConnectionBanRecord(INetworkEndpoint endpoint, long bannedUntilTicks, int banCount, long lastBanTimeTicks, long lastSeenAtTicks)
+    public NetworkBanRecord(INetworkEndpoint endpoint, long bannedUntilTicks, int banCount, long lastBanTimeTicks, long lastSeenAtTicks)
     {
         Endpoint = endpoint;
         BannedUntilTicks = bannedUntilTicks;
