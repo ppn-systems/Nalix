@@ -13,7 +13,11 @@ Start by confirming that the important option types are loaded and validated dur
 - `NetworkSocketOptions`
 - `PoolingOptions`
 - `DispatchOptions`
-- `ConnectionLimitOptions`
+- `ConnectionQuotaOptions`
+- `ConnectionGuardOptions`
+- `ConnectionBanStoreOptions`
+- `ConnectionBlacklistStoreOptions`
+- `TrustedProxyOptions`
 - `ConnectionHubOptions`
 - `TimingWheelOptions`
 - `NetworkCallbackOptions`

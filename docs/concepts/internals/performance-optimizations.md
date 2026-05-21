@@ -32,6 +32,7 @@ Instead of allocating `byte[]` per request, Nalix uses a slab-oriented `BufferPo
 ### Poolable Contexts & Objects (Thread-Local & Type-Indexed)
 
 The concrete `PacketContext<TPacket>` runtime object and internal hot-path objects are recycled via the `ObjectPoolManager` / `ObjectPool` framework. To completely eliminate locks and dictionary lookup overhead on the hot path:
+
 - **Thread-Local Fast Path**: A thread-local slot cache (`ThreadLocalCache<T>`) retains one instance of each type per thread, allowing lock-free $O(1)$ rent/return operations.
 - **Type-Indexed Buckets**: Unique, sequentially allocated integer identifiers (`PoolType<T>.Id`) index a flat lookup array (`_typePoolsArray`), bypassing costly reflection or `Type` dictionary hashing.
 - **88% Latency Reduction**: This hybrid design reduces object pooling overhead from **188 ns** down to **22.8 ns** while maintaining **0 B** heap allocations. Handler code should normally consume contexts through the `IPacketContext<TPacket>` interface.

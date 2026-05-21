@@ -76,7 +76,8 @@ public override void ProcessMessage(object? sender, IConnectEventArgs args)
 **Check first**
 
 - `DispatchOptions`
-- `ConnectionLimitOptions`
+- `ConnectionQuotaOptions`
+- `ConnectionGuardOptions`
 - `ConnectionGuard.GenerateReport()`
 - `PacketDispatchChannel.GenerateReport()`
 

@@ -30,6 +30,7 @@ constraints:
 
 - `CallbackWarningThreshold` must be lower than `MaxPendingNormalCallbacks` when
   warnings are enabled.
+
 - `MaxPendingPerIp` must not exceed `MaxPendingNormalCallbacks`.
 
 ## Bootstrap and Option Materialization
@@ -177,12 +178,16 @@ while the local pool size is `8`.
 
 - Raise `MaxPerConnectionPendingPackets` only when handlers legitimately perform slow
   asynchronous work and clients need deeper per-connection burst tolerance.
+
 - Keep `MaxPerConnectionOpenFragmentStreams` low unless the protocol requires many
   concurrent fragmented messages from a single peer.
+
 - Size `MaxPendingNormalCallbacks` for total ThreadPool and memory headroom; rejected
   callbacks are preferable to unbounded work-item growth under flood conditions.
+
 - Increase `FairnessMapSize` when many legitimate remote endpoints trigger apparent
   per-IP backpressure despite low individual traffic.
+
 - Tune callback wrapper retention in `PoolingOptions`, not `MaxPooledCallbackStates`,
   until the source wires that property into `AsyncCallback`.
 

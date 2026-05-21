@@ -1,101 +1,99 @@
 # Connection Hub
 
-`ConnectionHub` is the central authoritative registry for all active client connections. It provides high-performance thread-safe storage, O(1) lookups, and orchestration for server-wide operations like broadcasting and bulk disconnects.
+`ConnectionHub` is the central registry for all active client connections. It provides thread-safe storage, O(1) lookups, and orchestration for server-wide operations like broadcasting and bulk disconnects.
 
 ## Source Mapping
 
 - `src/Nalix.Abstractions/Networking/IConnection.Hub.cs`
 - `src/Nalix.Network/Connections/Connection.Hub.cs`
-- `src/Nalix.Network/Sessions/SessionService.cs`
+- `src/Nalix.Network/Internal/Connections/ConnectionRegistry.cs`
 
 ## Why This Type Exists
 
 As a stateful server scales, managing the lifecycle of tens of thousands of concurrent connections becomes a performance bottleneck. `ConnectionHub` solves this by:
 
-- **Shard-Aware Storage**: Fragmenting the connection pool into multiple internal dictionaries to eliminate lock contention during high-concurrency registration and removal.
-- **Atomic Admission Control**: Enforcing global connection limits with configurable drop policies (Drop Oldest vs. Drop Newest).
-- **Session Integration**: Acting as the gateway to the `ISessionService` for resuming cryptographic states.
+- **Decoupled Registry (`ConnectionRegistry`)**: Separating data storage concerns (sharding, lookup indexing) from routing, broadcasting, and event dispatch logic.
+- **Shard-Aware Storage**: Splitting the connection pool into multiple internal dictionaries (`ConcurrentDictionary<ulong, IConnection>`) to eliminate lock contention during high-concurrency registration and removal.
+- **Fast IP Lookup**: Maintaining a secondary endpoint index mapping client IP addresses to connection objects, facilitating efficient grouping and lookup of connections per IP.
 
-## Connection Registry Architecture
+## Architecture
 
-The following diagram illustrates how the Hub manages its internal shards and handles registration requests.
+The following diagram illustrates how the `ConnectionHub` leverages the `ConnectionRegistry` to manage internal shards and track connections.
 
 ```mermaid
 flowchart TD
-    Req[RegisterConnection Request] --> Capacity{Capacity Full?}
-    
-    Capacity -->|No| Sharding[Calculate Shard Index - id % ShardCount]
-    Capacity -->|Yes| Policy{DropPolicy?}
-    
-    Policy -->|DropNewest| Reject[Reject with Exception]
-    Policy -->|DropOldest| Evict[Evict Oldest Anonymous Conn]
-    
-    Evict --> Sharding
-    Sharding --> Add[Add to ConcurrentDictionary]
-    Add --> Event[Raise ConnectionUnregistered on Close]
+    Req[RegisterConnection Request] --> Reg[Invoke ConnectionRegistry.TryAdd]
+    Reg --> ShardIdx[Calculate Shard Index via MIX64 Hash]
+    ShardIdx --> AddShard[Add to Shard ConcurrentDictionary]
+    AddShard --> TrackEP[Add Connection to IP Index]
+    TrackEP --> Event[Subscribe OnCloseEvent -> OnClientDisconnected]
 
-    subgraph Shards[Internal Fragmented Storage]
+    subgraph Registry[ConnectionRegistry - Internal Storage]
         Shard0[Shard 0]
         Shard1[Shard 1]
         ShardN[Shard N]
+        EPIndex[Endpoint IP Index]
     end
 
-    Sharding -.-> Shards
+    ShardIdx -.-> Shard0
+    ShardIdx -.-> Shard1
+    ShardIdx -.-> ShardN
+    TrackEP -.-> EPIndex
 ```
 
 ## Internal Responsibilities (Source-Verified)
 
 ### 1. Dictionary Fragmentation (Sharding)
 
-The hub splits connections across `ShardCount` internal dictionaries (standard is `ProcessorCount`).
+`ConnectionRegistry` splits connections across `ShardCount` internal dictionaries (defaulting to the machine's processor count, configured in `ConnectionHubOptions`).
 
-- **Hash Spreading**: The `ulong` Connection ID is hashed to determine which shard owns it.
-- **Concurrency**: This allows multiple CPU cores to register or unregister connections independently without waiting for a global lock on the entire hub.
+- **Hash Spreading**: The `ulong` Connection ID is hashed using a custom `MIX64` hash function to determine its designated storage shard.
+- **Lock Reduction**: This sharding technique allows multiple CPU cores to register, unregister, or lookup connections independently, drastically reducing contention on dictionary locks.
 
-### 2. Admission and Eviction
+### 2. High-Performance Snapshotting
 
-When `MaxConnections` is enabled:
+Broadcasting and listing operations retrieve a stable snapshot using `CaptureConnectionSnapshot()`.
 
-- **DropNewest**: The default behavior. Rejects new handshakes when the server is full.
-- **DropOldest**: If the hub is full, it identifies the oldest **Anonymous** (not yet authenticated) connection from an internal `ConcurrentQueue` and forcibly evicts it to make room for the new arrival.
+- **Array Renting**: The registry rents arrays from `ArrayPool<IConnection>.Shared` to collect connections from all shards without producing garbage collection (GC) pressure.
+- **Thread Safety**: Snapshotting ensures that broadcasting performs network I/O outside dictionary locks, preventing deadlocks or latency spikes.
 
-### 3. Resilience & Session Persistence
+### 3. Endpoint Tracking
 
-To protect the server from memory exhaustion and ensure reliable state recovery:
+The registry maintains an internal dictionary mapping IP addresses to a sub-dictionary of connections.
 
-- **Auto-Persist on Unregister**: When `_sessionOptions.AutoSaveOnUnregister` is enabled, `TryUnregisterCore(...)` starts a background `SaveSessionAsync(connection)` call on the configured `ISessionService`.
-- **Policy lives in the session service**: The "only persist established, meaningful sessions" rule is enforced by `SessionService.SaveSessionAsync(IConnection)`, including the handshake-established check and `MinAttributesForPersistence` threshold.
-- **Fire-and-forget storage**: Unregister stays low-latency because persistence failures are swallowed in the background helper instead of blocking removal.
+- This allows O(1) query performance when filtering connections originating from a specific IP endpoint.
+- Dynamic cleanup is performed: when the last connection from an IP address is unregistered, the IP index bucket is removed to prevent memory leaks.
 
-### 4. Batched Broadcasting
+### 4. Bulk Disconnect Parallelism
 
-Broadcasting to large numbers of clients is performed using `CaptureConnectionSnapshot()`, which rents an array from `ArrayPool<IConnection>` to avoid GC pressure.
+When the hub is disposed, it shuts down all registered connections.
 
-- **Parallel Dispatch**: Broadcasts can be batched to interleave I/O operations and maintain responsive network processing for non-participating clients.
+- **Parallel Disconnect**: Connections are disconnected concurrently using `Parallel.ForEach` with `ParallelDisconnectDegree` (configured in `ConnectionHubOptions`) to ensure quick server shutdown.
+- **Event Unsubscription**: Disconnected connections are unsubscribed from the hub events prior to disposal to prevent memory leaks.
 
 ## Public APIs
 
-- `Count`: The total number of live connections (uses `Volatile.Read` for accuracy).
-- `SessionService`: Access to the underlying session persistence layer.
-- `ConnectionUnregistered`: Event raised after a connection is successfully unregistered.
-- `CapacityLimitReached`: Event raised when a limit is reached and a connection is rejected.
+- `Count`: The total number of live connections registered in the hub.
+- `ConnectionUnregistered`: Event raised after a connection is successfully unregistered from the hub.
 - `RegisterConnection(conn)`: Enrolls a new connection (Thread-safe).
-- `UnregisterConnection(conn)`: Removes a connection from the hub.
-- `GetConnection(id)`: O(1) retrieval by Snowflake ID.
-- `ListConnections()`: Returns a read-only collection of all active connections.
-- `BroadcastAsync<T>(msg, sendFunc)`: High-performance fan-out.
-- `BroadcastWhereAsync<T>(msg, sendFunc, predicate)`: Broadcasts only to connections matching the predicate.
-- `ListConnections(INetworkEndpoint)`: Returns active connections from a specific endpoint address.
-- Bulk termination is handled by `IConnectionTerminator.CloseAll(...)` and `IConnectionTerminator.CloseByEndpoint(...)`.
-- `Dispose()`: Releases all resources and closes all connections.
+- `UnregisterConnection(conn)`: Removes a connection and disposes of it.
+- `GetConnection(id)`: O(1) retrieval by `ulong` or `ISnowflake` ID.
+- `GetConnection(ReadOnlySpan<byte> id)`: O(1) retrieval using a serialized binary ID.
+- `ListConnections()`: Returns a read-only snapshot collection of all active connections.
+- `ListConnections(networkEndpoint)`: Returns active connections originating from a specific remote endpoint.
+- `BroadcastAsync<T>(msg, sendFunc, cancellationToken)`: High-performance parallel or batched fan-out (configured by `BroadcastBatchSize`).
+- `BroadcastWhereAsync<T>(msg, sendFunc, predicate, cancellationToken)`: Broadcasts only to connections matching the filter predicate.
+- `GenerateReport()`: Generates a human-readable diagnostic report of active connections, algorithm usage, and bytes statistics.
+- `WriteReportData(writer)`: Writes structural JSON report data for monitoring systems.
+- `Dispose()`: Releases all resources, unsubscribes events, and closes all connections in parallel.
 
 ## Best Practices
 
 !!! tip "Broadcast Filtering"
     Always use `BroadcastWhereAsync<T>` if you only need to send data to a subset of clients (e.g., players in the same game room). This prevents unnecessary packet serialization for clients that don't need the update.
 
-!!! warning "Locking Caution"
-    `ConnectionHub` is thread-safe, but its methods should not be called inside sensitive locks in your application code, as this could lead to deadlocks with internal Shard locks during concurrent unregistration.
+!!! warning "Avoid Locking Inside Callbacks"
+    Since connection disposal and unregistration trigger event callbacks, avoid blocking or acquiring heavy application locks inside handlers subscribed to `ConnectionUnregistered` to prevent potential deadlock issues.
 
 ## Related Information Paths
 
@@ -103,3 +101,4 @@ Broadcasting to large numbers of clients is performed using `CaptureConnectionSn
 - [Connection Hub Options](../../options/network/connection-hub-options.md)
 - [Timing Wheel](../time/timing-wheel.md)
 - [Session Store & Service](../session-store.md)
+

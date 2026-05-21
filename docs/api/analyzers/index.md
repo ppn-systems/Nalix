@@ -66,8 +66,10 @@ boundary for an `IBufferLease`.
 
 - Treat warning diagnostics as compile-time protection for runtime dispatch,
   serialization, and resource-safety invariants.
+
 - Treat info diagnostics as low-risk improvements unless your project policy
   elevates analyzer severity.
+
 - Prefer fixing the underlying Nalix pattern over suppressing diagnostics.
 - When applying code fixes, review the result; providers make the smallest safe
   local correction and do not redesign surrounding architecture.

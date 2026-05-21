@@ -8,7 +8,7 @@
 - `src/Nalix.Network/Listeners/UdpListener/UdpListener.Receive.cs`
 - `src/Nalix.Network/Listeners/UdpListener/UdpListener.Core.cs`
 - `src/Nalix.Network/Options/DatagramGuardOptions.cs`
-- `src/Nalix.Network/Options/ConnectionLimitOptions.cs`
+- `src/Nalix.Network/Options/ConnectionGuardOptions.cs`
 
 !!! danger "Security Prerequisite"
     In the built-in secured flow, UDP datagrams are associated with an existing connection through the 8-byte `SessionToken` prefix and then subjected to endpoint, replay, and authentication checks.
@@ -70,7 +70,7 @@ flowchart TD
 
 ### 1.1. Datagram Guard
 
-The UDP listener creates a `DatagramGuard` from `ConnectionLimitOptions` and `DatagramGuardOptions`. Incoming datagrams from an `IPEndPoint` first pass `_rateLimiter.TryAccept(ip)` before deeper processing continues.
+The UDP listener creates a `DatagramGuard` from `ConnectionGuardOptions` and `DatagramGuardOptions`. Incoming datagrams from an `IPEndPoint` first pass `_rateLimiter.TryAccept(ip)` before deeper processing continues.
 
 ## 2. Low-Level Security Pipeline
 
@@ -116,4 +116,4 @@ Once authenticated, the UDP payload follows a standardized processing pipeline:
 | `IsAuthenticated(IConnection, EndPoint, ReadOnlySpan<byte>)` | Protected hook used by derived listeners for custom datagram acceptance logic after built-in token, endpoint, and replay checks pass. |
 
 !!! tip "Performance Tuning"
-    For large datagram bursts, tune `NetworkSocketOptions.BufferSize` together with `ConnectionLimitOptions.MaxPacketPerSecond` and the datagram guard capacities instead of relying on one oversized socket buffer alone.
+    For large datagram bursts, tune `NetworkSocketOptions.BufferSize` together with `ConnectionGuardOptions.MaxPacketPerSecond` and the datagram guard capacities instead of relying on one oversized socket buffer alone.

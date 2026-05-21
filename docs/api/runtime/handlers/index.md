@@ -42,6 +42,14 @@ flowchart LR
 
 Nalix includes industrial-strength handlers for standard protocol features. You can explore their implementations in the `src/Nalix.Runtime/Handlers` directory.
 
+### `KeyExchangeHandlers`
+
+Manages the server-side **TOFU Key Exchange** flow (`ProtocolOpCode.KEY_EXCHANGE`).
+
+- **Stage Resolution**: Processes the `KeyExchangeStage.REQUEST` from the client and replies with a `KeyExchangeStage.RESPONSE` containing the server's public key (`HandshakeHandlers.ServerPublicKey`).
+- **Security Check**: Enforces that key exchange must occur strictly before the session handshake. If `ConnectionAttributes.HandshakeEstablished` is already present, the connection is instantly closed due to a state violation.
+- **Attributes**: Marked with `[ReservedOpcodePermitted]`, `[PacketEncryption(false)]`, and `[PacketPermission(PermissionLevel.NONE)]` as it runs before secure communications are established.
+
 ### `HandshakeHandlers`
 
 Manages the server-side **X25519 Handshake** flow.

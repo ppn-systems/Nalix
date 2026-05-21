@@ -49,7 +49,7 @@ graph LR
 | Type | Public members |
 |---|---|
 | `NetworkApplication` | `CreateMinimal(...)`, `CreateBuilder()`, `ActivateAsync(...)`, `DeactivateAsync(...)`, `RunAsync(...)`, `Dispose()` |
-| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `Build()` |
+| `INetworkApplicationBuilder` | `ConfigureLogging(...)`, `ConfigureConnectionHub(...)`, `ConfigureBufferPoolManager(...)`, `ConfigureObjectPoolManager(...)`, `ConfigureCertificate(...)`, `Configure<TOptions>(...)`, `ScanHandlers(...)`, `AddHandler(...)`, `AddMetadataProvider(...)`, `ConfigureDispatchOptions(...)`, `ConfigureDispatch(...)`, `BindTcp<T>().Bind()`, `BindUdp<T>().Bind()`, `BindWebSocket<T>().Bind()`, `Build()` |
 
 ## Builder composition details
 
@@ -79,6 +79,7 @@ The hosted pipeline remains generic-friendly, so the same builder flow works for
 - `ActivateAsync(...)`: Acquires the lifecycle gate, runs builder preparation callbacks, creates packet dispatch, best-effort registers it as `IPacketDispatch`, activates packet dispatch, then creates and starts each TCP/UDP listener.
 !!! note
     Middleware is registered globally but executed inside the sharded dispatch loop. Ensure your custom middleware is thread-safe or uses localized state.
+
 - `RunAsync(...)`: Calls `ActivateAsync(...)`, waits until cancellation, then calls `DeactivateAsync(CancellationToken.None)` in a `finally` block.
 - `DeactivateAsync(...)`: Stops and disposes listeners in reverse order, disposes protocols in reverse order, deactivates the packet dispatcher, waits for background task groups (`net/*` and `time/*`) via `ITaskManager.WaitGroupAsync`, clears runtime lists, then marks the application stopped.
 - `Dispose()`: Starts `DeactivateAsync(CancellationToken.None)`, logs deferred failures, disposes the lifecycle gate, and suppresses finalization.
@@ -135,6 +136,10 @@ The `Nalix.Hosting` namespace provides a built-in `DefaultProtocol` that can be 
 - `BindUdp<TProtocol>().OnPort(port).WithAuthentication(authen).Bind()`: Registers an explicit-port UDP server with an authentication predicate.
 - `BindUdp<TProtocol>().OnPort(port).WithFactory(factory).Bind()`: Registers an explicit-port UDP server with a custom protocol factory.
 - `BindUdp<TProtocol>().OnPort(port).WithFactory(factory).WithAuthentication(authen).Bind()`: Registers an explicit-port UDP server with both a custom factory and authentication predicate.
+- `BindWebSocket<TProtocol>().Bind()`: Registers a WebSocket server for the specified protocol using the configured `NetworkWebSocketOptions.Port` and `NetworkWebSocketOptions.Path`.
+- `BindWebSocket<TProtocol>().OnPort(port).Bind()`: Registers a WebSocket server on an explicit port, overriding the default.
+- `BindWebSocket<TProtocol>().WithPath(path).Bind()`: Registers a WebSocket server with an explicit HTTP path prefix (e.g. `"/nalix"`), overriding the default.
+- `BindWebSocket<TProtocol>().WithFactory(factory).Bind()`: Registers a WebSocket server with a custom protocol factory.
 
 Protocol types can expose a constructor that accepts `IPacketDispatch`; otherwise the builder uses the default activator path.
 

@@ -1,75 +1,68 @@
 # Frame Reader and Sender
 
-`FrameReader` and `FrameSender` are the internal workhorses of the `Nalix.SDK` transport layer. They manage the low-level serialization of frames, socket I/O, and payload transformations, abstracting these complexities away from the `TcpSession`.
+`FrameReader` and `FrameSender` abstractions are the internal workhorses of the `Nalix.SDK` transport layer. To support multiple underlying protocols, these responsibilities are split into specialized pairs:
 
-## Internal Pipeline
+- **TCP**: `TcpFrameReader` and `TcpFrameSender`
+- **UDP**: `UdpFrameReader` and `UdpFrameSender`
+- **WebSocket**: `WsFrameReader` and `WsFrameSender`
 
-```mermaid
-graph TD
-    subgraph Outbound [Outbound Pipeline]
-        S[TcpSession.SendAsync] --> FS[FrameSender]
-        FS --> T[Transform: Encrypt/Compress]
-        T --> G{Payload >= FragmentOptions.MaxChunkSize?}
-        G -->|No| F[2-byte length-prefixed TCP frame]
-        G -->|Yes| C[FragmentHeader chunks]
-        F --> L[SemaphoreSlim send lock]
-        C --> L
-        L --> SK[Socket.SendAsync]
-    end
-    
-    subgraph Inbound [Inbound Pipeline]
-        RSK[Socket.ReceiveAsync] --> FR[FrameReader]
-        FR --> H[Read 2-byte little-endian length]
-        H --> V[Validate length against TransportOptions.BufferSize]
-        V --> L2[Read exact payload bytes]
-        L2 --> FA[Fragment reassembly]
-        FA --> IT[Inbound transform]
-        IT --> Callback[Forward to Session]
-    end
-```
+They manage the low-level serialization of frames, socket I/O, sequence tracking, and payload transformations, abstracting these complexities away from high-level sessions.
 
-## Source mapping
+## Source Mapping
 
-- `src/Nalix.SDK/Transport/Internal/FrameReader.cs`
-- `src/Nalix.SDK/Transport/Internal/FrameSender.cs`
-- `src/Nalix.Codec/Transforms/FramePipeline.cs`
+- `src/Nalix.SDK/Transport/Internal/Tcp/TcpFrameReader.cs`
+- `src/Nalix.SDK/Transport/Internal/Tcp/TcpFrameSender.cs`
+- `src/Nalix.SDK/Transport/Internal/Udp/UdpFrameReader.cs`
+- `src/Nalix.SDK/Transport/Internal/Udp/UdpFrameSender.cs`
+- `src/Nalix.SDK/Transport/Internal/Ws/WsFrameReader.cs`
+- `src/Nalix.SDK/Transport/Internal/Ws/WsFrameSender.cs`
 
-## Frame Sender (`FrameSender`)
+---
 
-The `FrameSender` provides a thread-safe, ordered outbound pipeline. The current implementation does **not** use an intermediate channel queue. Instead, it applies transforms, frames the payload, then serializes socket writes with a `SemaphoreSlim` send lock.
+## 1. TCP Framers (`TcpFrameReader` & `TcpFrameSender`)
 
-- **Strict ordering**: concurrent send calls are serialized by `_sendLock`, so frame bytes cannot interleave on the socket.
-- **Direct socket writes**: after the caller enters the send lock, the sender loops until the full frame has been written with `Socket.SendAsync`.
-- **Automatic fragmentation**: payloads whose transformed length is greater than or equal to `FragmentOptions.MaxChunkSize` are split into `FragmentHeader` chunks.
-- **Frame-size guardrails**: normal TCP frames must fit in the 2-byte length prefix (`ushort.MaxValue`). Fragment chunks must also fit after adding the TCP header and `FragmentHeader.WireSize`.
-- **Transformation**: integrates with the centralized `FramePipeline` to encrypt and compress payloads before framing.
-- **Error contract**: non-fatal send exceptions invoke the configured error callback and cause `SendAsync` to return `false`.
-- **Pooled memory**: temporary frame buffers are rented from `BufferLease.ByteArrayPool` and returned after each send attempt.
+TCP is a streaming protocol and does not maintain message boundaries natively. The TCP framers handle:
 
-## Frame Reader (`FrameReader`)
+- **2-Byte Length Prefixing**: Prepend a 2-byte little-endian `ushort` representing the payload size.
+- **Exact Reads**: The reader performs loops of `Socket.ReceiveAsync` until the required header or payload size is fully filled to avoid corruption from partial packets.
+- **Segmentation and Reassembly**: Automatically splits outgoing frames larger than the maximum chunk size into fragment streams and reassembles them on the receiver using the `FragmentAssembler`.
+- **Write Serialization**: Writes are synchronized via a `SemaphoreSlim` to prevent concurrent writes from interleaving bytes on the stream.
 
-The `FrameReader` manages the long-running socket receive loop. It is responsible for reassembling protocol frames from the raw TCP stream.
+---
 
-- **Header parsing**: reads the 2-byte little-endian length prefix to determine the total frame length.
-- **Length validation**: rejects frames smaller than `TcpSession.HeaderSize` or larger than `TransportOptions.BufferSize` with a cached `SocketError.MessageSize` exception.
-- **Exact reads**: repeatedly calls `Socket.ReceiveAsync` until the requested header or payload span is filled; a zero-byte receive is treated as `ConnectionReset`.
-- **Fragment management**: synchronized with the sender's chunking logic to reassemble fragmented payloads before delivering them upward.
-- **Transform application**: integrates with the centralized `FramePipeline` to decrypt and decompress payloads in-place.
-- **Ownership handoff**: wraps each frame in a `BufferLease` and forwards the processed lease to the session callback.
+## 2. UDP Framers (`UdpFrameReader` & `UdpFrameSender`)
 
-## Ownership and Performance
+UDP is datagram-oriented, meaning boundaries are preserved, but delivery is unreliable. The UDP framers handle:
 
-A critical aspect of the SDK pipeline is its zero-copy (or minimized copy) architecture.
+- **Session Authentication Prefix**: Prepend an 8-byte `ulong` session token (`SessionToken`) to the beginning of every outbound datagram, allowing the server to identify the client session.
+- **Size Constraints**: Validate datagram sizes against `MaxUdpDatagramSize` to prevent IP-level fragmentation.
+- **Zero-Allocation Reading**: Rent memory from `BufferLease.ByteArrayPool` for incoming datagrams and pass them directly up.
 
-1. **Renting**: Buffers are rented from the `ArrayPool<byte>` via the `BufferLease` abstraction.
-2. **Transformation**: LZ4 decompression and AEAD decryption are performed directly on these rented blocks.
-3. **Dispatch**: The final lease is delivered to the user's `OnMessageReceived` handler.
-4. **Cleanup**: The user **must** dispose of the lease (usually via `using var`) to return the memory to the pool.
+---
+
+## 3. WebSocket Framers (`WsFrameReader` & `WsFrameSender`)
+
+WebSocket operates over a structured frame protocol on top of TCP, handled by `System.Net.WebSockets.ClientWebSocket`.
+
+- **Framed I/O**: The sender writes messages using `socket.SendAsync` with `WebSocketMessageType.Binary`.
+- **Fast-Path Reading**: For messages that fit entirely within the initial read buffer (8 KB), they are processed immediately with zero copy.
+- **Slow-Path Large Message Handling**: If `result.EndOfMessage` is false, the reader falls back to a slow-path receive loop using a `MemoryStream` to assemble the full message, enforcing size limits against `WebSocketTransportOptions.MaxMessageSize`.
+- **Stateless Transformation**: The reader performs in-place transformations (decryption/compression) on the rented `BufferLease` and updates the client sequence counter (`SequenceCounter`).
+
+---
+
+## Memory Ownership and Zero-Copy
+
+All framers adhere to Nalix's zero-copy performance model:
+
+1. **Renting**: Recycled byte arrays are rented from the shared `ArrayPool<byte>` via the `BufferLease` abstraction.
+2. **Transformation**: Compression and decryption are performed directly inside the rented buffers.
+3. **Dispatch**: The lease is passed to session events (`OnMessageReceived`).
+4. **Disposal**: The calling application is responsible for disposing the lease, returning the underlying byte array back to the pool.
 
 ## Related APIs
 
 - [TCP Session](./tcp-session.md)
-- [Fragmentation](../codec/packets/fragmentation.md)
+- [UDP Session](./udp-session.md)
+- [WebSocket Session](./websocket-session.md)
 - [Buffer Management](../environment/memory/buffer-management.md)
-- [Object Pooling](../framework/memory/object-pooling.md)
-- [Handshake Extensions](./handshake-extensions.md)

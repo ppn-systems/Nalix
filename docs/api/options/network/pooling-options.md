@@ -109,12 +109,15 @@ runs.
 
 - Capacity controls the maximum number of returned objects retained by
   `ObjectPoolManager`; objects beyond the ceiling are discarded and later collected.
+
 - Preallocation eagerly creates reusable instances at subsystem startup to reduce the
   first-use allocation spike.
+
 - Pooled objects implement `IPoolable` and reset their internal state before reuse.
 - `PooledSocketReceiveContext.ResetForPool()` waits for in-flight SAEA work to settle
   before returning the underlying `PooledSocketAsyncEventArgs`; if the SAEA remains
   busy, it is intentionally not returned to the pool to avoid buffer corruption.
+
 - `PooledConnectEventContext` is returned after callback execution, and optionally
   releases the owning connection's pending-packet slot.
 
@@ -122,14 +125,19 @@ runs.
 
 - Set capacities to peak concurrent usage plus headroom, not to total historical
   traffic volume.
+
 - Keep preallocation near steady-state warm usage. Very high preallocation reduces
   early allocations but increases startup memory and initialization time.
+
 - Align `AcceptContextCapacity` and `AcceptContextPreallocate` with TCP listener
   accept-worker count.
+
 - Size `SocketArgsCapacity` for accept workers plus peak concurrent receive contexts,
   because accept and receive paths share the SAEA pool.
+
 - Size `TimeoutTaskCapacity` at least as high as expected active timing-wheel
   registrations; use additional headroom under bursty connect/disconnect traffic.
+
 - Size `ConnectEventContextCapacity` with `NetworkCallbackOptions` limits so callback
   wrappers do not churn under normal backpressure settings.
 

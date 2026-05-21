@@ -98,6 +98,7 @@ If queueing is enabled, it delegates to `ENTER_WITH_QUEUE_ASYNC()` with
 - increment global `TotalQueued` when a wait is admitted;
 - wait on the semaphore until capacity is available, timeout elapses, or cancellation
   is requested;
+
 - decrement the queue count in `finally`.
 
 On timeout or capacity rejection, the gate increments `TotalRejected` and throws the
@@ -158,10 +159,13 @@ runtime dumps show both operational counters and cleanup policy.
 
 - Raise `WaitTimeoutSeconds` only for handlers where queueing is intentional and
   latency tolerance is known.
+
 - Lower `CircuitBreakerThreshold` to fail fast during sustained overload; raise
   `CircuitBreakerMinSamples` if low-traffic services see noisy breaker decisions.
+
 - Keep `CleanupIntervalMinutes` small enough to reclaim opcode entries, but not so
   small that cleanup scans become noticeable on very large opcode tables.
+
 - Keep `MinIdleAgeMinutes` comfortably above normal burst gaps to avoid repeatedly
   disposing and recreating hot opcode entries.
 

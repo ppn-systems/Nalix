@@ -9,6 +9,11 @@
 - `src/Nalix.Runtime/Dispatching/PacketDispatcherBase.cs`
 - `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
 - `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
+- `src/Nalix.Runtime/Sessions/SessionService.cs`
+- `src/Nalix.Runtime/Sessions/SessionFactory.cs`
+- `src/Nalix.Runtime/Sessions/InMemorySessionStore.cs`
+- `src/Nalix.Runtime/Sessions/SessionPersistenceObserver.cs`
+- `src/Nalix.Runtime/Options/SessionStoreOptions.cs`
 
 !!! info "The Engine of the Server"
     While `Nalix.SDK` is designed for client-side consumption, `Nalix.Runtime` is the engine that handles the heavy lifting on the server, managing dispatch workers, request routing, and session-resume infrastructure.
@@ -138,6 +143,15 @@ public sealed class AccountHandlers
 
 `TimeSynchronizer` is an optional service that emits `TimeSynchronized` events at a default period of 16 ms (~60 Hz), designed for clock synchronization and periodic tick consumers.
 
+### Session Store & Service
+
+`Nalix.Runtime` provides the session-store and session-service implementations. The `ISessionService`, `ISessionFactory`, and `ISessionStore` interfaces provide:
+
+- **Decoupled session persistence** via `SessionPersistenceObserver` subscribing to `IConnectionHub` events.
+- **High-performance connection state snapshots** and restoration.
+- **TTL-based session retention** with active scavenging via `IHostedWorker` in `InMemorySessionStore`.
+- **Atomic consumption** (`ConsumeAsync`) to prevent resumption replay attacks.
+
 ## Handler Return Types
 
 The dispatch pipeline supports multiple return shapes. The internal return handler converts each into the appropriate outbound behavior:
@@ -179,4 +193,6 @@ Call `dispatch.GenerateReport()` to inspect runtime state:
 - [Packet Attributes](../api/abstractions/packet-attributes.md)
 - [Handler Return Types](../api/runtime/routing/handler-results.md)
 - [Dispatch Options](../api/options/runtime/dispatch-options.md)
+- [Session Store & Service](../api/network/session-store.md)
+- [Session Store Options](../api/options/network/session-store-options.md)
 - [Session Resume](../api/security/session-resume.md)

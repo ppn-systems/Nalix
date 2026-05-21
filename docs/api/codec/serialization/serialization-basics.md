@@ -132,6 +132,7 @@ Span-backed serialization wraps the caller buffer directly. If the formatter wri
 
 !!! note "Configuring bounds"
     `SerializationOptions` (loaded via `ConfigurationManager`) controls the runtime limits for deserialization.
+
     - `MaxArrayLength` (default 1M) caps element counts in arrays and collections.
     - `MaxStringLength` (default 1M) caps UTF-8 string byte counts.
     - `MemoryOptions.MaxWriterCapacity` (default 128 MB) caps `DataWriter` expansion.

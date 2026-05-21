@@ -7,9 +7,10 @@
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionService.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionFactory.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`
-- `src/Nalix.Network/Sessions/SessionService.cs`
-- `src/Nalix.Network/Sessions/SessionFactory.cs`
-- `src/Nalix.Network/Sessions/InMemorySessionStore.cs`
+- `src/Nalix.Runtime/Sessions/SessionService.cs`
+- `src/Nalix.Runtime/Sessions/SessionFactory.cs`
+- `src/Nalix.Runtime/Sessions/InMemorySessionStore.cs`
+- `src/Nalix.Runtime/Sessions/SessionPersistenceObserver.cs`
 
 ## Why These Types Exist
 
@@ -22,77 +23,86 @@ Maintaining session state across disconnects requires a storage mechanism that i
 
 ## Session Persistence Flow
 
-The following diagram illustrates how a session is created during a full handshake and subsequently consumed during a resumption.
+The following diagram illustrates how a session is saved on disconnection (via `SessionPersistenceObserver`) and subsequently consumed during a resumption.
 
 ```mermaid
 sequenceDiagram
     participant C as Client
-    participant S as Server
+    participant H as ConnectionHub
+    participant OBS as SessionPersistenceObserver
     participant SSV as SessionService
     participant ST as SessionStore
 
-    Note over C,S: Full Handshake (TCP)
-    C->>S: Handshake Request (X25519)
-    S->>S: Generate SessionToken & Secret
-    S->>SSV: SaveSessionAsync(connection)
+    Note over C,H: Client Disconnects
+    H->>H: Unregister Connection
+    H-->>OBS: Raise ConnectionUnregistered
+    OBS->>SSV: SaveSessionAsync(connection)
     SSV->>ST: StoreAsync(SessionEntry)
-    S->>C: Handshake Success (Returns Token)
 
-    Note over C,S: Disconnect / Network Drop
-
-    Note over C,S: Resumption (TCP)
-    C->>S: ResumeRequest(SessionToken, Nonce)
-    S->>SSV: ConsumeAsync(SessionToken)
+    Note over C,H: Resumption (TCP/UDP)
+    C->>H: ResumeRequest(SessionToken, Nonce)
+    H->>SSV: ConsumeAsync(SessionToken)
     SSV->>ST: ConsumeAsync(SessionToken)
     ST-->>SSV: Return Entry & Delete from Store
-    SSV-->>S: Return SessionEntry
+    SSV-->>H: Return SessionEntry
     
     alt Session Valid
-        S->>C: Resume Success
+        H->>C: Resume Success
     else Session Expired or Already Consumed
-        S->>C: Resume Fail (Full Handshake Required)
+        H->>C: Resume Fail (Full Handshake Required)
     end
 ```
 
 ## Internal Responsibilities (Source-Verified)
 
-### 1. Atomic Consumption (SEC-33)
+### 1. Hub Decoupling via SessionPersistenceObserver
 
-The most critical method in the lifecycle is `ConsumeAsync(ulong sessionToken)`.
+Instead of the `ConnectionHub` maintaining direct references to `ISessionService` and executing save policies, the `SessionPersistenceObserver` bridges the two layers.
+
+- The observer subscribes to `IConnectionHub.ConnectionUnregistered`.
+- When triggered, it schedules a background, fire-and-forget `PersistBackgroundAsync` task on `ISessionService` for the closed connection.
+- This decoupling allows the core connection management layer to remain clean and free of session persistence logic.
+
+### 2. Atomic Consumption (SEC-33)
+
+The most critical security method in the lifecycle is `ConsumeAsync(ulong sessionToken)`.
 
 - `SessionService.ConsumeAsync(...)` delegates to the underlying `ISessionStore.ConsumeAsync(...)`.
-- The store retrieves the session entry and **immediately removes it** from the storage medium in a single atomic operation (e.g., using `ConcurrentDictionary.TryRemove` in-memory, or a Lua script in Redis).
+- The store retrieves the session entry and **immediately removes it** from the storage medium in a single atomic operation (e.g., using `ConcurrentDictionary.TryRemove` in-memory).
 - This prevents "Resumption Replay" where a stolen token could be used by two different clients to gain access simultaneously. Only the first caller succeeds.
 
 !!! danger "Security Requirement"
     Custom implementations of `ISessionStore` (e.g., Redis implementations) **MUST** implement `ConsumeAsync` as an atomic operation (e.g., using a Lua script in Redis) to comply with SEC-33.
 
-### 2. Active Expiration via Hosted Workers
+### 3. Active Expiration via Hosted Workers
 
 The `InMemorySessionStore` employs a dual-layered expiration strategy:
 
-- **Active Scavenger (`IHostedWorker`)**: The store directly implements `IHostedWorker`. Its `ExecuteAsync` loop is automatically scheduled by the `SessionService` constructor using the runtime's global `TaskManager`. The scavenger runs a `PeriodicTimer` that ticks every minute, scanning the `ConcurrentDictionary` and evicting expired keys.
-- **Lazy Check**: Every time `ConsumeAsync` is called, the TTL is checked immediately. If the session has expired, the entry is behandled as expired, its resources are reclaimed, and it returns `null` even if the active scavenger has not run yet.
+- **Active Scavenger (`IWorker`)**: The store directly implements `IWorker`. When instantiated, the `SessionService` schedules this worker via the global `TaskManager`. The scavenger runs a loop that ticks every minute, scanning the store and evicting expired keys.
+- **Lazy Check**: Every time `ConsumeAsync` is called, the TTL is checked immediately. If the session has expired, the entry resources are reclaimed, and it returns `null` even if the active scavenger has not run yet.
 
-### 3. Session Entry Pooling
+### 4. Session Entry Pooling
 
 To keep the resumption path zero-allocation, `SessionEntry` objects are tracked by the `ObjectPoolManager`. When a session is removed or expires, the system calls `entry.Return()` to reclaim the resources.
 
 ## Public APIs
 
 ### `ISessionService`
-- `SaveSessionAsync(connection)`: Persists the session for the specified connection, enforcing handshake-state and minimum-attribute policies. **Preferred path for normal unregister flows.**
+- `SaveSessionAsync(connection)`: Persists the session for the specified connection, enforcing handshake-state and minimum-attribute policies.
 - `ConsumeAsync(token)`: Atomically retrieves and removes the session. **Primary method for Resumption logic.**
 
 ### `ISessionStore`
 - `StoreAsync(entry)`: Direct, low-level persistence of a `SessionEntry`, bypassing connection-level policy checks.
 - `ConsumeAsync(token)`: Atomically retrieves and removes a session from storage.
 
+### `SessionPersistenceObserver`
+- Listens to connection hubs and triggers background session saving when connections are unregistered. Implements `IDisposable` to unsubscribe.
+
 ## Configuration
 
 Control the session lifecycle via `SessionStoreOptions`:
 
-| Option | Description | Typical Value |
+| Option | Description | Default Value |
 | :---: | :---: | :---: |
 | `SessionTtl` | How long a session remains resumable after creation. | `00:30:00` (30 minutes) |
 | `AutoSaveOnUnregister` | Whether sessions are automatically saved when a connection is unregistered. | `true` |
@@ -108,3 +118,5 @@ Control the session lifecycle via `SessionStoreOptions`:
 - [Snowflake Identifiers (ulong)](../framework/snowflake.md)
 - [Object Pooling](../framework/memory/object-pooling.md)
 - [Object Map](../framework/memory/object-map.md)
+- [Session Store Options](../options/network/session-store-options.md)
+

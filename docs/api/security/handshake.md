@@ -8,6 +8,8 @@ Nalix implements an authenticated X25519-based handshake using the built-in `Han
 - `src/Nalix.Codec/Security/HandshakeX25519.cs`
 - `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
+- `src/Nalix.Codec/ProtocolFrames/KeyExchange.cs`
+- `src/Nalix.Runtime/Handlers/KeyExchangeHandlers.cs`
 
 ## 1. Handshake Flow
 
@@ -22,7 +24,18 @@ The handshake consists of 4 stages managed by the `Handshake` packet and `Handsh
 
 ---
 
-## 2. Cryptographic Construction
+## 2. Trust on First Use (TOFU) Key Exchange
+
+If the client's `TransportOptions.ServerPublicKey` configuration is empty or null, the client executes a Trust On First Use (TOFU) key exchange flow before initiating the X25519 handshake sequence:
+
+1. **Request Stage (`KeyExchangeStage.REQUEST`)**: The client creates a `KeyExchange` packet (opcode `ProtocolOpCode.KEY_EXCHANGE` / `0x0003`) with stage `KeyExchangeStage.REQUEST` and sends it to the server.
+2. **Server Response**: The server's `KeyExchangeHandlers` controller handles this packet. It verifies that the handshake has not already been established (otherwise rejects as state violation) and replies with a `KeyExchange` packet of stage `KeyExchangeStage.RESPONSE` containing the server's static public key (`HandshakeHandlers.ServerPublicKey`).
+3. **Client Configuration Update**: The client receives the `KeyExchangeStage.RESPONSE`, validates the public key, updates `session.Options.ServerPublicKey` dynamically, updates this value in `ConfigurationManager`, and flushes the configuration to disk to remember it for future connections.
+4. **Resuming Handshake**: With the server public key now available, the client proceeds with the standard X25519 handshake sequence (`SERVER_HELLO`, `CLIENT_FINISH`, etc.).
+
+---
+
+## 3. Cryptographic Construction
 
 `HandshakeX25519` is the helper used to derive the master secret, transcript hash, proofs, and final session key used by the transport after a successful handshake.
 
@@ -43,7 +56,7 @@ The protocol derives its master secret from:
 
 ---
 
-## 3. Server Implementation
+## 4. Server Implementation
 
 The server-side state machine is implemented in `HandshakeHandlers`. It tracks negotiation state through `connection.Attributes`, specifically `ConnectionAttributes.HandshakeState` during the handshake and `ConnectionAttributes.HandshakeEstablished` once the handshake completes.
 
@@ -69,7 +82,7 @@ Upon `CLIENT_FINISH` verification, the handler:
 
 ---
 
-## 4. Client SDK Usage
+## 5. Client SDK Usage
 
 The `Nalix.SDK` provides an automated extension to perform the handshake after connection.
 
@@ -79,7 +92,7 @@ using Nalix.SDK.Transport.Extensions;
 
 await session.ConnectAsync("127.0.0.1", 5000);
 
-// Executes the 4-stage X25519 flow
+// Executes the 4-stage X25519 flow (performs TOFU key exchange if no public key is pinned)
 await session.HandshakeAsync(cancellationToken);
 
 // Session is now transparently encrypted
@@ -88,7 +101,7 @@ await session.SendAsync(new SecurePacket());
 
 ---
 
-## 5. Security Notes
+## 6. Security Notes
 
 - **Identity Authentication**: By configuring `ServerPublicKey` on the client and a server certificate path on the server, the handshake performs a key agreement that lets the client pin the server identity. **Anonymous handshakes are strictly forbidden** to prevent MitM attacks.
 - **Mandatory Identity**: The client must be configured with `TransportOptions.ServerPublicKey` to pin the server identity. On the server, the identity key is loaded from `certificate.private` in the configuration directory by default, or from a custom path supplied through hosting configuration.

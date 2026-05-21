@@ -59,6 +59,7 @@ Inbound security middleware follows a fail-closed model:
 - limiter disposal during shutdown denies traffic rather than bypassing limits
 - rate-limit and concurrency rejections emit transient `FAIL/RATE_LIMITED`
   directives when `DirectiveGuard` permits
+
 - timeout responses are emitted only for middleware-owned timer cancellation
 - directive sends use pooled `Directive` packets to avoid hot-path allocation
 

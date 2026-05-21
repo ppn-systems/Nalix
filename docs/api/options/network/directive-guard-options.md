@@ -84,6 +84,7 @@ that per-connection lock.
 - The default cooldown only applies when callers do not pass an override.
 - The guard suppresses repeated directive responses; it does not allow the blocked
   packet to continue through the middleware pipeline.
+
 - `Environment.TickCount64` is used for elapsed-time checks, with subtraction wrapped
   in `unchecked(...)`.
 

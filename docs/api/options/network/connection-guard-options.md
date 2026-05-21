@@ -43,6 +43,7 @@ When an endpoint triggers a rate limit violation in `ConnectionGuard`:
    - 6th ban: 24 hours
    - Subsequent bans: Cap at 24 hours
    If `EnableProgressiveBanning` is false, it uses the static `BanDuration`.
+
 2. It sets `BannedUntilTicks` to the calculated duration.
 3. It emits a throttled DDoS warning.
 4. It rejects the connection attempt.
