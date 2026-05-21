@@ -20,7 +20,6 @@ using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Network.Options;
-using Nalix.Network.Sessions;
 
 namespace Nalix.Network.Connections;
 
@@ -31,8 +30,8 @@ namespace Nalix.Network.Connections;
 /// This class provides efficient connection management with minimal allocations and fast lookup operations.
 /// It is thread-safe and uses concurrent collections to handle multiple connections simultaneously.
 /// <para>
-/// Session persistence is delegated to an <see cref="ISessionStore"/>. By default an
-/// <see cref="InMemorySessionStore"/> is used; inject a custom implementation for distributed scenarios.
+/// Session persistence is delegated to an <see cref="ISessionStore"/>.
+/// Inject a custom implementation for distributed scenarios.
 /// </para>
 /// </remarks>
 [SkipLocalsInit]
@@ -54,9 +53,6 @@ public sealed class ConnectionHub : IConnectionHub
     private readonly bool _isPowerOfTwoShardCount;
     private readonly ConcurrentDictionary<ulong, IConnection>[] _shards;
     private readonly ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>> _endpointIndex;
-
-    private readonly ISessionService _sessionService;
-    private readonly SessionStoreOptions _sessionOptions;
 
     private readonly ILogger? _logger;
     private readonly ConnectionHubOptions _options;
@@ -86,9 +82,6 @@ public sealed class ConnectionHub : IConnectionHub
     /// </summary>
     public int Count => Volatile.Read(ref _count);
 
-    /// <inheritdoc/>
-    public ISessionService SessionService => _sessionService;
-
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
@@ -111,19 +104,13 @@ public sealed class ConnectionHub : IConnectionHub
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
     /// </summary>
-    /// <param name="sessionService">
-    /// The session service used to manage connection sessions.
-    /// Defaults to <see cref="InMemorySessionStore"/> when <c>null</c>.
-    /// </param>
     /// <param name="logger">The logger instance to use for logging.</param>
-    public ConnectionHub(ISessionService? sessionService = null, ILogger? logger = null)
+    public ConnectionHub(ILogger? logger = null)
     {
         _options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _options.Validate();
 
         _logger = logger;
-        _sessionService = sessionService ?? new SessionService();
-        _sessionOptions = ConfigurationManager.Instance.Get<SessionStoreOptions>();
 
         /*
          * [Sharding Logic]
@@ -482,11 +469,6 @@ public sealed class ConnectionHub : IConnectionHub
         _disposed = true;
         this.DisposeAllConnections();
 
-        if (_sessionService is IDisposable disposableService)
-        {
-            disposableService.Dispose();
-        }
-
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
         {
             _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
@@ -622,20 +604,15 @@ public sealed class ConnectionHub : IConnectionHub
         this.UntrackEndpoint(connectionKey, removedConnection);
         _ = Interlocked.Decrement(ref _count);
 
-        if (_sessionOptions.AutoSaveOnUnregister)
+        try
         {
-            _ = PersistBackgroundAsync(_sessionService, removedConnection);
+            ConnectionUnregistered?.Invoke(removedConnection);
         }
-
-        static async Task PersistBackgroundAsync(ISessionService service, IConnection connection)
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            try
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                await service.SaveSessionAsync(connection).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                // Background persistence failures are ignored in fire-and-forget scenarios
+                _logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] event-error id={removedConnection.ID}");
             }
         }
 
@@ -659,8 +636,6 @@ public sealed class ConnectionHub : IConnectionHub
             _logger.LogTrace(
                 $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={Volatile.Read(ref _count)}");
         }
-
-        ConnectionUnregistered?.Invoke(removedConnection);
 
         if (measureLatency && _logger != null)
         {

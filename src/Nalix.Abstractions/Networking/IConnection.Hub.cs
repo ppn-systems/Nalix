@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using Nalix.Abstractions.Identity;
-using Nalix.Abstractions.Networking.Sessions;
 
 namespace Nalix.Abstractions.Networking;
 
@@ -18,11 +17,6 @@ public interface IConnectionHub : IReportable, IDisposable
     /// Gets the current number of active connections.
     /// </summary>
     int Count { get; }
-
-    /// <summary>
-    /// Gets the session service used to persist connection sessions.
-    /// </summary>
-    ISessionService SessionService { get; }
 
     /// <summary>
     /// Raised after a connection is successfully unregistered.

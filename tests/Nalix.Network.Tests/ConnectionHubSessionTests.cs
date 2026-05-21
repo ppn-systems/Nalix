@@ -10,7 +10,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
-using Nalix.Network.Sessions;
+using Nalix.Runtime.Sessions;
 using Xunit;
 
 namespace Nalix.Network.Tests;
@@ -46,7 +46,8 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(service);
+        using ConnectionHub hub = new();
+        using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket);
 
@@ -95,7 +96,8 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(service);
+        using ConnectionHub hub = new();
+        using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using Connection connection1 = new(scope1.ServerSocket);
 
@@ -136,7 +138,8 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(service);
+        using ConnectionHub hub = new();
+        using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
 
@@ -163,7 +166,8 @@ public sealed class ConnectionHubSessionTests
     {
         InMemorySessionStore store = new();
         SessionService service = new(store: store);
-        using ConnectionHub hub = new(service);
+        using ConnectionHub hub = new();
+        using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
         using Connection connection = new(scope.ServerSocket);
 

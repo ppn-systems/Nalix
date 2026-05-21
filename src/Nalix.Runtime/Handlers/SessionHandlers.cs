@@ -17,6 +17,8 @@ using Nalix.Codec.Security.Hashing;
 using Nalix.Framework.Identifiers;
 using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Pooling;
+using Nalix.Runtime.Sessions;
+using Nalix.Framework.Injection;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -69,8 +71,9 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        SessionEntry? session = await hub.SessionService.ConsumeAsync(packet.SessionToken)
-                                                        .ConfigureAwait(false);
+        ISessionService sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>()!;
+        SessionEntry? session = await sessionService.ConsumeAsync(packet.SessionToken)
+                                                         .ConfigureAwait(false);
         if (session == null)
         {
             await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
@@ -131,11 +134,7 @@ public sealed class SessionHandlers
             }
         }
 
-        // Generate a new session entry with a rotated token for subsequent resume attempts.
-        if (hub is not null)
-        {
-            await hub.SessionService.SaveSessionAsync(context.Connection).ConfigureAwait(false);
-        }
+        await sessionService.SaveSessionAsync(context.Connection).ConfigureAwait(false);
 
         ulong newToken = context.Connection.ID.ToUInt64();
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
@@ -202,6 +201,7 @@ public sealed class SessionHandlers
         try
         {
             await tcp.SendAsync(ack).ConfigureAwait(false);
+            await Task.Delay(50).ConfigureAwait(false);
         }
         finally
         {

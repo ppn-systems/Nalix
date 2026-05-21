@@ -96,7 +96,6 @@ public static partial class Bootstrap
         // Network-level options
         _ = ConfigurationManager.Instance.Get<SequenceOptions>();
         _ = ConfigurationManager.Instance.Get<TimingWheelOptions>();
-        _ = ConfigurationManager.Instance.Get<SessionStoreOptions>();
         _ = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
         _ = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
         _ = ConfigurationManager.Instance.Get<ConnectionQuotaOptions>();
@@ -108,6 +107,7 @@ public static partial class Bootstrap
         // Runtime-level options
         _ = ConfigurationManager.Instance.Get<DispatchOptions>();
         _ = ConfigurationManager.Instance.Get<Runtime.Options.PoolingOptions>();
+        _ = ConfigurationManager.Instance.Get<Runtime.Options.SessionStoreOptions>();
 
         // Security and concurrency options
         //_ = ConfigurationManager.Instance.Get<ConcurrencyOptions>();

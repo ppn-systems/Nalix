@@ -121,7 +121,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
     {
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
-        builder.Configure<Nalix.Network.Options.SessionStoreOptions>(opt =>
+        builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt =>
         {
             opt.MinAttributesForPersistence = 0;
         });
@@ -150,6 +150,10 @@ public sealed class HandshakeIntegrationTests : IDisposable
             Bytes32 secret = session.Options.Secret;
 
             await session.DisconnectAsync();
+
+            // Give the server a moment to background-persist the session snapshot
+            // after it detects the TCP disconnect.
+            await Task.Delay(200);
 
             // 2. Second connect (should resume)
             bool resumed2 = await session.ConnectWithResumeAsync();

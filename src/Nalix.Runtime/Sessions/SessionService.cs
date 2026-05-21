@@ -11,9 +11,9 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Options;
+using Nalix.Runtime.Options;
 
-namespace Nalix.Network.Sessions;
+namespace Nalix.Runtime.Sessions;
 
 /// <summary>
 /// Coordinates session persistence by applying lifecycle policies and delegating to factory and storage.

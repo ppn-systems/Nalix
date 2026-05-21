@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
-using Nalix.Network.Sessions;
+using Nalix.Runtime.Sessions;
 using Xunit;
 
 namespace Nalix.Network.Tests;

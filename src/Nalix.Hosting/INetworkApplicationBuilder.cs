@@ -49,6 +49,34 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub);
 
     /// <summary>
+    /// Sets the <see cref="IConnectionTerminator"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="connectionTerminator">The connection terminator to register.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureConnectionTerminator(IConnectionTerminator connectionTerminator);
+
+    /// <summary>
+    /// Sets the <see cref="Nalix.Abstractions.Networking.Sessions.ISessionService"/> instance used by the hosted Nalix runtime.
+    /// </summary>
+    /// <param name="sessionService">The session service to register.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureSessionService(Nalix.Abstractions.Networking.Sessions.ISessionService sessionService);
+
+    /// <summary>
+    /// Sets the <see cref="Nalix.Abstractions.Networking.Sessions.ISessionStore"/> instance used by the default session service.
+    /// </summary>
+    /// <param name="sessionStore">The session store to register.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureSessionStore(Nalix.Abstractions.Networking.Sessions.ISessionStore sessionStore);
+
+    /// <summary>
+    /// Sets the <see cref="Nalix.Abstractions.Networking.Sessions.ISessionFactory"/> instance used by the default session service.
+    /// </summary>
+    /// <param name="sessionFactory">The session factory to register.</param>
+    /// <returns>The current builder instance.</returns>
+    INetworkApplicationBuilder ConfigureSessionFactory(Nalix.Abstractions.Networking.Sessions.ISessionFactory sessionFactory);
+
+    /// <summary>
     /// Explicitly registers a <see cref="BufferPoolManager"/> instance to be used by the application.
     /// </summary>
     /// <param name="manager">The manager instance to use.</param>

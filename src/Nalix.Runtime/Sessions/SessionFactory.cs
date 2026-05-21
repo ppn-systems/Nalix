@@ -9,9 +9,9 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Options;
+using Nalix.Runtime.Options;
 
-namespace Nalix.Network.Sessions;
+namespace Nalix.Runtime.Sessions;
 
 /// <summary>
 /// Default implementation of <see cref="ISessionFactory"/> that captures transport sequence numbers,

@@ -13,7 +13,7 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Environment.Time;
 using Nalix.Framework.Tasks;
 
-namespace Nalix.Network.Sessions;
+namespace Nalix.Runtime.Sessions;
 
 /// <summary>
 /// An in-memory implementation of <see cref="ISessionStore"/> backed by a <see cref="ConcurrentDictionary{TKey,TValue}"/>.
