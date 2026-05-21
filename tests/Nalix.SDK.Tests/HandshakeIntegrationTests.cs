@@ -151,6 +151,10 @@ public sealed class HandshakeIntegrationTests : IDisposable
 
             await session.DisconnectAsync();
 
+            // Give the server a moment to background-persist the session snapshot
+            // after it detects the TCP disconnect.
+            await Task.Delay(200);
+
             // 2. Second connect (should resume)
             bool resumed2 = await session.ConnectWithResumeAsync();
             Assert.True(resumed2);
