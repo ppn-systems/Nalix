@@ -113,27 +113,30 @@ internal static class NetworkBanStore
 
         try
         {
+            List<(NetworkBanRecord Record, byte[] AddrBytes)> validRecords = new(recordCount);
+            foreach (NetworkBanRecord record in records)
+            {
+                if (IPAddress.TryParse(record.Endpoint.Address, out IPAddress? ip))
+                {
+                    validRecords.Add((record, ip.GetAddressBytes()));
+                }
+            }
+
             using (FileStream fs = new(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
             using (BinaryWriter writer = new(fs))
             {
                 writer.Write(MagicNumber);
                 writer.Write(Version);
-                writer.Write(recordCount);
+                writer.Write(validRecords.Count);
 
-                foreach (NetworkBanRecord record in records)
+                foreach ((NetworkBanRecord Record, byte[] AddrBytes) in validRecords)
                 {
-                    if (!IPAddress.TryParse(record.Endpoint.Address, out IPAddress? ip))
-                    {
-                        continue;
-                    }
-
-                    byte[] addrBytes = ip.GetAddressBytes();
-                    writer.Write((byte)addrBytes.Length);
-                    writer.Write(addrBytes);
-                    writer.Write(record.BannedUntilTicks);
-                    writer.Write(record.BanCount);
-                    writer.Write(record.LastBanTimeTicks);
-                    writer.Write(record.LastSeenAtTicks);
+                    writer.Write((byte)AddrBytes.Length);
+                    writer.Write(AddrBytes);
+                    writer.Write(Record.BannedUntilTicks);
+                    writer.Write(Record.BanCount);
+                    writer.Write(Record.LastBanTimeTicks);
+                    writer.Write(Record.LastSeenAtTicks);
                 }
 
                 fs.Flush(true); // Ensure physical write to disk
