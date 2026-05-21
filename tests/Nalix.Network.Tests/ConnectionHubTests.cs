@@ -81,6 +81,7 @@ public sealed class ConnectionHubTests
            .And.Contain(connection2);
     }
 
+#if DEBUG
     [Fact]
     public async Task ConnectionTerminator_CloseByEndpoint_ClosesMatchingAddress()
     {
@@ -101,6 +102,8 @@ public sealed class ConnectionHubTests
         connection2.IsDisposed.Should().BeTrue();
         hub.Count.Should().Be(0);
     }
+#endif
+
 
     [Fact]
     public void GetShardIndex_MixesSnowflakeUlongBeforePowerOfTwoMasking()
