@@ -15,10 +15,9 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Sessions;
-using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
+using Nalix.Network.Internal.Connections;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Connections;
@@ -29,10 +28,6 @@ namespace Nalix.Network.Connections;
 /// <remarks>
 /// This class provides efficient connection management with minimal allocations and fast lookup operations.
 /// It is thread-safe and uses concurrent collections to handle multiple connections simultaneously.
-/// <para>
-/// Session persistence is delegated to an <see cref="ISessionStore"/>.
-/// Inject a custom implementation for distributed scenarios.
-/// </para>
 /// </remarks>
 [SkipLocalsInit]
 [DebuggerNonUserCode]
@@ -41,29 +36,16 @@ public sealed class ConnectionHub : IConnectionHub
 {
     #region Fields
 
-    /// <summary>
-    /// Queue tracking order of anonymous connections for O(1)-amortized eviction
-    /// </summary>
-    private readonly ConcurrentQueue<ulong> _anonymousQueue;
-
-    private readonly int _shardMask;
     private readonly int _shardCount;
-    private readonly int _maxConnections;
-    private readonly bool _trackEvictionQueue;
-    private readonly bool _isPowerOfTwoShardCount;
-    private readonly ConcurrentDictionary<ulong, IConnection>[] _shards;
-    private readonly ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>> _endpointIndex;
 
     private readonly ILogger? _logger;
+    private readonly ConnectionRegistry _registry;
     private readonly ConnectionHubOptions _options;
 
     /// <summary>
     /// Connections statistics for monitoring
     /// </summary>
-    private int _count;
     private volatile bool _disposed;
-    private int _evictedConnections;
-    private int _rejectedConnections;
 
     private long _totalBytesSent;
     private long _totalBytesReceived;
@@ -80,17 +62,12 @@ public sealed class ConnectionHub : IConnectionHub
     /// <summary>
     /// Gets the current number of active connections.
     /// </summary>
-    public int Count => Volatile.Read(ref _count);
+    public int Count => _registry.Count;
 
     /// <summary>
     /// Raised after a connection is successfully unregistered.
     /// </summary>
     public event Action<IConnection>? ConnectionUnregistered;
-
-    /// <summary>
-    /// Raised when a limit is reached (e.g., max connections) and a connection is rejected.
-    /// </summary>
-    public event CapacityLimitReachedHandler? CapacityLimitReached;
 
     #endregion Properties
 
@@ -119,25 +96,8 @@ public sealed class ConnectionHub : IConnectionHub
          * locks when many connections are being registered/unregistered 
          * simultaneously on a high-core machine.
          */
-        _maxConnections = _options.MaxConnections;
         _shardCount = Math.Max(1, _options.ShardCount);
-        _isPowerOfTwoShardCount = (_shardCount & (_shardCount - 1)) == 0;
-        _shardMask = _shardCount - 1;
-        _trackEvictionQueue = _maxConnections > 0 && _options.DropPolicy == DropPolicy.DropOldest;
-        _anonymousQueue = new ConcurrentQueue<ulong>();
-        _shards = new ConcurrentDictionary<ulong, IConnection>[_shardCount];
-        _endpointIndex = new ConcurrentDictionary<string, ConcurrentDictionary<ulong, IConnection>>(StringComparer.Ordinal);
-
-        int perShardCapacity = _maxConnections > 0
-            ? Math.Max(4, (_maxConnections + _shardCount - 1) / _shardCount)
-            : 31;
-
-        for (int i = 0; i < _shardCount; i++)
-        {
-            _shards[i] = new ConcurrentDictionary<ulong, IConnection>(
-                concurrencyLevel: System.Environment.ProcessorCount,
-                capacity: perShardCapacity);
-        }
+        _registry = new ConnectionRegistry(_shardCount, 31);
     }
 
     #endregion Constructor
@@ -167,9 +127,6 @@ public sealed class ConnectionHub : IConnectionHub
         {
             throw new InternalErrorException($"Connection '{connection.ID}' is already registered.");
         }
-
-        throw new InternalErrorException(
-            $"Connection hub capacity reached. Maximum connections: {_maxConnections}.");
     }
 
     /// <inheritdoc />
@@ -196,9 +153,7 @@ public sealed class ConnectionHub : IConnectionHub
     {
         ArgumentNullException.ThrowIfNull(id);
 
-        ulong key = id.ToUInt64();
-        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(key);
-        return shard.TryGetValue(key, out IConnection? connection) ? connection : null;
+        return _registry.GetConnection(id.ToUInt64());
     }
 
     /// <inheritdoc />
@@ -209,11 +164,7 @@ public sealed class ConnectionHub : IConnectionHub
     /// <returns>The connection associated with the identifier, or <c>null</c> if not found.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
-    public IConnection? GetConnection(ulong id)
-    {
-        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(id);
-        return shard.TryGetValue(id, out IConnection? connection) ? connection : null;
-    }
+    public IConnection? GetConnection(ulong id) => _registry.GetConnection(id);
 
     /// <summary>
     /// Retrieves a connection by its serialized identifier.
@@ -225,8 +176,7 @@ public sealed class ConnectionHub : IConnectionHub
     public IConnection? GetConnection(ReadOnlySpan<byte> id)
     {
         ulong key = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(id);
-        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(key);
-        return shard.TryGetValue(key, out IConnection? connection) ? connection : null;
+        return _registry.GetConnection(key);
     }
 
     /// <inheritdoc />
@@ -238,12 +188,12 @@ public sealed class ConnectionHub : IConnectionHub
     [SuppressMessage("Style", "IDE0301:Simplify collection initialization", Justification = "<Pending>")]
     public IReadOnlyCollection<IConnection> ListConnections()
     {
-        if (_disposed || Volatile.Read(ref _count) == 0)
+        if (_disposed || _registry.Count == 0)
         {
             return Array.Empty<IConnection>();
         }
 
-        return this.CaptureConnectionSnapshot();
+        return _registry.CaptureConnectionSnapshot();
     }
 
     /// <inheritdoc />
@@ -252,19 +202,12 @@ public sealed class ConnectionHub : IConnectionHub
     {
         ArgumentNullException.ThrowIfNull(networkEndpoint);
 
-        if (_disposed || Volatile.Read(ref _count) == 0)
+        if (_disposed || _registry.Count == 0)
         {
             return Array.Empty<IConnection>();
         }
 
-        if (!_endpointIndex.TryGetValue(networkEndpoint.Address,
-                out ConcurrentDictionary<ulong, IConnection>? bucket))
-        {
-            return Array.Empty<IConnection>();
-        }
-
-        IConnection[] snapshot = [.. bucket.Values];
-        return snapshot.Length == 0 ? Array.Empty<IConnection>() : snapshot;
+        return _registry.CaptureConnectionSnapshot(networkEndpoint);
     }
 
     /// <summary>
@@ -295,7 +238,7 @@ public sealed class ConnectionHub : IConnectionHub
          * active connections. This ensures that we don't hold the dictionary 
          * locks while performing I/O.
          */
-        IConnection[] connections = this.CaptureConnectionSnapshot();
+        IConnection[] connections = _registry.CaptureConnectionSnapshot();
         if (connections.Length == 0)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
@@ -344,7 +287,7 @@ public sealed class ConnectionHub : IConnectionHub
             return;
         }
 
-        IConnection[] connections = this.CaptureConnectionSnapshot();
+        IConnection[] connections = _registry.CaptureConnectionSnapshot();
         if (connections.Length == 0)
         {
             return;
@@ -372,20 +315,11 @@ public sealed class ConnectionHub : IConnectionHub
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture,
             $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ConnectionHub Status:");
-        int total = Volatile.Read(ref _count);
+        int total = _registry.Count;
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Connections    : {total}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture,
-            $"Evicted Connections  : {Volatile.Read(ref _evictedConnections)}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture,
-            $"Rejected Connections : {Volatile.Read(ref _rejectedConnections)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Shard Count          : {_shardCount}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture,
-            $"Anonymous Queue Depth: {this.CountAnonymousConnections()}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture,
-            $"Max Connections      : {(_maxConnections < 0 ? "Unlimited" : _maxConnections.ToString(CultureInfo.InvariantCulture))}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Drop Policy          : {_options.DropPolicy}");
 
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _registry.Shards)
         {
             foreach (IConnection conn in shard.Values)
             {
@@ -439,16 +373,12 @@ public sealed class ConnectionHub : IConnectionHub
     {
         ArgumentNullException.ThrowIfNull(writer);
 
-        int total = Volatile.Read(ref _count);
+        int total = _registry.Count;
 
         writer.WriteStartObject();
         writer.WriteString("UtcNow", DateTime.UtcNow);
         writer.WriteNumber("TotalConnections", total);
-        writer.WriteNumber("EvictedConnections", Volatile.Read(ref _evictedConnections));
-        writer.WriteNumber("RejectedConnections", Volatile.Read(ref _rejectedConnections));
         writer.WriteNumber("ShardCount", _shardCount);
-        writer.WriteNumber("MaxConnections", _maxConnections);
-        writer.WriteString("DropPolicy", _options.DropPolicy.ToString());
         writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _totalBytesSent));
         writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _totalBytesReceived));
         writer.WriteEndObject();
@@ -479,35 +409,7 @@ public sealed class ConnectionHub : IConnectionHub
 
     #region Private Methods
 
-    /*
-     * [Shard Index Calculation]
-     * If shard count is power-of-two, we use bitwise AND (extremely fast).
-     * Otherwise, we fallback to modulo operator.
-     */
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int GetShardIndex(ulong id)
-    {
-        ulong hash = MIX64(id);
-        return _isPowerOfTwoShardCount ? (int)(hash & (uint)_shardMask) : (int)(hash % (uint)_shardCount);
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        static ulong MIX64(ulong value)
-        {
-            value ^= value >> 33;
-            value *= 0xff51afd7ed558ccdUL;
-            value ^= value >> 33;
-            value *= 0xc4ceb9fe1a85ec53UL;
-            value ^= value >> 33;
-            return value;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private ConcurrentDictionary<ulong, IConnection> GetShard(ulong id)
-    {
-        int index = this.GetShardIndex(id);
-        return _shards[index];
-    }
+    // Sharding logic moved to ConnectionRegistry
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [SuppressMessage("Performance", "CA1873:Avoid potentially expensive logging", Justification = "<Pending>")]
@@ -522,10 +424,6 @@ public sealed class ConnectionHub : IConnectionHub
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         ulong connectionKey = connection.ID.ToUInt64();
-        if (!this.TryReserveCapacitySlot(connection, out RegisterResult failure))
-        {
-            return failure;
-        }
 
         connection.OnCloseEvent += this.OnClientDisconnected;
         connection.Attributes[ConnectionAttributes.OwnerHub] = this;
@@ -533,8 +431,7 @@ public sealed class ConnectionHub : IConnectionHub
         bool added = false;
         try
         {
-            ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(connectionKey);
-            if (!shard.TryAdd(connectionKey, connection))
+            if (!_registry.TryAdd(connectionKey, connection))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
@@ -546,16 +443,11 @@ public sealed class ConnectionHub : IConnectionHub
             }
 
             added = true;
-            this.TrackEndpoint(connectionKey, connection);
-            if (_trackEvictionQueue && this.IsAnonymousConnection(connection))
-            {
-                _anonymousQueue.Enqueue(connectionKey);
-            }
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
                 _logger.LogTrace(
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={Volatile.Read(ref _count)}");
+                    $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_registry.Count}");
             }
 
             if (measureLatency && _logger != null)
@@ -571,7 +463,7 @@ public sealed class ConnectionHub : IConnectionHub
             if (!added)
             {
                 connection.OnCloseEvent -= this.OnClientDisconnected;
-                _ = Interlocked.Decrement(ref _count);
+                _ = connection.Attributes.Remove(ConnectionAttributes.OwnerHub);
             }
         }
     }
@@ -581,10 +473,10 @@ public sealed class ConnectionHub : IConnectionHub
     private bool TryUnregisterCore(IConnection connection)
     {
         ulong connectionKey = connection.ID.ToUInt64();
-        ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(connectionKey);
 
 #pragma warning disable CA2000 // Dispose objects before losing scope
-        if (!shard.TryRemove(connectionKey, out IConnection? existing))
+        if (!_registry.TryRemove(connectionKey, out IConnection? existing) || existing is null)
+#pragma warning restore CA2000 // Dispose objects before losing scope
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
@@ -594,15 +486,12 @@ public sealed class ConnectionHub : IConnectionHub
 
             return false;
         }
-#pragma warning restore CA2000 // Dispose objects before losing scope
 
         bool measureLatency = _options.IsEnableLatency && _logger?.IsEnabled(LogLevel.Information) == true;
         TimingScope scope = measureLatency ? TimingScope.Start() : default;
 
         IConnection removedConnection = existing ?? connection;
         removedConnection.OnCloseEvent -= this.OnClientDisconnected;
-        this.UntrackEndpoint(connectionKey, removedConnection);
-        _ = Interlocked.Decrement(ref _count);
 
         try
         {
@@ -634,7 +523,7 @@ public sealed class ConnectionHub : IConnectionHub
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
             _logger.LogTrace(
-                $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={Volatile.Read(ref _count)}");
+                $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={_registry.Count}");
         }
 
         if (measureLatency && _logger != null)
@@ -646,263 +535,10 @@ public sealed class ConnectionHub : IConnectionHub
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private bool TryReserveCapacitySlot(IConnection incomingConnection, out RegisterResult failure)
-    {
-        failure = RegisterResult.Success;
-
-        if (_maxConnections < 0)
-        {
-            _ = Interlocked.Increment(ref _count);
-            return true;
-        }
-
-        /* 
-         * ARCHITECTURAL DESIGN: LOCK-FREE CAPACITY RESERVATION
-         * We use an optimistic reservation pattern here to avoid a global lock on the hub.
-         * 1. Atomically increment the total connection count.
-         * 2. If we are within limits, the slot is ours.
-         * 3. If we exceed the limit, we decrement it back (rollback) and enter the more expensive
-         *    eviction or blocking logic. This ensures that 99.9% of connection attempts (when 
-         *    below capacity) complete without ever touching a Mutex or SpinLock.
-         */
-        int current = Interlocked.Increment(ref _count);
-        if (current <= _maxConnections)
-        {
-            return true;
-        }
-
-        // Over capacity, need to revert the counter or attempt eviction of anonymous clients
-        _ = Interlocked.Decrement(ref _count);
-
-        if (_disposed)
-        {
-            failure = RegisterResult.Disposed;
-            return false;
-        }
-
-        switch (_options.DropPolicy)
-        {
-            case DropPolicy.DropOldest:
-                if (this.TryEvictOldestConnection(incomingConnection))
-                {
-                    // Recursively try again after eviction
-                    return this.TryReserveCapacitySlot(incomingConnection, out failure);
-                }
-
-                this.RejectIncomingConnection(incomingConnection, "evict-oldest-no-candidate");
-                failure = RegisterResult.CapacityLimitReached;
-                return false;
-
-            case DropPolicy.Block:
-                /*
-                 * ANTI-SPIN PROTECTION:
-                 * While blocking is requested, we must not burn CPU indefinitely if the server
-                 * is genuinely saturated. We use a SpinWait that starts with thread-yielding
-                 * and eventually transitions to Sleep(0)/Sleep(1) to play nice with the OS scheduler.
-                 */
-                SpinWait spinner = default;
-                while (true)
-                {
-                    spinner.SpinOnce();
-
-                    // Prevent infinite spin. If we've waited too long, we treat it as a timeout
-                    // to prevent a "deadlock" state where all acceptor threads are spinning.
-                    if (spinner.Count > 10_000)
-                    {
-                        this.RejectIncomingConnection(incomingConnection, "block-timeout");
-                        failure = RegisterResult.CapacityLimitReached;
-                        return false;
-                    }
-
-                    // CAS loop to safely re-claim a slot if one becomes free
-                    int c = Volatile.Read(ref _count);
-                    if (c < _maxConnections)
-                    {
-                        if (Interlocked.CompareExchange(ref _count, c + 1, c) == c)
-                        {
-                            return true;
-                        }
-                    }
-                }
-
-            case DropPolicy.Coalesce:
-            case DropPolicy.DropNewest:
-            default:
-                this.RejectIncomingConnection(incomingConnection, "drop-newest");
-                failure = RegisterResult.CapacityLimitReached;
-                return false;
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private bool TryEvictOldestConnection(IConnection incomingConnection)
-    {
-        while (_anonymousQueue.TryDequeue(out ulong oldestId))
-        {
-            ConcurrentDictionary<ulong, IConnection> shard = this.GetShard(oldestId);
-            if (!shard.TryGetValue(oldestId, out IConnection? candidate) || candidate is null)
-            {
-                continue;
-            }
-
-            if (!this.IsAnonymousConnection(candidate))
-            {
-                continue;
-            }
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-            if (!shard.TryRemove(oldestId, out IConnection? evictedConnection) || evictedConnection is null)
-            {
-                continue;
-            }
-#pragma warning restore CA2000 // Dispose objects before losing scope
-
-            evictedConnection.OnCloseEvent -= this.OnClientDisconnected;
-            this.UntrackEndpoint(oldestId, evictedConnection);
-            _ = Interlocked.Decrement(ref _count);
-            _ = Interlocked.Increment(ref _evictedConnections);
-
-            this.NotifyCapacityLimit(incomingConnection, "evict-oldest");
-            ConnectionUnregistered?.Invoke(evictedConnection);
-
-            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
-            {
-                _logger.LogInformation(
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evicted id={evictedConnection.ID}");
-            }
-
-            try
-            {
-                evictedConnection.Disconnect("evicted to make room for new connection");
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-                {
-                    _logger.LogError(ex,
-                        $"[NW.{nameof(ConnectionHub)}:{nameof(TryEvictOldestConnection)}] evict-disconnect-failed id={evictedConnection.ID}");
-                }
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private bool IsAnonymousConnection(IConnection connection) => connection.Level == PermissionLevel.NONE;
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TrackEndpoint(ulong connectionKey, IConnection connection)
-    {
-        ConcurrentDictionary<ulong, IConnection> endpointConnections = _endpointIndex.GetOrAdd(
-            connection.NetworkEndpoint.Address,
-            static _ => new ConcurrentDictionary<ulong, IConnection>());
-
-        endpointConnections[connectionKey] = connection;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void UntrackEndpoint(ulong connectionKey, IConnection connection)
-    {
-        string address = connection.NetworkEndpoint.Address;
-        if (!_endpointIndex.TryGetValue(address, out ConcurrentDictionary<ulong, IConnection>? endpointConnections))
-        {
-            return;
-        }
-
-        _ = endpointConnections.TryRemove(connectionKey, out _);
-        if (endpointConnections.IsEmpty)
-        {
-            _ = _endpointIndex.TryRemove(new KeyValuePair<string, ConcurrentDictionary<ulong, IConnection>>(address, endpointConnections));
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private int CountAnonymousConnections()
-    {
-        int anonymous = 0;
-
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
-        {
-            foreach (IConnection connection in shard.Values)
-            {
-                if (this.IsAnonymousConnection(connection))
-                {
-                    anonymous++;
-                }
-            }
-        }
-
-        return anonymous;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private void RejectIncomingConnection(IConnection incomingConnection, string reason)
-    {
-        _ = Interlocked.Increment(ref _rejectedConnections);
-        this.NotifyCapacityLimit(incomingConnection, reason);
-
-        try
-        {
-            incomingConnection.Disconnect("connection limit reached");
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-            {
-                _logger.LogError(ex,
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(RejectIncomingConnection)}] reject-disconnect-failed id={incomingConnection.ID}");
-            }
-        }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    private IConnection[] CaptureConnectionSnapshot()
-    {
-        int estimatedCount = Math.Max(4, Volatile.Read(ref _count));
-        IConnection[] buffer = s_connectionPool.Rent(estimatedCount);
-
-        try
-        {
-            int index = 0;
-            foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
-            {
-                foreach (KeyValuePair<ulong, IConnection> kvp in shard)
-                {
-                    if (index >= buffer.Length)
-                    {
-                        // Expand buffer if needed
-                        IConnection[] newBuffer = s_connectionPool.Rent(buffer.Length * 2);
-                        Array.Copy(buffer, newBuffer, buffer.Length);
-                        s_connectionPool.Return(buffer);
-                        buffer = newBuffer;
-                    }
-                    buffer[index++] = kvp.Value;
-                }
-            }
-
-            if (index == 0)
-            {
-                return Array.Empty<IConnection>();
-            }
-
-            IConnection[] snapshot = new IConnection[index];
-            Array.Copy(buffer, snapshot, index);
-            return snapshot;
-        }
-        finally
-        {
-            s_connectionPool.Return(buffer, clearArray: true);
-        }
-    }
-
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private void DisposeAllConnections()
     {
-        IConnection[] connections = this.CaptureConnectionSnapshot();
+        IConnection[] connections = _registry.CaptureConnectionSnapshot();
 
         foreach (IConnection connection in connections)
         {
@@ -930,14 +566,7 @@ public sealed class ConnectionHub : IConnectionHub
             }
         });
 
-        foreach (ConcurrentDictionary<ulong, IConnection> shard in _shards)
-        {
-            shard.Clear();
-        }
-
-        _endpointIndex.Clear();
-        _anonymousQueue.Clear();
-        _ = Interlocked.Exchange(ref _count, 0);
+        _registry.Clear();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -1143,17 +772,7 @@ public sealed class ConnectionHub : IConnectionHub
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void NotifyCapacityLimit(IConnection? newConnection, string reason)
-    {
-        CapacityLimitReachedHandler? handler = CapacityLimitReached;
-        handler?.Invoke(
-            _options.DropPolicy,
-            Volatile.Read(ref _count),
-            _maxConnections,
-            newConnection?.ID,
-            reason ?? string.Empty);
-    }
+
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1171,19 +790,9 @@ public sealed class ConnectionHub : IConnectionHub
     {
         Success = 0,
         Disposed = 1,
-        Duplicate = 2,
-        CapacityLimitReached = 3
+        Duplicate = 2
     }
 
     #endregion Private Methods
 }
 
-/// <summary>
-/// Delegate raised when the connection hub reaches capacity and applies a drop policy.
-/// </summary>
-/// <param name="dropPolicy">The active drop policy at the time the event fires.</param>
-/// <param name="currentConnections">Current active connection count.</param>
-/// <param name="maxConnections">Configured maximum connection count.</param>
-/// <param name="triggeredConnectionId">Identifier for the incoming connection that triggered the limit.</param>
-/// <param name="reason">Reason token that describes the applied action.</param>
-public delegate void CapacityLimitReachedHandler(DropPolicy dropPolicy, int currentConnections, int maxConnections, ISnowflake? triggeredConnectionId, string reason);

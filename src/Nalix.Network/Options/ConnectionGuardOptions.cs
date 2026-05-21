@@ -13,6 +13,13 @@ namespace Nalix.Network.Options;
 public sealed partial class ConnectionGuardOptions : ConfigurationLoader
 {
     /// <summary>
+    /// Gets or sets the maximum number of concurrent connections allowed globally.
+    /// </summary>
+    [IniComment("Maximum concurrent connections across all IPs (-1 = unlimited, default -1)")]
+    [System.ComponentModel.DataAnnotations.Range(-1, int.MaxValue, ErrorMessage = "MaxConnections must be -1 (unlimited) or positive.")]
+    public int MaxConnections { get; set; } = -1;
+
+    /// <summary>
     /// Gets or sets the ban duration for IPs that exceed the connection rate limit.
     /// </summary>
     [IniComment("How long an IP is banned after exceeding limits (00:00:01–1.00:00:00)")]
@@ -61,6 +68,11 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
+        if (this.MaxConnections < -1 || this.MaxConnections == 0)
+        {
+            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections must be -1 (unlimited) or positive.");
+        }
+
         if (this.BanDuration < System.TimeSpan.FromSeconds(1) || this.BanDuration > System.TimeSpan.FromDays(1))
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.BanDuration), "BanDuration must be at least 1 second and at most 1 day.");
