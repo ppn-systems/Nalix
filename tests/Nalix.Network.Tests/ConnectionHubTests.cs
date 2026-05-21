@@ -14,6 +14,7 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Environment.Configuration;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal.Manager;
 using Nalix.Network.Options;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Sessions;
@@ -108,27 +109,16 @@ public sealed class ConnectionHubTests
     [Fact]
     public void GetShardIndex_MixesSnowflakeUlongBeforePowerOfTwoMasking()
     {
-        ConnectionHubOptions options = ConfigurationManager.Instance.Get<ConnectionHubOptions>();
-        int previousShardCount = options.ShardCount;
+        ConnectionRegistry registry = new(16, 31);
+        MethodInfo method = typeof(ConnectionRegistry).GetMethod("GetShardIndex", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingMethodException(nameof(ConnectionRegistry), "GetShardIndex");
 
-        try
-        {
-            options.ShardCount = 16;
-            using ConnectionHub hub = new();
-            MethodInfo method = typeof(ConnectionHub).GetMethod("GetShardIndex", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?? throw new MissingMethodException(nameof(ConnectionHub), "GetShardIndex");
+        int[] indexes = Enumerable.Range(0, 256)
+                                  .Select(sequence => ComposeSnowflakeId((uint)sequence))
+                                  .Select(id => (int)method.Invoke(registry, [id])!)
+                                  .ToArray();
 
-            int[] indexes = Enumerable.Range(0, 256)
-                                      .Select(sequence => ComposeSnowflakeId((uint)sequence))
-                                      .Select(id => (int)method.Invoke(hub, [id])!)
-                                      .ToArray();
-
-            indexes.Distinct().Count().Should().BeGreaterThan(8);
-        }
-        finally
-        {
-            options.ShardCount = previousShardCount;
-        }
+        indexes.Distinct().Count().Should().BeGreaterThan(8);
     }
 
     [Fact]
@@ -252,7 +242,6 @@ public sealed class ConnectionHubTests
         }
     }
 }
-
 
 
 
