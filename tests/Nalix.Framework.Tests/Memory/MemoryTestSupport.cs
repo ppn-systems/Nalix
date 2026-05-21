@@ -41,6 +41,12 @@ internal sealed class HealthCheckPoolable : IPoolable
     }
 }
 
+internal sealed class GenericPoolable<T> : IPoolable
+{
+    public void ResetForPool()
+    {
+    }
+}
 
 
 

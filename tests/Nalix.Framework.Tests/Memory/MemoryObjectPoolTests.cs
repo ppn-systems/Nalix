@@ -1,5 +1,6 @@
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Memory.Pools;
+using Nalix.Framework.Options;
 
 namespace Nalix.Framework.Tests.Memory;
 
@@ -126,6 +127,25 @@ public sealed partial class MemoryTests
     }
 
     [Fact]
+    public void Get_ObjectPoolManagerDefaultPreallocate_WarmsNewTypePool()
+    {
+        ObjectPoolManager manager = new(new ObjectPoolOptions
+        {
+            EnableObjectTrimming = false,
+            DefaultPreallocate = 3
+        });
+
+        HealthCheckPoolable item = manager.Get<HealthCheckPoolable>();
+        Dictionary<string, object> afterGet = manager.GetTypeInfo<HealthCheckPoolable>();
+
+        Assert.Equal(2, afterGet["AvailableCount"]);
+        Assert.Equal(1L, manager.TotalGetOperations);
+        Assert.Equal(1L, manager.TotalCacheHits);
+
+        manager.Return(item);
+    }
+
+    [Fact]
     public void Return_TypedObjectPoolNullObject_ThrowsArgumentNullException()
     {
         ObjectPoolManager manager = new();
@@ -147,9 +167,6 @@ public sealed partial class MemoryTests
         Assert.Equal("count", exception.ParamName);
     }
 }
-
-
-
 
 
 
