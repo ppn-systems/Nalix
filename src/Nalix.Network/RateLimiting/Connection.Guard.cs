@@ -67,8 +67,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private int _disposed;
 
-    private Action<INetworkEndpoint>? _onEndpointTerminationRequested;
-
     /// <summary>
     /// Metrics for monitoring
     /// </summary>
@@ -107,16 +105,16 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
+        _cleanupInterval = _config.CleanupInterval;
+        _windowTicks = _config.ConnectionRateWindow.Ticks;
+        _inactivityThreshold = _config.InactivityThreshold;
         _maxPerEndpoint = _config.MaxConnectionsPerIpAddress;
         _maxGlobalConnections = _protectionConfig.MaxConnections;
-        _cleanupInterval = _config.CleanupInterval;
-        _inactivityThreshold = _config.InactivityThreshold;
-        _windowTicks = _config.ConnectionRateWindow.Ticks;
         _logSuppressWindowTicks = _protectionConfig.DDoSLogSuppressWindow.Ticks;
 
-        _map = new System.Collections.Concurrent.ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry>();
-        _accessList = new NetworkAccessList(_logger, _proxyConfig);
         _banRepository = new NetworkBanRepository(_logger);
+        _accessList = new NetworkAccessList(_logger, _proxyConfig);
+        _map = new System.Collections.Concurrent.ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry>();
 
         _banRepository.Load(_map);
 
@@ -126,9 +124,9 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
             _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] init " +
-                          $"maxPerEndpoint={_maxPerEndpoint} " +
-                          $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
-                          $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
+                             $"maxPerEndpoint={_maxPerEndpoint} " +
+                             $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
+                             $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
         }
     }
 
@@ -149,18 +147,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     public ConnectionGuard WithLogging(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        return this;
-    }
-
-    /// <summary>
-    /// Registers a callback to be invoked when an endpoint should be terminated.
-    /// </summary>
-    /// <param name="action">The action to invoke with the network endpoint.</param>
-    /// <returns>The current <see cref="ConnectionGuard"/> instance.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ConnectionGuard WithEndpointTermination(Action<INetworkEndpoint> action)
-    {
-        _onEndpointTerminationRequested += action ?? throw new ArgumentNullException(nameof(action));
         return this;
     }
 
@@ -390,31 +376,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     #region Connection Slot Management
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private void SCHEDULE_ENDPOINT_TERMINATION(SocketEndpoint key)
-    {
-        // Use ScheduleBackgroundWork with a static lambda and a ValueTuple state to avoid closure allocations
-        InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
-            name: $"{TaskNaming.Tags.Worker}.{TaskNaming.Tags.Process}",
-            work: static state =>
-            {
-                (ConnectionGuard? guard, SocketEndpoint endpointKey) = state;
-                try
-                {
-                    guard.TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(endpointKey);
-                }
-                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-                {
-                    if (guard._logger != null && guard._logger.IsEnabled(LogLevel.Error))
-                    {
-                        guard._logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] endpoint-termination-failed ip={endpointKey.Address}");
-                    }
-                }
-            },
-            state: (Guard: this, Key: key)
-        );
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SocketEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint) => SocketEndpoint.FromIpAddress(endPoint.Address);
 
@@ -471,7 +432,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             }
 
             // Declare the lock beforehand to use after exiting the lock.
-            bool shouldTerminateEndpoint = false;
             ConnectionAllowResult result;
 
             bool spinLockTaken = false;
@@ -500,7 +460,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                         _banRepository.MarkDirty();
 
                         ThrottledLogGate.LogDDoSDetected(_logger, entry, key.Address, nowTicks, _logSuppressWindowTicks);
-                        shouldTerminateEndpoint = true;
 
                         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                         {
@@ -546,14 +505,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 {
                     entry.SpinLock.Exit();
                 }
-            }
-
-            // WHY: Schedule endpoint termination AFTER exiting the lock.
-            // Termination closes all connections to this IP — possibly touching ConnectionHub indexes.
-            // Nothing prevents ScheduleWorker from running immediately after this line; TaskManager puts it in the queue.
-            if (shouldTerminateEndpoint)
-            {
-                this.SCHEDULE_ENDPOINT_TERMINATION(key);
             }
 
             return result;
@@ -668,9 +619,6 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
         return true;
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void TRIGGER_ENDPOINT_TERMINATION_UPSTREAM(SocketEndpoint key) => _onEndpointTerminationRequested?.Invoke(key);
 
     #endregion Connection Slot Management
 

@@ -299,6 +299,31 @@ public sealed class ConnectionHub : IConnectionHub
             nameof(BroadcastWhereAsync)).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
+    /// <summary>
+    /// Releases all resources used by the <see cref="ConnectionHub"/> and closes all connections.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+        this.DisposeAllConnections();
+
+        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
+        }
+    }
+
+    #endregion APIs
+
+    #region IReportable
+
     /// <summary>
     /// Generates a human-readable report of active connections and statistics.
     /// </summary>
@@ -384,28 +409,7 @@ public sealed class ConnectionHub : IConnectionHub
         writer.WriteEndObject();
     }
 
-    /// <inheritdoc />
-    /// <summary>
-    /// Releases all resources used by the <see cref="ConnectionHub"/> and closes all connections.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public void Dispose()
-    {
-        if (_disposed)
-        {
-            return;
-        }
-
-        _disposed = true;
-        this.DisposeAllConnections();
-
-        if (_logger != null && _logger.IsEnabled(LogLevel.Information))
-        {
-            _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
-        }
-    }
-
-    #endregion APIs
+    #endregion IReportable
 
     #region Private Methods
 
@@ -771,8 +775,6 @@ public sealed class ConnectionHub : IConnectionHub
             this.LogBroadcastFailures(tasks, owners, taskCount, operationName);
         }
     }
-
-
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -49,13 +49,6 @@ public interface INetworkApplicationBuilder
     INetworkApplicationBuilder ConfigureConnectionHub(IConnectionHub connectionHub);
 
     /// <summary>
-    /// Sets the <see cref="IConnectionTerminator"/> instance used by the hosted Nalix runtime.
-    /// </summary>
-    /// <param name="connectionTerminator">The connection terminator to register.</param>
-    /// <returns>The current builder instance.</returns>
-    INetworkApplicationBuilder ConfigureConnectionTerminator(IConnectionTerminator connectionTerminator);
-
-    /// <summary>
     /// Sets the <see cref="Nalix.Abstractions.Networking.Sessions.ISessionService"/> instance used by the hosted Nalix runtime.
     /// </summary>
     /// <param name="sessionService">The session service to register.</param>

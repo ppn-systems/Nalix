@@ -73,30 +73,6 @@ public sealed class ConnectionHubTests
            .And.Contain(connection2);
     }
 
-#if DEBUG
-    [Fact]
-    public async Task ConnectionTerminator_CloseByEndpoint_ClosesMatchingAddress()
-    {
-        using ConnectionHub hub = new();
-        using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
-        using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
-        using Connection connection1 = new(scope1.ServerSocket);
-        using Connection connection2 = new(scope2.ServerSocket);
-
-        hub.RegisterConnection(connection1);
-        hub.RegisterConnection(connection2);
-
-        ConnectionTerminator terminator = new(hub);
-
-        terminator.CloseEndpoint(connection1.NetworkEndpoint).Should().Be(2);
-
-        connection1.IsDisposed.Should().BeTrue();
-        connection2.IsDisposed.Should().BeTrue();
-        hub.Count.Should().Be(0);
-    }
-#endif
-
-
     [Fact]
     public async Task UnregisterConnection_WhenSessionStoreFails_ReclaimsSessionSnapshot()
     {
@@ -218,7 +194,6 @@ public sealed class ConnectionHubTests
         }
     }
 }
-
 
 
 
