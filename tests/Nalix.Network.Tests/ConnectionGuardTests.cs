@@ -94,7 +94,7 @@ public sealed class ConnectionGuardTests
         blacklistOptions.StoreFileName = "blacklist_test.txt";
         blacklistOptions.MaxBlacklistedIps = 10;
 
-        string path = System.IO.Path.Combine(Nalix.Environment.IO.Directories.DataDirectory, blacklistOptions.StoreFileName);
+        string path = System.IO.Path.Combine(Nalix.Environment.IO.Directories.ConfigurationDirectory, blacklistOptions.StoreFileName);
         string? dir = System.IO.Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
         {
@@ -140,7 +140,7 @@ public sealed class ConnectionGuardTests
         blacklistOptions.StoreFileName = "blacklist_cidr_test.txt";
         blacklistOptions.MaxBlacklistedIps = 10;
 
-        string path = System.IO.Path.Combine(Nalix.Environment.IO.Directories.DataDirectory, blacklistOptions.StoreFileName);
+        string path = System.IO.Path.Combine(Nalix.Environment.IO.Directories.ConfigurationDirectory, blacklistOptions.StoreFileName);
         string? dir = System.IO.Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
         {
@@ -186,7 +186,7 @@ public sealed class ConnectionGuardTests
         proxyOptions.MaxTrustedProxies = 10;
         proxyOptions.MaxConnectionsPerTrustedProxy = 3;
 
-        string path = System.IO.Path.Combine(Nalix.Environment.IO.Directories.DataDirectory, proxyOptions.StoreFileName);
+        string path = System.IO.Path.Combine(Nalix.Environment.IO.Directories.ConfigurationDirectory, proxyOptions.StoreFileName);
         string? dir = System.IO.Path.GetDirectoryName(path);
         if (!string.IsNullOrEmpty(dir) && !System.IO.Directory.Exists(dir))
         {

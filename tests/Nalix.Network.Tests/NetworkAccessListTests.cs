@@ -27,7 +27,8 @@ public sealed class NetworkAccessListTests
         var proxyOptions = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
         proxyOptions.StoreFileName = "trusted_proxies_nal_test.txt";
 
-        string blacklistPath = Path.Combine(Directories.DataDirectory, blacklistOptions.StoreFileName);
+        string blacklistPath = Path.Combine(Directories.ConfigurationDirectory, blacklistOptions.StoreFileName);
+        string proxyPath = Path.Combine(Directories.ConfigurationDirectory, proxyOptions.StoreFileName);
         string? dir = Path.GetDirectoryName(blacklistPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {
@@ -57,6 +58,10 @@ public sealed class NetworkAccessListTests
             {
                 File.Delete(blacklistPath);
             }
+            if (File.Exists(proxyPath))
+            {
+                File.Delete(proxyPath);
+            }
         }
     }
 
@@ -71,7 +76,8 @@ public sealed class NetworkAccessListTests
         var proxyOptions = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
         proxyOptions.StoreFileName = "trusted_proxies_nal_test.txt";
 
-        string blacklistPath = Path.Combine(Directories.DataDirectory, blacklistOptions.StoreFileName);
+        string blacklistPath = Path.Combine(Directories.ConfigurationDirectory, blacklistOptions.StoreFileName);
+        string proxyPath = Path.Combine(Directories.ConfigurationDirectory, proxyOptions.StoreFileName);
         string? dir = Path.GetDirectoryName(blacklistPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {
@@ -101,6 +107,10 @@ public sealed class NetworkAccessListTests
             {
                 File.Delete(blacklistPath);
             }
+            if (File.Exists(proxyPath))
+            {
+                File.Delete(proxyPath);
+            }
         }
     }
 
@@ -115,7 +125,7 @@ public sealed class NetworkAccessListTests
         proxyOptions.StoreFileName = "trusted_proxies_nal_test.txt";
         proxyOptions.MaxTrustedProxies = 10;
 
-        string proxyPath = Path.Combine(Directories.DataDirectory, proxyOptions.StoreFileName);
+        string proxyPath = Path.Combine(Directories.ConfigurationDirectory, proxyOptions.StoreFileName);
         string? dir = Path.GetDirectoryName(proxyPath);
         if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
         {
@@ -143,6 +153,42 @@ public sealed class NetworkAccessListTests
             {
                 File.Delete(proxyPath);
             }
+        }
+    }
+
+    [Fact]
+    public void Constructor_WhenFilesDoNotExist_CreatesThem()
+    {
+        var blacklistOptions = ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>();
+        blacklistOptions.Enabled = true;
+        blacklistOptions.StoreFileName = "blacklist_autocreate_test.txt";
+
+        var proxyOptions = ConfigurationManager.Instance.Get<TrustedProxyOptions>();
+        proxyOptions.StoreFileName = "trusted_proxies_autocreate_test.txt";
+
+        string blacklistPath = Path.Combine(Directories.ConfigurationDirectory, blacklistOptions.StoreFileName);
+        string proxyPath = Path.Combine(Directories.ConfigurationDirectory, proxyOptions.StoreFileName);
+
+        if (File.Exists(blacklistPath)) File.Delete(blacklistPath);
+        if (File.Exists(proxyPath)) File.Delete(proxyPath);
+
+        try
+        {
+            NetworkAccessList accessList = new(null, proxyOptions);
+
+            File.Exists(blacklistPath).Should().BeTrue();
+            File.Exists(proxyPath).Should().BeTrue();
+
+            string blacklistContent = File.ReadAllText(blacklistPath);
+            blacklistContent.Should().Contain("# Nalix Connection Guard - Blacklisted IPs/Networks");
+
+            string proxyContent = File.ReadAllText(proxyPath);
+            proxyContent.Should().Contain("# Nalix Connection Guard - Trusted Proxies");
+        }
+        finally
+        {
+            if (File.Exists(blacklistPath)) File.Delete(blacklistPath);
+            if (File.Exists(proxyPath)) File.Delete(proxyPath);
         }
     }
 }
