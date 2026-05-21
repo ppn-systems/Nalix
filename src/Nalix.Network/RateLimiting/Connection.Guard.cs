@@ -56,6 +56,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
 
     private readonly long _windowTicks;
     private readonly int _maxPerEndpoint;
+    private readonly int _maxGlobalConnections;
     private readonly long _logSuppressWindowTicks;
 
     private readonly TimeSpan _cleanupInterval;
@@ -74,6 +75,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
     /// <summary>
     /// Metrics for monitoring
     /// </summary>
+    private int _globalConnections;
     private long _totalConnectionAttempts;
     private long _totalRejections;
     private long _totalCleanedEntries;
@@ -113,6 +115,7 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
         this.PARSE_IP_CONFIG();
 
         _maxPerEndpoint = _config.MaxConnectionsPerIpAddress;
+        _maxGlobalConnections = _protectionConfig.MaxConnections;
         _cleanupInterval = _config.CleanupInterval;
         _inactivityThreshold = _config.InactivityThreshold;
 
@@ -261,11 +264,27 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
             return false;
         }
 
+        if (_maxGlobalConnections > -1)
+        {
+            int currentGlobal = Interlocked.Increment(ref _globalConnections);
+            if (currentGlobal > _maxGlobalConnections)
+            {
+                _ = Interlocked.Decrement(ref _globalConnections);
+                _ = Interlocked.Increment(ref _totalRejections);
+                return false;
+            }
+        }
+
         SocketEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
         ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now, endPoint.Address);
 
         if (!result.Allowed)
         {
+            if (_maxGlobalConnections > -1)
+            {
+                _ = Interlocked.Decrement(ref _globalConnections);
+            }
+
             _ = Interlocked.Increment(ref _totalRejections);
 
             // Throttled reject log — chỉ log 1 lần mỗi suppress window per IP
@@ -363,6 +382,11 @@ public sealed class ConnectionGuard : IDisposable, IAsyncDisposable, IReportable
                 _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}:Internal] received-empty-address");
             }
             return;
+        }
+
+        if (_maxGlobalConnections > -1)
+        {
+            _ = Interlocked.Decrement(ref _globalConnections);
         }
 
         DateTime now = Clock.NowUtc();

@@ -3,7 +3,6 @@
 
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Network.Options;
@@ -14,22 +13,6 @@ namespace Nalix.Network.Options;
 [IniComment("Connection hub configuration — controls capacity, limits, concurrency, and disposal behavior")]
 public sealed partial class ConnectionHubOptions : ConfigurationLoader
 {
-    // Limits & backpressure
-
-    /// <summary>
-    /// Gets or sets the maximum number of concurrent connections allowed.
-    /// </summary>
-    [IniComment("Maximum concurrent connections (-1 = unlimited, must not be 0)")]
-    [System.ComponentModel.DataAnnotations.Range(-1, int.MaxValue, ErrorMessage = "MaxConnections must be -1 (unlimited) or positive.")]
-    public int MaxConnections { get; set; } = -1;
-
-    /// <summary>
-    /// Gets or sets the policy for handling connection rejection when limits are reached.
-    /// </summary>
-    [IniComment("Rejection strategy when the connection limit is reached (e.g. DropNewest, DropOldest)")]
-    [System.ComponentModel.DataAnnotations.EnumDataType(typeof(DropPolicy), ErrorMessage = "Invalid drop policy.")]
-    public DropPolicy DropPolicy { get; set; } = DropPolicy.DropNewest;
-
     // Concurrency
 
     /// <summary>
@@ -66,11 +49,6 @@ public sealed partial class ConnectionHubOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        if (this.MaxConnections < -1)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections must be -1 (unlimited) or positive.");
-        }
-
         if (this.ParallelDisconnectDegree < -1)
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.ParallelDisconnectDegree), "ParallelDisconnectDegree must be -1 (default) or positive.");
@@ -91,9 +69,5 @@ public sealed partial class ConnectionHubOptions : ConfigurationLoader
             throw new System.ArgumentOutOfRangeException(nameof(this.ParallelDisconnectDegree), "ParallelDisconnectDegree cannot be zero. Use -1 for default or a positive value.");
         }
 
-        if (this.MaxConnections == 0)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections cannot be zero (0 means no connections are allowed). Use -1 for unlimited or a positive value.");
-        }
     }
 }
