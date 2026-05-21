@@ -10,6 +10,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Time;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport.Internal;
 
@@ -43,14 +44,15 @@ public static class ResumeExtensions
         using SessionResume request = new();
         request.Initialize(SessionResumeStage.REQUEST, session.Options.SessionToken);
 
-        // SEC-16: Compute proof-of-possession using HMAC-Keccak256(Secret, SessionToken).
-        // This proves to the server that we own the session secret.
+        // SEC-16: Compute proof-of-possession using HMAC-Keccak256(Secret, SessionToken || TimeWindow).
+        // This proves to the server that we own the session secret and prevents replays via a sliding time window.
         Span<byte> proofBytes = stackalloc byte[32];
-        Span<byte> tokenBytes = stackalloc byte[8];
-        BinaryPrimitives.WriteUInt64LittleEndian(tokenBytes, session.Options.SessionToken);
+        Span<byte> messageBytes = stackalloc byte[16];
+        BinaryPrimitives.WriteUInt64LittleEndian(messageBytes, session.Options.SessionToken);
+        BinaryPrimitives.WriteInt64LittleEndian(messageBytes[8..], Clock.UnixSecondsNow() / 30);
 
         // SEC-16: Use fast HMAC instead of slow PBKDF2 for session resumption.
-        HmacKeccak256.Compute(session.Options.Secret.AsSpan(), tokenBytes, proofBytes);
+        HmacKeccak256.Compute(session.Options.Secret.AsSpan(), messageBytes, proofBytes);
         request.Proof = new Bytes32(proofBytes);
 
         try
@@ -71,6 +73,17 @@ public static class ResumeExtensions
             {
                 session.Options.SessionToken = response.SessionToken;
                 return response.Reason;
+            }
+
+            Span<byte> responseMessageBytes = stackalloc byte[16];
+            BinaryPrimitives.WriteUInt64LittleEndian(responseMessageBytes, response.SessionToken);
+            BinaryPrimitives.WriteInt64LittleEndian(responseMessageBytes[8..], Clock.UnixSecondsNow() / 30);
+            Span<byte> expectedResponseProofBytes = stackalloc byte[32];
+            HmacKeccak256.Compute(session.Options.Secret.AsSpan(), responseMessageBytes, expectedResponseProofBytes);
+
+            if (response.Proof != new Bytes32(expectedResponseProofBytes))
+            {
+                throw new NetworkException("Session resume response proof is invalid. Possible Man-in-the-Middle attack or clock skew.");
             }
 
             session.Options.SessionToken = response.SessionToken;
