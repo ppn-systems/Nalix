@@ -4,6 +4,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -17,6 +18,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Asymmetric;
+using Nalix.Codec.Security.Primitives;
 using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
@@ -128,6 +130,12 @@ public sealed class HandshakeHandlers
     private static int s_isInitialized;
     private static readonly Lock s_initLock = new();
     private static Bytes32 s_certificate = Bytes32.Zero;
+    private static Bytes32 s_serverPublicKey = Bytes32.Zero;
+
+    /// <summary>
+    /// Gets the server's public key (derived from the certificate).
+    /// </summary>
+    public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
     #endregion Fields
 
@@ -135,15 +143,21 @@ public sealed class HandshakeHandlers
 
     #region Nested Types
 
-    private sealed record HandshakeContext
+    private sealed class HandshakeContext : IDisposable
     {
         public Bytes32 ClientPublicKey { get; init; }
         public Bytes32 ClientNonce { get; init; }
         public Bytes32 ServerPublicKey { get; init; }
         public Bytes32 ServerNonce { get; init; }
-        public Bytes32 SharedSecret { get; init; }
+        public Bytes32 SharedSecret;
         public Bytes32 TranscriptHash { get; init; }
-        public Bytes32 SessionKey { get; init; }
+        public Bytes32 SessionKey;
+
+        public void Dispose()
+        {
+            MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref SessionKey, 1)));
+            MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref SharedSecret, 1)));
+        }
     }
 
     #endregion Nested Types
@@ -187,6 +201,7 @@ public sealed class HandshakeHandlers
             }
 
             s_certificate = Bytes32.Parse(hex);
+            s_serverPublicKey = X25519.GenerateKeyFromPrivateKey(s_certificate).PublicKey;
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -250,6 +265,7 @@ public sealed class HandshakeHandlers
             serverKey.PublicKey,
             serverNonce);
 
+#pragma warning disable CA2000 // Dispose objects before losing scope
         HandshakeContext state = new()
         {
             ClientPublicKey = packet.PublicKey,
@@ -260,6 +276,7 @@ public sealed class HandshakeHandlers
             TranscriptHash = transcriptHash,
             SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash)
         };
+#pragma warning restore CA2000 // Dispose objects before losing scope
 
         if (!TryPublishHandshakeState(connection, claimToken, state))
         {
@@ -303,7 +320,13 @@ public sealed class HandshakeHandlers
         connection.Secret = state.SessionKey;
         connection.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
+        Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
+
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
         await InstanceManager.Instance.GetExistingInstance<ISessionService>()!.SaveSessionAsync(connection).ConfigureAwait(false);
@@ -314,7 +337,7 @@ public sealed class HandshakeHandlers
         reply.Stage = HandshakeStage.SERVER_FINISH;
         reply.PublicKey = Bytes32.Zero;
         reply.Nonce = Bytes32.Zero;
-        reply.Proof = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
+        reply.Proof = expectedFinish;
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.TranscriptHash = state.TranscriptHash;
         reply.SessionToken = connection.ID.ToUInt64();
@@ -324,6 +347,10 @@ public sealed class HandshakeHandlers
 
     private static async ValueTask RejectHandshakeAsync(IConnection connection, ProtocolReason reason)
     {
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is IDisposable disposable)
+        {
+            disposable.Dispose();
+        }
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
         try
@@ -356,7 +383,14 @@ public sealed class HandshakeHandlers
     private static bool TryAcquireHandshakeSlot(IConnection connection, out object claimToken)
     {
         claimToken = new object();
-        connection.Attributes.Add(ConnectionAttributes.HandshakeState, claimToken);
+        try
+        {
+            connection.Attributes.Add(ConnectionAttributes.HandshakeState, claimToken);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
 
         return connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? current) &&
                ReferenceEquals(current, claimToken);

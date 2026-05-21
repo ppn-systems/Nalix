@@ -22,7 +22,6 @@ public static class HandshakeX25519
     private static ReadOnlySpan<byte> ServerProofLabel => "nalix-handshake/server-proof"u8;
     private static ReadOnlySpan<byte> ClientProofLabel => "nalix-handshake/client-proof"u8;
     private static ReadOnlySpan<byte> ServerFinishLabel => "nalix-handshake/server-finish"u8;
-    private static ReadOnlySpan<byte> MasterSecretLabel => "nalix-handshake/master-secret"u8;
 
     #endregion Static Labels
 
@@ -36,8 +35,15 @@ public static class HandshakeX25519
         public static Bytes32 Extract(ReadOnlySpan<byte> salt, ReadOnlySpan<byte> ikm)
         {
             Span<byte> prk = stackalloc byte[32];
-            HmacKeccak256.Compute(salt, ikm, prk);
-            return new Bytes32(prk);
+            try
+            {
+                HmacKeccak256.Compute(salt, ikm, prk);
+                return new Bytes32(prk);
+            }
+            finally
+            {
+                MemorySecurity.ZeroMemory(prk);
+            }
         }
 
         public static Bytes32 Expand(Bytes32 prk, ReadOnlySpan<byte> info)
@@ -45,11 +51,19 @@ public static class HandshakeX25519
             Span<byte> okm = stackalloc byte[32];
             Span<byte> t = stackalloc byte[info.Length + 1];
 
-            info.CopyTo(t);
-            t[^1] = 1; // counter
+            try
+            {
+                info.CopyTo(t);
+                t[^1] = 1; // counter
 
-            HmacKeccak256.Compute(prk.AsSpan(), t, okm);
-            return new Bytes32(okm);
+                HmacKeccak256.Compute(prk.AsSpan(), t, okm);
+                return new Bytes32(okm);
+            }
+            finally
+            {
+                MemorySecurity.ZeroMemory(okm);
+                MemorySecurity.ZeroMemory(t);
+            }
         }
     }
 
@@ -64,10 +78,17 @@ public static class HandshakeX25519
     public static Bytes32 ComputeMasterSecret(Bytes32 sharedSecretEE, Bytes32 sharedSecretSE)
     {
         Span<byte> ikm = stackalloc byte[64];
-        sharedSecretEE.WriteTo(ikm);
-        sharedSecretSE.WriteTo(ikm[32..]);
+        try
+        {
+            sharedSecretEE.WriteTo(ikm);
+            sharedSecretSE.WriteTo(ikm[32..]);
 
-        return Hkdf.Extract(ReadOnlySpan<byte>.Empty, ikm);
+            return Hkdf.Extract(ReadOnlySpan<byte>.Empty, ikm);
+        }
+        finally
+        {
+            MemorySecurity.ZeroMemory(ikm);
+        }
     }
 
     /// <summary>

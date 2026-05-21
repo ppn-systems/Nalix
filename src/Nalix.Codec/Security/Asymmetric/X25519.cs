@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Abstractions.Primitives;
+using Nalix.Codec.Security.Primitives;
 using Nalix.Environment.Random;
 
 namespace Nalix.Codec.Security.Asymmetric;
@@ -43,19 +44,26 @@ public static class X25519
     public static X25519KeyPair GenerateKeyPair()
     {
         Span<byte> priv = stackalloc byte[KeySize];
-        Csprng.Fill(priv);
-
-        // Clamp per https://cr.yp.to/ecdh.html
-        priv[0] &= 248;
-        priv[31] &= 127;
-        priv[31] |= 64;
-
-        X25519KeyPair key = new()
+        try
         {
-            PrivateKey = new Bytes32(priv),
-            PublicKey = new Bytes32(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint))
-        };
-        return key;
+            Csprng.Fill(priv);
+
+            // Clamp per https://cr.yp.to/ecdh.html
+            priv[0] &= 248;
+            priv[31] &= 127;
+            priv[31] |= 64;
+
+            X25519KeyPair key = new()
+            {
+                PrivateKey = new Bytes32(priv),
+                PublicKey = new Bytes32(Curve25519.ScalarMultiplication(priv, Curve25519.Basepoint))
+            };
+            return key;
+        }
+        finally
+        {
+            MemorySecurity.ZeroMemory(priv);
+        }
     }
 
     /// <summary>

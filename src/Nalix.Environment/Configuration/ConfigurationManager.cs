@@ -535,6 +535,27 @@ public sealed class ConfigurationManager : IDisposable
     }
 
     /// <summary>
+    /// Updates a specific configuration value in the active INI file.
+    /// </summary>
+    /// <typeparam name="TClass">The type of the configuration container.</typeparam>
+    /// <param name="key">The key to update.</param>
+    /// <param name="value">The new value.</param>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public void UpdateValue<TClass>(string key, object value) where TClass : ConfigurationLoader
+    {
+        Lazy<IniConfig> snapshot;
+        _configLock.EnterReadLock();
+        try { snapshot = _currentContext.IniFile; }
+        finally { _configLock.ExitReadLock(); }
+
+        if (snapshot.IsValueCreated)
+        {
+            string section = ConfigurationLoader.GetSectionName(typeof(TClass));
+            snapshot.Value.WriteValue(section, key, value);
+        }
+    }
+
+    /// <summary>
     /// Ensures that changes are written to disk.
     /// </summary>
     /// <remarks>

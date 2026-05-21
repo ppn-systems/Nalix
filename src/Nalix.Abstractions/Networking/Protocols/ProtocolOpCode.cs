@@ -23,4 +23,9 @@ public enum ProtocolOpCode : ushort
     /// Unified packet flow for session management (resume, ack, reject).
     /// </summary>
     SESSION_SIGNAL = 0x0002,
+
+    /// <summary>
+    /// Used for initial key exchange (TOFU).
+    /// </summary>
+    KEY_EXCHANGE = 0x0003,
 }

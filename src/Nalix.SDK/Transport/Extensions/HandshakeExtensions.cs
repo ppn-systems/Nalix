@@ -10,6 +10,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Asymmetric;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Random;
 using Nalix.SDK.Options;
 
@@ -82,7 +83,25 @@ public static class HandshakeExtensions
 
         if (string.IsNullOrEmpty(session.Options.ServerPublicKey))
         {
-            throw new NetworkException("Handshake failed: ServerPublicKey must be configured. Anonymous handshakes are forbidden for security.");
+            using KeyExchange keyRequest = new();
+            keyRequest.Initialize(KeyExchangeStage.REQUEST);
+
+            using KeyExchange keyResponse = await session.RequestAsync<KeyExchange>(
+                keyRequest,
+                options: RequestOptions.Default.WithTimeout(5000),
+                predicate: p => p.Stage == KeyExchangeStage.RESPONSE,
+                ct: ct).ConfigureAwait(false);
+
+            if (!keyResponse.Validate(out string? keyReason))
+            {
+                throw new NetworkException($"Malformed KeyExchange response: {keyReason}");
+            }
+
+            string fetchedKeyHex = keyResponse.PublicKey.ToString();
+
+            session.Options.ServerPublicKey = fetchedKeyHex;
+            ConfigurationManager.Instance.UpdateValue<TransportOptions>(nameof(TransportOptions.ServerPublicKey), fetchedKeyHex);
+            ConfigurationManager.Instance.Flush();
         }
 
         Bytes32 pinnedServerKey = Bytes32.Parse(session.Options.ServerPublicKey);
@@ -124,30 +143,40 @@ public static class HandshakeExtensions
 
         // Note: RequestAsync uses encrypt: false by default for the request itself, 
         // which is correct as the server expects CLIENT_FINISH as PLAIN.
-        using Handshake serverFinish = await session.RequestAsync<Handshake>(
-            clientFinish,
-            options: RequestOptions.Default.WithTimeout(5000),
-            predicate: p => p.Stage is HandshakeStage.SERVER_FINISH or HandshakeStage.ERROR,
-            ct: ct).ConfigureAwait(false);
-
-        if (serverFinish.Stage == HandshakeStage.ERROR)
+        try
         {
-            throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
-        }
+            using Handshake serverFinish = await session.RequestAsync<Handshake>(
+                clientFinish,
+                options: RequestOptions.Default.WithTimeout(5000),
+                predicate: p => p.Stage is HandshakeStage.SERVER_FINISH or HandshakeStage.ERROR,
+                ct: ct).ConfigureAwait(false);
 
-        if (!serverFinish.Validate(out string? finishReason))
+            if (serverFinish.Stage == HandshakeStage.ERROR)
+            {
+                throw new NetworkException($"Handshake failed during finish: {serverFinish.Reason}");
+            }
+
+            if (!serverFinish.Validate(out string? finishReason))
+            {
+                throw new NetworkException($"Malformed Handshake SERVER_FINISH packet: {finishReason}");
+            }
+
+            Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(masterSecret, transcriptHash);
+            if (serverFinish.Proof != expectedFinish)
+            {
+                throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");
+            }
+
+            // Finalize state
+            session.Options.EncryptionEnabled = true;
+            session.Options.SessionToken = serverFinish.SessionToken;
+        }
+        catch
         {
-            throw new NetworkException($"Malformed Handshake SERVER_FINISH packet: {finishReason}");
+            session.Options.Secret = Bytes32.Zero;
+            session.Options.EncryptionEnabled = false;
+            session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
+            throw;
         }
-
-        Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(masterSecret, transcriptHash);
-        if (serverFinish.Proof != expectedFinish)
-        {
-            throw new NetworkException("Handshake SERVER_FINISH proof is invalid.");
-        }
-
-        // Finalize state
-        session.Options.EncryptionEnabled = true;
-        session.Options.SessionToken = serverFinish.SessionToken;
     }
 }

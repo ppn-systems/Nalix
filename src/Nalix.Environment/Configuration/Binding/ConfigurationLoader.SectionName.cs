@@ -16,7 +16,7 @@ public partial class ConfigurationLoader
     [Pure]
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static string GetSectionName(Type type)
+    internal static string GetSectionName(Type type)
         => s_sectionNameCache.GetOrAdd(type, t =>
         {
             string section = t.Name;
