@@ -1,48 +1,52 @@
-#pragma warning disable IDE0211 // Convert to 'Program.Main' style program
+using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using MudBlazor.Services;
-using Dashboard.Application.Abstractions;
-using Dashboard.Application.Options;
-using Dashboard.Application.Polling;
-using Dashboard.Application.State;
-using Dashboard.Infrastructure.Security;
-using Dashboard.Infrastructure.Tcp;
+using Nalix.Dashboard.Application.Abstractions;
+using Nalix.Dashboard.Application.Reports;
+using Nalix.Dashboard.Application.Reports.Buffers;
+using Nalix.Dashboard.Application.Reports.ConnectionGuard;
+using Nalix.Dashboard.Application.Reports.Connections;
+using Nalix.Dashboard.Application.Reports.Dispatch;
+using Nalix.Dashboard.Application.Reports.Instances;
+using Nalix.Dashboard.Application.Reports.ObjectPools;
+using Nalix.Dashboard.Application.Reports.Tasks;
+using Nalix.Dashboard.Application.Services;
+using Nalix.Dashboard.Application.State;
+using Nalix.Dashboard.Infrastructure.BrowserStorage;
+using Nalix.Dashboard.Infrastructure.Nalix;
+using Nalix.Dashboard.Infrastructure.Options;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
-
-_ = builder.WebHost.UseUrls("http://localhost:57207");
-
-_ = builder.Services.AddRazorComponents()
-    .AddInteractiveServerComponents();
-_ = builder.Services.AddMudServices();
-_ = builder.Services.Configure<DashboardOptions>(builder.Configuration.GetSection("Dashboard"));
-_ = builder.Services.AddSingleton<DashboardState>();
-_ = builder.Services.AddSingleton<IDashboardStateReader>(sp => sp.GetRequiredService<DashboardState>());
-_ = builder.Services.AddSingleton<IDashboardStateWriter>(sp => sp.GetRequiredService<DashboardState>());
-_ = builder.Services.AddSingleton<IServerPublicKeyResolver, ServerPublicKeyResolver>();
-_ = builder.Services.AddSingleton<IDashboardClient, DashboardTcpClient>();
-_ = builder.Services.AddHostedService<DashboardPollingService>();
-
-if (builder.Environment.IsDevelopment())
+internal class Program
 {
-    _ = builder.WebHost.UseStaticWebAssets();
+    private static async Task Main(string[] args)
+    {
+        WebAssemblyHostBuilder builder = WebAssemblyHostBuilder.CreateDefault(args);
+        builder.RootComponents.Add<Nalix.Dashboard.Components.App>("#app");
+        builder.RootComponents.Add<Microsoft.AspNetCore.Components.Web.HeadOutlet>("head::after");
+
+        _ = builder.Services.Configure<AdminClientOptions>(builder.Configuration.GetSection("AdminClient"));
+
+        _ = builder.Services.AddSingleton<DashboardState>();
+        _ = builder.Services.AddSingleton<IDashboardStateReader>(sp => sp.GetRequiredService<DashboardState>());
+        _ = builder.Services.AddSingleton<IDashboardStateWriter>(sp => sp.GetRequiredService<DashboardState>());
+
+        _ = builder.Services.AddSingleton<IAdminSettingsStore, BrowserAdminSettingsStore>();
+        _ = builder.Services.AddSingleton<IAdminClient, WebSocketAdminClient>();
+        _ = builder.Services.AddSingleton<IReportPollingController, ReportPollingController>();
+        _ = builder.Services.AddSingleton<PingKeepAliveService>();
+
+        _ = builder.Services.AddSingleton<IReportParser, DispatchReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, TasksReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, BuffersReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, ConnectionsReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, InstancesReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, ObjectPoolsReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, ConnectionGuardReportParser>();
+        _ = builder.Services.AddSingleton<ReportParserRegistry>();
+
+        _ = builder.Services.AddMudServices();
+
+        WebAssemblyHost host = builder.Build();
+        _ = host.Services.GetRequiredService<PingKeepAliveService>();
+        await host.RunAsync().ConfigureAwait(false);
+    }
 }
-
-WebApplication app = builder.Build();
-
-app.UseStaticFiles();
-
-if (!app.Environment.IsDevelopment())
-{
-    _ = app.UseExceptionHandler("/Error", createScopeForErrors: true);
-}
-_ = app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-_ = app.UseAntiforgery();
-
-_ = app.MapStaticAssets();
-_ = app.MapRazorComponents<Dashboard.Components.App>()
-       .AddInteractiveServerRenderMode();
-
-app.Run();
-
-#pragma warning restore IDE0211 // Convert to 'Program.Main' style program
-

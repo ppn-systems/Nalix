@@ -1,9 +1,9 @@
 using Contracts;
-using Dashboard.Domain.Logs;
-using Dashboard.Domain.Metrics;
-using Dashboard.Domain.Reports;
+using Nalix.Dashboard.Domain.Logs;
+using Nalix.Dashboard.Domain.Metrics;
+using Nalix.Dashboard.Domain.Reports;
 
-namespace Dashboard.Application.State;
+namespace Nalix.Dashboard.Application.State;
 
 internal interface IDashboardStateReader
 {
@@ -11,35 +11,13 @@ internal interface IDashboardStateReader
 
     bool IsConnected { get; }
 
-    bool IsPollingPaused { get; }
-
-    bool IsReportNavigationOpen { get; }
-
-    bool IsConfigView { get; }
-
-    GenerationReportTarget? ActiveReportTarget { get; }
-
-    string BackendEndpoint { get; }
-
-    string BackendAddress { get; }
-
-    int BackendPort { get; }
+    bool HasApiKey { get; }
 
     string? LastError { get; }
-
-    DateTimeOffset? LastRefreshAt { get; }
 
     double? LastPingMilliseconds { get; }
 
     DateTimeOffset? LastPingAt { get; }
-
-    bool HasApiKey { get; }
-
-    int PollIntervalMs { get; }
-
-    int PingIntervalMs { get; }
-
-    int RequestTimeoutMs { get; }
 
     IReadOnlyDictionary<GenerationReportTarget, DashboardReportSnapshot> Reports { get; }
 
@@ -47,4 +25,3 @@ internal interface IDashboardStateReader
 
     IReadOnlyList<DashboardLogEntry> Logs { get; }
 }
-

@@ -1,4 +1,4 @@
-namespace Dashboard.Domain.Metrics;
+namespace Nalix.Dashboard.Domain.Metrics;
 
 public sealed record DashboardPingSample(
     DateTimeOffset Timestamp,

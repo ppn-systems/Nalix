@@ -1,11 +1,11 @@
-using Nalix.Abstractions.Networking.Protocols;
 using Contracts;
+using Nalix.Abstractions.Networking.Protocols;
 
-namespace Dashboard.Domain.Reports;
+namespace Nalix.Dashboard.Domain.Reports;
 
 public sealed record DashboardReportSnapshot(
     GenerationReportTarget Target,
     ProtocolReason Reason,
+    string DataJson,
     IReadOnlyDictionary<string, object?> Data,
     DateTimeOffset ReceivedAt);
-

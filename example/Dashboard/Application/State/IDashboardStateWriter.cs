@@ -1,31 +1,10 @@
-using Contracts;
-using Dashboard.Domain.Reports;
+using Nalix.Dashboard.Domain.Reports;
 
-namespace Dashboard.Application.State;
+namespace Nalix.Dashboard.Application.State;
 
 internal interface IDashboardStateWriter
 {
-    void SetEndpoint(string endpoint);
-
-    void SetBackendAddress(string address);
-
-    void SetBackendPort(int port);
-
-    void SetPaused(bool paused);
-
-    void SetReportNavigationOpen(bool open);
-
-    void SetConfigView(bool isConfig);
-
-    void SetActiveReportTarget(GenerationReportTarget? target);
-
     void SetApiKeyConfigured(bool configured);
-
-    void SetPollIntervalMs(int ms);
-
-    void SetPingIntervalMs(int ms);
-
-    void SetRequestTimeoutMs(int ms);
 
     void Log(string level, string message);
 
@@ -39,4 +18,3 @@ internal interface IDashboardStateWriter
 
     void UpdateReport(DashboardReportSnapshot report);
 }
-

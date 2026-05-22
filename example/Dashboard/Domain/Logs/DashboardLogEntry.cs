@@ -1,4 +1,4 @@
-namespace Dashboard.Domain.Logs;
+namespace Nalix.Dashboard.Domain.Logs;
 
 public sealed record DashboardLogEntry(
     DateTimeOffset Timestamp,

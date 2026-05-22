@@ -1,8 +1,8 @@
 using Contracts;
 
-namespace Dashboard.Application.Abstractions;
+namespace Nalix.Dashboard.Application.Abstractions;
 
-internal interface IDashboardClient
+internal interface IAdminClient
 {
     Task SetApiKeyAsync(string apiKey);
 
@@ -12,4 +12,3 @@ internal interface IDashboardClient
 
     Task PingAsync(CancellationToken ct);
 }
-
