@@ -1,139 +1,34 @@
-.dashboard-root {
-    --dash-bg: #f6f8fa;
-    --dash-surface: #ffffff;
-    --dash-surface-raised: #f6f8fa;
-    --dash-surface-muted: #f6f8fa;
-    --dash-border: #d0d7de;
-    --dash-border-soft: #eaeef2;
-    --dash-text: #1f2328;
-    --dash-text-muted: #57606a;
-    --dash-text-subtle: #6e7781;
-    --dash-blue: #0969da;
-    --dash-green: #1a7f37;
-    --dash-amber: #9a6700;
-    --dash-red: #cf222e;
-    --dash-purple: #8250df;
-    --dash-topbar: #ffffff;
-    --dash-control-bg: #ffffff;
-    --dash-control-border: #d0d7de;
-    --dash-control-hover: #f3f4f6;
-    --dash-shadow: 0 12px 28px rgba(31, 35, 40, 0.08);
-    background: var(--dash-bg);
-    color: var(--dash-text);
-    min-height: 100vh;
-}
-
-.dashboard-root.is-dark {
-    --dash-bg: #0d1117;
-    --dash-surface: #161b22;
-    --dash-surface-raised: #0d1117;
-    --dash-surface-muted: #21262d;
-    --dash-border: #30363d;
-    --dash-border-soft: #21262d;
-    --dash-text: #f0f6fc;
-    --dash-text-muted: #8b949e;
-    --dash-text-subtle: #7d8590;
-    --dash-blue: #2f81f7;
-    --dash-green: #3fb950;
-    --dash-amber: #d29922;
-    --dash-red: #f85149;
-    --dash-purple: #a371f7;
-    --dash-topbar: #010409;
-    --dash-control-bg: #0d1117;
-    --dash-control-border: #30363d;
-    --dash-control-hover: #161b22;
-    --dash-shadow: 0 14px 34px rgba(1, 4, 9, 0.32);
-}
-
-.dashboard-appbar {
+.nalix-brand {
     align-items: center;
-    background: var(--dash-topbar);
-    border-bottom: 1px solid var(--dash-border);
-    display: flex;
-    gap: 12px;
-    height: 64px;
-    padding: 0 16px;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-}
-
-.nav-toggle {
-    align-items: center;
-    background: transparent;
-    border: 1px solid var(--dash-border);
-    border-radius: 6px;
-    cursor: pointer;
+    color: inherit;
     display: inline-flex;
-    flex-direction: column;
-    gap: 4px;
-    height: 34px;
-    justify-content: center;
-    padding: 0;
-    width: 34px;
-}
-
-.nav-toggle:hover {
-    background: var(--dash-control-hover);
-}
-
-.nav-toggle span {
-    background: var(--dash-text);
-    border-radius: 999px;
-    display: block;
-    height: 2px;
-    width: 15px;
-}
-
-.appbar-title {
-    align-items: center;
-    color: var(--dash-text);
-    display: inline-flex;
-    font-size: 0.95rem;
     font-weight: 700;
-    gap: 9px;
+    gap: 8px;
     text-decoration: none;
 }
 
-.appbar-title:hover {
-    color: var(--dash-text);
+.nalix-brand:hover {
+    color: inherit;
+    opacity: 0.85;
 }
 
-.appbar-logo {
+.nalix-brand__logo {
     display: block;
     height: 22px;
     width: 22px;
 }
 
-.dashboard-main {
+.nalix-brand__name {
+    font-size: 0.95rem;
+}
+
+.nalix-main {
+    min-height: calc(100vh - 48px);
     padding: 24px;
 }
 
-#blazor-error-ui {
-    background: #fff3cd;
-    bottom: 0;
-    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
-    display: none;
-    left: 0;
-    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-}
-
-#blazor-error-ui .dismiss {
-    cursor: pointer;
-    position: absolute;
-    right: 0.75rem;
-    top: 0.5rem;
-}
-
-@media (max-width: 900px) {
-    .dashboard-appbar {
-        height: 56px;
-    }
-
-    .dashboard-main {
+@media (max-width: 600px) {
+    .nalix-main {
         padding: 16px;
     }
 }

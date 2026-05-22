@@ -1,0 +1,99 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/dispatch"
+@inherits MetricPageBase
+
+<PageTitle>Dispatch — Nalix Admin</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Hub" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Dispatch</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" Title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       Title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Dispatch.DispatchReport>(Target, Snapshot.DataJson);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse dispatch report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Status"
+                            Value="@(report.Running ? "Running" : "Stopped")"
+                            ValueColor="@(report.Running ? Color.Success : Color.Error)"
+                            Detail="@($"Loops {MetricFormat.Count(report.DispatchLoops)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Total Packets" Value="@MetricFormat.Count(report.TotalPackets)" Detail="Processed by dispatch" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Wake Signals" Value="@MetricFormat.Count(report.WakeSignals)" Detail="@($"Reads {MetricFormat.Count(report.WakeReads)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Ready Connections" Value="@($"{MetricFormat.Count(report.ReadyConnections)} / {MetricFormat.Count(report.TotalConnections)}")" Detail="Ready / total" />
+            </MudItem>
+        </MudGrid>
+
+        @if (report.PendingPerPriority is { Count: > 0 } pending)
+        {
+            <MetricSection Title="Pending by Priority">
+                <MudTable Items="@pending" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Priority</MudTh>
+                        <MudTh>Pending</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="row">
+                        <MudTd>@row.Key</MudTd>
+                        <MudTd>@row.Value.ToString("N0")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+
+        @if (report.PendingByConnection is { Count: > 0 } conns)
+        {
+            <MetricSection Title="Pending by Connection">
+                <MudTable Items="@conns" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Endpoint</MudTh>
+                        <MudTh>Pending</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="row">
+                        <MudTd Class="metric-table__wide">@(row.EndPoint ?? "-")</MudTd>
+                        <MudTd>@row.Pending.ToString("N0")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override GenerationReportTarget Target => GenerationReportTarget.DISPATCH;
+    protected override string Route => "/metrics/dispatch";
+}
