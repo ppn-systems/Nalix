@@ -6,19 +6,19 @@ internal static class ReportJsonParser
 {
     private static readonly JsonSerializerOptions s_options = new() { PropertyNameCaseInsensitive = true };
 
-    public static IReadOnlyDictionary<string, object?> Parse(string dataJson)
+    public static IReadOnlyDictionary<string, object?> Parse(string ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(dataJson))
+        if (string.IsNullOrWhiteSpace(ObservationData))
         {
             return new Dictionary<string, object?>(StringComparer.Ordinal);
         }
 
         try
         {
-            using JsonDocument document = JsonDocument.Parse(dataJson);
+            using JsonDocument document = JsonDocument.Parse(ObservationData);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
             {
-                return CreateRawFallback(dataJson);
+                return CreateRawFallback(ObservationData);
             }
 
             Dictionary<string, object?> data = new(StringComparer.Ordinal);
@@ -31,12 +31,12 @@ internal static class ReportJsonParser
         }
         catch (JsonException)
         {
-            return CreateRawFallback(dataJson);
+            return CreateRawFallback(ObservationData);
         }
     }
 
-    private static Dictionary<string, object?> CreateRawFallback(string dataJson)
-        => new(StringComparer.Ordinal) { ["Data"] = dataJson };
+    private static Dictionary<string, object?> CreateRawFallback(string ObservationData)
+        => new(StringComparer.Ordinal) { ["Data"] = ObservationData };
 
     private static object? ConvertElement(JsonElement element)
     {

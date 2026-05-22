@@ -21,13 +21,13 @@ internal sealed class ReportParserRegistry
     public IReportParser? Get(RuntimeObservationTarget target)
         => _parsers.TryGetValue(target, out IReportParser? parser) ? parser : null;
 
-    public TReport? Parse<TReport>(RuntimeObservationTarget target, string dataJson) where TReport : class
+    public TReport? Parse<TReport>(RuntimeObservationTarget target, string ObservationData) where TReport : class
     {
         if (!_parsers.TryGetValue(target, out IReportParser? parser) || parser is not IReportParser<TReport> typed)
         {
             return null;
         }
 
-        return typed.ParseTyped(dataJson);
+        return typed.ParseTyped(ObservationData);
     }
 }

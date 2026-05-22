@@ -48,7 +48,7 @@ Rebuild `example/Dashboard` from a single-page design into a professional, porta
 
 ### Security
 - API key: never logged, never in `localStorage`, never rendered in HTML.
-- `DataJson` parsed by `System.Text.Json` — never string-concatenated into HTML.
+- `ObservationData` parsed by `System.Text.Json` — never string-concatenated into HTML.
 - `BrowserAdminSettingsStore` separates settings (localStorage) from API key (sessionStorage only).
 - Clear sessionStorage on logout (explicit `ClearApiKeyAsync()` in settings store).
 - `RawJsonDialog` is the only place raw JSON is shown, behind an explicit user action.
@@ -484,7 +484,7 @@ services.AddSingleton<ReportParserRegistry>()
 ## Security and Portability Constraints
 
 1. API key: never in localStorage, never logged, never in HTML output.
-2. DataJson: always parsed by System.Text.Json before display. Never string-concatenated as HTML.
+2. ObservationData: always parsed by System.Text.Json before display. Never string-concatenated as HTML.
 3. Raw JSON: only in `RawJsonDialog`, behind explicit user action.
 4. Settings storage in localStorage keyed to `nalix-admin-settings` (non-sensitive).
 5. `BrowserAdminSettingsStore` uses JS module interop via `wwwroot/adminStorage.js`.

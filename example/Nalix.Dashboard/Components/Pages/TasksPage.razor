@@ -28,7 +28,7 @@
 
     @{
         var report = Snapshot is null ? null
-            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Tasks.TasksReport>(Target, Snapshot.DataJson);
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Tasks.TasksReport>(Target, Snapshot.ObservationData);
     }
 
     @if (Snapshot is null)

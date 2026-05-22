@@ -204,7 +204,7 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
         }
 
         using ObservabilityAccess request = ObservabilityAccess.Create();
-        request.Initialize(ObservabilityAccessStage.REQUEST, key: _apiKey);
+        request.Initialize(ObservabilityAccessStage.REQUEST, accessKey: _apiKey);
 
         Application.Settings.AdminSettings cfg = await _settings.LoadAsync(ct).ConfigureAwait(false);
 
@@ -214,14 +214,14 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
             predicate: p => p.Stage == ObservabilityAccessStage.RESPONSE,
             ct).ConfigureAwait(false);
 
-        if (response.Reason != ProtocolReason.NONE || response.GrantedLevel < PermissionLevel.SYSTEM_ADMINISTRATOR)
+        if (response.Reason != ProtocolReason.NONE || response.AccessLevel < PermissionLevel.SYSTEM_ADMINISTRATOR)
         {
-            _state.Log("WARN", $"Authority denied: reason={response.Reason} level={response.GrantedLevel}");
+            _state.Log("WARN", $"Authority denied: reason={response.Reason} level={response.AccessLevel}");
             throw new NetworkException($"Authority grant failed: {response.Reason}");
         }
 
         _authorized = true;
-        _state.Log("INFO", $"Authority granted: {response.GrantedLevel}");
+        _state.Log("INFO", $"Authority granted: {response.AccessLevel}");
     }
 
     private async Task<DashboardReportSnapshot> RequestReportAsync(
@@ -240,9 +240,9 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
             predicate: p => p.Stage == RuntimeObservationStage.RESPONSE && p.Target == target,
             ct).ConfigureAwait(false);
 
-        string dataJson = response.DataJson ?? "{}";
-        IReadOnlyDictionary<string, object?> data = ReportJsonParser.Parse(dataJson);
-        return new DashboardReportSnapshot(target, response.Reason, dataJson, data, DateTimeOffset.Now);
+        string ObservationData = response.ObservationData ?? "{}";
+        IReadOnlyDictionary<string, object?> data = ReportJsonParser.Parse(ObservationData);
+        return new DashboardReportSnapshot(target, response.Reason, ObservationData, data, DateTimeOffset.Now);
     }
 
     private async Task ResetSessionAsync()

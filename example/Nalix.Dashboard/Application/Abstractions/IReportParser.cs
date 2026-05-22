@@ -8,10 +8,10 @@ internal interface IReportParser
 
     bool CanParse(RuntimeObservationTarget target);
 
-    object? Parse(string dataJson);
+    object? Parse(string ObservationData);
 }
 
 internal interface IReportParser<TReport> : IReportParser where TReport : class
 {
-    TReport? ParseTyped(string dataJson);
+    TReport? ParseTyped(string ObservationData);
 }
