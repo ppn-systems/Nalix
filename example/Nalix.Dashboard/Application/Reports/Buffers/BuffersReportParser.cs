@@ -11,18 +11,18 @@ internal sealed class BuffersReportParser : IReportParser<BuffersReport>
 
     public bool CanParse(RuntimeObservationTarget target) => target == RuntimeObservationTarget.BUFFERS;
 
-    public object? Parse(string ObservationData) => ParseTyped(ObservationData);
+    public object? Parse(ReadOnlyMemory<byte> ObservationData) => ParseTyped(ObservationData);
 
-    public BuffersReport? ParseTyped(string ObservationData)
+    public BuffersReport? ParseTyped(ReadOnlyMemory<byte> ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(ObservationData))
+        if (ObservationData.IsEmpty)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<BuffersReport>(ObservationData, ReportJsonOptions.Default);
+            return JsonSerializer.Deserialize<BuffersReport>(ObservationData.Span, ReportJsonOptions.Default);
         }
         catch (JsonException)
         {

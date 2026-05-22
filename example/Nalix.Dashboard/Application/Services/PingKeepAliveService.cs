@@ -68,6 +68,7 @@ internal sealed class PingKeepAliveService : IAsyncDisposable
         }
     }
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "We suppress background ping loop exceptions during disposal.")]
     public async ValueTask DisposeAsync()
     {
         await _cts.CancelAsync().ConfigureAwait(false);

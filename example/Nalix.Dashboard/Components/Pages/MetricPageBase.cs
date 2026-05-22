@@ -94,6 +94,7 @@ public abstract class MetricPageBase : ComponentBase, IDisposable
     protected void Pause() => this.Polling.Pause();
     protected void Resume() => this.Polling.Resume();
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Errors are surfaced and displayed via polling state")]
     protected async Task ManualRefreshAsync()
     {
         try { await this.Polling.RequestOnceAsync(this.Target, CancellationToken.None).ConfigureAwait(false); }
@@ -102,17 +103,26 @@ public abstract class MetricPageBase : ComponentBase, IDisposable
 
     protected void SetInterval(int ms) => this.Polling.SetInterval(ms);
 
-    public virtual void Dispose()
+    public void Dispose()
+    {
+        Dispose(disposing: true);
+        GC.SuppressFinalize(this);
+    }
+
+    protected virtual void Dispose(bool disposing)
     {
         if (_disposed)
         {
             return;
         }
 
+        if (disposing)
+        {
+            this.Polling.Deactivate(this.Route);
+            this.Polling.Changed -= this.OnPollingChanged;
+            this.State.Changed -= this.OnStateChanged;
+        }
+
         _disposed = true;
-        this.Polling.Deactivate(this.Route);
-        this.Polling.Changed -= this.OnPollingChanged;
-        this.State.Changed -= this.OnStateChanged;
-        GC.SuppressFinalize(this);
     }
 }

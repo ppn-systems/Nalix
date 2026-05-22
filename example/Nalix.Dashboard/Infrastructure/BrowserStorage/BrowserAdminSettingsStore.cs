@@ -5,6 +5,7 @@ using Nalix.Dashboard.Application.Settings;
 
 namespace Nalix.Dashboard.Infrastructure.BrowserStorage;
 
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Browser storage access may fail due to sandboxing, private browsing, or quota exceptions, which should not crash the dashboard.")]
 internal sealed class BrowserAdminSettingsStore : IAdminSettingsStore
 {
     private const string SettingsKey = "nalix-admin-settings";

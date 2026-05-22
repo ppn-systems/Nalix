@@ -11,18 +11,18 @@ internal sealed class InstancesReportParser : IReportParser<InstancesReport>
 
     public bool CanParse(RuntimeObservationTarget target) => target == RuntimeObservationTarget.INSTANCES;
 
-    public object? Parse(string ObservationData) => ParseTyped(ObservationData);
+    public object? Parse(ReadOnlyMemory<byte> ObservationData) => ParseTyped(ObservationData);
 
-    public InstancesReport? ParseTyped(string ObservationData)
+    public InstancesReport? ParseTyped(ReadOnlyMemory<byte> ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(ObservationData))
+        if (ObservationData.IsEmpty)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<InstancesReport>(ObservationData, ReportJsonOptions.Default);
+            return JsonSerializer.Deserialize<InstancesReport>(ObservationData.Span, ReportJsonOptions.Default);
         }
         catch (JsonException)
         {

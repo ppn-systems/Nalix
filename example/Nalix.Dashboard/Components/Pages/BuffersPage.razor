@@ -19,11 +19,11 @@
         }
         <MudSpacer />
         <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
-                       OnClick="ManualRefreshAsync" Title="Refresh" />
+                       OnClick="ManualRefreshAsync" title="Refresh" />
         <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
                        Size="Size.Small"
                        OnClick="@(Polling.IsPaused ? Resume : Pause)"
-                       Title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
     </MudStack>
 
     @{

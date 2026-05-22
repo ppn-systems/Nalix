@@ -11,18 +11,18 @@ internal sealed class ObjectPoolsReportParser : IReportParser<ObjectPoolsReport>
 
     public bool CanParse(RuntimeObservationTarget target) => target == RuntimeObservationTarget.OBJECT_POOLS;
 
-    public object? Parse(string ObservationData) => ParseTyped(ObservationData);
+    public object? Parse(ReadOnlyMemory<byte> ObservationData) => ParseTyped(ObservationData);
 
-    public ObjectPoolsReport? ParseTyped(string ObservationData)
+    public ObjectPoolsReport? ParseTyped(ReadOnlyMemory<byte> ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(ObservationData))
+        if (ObservationData.IsEmpty)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<ObjectPoolsReport>(ObservationData, ReportJsonOptions.Default);
+            return JsonSerializer.Deserialize<ObjectPoolsReport>(ObservationData.Span, ReportJsonOptions.Default);
         }
         catch (JsonException)
         {

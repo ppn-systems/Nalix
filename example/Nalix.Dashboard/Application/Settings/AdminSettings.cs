@@ -27,15 +27,15 @@ public sealed class AdminSettings
 
     public int ReconnectBackoffMaxMs { get; set; } = 30000;
 
-    public bool UseTls { get; set; } = false;
+    public bool UseTls { get; set; }
 
     public string WebSocketPath { get; set; } = "/ws/";
 
-    public bool RememberSessionUntilTabClose { get; set; } = false;
+    public bool RememberSessionUntilTabClose { get; set; }
 
-    public bool ShowRawJsonDebug { get; set; } = false;
+    public bool ShowRawJsonDebug { get; set; }
 
-    public bool CompactTableDensity { get; set; } = false;
+    public bool CompactTableDensity { get; set; }
 
     public int ChartTimeWindowSeconds { get; set; } = 120;
 

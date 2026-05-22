@@ -11,18 +11,18 @@ internal sealed class ConnectionGuardReportParser : IReportParser<ConnectionGuar
 
     public bool CanParse(RuntimeObservationTarget target) => target == RuntimeObservationTarget.CONNECTION_GUARD;
 
-    public object? Parse(string ObservationData) => ParseTyped(ObservationData);
+    public object? Parse(ReadOnlyMemory<byte> ObservationData) => ParseTyped(ObservationData);
 
-    public ConnectionGuardReport? ParseTyped(string ObservationData)
+    public ConnectionGuardReport? ParseTyped(ReadOnlyMemory<byte> ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(ObservationData))
+        if (ObservationData.IsEmpty)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<ConnectionGuardReport>(ObservationData, ReportJsonOptions.Default);
+            return JsonSerializer.Deserialize<ConnectionGuardReport>(ObservationData.Span, ReportJsonOptions.Default);
         }
         catch (JsonException)
         {

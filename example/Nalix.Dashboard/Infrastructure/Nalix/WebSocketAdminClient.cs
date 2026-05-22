@@ -24,6 +24,7 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
     private readonly ILogger<WebSocketAdminClient> _logger;
     private readonly SemaphoreSlim _sync = new(1, 1);
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2213:Disposable fields should be disposed", Justification = "Disposed via ResetSessionAsync in DisposeAsync")]
     private WebSocketSession? _session;
     private string? _apiKey;
     private bool _handshaken;
@@ -240,7 +241,7 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
             predicate: p => p.Stage == RuntimeObservationStage.RESPONSE && p.Target == target,
             ct).ConfigureAwait(false);
 
-        string ObservationData = response.ObservationData ?? "{}";
+        ReadOnlyMemory<byte> ObservationData = response.ObservationData;
         IReadOnlyDictionary<string, object?> data = ReportJsonParser.Parse(ObservationData);
         return new DashboardReportSnapshot(target, response.Reason, ObservationData, data, DateTimeOffset.Now);
     }

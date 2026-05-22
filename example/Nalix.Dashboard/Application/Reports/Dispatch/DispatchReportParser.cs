@@ -11,18 +11,18 @@ internal sealed class DispatchReportParser : IReportParser<DispatchReport>
 
     public bool CanParse(RuntimeObservationTarget target) => target == RuntimeObservationTarget.DISPATCH;
 
-    public object? Parse(string ObservationData) => ParseTyped(ObservationData);
+    public object? Parse(ReadOnlyMemory<byte> ObservationData) => ParseTyped(ObservationData);
 
-    public DispatchReport? ParseTyped(string ObservationData)
+    public DispatchReport? ParseTyped(ReadOnlyMemory<byte> ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(ObservationData))
+        if (ObservationData.IsEmpty)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<DispatchReport>(ObservationData, ReportJsonOptions.Default);
+            return JsonSerializer.Deserialize<DispatchReport>(ObservationData.Span, ReportJsonOptions.Default);
         }
         catch (JsonException)
         {

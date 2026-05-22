@@ -11,18 +11,18 @@ internal sealed class ConnectionsReportParser : IReportParser<ConnectionsReport>
 
     public bool CanParse(RuntimeObservationTarget target) => target == RuntimeObservationTarget.CONNECTIONS;
 
-    public object? Parse(string ObservationData) => ParseTyped(ObservationData);
+    public object? Parse(ReadOnlyMemory<byte> ObservationData) => ParseTyped(ObservationData);
 
-    public ConnectionsReport? ParseTyped(string ObservationData)
+    public ConnectionsReport? ParseTyped(ReadOnlyMemory<byte> ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(ObservationData))
+        if (ObservationData.IsEmpty)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<ConnectionsReport>(ObservationData, ReportJsonOptions.Default);
+            return JsonSerializer.Deserialize<ConnectionsReport>(ObservationData.Span, ReportJsonOptions.Default);
         }
         catch (JsonException)
         {

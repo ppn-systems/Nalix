@@ -53,14 +53,14 @@
         <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
                        Color="Color.Inherit"
                        OnClick="ToggleTheme"
-                       Title="@(_isDarkMode ? "Light mode" : "Dark mode")" />
+                       title="@(_isDarkMode ? "Light mode" : "Dark mode")" />
 
         @if (State.HasApiKey)
         {
             <MudIconButton Icon="@Icons.Material.Outlined.Logout"
                            Color="Color.Inherit"
                            OnClick="LogoutAsync"
-                           Title="Logout" />
+                           title="Logout" />
         }
     </MudAppBar>
 

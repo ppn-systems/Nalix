@@ -6,6 +6,6 @@ namespace Nalix.Dashboard.Domain.Reports;
 public sealed record DashboardReportSnapshot(
     RuntimeObservationTarget Target,
     ProtocolReason Reason,
-    string ObservationData,
+    ReadOnlyMemory<byte> ObservationData,
     IReadOnlyDictionary<string, object?> Data,
     DateTimeOffset ReceivedAt);

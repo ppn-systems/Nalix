@@ -169,6 +169,7 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
 
     private void NotifyChanged() => Changed?.Invoke();
 
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "We suppress exceptions during background task cleanup on disposal.")]
     public async ValueTask DisposeAsync()
     {
         CancellationTokenSource? cts = Interlocked.Exchange(ref _pollCts, null);

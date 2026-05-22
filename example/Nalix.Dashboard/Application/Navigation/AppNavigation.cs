@@ -30,5 +30,8 @@ public static class AppNavigation
         ];
 
     public static bool IsVisible(NavItem item, PermissionLevel currentLevel)
-        => item.IsVisible && item.IsEnabled && currentLevel >= item.RequiredLevel;
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        return item.IsVisible && item.IsEnabled && currentLevel >= item.RequiredLevel;
+    }
 }

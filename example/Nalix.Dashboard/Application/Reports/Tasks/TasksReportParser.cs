@@ -11,18 +11,18 @@ internal sealed class TasksReportParser : IReportParser<TasksReport>
 
     public bool CanParse(RuntimeObservationTarget target) => target == RuntimeObservationTarget.TASKS;
 
-    public object? Parse(string ObservationData) => ParseTyped(ObservationData);
+    public object? Parse(ReadOnlyMemory<byte> ObservationData) => ParseTyped(ObservationData);
 
-    public TasksReport? ParseTyped(string ObservationData)
+    public TasksReport? ParseTyped(ReadOnlyMemory<byte> ObservationData)
     {
-        if (string.IsNullOrWhiteSpace(ObservationData))
+        if (ObservationData.IsEmpty)
         {
             return null;
         }
 
         try
         {
-            return JsonSerializer.Deserialize<TasksReport>(ObservationData, ReportJsonOptions.Default);
+            return JsonSerializer.Deserialize<TasksReport>(ObservationData.Span, ReportJsonOptions.Default);
         }
         catch (JsonException)
         {

@@ -8,10 +8,10 @@ internal interface IReportParser
 
     bool CanParse(RuntimeObservationTarget target);
 
-    object? Parse(string ObservationData);
+    object? Parse(ReadOnlyMemory<byte> ObservationData);
 }
 
 internal interface IReportParser<TReport> : IReportParser where TReport : class
 {
-    TReport? ParseTyped(string ObservationData);
+    TReport? ParseTyped(ReadOnlyMemory<byte> ObservationData);
 }
