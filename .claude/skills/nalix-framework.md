@@ -33,9 +33,18 @@ Nalix uses a custom lightweight DI container (`InstanceManager`), not `Microsoft
 
 ### Memory Pooling
 
+Both pool managers use a **partial class pattern** — each split into 4 files:
+
+| File suffix | Content |
+| :--- | :--- |
+| `.cs` | Core rent/return logic, constructor, configuration |
+| `.Types.cs` | Nested types (metrics, policy, internal structs) |
+| `.Cleanup.cs` | TTL-based trimming and shrink-safety policy |
+| `.Report.cs` | Diagnostics and metrics reporting |
+
 | Type | Purpose |
 | :--- | :--- |
-| `BufferPoolManager` | Implements `IBufferPoolManager`. Manages pooled `BufferLease` instances. |
+| `BufferPoolManager` | Implements `IBufferPoolManager`. Manages pooled `BufferLease` instances. `ShrinkSafetyPolicy` governs conservative trim: 25% min retention, 20% max shrink per cycle. |
 | `ObjectPoolManager` | Implements `IObjectPoolManager`. Generic object pool with `IPoolable` lifecycle. |
 
 ### Task Orchestration

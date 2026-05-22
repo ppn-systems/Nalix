@@ -56,8 +56,16 @@ Nalix.Network/
 
 ### Rate Limiting
 
-- IP-based rate limiting with token bucket algorithm.
-- Policy-based adaptive throttling for sustained load protection.
+`ConnectionGuard` — IP-based connection rate limiting using a sharded entry map. Split into partial files:
+
+| File | Content |
+| :--- | :--- |
+| `Connection.Guard.cs` | Core allow/deny logic, shard lookup, ban enforcement |
+| `Connection.Guard.Types.cs` | `ConnectionAllowResult`, `ConnectionLimitInfo` (immutable snapshot), `ConnectionLimitEntry` (mutable state with `SpinLock`, sliding-window timestamps, ban tier tracking) |
+| `Connection.Guard.Cleanup.cs` | TTL-based stale entry eviction |
+| `Connection.Guard.Report.cs` | Diagnostics and metrics reporting |
+
+`ConnectionLimitEntry` tracks progressive ban tiers (`BanCount`, `LastBanTimeTicks`), DDoS log suppression, and reject/close log throttling per IP.
 
 ## Performance Rules
 

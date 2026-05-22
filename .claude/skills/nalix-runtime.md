@@ -24,7 +24,8 @@ Nalix.Runtime/
 │   └── Options/                     # DispatchOptions (weights, concurrency)
 ├── Extensions/          # Runtime extension methods
 ├── Handlers/            # Built-in system handlers
-│   ├── HandshakeHandlers.cs         # Crypto handshake handling
+│   ├── KeyExchangeHandlers.cs       # TOFU key exchange (pre-handshake)
+│   ├── HandshakeHandlers.cs         # X25519 ECDH handshake, cipher negotiation
 │   ├── SessionHandlers.cs           # Session resume/management
 │   └── SystemControlHandlers.cs     # Error, throttle, notice control packets
 ├── Internal/            # Internal helpers
@@ -59,13 +60,23 @@ The dispatch system routes deserialized packets to registered handlers:
 
 | Handler | Purpose |
 | :--- | :--- |
-| `HandshakeHandlers` | X25519 key exchange, cipher suite negotiation |
+| `KeyExchangeHandlers` | TOFU key exchange — sends server public key on `KEY_EXCHANGE` opcode, enforces pre-handshake ordering |
+| `HandshakeHandlers` | X25519 ECDH handshake, cipher suite negotiation, derives session key |
 | `SessionHandlers` | Session resume, snapshot validation |
 | `SystemControlHandlers` | Error/fail handling, throttle feedback, maintenance notices |
 
 ### Throttling
 
-Token-bucket and policy-based rate limiting with configurable burst and sustained rates.
+`TokenBucketLimiter` — sharded token-bucket per endpoint using Stopwatch ticks (no `DateTime`). Split into partial files:
+
+| File | Content |
+| :--- | :--- |
+| `TokenBucketLimiter.cs` | Core check/refill logic, shard lookup |
+| `TokenBucketLimiter.Types.cs` | `RateLimitDecision`, `RateLimitPolicy`, `RateLimitReason`, internal `EndpointState`/`Shard` types |
+| `TokenBucketLimiter.Cleanup.cs` | TTL-based stale endpoint eviction |
+| `TokenBucketLimiter.Report.cs` | Diagnostics/metrics reporting |
+
+`RateLimitDecision` carries `Allowed`, `RetryAfterMs`, `Credit`, and `Reason` (`None` / `SoftThrottle` / `HardLockout`).
 
 ### Timekeeping
 
