@@ -7,6 +7,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
+using Nalix.Environment.Memory;
 
 namespace Nalix.Observability.Contracts;
 
@@ -30,7 +31,22 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
 
     [SerializeOrder(3)]
     [SerializeDynamicSize(64 * 1024)]
-    public string ObservationData { get; set; } = string.Empty;
+    public ReadOnlyMemory<byte> ObservationData { get; set; } = ReadOnlyMemory<byte>.Empty;
+
+    private BufferLease? _lease;
+
+    /// <summary>
+    /// Associates a rented buffer lease with this packet, transferring ownership.
+    /// The lease will be automatically disposed and returned to the pool when this packet is reset or disposed.
+    /// </summary>
+    /// <param name="lease">The rented buffer lease to associate.</param>
+    public void AssociateLease(BufferLease lease)
+    {
+        ArgumentNullException.ThrowIfNull(lease);
+        _lease?.Dispose();
+        _lease = lease;
+        this.ObservationData = lease.Memory;
+    }
 
     public RuntimeObservation() => this.ResetForPool();
 
@@ -38,7 +54,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         RuntimeObservationStage stage,
         RuntimeObservationTarget target,
         ProtocolReason reason = ProtocolReason.NONE,
-        string? ObservationData = null,
+        ReadOnlyMemory<byte> ObservationData = default,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = OpCodeValue;
@@ -47,7 +63,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         this.Stage = stage;
         this.Target = target;
         this.Reason = reason;
-        this.ObservationData = ObservationData ?? "{}";
+        this.ObservationData = ObservationData;
     }
 
     public override void ResetForPool()
@@ -59,7 +75,9 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         this.Stage = RuntimeObservationStage.NONE;
         this.Target = RuntimeObservationTarget.NONE;
         this.Reason = ProtocolReason.NONE;
-        this.ObservationData = string.Empty;
+        this.ObservationData = ReadOnlyMemory<byte>.Empty;
+        _lease?.Dispose();
+        _lease = null;
     }
 
     public bool Validate([NotNullWhen(false)] out string? failureReason)
@@ -68,7 +86,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         {
             RuntimeObservationStage.REQUEST => this.Target != RuntimeObservationTarget.NONE,
             RuntimeObservationStage.RESPONSE => this.Target != RuntimeObservationTarget.NONE &&
-                                              (this.Reason != ProtocolReason.NONE || !string.IsNullOrWhiteSpace(this.ObservationData)),
+                                               (this.Reason != ProtocolReason.NONE || !this.ObservationData.IsEmpty),
             RuntimeObservationStage.NONE or _ => false
         };
 
