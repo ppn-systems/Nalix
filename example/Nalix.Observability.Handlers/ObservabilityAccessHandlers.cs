@@ -11,11 +11,19 @@ using Nalix.Runtime.Pooling;
 
 namespace Nalix.Observability.Handlers;
 
+/// <summary>
+/// Handles authentication and administrative access requests for observability.
+/// </summary>
 [PacketController("Nalix.ObservabilityAccess")]
 public sealed class ObservabilityAccessHandlers
 {
     private const int KeyByteLength = 32;
 
+    /// <summary>
+    /// Handles an incoming administrative access request and upgrades the connection's permission level if authorized.
+    /// </summary>
+    /// <param name="context">The packet context containing the request packet and connection state.</param>
+    /// <returns>A value task representing the response packet containing the result and permission level.</returns>
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode(ObservabilityAccess.OpCodeValue)]
@@ -35,9 +43,9 @@ public sealed class ObservabilityAccessHandlers
             return CreateResponse(ProtocolReason.UNAUTHORIZED);
         }
 
-        context.Connection.Level = PermissionLevel.SYSTEM_ADMINISTRATOR;
+        context.Connection.Level = PermissionLevel.SUPERVISOR;
 
-        return CreateResponse(ProtocolReason.NONE, PermissionLevel.SYSTEM_ADMINISTRATOR);
+        return CreateResponse(ProtocolReason.NONE, PermissionLevel.SUPERVISOR);
     }
 
     private static ValueTask<ObservabilityAccess> CreateResponse(ProtocolReason reason, PermissionLevel AccessLevel = PermissionLevel.NONE)

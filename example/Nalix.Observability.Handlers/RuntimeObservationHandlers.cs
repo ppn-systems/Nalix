@@ -12,48 +12,46 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.RateLimiting;
 using Nalix.Observability.Contracts;
+using Nalix.Observability.Handlers.Internal;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Observability.Handlers;
 
+/// <summary>
+/// Handles telemetry observation packets and returns serialized diagnostic reports.
+/// </summary>
 [PacketController("Nalix.RuntimeObservation")]
 public sealed class RuntimeObservationHandlers
 {
+    private static readonly IReportable?[] s_reportableCache = new IReportable?[256];
+
+    /// <summary>
+    /// Handles an incoming runtime observation request.
+    /// </summary>
+    /// <param name="context">The packet context.</param>
+    /// <returns>A value task representing the response packet.</returns>
     [PacketEncryption(true)]
     [PacketOpcode(RuntimeObservation.OpCodeValue)]
-    [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
+    [PacketPermission(PermissionLevel.SUPERVISOR)]
     public static ValueTask<RuntimeObservation> HandleAsync(IPacketContext<RuntimeObservation> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         RuntimeObservation request = context.Packet;
-        Console.WriteLine($"[RuntimeObservationHandlers] Received request. Stage={request.Stage}, Target={request.Target}");
 
-        string? failureReason = null;
-        if (request.Stage != RuntimeObservationStage.REQUEST || !request.Validate(out failureReason))
+        if (request.Stage != RuntimeObservationStage.REQUEST || !request.Validate(out _))
         {
-            Console.WriteLine($"[RuntimeObservationHandlers] Validation failed: {failureReason ?? "Stage is not REQUEST"}");
             return CreateResponse(request.Target, ProtocolReason.MALFORMED_PACKET);
         }
 
         if (!TryResolveReportable(request.Target, out IReportable? reportable))
         {
-            Console.WriteLine($"[RuntimeObservationHandlers] Target reportable not found: {request.Target}");
             return CreateResponse(request.Target, ProtocolReason.NOT_FOUND);
         }
 
-        try
-        {
-            BufferLease lease = SerializeReportData(reportable!);
-            Console.WriteLine($"[RuntimeObservationHandlers] Successfully serialized report for {request.Target}. Length={lease.Length} bytes.");
-            return CreateResponse(request.Target, ProtocolReason.NONE, lease);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[RuntimeObservationHandlers] Error serializing report: {ex}");
-            throw;
-        }
+        BufferLease lease = SerializeReportData(reportable!);
+        return CreateResponse(request.Target, ProtocolReason.NONE, lease);
     }
 
     private static ValueTask<RuntimeObservation> CreateResponse(
@@ -73,9 +71,8 @@ public sealed class RuntimeObservationHandlers
             }
             return ValueTask.FromResult(response);
         }
-        catch (Exception ex)
+        catch
         {
-            Console.WriteLine($"[RuntimeObservationHandlers] Exception in CreateResponse: {ex}");
             lease.Dispose();
             throw;
         }
@@ -83,6 +80,17 @@ public sealed class RuntimeObservationHandlers
 
     private static bool TryResolveReportable(RuntimeObservationTarget target, out IReportable? reportable)
     {
+        int index = (int)target;
+        if (index >= 0 && index < s_reportableCache.Length)
+        {
+            IReportable? cached = s_reportableCache[index];
+            if (cached is not null)
+            {
+                reportable = cached;
+                return true;
+            }
+        }
+
         InstanceManager instances = InstanceManager.Instance;
 
         reportable = target switch
@@ -98,33 +106,27 @@ public sealed class RuntimeObservationHandlers
             _ => null
         };
 
+        if (reportable is not null && index >= 0 && index < s_reportableCache.Length)
+        {
+            s_reportableCache[index] = reportable;
+        }
+
         return reportable is not null;
     }
 
     private static BufferLease SerializeReportData(IReportable reportable)
     {
-        Console.WriteLine($"[RuntimeObservationHandlers] Serializing reportable {reportable.GetType().Name}...");
-        using PooledBufferWriter bufferWriter = new(1024 * 8);
-        try
+        using BufferWriter bufferWriter = new(1024 * 8);
+        using (Utf8JsonWriter writer = new(bufferWriter, new JsonWriterOptions
         {
-            using (Utf8JsonWriter writer = new(bufferWriter, new JsonWriterOptions
-            {
-                Indented = false,
-                SkipValidation = true
-            }))
-            {
-                reportable.WriteReportData(writer);
-                writer.Flush();
-            }
+            Indented = false,
+            SkipValidation = true
+        }))
+        {
+            reportable.WriteReportData(writer);
+            writer.Flush();
+        }
 
-            BufferLease lease = bufferWriter.ExtractLease();
-            Console.WriteLine($"[RuntimeObservationHandlers] Extracted lease shell. Span size: {lease.Length}");
-            return lease;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[RuntimeObservationHandlers] Exception in SerializeReportData: {ex}");
-            throw;
-        }
+        return bufferWriter.ExtractLease();
     }
 }
