@@ -3,7 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Backend.Attributes;
-using Backend.Handlers;
+using Nalix.Observability.Handlers;
 using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;

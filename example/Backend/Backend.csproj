@@ -28,4 +28,8 @@
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Nalix.Observability.Handlers\Nalix.Observability.Handlers.csproj" />
+	</ItemGroup>
+
 </Project>

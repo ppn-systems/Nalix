@@ -4,28 +4,26 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
-using Nalix.Observability.Contracts;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Memory.Buffers;
-using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Tasks;
 using Nalix.Network.RateLimiting;
+using Nalix.Observability.Contracts;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Pooling;
 
-namespace Backend.Handlers;
+namespace Nalix.Observability.Handlers;
 
-[PacketController("ExampleRuntimeObservation")]
+[PacketController("Nalix.RuntimeObservation")]
 public sealed class RuntimeObservationHandlers
 {
     [PacketEncryption(true)]
-    [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
     [PacketOpcode(RuntimeObservation.OpCodeValue)]
+    [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
     public static ValueTask<RuntimeObservation> HandleAsync(IPacketContext<RuntimeObservation> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -42,22 +40,22 @@ public sealed class RuntimeObservationHandlers
             return CreateResponse(request.Target, ProtocolReason.NOT_FOUND);
         }
 
-        string dataJson = SerializeReportData(reportable!);
+        string ObservationData = SerializeReportData(reportable!);
 
-        return CreateResponse(request.Target, ProtocolReason.NONE, dataJson);
+        return CreateResponse(request.Target, ProtocolReason.NONE, ObservationData);
     }
 
     private static ValueTask<RuntimeObservation> CreateResponse(
         RuntimeObservationTarget target,
         ProtocolReason reason,
-        string? dataJson = null)
+        string? ObservationData = null)
     {
         PacketScope<RuntimeObservation> lease = PacketFactory<RuntimeObservation>.Acquire();
 
         try
         {
             RuntimeObservation response = lease.Value;
-            response.Initialize(RuntimeObservationStage.RESPONSE, target, reason, dataJson);
+            response.Initialize(RuntimeObservationStage.RESPONSE, target, reason, ObservationData);
             return ValueTask.FromResult(response);
         }
         catch
@@ -77,9 +75,9 @@ public sealed class RuntimeObservationHandlers
             RuntimeObservationTarget.NONE => throw new NotImplementedException(),
             RuntimeObservationTarget.TASKS => instances.GetExistingInstance<TaskManager>(),
             RuntimeObservationTarget.DISPATCH => instances.GetExistingInstance<IPacketDispatch>(),
-            RuntimeObservationTarget.BUFFERS => instances.GetExistingInstance<BufferPoolManager>(),
+            RuntimeObservationTarget.BUFFERS => instances.GetExistingInstance<IBufferPoolManager>(),
             RuntimeObservationTarget.CONNECTIONS => instances.GetExistingInstance<IConnectionHub>(),
-            RuntimeObservationTarget.OBJECT_POOLS => instances.GetExistingInstance<ObjectPoolManager>(),
+            RuntimeObservationTarget.OBJECT_POOLS => instances.GetExistingInstance<IObjectPoolManager>(),
             RuntimeObservationTarget.CONNECTION_GUARD => instances.GetExistingInstance<ConnectionGuard>(),
             _ => null
         };

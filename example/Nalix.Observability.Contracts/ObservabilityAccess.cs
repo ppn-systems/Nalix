@@ -11,18 +11,11 @@ using Nalix.Codec.DataFrames;
 
 namespace Nalix.Observability.Contracts;
 
-public enum ObservabilityAccessStage : byte
-{
-    NONE = 0x00,
-    REQUEST = 0x01,
-    RESPONSE = 0x02
-}
-
 [Packet]
 [ExcludeFromCodeCoverage]
 [GenerateFormatterAttribute]
 [SerializePackable(SerializeLayout.Explicit)]
-[DebuggerDisplay("OBSERVABILITY_ACCESS Stage={Stage}, Granted={GrantedLevel}, Reason={Reason}")]
+[DebuggerDisplay("OBSERVABILITY_ACCESS Stage={Stage}, Granted={AccessLevel}, Reason={Reason}")]
 public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess>, IPacketValidatable
 {
     public const ushort OpCodeValue = 0x5100;
@@ -34,19 +27,19 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
     public ProtocolReason Reason { get; set; }
 
     [SerializeOrder(2)]
-    public PermissionLevel GrantedLevel { get; set; }
+    public PermissionLevel AccessLevel { get; set; }
 
     [SerializeOrder(3)]
     [SerializeDynamicSize(256)]
-    public string Key { get; set; } = string.Empty;
+    public string AccessKey { get; set; } = string.Empty;
 
     public ObservabilityAccess() => this.ResetForPool();
 
     public void Initialize(
         ObservabilityAccessStage stage,
         ProtocolReason reason = ProtocolReason.NONE,
-        PermissionLevel grantedLevel = PermissionLevel.NONE,
-        string key = "",
+        PermissionLevel AccessLevel = PermissionLevel.NONE,
+        string accessKey = "",
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = OpCodeValue;
@@ -54,8 +47,8 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         this.Flags = flags;
         this.Stage = stage;
         this.Reason = reason;
-        this.GrantedLevel = grantedLevel;
-        this.Key = key;
+        this.AccessLevel = AccessLevel;
+        this.AccessKey = accessKey;
     }
 
     public override void ResetForPool()
@@ -66,16 +59,16 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = ObservabilityAccessStage.NONE;
         this.Reason = ProtocolReason.NONE;
-        this.GrantedLevel = PermissionLevel.NONE;
-        this.Key = string.Empty;
+        this.AccessLevel = PermissionLevel.NONE;
+        this.AccessKey = string.Empty;
     }
 
     public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
         bool isValid = this.Stage switch
         {
-            ObservabilityAccessStage.REQUEST => !string.IsNullOrWhiteSpace(this.Key),
-            ObservabilityAccessStage.RESPONSE => this.Reason != ProtocolReason.NONE || this.GrantedLevel > PermissionLevel.NONE,
+            ObservabilityAccessStage.REQUEST => !string.IsNullOrWhiteSpace(this.AccessKey),
+            ObservabilityAccessStage.RESPONSE => this.Reason != ProtocolReason.NONE || this.AccessLevel > PermissionLevel.NONE,
             ObservabilityAccessStage.NONE or _ => false
         };
 

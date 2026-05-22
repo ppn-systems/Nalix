@@ -9,9 +9,9 @@ using Nalix.Abstractions.Security;
 using Nalix.Observability.Contracts;
 using Nalix.Runtime.Pooling;
 
-namespace Backend.Handlers;
+namespace Nalix.Observability.Handlers;
 
-[PacketController("ExampleObservabilityAccess")]
+[PacketController("Nalix.ObservabilityAccess")]
 public sealed class ObservabilityAccessHandlers
 {
     private const int KeyByteLength = 32;
@@ -30,7 +30,7 @@ public sealed class ObservabilityAccessHandlers
 
         string key = LoadOrCreateSharedKey();
 
-        if (!FixedTimeEquals(context.Packet.Key, key))
+        if (!FixedTimeEquals(context.Packet.AccessKey, key))
         {
             return CreateResponse(ProtocolReason.UNAUTHORIZED);
         }
@@ -40,16 +40,14 @@ public sealed class ObservabilityAccessHandlers
         return CreateResponse(ProtocolReason.NONE, PermissionLevel.SYSTEM_ADMINISTRATOR);
     }
 
-    private static ValueTask<ObservabilityAccess> CreateResponse(
-        ProtocolReason reason,
-        PermissionLevel grantedLevel = PermissionLevel.NONE)
+    private static ValueTask<ObservabilityAccess> CreateResponse(ProtocolReason reason, PermissionLevel AccessLevel = PermissionLevel.NONE)
     {
         PacketScope<ObservabilityAccess> lease = PacketFactory<ObservabilityAccess>.Acquire();
 
         try
         {
             ObservabilityAccess response = lease.Value;
-            response.Initialize(ObservabilityAccessStage.RESPONSE, reason, grantedLevel);
+            response.Initialize(ObservabilityAccessStage.RESPONSE, reason, AccessLevel);
             return ValueTask.FromResult(response);
         }
         catch

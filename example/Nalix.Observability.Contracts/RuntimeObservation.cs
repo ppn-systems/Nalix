@@ -30,7 +30,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
 
     [SerializeOrder(3)]
     [SerializeDynamicSize(64 * 1024)]
-    public string DataJson { get; set; } = string.Empty;
+    public string ObservationData { get; set; } = string.Empty;
 
     public RuntimeObservation() => this.ResetForPool();
 
@@ -38,7 +38,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         RuntimeObservationStage stage,
         RuntimeObservationTarget target,
         ProtocolReason reason = ProtocolReason.NONE,
-        string? dataJson = null,
+        string? ObservationData = null,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = OpCodeValue;
@@ -47,7 +47,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         this.Stage = stage;
         this.Target = target;
         this.Reason = reason;
-        this.DataJson = dataJson ?? "{}";
+        this.ObservationData = ObservationData ?? "{}";
     }
 
     public override void ResetForPool()
@@ -59,7 +59,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         this.Stage = RuntimeObservationStage.NONE;
         this.Target = RuntimeObservationTarget.NONE;
         this.Reason = ProtocolReason.NONE;
-        this.DataJson = string.Empty;
+        this.ObservationData = string.Empty;
     }
 
     public bool Validate([NotNullWhen(false)] out string? failureReason)
@@ -68,7 +68,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         {
             RuntimeObservationStage.REQUEST => this.Target != RuntimeObservationTarget.NONE,
             RuntimeObservationStage.RESPONSE => this.Target != RuntimeObservationTarget.NONE &&
-                                              (this.Reason != ProtocolReason.NONE || !string.IsNullOrWhiteSpace(this.DataJson)),
+                                              (this.Reason != ProtocolReason.NONE || !string.IsNullOrWhiteSpace(this.ObservationData)),
             RuntimeObservationStage.NONE or _ => false
         };
 
