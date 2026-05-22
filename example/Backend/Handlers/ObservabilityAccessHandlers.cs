@@ -6,24 +6,24 @@ using System.Text;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
-using Contracts;
+using Nalix.Observability.Contracts;
 using Nalix.Runtime.Pooling;
 
 namespace Backend.Handlers;
 
-[PacketController("ExampleAuthorityGrant")]
-public sealed class AuthorityGrantHandlers
+[PacketController("ExampleObservabilityAccess")]
+public sealed class ObservabilityAccessHandlers
 {
     private const int KeyByteLength = 32;
 
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode(AuthorityGrant.OpCodeValue)]
-    public static ValueTask<AuthorityGrant> HandleAsync(IPacketContext<AuthorityGrant> context)
+    [PacketOpcode(ObservabilityAccess.OpCodeValue)]
+    public static ValueTask<ObservabilityAccess> HandleAsync(IPacketContext<ObservabilityAccess> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        if (context.Packet.Stage != AuthorityGrantStage.REQUEST || !context.Packet.Validate(out _))
+        if (context.Packet.Stage != ObservabilityAccessStage.REQUEST || !context.Packet.Validate(out _))
         {
             return CreateResponse(ProtocolReason.MALFORMED_PACKET);
         }
@@ -40,16 +40,16 @@ public sealed class AuthorityGrantHandlers
         return CreateResponse(ProtocolReason.NONE, PermissionLevel.SYSTEM_ADMINISTRATOR);
     }
 
-    private static ValueTask<AuthorityGrant> CreateResponse(
+    private static ValueTask<ObservabilityAccess> CreateResponse(
         ProtocolReason reason,
         PermissionLevel grantedLevel = PermissionLevel.NONE)
     {
-        PacketScope<AuthorityGrant> lease = PacketFactory<AuthorityGrant>.Acquire();
+        PacketScope<ObservabilityAccess> lease = PacketFactory<ObservabilityAccess>.Acquire();
 
         try
         {
-            AuthorityGrant response = lease.Value;
-            response.Initialize(AuthorityGrantStage.RESPONSE, reason, grantedLevel);
+            ObservabilityAccess response = lease.Value;
+            response.Initialize(ObservabilityAccessStage.RESPONSE, reason, grantedLevel);
             return ValueTask.FromResult(response);
         }
         catch

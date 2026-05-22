@@ -43,8 +43,8 @@ internal class Startup
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
-            .AddHandler<AuthorityGrantHandlers>()
-            .AddHandler<GenerationReportHandlers>()
+            .AddHandler<ObservabilityAccessHandlers>()
+            .AddHandler<RuntimeObservationHandlers>()
             .Configure<NetworkSocketOptions>(o =>
             {
                 o.Port = ListenPort;

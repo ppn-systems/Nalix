@@ -4,7 +4,7 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
-using Contracts;
+using Nalix.Observability.Contracts;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
@@ -20,19 +20,19 @@ using Nalix.Runtime.Pooling;
 
 namespace Backend.Handlers;
 
-[PacketController("ExampleGenerationReport")]
-public sealed class GenerationReportHandlers
+[PacketController("ExampleRuntimeObservation")]
+public sealed class RuntimeObservationHandlers
 {
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.SYSTEM_ADMINISTRATOR)]
-    [PacketOpcode(GenerationReport.OpCodeValue)]
-    public static ValueTask<GenerationReport> HandleAsync(IPacketContext<GenerationReport> context)
+    [PacketOpcode(RuntimeObservation.OpCodeValue)]
+    public static ValueTask<RuntimeObservation> HandleAsync(IPacketContext<RuntimeObservation> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        GenerationReport request = context.Packet;
+        RuntimeObservation request = context.Packet;
 
-        if (request.Stage != GenerationReportStage.REQUEST || !request.Validate(out _))
+        if (request.Stage != RuntimeObservationStage.REQUEST || !request.Validate(out _))
         {
             return CreateResponse(request.Target, ProtocolReason.MALFORMED_PACKET);
         }
@@ -47,17 +47,17 @@ public sealed class GenerationReportHandlers
         return CreateResponse(request.Target, ProtocolReason.NONE, dataJson);
     }
 
-    private static ValueTask<GenerationReport> CreateResponse(
-        GenerationReportTarget target,
+    private static ValueTask<RuntimeObservation> CreateResponse(
+        RuntimeObservationTarget target,
         ProtocolReason reason,
         string? dataJson = null)
     {
-        PacketScope<GenerationReport> lease = PacketFactory<GenerationReport>.Acquire();
+        PacketScope<RuntimeObservation> lease = PacketFactory<RuntimeObservation>.Acquire();
 
         try
         {
-            GenerationReport response = lease.Value;
-            response.Initialize(GenerationReportStage.RESPONSE, target, reason, dataJson);
+            RuntimeObservation response = lease.Value;
+            response.Initialize(RuntimeObservationStage.RESPONSE, target, reason, dataJson);
             return ValueTask.FromResult(response);
         }
         catch
@@ -67,20 +67,20 @@ public sealed class GenerationReportHandlers
         }
     }
 
-    private static bool TryResolveReportable(GenerationReportTarget target, out IReportable? reportable)
+    private static bool TryResolveReportable(RuntimeObservationTarget target, out IReportable? reportable)
     {
         InstanceManager instances = InstanceManager.Instance;
 
         reportable = target switch
         {
-            GenerationReportTarget.INSTANCES => instances,
-            GenerationReportTarget.NONE => throw new NotImplementedException(),
-            GenerationReportTarget.TASKS => instances.GetExistingInstance<TaskManager>(),
-            GenerationReportTarget.DISPATCH => instances.GetExistingInstance<IPacketDispatch>(),
-            GenerationReportTarget.BUFFERS => instances.GetExistingInstance<BufferPoolManager>(),
-            GenerationReportTarget.CONNECTIONS => instances.GetExistingInstance<IConnectionHub>(),
-            GenerationReportTarget.OBJECT_POOLS => instances.GetExistingInstance<ObjectPoolManager>(),
-            GenerationReportTarget.CONNECTION_GUARD => instances.GetExistingInstance<ConnectionGuard>(),
+            RuntimeObservationTarget.INSTANCES => instances,
+            RuntimeObservationTarget.NONE => throw new NotImplementedException(),
+            RuntimeObservationTarget.TASKS => instances.GetExistingInstance<TaskManager>(),
+            RuntimeObservationTarget.DISPATCH => instances.GetExistingInstance<IPacketDispatch>(),
+            RuntimeObservationTarget.BUFFERS => instances.GetExistingInstance<BufferPoolManager>(),
+            RuntimeObservationTarget.CONNECTIONS => instances.GetExistingInstance<IConnectionHub>(),
+            RuntimeObservationTarget.OBJECT_POOLS => instances.GetExistingInstance<ObjectPoolManager>(),
+            RuntimeObservationTarget.CONNECTION_GUARD => instances.GetExistingInstance<ConnectionGuard>(),
             _ => null
         };
 
