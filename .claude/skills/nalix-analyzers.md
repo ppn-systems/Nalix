@@ -2,23 +2,23 @@
 
 ## Triggers
 - Adding a new diagnostic rule to enforce a Nalix coding pattern
-- Investigating why the IDE shows a `NAL0xxx` warning or error
+- Investigating why the IDE shows a `NALIXxxx` warning or error
 - Changing the Roslyn analyzer infrastructure
 
 ---
 
 ## Rules
 
-### Diagnostic ID Ranges
-| Range | Category |
-| :--- | :--- |
-| `NAL01xx` | Serialization (`[SerializeOrder]`, `[SerializeIgnore]`, conflicts) |
-| `NAL02xx` | Packet system (opcodes, self-type constraints, casts, deserialization) |
-| `NAL03xx` | Middleware and handlers (ordering, null middleware, controller patterns) |
-| `NAL04xx` | Registry and dispatch (deserializer patterns, loop count) |
-| `NAL05xx` | Configuration (`[ConfiguredIgnore]` usage) |
-| `NAL06xx` | Pooling (`Reset()` enforcement) |
-| `NAL07xx` | Options (request options consistency) |
+### Diagnostic IDs
+IDs are sequential: `NALIX001`–`NALIX058`, **not organized by hundreds**. Categories are mixed throughout the range. Full authoritative list is in `DiagnosticDescriptors.cs`. Broad groupings:
+- `NALIX001–NALIX008`: Packet/controller/dispatch + middleware/handler patterns
+- `NALIX009–NALIX022`: Packet operations (deserializer, base types, header, opcode)
+- `NALIX023–NALIX028`: Configuration and SDK/request options
+- `NALIX029–NALIX031`: Encrypted requests, middleware ordering
+- `NALIX032–NALIX039`: Middleware behavior, buffer leaks, performance
+- `NALIX040–NALIX058`: Network, hosting, opcode ranges, allocations, return types
+
+When adding a new rule, append the next available ID — do not try to "slot" into a category range.
 
 ### Analyzer Performance Constraints
 - **Zero allocations in `AnalyzeXxx` methods** — analyzers run on every keystroke in the IDE; allocation degrades typing responsiveness for all developers
@@ -37,7 +37,7 @@
 ## Checklists
 
 ### Add a new diagnostic rule
-1. Add descriptor in `DiagnosticDescriptors.cs` — use the correct `NAL0xxx` range for the category
+1. Add descriptor in `DiagnosticDescriptors.cs` — append next available `NALIXxxx` ID
 2. Register the analysis action in `NalixUsageAnalyzer.Initialize()` (e.g., `context.RegisterSyntaxNodeAction(...)`)
 3. Implement analysis logic in `InvocationAnalysis.cs` or a new partial file
 4. Add corresponding code fix in `Nalix.Analyzers.CodeFixes` — see nalix-analyzers-codefixes skill

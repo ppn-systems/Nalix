@@ -18,8 +18,12 @@
 | `PacketSchemaGenerator` | Same as `SerializeFormatterGenerator` |
 | `ConfigurationGenerator` | Class used in a call to `ConfigurationManager.Bind<T>()` |
 
-### KnownNames First
-When adding a new attribute that any generator must detect, **add the fully-qualified name to `KnownNames.cs` first** before writing the generator logic that references it. Generators match types by string name only — no assembly reference to runtime Nalix code is allowed.
+### KnownNames Convention
+When adding a new attribute that any generator must detect, **add the name to `KnownNames.cs` first** before writing the generator logic that references it. Generators match types by string name only — no assembly reference to runtime Nalix code is allowed.
+
+Name format rules:
+- **Namespace constants**: always fully-qualified (e.g., `"Nalix.Abstractions.Networking.Packets"`)
+- **Type/attribute name constants**: use the **short name** (e.g., `"SerializeOrderAttribute"`, `"GenerateFormatterAttribute"`) unless there is genuine cross-assembly ambiguity — in that case use a FQ name (e.g., `"Nalix.Abstractions.Networking.Packets.PacketAttribute"`)
 
 ### Incremental Generator Correctness
 - All generators implement `IIncrementalGenerator` — preserve the `IncrementalValueProvider` pipeline to keep IDE performance acceptable
@@ -37,7 +41,7 @@ GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible"
 ## Checklists
 
 ### Add a new generator-detected attribute
-1. Add the fully-qualified attribute name as a constant to `KnownNames.cs`
+1. Add the name as a constant to `KnownNames.cs` — short name for attributes/types, FQ namespace for namespace constants
 2. Use `KnownNames.YourAttributeName` in generator logic — never hardcode strings inline
 3. Add the attribute definition to `Nalix.Abstractions` (not here)
 4. Run `dotnet build` on a consuming project to verify the generator fires

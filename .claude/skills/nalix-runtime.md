@@ -38,9 +38,12 @@
 - All intermediate secrets (EE, SE, master) are `ZeroMemory`'d immediately after use — they remain GC-visible until zeroed
 
 ### Middleware Execution
-Four stages run in fixed order: **Inbound → Handler → OutboundAlways → Outbound**
+Three internal lists execute in order: **Inbound → (handler) → OutboundAlways → Outbound**
 
-- `OutboundAlways` runs even when a previous stage throws — use it for cleanup and audit
+- `MiddlewareStage.Inbound`: runs before the handler
+- `MiddlewareStage.Outbound`: runs after the handler — skipped if handler throws
+- `MiddlewareStage.Both`: registered in both Inbound and Outbound lists
+- `AlwaysExecute = true` (OutboundAlways): runs after the handler **even when it throws** — use for cleanup, audit, metrics
 - `[MiddlewareOrder(n)]`: lower n = earlier = runs first; security before business logic
 - Middleware snapshot is immutable — execution is lock-free via volatile `PipelineSnapshot`; registration/removal requires a lock
 - `continueOnError = true` logs exceptions and skips the failing middleware without crashing the pipeline
@@ -69,11 +72,27 @@ Do not hold a `PacketContext` reference after the handler returns — it is retu
 5. If requires auth: `if (context.Connection.Secret.IsZero) { context.Connection.Disconnect("..."); return; }`
 6. Register: `builder.AddHandler<MyHandlers>()`
 
-### Add middleware
+### Standard Middleware (Built-in)
+Four middleware types ship with `Nalix.Runtime` and are wired via `ConfigureDispatchOptions`:
+
+| Class | `[MiddlewareOrder]` | Stage | Purpose |
+| :--- | :--- | :--- | :--- |
+| `PermissionMiddleware` | `-50` | Inbound | Permission level check — runs first |
+| `ConcurrencyMiddleware` | `50` | Inbound | Per-connection concurrency cap |
+| `RateLimitMiddleware` | `50` | Inbound | Token-bucket rate limiting |
+| `TimeoutMiddleware` | `75` | Inbound | Handler execution timeout |
+
+**Custom middleware order guidance:** security guards < 100, rate limiting 50–100, business logic > 500.
+
+### Add custom middleware
 1. Implement `IPacketMiddleware`
-2. `[MiddlewareOrder(n)]` — choose n: security guards < 100, rate limiting < 200, business logic > 500
+2. `[MiddlewareOrder(n)]` — see order guidance above
 3. Stage annotation if not default: `[MiddlewareStage(MiddlewareStage.OutboundAlways)]` for audit/cleanup
-4. Register: `builder.AddMiddleware<MyMiddleware>()`
+4. Register via `ConfigureDispatchOptions` on the builder:
+```csharp
+builder.ConfigureDispatchOptions(opts =>
+    opts.WithMiddleware(new MyMiddleware()));
+```
 
 ---
 

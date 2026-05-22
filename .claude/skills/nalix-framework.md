@@ -11,9 +11,11 @@
 ## Rules
 
 ### InstanceManager (DI)
-- **Singleton lifetime only** — no scoped, transient, or factory lifetime
-- All registrations must happen **before** `NetworkApplication.Build()` — the container is read-only after Build()
-- Do not mix with `Microsoft.Extensions.DependencyInjection` — this creates a parallel container that `InstanceManager` cannot resolve from
+- **Instance cache by type** — `Register<T>(instance)` stores by type key; `GetOrCreateInstance<T>()` returns cached or creates new
+- Key methods: `Register<T>(T instance)`, `GetOrCreateInstance<T>([args])`, `GetExistingInstance<T>()`, `HasInstance<T>()`, `RemoveInstance(Type)`, `Clear(bool dispose)`
+- `RegisterForClassOnly<T>()` skips interface registration — use when type implements multiple interfaces but only the concrete type should be resolvable
+- All registrations must happen **before** `NetworkApplication.Build()`
+- Do not mix with `Microsoft.Extensions.DependencyInjection` — creates a parallel container
 
 ### Object Pooling (`ObjectPoolManager`)
 - Uses `PoolType<T>.Id` — a compile-time unique integer per type used as an array index on the hot path (no dictionary lookup per rent/return)
@@ -36,7 +38,7 @@
 - MachineID is 10 bits = max 1023 distinct nodes — **same MachineID on two nodes = guaranteed ID collision**
 
 ### TaskManager
-- Worker priorities: `Critical` (health checks) > `High` (dispatch) > `Normal` (cleanup) > `Low` (background telemetry)
+- Worker priorities: `LOW` < `NORMAL` < `HIGH` < `URGENT` — use `URGENT` for health checks/critical paths, `HIGH` for dispatch, `NORMAL` for cleanup, `LOW` for background telemetry
 - Workers must be async throughout — no `Thread.Sleep`, no blocking calls inside workers
 - Recurring tasks configured via `IRecurringOptions` with a configurable interval
 
@@ -47,8 +49,8 @@
 ### Register a new service
 1. Implement the service interface
 2. Before `Build()`: `InstanceManager.Register<IMyService>(new MyService())`
-3. Resolve anywhere: `InstanceManager.Resolve<IMyService>()`
-4. If the service needs other services, resolve them in the factory, not in the constructor
+3. Resolve anywhere: `InstanceManager.GetOrCreateInstance<IMyService>()` or `GetExistingInstance<IMyService>()`
+4. If the service needs other services, resolve dependencies via `GetExistingInstance<T>()` in the constructor
 
 ### Add a pooled type
 1. Implement `IPoolable` on the class
