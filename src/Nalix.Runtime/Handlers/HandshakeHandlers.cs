@@ -29,7 +29,7 @@ namespace Nalix.Runtime.Handlers;
 /// <summary>
 /// Provides handlers for the default server-side X25519 handshake protocol.
 /// </summary>
-[PacketController("Lib.Handshake")]
+[PacketController("Nalix.Handshake")]
 public sealed class HandshakeHandlers
 {
     #region APIs
