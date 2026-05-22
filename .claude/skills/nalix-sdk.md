@@ -1,71 +1,86 @@
 # Nalix.SDK
 
-## Role
+## Triggers
+- Implementing a client application connecting to a Nalix server
+- Setting up request-response or event-driven packet handling
+- Handling reconnection or session resume from the client side
+- Integrating Nalix with Unity or other main-thread-bound runtimes
 
-Client-side development kit. Provides managed TCP/UDP session clients, request-response patterns, typed message subscriptions, time synchronization, and transport dispatching for applications connecting to Nalix servers.
+---
 
-**Dependencies:** `Nalix.Codec` (which transitively includes Abstractions + Environment)
+## Rules
 
-## Directory Structure
+### Session Lifecycle
+- Always use `ConnectAsync()` / `DisconnectAsync()` — never create raw sockets manually
+- **Always `await DisconnectAsync()` before dispose** — raw `Dispose()` does not flush pending sends; data in the send buffer is lost
+- `TcpSession` supports auto-reconnect — it creates a **new TCP connection** internally; `On<T>()` subscriptions from the previous connection instance do **not** transfer automatically
 
-```
-Nalix.SDK/
-├── Extensions/          # SDK extension methods (handshake, session resume, cipher update)
-├── Options/             # SDK configuration options
-├── Transport/           # Session clients
-│   ├── TcpSession.cs               # Managed TCP client session
-│   ├── UdpSession.cs               # Managed UDP client session
-│   ├── TransportSession.cs         # Abstract base for transport sessions
-│   ├── Extensions/                 # Transport-specific extension methods
-│   └── Internal/                   # Internal transport helpers
-├── IThreadDispatcher.cs            # Dispatcher abstraction (e.g., Unity main thread)
-├── InlineDispatcher.cs             # Inline (same-thread) dispatcher
-└── TimeSyncCalculator.cs           # NTP-style time synchronization calculator
-```
-
-## Key Components
-
-### Transport Sessions
-
-| Type | Purpose |
-| :--- | :--- |
-| `TransportSession` | Abstract base — shared lifecycle, connect/disconnect, receive loop. |
-| `TcpSession` | TCP client with auto-reconnect, handshake, and encryption support. |
-| `UdpSession` | UDP client with sequence tracking, HMAC, and fragment assembly. |
-
-Sessions integrate with the full Codec pipeline (serialize → compress → encrypt).
-
-### Request-Response Pattern
-
-`RequestAsync<TResponse>()` API with:
-- Correlated packet matching (via Snowflake correlation IDs).
-- Configurable timeouts.
-- Automatic deserialization of response type.
-
-### Typed Message Subscriptions
-
-`On<T>()` method for clean event-driven packet handling:
-```csharp
-session.On<ChatMessage>(msg => HandleChat(msg));
-```
+### Request-Response vs Subscriptions
+- `RequestAsync<TResponse>()`: one-shot request with correlated response matching via Snowflake correlation ID and configurable timeout — use for commands, queries
+- `On<T>()`: event-driven subscription for server-pushed messages — use for broadcasts, notifications, live updates
+- These are not interchangeable: `RequestAsync` blocks (async) until the matching response arrives; `On<T>()` fires whenever any packet of type `T` arrives
 
 ### Thread Dispatching
+- `IThreadDispatcher` abstracts callback dispatch to a specific thread (e.g., Unity main thread)
+- `InlineDispatcher` executes callbacks on the receiving thread — correct for server-side and non-UI applications
+- Use `IThreadDispatcher` when packet callbacks must run on a specific thread (e.g., modifying Unity GameObjects)
 
-- `IThreadDispatcher` — Abstraction for dispatching callbacks to a specific thread (e.g., Unity main thread).
-- `InlineDispatcher` — Executes callbacks on the receiving thread directly.
+### AOT Compatibility
+- `TrimMode=partial`, `IlcOptimizationPreference=Speed` — SDK is AOT-ready
+- All serialization is source-generated — no reflection on the hot path
+- Do not introduce `System.Reflection` usage in SDK extensions
 
-### Time Synchronization
+---
 
-`TimeSyncCalculator` — NTP-style round-trip time calculation for clock synchronization between client and server.
+## Checklists
 
-## AOT Compatibility
+### Connect and subscribe
+```csharp
+var session = new TcpSession(options);
 
-- `IsAotCompatible=true` with `TrimMode=partial`.
-- `IlcOptimizationPreference=Speed`.
-- Uses source-generated serialization — no reflection on hot paths.
+// Subscribe before connecting so no messages are missed
+session.On<ChatMessage>(msg => HandleChat(msg));
+session.On<ServerNotice>(notice => ShowNotice(notice));
 
-## Anti-Patterns
+await session.ConnectAsync();
+// Handshake is performed automatically
+```
 
-- Do NOT bypass `TransportSession` lifecycle — use `ConnectAsync`/`DisconnectAsync`.
-- Do NOT create raw sockets — use `TcpSession`/`UdpSession`.
-- Do NOT forget to dispose sessions — they hold socket and buffer resources.
+### Send a request and await response
+```csharp
+var response = await session.RequestAsync<LoginResponse>(
+    new LoginRequest { Username = "...", Password = "..." },
+    timeout: TimeSpan.FromSeconds(5)
+);
+```
+
+### Handle reconnect with Unity dispatcher
+```csharp
+var session = new TcpSession(options, dispatcher: new UnityDispatcher());
+session.OnReconnected += () => {
+    // Re-subscribe because reconnect creates a new connection
+    session.On<PositionUpdate>(pos => UpdatePlayerPosition(pos));
+};
+await session.ConnectAsync();
+```
+
+### Graceful disconnect
+```csharp
+// Always await — flushes pending sends before closing
+await session.DisconnectAsync();
+session.Dispose();
+```
+
+---
+
+## Gotchas
+
+- **`On<T>()` subscriptions do not survive auto-reconnect**: `TcpSession` auto-reconnect establishes a new TCP connection internally. Subscriptions registered before reconnect are attached to the old connection state. Re-subscribe in an `OnReconnected` callback.
+
+- **Raw `Dispose()` drops pending sends**: If there are unsent packets in the send buffer and you call `Dispose()` without `await DisconnectAsync()`, they are silently dropped. Always disconnect first.
+
+- **`RequestAsync` timeout does not cancel the server operation**: Timing out on the client side means the client stops waiting, but the server may still process the request and send a response — which will be silently dropped if no handler is waiting. Design idempotent server operations for retryable requests.
+
+- **`TimeSyncCalculator` requires multiple samples for accuracy**: NTP-style clock sync converges after several round-trip samples. A single sample gives a rough estimate. Collect at least 3–5 samples before trusting the offset.
+
+- **`On<T>()` fires for every packet of type `T`**: If the same server sends multiple response types under a shared base type, all of them trigger the `On<T>()` callback. Use `RequestAsync` for correlated one-shot responses.

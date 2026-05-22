@@ -1,90 +1,82 @@
 # Nalix.Codec
 
-## Role
+## Triggers
+- Defining a new packet or frame type
+- Modifying the crypto or transform pipeline
+- Changing serialization field layout or attributes
+- Debugging wire format or deserialization mismatches
 
-High-performance data transformation and framing engine. Provides the unified pipeline for serialization (source-generated), LZ4 compression, AEAD cryptography, protocol frame definitions, and frame transformation chains.
+---
 
-**Dependencies:** `Nalix.Abstractions`, `Nalix.Environment`, `Nalix.Analyzers.Generators` (as analyzer/generator only)
+## Rules
 
-## Directory Structure
+### Packet Type Definition
+- Use CRTP: `sealed class MyPacket : PacketBase<MyPacket>` — the self-type parameter is mandatory for source generator trigger
+- `[SerializeHeader]` on the class triggers `PacketRegistryGenerator` to emit the static opcode → type mapping
+- `[SerializeOrder(n)]` on **every** serializable field, starting from 0, no gaps — generator emits fields in this exact order into the wire format
+- Opcode must be **globally unique** across all registered packet types — `PacketRegistry` is a static dict; collision is silent at compile time and produces wrong deserialization at runtime
 
+### Transform Pipeline Order (Immutable)
 ```
-Nalix.Codec/
-├── DataFrames/          # FrameBase, PacketBase<T>, PacketRegistry, PacketSchema
-├── Extensions/          # Codec extension methods
-├── Internal/            # Internal helpers
-├── LZ4/                 # LZ4 block compression engine (custom pool-backed)
-├── Options/             # Codec configuration options
-├── ProtocolFrames/      # Control, Directive, Handshake, SessionResume frame types
-├── Security/            # Full crypto stack (see below)
-├── Serialization/       # LiteSerializer, FormatterProvider, IFormatter<T>, formatters
-├── Transforms/          # FrameCipher, FrameCompression, FramePipeline, FrameTransformer
+Outbound:  serialize → compress (LZ4) → encrypt (AEAD)
+Inbound:   decrypt   → decompress     → deserialize
 ```
+Never swap compress and encrypt. Encrypting before compressing produces high-entropy ciphertext that compresses poorly (near-zero gain). Compressing before encrypting is the correct security model. `FramePipeline` enforces this order — do not reorder stages.
 
-## Key Subsystems
+### Cryptography Invariants
+- **Never generate nonces outside `EnvelopeCipher`** — nonce management (counter, uniqueness) is internal to the cipher engine
+- `HandshakeX25519` derives master secret via HKDF-Extract (no salt) combining two shared secrets: EE (ephemeral-ephemeral = forward secrecy) + SE (static-ephemeral = authentication)
+- Both EE and SE must produce non-zero output — zero in either = abort handshake with `DECRYPTION_FAILED`
+- Proof labels are static readonly spans: `"nalix-handshake/server-proof"` — changing a label breaks interop with all existing clients immediately
+- All intermediate secrets (EE, SE, master) must be `ZeroMemory`'d after use — they are GC-visible until zeroed
 
-### Serialization (Source-Generated)
+### Serialization Entry Points
+- Application code: `LiteSerializer.Serialize<T>()` / `LiteSerializer.Deserialize<T>()` only
+- `IFormatter<T>` is for generated code only — do not implement it manually
+- `IFillableFormatter<T>` is the pool-friendly variant — fills an existing (rented) object instead of allocating
 
-| Type | Purpose |
-| :--- | :--- |
-| `LiteSerializer` | Static entry point. Serialize/Deserialize via `IFormatter<T>`. |
-| `FormatterProvider` | Resolves `IFormatter<T>` — source-generated formatters only (IL Emit removed). |
-| `IFormatter<T>` | Contract for type-specific serialization. |
-| `IFillableFormatter<T>` | Variant that fills an existing object (pool-friendly). |
-
-The serialization pipeline is **fully source-generated**. `SerializeFormatterGenerator` in `Nalix.Analyzers.Generators` emits `IFormatter<T>` implementations at compile time.
-
-**Anti-pattern:** Do NOT use `System.Reflection.Emit` or runtime reflection for serialization.
-
-### DataFrames
-
-| Type | Purpose |
-| :--- | :--- |
-| `PacketBase<T>` | Abstract base for all application packets. Auto-handles header (opcode + length). |
-| `PacketRegistry` | Maps opcode → Type, provides pooled packet instantiation. |
-| `PacketSchema` | Metadata about packet field layout. |
-| `FrameBase` | Low-level frame abstraction. |
-
-`PacketBase<T>` uses the curiously recurring template pattern: `class MyPacket : PacketBase<MyPacket>`.
-
-### Security / Cryptography
-
+### Generator Activation
+`[GenerateFormatter]` requires the containing project to reference `Nalix.Analyzers.Generators` as:
+```xml
+<ProjectReference ... OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
 ```
-Security/
-├── Aead/            # ChaCha20-Poly1305, Salsa20-Poly1305 AEAD implementations
-├── Asymmetric/      # X25519 key exchange (Curve25519 scalar multiplication)
-├── Engine/          # SecurityEngine orchestration
-├── Hashing/         # SHA-256, HMAC helpers
-├── Internal/        # Low-level crypto internals
-├── Primitives/      # Poly1305 MAC, nonce/counter management
-├── Symmetric/       # ChaCha20, Salsa20 stream ciphers
-├── EnvelopeCipher.cs    # High-level encrypt/decrypt envelope
-└── HandshakeX25519.cs   # X25519 handshake protocol implementation
-```
+Without this, no code is generated and the serializer fails at runtime with a missing-formatter exception.
 
-**Rules:**
-- NEVER invent new cryptographic designs — reuse existing primitives.
-- Constant-time comparison for all authentication checks.
-- Nonce/IV management must be explicit and documented.
+---
 
-### Protocol Frames
+## Checklists
 
-Pre-defined frame types for the Nalix wire protocol:
-- `Control` — System control messages (error, throttle, notice)
-- `Directive` — Server directives
-- `Handshake` — Key exchange and cipher negotiation
-- `SessionResume` — Zero-RTT session resumption
+### Define a new application packet
+1. `public sealed class MyPacket : PacketBase<MyPacket>`
+2. Add `[SerializeHeader]` on the class
+3. Add `[SerializeOrder(0)]`, `[SerializeOrder(1)]`... on each field in wire order
+4. Exclude derived/computed fields: `[SerializeIgnore]`
+5. Run `dotnet build` — inspect `obj/.../generated/` for the emitted `IFormatter<MyPacket>`
+6. Confirm opcode in your enum is unique globally across all `PacketBase<T>` subclasses
 
-### Transform Pipeline
+### Define a new protocol frame
+1. Create under `Nalix.Codec/ProtocolFrames/`
+2. Inherit `FrameBase` (or `PacketBase<T>` if pooling is needed)
+3. Same `[SerializeOrder]` rules as above
+4. If pooled: add to `PacketRegistry` initialization
 
-`FramePipeline` chains transformations in order:
-1. `FrameCompression` — LZ4 compress/decompress
-2. `FrameCipher` — AEAD encrypt/decrypt
-3. `FrameTransformer` — Orchestrates the full transform chain
+### Add a new crypto primitive
+1. Only add to `Security/Aead/`, `Security/Symmetric/`, or `Security/Hashing/` — never invent a custom scheme
+2. Use `EnvelopeCipher` as the integration point, not raw cipher classes
+3. Nonce management must go through the cipher engine — no external nonce generation
 
-## Performance Rules
+---
 
-- `LiteSerializer` hot paths must be zero-allocation.
-- LZ4 compression uses pooled buffers, not `new byte[]`.
-- Crypto operations use `Span<byte>` for all key/nonce/ciphertext handling.
-- `PacketRegistry` provides object pooling — use `Rent()`/`Return()` pattern.
+## Gotchas
+
+- **Opcode collision is runtime-silent**: Two packet types registered with the same opcode produce no compile-time error. The second registration silently overwrites the first. The symptom is wrong deserialization — the wrong packet type is instantiated for that opcode.
+
+- **`[SerializeOrder]` gaps produce wire format mismatches**: The generator assigns wire slots by `[SerializeOrder]` value. A sequence like `(0, 1, 3)` leaves an empty slot at position 2. Clients expecting a 4-field packet receive 3 fields — deserialization produces truncated or corrupt data.
+
+- **Generator not attached = silent runtime failure**: If the generator reference is wrong (missing `OutputItemType="Analyzer"`), no formatter is generated. The error only appears at runtime when `FormatterProvider` throws a missing-formatter exception.
+
+- **HKDF label changes break all existing clients**: The handshake proof label is compiled into both client and server. Changing it on the server makes every existing client fail the `CLIENT_FINISH` proof check — they will all get `DECRYPTION_FAILED`.
+
+- **Compressing ciphertext wastes CPU**: If you accidentally reverse the pipeline (encrypt then compress), LZ4 produces near-zero compression on high-entropy ciphertext — you pay compression CPU cost for no benefit.
+
+- **`IFillableFormatter<T>` vs `IFormatter<T>`**: For pooled packet types, always use `IFillableFormatter<T>` to fill a rented object. Using `IFormatter<T>` allocates a new instance, defeating pooling.

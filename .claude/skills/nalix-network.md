@@ -1,82 +1,78 @@
 # Nalix.Network
 
-## Role
+## Triggers
+- Modifying connection lifecycle or per-IP limits
+- Touching rate limiting, ban logic, or flood protection
+- Working with session persistence or zero-RTT resume
+- Adding or changing transport (TCP/UDP/WebSocket) behavior
 
-High-performance networking transport runtime. Provides TCP/UDP listeners, connection/hub management, protocol lifecycle, session persistence, and rate limiting for real-time server applications.
+---
 
-**Dependencies:** `Nalix.Abstractions`, `Nalix.Framework`
+## Rules
 
-## Directory Structure
+### Session Lifecycle
+- Session snapshot is created **immediately at `CLIENT_FINISH`** (handshake completion) — not on disconnect, not lazily on first resume
+- `SessionHandlers.ConsumeAsync()` is atomic retrieve-and-remove (SEC-33) — retrieves the session and removes it in one operation to prevent TOCTOU with parallel resume requests using the same token
+- Session tokens use HMAC-Keccak256 with a sliding window: t-1, t, t+1 where t = current 30-second window → a token is valid for approximately 30–90 seconds
+- Sessions are pooled objects — call `session.Return()` after use; do not hold references beyond the handler
 
-```
-Nalix.Network/
-├── Connections/         # Connection implementation and hub
-│   ├── Connection.cs               # Core connection (implements IConnection)
-│   ├── Connection.Hub.cs           # ConnectionHub (shard-based connection management)
-│   └── Connection.EventArgs.cs     # Connection event data
-├── Internal/            # Internal networking helpers
-├── Listeners/           # Transport listeners
-│   ├── TcpListener/                # TCP accept loop and socket management
-│   └── UdpListener/                # UDP receive loop with anti-replay
-├── Options/             # Network configuration options
-├── Protocols/           # Protocol lifecycle orchestration
-├── RateLimiting/        # IP-based and connection-based rate limiters
-├── Sessions/            # Session persistence
-│   ├── SessionStoreBase.cs         # Abstract session store
-│   └── InMemorySessionStore.cs     # In-memory session store with TTL
-```
+### ConnectionHub
+- Sharded for concurrency — never bypass sharding with direct shard access when broadcasting; always use `BroadcastAsync()`
+- Shard count is fixed at construction — size it for peak expected connections
+- `ConnectionHub` is the single source of truth for active connections — do not maintain a separate tracking list elsewhere
 
-## Key Components
+### ConnectionGuard (Rate Limiting)
+- `ConnectionLimitEntry` uses two separate concurrency mechanisms:
+  - `SpinLock` protecting the immutable-snapshot `ConnectionLimitInfo` (for concurrent/daily counters)
+  - `ConcurrentQueue<long>` for sliding-window timestamps (lock-free appends, trimmed under lock)
+- Ban tiers are progressive: `BanCount` increments on each ban, `LastBanTimeTicks` enables decay — ban duration grows with each repeated violation
+- X-Forwarded-For is only trusted if the source IP is in the configured trusted proxy list — **not auto-trusted**
+- DDoS log suppression: only one warning is logged per IP per throttle window; `SuppressedDDoSCount` tracks suppressed entries
 
-### Connection & ConnectionHub
+### Transport Selection
+- TCP: reliable ordered delivery — use for game state, commands, authentication handshake
+- UDP: best-effort unordered — use for position updates, telemetry, time-sensitive events
+- UDP anti-replay: sequence IDs older than the sliding window are **silently dropped** — not counted as errors, not logged by default
 
-- `Connection` implements `IConnection` — represents a single client socket.
-- `Connection.Hub` (`ConnectionHub`) — **shard-based** concurrent dictionary for O(1) lookup/broadcast.
-- Sharding prevents lock contention under thousands of concurrent connections.
-- `BroadcastAsync` sends to all connections across shards.
+### Connection State
+- `connection.Secret.IsZero` = connection not yet authenticated — use as pre-auth guard
+- Each `Connection` has local per-connection object pools (reduces global pool contention)
+- Malformed packet counter increments per bad packet — connection is disconnected when the threshold is reached
 
-### TCP Listener
+---
 
-- Non-blocking accept loop using `Socket.AcceptAsync`.
-- Each accepted connection gets a `SocketConnection` with dedicated receive loop.
-- Integrates with `FramePipeline` for transform (decompress → decrypt → deserialize).
+## Checklists
 
-### UDP Listener
+### Configure per-IP connection limits
+1. Set `ConnectionGuardOptions`: max concurrent connections, daily limit, ban tier durations
+2. If behind a load balancer: add trusted proxy IPs to enable X-Forwarded-For trust
+3. Tune ban escalation: set `BanDurationSeconds` array (each index = one ban tier)
+4. Verify `DDoS log suppression` window is appropriate for your traffic pattern
 
-- Single receive loop with `ReceiveFromAsync`.
-- Anti-replay: sliding window + sequence ID validation.
-- HMAC integrity verification and timestamp checks baked into the listener pipeline.
+### Implement session resume (server side)
+1. After `CLIENT_FINISH`: session is already saved by `HandshakeHandlers.SaveSessionAsync()`
+2. Client sends `SessionResume` frame with token
+3. `ConsumeAsync()` retrieves and removes the session atomically — even a failed resume removes the session
+4. On success: restore TCP/UDP sequence numbers from session attributes
+5. On failure: disconnect; do not allow retry with the same token (it is already consumed)
 
-### Session Management
+### Add a new listener
+1. Implement `IListener`
+2. Register via `builder.BindTcp<TProtocol>()` or `builder.BindUdp<TProtocol>()`
+3. Wire to a dispatcher — each listener can bind to a specific dispatch channel
 
-- `SessionStoreBase` — Abstract base with TTL-based expiration.
-- `InMemorySessionStore` — `MemoryCache`-backed implementation.
-- Session snapshots are created **immediately** after handshake (not on disconnect).
-- Supports zero-RTT resume via `SessionResume` protocol frame.
+---
 
-### Rate Limiting
+## Gotchas
 
-`ConnectionGuard` — IP-based connection rate limiting using a sharded entry map. Split into partial files:
+- **Session token consumed even on failed resume**: `ConsumeAsync()` is remove-on-read. A resume attempt that fails due to invalid state or expired token still removes the session. The client must fully re-authenticate — there is no retry with the same token.
 
-| File | Content |
-| :--- | :--- |
-| `Connection.Guard.cs` | Core allow/deny logic, shard lookup, ban enforcement |
-| `Connection.Guard.Types.cs` | `ConnectionAllowResult`, `ConnectionLimitInfo` (immutable snapshot), `ConnectionLimitEntry` (mutable state with `SpinLock`, sliding-window timestamps, ban tier tracking) |
-| `Connection.Guard.Cleanup.cs` | TTL-based stale entry eviction |
-| `Connection.Guard.Report.cs` | Diagnostics and metrics reporting |
+- **Creating sessions on disconnect is wrong**: Sessions must be created at `CLIENT_FINISH`. Creating them at disconnect loses the session data needed for zero-RTT resume before any disconnect can occur.
 
-`ConnectionLimitEntry` tracks progressive ban tiers (`BanCount`, `LastBanTimeTicks`), DDoS log suppression, and reject/close log throttling per IP.
+- **UDP drops are silent**: The anti-replay window silently discards old sequence IDs. Elevated drop rates will not appear in error logs — monitor via the metrics/report endpoint of `ConnectionGuard`.
 
-## Performance Rules
+- **`SpinLock` + `ConcurrentQueue` on the same entry**: `ConnectionLimitEntry` uses both. Always acquire the `SpinLock` when reading or writing `ConnectionLimitInfo`. Never lock for timestamp queue appends — they are designed to be lock-free.
 
-- Socket I/O uses `Span<byte>` and pooled buffers — no `new byte[]` on receive path.
-- ConnectionHub sharding eliminates lock contention — do NOT use a single `ConcurrentDictionary`.
-- UDP listener MUST validate anti-replay window before any deserialization.
-- Session snapshots use cache-aside pattern with strict TTL.
+- **X-Forwarded-For without trusted proxy config = IP spoofing**: Enabling proxy header parsing without configuring trusted IPs allows any client to set their apparent IP to any value via the header.
 
-## Anti-Patterns
-
-- Do NOT create sessions on disconnect — create them immediately after handshake.
-- Do NOT process UDP packets without HMAC verification first.
-- Do NOT use `Thread.Sleep` in listener loops.
-- Do NOT bypass `ConnectionHub` for connection management.
+- **Progressive ban tiers compound**: A client that triggers bans repeatedly accumulates `BanCount`. The ban duration for the Nth violation is longer than the first. Ban count decays via `LastBanTimeTicks` but only after a configurable idle period — a client that persistently violates will stay in high ban tiers.

@@ -1,43 +1,90 @@
-<!-- gitnexus:start -->
-# GitNexus — Code Intelligence
+# Nalix — Agent Instructions
 
-This project is indexed by GitNexus as **nalix** (8690 symbols, 22803 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+Rules and context for AI agents working on the **Nalix** codebase — a modular, high-performance networking framework for .NET 10.
 
-> If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
+---
 
-## Always Do
+## Dependency Graph
 
-- **MUST run impact analysis before editing any symbol.** Before modifying a function, class, or method, run `gitnexus_impact({target: "symbolName", direction: "upstream"})` and report the blast radius (direct callers, affected processes, risk level) to the user.
-- **MUST run `gitnexus_detect_changes()` before committing** to verify your changes only affect expected symbols and execution flows.
-- **MUST warn the user** if impact analysis returns HIGH or CRITICAL risk before proceeding with edits.
-- When exploring unfamiliar code, use `gitnexus_query({query: "concept"})` to find execution flows instead of grepping. It returns process-grouped results ranked by relevance.
-- When you need full context on a specific symbol — callers, callees, which execution flows it participates in — use `gitnexus_context({name: "symbolName"})`.
+```plaintext
+Level 0 : Nalix.Abstractions            (zero deps)
+Level 0 : Nalix.Analyzers               (Roslyn only, netstandard2.0)
+Level 0 : Nalix.Analyzers.Generators    (Roslyn only, netstandard2.0)
+Level 1 : Nalix.Analyzers.CodeFixes     → Analyzers
+Level 1 : Nalix.Environment             → Abstractions
+Level 2 : Nalix.Codec                   → Abstractions, Environment, Analyzers.Generators (generator)
+Level 2 : Nalix.Framework               → Abstractions, Environment, Codec
+Level 3 : Nalix.Runtime                 → Abstractions, Framework, Codec
+Level 3 : Nalix.Network                 → Abstractions, Framework
+Level 3 : Nalix.Logging                 → Abstractions, Framework
+Level 3 : Nalix.SDK                     → Codec
+Level 4 : Nalix.Hosting                 → Abstractions, Framework, Codec, Runtime, Network
+Level 5 : Nalix.SDK.Native              → SDK (Native AOT, C ABI)
+```
 
-## Never Do
+**NEVER introduce circular references or skip dependency levels.**
 
-- NEVER edit a function, class, or method without first running `gitnexus_impact` on it.
-- NEVER ignore HIGH or CRITICAL risk warnings from impact analysis.
-- NEVER rename symbols with find-and-replace — use `gitnexus_rename` which understands the call graph.
-- NEVER commit changes without running `gitnexus_detect_changes()` to check affected scope.
+---
 
-## Resources
+## Coding Rules
 
-| Resource | Use for |
-|----------|---------|
-| `gitnexus://repo/nalix/context` | Codebase overview, check index freshness |
-| `gitnexus://repo/nalix/clusters` | All functional areas |
-| `gitnexus://repo/nalix/processes` | All execution flows |
-| `gitnexus://repo/nalix/process/{name}` | Step-by-step execution trace |
+- **Language:** C# 14 on .NET 10 (`net10.0`). Analyzers/generators target `netstandard2.0`.
+- **Namespaces:** File-scoped only (`namespace Foo.Bar;`).
+- **Nullable:** Enabled everywhere — never add `#nullable disable`.
+- **Classes:** Prefer `sealed` unless inheritance is explicitly required.
+- **Structs:** Prefer `readonly struct`.
+- **XML docs:** Required on all `public` APIs.
+- **Hot paths:** Zero-allocation. Use `Span<T>`, pooled buffers — no LINQ, no `new byte[]`.
+- **Security:** Never invent cryptographic primitives. Reuse `Nalix.Codec.Security` only. Never log keys, tokens, or secrets.
+- **Partial classes:** Large classes use `.cs` + `.Types.cs` + `.Cleanup.cs` + `.Report.cs` — follow this split consistently.
+- **DI:** Use `InstanceManager` (singleton-only). Never `Microsoft.Extensions.DependencyInjection`.
 
-## CLI
+---
 
-| Task | Read this skill file |
-|------|---------------------|
-| Understand architecture / "How does X work?" | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Blast radius / "What breaks if I change X?" | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Trace bugs / "Why is X failing?" | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Rename / extract / split / refactor | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Tools, resources, schema reference | `.claude/skills/gitnexus/gitnexus-guide/SKILL.md` |
-| Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+## Critical Invariants
 
-<!-- gitnexus:end -->
+### Protocol ordering
+`KEY_EXCHANGE` → `CLIENT_HELLO` → `CLIENT_FINISH` → application packets
+
+Violating this order causes a hard `Disconnect()` at runtime.
+
+### Transform pipeline order
+Outbound: serialize → compress → encrypt
+Inbound: decrypt → decompress → deserialize
+
+Never swap compress and encrypt.
+
+### Session snapshot timing
+Session is saved at `CLIENT_FINISH` (handshake completion). Never on disconnect, never lazily.
+
+### Packet opcode uniqueness
+Opcodes must be globally unique across all `PacketBase<T>` subclasses. Collision is silent at compile time.
+
+### Handler method signature
+Handler methods must be `public static async ValueTask` — instance methods are not resolved.
+
+### `IPoolable.Reset()`
+Must clear **every** mutable field. Partial reset causes data leaks between callers. No validation catches this.
+
+### `BufferLease` async handoff
+Call `Retain()` before any async handoff. Omitting it causes use-after-free when the sender disposes the lease.
+
+### `[UnmanagedCallersOnly]` boundary
+No exceptions may cross the native boundary. Every exported method must `try/catch` and return an error code.
+
+---
+
+## Build & Test
+
+```bash
+# Build
+dotnet build src/Nalix.sln --configuration Release
+
+# Test
+dotnet test tests/Nalix.Tests.sln --configuration Release
+```
+
+- Run build and test only when files under `src/` or `tests/` are modified.
+- Documentation, workflow, and metadata changes do not require build/test.
+
+---

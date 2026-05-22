@@ -1,76 +1,69 @@
 # Nalix.Analyzers.Generators
 
-## Role
+## Triggers
+- Adding a new packet type (`PacketBase<T>` subclass)
+- Adding or modifying serialization attributes (`[GenerateFormatter]`, `[SerializeOrder]`, etc.)
+- Adding a new config option class to be used with `ConfigurationManager.Bind<T>()`
+- Modifying or adding a source generator itself
 
-Roslyn incremental source generator project. Runs at **compile-time** to generate AOT-safe code for serialization, packet registry, packet schemas, and configuration binding. Targets `netstandard2.0` (Roslyn requirement).
+---
 
-**Dependencies:** `Microsoft.CodeAnalysis.CSharp` (5.3.0), `Microsoft.CodeAnalysis.Analyzers` (5.3.0). No runtime Nalix references.
+## Rules
 
-## Directory Structure
+### Generator Triggers
+| Generator | Trigger condition |
+| :--- | :--- |
+| `SerializeFormatterGenerator` | Class with `[GenerateFormatter]` |
+| `PacketRegistryGenerator` | Class inheriting `PacketBase<T>` with `[SerializeHeader]` |
+| `PacketSchemaGenerator` | Same as `SerializeFormatterGenerator` |
+| `ConfigurationGenerator` | Class used in a call to `ConfigurationManager.Bind<T>()` |
 
+### KnownNames First
+When adding a new attribute that any generator must detect, **add the fully-qualified name to `KnownNames.cs` first** before writing the generator logic that references it. Generators match types by string name only — no assembly reference to runtime Nalix code is allowed.
+
+### Incremental Generator Correctness
+- All generators implement `IIncrementalGenerator` — preserve the `IncrementalValueProvider` pipeline to keep IDE performance acceptable
+- Never break the caching pipeline by calling non-deterministic APIs (e.g., `DateTime.Now`, `Guid.NewGuid()`) inside a transform step
+- Generated source is emitted via `context.AddSource(hintName, sourceText)` — use stable, deterministic `hintName` values
+
+### Build Integration Constraint
+Generators are referenced as `OutputItemType="Analyzer" ReferenceOutputAssembly="false"`. The following MSBuild properties are stripped from the generator build context to prevent AOT props leaking into the generator:
 ```
-Nalix.Analyzers.Generators/
-├── ConfigurationGenerator.cs          # Generates AOT-safe INI config binders
-├── PacketRegistryGenerator.cs         # Generates static opcode → type mappings
-├── PacketSchemaGenerator.cs           # Generates packet field metadata / schema
-├── SerializeFormatterGenerator.cs     # Generates IFormatter<T> implementations
-└── Internal/
-    ├── Fnv1a.cs                       # FNV-1a hash for stable name hashing
-    ├── KnownNames.cs                  # Well-known type/attribute names
-    ├── SerializationMember.cs         # Member metadata model for code gen
-    └── SourceGenNamespaces.cs         # Namespace constants
+GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible"
 ```
 
-## Generators
+---
 
-### 1. SerializeFormatterGenerator
+## Checklists
 
-**Trigger:** Classes decorated with `[GenerateFormatter]`.
-**Output:** `IFormatter<T>` implementation with `Serialize` and `Deserialize` methods.
-- Reads `[SerializeOrder]` for deterministic field ordering.
-- Handles primitives, strings, collections (`List<T>`, `Dictionary<K,V>`, arrays).
-- Respects `[SerializeIgnore]` and `[SerializeDynamicSize]`.
-- Handles `PacketBase<T>` header fields automatically.
+### Add a new generator-detected attribute
+1. Add the fully-qualified attribute name as a constant to `KnownNames.cs`
+2. Use `KnownNames.YourAttributeName` in generator logic — never hardcode strings inline
+3. Add the attribute definition to `Nalix.Abstractions` (not here)
+4. Run `dotnet build` on a consuming project to verify the generator fires
 
-### 2. PacketRegistryGenerator
+### Modify an existing generator
+1. Make the change
+2. Run `dotnet build` on the consuming project (e.g., `Nalix.Codec`)
+3. Inspect `obj/Debug/net10.0/generated/<GeneratorName>/` to verify the emitted output
+4. If trigger conditions changed (e.g., different attribute name): run `dotnet build --no-incremental` to force a clean generation pass
 
-**Trigger:** Classes inheriting `PacketBase<T>` with `[SerializeHeader]`.
-**Output:** Static registry method mapping opcode values to packet types and pooled constructors.
+### Debug a generator not firing
+1. Check `obj/Debug/net10.0/generated/` — if folder is empty or missing, the trigger condition was not met
+2. Verify the consuming project has `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` on the generator project reference
+3. Check that the trigger type/attribute matches `KnownNames` exactly (case-sensitive, fully-qualified)
+4. Run `dotnet build --no-incremental` to bypass incremental cache
 
-### 3. PacketSchemaGenerator
+---
 
-**Trigger:** Same as SerializeFormatterGenerator.
-**Output:** `PacketSchema` metadata describing field names, types, and ordering for reflection-free introspection.
+## Gotchas
 
-### 4. ConfigurationGenerator
+- **Stale generated output after trigger rename**: If you rename the attribute or class that triggers a generator, the old generated files remain in `obj/` until a clean build. Run `dotnet build --no-incremental` or delete `obj/` when changing trigger conditions.
 
-**Trigger:** Classes used with `ConfigurationManager.Bind<T>()`.
-**Output:** AOT-safe property binders that avoid runtime reflection for INI config loading.
+- **Non-deterministic `hintName` breaks incremental caching**: If `hintName` passed to `context.AddSource()` changes between identical inputs (e.g., timestamp-based), the incremental cache treats every build as a change — IDE performance degrades significantly.
 
-## Key Design Constraints
+- **`FNV1a` hash in `Fnv1a.cs` is for stable name hashing only**: It provides deterministic, order-independent hashing for identifier names in generator output. Do not use it for data integrity or security purposes.
 
-- **Target framework:** `netstandard2.0` — this is a hard Roslyn requirement.
-- All generators implement `IIncrementalGenerator` for performance.
-- No runtime references to Nalix assemblies — generators match types by **fully-qualified name strings** only.
-- `KnownNames.cs` contains all attribute and type names as string constants to avoid assembly coupling.
-- `Fnv1a.cs` provides stable, deterministic hash codes for identifier matching.
+- **`GlobalPropertiesToRemove` is load-bearing**: Removing or changing the AOT property stripping causes generator builds to fail in publish pipelines where `PublishAot=true` is set on the consuming project.
 
-## Build Integration
-
-- Referenced as `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` in consuming projects.
-- `GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible"` prevents AOT props from leaking into the generator build.
-- Excluded from self-analysis via conditions in `src/Directory.Build.props`.
-
-## When Modifying Generators
-
-1. Changes require **full rebuild** of all consuming projects to see effect.
-2. Test with `dotnet build` on a consuming project (e.g., `Nalix.Codec`) to verify generated output.
-3. Use `#pragma warning disable` sparingly — generated code should be warning-free.
-4. Preserve incremental caching — avoid breaking the `IncrementalValueProvider` pipeline.
-5. Generated source is emitted via `context.AddSource(hintName, sourceText)`.
-
-## Anti-Patterns
-
-- Do NOT reference Nalix runtime assemblies — use string-based type matching.
-- Do NOT use reflection at generation time — use Roslyn `INamedTypeSymbol` APIs.
-- Do NOT generate code that requires runtime reflection in the output.
+- **Generators run on every keystroke in the IDE**: Any non-trivial allocation inside an `AnalyzeXxx` or generator transform step degrades typing responsiveness for all developers. Keep transforms allocation-free.
