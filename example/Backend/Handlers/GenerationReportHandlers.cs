@@ -89,7 +89,7 @@ public sealed class GenerationReportHandlers
 
     private static string SerializeReportData(IReportable reportable)
     {
-        ArrayBufferWriter<byte> bufferWriter = new(1024);
+        ArrayBufferWriter<byte> bufferWriter = new(1024 * 8);
         using Utf8JsonWriter writer = new(bufferWriter, new JsonWriterOptions
         {
             Indented = false,

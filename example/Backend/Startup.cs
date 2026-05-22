@@ -51,6 +51,12 @@ internal class Startup
                 o.BufferSize = 1024 * 64;
                 o.Backlog = 1024;
             })
+            .Configure<NetworkWebSocketOptions>(o =>
+            {
+                o.Host = "+";
+                o.Port = 57207;
+                o.Path = "/ws/";
+            })
             .Configure<ConnectionQuotaOptions>(o =>
             {
                 o.MaxConnectionsPerIpAddress = 10_000;
@@ -93,7 +99,11 @@ internal class Startup
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .BindTcp<DefaultProtocol>()
-            .Bind()
+                .Bind()
+            .BindWebSocket<DefaultProtocol>()
+                .OnPort(57207)
+                .WithPath("/ws/")
+                .Bind()
             .Build();
 
         return host;
@@ -116,4 +126,3 @@ internal class Startup
         return Path.GetFullPath(Path.Combine("shared", fileName));
     }
 }
-
