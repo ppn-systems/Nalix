@@ -9,9 +9,9 @@ using Nalix.Abstractions.Security;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
-namespace Contracts;
+namespace Nalix.Observability.Contracts;
 
-public enum AuthorityGrantStage : byte
+public enum ObservabilityAccessStage : byte
 {
     NONE = 0x00,
     REQUEST = 0x01,
@@ -22,13 +22,13 @@ public enum AuthorityGrantStage : byte
 [ExcludeFromCodeCoverage]
 [GenerateFormatterAttribute]
 [SerializePackable(SerializeLayout.Explicit)]
-[DebuggerDisplay("AUTHORITY_GRANT Stage={Stage}, Granted={GrantedLevel}, Reason={Reason}")]
-public sealed partial class AuthorityGrant : PacketBase<AuthorityGrant>, IPacketValidatable
+[DebuggerDisplay("OBSERVABILITY_ACCESS Stage={Stage}, Granted={GrantedLevel}, Reason={Reason}")]
+public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess>, IPacketValidatable
 {
     public const ushort OpCodeValue = 0x5100;
 
     [SerializeOrder(0)]
-    public AuthorityGrantStage Stage { get; set; }
+    public ObservabilityAccessStage Stage { get; set; }
 
     [SerializeOrder(1)]
     public ProtocolReason Reason { get; set; }
@@ -40,10 +40,10 @@ public sealed partial class AuthorityGrant : PacketBase<AuthorityGrant>, IPacket
     [SerializeDynamicSize(256)]
     public string Key { get; set; } = string.Empty;
 
-    public AuthorityGrant() => this.ResetForPool();
+    public ObservabilityAccess() => this.ResetForPool();
 
     public void Initialize(
-        AuthorityGrantStage stage,
+        ObservabilityAccessStage stage,
         ProtocolReason reason = ProtocolReason.NONE,
         PermissionLevel grantedLevel = PermissionLevel.NONE,
         string key = "",
@@ -64,7 +64,7 @@ public sealed partial class AuthorityGrant : PacketBase<AuthorityGrant>, IPacket
         this.OpCode = OpCodeValue;
         this.Priority = PacketPriority.URGENT;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
-        this.Stage = AuthorityGrantStage.NONE;
+        this.Stage = ObservabilityAccessStage.NONE;
         this.Reason = ProtocolReason.NONE;
         this.GrantedLevel = PermissionLevel.NONE;
         this.Key = string.Empty;
@@ -74,13 +74,12 @@ public sealed partial class AuthorityGrant : PacketBase<AuthorityGrant>, IPacket
     {
         bool isValid = this.Stage switch
         {
-            AuthorityGrantStage.REQUEST => !string.IsNullOrWhiteSpace(this.Key),
-            AuthorityGrantStage.RESPONSE => this.Reason != ProtocolReason.NONE || this.GrantedLevel > PermissionLevel.NONE,
-            AuthorityGrantStage.NONE or _ => false
+            ObservabilityAccessStage.REQUEST => !string.IsNullOrWhiteSpace(this.Key),
+            ObservabilityAccessStage.RESPONSE => this.Reason != ProtocolReason.NONE || this.GrantedLevel > PermissionLevel.NONE,
+            ObservabilityAccessStage.NONE or _ => false
         };
 
-        failureReason = isValid ? null : $"Invalid fields provided for authority grant stage {this.Stage}.";
+        failureReason = isValid ? null : $"Invalid fields provided for observability access stage {this.Stage}.";
         return isValid;
     }
 }
-

@@ -5,9 +5,9 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<TargetFramework>net10.0</TargetFramework>
-		<RootNamespace>Contracts</RootNamespace>
+		<RootNamespace>Nalix.Observability.Contracts</RootNamespace>
 		<OutputType>Library</OutputType>
-		<AssemblyName>Contracts</AssemblyName>
+		<AssemblyName>Nalix.Observability.Contracts</AssemblyName>
 	</PropertyGroup>
 
 	<ItemGroup>

@@ -8,41 +8,22 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
-namespace Contracts;
-
-public enum GenerationReportStage : byte
-{
-    NONE = 0x00,
-    REQUEST = 0x01,
-    RESPONSE = 0x02
-}
-
-public enum GenerationReportTarget : byte
-{
-    NONE = 0x00,
-    DISPATCH = 0x01,
-    TASKS = 0x02,
-    BUFFERS = 0x03,
-    CONNECTIONS = 0x04,
-    INSTANCES = 0x05,
-    OBJECT_POOLS = 0x06,
-    CONNECTION_GUARD = 0x07
-}
+namespace Nalix.Observability.Contracts;
 
 [Packet]
 [ExcludeFromCodeCoverage]
 [GenerateFormatterAttribute]
 [SerializePackable(SerializeLayout.Explicit)]
-[DebuggerDisplay("GENERATION_REPORT Stage={Stage}, Target={Target}, Reason={Reason}")]
-public sealed partial class GenerationReport : PacketBase<GenerationReport>, IPacketValidatable
+[DebuggerDisplay("RUNTIME_OBSERVATION Stage={Stage}, Target={Target}, Reason={Reason}")]
+public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>, IPacketValidatable
 {
     public const ushort OpCodeValue = 0x5101;
 
     [SerializeOrder(0)]
-    public GenerationReportStage Stage { get; set; }
+    public RuntimeObservationStage Stage { get; set; }
 
     [SerializeOrder(1)]
-    public GenerationReportTarget Target { get; set; }
+    public RuntimeObservationTarget Target { get; set; }
 
     [SerializeOrder(2)]
     public ProtocolReason Reason { get; set; }
@@ -51,11 +32,11 @@ public sealed partial class GenerationReport : PacketBase<GenerationReport>, IPa
     [SerializeDynamicSize(64 * 1024)]
     public string DataJson { get; set; } = string.Empty;
 
-    public GenerationReport() => this.ResetForPool();
+    public RuntimeObservation() => this.ResetForPool();
 
     public void Initialize(
-        GenerationReportStage stage,
-        GenerationReportTarget target,
+        RuntimeObservationStage stage,
+        RuntimeObservationTarget target,
         ProtocolReason reason = ProtocolReason.NONE,
         string? dataJson = null,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
@@ -75,8 +56,8 @@ public sealed partial class GenerationReport : PacketBase<GenerationReport>, IPa
         this.OpCode = OpCodeValue;
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
-        this.Stage = GenerationReportStage.NONE;
-        this.Target = GenerationReportTarget.NONE;
+        this.Stage = RuntimeObservationStage.NONE;
+        this.Target = RuntimeObservationTarget.NONE;
         this.Reason = ProtocolReason.NONE;
         this.DataJson = string.Empty;
     }
@@ -85,14 +66,13 @@ public sealed partial class GenerationReport : PacketBase<GenerationReport>, IPa
     {
         bool isValid = this.Stage switch
         {
-            GenerationReportStage.REQUEST => this.Target != GenerationReportTarget.NONE,
-            GenerationReportStage.RESPONSE => this.Target != GenerationReportTarget.NONE &&
+            RuntimeObservationStage.REQUEST => this.Target != RuntimeObservationTarget.NONE,
+            RuntimeObservationStage.RESPONSE => this.Target != RuntimeObservationTarget.NONE &&
                                               (this.Reason != ProtocolReason.NONE || !string.IsNullOrWhiteSpace(this.DataJson)),
-            GenerationReportStage.NONE or _ => false
+            RuntimeObservationStage.NONE or _ => false
         };
 
-        failureReason = isValid ? null : $"Invalid fields provided for generation report stage {this.Stage}.";
+        failureReason = isValid ? null : $"Invalid fields provided for runtime observation stage {this.Stage}.";
         return isValid;
     }
 }
-
