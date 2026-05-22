@@ -1,71 +1,122 @@
 # Nalix.SDK
 
-## Role
+## Triggers
+- Implementing a client application connecting to a Nalix server
+- Setting up packet subscriptions or request-response patterns
+- Handling session resume, time sync, or cipher updates
+- Integrating Nalix with Unity or other main-thread-bound runtimes
 
-Client-side development kit. Provides managed TCP/UDP session clients, request-response patterns, typed message subscriptions, time synchronization, and transport dispatching for applications connecting to Nalix servers.
+---
 
-**Dependencies:** `Nalix.Codec` (which transitively includes Abstractions + Environment)
+## Rules
 
-## Directory Structure
+### Extension-Based API
+Most SDK functionality lives in **extension methods** on `TransportSession` — not on `TcpSession`/`UdpSession` directly. Import `Nalix.SDK.Transport.Extensions` and `Nalix.SDK.Extensions`.
 
+### Session Lifecycle Order
 ```
-Nalix.SDK/
-├── Extensions/          # SDK extension methods (handshake, session resume, cipher update)
-├── Options/             # SDK configuration options
-├── Transport/           # Session clients
-│   ├── TcpSession.cs               # Managed TCP client session
-│   ├── UdpSession.cs               # Managed UDP client session
-│   ├── TransportSession.cs         # Abstract base for transport sessions
-│   ├── Extensions/                 # Transport-specific extension methods
-│   └── Internal/                   # Internal transport helpers
-├── IThreadDispatcher.cs            # Dispatcher abstraction (e.g., Unity main thread)
-├── InlineDispatcher.cs             # Inline (same-thread) dispatcher
-└── TimeSyncCalculator.cs           # NTP-style time synchronization calculator
+ConnectAsync() → HandshakeAsync() → subscribe On<T>() → use RequestAsync / SendAsync
 ```
+`HandshakeAsync()` is mandatory after connect — skipping it means no encryption, and the server will reject packets requiring authentication.
 
-## Key Components
+### Subscription Management
+- `On<T>()` returns `IDisposable` — **must be disposed** to unsubscribe; leaking it = handler fires forever
+- Use `SubscribeTemp<T>()` when the subscription should auto-clean up on disconnect
+- Use `CompositeSubscription` (via `.Subscribe(sub1, sub2, ...)`) to manage multiple subscriptions as one unit
 
-### Transport Sessions
+### Graceful Disconnect
+Use `DisconnectGracefullyAsync()` instead of `DisconnectAsync()` — sends a `Control` frame with `ProtocolReason` before closing, allowing the server to clean up the session properly.
 
-| Type | Purpose |
+### Session Resume
+`ConnectWithResumeAsync()` attempts connect + zero-RTT resume in one call. Returns `true` if resume succeeded. If `false`, perform a full `HandshakeAsync()`.
+
+---
+
+## Key Extension Methods
+
+### Subscriptions (`TcpSessionSubscriptions.cs`)
+| Method | Use for |
 | :--- | :--- |
-| `TransportSession` | Abstract base — shared lifecycle, connect/disconnect, receive loop. |
-| `TcpSession` | TCP client with auto-reconnect, handshake, and encryption support. |
-| `UdpSession` | UDP client with sequence tracking, HMAC, and fragment assembly. |
+| `On<T>(Action<T>) → IDisposable` | Subscribe to all packets of type T |
+| `OnExact<T>(Action<T>) → IDisposable` | Exact type match only — no subtype matching |
+| `OnOnce<T>(Func<T,bool>, Action<T>) → IDisposable` | Fire once when predicate matches, then auto-unsubscribe |
+| `SubscribeTemp<T>(Action<T>, Action<Exception>?) → IDisposable` | Auto-disposes when session disconnects |
+| `Subscribe(params IDisposable[]) → CompositeSubscription` | Manage multiple subscriptions as one unit |
 
-Sessions integrate with the full Codec pipeline (serialize → compress → encrypt).
-
-### Request-Response Pattern
-
-`RequestAsync<TResponse>()` API with:
-- Correlated packet matching (via Snowflake correlation IDs).
-- Configurable timeouts.
-- Automatic deserialization of response type.
-
-### Typed Message Subscriptions
-
-`On<T>()` method for clean event-driven packet handling:
+### Request-Response (`RequestExtensions.cs`)
 ```csharp
-session.On<ChatMessage>(msg => HandleChat(msg));
+TResponse result = await session.RequestAsync<TResponse>(
+    request: new LoginRequest { ... },
+    options: new RequestOptions { TimeoutMs = 5000 },
+    predicate: r => r.Status == Status.Ok  // optional filter
+);
 ```
 
-### Thread Dispatching
+### Connection (`HandshakeExtensions.cs`, `ResumeExtensions.cs`, `DisconnectExtensions.cs`)
+| Method | Use for |
+| :--- | :--- |
+| `HandshakeAsync(ct)` | X25519 key exchange + cipher setup after connect |
+| `ConnectWithResumeAsync(host?, port?, ct) → bool` | Connect + attempt zero-RTT session resume |
+| `ResumeSessionAsync(ct) → ProtocolReason` | Resume only (already connected) |
+| `DisconnectGracefullyAsync(reason, closeLocal, ct)` | Graceful disconnect with server notification |
 
-- `IThreadDispatcher` — Abstraction for dispatching callbacks to a specific thread (e.g., Unity main thread).
-- `InlineDispatcher` — Executes callbacks on the receiving thread directly.
+### Utilities
+| Method | Use for |
+| :--- | :--- |
+| `PingAsync(timeoutMs, ct) → double` | RTT in milliseconds |
+| `SyncTimeAsync(timeoutMs, ct) → (RttMs, AdjustedMs)` | NTP-style clock sync |
+| `UpdateCipherAsync(CipherSuiteType, timeoutMs, ct)` | Rotate cipher mid-session |
 
-### Time Synchronization
+---
 
-`TimeSyncCalculator` — NTP-style round-trip time calculation for clock synchronization between client and server.
+## Checklists
 
-## AOT Compatibility
+### Connect and subscribe
+```csharp
+var session = new TcpSession(options);
 
-- `IsAotCompatible=true` with `TrimMode=partial`.
-- `IlcOptimizationPreference=Speed`.
-- Uses source-generated serialization — no reflection on hot paths.
+// Subscribe before connecting — no messages missed
+IDisposable sub1 = session.On<ChatMessage>(msg => HandleChat(msg));
+IDisposable sub2 = session.On<ServerNotice>(n => ShowNotice(n));
+var all = session.Subscribe(sub1, sub2); // manage as one unit
 
-## Anti-Patterns
+await session.ConnectAsync();
+await session.HandshakeAsync(); // mandatory
+```
 
-- Do NOT bypass `TransportSession` lifecycle — use `ConnectAsync`/`DisconnectAsync`.
-- Do NOT create raw sockets — use `TcpSession`/`UdpSession`.
-- Do NOT forget to dispose sessions — they hold socket and buffer resources.
+### Connect with session resume
+```csharp
+bool resumed = await session.ConnectWithResumeAsync(host, port);
+if (!resumed)
+    await session.HandshakeAsync(); // full handshake if resume failed
+```
+
+### One-shot request
+```csharp
+var response = await session.RequestAsync<LoginResponse>(
+    new LoginRequest { Username = "...", PasswordHash = hash },
+    options: new RequestOptions { TimeoutMs = 5000 }
+);
+```
+
+### Graceful shutdown
+```csharp
+await session.DisconnectGracefullyAsync(ProtocolReason.CLIENT_LEAVING);
+session.Dispose();
+```
+
+---
+
+## Gotchas
+
+- **`On<T>()` leaks if not disposed**: The subscription is registered on `OnMessageReceived`. If you don't call `Dispose()` on the returned `IDisposable`, the handler fires indefinitely — including after you think you've "removed" it.
+
+- **`HandshakeAsync()` is not automatic**: `ConnectAsync()` only establishes the TCP connection. Without `HandshakeAsync()`, there is no session key and all encrypted packets will be rejected by the server.
+
+- **`RequestAsync` timeout does not cancel the server operation**: The client stops waiting, but the server processes the request and sends a response that is silently dropped. Design server operations to be idempotent for safe retries.
+
+- **`OnExact<T>` vs `On<T>`**: `On<T>` matches T and any subtype. `OnExact<T>` matches only the exact type. Use `OnExact` when multiple packet types share a base class and you need precise routing.
+
+- **`SubscribeTemp<T>` vs `On<T>`**: `SubscribeTemp` automatically disposes when the session disconnects — useful for fire-and-forget UI patterns. `On<T>` must be manually disposed; use it when you control the subscription lifetime explicitly.
+
+- **`DisconnectAsync()` vs `DisconnectGracefullyAsync()`**: `DisconnectAsync()` closes the socket immediately. `DisconnectGracefullyAsync()` sends a control frame first, giving the server a chance to save state. Always prefer the graceful variant unless the connection is already broken.

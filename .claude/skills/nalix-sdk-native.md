@@ -1,60 +1,67 @@
 # Nalix.SDK.Native
 
-## Role
+## Triggers
+- Exporting a new function to the native C ABI
+- Integrating Nalix with Java (JNI/JNA), C/C++, Rust, Python, or Go
+- Publishing the native shared library for a target RID
+- Debugging crashes or errors at the managed/native boundary
 
-Native AOT interop layer. Exports the Nalix networking stack as a shared native library (`.dll`/`.so`/`.dylib`) with a C ABI (`UnmanagedCallersOnly`), enabling Java (JNI/JNA), C/C++, Rust, Python, Go, and other languages to call into Nalix.
+---
 
-**Dependencies:** `Nalix.SDK`
+## Rules
 
-## Directory Structure
+### C ABI Surface Constraints
+- All exported functions must use `[UnmanagedCallersOnly]` — no exceptions
+- Parameters and return types must be C-compatible: primitives, pointers, `delegate* unmanaged<...>` — **no managed types** (`string`, `object`, arrays, interfaces)
+- Use `byte*` + `int length` for string parameters — never `string`
+- Use `delegate* unmanaged<...>` for callbacks — never `Delegate`, `Action`, or `Func`
 
-```
-Nalix.SDK.Native/
-├── Nalix.cs                    # Main entry point / session factory
-├── Nalix.NativeMethods.cs      # UnmanagedCallersOnly exported methods
-├── Nalix.Extensions.cs         # Native-friendly extension methods
-├── Nalix.PrivateMethods.cs     # Internal helper methods
-├── Nalix.ErrorCode.cs          # Error code enum for C ABI
-├── Nalix.LastError.cs          # Thread-local last error tracking
-├── Results/                    # Result wrapper types for interop
-└── Wrappers/                   # Managed-to-native wrapper types
-```
+### Error Handling at the Boundary
+- **No exceptions may cross the native boundary** — any unhandled managed exception in an `[UnmanagedCallersOnly]` method causes a process crash (not a catchable error)
+- Every exported method must have a `try/catch (Exception)` block that captures the exception into `LastError` and returns an error code
+- Callers check the return code; retrieve the message via the `GetLastError` export
 
-## Key Design
+### Memory Safety
+- Managed buffers passed to native callers must be pinned/fixed for the duration of the call
+- `BufferLease` supports detach for zero-copy handoffs — detached leases must be explicitly freed by the native caller via a corresponding `Free` export
+- Never store managed object references in native memory — the GC can relocate them
 
-### C ABI Surface
-
-All exported functions use `[UnmanagedCallersOnly]`:
-- Pure C-compatible signatures (no managed types in parameters/return).
-- Error handling via error codes + `LastError` thread-local pattern.
-- Callbacks via function pointers (`delegate* unmanaged<...>`).
-
-### Supported Features
-
-- TcpSession: Connect, Send, Handshake, RequestAsync (via callback)
-- Callbacks: OnMessageReceived, OnDisconnected, OnError
-- Session resume, cipher update, ping, time sync
-- Zero-copy where possible via `BufferLease`
-
-### Build Configuration
-
-- `PublishAot=true`, `NativeLib=Shared`, `SelfContained=true`
-- `NativeLibraryName=Nalix` → produces `Nalix.dll` / `libNalix.so` / `libNalix.dylib`
-- Multi-RID: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `android-arm64`, `android-x64`
-- `IlcOptimizationPreference=Speed`, `StripSymbols=true`
-- `IsPackable=false` — not distributed as NuGet package
-
-## Publishing
-
+### Build / Publish
 ```bash
-dotnet publish -r linux-x64 -c Release
-dotnet publish -r win-x64 -c Release
-dotnet publish -r osx-arm64 -c Release
+dotnet publish -r linux-x64   -c Release   # produces libNalix.so
+dotnet publish -r win-x64     -c Release   # produces Nalix.dll
+dotnet publish -r osx-arm64   -c Release   # produces libNalix.dylib
 ```
+Supported RIDs: `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, `osx-arm64`, `android-arm64`, `android-x64`
 
-## Anti-Patterns
+---
 
-- Do NOT expose managed types in the C ABI surface.
-- Do NOT use `string` parameters in `[UnmanagedCallersOnly]` — use `byte*` + length.
-- Do NOT throw exceptions across the native boundary — use error codes.
-- Do NOT forget to pin/fix managed buffers when passing to unmanaged code.
+## Checklists
+
+### Export a new function
+1. Define the method as `public static <ReturnType> MyFunc(...)` in `Nalix.NativeMethods.cs`
+2. Add `[UnmanagedCallersOnly(EntryPoint = "nalix_my_func")]`
+3. Ensure all parameter and return types are C-compatible (no managed types)
+4. Wrap entire body in `try { ... } catch (Exception ex) { NalixLastError.Set(ex); return ErrorCode.Failure; }`
+5. If returning a buffer: use a `BufferLease` with a corresponding `nalix_free_buffer` export
+6. Add the function signature to the C header file for native callers
+
+### Debug a crash at the boundary
+1. Check if `[UnmanagedCallersOnly]` method has an unhandled exception path — any uncaught exception crashes the process
+2. Verify all pointer parameters are valid and within bounds before dereferencing
+3. Check that pinned/fixed buffers remain pinned for the entire duration of the call
+4. Use `NalixLastError.Get()` export from the calling language to retrieve the last error message
+
+---
+
+## Gotchas
+
+- **Unhandled exception = process crash, not a catchable error**: In `[UnmanagedCallersOnly]` methods, a managed exception that escapes the try/catch does not propagate to the native caller — it aborts the process. Every code path must be covered by the catch block.
+
+- **`string` parameters are not C-compatible**: The managed `string` type cannot be used in `[UnmanagedCallersOnly]` signatures. Always use `byte*` with a length parameter and convert inside the method body using `Encoding.UTF8.GetString(new ReadOnlySpan<byte>(ptr, length))`.
+
+- **GC moves managed objects**: A managed `byte[]` passed to a native caller can be moved by the GC during the call if not pinned. Use `fixed (byte* p = array)` or `GCHandle.Alloc(array, GCHandleType.Pinned)` for the duration of the operation.
+
+- **`IsPackable=false` means no NuGet distribution**: The native library is published as a platform-specific binary, not a NuGet package. Distribution is via direct file inclusion in consuming projects — reference documentation accordingly.
+
+- **`StripSymbols=true` removes debug info from release builds**: Native crash dumps from release builds have no symbol names. For debugging native crashes in release, temporarily publish with `StripSymbols=false`.

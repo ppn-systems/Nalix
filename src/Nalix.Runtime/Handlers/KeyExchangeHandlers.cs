@@ -16,7 +16,7 @@ namespace Nalix.Runtime.Handlers;
 /// <summary>
 /// Provides handlers for the TOFU key exchange protocol.
 /// </summary>
-[PacketController("Lib.KeyExchange")]
+[PacketController("Nalix.KeyExchange")]
 public sealed class KeyExchangeHandlers
 {
     /// <summary>

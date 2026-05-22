@@ -1,67 +1,66 @@
 # Nalix.Abstractions
 
-## Role
+## Triggers
+- Adding a new cross-cutting contract, interface, or attribute
+- Working with `IConnection` state or authentication checks
+- Defining serialization attributes on packet/frame types
+- Adding new permission levels, cipher types, or middleware contracts
 
-Lowest-level shared dependency in the Nalix ecosystem. Defines all cross-cutting contracts, interfaces, attributes, enums, and primitive types consumed by every other project.
+---
 
-**Dependencies:** None (zero internal project references). Only external: `Microsoft.Extensions.Logging.Abstractions`.
+## Rules
 
-## Directory Structure
+### Dependency Constraint
+This project has **zero internal Nalix dependencies**. Adding a reference to any other Nalix project here creates a circular dependency that breaks the entire build graph. Only `Microsoft.Extensions.Logging.Abstractions` is permitted.
 
-```
-Nalix.Abstractions/
-├── Concurrency/         # ITaskManager, IWorkerHandle, IRecurringHandle, WorkerPriority
-├── Exceptions/          # BaseException, CipherException, NetworkException, SerializationFailureException, etc.
-├── Identity/            # ISnowflake, SnowflakeType
-├── Microsoft/           # ThrottleLogExtensions (polyfills for Microsoft.Extensions)
-├── Middleware/           # IPacketMiddleware, MiddlewareOrderAttribute, MiddlewareStage
-├── Networking/           # IConnection, IConnectionHub, IProtocol, IListener, INetworkEndpoint, ITransportSequencer
-│   ├── Packets/         # IPacket, PacketBase contracts, opcode definitions
-│   ├── Protocols/       # Protocol-level enums and contracts
-│   └── Sessions/        # Session management abstractions
-├── Primitives/          # Bytes32 (fixed-size value type), PacketHeader
-├── Security/            # CipherSuiteType, DropPolicy, ISequenceCounter, PermissionLevel
-├── Serialization/       # Serialization attributes and contracts (see below)
-├── IBufferLease.cs      # Buffer pooling contract
-├── IBufferPoolManager.cs
-├── IObjectPoolManager.cs
-├── IPoolable.cs         # Object pool lifecycle
-├── IActivatable.cs      # Activation pattern
-└── (various attributes) # BorrowedAttribute, SkipCleanAttribute, ConfiguredIgnoreAttribute, etc.
-```
+### `IConnection` Auth Guard Pattern
+`connection.Secret.IsZero` is the canonical pre-auth check used throughout the runtime:
+- `true` = connection has not yet completed key exchange/handshake
+- Used in `SystemControlHandlers` to reject cipher update requests before authentication
+- Use this pattern in any handler that requires an established session
 
-## Key Design Rules
+### Serialization Attributes
+- `[SerializeOrder(n)]` must be present on **every** serializable field — starting from 0, no gaps, no duplicate values
+- The source generator (`Nalix.Analyzers.Generators`) emits fields in `[SerializeOrder]` order into the wire format — gaps produce empty wire slots
+- `[SerializeIgnore]` excludes a field entirely from the wire format
+- `[SerializeHeader]` marks the packet class for `PacketRegistryGenerator` — triggers opcode → type mapping generation
+- `[GenerateFormatter]` on a class triggers `SerializeFormatterGenerator` to emit `IFormatter<T>`
 
-- This project MUST NOT depend on any other Nalix project.
-- All types here are contracts/abstractions — no implementation logic.
-- All public APIs MUST have XML documentation comments.
-- Prefer `sealed` classes unless inheritance is explicitly intended.
-- Attributes must be lightweight — store only metadata, no behavior.
+### Attributes Are Metadata Only
+No attribute defined here may contain behavior (method bodies beyond property accessors). Attributes store metadata only — behavior belongs in Framework or Runtime.
 
-## Serialization Attributes
+### `Bytes32` Value Type
+Fixed 32-byte value type. Stored inline (no heap allocation) but:
+- Boxing `Bytes32` allocates — do not use as `object`, `dynamic`, or in non-generic collections on hot paths
+- `.IsZero` property checks all 32 bytes — used as the canonical "not set" sentinel
 
-The serialization system is fully source-generated. These attributes drive `Nalix.Analyzers.Generators`:
+### Middleware Contracts
+- `IPacketMiddleware` implementations must be decorated with `[MiddlewareOrder(n)]` — order is mandatory, no default
+- `MiddlewareStage` controls which pipeline slot the middleware occupies (`PreProcess`, `Process`, `PostProcess`)
 
-| Attribute | Purpose |
-| :--- | :--- |
-| `[GenerateFormatter]` | Marks a class for source-generated `IFormatter<T>` |
-| `[SerializeOrder(n)]` | Explicit field ordering for deterministic serialization |
-| `[SerializeIgnore]` | Exclude a property from serialization |
-| `[SerializeHeader]` | Mark header fields (opcode, length) in packet classes |
-| `[SerializePackable]` | Mark a type as packable (implements `IFixedSizeSerializable`) |
-| `[SerializeDynamicSize]` | Hint for variable-length fields |
+---
 
-## Networking Contracts
+## Checklists
 
-`IConnection` is split into partial files:
-- `IConnection.cs` — Core identity, state, attributes
-- `IConnection.Transmission.cs` — Send/receive methods
-- `IConnection.ErrorTracked.cs` — Error tracking
-- `IConnection.Hub.cs` — `IConnectionHub` for managing connection collections
+### Add a new interface/contract
+1. Define in the appropriate subdirectory (`Networking/`, `Security/`, `Serialization/`, etc.)
+2. Add XML documentation on all public members — required for all public APIs here
+3. Zero implementation code — contracts only
+4. Run build to confirm no accidental project reference was introduced
 
-## Anti-Patterns
+### Add a new attribute
+1. Inherit `Attribute`, decorate with appropriate `[AttributeUsage]`
+2. Properties only — no methods with logic
+3. Add to `KnownNames.cs` in `Nalix.Analyzers.Generators` if generators need to detect this attribute
 
-- Do NOT put implementation code here — abstractions only.
-- Do NOT add project references to any Nalix project.
-- Do NOT use concrete types from other Nalix assemblies.
-- Do NOT add runtime-heavy NuGet dependencies.
+---
+
+## Gotchas
+
+- **`[SerializeOrder]` gaps silently corrupt wire format**: The generator does not validate gaps. A sequence `(0, 2)` skips slot 1 — the wire format has an empty slot that existing clients expect to contain data.
+
+- **`IConnection` partial files have cross-cutting blast radius**: `IConnection` is split across `IConnection.cs`, `IConnection.Transmission.cs`, `IConnection.ErrorTracked.cs`, and `IConnection.Hub.cs`. Changes to any partial file affect all implementations — run impact analysis before modifying.
+
+- **Attribute construction must be zero-cost**: Attributes here are instantiated by the Roslyn analyzer on every keystroke in the IDE. Heavy constructors or static initializers degrade IDE responsiveness for every developer on the project.
+
+- **`PermissionLevel` enum gaps affect authorization**: The permission check in the dispatch system uses integer comparison. Adding a new level between two existing levels can accidentally grant access to handlers expecting a higher level.

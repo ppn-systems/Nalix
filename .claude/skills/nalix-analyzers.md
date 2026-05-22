@@ -1,52 +1,64 @@
 # Nalix.Analyzers
 
-## Role
+## Triggers
+- Adding a new diagnostic rule to enforce a Nalix coding pattern
+- Investigating why the IDE shows a `NALIXxxx` warning or error
+- Changing the Roslyn analyzer infrastructure
 
-Roslyn-based diagnostic analyzers enforcing Nalix coding best practices. Runs at compile-time and reports warnings/errors for incorrect usage patterns across the entire Nalix ecosystem.
+---
 
-**Dependencies:** `Microsoft.CodeAnalysis.CSharp` (5.3.0). No runtime Nalix references.
+## Rules
 
-**Target Framework:** `netstandard2.0` (Roslyn requirement).
+### Diagnostic IDs
+IDs are sequential: `NALIX001`–`NALIX058`, **not organized by hundreds**. Categories are mixed throughout the range. Full authoritative list is in `DiagnosticDescriptors.cs`. Broad groupings:
+- `NALIX001–NALIX008`: Packet/controller/dispatch + middleware/handler patterns
+- `NALIX009–NALIX022`: Packet operations (deserializer, base types, header, opcode)
+- `NALIX023–NALIX028`: Configuration and SDK/request options
+- `NALIX029–NALIX031`: Encrypted requests, middleware ordering
+- `NALIX032–NALIX039`: Middleware behavior, buffer leaks, performance
+- `NALIX040–NALIX058`: Network, hosting, opcode ranges, allocations, return types
 
-## Directory Structure
+When adding a new rule, append the next available ID — do not try to "slot" into a category range.
 
+### Analyzer Performance Constraints
+- **Zero allocations in `AnalyzeXxx` methods** — analyzers run on every keystroke in the IDE; allocation degrades typing responsiveness for all developers
+- Cache symbol lookups in `SymbolSet` — never re-resolve `INamedTypeSymbol` on every analysis call
+- Check `CancellationToken` before `SyntaxTree.GetRoot()` — IDE cancels analysis on every edit
+- Match types by fully-qualified name string (from `KnownNames`) — never reference Nalix runtime assemblies
+
+### Partial Class Structure
+`NalixUsageAnalyzer` is split into:
+- `NalixUsageAnalyzer.cs` — registration, main `Initialize()` entry
+- `NalixUsageAnalyzer.InvocationAnalysis.cs` — invocation-specific analysis
+- `NalixUsageAnalyzer.SymbolSet.cs` — cached Roslyn symbol lookups
+
+---
+
+## Checklists
+
+### Add a new diagnostic rule
+1. Add descriptor in `DiagnosticDescriptors.cs` — append next available `NALIXxxx` ID
+2. Register the analysis action in `NalixUsageAnalyzer.Initialize()` (e.g., `context.RegisterSyntaxNodeAction(...)`)
+3. Implement analysis logic in `InvocationAnalysis.cs` or a new partial file
+4. Add corresponding code fix in `Nalix.Analyzers.CodeFixes` — see nalix-analyzers-codefixes skill
+5. Build `Nalix.Analyzers` — all consuming projects pick it up automatically via `Directory.Build.props`
+
+### Suppress a diagnostic (when justified)
+```csharp
+#pragma warning disable NAL0123 // reason why suppression is justified
+... code ...
+#pragma warning restore NAL0123
 ```
-Nalix.Analyzers/
-├── Analyzers/
-│   ├── NalixUsageAnalyzer.cs                   # Main analyzer (partial class)
-│   ├── NalixUsageAnalyzer.InvocationAnalysis.cs # Invocation-specific analysis
-│   └── NalixUsageAnalyzer.SymbolSet.cs          # Cached Roslyn symbol lookups
-├── Diagnostics/
-│   └── DiagnosticDescriptors.cs                 # All diagnostic IDs and descriptors
-```
+Do not suppress at the project level — suppressions should be local and documented.
 
-## Architecture
+---
 
-- Single `NalixUsageAnalyzer` class, split into partial files for organization.
-- `SymbolSet` caches `INamedTypeSymbol` lookups for performance (avoids repeated compilation queries).
-- `DiagnosticDescriptors` defines all `NAL0xxx` diagnostic rules.
+## Gotchas
 
-## Key Diagnostic Categories
+- **Allocating in analyzer = IDE lag**: A `new List<>()` inside `AnalyzeInvocation` runs thousands of times per second. Use `ImmutableArray`, stackalloc, or pre-allocated pools instead.
 
-The analyzer covers (based on the CodeFixes project):
-- **Serialization:** Duplicate `[SerializeOrder]`, missing `[SerializeOrder]`, serialization conflicts, `[SerializeIgnore]` patterns
-- **Packet system:** Opcode validation, packet self-type constraints, redundant packet casts, packet deserialize patterns
-- **Registry:** PacketRegistry deserializer patterns
-- **Middleware:** Null middleware detection, middleware ordering
-- **Handlers:** Generic packet handler validation, packet controller patterns
-- **Dispatch:** Dispatch loop count validation
-- **Configuration:** `[ConfiguredIgnore]` usage
-- **Pooling:** Reset-for-pool pattern enforcement
-- **Options:** Request options consistency
+- **`SymbolSet` must be initialized once per compilation**: Re-resolving symbols on every analysis call causes repeated semantic model queries. `SymbolSet` caches them at `CompilationStartAction` time.
 
-## Build Integration
+- **Analyzer applies to all projects automatically**: `Directory.Build.props` attaches the analyzer to every Nalix project. A buggy analyzer that throws `NullReferenceException` will fail builds across the entire solution — test on a single project first.
 
-- Referenced as `OutputItemType="Analyzer" ReferenceOutputAssembly="false"` in `src/Directory.Build.props`.
-- Automatically attached to all Nalix projects (except self and AutoGenerated).
-- `AppendTargetFrameworkToOutputPath=false` — output goes directly to `build/bin/`.
-
-## Anti-Patterns
-
-- Do NOT reference Nalix runtime assemblies — match types by fully-qualified name strings.
-- Do NOT allocate in `AnalyzeXxx` methods — analyzers run on every keystroke in IDE.
-- Do NOT use `SyntaxTree.GetRoot()` without checking `CancellationToken`.
+- **Diagnostic severity affects build**: `DiagnosticSeverity.Error` causes `dotnet build` to fail. `Warning` does not. Be intentional about severity — use `Error` only for patterns that always produce broken code.
