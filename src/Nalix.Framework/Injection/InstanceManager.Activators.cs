@@ -7,6 +7,7 @@ using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Framework.Injection;
@@ -87,6 +88,11 @@ public sealed partial class InstanceManager
         if (created is IDisposable disp)
         {
             _ = _disposables.TryAdd(disp, 0);
+        }
+
+        if (created is IReportable reportable)
+        {
+            TRY_AUTO_REGISTER_REPORTABLE(reportable);
         }
 
         this.Emit("CREATE_OR_GET_SIGNATURE_INSTANCE", "CreatedSignature", new { Type = type.Name });
@@ -213,6 +219,11 @@ public sealed partial class InstanceManager
             if (instance is IDisposable d)
             {
                 _ = _disposables.TryAdd(d, 0);
+            }
+
+            if (instance is IReportable reportable)
+            {
+                TRY_AUTO_REGISTER_REPORTABLE(reportable);
             }
 
             this.Emit("GET_OR_CREATE_INSTANCE_SLOW", "Created", new { Type = type.Name });

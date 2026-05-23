@@ -277,6 +277,11 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
             _ = _disposables.TryAdd(disp, 0);
         }
 
+        if (instance is IReportable reportable)
+        {
+            TRY_AUTO_REGISTER_REPORTABLE(reportable);
+        }
+
         this.Emit("Register", "Registered", new { Type = typeof(T).Name });
 
         // Local helpers

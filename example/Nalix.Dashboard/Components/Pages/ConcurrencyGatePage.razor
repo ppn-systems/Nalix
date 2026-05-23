@@ -1,0 +1,121 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/concurrency-gate"
+@inherits MetricPageBase
+
+<PageTitle>Concurrency Gate — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Lock" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Concurrency Gate</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.ConcurrencyGate.ConcurrencyGateReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse concurrency gate report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Rejection Rate" Value="@($"{report.RejectionRate:F2}%")" Detail="@($"Rejected {MetricFormat.Count(report.TotalRejected)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Circuit Breaker" 
+                            Value="@(report.CircuitBreaker?.IsOpen == true ? "OPEN" : "Closed")" 
+                            ValueColor="@(report.CircuitBreaker?.IsOpen == true ? Color.Error : Color.Success)"
+                            Detail="@($"Trips: {MetricFormat.Count(report.CircuitBreaker?.Trips ?? 0)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Tracked Opcodes" Value="@MetricFormat.Count(report.TrackedOpcodes)" Detail="@($"Cleaned {MetricFormat.Count(report.TotalCleaned)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Queued / Acquired" Value="@($"{MetricFormat.Count(report.TotalQueued)} / {MetricFormat.Count(report.TotalAcquired)}")" Detail="Total operations" />
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12">
+                <MudPaper Outlined="true" Class="pa-4 metric-card">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-2">Gate Configuration</MudText>
+                    <MudDivider Class="my-2" />
+                    <MudGrid>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.body2"><b>Cleanup Interval:</b> @report.CleanupIntervalMinutes.ToString("F1") minutes</MudText>
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudText Typo="Typo.body2"><b>Min Idle Age:</b> @report.MinIdleAgeMinutes.ToString("F1") minutes</MudText>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+        @if (report.Opcodes is { Count: > 0 } opcodes)
+        {
+            <MetricSection Title="Top Opcodes by Load">
+                <MudTable Items="@opcodes" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Opcode</MudTh>
+                        <MudTh>Capacity</MudTh>
+                        <MudTh>In Use</MudTh>
+                        <MudTh>Available</MudTh>
+                        <MudTh>Queuing</MudTh>
+                        <MudTh>Queue Count / Max</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Last Used</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="op">
+                        <MudTd>@op.Opcode</MudTd>
+                        <MudTd>@op.Capacity</MudTd>
+                        <MudTd>@op.InUse</MudTd>
+                        <MudTd>@op.Available</MudTd>
+                        <MudTd>@(op.Queuing ? "Yes" : "No")</MudTd>
+                        <MudTd>@op.QueueCount / @(op.QueueMax ?? "∞")</MudTd>
+                        <MudTd>
+                            @if (op.IsIdle)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Text">Idle</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Active</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd>@op.LastUsedUtc</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.CONCURRENCY_GATE;
+    protected override string Route => "/metrics/concurrency-gate";
+}

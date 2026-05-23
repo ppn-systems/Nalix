@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Sessions;
@@ -23,9 +24,12 @@ namespace Nalix.Runtime.Sessions;
     $"{TaskNaming.Tags.Service}.{TaskNaming.Tags.Cleanup}.sessions",
     TaskNaming.Tags.Cleanup,
     Tag = TaskNaming.Tags.Cleanup, IdType = 1, RetainForMs = 0)]
-public sealed class InMemorySessionStore : ISessionStore, IWorker
+public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
 {
     private readonly ConcurrentDictionary<ulong, SessionEntry> _store = new();
+    private long _totalStored;
+    private long _totalConsumed;
+    private long _totalExpired;
 
     /// <summary>
     /// Executes the scavenging loop. This method is intended to be called by a <see cref="ITaskManager"/> worker.
@@ -40,7 +44,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker
 
             try
             {
-                await SCAVENGE_ASYNC(_store, cancellationToken).ConfigureAwait(false);
+                await SCAVENGE_ASYNC(this, _store, cancellationToken).ConfigureAwait(false);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
@@ -48,7 +52,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker
             }
         }
 
-        static async ValueTask SCAVENGE_ASYNC(ConcurrentDictionary<ulong, SessionEntry> store, CancellationToken cancellationToken)
+        static async ValueTask SCAVENGE_ASYNC(InMemorySessionStore self, ConcurrentDictionary<ulong, SessionEntry> store, CancellationToken cancellationToken)
         {
             long now = Clock.UnixMillisecondsNow();
             int count = 0;
@@ -63,6 +67,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker
                 if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now &&
                     ((ICollection<KeyValuePair<ulong, SessionEntry>>)store).Remove(pair))
                 {
+                    Interlocked.Increment(ref self._totalExpired);
                     pair.Value.Return();
                 }
 
@@ -89,6 +94,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker
 
             if (_store.TryAdd(token, entry))
             {
+                Interlocked.Increment(ref _totalStored);
                 return ValueTask.CompletedTask;
             }
 
@@ -105,6 +111,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker
 
             if (_store.TryUpdate(token, entry, current))
             {
+                Interlocked.Increment(ref _totalStored);
                 current.Return();
                 return ValueTask.CompletedTask;
             }
@@ -129,10 +136,40 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker
         // Check TTL — if expired, return the entry resources and report null.
         if (entry.Snapshot.ExpiresAtUnixMilliseconds <= Clock.UnixMillisecondsNow())
         {
+            Interlocked.Increment(ref _totalExpired);
             entry.Return();
             return ValueTask.FromResult<SessionEntry?>(null);
         }
 
+        Interlocked.Increment(ref _totalConsumed);
         return ValueTask.FromResult<SessionEntry?>(entry);
     }
+
+    /// <inheritdoc />
+    public string GenerateReport()
+    {
+        System.Text.StringBuilder sb = new();
+        _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"InMemorySessionStore Status:");
+        _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  Active Sessions : {_store.Count}");
+        _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  Total Stored    : {Volatile.Read(ref _totalStored)}");
+        _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  Total Consumed  : {Volatile.Read(ref _totalConsumed)}");
+        _ = sb.AppendLine(System.Globalization.CultureInfo.InvariantCulture, $"  Total Expired   : {Volatile.Read(ref _totalExpired)}");
+        return sb.ToString();
+    }
+
+#if NET10_0_OR_GREATER
+    /// <inheritdoc />
+    public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteString("Type", "InMemorySessionStore");
+        writer.WriteNumber("ActiveSessions", _store.Count);
+        writer.WriteNumber("TotalStored", Volatile.Read(ref _totalStored));
+        writer.WriteNumber("TotalConsumed", Volatile.Read(ref _totalConsumed));
+        writer.WriteNumber("TotalExpired", Volatile.Read(ref _totalExpired));
+        writer.WriteEndObject();
+    }
+#endif
 }

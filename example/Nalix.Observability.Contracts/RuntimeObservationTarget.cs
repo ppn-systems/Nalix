@@ -12,5 +12,11 @@ public enum RuntimeObservationTarget : byte
     CONNECTIONS = 0x04,
     INSTANCES = 0x05,
     OBJECT_POOLS = 0x06,
-    CONNECTION_GUARD = 0x07
+    CONNECTION_GUARD = 0x07,
+    CONCURRENCY_GATE = 0x08,
+    POLICY_RATE_LIMITER = 0x09,
+    TOKEN_BUCKET_LIMITER = 0x0A,
+    SESSIONS = 0x0B,
+    LISTENER = 0x0C,
+    PROTOCOL = 0x0D
 }

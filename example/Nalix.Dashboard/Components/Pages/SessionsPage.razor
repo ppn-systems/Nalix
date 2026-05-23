@@ -1,0 +1,93 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/sessions"
+@inherits MetricPageBase
+
+<PageTitle>Sessions — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.VpnKey" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Sessions</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Sessions.SessionsReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse sessions report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Active Sessions" Value="@MetricFormat.Count(report.Store?.ActiveSessions ?? 0)" Detail="@($"Backend: {report.StoreType ?? "None"}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Total Stored" Value="@MetricFormat.Count(report.Store?.TotalStored ?? 0)" Detail="@($"Expired: {MetricFormat.Count(report.Store?.TotalExpired ?? 0)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Store Success" 
+                            Value="@($"{MetricFormat.Count(report.TotalStoresSucceeded)} / {MetricFormat.Count(report.TotalStoresAttempted)}")" 
+                            Detail="@($"Failed: {MetricFormat.Count(report.TotalStoresFailed)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Consume Success" 
+                            Value="@($"{MetricFormat.Count(report.TotalConsumesSucceeded)} / {MetricFormat.Count(report.TotalConsumesAttempted)}")" 
+                            Detail="@($"Failed: {MetricFormat.Count(report.TotalConsumesFailed)}")" />
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="3">
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true" Class="pa-4 metric-card" Style="height: 100%;">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-2">Session Store Statistics</MudText>
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Store Type:</b> @(report.Store?.Type ?? report.StoreType ?? "-")</MudText>
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Active Sessions:</b> @(report.Store?.ActiveSessions.ToString("N0") ?? "0")</MudText>
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Total Stored:</b> @(report.Store?.TotalStored.ToString("N0") ?? "0")</MudText>
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Total Consumed:</b> @(report.Store?.TotalConsumed.ToString("N0") ?? "0")</MudText>
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Total Expired:</b> @(report.Store?.TotalExpired.ToString("N0") ?? "0")</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Outlined="true" Class="pa-4 metric-card" Style="height: 100%;">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-2">Persistence Policy</MudText>
+                    <MudDivider Class="my-2" />
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Policy Type:</b> @(report.Type ?? "Default")</MudText>
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Min Attributes for Persistence:</b> @report.MinAttributesForPersistence</MudText>
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Session TTL:</b> @(report.SessionTtl ?? "-")</MudText>
+                    <MudText Typo="Typo.body2" Class="my-2"><b>Stores Rejected by Policy:</b> @report.TotalStoresRejectedByPolicy.ToString("N0")</MudText>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.SESSIONS;
+    protected override string Route => "/metrics/sessions";
+}

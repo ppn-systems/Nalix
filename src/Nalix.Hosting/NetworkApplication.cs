@@ -11,6 +11,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
+using Nalix.Framework;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Dispatching;
@@ -201,6 +202,9 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
                     _protocols.Add(server.Protocol);
                     _listeners.Add(server.Listener);
+
+                    ReportRegistry.Instance.Register<IListener>(server.Transport, server.Listener);
+                    ReportRegistry.Instance.Register<IProtocol>(server.Transport, server.Protocol);
 
                     server.Listener.Activate(cancellationToken);
 

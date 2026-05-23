@@ -18,9 +18,14 @@ namespace Nalix.Hosting.Internal;
 internal readonly struct ListenerBinding
 {
     /// <summary>
+    /// Gets the transport protocol type of the listener.
+    /// </summary>
+    public NetworkTransport Transport { get; }
+
+    /// <summary>
     /// Gets a value indicating whether the listener uses UDP transport.
     /// </summary>
-    public bool IsUdp { get; }
+    public bool IsUdp => this.Transport == NetworkTransport.UDP;
 
     /// <summary>
     /// Gets the network listener responsible for accepting connections
@@ -54,13 +59,12 @@ internal readonly struct ListenerBinding
     /// <param name="protocolType">
     /// The concrete runtime type of the protocol.
     /// </param>
-    /// <param name="isUdp">
-    /// <see langword="true"/> if the listener uses UDP transport;
-    /// otherwise, <see langword="false"/>.
+    /// <param name="transport">
+    /// The transport protocol type used by the listener.
     /// </param>
-    public ListenerBinding(IListener listener, IProtocol protocol, Type protocolType, bool isUdp)
+    public ListenerBinding(IListener listener, IProtocol protocol, Type protocolType, NetworkTransport transport)
     {
-        this.IsUdp = isUdp;
+        this.Transport = transport;
         this.Listener = listener;
         this.Protocol = protocol;
         this.ProtocolType = protocolType;

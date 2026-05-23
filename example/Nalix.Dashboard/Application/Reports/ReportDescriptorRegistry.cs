@@ -13,6 +13,12 @@ internal sealed class ReportDescriptorRegistry
         new(RuntimeObservationTarget.INSTANCES,        "/metrics/instances",       "Instances",        "DI instance cache hits, creation counts, and registered types.",      10_000, 2_000, 60_000, true, false),
         new(RuntimeObservationTarget.OBJECT_POOLS,     "/metrics/object-pools",    "Object Pools",     "Object pool health, hit rates, and unhealthy pool alerts.",           5_000, 1_000, 60_000, true, true),
         new(RuntimeObservationTarget.CONNECTION_GUARD, "/metrics/connection-guard","Connection Guard",  "Rate-limiting endpoint tracking, rejections, and top talkers.",       5_000, 1_000, 60_000, true, false),
+        new(RuntimeObservationTarget.LISTENER,         "/metrics/listeners",       "Listeners",        "Active listeners and transport binding configurations.",             3_000, 500, 60_000, true, false),
+        new(RuntimeObservationTarget.PROTOCOL,         "/metrics/protocols",       "Protocols",        "Protocol state machine and network traffic message metrics.",         3_000, 500, 60_000, true, false),
+        new(RuntimeObservationTarget.SESSIONS,         "/metrics/sessions",        "Sessions",         "Session store metrics, hit rates, and client attribute persistence.", 3_000, 500, 60_000, true, false),
+        new(RuntimeObservationTarget.CONCURRENCY_GATE, "/metrics/concurrency-gate", "Concurrency Gate", "Active connection opcodes, capacity limits, and queuing pressure.", 3_000, 500, 60_000, true, false),
+        new(RuntimeObservationTarget.POLICY_RATE_LIMITER, "/metrics/policy-rate-limiter", "Policy Rate Limiter", "Stateless policy-based token bucket evaluation engine.",       3_000, 500, 60_000, true, false),
+        new(RuntimeObservationTarget.TOKEN_BUCKET_LIMITER, "/metrics/token-bucket-limiter", "Token Bucket Limiter", "Fine-grained connection IP endpoint rate-limiting and lockout.", 3_000, 500, 60_000, true, false),
     ];
 
     public IReadOnlyList<ReportDescriptor> All => s_descriptors;

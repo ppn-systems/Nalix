@@ -7,6 +7,10 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
+using Nalix.Abstractions.Networking;
 
 namespace Nalix.Framework.Injection;
 
@@ -139,6 +143,30 @@ public sealed partial class InstanceManager
             }
 
             return (int)(hits * 1000L / total);
+        }
+    }
+
+    private static void TRY_AUTO_REGISTER_REPORTABLE(IReportable reportable)
+    {
+        CoreTelemetryTarget target = reportable switch
+        {
+            ITaskManager => CoreTelemetryTarget.Tasks,
+            IConnectionHub => CoreTelemetryTarget.Connections,
+            IBufferPoolManager => CoreTelemetryTarget.Buffers,
+            IObjectPoolManager => CoreTelemetryTarget.ObjectPools,
+            _ when reportable.GetType().Name == "TaskManager" => CoreTelemetryTarget.Tasks,
+            _ when reportable.GetType().Name == "ConcurrencyGate" => CoreTelemetryTarget.ConcurrencyGate,
+            _ when reportable.GetType().Name == "ConnectionGuard" => CoreTelemetryTarget.ConnectionGuard,
+            _ when reportable.GetType().Name == "PolicyRateLimiter" => CoreTelemetryTarget.PolicyRateLimiter,
+            _ when reportable.GetType().Name == "TokenBucketLimiter" => CoreTelemetryTarget.TokenBucketLimiter,
+            _ when reportable.GetType().GetInterface("ISessionService") is not null => CoreTelemetryTarget.Sessions,
+            _ when reportable.GetType().GetInterface("IPacketDispatch") is not null => CoreTelemetryTarget.PacketDispatch,
+            _ => CoreTelemetryTarget.None
+        };
+
+        if (target != CoreTelemetryTarget.None)
+        {
+            ReportRegistry.Instance.Register<IReportable>(target, reportable);
         }
     }
 

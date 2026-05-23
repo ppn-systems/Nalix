@@ -334,7 +334,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                     ? new(port.Value, protocol, hub)
                     : new(protocol, hub);
 
-                return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
+                return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.TCP);
             });
         }
 
@@ -363,7 +363,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                         ? new(port.Value, protocol, hub)
                         : new(protocol, hub));
 
-                return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: true);
+                return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.UDP);
             });
         }
 
@@ -388,7 +388,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                     ? new(port.Value, path, protocol, hub)
                     : new(protocol, hub);
 
-                return new ListenerBinding(listener, protocol, registration.ProtocolType, isUdp: false);
+                return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.WEBSOCKET);
             });
         }
 

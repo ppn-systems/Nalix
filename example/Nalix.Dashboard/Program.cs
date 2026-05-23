@@ -9,6 +9,12 @@ using Nalix.Dashboard.Application.Reports.Dispatch;
 using Nalix.Dashboard.Application.Reports.Instances;
 using Nalix.Dashboard.Application.Reports.ObjectPools;
 using Nalix.Dashboard.Application.Reports.Tasks;
+using Nalix.Dashboard.Application.Reports.Listeners;
+using Nalix.Dashboard.Application.Reports.Protocols;
+using Nalix.Dashboard.Application.Reports.Sessions;
+using Nalix.Dashboard.Application.Reports.ConcurrencyGate;
+using Nalix.Dashboard.Application.Reports.PolicyRateLimiter;
+using Nalix.Dashboard.Application.Reports.TokenBucketLimiter;
 using Nalix.Dashboard.Application.Services;
 using Nalix.Dashboard.Application.State;
 using Nalix.Dashboard.Infrastructure.BrowserStorage;
@@ -41,6 +47,12 @@ internal class Program
         _ = builder.Services.AddSingleton<IReportParser, InstancesReportParser>();
         _ = builder.Services.AddSingleton<IReportParser, ObjectPoolsReportParser>();
         _ = builder.Services.AddSingleton<IReportParser, ConnectionGuardReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, ListenersReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, ProtocolsReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, SessionsReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, ConcurrencyGateReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, PolicyRateLimiterReportParser>();
+        _ = builder.Services.AddSingleton<IReportParser, TokenBucketLimiterReportParser>();
         _ = builder.Services.AddSingleton<ReportParserRegistry>();
 
         _ = builder.Services.AddMudServices();

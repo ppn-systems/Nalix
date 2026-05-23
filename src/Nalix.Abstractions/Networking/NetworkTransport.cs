@@ -16,5 +16,10 @@ public enum NetworkTransport
     /// <summary>
     /// User Datagram Protocol (Unreliable).
     /// </summary>
-    UDP
+    UDP,
+
+    /// <summary>
+    /// WebSocket Protocol (Reliable, message-oriented).
+    /// </summary>
+    WEBSOCKET
 }

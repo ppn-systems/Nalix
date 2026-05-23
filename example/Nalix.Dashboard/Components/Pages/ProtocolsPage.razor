@@ -1,0 +1,108 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/protocols"
+@inherits MetricPageBase
+
+<PageTitle>Protocols — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.SwapHoriz" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Protocols</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Protocols.ProtocolsReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse protocols report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            @if (report.TCP is { } tcp)
+            {
+                <MudItem xs="12" md="4">
+                    <MudPaper Outlined="true" Class="pa-4 metric-card">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                            <MudAvatar Color="Color.Primary" Variant="Variant.Outlined" Size="Size.Small">TCP</MudAvatar>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">TCP Protocol</MudText>
+                        </MudStack>
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Accepting:</b> @(tcp.IsAccepting ? "Yes" : "No")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Keep Open:</b> @(tcp.KeepConnectionOpen ? "Yes" : "No")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Disposed:</b> @(tcp.IsDisposed ? "Yes" : "No")</MudText>
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Total Messages:</b> @tcp.TotalMessages.ToString("N0")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Total Errors:</b> @tcp.TotalErrors.ToString("N0")</MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+
+            @if (report.UDP is { } udp)
+            {
+                <MudItem xs="12" md="4">
+                    <MudPaper Outlined="true" Class="pa-4 metric-card">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                            <MudAvatar Color="Color.Secondary" Variant="Variant.Outlined" Size="Size.Small">UDP</MudAvatar>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">UDP Protocol</MudText>
+                        </MudStack>
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Accepting:</b> @(udp.IsAccepting ? "Yes" : "No")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Keep Open:</b> @(udp.KeepConnectionOpen ? "Yes" : "No")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Disposed:</b> @(udp.IsDisposed ? "Yes" : "No")</MudText>
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Total Messages:</b> @udp.TotalMessages.ToString("N0")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Total Errors:</b> @udp.TotalErrors.ToString("N0")</MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+
+            @if (report.WEBSOCKET is { } ws)
+            {
+                <MudItem xs="12" md="4">
+                    <MudPaper Outlined="true" Class="pa-4 metric-card">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                            <MudAvatar Color="Color.Tertiary" Variant="Variant.Outlined" Size="Size.Small">WS</MudAvatar>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">WebSocket Protocol</MudText>
+                        </MudStack>
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Accepting:</b> @(ws.IsAccepting ? "Yes" : "No")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Keep Open:</b> @(ws.KeepConnectionOpen ? "Yes" : "No")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Disposed:</b> @(ws.IsDisposed ? "Yes" : "No")</MudText>
+                        <MudDivider Class="my-2" />
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Total Messages:</b> @ws.TotalMessages.ToString("N0")</MudText>
+                        <MudText Typo="Typo.body2" Class="my-1"><b>Total Errors:</b> @ws.TotalErrors.ToString("N0")</MudText>
+                    </MudPaper>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.PROTOCOL;
+    protected override string Route => "/metrics/protocols";
+}
