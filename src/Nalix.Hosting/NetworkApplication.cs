@@ -11,6 +11,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
+using Nalix.Framework;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Dispatching;
@@ -193,6 +194,9 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
             _packetDispatch.Activate(cancellationToken);
 
+            ReportRegistry registry = ReportRegistry.Instance;
+            registry.Clear();
+
             try
             {
                 for (int i = 0; i < _serverFactories.Count; i++)
@@ -201,6 +205,9 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
                     _protocols.Add(server.Protocol);
                     _listeners.Add(server.Listener);
+
+                    registry.Register<IListener>(server.Transport, server.Listener);
+                    registry.Register<IProtocol>(server.Transport, server.Protocol);
 
                     server.Listener.Activate(cancellationToken);
 
@@ -230,6 +237,8 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
 
     private void CleanupPartialActivation(CancellationToken cancellationToken)
     {
+        ReportRegistry.Instance.Clear();
+
         for (int i = _listeners.Count - 1; i >= 0; i--)
         {
             try { _listeners[i].Deactivate(cancellationToken); }
@@ -261,6 +270,8 @@ public sealed class NetworkApplication : IActivatableAsync, IAsyncDisposable
             {
                 return;
             }
+
+            ReportRegistry.Instance.Clear();
 
             for (int i = _listeners.Count - 1; i >= 0; i--)
             {
