@@ -101,9 +101,9 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int? loopCount)
     {
-        if (loopCount.HasValue && loopCount.Value <= 0)
+        if (loopCount.HasValue && (loopCount.Value <= 0 || loopCount.Value > 64))
         {
-            throw new ArgumentOutOfRangeException(nameof(loopCount), "Dispatch loop count must be positive.");
+            throw new ArgumentOutOfRangeException(nameof(loopCount), "Dispatch loop count must be between 1 and 64.");
         }
 
         this.Drain.Count = loopCount ?? 0;

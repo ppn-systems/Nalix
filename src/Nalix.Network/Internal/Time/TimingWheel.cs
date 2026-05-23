@@ -78,7 +78,10 @@ internal sealed class TimingWheel : IActivatable
 
     private readonly ILogger? _logger;
     private readonly TimingWheelOptions _options;
+
+#pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly ObjectPoolManager _poolManager;
+#pragma warning restore CA2213 // Disposable fields should be disposed
 
     private readonly int _tickMs;
     private readonly int _wheelSize;
