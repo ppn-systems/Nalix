@@ -7,12 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "Backend\Backend.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SDK", "SDK\SDK.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Observability.Contracts", "Nalix.Observability.Contracts\Nalix.Observability.Contracts.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F23456789012}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Dashboard", "Nalix.Dashboard\Nalix.Dashboard.csproj", "{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Observability.Handlers", "Nalix.Observability.Handlers\Nalix.Observability.Handlers.csproj", "{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,42 +41,6 @@ Global
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x64.Build.0 = Release|Any CPU
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x86.ActiveCfg = Release|Any CPU
 		{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|x86.Build.0 = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|x64.Build.0 = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Debug|x86.Build.0 = Debug|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|Any CPU.Build.0 = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|x64.ActiveCfg = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|x64.Build.0 = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|x86.ActiveCfg = Release|Any CPU
-		{B2C3D4E5-F6A7-8901-BCDE-F23456789012}.Release|x86.Build.0 = Release|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Debug|x64.Build.0 = Debug|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Debug|x86.Build.0 = Debug|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Release|x64.ActiveCfg = Release|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Release|x64.Build.0 = Release|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Release|x86.ActiveCfg = Release|Any CPU
-		{D583EAFC-041F-44F0-BE3C-4DC2F1074CB8}.Release|x86.Build.0 = Release|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Debug|x64.Build.0 = Debug|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Debug|x86.Build.0 = Debug|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Release|x64.ActiveCfg = Release|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Release|x64.Build.0 = Release|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Release|x86.ActiveCfg = Release|Any CPU
-		{FDF8123A-183A-44D7-8EA0-E176FFF9E3C0}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

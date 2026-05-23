@@ -17,19 +17,23 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix.Observability.Contracts\Nalix.Observability.Contracts.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
-		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+		<PackageReference Include="Nalix.SDK" Version="12.5.0" />
+		<PackageReference Include="Nalix.Logging" Version="12.5.0" />
+		<PackageReference Include="Nalix.Network" Version="12.5.0" />
+		<PackageReference Include="Nalix.Runtime" Version="12.5.0" />
+		<PackageReference Include="Nalix.Hosting" Version="12.5.0" />
+		<PackageReference Include="Nalix.Framework" Version="12.5.0" />
 		
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Nalix.Observability.Handlers\Nalix.Observability.Handlers.csproj" />
+		<Reference Include="Nalix.Observability.Contracts">
+			<HintPath>..\dll\Nalix.Observability.Contracts.dll</HintPath>
+		</Reference>
+		<Reference Include="Nalix.Observability.Handlers">
+			<HintPath>..\dll\Nalix.Observability.Handlers.dll</HintPath>
+		</Reference>
 	</ItemGroup>
 
 </Project>
