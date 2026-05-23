@@ -21,7 +21,7 @@ namespace Nalix.Framework.Memory.Objects;
 /// <summary>
 /// Provides thread-safe access to a collection of object pools.
 /// </summary>
-public sealed partial class ObjectPoolManager : IObjectPoolManager, IReportable
+public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 {
     #region Fields
 

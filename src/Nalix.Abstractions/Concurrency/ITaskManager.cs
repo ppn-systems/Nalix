@@ -17,7 +17,7 @@ namespace Nalix.Abstractions.Concurrency;
 ///   cancellation by id/name/group, optional per-group concurrency cap, heartbeat and progress.
 /// - Thread-safe, low allocation, server-grade reporting.
 /// </summary>
-public interface ITaskManager : IDisposable, IReportable
+public interface ITaskManager : IReportable
 {
     /// <summary>
     /// Gets a short console title summary containing running workers, total workers, and recurring tasks.

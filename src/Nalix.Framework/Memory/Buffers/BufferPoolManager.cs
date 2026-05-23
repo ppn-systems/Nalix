@@ -377,7 +377,6 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
     #endregion Private: Rent / Return helpers
 
-
     #region Private: Resize Strategies
 
     [StackTraceHidden]
@@ -530,7 +529,6 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
     }
 
     #endregion Private: Resize Strategies
-
 
     #region IDisposable
 
