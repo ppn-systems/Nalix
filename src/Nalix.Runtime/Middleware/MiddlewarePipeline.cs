@@ -173,7 +173,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 #pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
                 handlerPending.GetAwaiter().GetResult();
 #pragma warning restore CA1849
-                this.RECORD_EXECUTION(startTicks);
+                this.RecordExecution(startTicks);
                 return ValueTask.CompletedTask;
             }
             return AwaitPendingEmptyAsync(this, handlerPending, startTicks);
@@ -199,7 +199,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 this.ReturnRunnerSync(runner);
             }
 
-            this.RECORD_EXECUTION(startTicks);
+            this.RecordExecution(startTicks);
             return ValueTask.CompletedTask;
         }
 
@@ -214,7 +214,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             finally
             {
                 owner.ReturnRunnerSync(pooledRunner);
-                owner.RECORD_EXECUTION(startTicks);
+                owner.RecordExecution(startTicks);
             }
         }
 
@@ -226,22 +226,19 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
             finally
             {
-                owner.RECORD_EXECUTION(startTicks);
+                owner.RecordExecution(startTicks);
             }
         }
     }
 
+    /// <inheritdoc/>
+    internal void RecordError() => Interlocked.Increment(ref _totalErrors);
+
     #endregion APIs
-
-    #region Internal Methods
-
-    internal void RECORD_ERROR() => Interlocked.Increment(ref _totalErrors);
-
-    #endregion Internal Methods
 
     #region Private Methods
 
-    private void RECORD_EXECUTION(long startTicks)
+    private void RecordExecution(long startTicks)
     {
         long elapsed = Stopwatch.GetTimestamp() - startTicks;
         _ = Interlocked.Add(ref _totalExecutionTicks, elapsed);
@@ -595,7 +592,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 {
                     _ = Interlocked.Increment(ref _snapshot.Metrics[entry.MetricIndex]._totalErrors);
                 }
-                _owner?.RECORD_ERROR();
+                _owner?.RecordError();
 
                 if (!_continueOnError)
                 {
@@ -697,7 +694,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 {
                     _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalErrors);
                 }
-                runner._owner?.RECORD_ERROR();
+                runner._owner?.RecordError();
 
                 runner._errorHandler?.Invoke(ex, entry.Middleware.GetType());
                 await next(token).ConfigureAwait(false);
