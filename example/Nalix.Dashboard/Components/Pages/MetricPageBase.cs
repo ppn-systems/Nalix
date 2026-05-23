@@ -1,10 +1,10 @@
-using Nalix.Observability.Contracts;
 using Microsoft.AspNetCore.Components;
 using Nalix.Dashboard.Application.Abstractions;
 using Nalix.Dashboard.Application.Reports;
 using Nalix.Dashboard.Application.Settings;
 using Nalix.Dashboard.Application.State;
 using Nalix.Dashboard.Domain.Reports;
+using Nalix.Observability.Contracts;
 
 namespace Nalix.Dashboard.Components.Pages;
 
@@ -108,7 +108,7 @@ public abstract class MetricPageBase : ComponentBase, IDisposable
 
     public void Dispose()
     {
-        Dispose(disposing: true);
+        this.Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
 
