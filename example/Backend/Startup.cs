@@ -88,10 +88,6 @@ internal class Startup
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .ConfigureDispatchOptions(o =>
             {
-                o.MaxDrainPerWake = 4096;
-                o.MaxDrainPerWakeMultiplier = 16;
-
-                _ = o.WithDispatchLoopCount(8);
                 _ = o.WithMiddleware(new TimeoutMiddleware());
                 _ = o.WithMiddleware(new PacketTagMiddleware());
                 //_ = o.WithMiddleware(new RateLimitMiddleware());

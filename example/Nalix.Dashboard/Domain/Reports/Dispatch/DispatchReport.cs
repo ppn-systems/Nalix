@@ -12,6 +12,20 @@ public sealed record DispatchReport(
     bool WakeRequested,
     string? PacketRegistryType,
     IReadOnlyDictionary<string, long>? PendingPerPriority,
-    IReadOnlyList<PendingConnectionEntry>? PendingByConnection);
+    IReadOnlyList<PendingConnectionEntry>? PendingByConnection,
+    PipelineMetricsReport? PipelineMetrics,
+    IReadOnlyList<MiddlewareMetricEntry>? MiddlewareMetrics);
 
 public sealed record PendingConnectionEntry(string? EndPoint, long Pending);
+
+public sealed record PipelineMetricsReport(
+    long ActiveExecutions,
+    long TotalExecutions,
+    long TotalErrors,
+    double AverageTimeMs);
+
+public sealed record MiddlewareMetricEntry(
+    string? Type,
+    long TotalExecutions,
+    long TotalErrors,
+    double AverageTimeMs);
