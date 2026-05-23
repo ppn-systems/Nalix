@@ -1,7 +1,7 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-namespace Nalix.Abstractions.Networking;
+namespace Nalix.Abstractions.Diagnostics;
 
 /// <summary>
 /// Defines the core telemetry target categories registered in the system diagnostics report registry.
@@ -44,12 +44,22 @@ public enum CoreTelemetryTarget : byte
     PacketDispatch = 6,
 
     /// <summary>
-    /// Concurrency gates and request rate limiters.
+    /// Concurrency gate for per-opcode throttling.
     /// </summary>
-    RateLimiter = 7,
+    ConcurrencyGate = 7,
+
+    /// <summary>
+    /// Policy-based rate limiter metrics.
+    /// </summary>
+    PolicyRateLimiter = 8,
+
+    /// <summary>
+    /// Token bucket rate limiter metrics.
+    /// </summary>
+    TokenBucketLimiter = 9,
 
     /// <summary>
     /// Session management and persistence metrics.
     /// </summary>
-    Sessions = 8,
+    Sessions = 10,
 }

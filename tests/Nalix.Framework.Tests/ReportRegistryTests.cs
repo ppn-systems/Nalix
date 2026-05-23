@@ -5,6 +5,7 @@ using System;
 using System.Text.Json;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Concurrency;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework;
 using Nalix.Framework.Injection;
@@ -107,6 +108,52 @@ public sealed class ReportRegistryTests : IDisposable
             taskManager.Dispose();
             manager.Clear(dispose: true);
         }
+    }
+
+    [Fact(DisplayName = "Registering different rate limiters in InstanceManager should automatically index them without collision")]
+    public void RegisteringRateLimitersAutoIndexesWithoutCollision()
+    {
+        var manager = new InstanceManager();
+        var gateMock = new ConcurrencyGate();
+        var policyMock = new PolicyRateLimiter();
+        var tokenMock = new TokenBucketLimiter();
+
+        try
+        {
+            manager.Register<IReportable>(gateMock);
+            manager.Register<IReportable>(policyMock);
+            manager.Register<IReportable>(tokenMock);
+
+            var resolvedGate = _registry.Get<IReportable>(CoreTelemetryTarget.ConcurrencyGate);
+            var resolvedPolicy = _registry.Get<IReportable>(CoreTelemetryTarget.PolicyRateLimiter);
+            var resolvedToken = _registry.Get<IReportable>(CoreTelemetryTarget.TokenBucketLimiter);
+
+            Assert.Same(gateMock, resolvedGate);
+            Assert.Same(policyMock, resolvedPolicy);
+            Assert.Same(tokenMock, resolvedToken);
+        }
+        finally
+        {
+            manager.Clear(dispose: true);
+        }
+    }
+
+    private sealed class ConcurrencyGate : IReportable
+    {
+        public string GenerateReport() => nameof(ConcurrencyGate);
+        public void WriteReportData(Utf8JsonWriter writer) {}
+    }
+
+    private sealed class PolicyRateLimiter : IReportable
+    {
+        public string GenerateReport() => nameof(PolicyRateLimiter);
+        public void WriteReportData(Utf8JsonWriter writer) {}
+    }
+
+    private sealed class TokenBucketLimiter : IReportable
+    {
+        public string GenerateReport() => nameof(TokenBucketLimiter);
+        public void WriteReportData(Utf8JsonWriter writer) {}
     }
 
     private sealed class FakeReportable(string data) : IReportable
