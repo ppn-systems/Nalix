@@ -1,7 +1,6 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Diagnostics.CodeAnalysis;
 using Backend.Attributes;
 using Backend.Middleware;
 using Microsoft.Extensions.Logging;
@@ -29,8 +28,6 @@ internal class Startup
                   .SetMinimumLevel(LogLevel.Debug)
     );
 
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
-        Justification = "Registered services are owned by the Nalix InstanceManager and host lifecycle.")]
     public static NetworkApplication Configure(ILogger logger)
     {
         ObservabilityAccessHandlers.SetPrivateKeyPath(ResolveSharedFile("observability.private"));

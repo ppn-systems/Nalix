@@ -100,7 +100,7 @@ public class WebSocketTransportTests : IDisposable
 
         using var client = new WebSocketSession(options);
         
-        var messageReceivedTcs = new TaskCompletionSource<string>();
+        var messageReceivedTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         client.OnMessageReceived += (s, lease) =>
         {
@@ -178,7 +178,7 @@ public class WebSocketTransportTests : IDisposable
 
             using var client = new WebSocketSession(options);
             
-            var messageReceivedTcs = new TaskCompletionSource<string>();
+            var messageReceivedTcs = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             client.OnMessageReceived += (s, lease) =>
             {

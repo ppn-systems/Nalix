@@ -51,7 +51,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.MetadataProviderOverwritesOpcodeWithoutGuard,
             DiagnosticDescriptors.RequestOptionsRetryCountNegative,
             DiagnosticDescriptors.RequestOptionsTimeoutNegative,
-            DiagnosticDescriptors.RequestEncryptRequiresTcpSession,
             DiagnosticDescriptors.PacketMiddlewareMissingOrder,
             DiagnosticDescriptors.BufferMiddlewareMissingOrder,
             DiagnosticDescriptors.InboundMiddlewareAlwaysExecuteIgnored,
@@ -74,7 +73,6 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
             DiagnosticDescriptors.PacketOpcodeOnNonControllerType,
             DiagnosticDescriptors.FixedSizeSerializableHasDynamicMember,
             DiagnosticDescriptors.PacketDeserializeSpanOverloadMissing,
-            DiagnosticDescriptors.RequestEncryptVariableRequiresTcpSession,
             DiagnosticDescriptors.DuplicatePacketControllerName,
             DiagnosticDescriptors.RedundantPacketContextPacketCast,
             DiagnosticDescriptors.MiddlewareRegistrationNullLiteral,
@@ -1220,64 +1218,7 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         return current.Type ?? operation.Type;
     }
 
-    private static bool? TryGetEncryptValue(IOperation operation, SymbolSet symbols)
-    {
-        if (operation.Type is null || !IsSymbol(operation.Type, symbols.RequestOptionsType))
-        {
-            return null;
-        }
 
-        if (operation is IPropertyReferenceOperation propertyReference
-            && propertyReference.Property.Name == "Default"
-            && IsSymbol(propertyReference.Member.ContainingType, symbols.RequestOptionsType))
-        {
-            return false;
-        }
-
-        if (operation is IObjectCreationOperation creation
-            && IsSymbol(creation.Type, symbols.RequestOptionsType))
-        {
-            foreach (IPropertyReferenceOperation initializer in creation.Initializer?.Initializers.OfType<ISimpleAssignmentOperation>()
-                         .Select(static assignment => assignment.Target)
-                         .OfType<IPropertyReferenceOperation>() ?? [])
-            {
-                if (initializer.Property.Name == "Encrypt")
-                {
-                    ISimpleAssignmentOperation assignment = (ISimpleAssignmentOperation)initializer.Parent!;
-                    if (assignment.Value.ConstantValue is { HasValue: true, Value: bool boolValue })
-                    {
-                        return boolValue;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        if (operation is IInvocationOperation invocation
-            && IsSymbol(invocation.TargetMethod.ContainingType, symbols.RequestOptionsType))
-        {
-            string methodName = invocation.TargetMethod.Name;
-            if (methodName == "WithEncrypt")
-            {
-                if (invocation.Arguments.Length == 0)
-                {
-                    return true;
-                }
-
-                return invocation.Arguments[0].Value.ConstantValue is { HasValue: true, Value: bool boolValue }
-                    ? boolValue
-                    : null;
-            }
-
-            if (methodName is "WithRetry" or "WithTimeout")
-            {
-                return TryGetEncryptValue(invocation.Instance!, symbols);
-            }
-        }
-
-        return null;
-    }
 
     private static bool IsBuilderOpcodeAccess(ExpressionSyntax expression, string builderParameterName)
         => expression is MemberAccessExpressionSyntax

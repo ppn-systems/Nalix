@@ -167,16 +167,25 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
     {
         obj.ResetForPool();
 
-        // Try the fast-path thread-local slot first
+        TypePool? typePool = id < _typePoolsArray.Length ? _typePoolsArray[id] : null;
+        typePool ??= this.InitializeTypePoolFast<T>(id);
+
+        // Prevent thread-local hoarding by ensuring the central pool isn't starved.
+        // If it's empty, prioritize pushing to the central pool so other threads can use it.
+        if (typePool.AvailableCount == 0 && typePool.TryPush(obj))
+        {
+            _ = Interlocked.Increment(ref _totalReturned);
+            return;
+        }
+
+        // Try the fast-path thread-local slot
         if (ThreadLocalCache<T>.TryPush(this, obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);
             return;
         }
 
-        TypePool? typePool = id < _typePoolsArray.Length ? _typePoolsArray[id] : null;
-        typePool ??= this.InitializeTypePoolFast<T>(id);
-
+        // Fallback to central pool if thread-local slot is occupied
         if (typePool.TryPush(obj))
         {
             _ = Interlocked.Increment(ref _totalReturned);

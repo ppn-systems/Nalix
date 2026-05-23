@@ -44,7 +44,6 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? methodInfoType,
             INamedTypeSymbol? requestOptionsType,
             INamedTypeSymbol? requestExtensionsType,
-            INamedTypeSymbol? tcpSessionBaseType,
             INamedTypeSymbol? taskType,
             INamedTypeSymbol? genericTaskType,
             INamedTypeSymbol? valueTaskType,
@@ -87,7 +86,6 @@ public sealed partial class NalixUsageAnalyzer
             this.MethodInfoType = methodInfoType;
             this.RequestOptionsType = requestOptionsType;
             this.RequestExtensionsType = requestExtensionsType;
-            this.TcpSessionBaseType = tcpSessionBaseType;
             this.TaskType = taskType;
             this.GenericTaskType = genericTaskType;
             this.ValueTaskType = valueTaskType;
@@ -131,7 +129,6 @@ public sealed partial class NalixUsageAnalyzer
         public INamedTypeSymbol? MethodInfoType { get; }
         public INamedTypeSymbol? RequestOptionsType { get; }
         public INamedTypeSymbol? RequestExtensionsType { get; }
-        public INamedTypeSymbol? TcpSessionBaseType { get; }
         public INamedTypeSymbol? TaskType { get; }
         public INamedTypeSymbol? GenericTaskType { get; }
         public INamedTypeSymbol? ValueTaskType { get; }
@@ -177,7 +174,6 @@ public sealed partial class NalixUsageAnalyzer
             INamedTypeSymbol? methodInfoType = compilation.GetTypeByMetadataName("System.Reflection.MethodInfo");
             INamedTypeSymbol? requestOptionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Options.RequestOptions");
             INamedTypeSymbol? requestExtensionsType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.Extensions.RequestExtensions");
-            INamedTypeSymbol? tcpSessionBaseType = compilation.GetTypeByMetadataName("Nalix.SDK.Transport.TcpSession");
             INamedTypeSymbol? taskType = compilation.GetTypeByMetadataName(typeof(Task).FullName);
             INamedTypeSymbol? genericTaskType = compilation.GetTypeByMetadataName("System.Threading.Tasks.Task`1");
             INamedTypeSymbol? valueTaskType = compilation.GetTypeByMetadataName(typeof(ValueTask).FullName);
@@ -240,7 +236,6 @@ public sealed partial class NalixUsageAnalyzer
                     methodInfoType,
                     requestOptionsType,
                     requestExtensionsType,
-                    tcpSessionBaseType,
                     taskType,
                     genericTaskType,
                     valueTaskType,
