@@ -1,0 +1,188 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/settings"
+@inject IDashboardStateReader State
+@inject IAdminClient Client
+@inject IAdminSettingsStore SettingsStore
+@inject NavigationManager Nav
+
+<PageTitle>Settings — Nalix</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="py-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Settings" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Settings</MudText>
+    </MudStack>
+
+    @if (_settings is null)
+    {
+        <MudProgressLinear Indeterminate="true" Color="Color.Primary" />
+    }
+    else
+    {
+        <MudStack Spacing="4">
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true">Appearance</MudText>
+                <MudSelect @bind-Value="_settings.ThemeMode" Label="Theme" Variant="Variant.Outlined">
+                    <MudSelectItem Value="ThemeMode.Dark">Dark</MudSelectItem>
+                    <MudSelectItem Value="ThemeMode.Light">Light</MudSelectItem>
+                    <MudSelectItem Value="ThemeMode.System">System</MudSelectItem>
+                </MudSelect>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true">Polling</MudText>
+                <MudStack Spacing="3">
+                    <MudNumericField @bind-Value="_settings.DefaultPollingIntervalMs"
+                                     Label="Default Polling Interval (ms)"
+                                     Min="500" Max="60000"
+                                     Variant="Variant.Outlined" />
+                    <MudNumericField @bind-Value="_settings.PingIntervalMs"
+                                     Label="Ping Interval (ms)"
+                                     Min="1000" Max="60000"
+                                     Variant="Variant.Outlined" />
+                    <MudNumericField @bind-Value="_settings.RequestTimeoutMs"
+                                     Label="Request Timeout (ms)"
+                                     Min="1000" Max="30000"
+                                     Variant="Variant.Outlined" />
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true">Connection</MudText>
+                <MudStack Spacing="3">
+                    <MudTextField @bind-Value="_settings.WebSocketPath"
+                                  Label="WebSocket Path"
+                                  Variant="Variant.Outlined" />
+                    <MudSwitch @bind-Value="_settings.UseTls"
+                               Label="Use TLS" Color="Color.Primary" />
+                    <MudSwitch @bind-Value="_settings.AutoReconnect"
+                               Label="Auto Reconnect" Color="Color.Primary" />
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true">Display</MudText>
+                <MudStack Spacing="2">
+                    <MudSwitch @bind-Value="_settings.CompactTableDensity"
+                               Label="Compact Table Density" Color="Color.Primary" />
+                    <MudSwitch @bind-Value="_settings.ShowRawJsonDebug"
+                               Label="Show Raw JSON Debug" Color="Color.Primary" />
+                    <MudNumericField @bind-Value="_settings.MaxLogEntries"
+                                     Label="Max Log Entries"
+                                     Min="50" Max="2000"
+                                     Variant="Variant.Outlined" />
+                </MudStack>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="1">
+                <MudText Typo="Typo.subtitle1" GutterBottom="true">Session</MudText>
+                <MudStack Spacing="2">
+                    <MudSwitch @bind-Value="_settings.SaveKeyForNextTime"
+                               Label="Save API key for next time" Color="Color.Primary" />
+                </MudStack>
+            </MudPaper>
+
+            @if (_saved)
+            {
+                <MudAlert Severity="Severity.Success" Dense="true">Settings saved.</MudAlert>
+            }
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       Disabled="_isSaving"
+                       OnClick="SaveAsync">
+                @if (_isSaving)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Saving…</span>
+                }
+                else
+                {
+                    <span>Save Settings</span>
+                }
+            </MudButton>
+        </MudStack>
+    }
+</MudContainer>
+
+@code {
+    private AdminSettings? _settings;
+    private bool _isSaving;
+    private bool _saved;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!State.HasApiKey)
+        {
+            string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(savedKey))
+            {
+                await Client.SetApiKeyAsync(savedKey).ConfigureAwait(false);
+            }
+            else
+            {
+                Nav.NavigateTo("/login");
+                return;
+            }
+        }
+
+        _settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        _settings = new AdminSettings
+        {
+            ThemeMode = _settings.ThemeMode,
+            DefaultPollingIntervalMs = _settings.DefaultPollingIntervalMs,
+            PerPagePollingIntervalMs = new Dictionary<string, int>(_settings.PerPagePollingIntervalMs),
+            PingIntervalMs = _settings.PingIntervalMs,
+            RequestTimeoutMs = _settings.RequestTimeoutMs,
+            AutoReconnect = _settings.AutoReconnect,
+            MaxReconnectAttempts = _settings.MaxReconnectAttempts,
+            ReconnectBackoffMinMs = _settings.ReconnectBackoffMinMs,
+            ReconnectBackoffMaxMs = _settings.ReconnectBackoffMaxMs,
+            UseTls = _settings.UseTls,
+            WebSocketPath = _settings.WebSocketPath,
+            SaveKeyForNextTime = _settings.SaveKeyForNextTime,
+            ShowRawJsonDebug = _settings.ShowRawJsonDebug,
+            CompactTableDensity = _settings.CompactTableDensity,
+            ChartTimeWindowSeconds = _settings.ChartTimeWindowSeconds,
+            MaxChartSamples = _settings.MaxChartSamples,
+            MaxLogEntries = _settings.MaxLogEntries
+        };
+    }
+
+
+    private async Task SaveAsync()
+    {
+        if (_settings is null) return;
+
+        _isSaving = true;
+        _saved = false;
+        _error = null;
+
+        try
+        {
+            await SettingsStore.SaveAsync(_settings).ConfigureAwait(false);
+
+            // Migrate active API key to the new storage if it's currently saved
+            string? currentKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(currentKey))
+            {
+                await SettingsStore.SetApiKeyAsync(currentKey, _settings).ConfigureAwait(false);
+            }
+
+            _saved = true;
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

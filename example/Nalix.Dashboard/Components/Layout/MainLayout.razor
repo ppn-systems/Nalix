@@ -1,0 +1,225 @@
+@namespace Nalix.Dashboard.Components.Layout
+@inherits LayoutComponentBase
+@inject IDashboardStateReader State
+@inject IAdminSettingsStore SettingsStore
+@inject IAdminClient Client
+@inject NavigationManager Nav
+@implements IDisposable
+
+<MudThemeProvider Theme="_theme" @bind-IsDarkMode="_isDarkMode" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    @if (!IsLoginPage)
+    {
+        <MudAppBar Elevation="1" Dense="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
+                           Color="Color.Inherit"
+                           Edge="Edge.Start"
+                           OnClick="ToggleDrawer"
+                           aria-label="Toggle navigation" />
+
+            <a href="/" class="nalix-brand">
+                <img src="assets/brand/dashboard.png" alt="" class="nalix-brand__logo" style="height: 22px; width: 22px; display: block;" />
+                <span class="nalix-brand__name">Nalix</span>
+            </a>
+
+            <MudSpacer />
+
+            @if (State.HasApiKey)
+            {
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="@(State.IsConnected ? Color.Success : Color.Error)"
+                         Variant="Variant.Text"
+                         Class="mr-1">
+                    @(State.IsConnected ? "Connected" : "Disconnected")
+                </MudChip>
+
+                @if (State.LastPingMilliseconds is { } ms)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Inherit" Class="mr-2">
+                        @ms.ToString("F0") ms
+                    </MudText>
+                }
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Text" Class="mr-1">
+                    No Key
+                </MudChip>
+            }
+
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="ToggleTheme"
+                           title="@(_isDarkMode ? "Light mode" : "Dark mode")" />
+
+            @if (State.HasApiKey)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Logout"
+                               Color="Color.Inherit"
+                               OnClick="LogoutAsync"
+                               title="Logout" />
+            }
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen"
+                   Elevation="1"
+                   Variant="DrawerVariant.Responsive"
+                   ClipMode="DrawerClipMode.Never">
+            <MudDrawerHeader Dense="true">
+                <MudText Typo="Typo.h6" Class="mud-text-secondary" Style="font-weight: 600;">
+                    Nalix
+                </MudText>
+            </MudDrawerHeader>
+            <AdminNavMenu />
+        </MudDrawer>
+    }
+
+    <MudMainContent Class="@(IsLoginPage ? "pa-0" : "nalix-main")">
+        @Body
+        @if (!IsLoginPage)
+        {
+            <footer class="nalix-footer">
+                <MudStack Row="true"
+                          AlignItems="AlignItems.Center"
+                          Justify="Justify.SpaceBetween"
+                          Class="nalix-footer__inner">
+                    <!-- Bên trái: Copyright -->
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        Copyright &copy; 2025-2026 PPN Corporation
+                    </MudText>
+                    <!-- Bên phải: Social icons -->
+                    <MudStack Row="true" Spacing="0">
+                        <MudIconButton Icon="@Icons.Custom.Brands.GitHub"
+                                       Size="Size.Small"
+                                       Color="Color.Default"
+                                       Href="https://github.com/ppn-systems"
+                                       Target="_blank"
+                                       title="GitHub" />
+                    </MudStack>
+                </MudStack>
+            </footer>
+        }
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private bool _isDarkMode = true;
+    private bool _drawerOpen = true;
+    private bool _sessionRestored;
+
+    private readonly MudTheme _theme = new()
+    {
+        PaletteLight = new PaletteLight
+        {
+            Primary = "#1E6FD9",
+            Secondary = "#6366F1",
+            Tertiary = "#8B5CF6",
+            Success = "#16A34A",
+            Warning = "#CA8A04",
+            Error = "#DC2626",
+            Info = "#3B82F6",
+            Background = "#F1F5F9",
+            Surface = "#FFFFFF",
+            AppbarBackground = "#F1F5F9",
+            AppbarText = "#1E293B",
+            DrawerBackground = "#FFFFFF",
+            TextPrimary = "#1E293B",
+            TextSecondary = "#64748B",
+            Divider = "#E2E8F0",
+            TableLines = "#E2E8F0",
+            LinesDefault = "#E2E8F0",
+            ActionDefault = "#64748B"
+        },
+        PaletteDark = new PaletteDark
+        {
+            Primary = "#60A5FA",
+            Secondary = "#818CF8",
+            Tertiary = "#A78BFA",
+            Success = "#4ADE80",
+            Warning = "#FBBF24",
+            Error = "#F87171",
+            Info = "#60A5FA",
+            Background = "#0F172A",
+            Surface = "#1E293B",
+            AppbarBackground = "#0F172A",
+            AppbarText = "#F1F5F9",
+            DrawerBackground = "#1E293B",
+            TextPrimary = "#F1F5F9",
+            TextSecondary = "#94A3B8",
+            Divider = "#334155",
+            TableLines = "#334155",
+            LinesDefault = "#334155",
+            ActionDefault = "#94A3B8"
+        },
+        LayoutProperties = new LayoutProperties
+        {
+            DefaultBorderRadius = "8px",
+            DrawerWidthLeft = "260px"
+        },
+        Typography = new Typography
+        {
+            Default = new DefaultTypography
+            {
+                FontFamily = ["Inter", "Segoe UI", "-apple-system", "BlinkMacSystemFont", "Arial", "sans-serif"]
+            }
+        }
+    };
+
+    private bool IsLoginPage => Nav.ToBaseRelativePath(Nav.Uri).StartsWith("login", StringComparison.OrdinalIgnoreCase);
+
+    protected override void OnInitialized()
+    {
+        State.Changed += OnStateChanged;
+        Nav.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _sessionRestored) return;
+        _sessionRestored = true;
+
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        _isDarkMode = settings.ThemeMode != ThemeMode.Light;
+
+        string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(savedKey))
+        {
+            await Client.SetApiKeyAsync(savedKey).ConfigureAwait(false);
+        }
+
+        await InvokeAsync(StateHasChanged).ConfigureAwait(false);
+    }
+
+    private void OnStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
+
+    private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
+
+    private async Task ToggleTheme()
+    {
+        _isDarkMode = !_isDarkMode;
+
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        settings.ThemeMode = _isDarkMode ? ThemeMode.Dark : ThemeMode.Light;
+        await SettingsStore.SaveAsync(settings).ConfigureAwait(false);
+    }
+
+    private async Task LogoutAsync()
+    {
+        await Client.SetApiKeyAsync(string.Empty).ConfigureAwait(false);
+        await SettingsStore.ClearApiKeyAsync().ConfigureAwait(false);
+        Nav.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        State.Changed -= OnStateChanged;
+        Nav.LocationChanged -= OnLocationChanged;
+    }
+}

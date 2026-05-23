@@ -1,0 +1,90 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/connection-guard"
+@inherits MetricPageBase
+
+<PageTitle>Connection Guard — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Shield" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Connection Guard</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.ConnectionGuard.ConnectionGuardReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse connection guard report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Tracked Endpoints" Value="@MetricFormat.Count(report.TrackedEndpoints)" Detail="@($"Concurrent {MetricFormat.Count(report.TotalConcurrent)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Total Attempts" Value="@MetricFormat.Count(report.TotalAttempts)" Detail="@($"Limit {MetricFormat.Count(report.MaxPerEndpoint)} / endpoint")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Rejections"
+                            Value="@MetricFormat.Count(report.TotalRejections)"
+                            ValueColor="@(report.TotalRejections > 0 ? Color.Warning : Color.Default)"
+                            Detail="@($"Cleaned {MetricFormat.Count(report.TotalCleaned)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Rejection Rate"
+                            Value="@MetricFormat.Percent(report.RejectionRate, 2)"
+                            ValueColor="@(report.RejectionRate > 10 ? Color.Error : Color.Default)"
+                            Detail="@($"Idle after {MetricFormat.Seconds(report.InactivityThresholdSeconds)}")" />
+            </MudItem>
+        </MudGrid>
+
+        @if (report.TopEndpoints is { Count: > 0 } endpoints)
+        {
+            <MetricSection Title="Top Endpoints">
+                <MudTable Items="@endpoints" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Address</MudTh>
+                        <MudTh>Current</MudTh>
+                        <MudTh>Today Total</MudTh>
+                        <MudTh>Last Seen</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="ep">
+                        <MudTd Class="metric-table__wide">@(ep.Address ?? "-")</MudTd>
+                        <MudTd>@ep.CurrentConnections</MudTd>
+                        <MudTd>@ep.TotalConnectionsToday.ToString("N0")</MudTd>
+                        <MudTd>@MetricFormat.DateTimeOrDash(ep.LastConnectionUtc)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.CONNECTION_GUARD;
+    protected override string Route => "/metrics/connection-guard";
+}

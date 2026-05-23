@@ -24,7 +24,7 @@ namespace Nalix.Framework.Memory.Buffers;
 /// ArrayPool when a requested size cannot be satisfied by a managed pool.
 /// </summary>
 [DebuggerNonUserCode]
-public sealed partial class BufferPoolManager : IBufferPoolManager
+public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 {
     #region Fields & Constants
 
@@ -377,7 +377,6 @@ public sealed partial class BufferPoolManager : IBufferPoolManager
 
     #endregion Private: Rent / Return helpers
 
-
     #region Private: Resize Strategies
 
     [StackTraceHidden]
@@ -530,7 +529,6 @@ public sealed partial class BufferPoolManager : IBufferPoolManager
     }
 
     #endregion Private: Resize Strategies
-
 
     #region IDisposable
 

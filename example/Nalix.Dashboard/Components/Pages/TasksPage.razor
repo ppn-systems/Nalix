@@ -1,0 +1,167 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/tasks"
+@inherits MetricPageBase
+
+<PageTitle>Tasks — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Task" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Tasks</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Tasks.TasksReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse tasks report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Workers Running" Value="@($"{MetricFormat.Count(report.WorkersRunning)} / {MetricFormat.Count(report.WorkersTotal)}")" Detail="@($"Peak {MetricFormat.Count(report.PeakRunningWorkerCount)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Recurring Tasks" Value="@MetricFormat.Count(report.RecurringCount)" Detail="@($"Runs {MetricFormat.Count(report.RecurringExecutionCount)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Avg Execution" Value="@MetricFormat.Milliseconds(report.AverageWorkerExecutionTimeMs)" Detail="@($"P95 {MetricFormat.Milliseconds(report.P95WorkerExecutionTimeMs)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Worker Errors"
+                            Value="@MetricFormat.Count(report.WorkerErrorCount)"
+                            ValueColor="@(report.WorkerErrorCount > 0 ? Color.Error : Color.Default)"
+                            Detail="@($"Recurring {MetricFormat.Count(report.RecurringErrorCount)}")" />
+            </MudItem>
+        </MudGrid>
+
+        @if (report.Memory is { } mem)
+        {
+            <MudGrid Spacing="2" Class="mb-4">
+                <MudItem xs="12" sm="4">
+                    <MetricTile Label="Working Set" Value="@($"{MetricFormat.Number(mem.WorkingSetMB)} MB")" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MetricTile Label="Private Memory" Value="@($"{MetricFormat.Number(mem.PrivateMB)} MB")" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MetricTile Label="Virtual Memory" Value="@($"{MetricFormat.Number(mem.VirtualMB)} MB")" />
+                </MudItem>
+            </MudGrid>
+        }
+
+        @if (report.Process is { } proc)
+        {
+            <MudGrid Spacing="2" Class="mb-4">
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="Threads" Value="@MetricFormat.Count(proc.Threads)" Detail="@($"Running {MetricFormat.Count(proc.ThreadsRunning)}")" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="Completed Work" Value="@MetricFormat.Count(proc.CompletedWorkItems)" Detail="@($"Handles {MetricFormat.Count(proc.Handles)}")" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="Managed Heap" Value="@($"{MetricFormat.Number(proc.ManagedHeapMB)} MB")" Detail="@($"Uptime {MetricFormat.Number(proc.UptimeDays, 2)} days")" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="GC Gen 0 / 1 / 2"
+                                Value="@($"{MetricFormat.Count(proc.GCGen0)} / {MetricFormat.Count(proc.GCGen1)} / {MetricFormat.Count(proc.GCGen2)}")"
+                                Detail="Collections by generation" />
+                </MudItem>
+            </MudGrid>
+        }
+
+        <MudGrid Spacing="2" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Concurrency Limit" Value="@MetricFormat.Count(report.CurrentConcurrencyLimit)" Detail="@($"Max workers {MetricFormat.Count(report.MaxWorkers)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Wait Time" Value="@MetricFormat.Milliseconds(report.AverageWorkerWaitTimeMs)" Detail="@($"P99 {MetricFormat.Milliseconds(report.P99WorkerExecutionTimeMs)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="CPU Thresholds" Value="@($"{MetricFormat.Number(report.LowCpuThreshold)} / {MetricFormat.Number(report.HighCpuThreshold)}")" Detail="Low / high" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Adjustment" Value="@(report.DynamicAdjustmentEnabled ? "Enabled" : "Disabled")" Detail="@($"{MetricFormat.Seconds(report.ObservingIntervalSeconds)} observe")" />
+            </MudItem>
+        </MudGrid>
+
+        @if (report.WorkersByGroup is { Count: > 0 } groups)
+        {
+            <MetricSection Title="Workers by Group">
+                <MudTable Items="@groups" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Group</MudTh>
+                        <MudTh>Running</MudTh>
+                        <MudTh>Total</MudTh>
+                        <MudTh>Concurrency</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="g">
+                        <MudTd Class="metric-table__wide">@g.Key</MudTd>
+                        <MudTd>@MetricFormat.Count(g.Value.Running)</MudTd>
+                        <MudTd>@MetricFormat.Count(g.Value.Total)</MudTd>
+                        <MudTd>@(g.Value.Concurrency ?? "-")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+
+        @if (report.Recurring is { Count: > 0 } tasks)
+        {
+            <MetricSection Title="Recurring Tasks">
+                <MudTable Items="@tasks" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Name</MudTh>
+                        <MudTh>Runs</MudTh>
+                        <MudTh>Failures</MudTh>
+                        <MudTh>Running</MudTh>
+                        <MudTh>Next Run</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="t">
+                        <MudTd Class="metric-table__wide">@(t.Name ?? "-")</MudTd>
+                        <MudTd>@t.TotalRuns.ToString("N0")</MudTd>
+                        <MudTd>
+                            <MudText Color="@(t.ConsecutiveFailures > 0 ? Color.Error : Color.Default)">
+                                @t.ConsecutiveFailures
+                            </MudText>
+                        </MudTd>
+                        <MudTd>
+                            <MudIcon Icon="@(t.IsRunning ? Icons.Material.Filled.PlayCircle : Icons.Material.Filled.PauseCircle)"
+                                     Size="Size.Small"
+                                     Color="@(t.IsRunning ? Color.Success : Color.Default)" />
+                        </MudTd>
+                        <MudTd>@MetricFormat.DateTimeOrDash(t.NextRunUtc)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.TASKS;
+    protected override string Route => "/metrics/tasks";
+}

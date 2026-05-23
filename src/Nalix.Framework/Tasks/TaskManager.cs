@@ -27,7 +27,7 @@ namespace Nalix.Framework.Tasks;
 [DebuggerNonUserCode]
 [SkipLocalsInit]
 [DebuggerDisplay("TaskManager (Workers={_workers.Count}, Recurring={_recurring.Count})")]
-public sealed partial class TaskManager : ITaskManager
+public sealed partial class TaskManager : ITaskManager, IDisposable
 {
     #region Fields
 
@@ -64,9 +64,9 @@ public sealed partial class TaskManager : ITaskManager
 
     #endregion Fields
 
-    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
-
     #region Properties
+
+    private static DiagnosticListener Listener => DiagnosticsEvents.Source;
 
     /// <summary>
     /// Gets a compact status line for consoles and diagnostics.
@@ -789,6 +789,4 @@ public sealed partial class TaskManager : ITaskManager
     }
 
     #endregion APIs
-
-
 }

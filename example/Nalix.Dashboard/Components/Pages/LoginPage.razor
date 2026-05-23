@@ -1,0 +1,196 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/login"
+@inject IAdminClient Client
+@inject IAdminSettingsStore SettingsStore
+@inject IDashboardStateReader State
+@inject NavigationManager Nav
+
+<PageTitle>Login — Nalix</PageTitle>
+
+<div class="login-wrap">
+    <div style="position: absolute; top: 16px; right: 16px;">
+        <MudIconButton Icon="@Icons.Material.Outlined.Settings"
+                       Color="Color.Default"
+                       Size="Size.Medium"
+                       OnClick="OpenServerSettings"
+                       title="Server settings" />
+    </div>
+
+    <MudPaper Class="login-card pa-8" Elevation="4" MaxWidth="400px">
+        <MudStack Spacing="4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <img src="assets/brand/dashboard.png" alt="" style="height:36px;width:36px" />
+                <MudText Typo="Typo.h5">Nalix</MudText>
+            </MudStack>
+
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Enter your API key to connect to the Nalix server.
+            </MudText>
+
+            <MudTextField @bind-Value="_apiKey"
+                          Label="API Key"
+                          InputType="@(_showKey ? InputType.Text : InputType.Password)"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@(_showKey ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                          OnAdornmentClick="() => _showKey = !_showKey"
+                          Immediate="true"
+                          OnKeyDown="HandleKeyDownAsync"
+                          Disabled="_isBusy"
+                          AutoFocus="true" />
+
+            <MudCheckBox T="bool" @bind-Value="_saveKey"
+                         Label="Save key for next time"
+                         Color="Color.Primary"
+                         Disabled="_isBusy" />
+
+            @if (_error is not null)
+            {
+                <MudAlert Severity="Severity.Error" Dense="true">@_error</MudAlert>
+            }
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       FullWidth="true"
+                       Disabled="@(_isBusy || string.IsNullOrWhiteSpace(_apiKey))"
+                       OnClick="ConnectAsync">
+                @if (_isBusy)
+                {
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                    <span>Connecting…</span>
+                }
+                else
+                {
+                    <span>Connect</span>
+                }
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
+    <MudDialog @bind-Visible="_showServerDialog" Options="_dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">Server Connection</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_serverHost"
+                              Label="Host"
+                              Placeholder="localhost"
+                              Variant="Variant.Outlined"
+                              HelperText="IP address or hostname (leave blank for default)" />
+                <MudNumericField @bind-Value="_serverPort"
+                                 Label="Port"
+                                 Min="1" Max="65535"
+                                 Variant="Variant.Outlined"
+                                 HelperText="Default: 57206" />
+                <MudSwitch T="bool" @bind-Value="_useTls"
+                           Label="Use TLS"
+                           Color="Color.Primary" />
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="CancelServerSettings"
+                       Variant="Variant.Text">Cancel</MudButton>
+            <MudButton OnClick="SaveServerSettings"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary">Save</MudButton>
+        </DialogActions>
+    </MudDialog>
+</div>
+
+@code {
+    private string _apiKey = string.Empty;
+    private bool _showKey;
+    private bool _saveKey;
+    private bool _isBusy;
+    private string? _error;
+
+    private bool _showServerDialog;
+    private string _serverHost = string.Empty;
+    private int _serverPort = 57206;
+    private bool _useTls;
+    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    private async Task OpenServerSettings()
+    {
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        _serverHost = settings.ServerHost ?? string.Empty;
+        _serverPort = settings.ServerPort ?? 57206;
+        _useTls = settings.UseTls;
+        _showServerDialog = true;
+    }
+
+    private void CancelServerSettings()
+    {
+        _showServerDialog = false;
+    }
+
+    private async Task SaveServerSettings()
+    {
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        settings.ServerHost = string.IsNullOrWhiteSpace(_serverHost) ? null : _serverHost.Trim();
+        settings.ServerPort = _serverPort == 57206 ? null : (ushort)_serverPort;
+        settings.UseTls = _useTls;
+        await SettingsStore.SaveAsync(settings).ConfigureAwait(false);
+        _showServerDialog = false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        _saveKey = settings.SaveKeyForNextTime;
+
+        if (State.HasApiKey)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+
+        string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(savedKey))
+        {
+            _apiKey = savedKey;
+            await ConnectAsync().ConfigureAwait(false);
+            return;
+        }
+    }
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_apiKey) && !_isBusy)
+        {
+            await ConnectAsync().ConfigureAwait(false);
+        }
+    }
+
+    private async Task ConnectAsync()
+    {
+        _error = null;
+        _isBusy = true;
+        try
+        {
+            // Configure key in client first so we can ping test
+            await Client.SetApiKeyAsync(_apiKey).ConfigureAwait(false);
+
+            // Attempt connection test (ping)
+            await Client.PingAsync(CancellationToken.None).ConfigureAwait(false);
+
+            // Connection succeeded! Save settings and persist API key.
+            AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+            settings.SaveKeyForNextTime = _saveKey;
+            await SettingsStore.SaveAsync(settings).ConfigureAwait(false);
+            await SettingsStore.SetApiKeyAsync(_apiKey, settings).ConfigureAwait(false);
+
+            Nav.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            _error = $"Failed to authenticate: {ex.Message}";
+            // Clear client key since verification failed
+            await Client.SetApiKeyAsync(string.Empty).ConfigureAwait(false);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+}

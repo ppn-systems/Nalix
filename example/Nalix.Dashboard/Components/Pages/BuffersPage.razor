@@ -1,0 +1,123 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/buffers"
+@inherits MetricPageBase
+
+<PageTitle>Buffers — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Memory" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Buffers</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Buffers.BuffersReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse buffers report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Hit Rate" Value="@MetricFormat.PercentRatio(report.HitRate)" Detail="@($"Hits {MetricFormat.Count(report.TotalHits)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Misses" Value="@MetricFormat.Count(report.TotalMisses)" Detail="@($"Fallback {MetricFormat.Count(report.FallbackCount)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Throughput" Value="@($"{MetricFormat.Number(report.ThroughputMBps, 2)} MB/s")" Detail="@MetricFormat.Bytes(report.PeakMemoryUsageBytes)" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Pool Count" Value="@MetricFormat.Count(report.PoolCount)" Detail="@($"{MetricFormat.Count(report.MinBufferSize)}-{MetricFormat.Count(report.MaxBufferSize)} bytes")" />
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="2" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Configured Buffers" Value="@MetricFormat.Count(report.TotalBuffersConfigured)" Detail="Configured total" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Trimming" Value="@(report.EnableTrimming ? "Enabled" : "Disabled")" Detail="@($"{report.TrimIntervalMinutes}m / {report.DeepTrimIntervalMinutes}m")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Bucket Cache" Value="@MetricFormat.Count(report.BucketCacheHits)" Detail="@($"Misses {MetricFormat.Count(report.BucketCacheMisses)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Expands / Shrinks" Value="@($"{MetricFormat.Count(report.TotalExpands)} / {MetricFormat.Count(report.TotalShrinks)}")" Detail="@($"Cycle {MetricFormat.Count(report.TrimCycleCount)}")" />
+            </MudItem>
+        </MudGrid>
+
+        @if (report.ShrinkSafetyPolicy is { } policy)
+        {
+            <MudGrid Spacing="2" Class="mb-4">
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="Retention" Value="@MetricFormat.Percent(policy.MinimumRetentionPercent)" Detail="Minimum" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="Single Shrink" Value="@MetricFormat.Count(policy.MaxSingleShrinkStep)" Detail="Max step" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="Cycle Shrink" Value="@MetricFormat.Percent(policy.MaxShrinkPercentPerCycle)" Detail="Max per cycle" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MetricTile Label="Absolute Min" Value="@MetricFormat.Count(policy.AbsoluteMinimum)" Detail="Buffers retained" />
+                </MudItem>
+            </MudGrid>
+        }
+
+        @if (report.Pools is { Count: > 0 } pools)
+        {
+            <MetricSection Title="Buffer Pools">
+                <MudTable Items="@pools" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Size</MudTh>
+                        <MudTh>In Use / Total</MudTh>
+                        <MudTh>Usage %</MudTh>
+                        <MudTh>Hits</MudTh>
+                        <MudTh>Expands</MudTh>
+                        <MudTh>Shrinks</MudTh>
+                        <MudTh>Returned</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="p">
+                        <MudTd>@p.BufferSize.ToString("N0")</MudTd>
+                        <MudTd>@p.InUse / @p.Total</MudTd>
+                        <MudTd>@MetricFormat.PercentRatio(p.UsageRatio)</MudTd>
+                        <MudTd>@p.Hits.ToString("N0")</MudTd>
+                        <MudTd>@p.Expands.ToString("N0")</MudTd>
+                        <MudTd>@p.Shrinks.ToString("N0")</MudTd>
+                        <MudTd>@(p.BytesReturned ?? "-")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.BUFFERS;
+    protected override string Route => "/metrics/buffers";
+}

@@ -13,7 +13,7 @@ namespace Nalix.Abstractions;
 /// This abstraction allows consumers to rent and return buffers efficiently
 /// without being coupled to a specific pooling implementation.
 /// </remarks>
-public interface IBufferPoolManager : IDisposable, IReportable
+public interface IBufferPoolManager : IReportable
 {
     /// <summary>
     /// Rents a buffer with at least the specified minimum length.

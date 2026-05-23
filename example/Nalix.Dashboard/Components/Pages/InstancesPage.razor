@@ -1,0 +1,87 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/instances"
+@inherits MetricPageBase
+
+<PageTitle>Instances — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.AccountTree" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Instances</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.Instances.InstancesReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse instances report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Cached Instances" Value="@MetricFormat.Count(report.CachedInstanceCount)" Detail="@($"Created {MetricFormat.Count(report.InstanceCreationCount)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Cache Hits" Value="@MetricFormat.Count(report.InstanceCacheHitCount)" Detail="@($"Calls {MetricFormat.Count(report.TotalGetOrCreateCalls)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Hit Rate" Value="@MetricFormat.Percent(report.HitRatePermille / 10.0)" Detail="@($"Invalidated {MetricFormat.Count(report.SlotsInvalidated)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Disposable" Value="@MetricFormat.Count(report.DisposableCount)" Detail="@($"Factories {MetricFormat.Count(report.ActivatorFactoryCount)}")" />
+            </MudItem>
+        </MudGrid>
+
+        @if (report.Instances is { Count: > 0 } instances)
+        {
+            <MetricSection Title="Registered Instances">
+                <MudTable Items="@instances" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Disposable</MudTh>
+                        <MudTh>Source</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="inst">
+                        <MudTd Class="metric-table__wide">@MetricFormat.TypeName(inst.Type)</MudTd>
+                        <MudTd>
+                            @if (inst.IsDisposable)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.Check" Size="Size.Small" Color="Color.Success" />
+                            }
+                        </MudTd>
+                        <MudTd>@(inst.Source ?? "-")</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.INSTANCES;
+    protected override string Route => "/metrics/instances";
+}

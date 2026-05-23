@@ -1,0 +1,22 @@
+@namespace Nalix.Dashboard.Components.Layout
+
+<MudNavMenu>
+    @foreach (NavSection navSection in _sections)
+    {
+        <MudNavGroup Title="@navSection.Title" Expanded="true">
+            @foreach (NavItem item in navSection.Items)
+            {
+                <MudNavLink Href="@item.Route"
+                            Icon="@item.Icon"
+                            Match="@(item.Route == "/" ? NavLinkMatch.All : NavLinkMatch.Prefix)">
+                    @item.Title
+                </MudNavLink>
+            }
+        </MudNavGroup>
+    }
+</MudNavMenu>
+
+@code {
+    private static readonly IReadOnlyList<NavSection> _sections =
+        AppNavigation.Build(PermissionLevel.SUPERVISOR);
+}

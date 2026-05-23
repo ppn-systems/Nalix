@@ -94,7 +94,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
     #endregion Fields
 
-
     #region Process Single-Instance (Fixed & Cheap)
 
     private static string CreateApplicationMutexName()
@@ -695,7 +694,6 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
 
     #endregion Public API
 
-
     #region IDisposable
 
     /// <summary>
@@ -743,5 +741,4 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     }
 
     #endregion IDisposable
-
 }

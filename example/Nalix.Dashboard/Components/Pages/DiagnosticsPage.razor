@@ -1,0 +1,135 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/diagnostics"
+@inject IDashboardStateReader State
+@inject IDashboardStateWriter StateWriter
+@inject IAdminSettingsStore SettingsStore
+@inject IAdminClient Client
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Diagnostics — Nalix</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.BugReport" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Diagnostics</MudText>
+        <MudSpacer />
+        <MudText Typo="Typo.caption" Color="Color.Secondary">@State.Logs.Count entries</MudText>
+        <MudIconButton Icon="@Icons.Material.Outlined.ClearAll"
+                       Size="Size.Small"
+                       OnClick="ClearLogs"
+                       title="Clear logs" />
+    </MudStack>
+
+    <MudGrid Spacing="3" Class="metrics-grid mb-4">
+        <MudItem xs="12" sm="6" md="3">
+            <MetricTile Label="Connection"
+                        Value="@(State.IsConnected ? "Connected" : "Disconnected")"
+                        ValueColor="@(State.IsConnected ? Color.Success : Color.Error)"
+                        Detail="WebSocket session" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MetricTile Label="Ping"
+                        Value="@(State.LastPingMilliseconds.HasValue ? $"{State.LastPingMilliseconds:F1} ms" : "-")"
+                        Detail="@PingDetail" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MetricTile Label="Reports Cached"
+                        Value="@($"{State.Reports.Count} / 7")"
+                        Detail="@LatestReportDetail" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MetricTile Label="Log Entries"
+                        Value="@MetricFormat.Count(State.Logs.Count)"
+                        Detail="Activity rows" />
+        </MudItem>
+    </MudGrid>
+
+    @if (State.Reports.Count > 0)
+    {
+        <MetricSection Title="Cached Reports">
+            <MudTable Items="@State.Reports.OrderBy(static kv => kv.Key).ToList()" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                <HeaderContent>
+                    <MudTh>Target</MudTh>
+                    <MudTh>Received</MudTh>
+                    <MudTh>Fields</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="row">
+                    <MudTd>@row.Key</MudTd>
+                    <MudTd>@row.Value.ReceivedAt.LocalDateTime.ToString("HH:mm:ss")</MudTd>
+                    <MudTd>@MetricFormat.Count(row.Value.Data.Count)</MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MetricSection>
+    }
+
+    <MudText Typo="Typo.subtitle2" Class="mb-2">Activity Log</MudText>
+    <MudPaper Elevation="1" Style="max-height: 500px; overflow-y: auto;">
+        @if (State.Logs.Count == 0)
+        {
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="pa-4">No log entries.</MudText>
+        }
+        else
+        {
+            <MudTable Items="@State.Logs.Reverse().ToList()" Dense="true" Hover="true" Striped="false">
+                <HeaderContent>
+                    <MudTh>Time</MudTh>
+                    <MudTh>Level</MudTh>
+                    <MudTh>Message</MudTh>
+                </HeaderContent>
+                <RowTemplate Context="entry">
+                    <MudTd Style="white-space:nowrap">@entry.Timestamp.LocalDateTime.ToString("HH:mm:ss")</MudTd>
+                    <MudTd>
+                        <MudChip T="string" Size="Size.Small"
+                                 Variant="Variant.Text"
+                                 Color="@LevelColor(entry.Level)">@entry.Level</MudChip>
+                    </MudTd>
+                    <MudTd Style="word-break:break-word">@entry.Message</MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    private string PingDetail => State.PingSamples.Count == 0
+        ? "No samples"
+        : $"Avg {State.PingSamples.Average(static s => s.Milliseconds):F1} ms over {State.PingSamples.Count} samples";
+
+    private string LatestReportDetail => State.Reports.Count == 0
+        ? "No reports yet"
+        : $"Latest {State.Reports.Values.Max(static r => r.ReceivedAt).LocalDateTime:HH:mm:ss}";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!State.HasApiKey)
+        {
+            string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(savedKey))
+            {
+                await Client.SetApiKeyAsync(savedKey).ConfigureAwait(false);
+            }
+            else
+            {
+                Nav.NavigateTo("/login");
+                return;
+            }
+        }
+
+        State.Changed += OnStateChanged;
+    }
+
+    public void Dispose() => State.Changed -= OnStateChanged;
+
+    private void OnStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void ClearLogs() => StateWriter.ClearLogs();
+
+    private static Color LevelColor(string level) => level.ToUpperInvariant() switch
+    {
+        "ERROR" => Color.Error,
+        "WARN"  => Color.Warning,
+        "INFO"  => Color.Info,
+        _       => Color.Default
+    };
+}

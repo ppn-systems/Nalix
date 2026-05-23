@@ -1,0 +1,24 @@
+@namespace Nalix.Dashboard.Components
+
+<MudPaper Class="metric-tile" Elevation="1">
+    <MudText Typo="Typo.caption" Color="Color.Secondary" Class="metric-tile__label">@Label</MudText>
+    <MudText Typo="Typo.subtitle1" Color="@ValueColor" Class="metric-tile__value">@Value</MudText>
+    @if (!string.IsNullOrWhiteSpace(Detail))
+    {
+        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="metric-tile__detail">@Detail</MudText>
+    }
+    else if (ChildContent is not null)
+    {
+        <div class="metric-tile__detail">
+            @ChildContent
+        </div>
+    }
+</MudPaper>
+
+@code {
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Value { get; set; } = string.Empty;
+    [Parameter] public string? Detail { get; set; }
+    [Parameter] public Color ValueColor { get; set; } = Color.Default;
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Backend.Attributes;
-using Backend.Handlers;
 using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
@@ -14,6 +13,7 @@ using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
+using Nalix.Observability.Handlers;
 using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
@@ -33,6 +33,8 @@ internal class Startup
         Justification = "Registered services are owned by the Nalix InstanceManager and host lifecycle.")]
     public static NetworkApplication Configure(ILogger logger)
     {
+        ObservabilityAccessHandlers.SetPrivateKeyPath(ResolveSharedFile("observability.private"));
+
         ConnectionHub hub = new();
         BufferPoolManager bufferPool = new();
         ObjectPoolManager objectPool = new();
@@ -43,13 +45,19 @@ internal class Startup
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
-            .AddHandler<AuthorityGrantHandlers>()
-            .AddHandler<GenerationReportHandlers>()
+            .AddHandler<ObservabilityAccessHandlers>()
+            .AddHandler<RuntimeObservationHandlers>()
             .Configure<NetworkSocketOptions>(o =>
             {
                 o.Port = ListenPort;
                 o.BufferSize = 1024 * 64;
                 o.Backlog = 1024;
+            })
+            .Configure<NetworkWebSocketOptions>(o =>
+            {
+                o.Host = "+";
+                o.Port = 57207;
+                o.Path = "/ws/";
             })
             .Configure<ConnectionQuotaOptions>(o =>
             {
@@ -93,7 +101,11 @@ internal class Startup
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .BindTcp<DefaultProtocol>()
-            .Bind()
+                .Bind()
+            .BindWebSocket<DefaultProtocol>()
+                .OnPort(57207)
+                .WithPath("/ws/")
+                .Bind()
             .Build();
 
         return host;
@@ -116,4 +128,3 @@ internal class Startup
         return Path.GetFullPath(Path.Combine("shared", fileName));
     }
 }
-

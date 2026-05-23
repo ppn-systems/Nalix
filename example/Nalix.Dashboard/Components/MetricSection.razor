@@ -1,0 +1,20 @@
+@namespace Nalix.Dashboard.Components
+
+<section class="metric-section">
+    <div class="metric-section__header">
+        <MudText Typo="Typo.subtitle2">@Title</MudText>
+        @if (!string.IsNullOrWhiteSpace(Subtitle))
+        {
+            <MudText Typo="Typo.caption" Color="Color.Secondary">@Subtitle</MudText>
+        }
+    </div>
+    <MudPaper Elevation="1" Class="metric-section__body">
+        @ChildContent
+    </MudPaper>
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = string.Empty;
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter, EditorRequired] public RenderFragment ChildContent { get; set; } = null!;
+}

@@ -74,10 +74,6 @@ public static class RequestExtensions
     /// <exception cref="OperationCanceledException">
     /// <paramref name="ct"/> was cancelled, or the connection dropped mid-wait.
     /// </exception>
-    /// <exception cref="ArgumentException">
-    /// <see cref="RequestOptions.Encrypt"/> is <see langword="true"/> but
-    /// <paramref name="client"/> is not a <see cref="TcpSession"/>.
-    /// </exception>
     /// <example>
     /// <code>
     /// // 1. Simplest — default options
@@ -117,13 +113,6 @@ public static class RequestExtensions
                 $"[SDK.RequestAsync<{typeof(TResponse).Name}>] Client is not connected.");
         }
 
-        // Fail-fast: Encrypt requires BaseTcpSession — check before any attempt.
-        if (options.Encrypt && client is not TcpSession)
-        {
-            throw new ArgumentException(
-                $"[SDK.RequestAsync<{typeof(TResponse).Name}>] RequestOptions.Encrypt=true requires TcpSession. Got: {client.GetType().Name}", nameof(client));
-        }
-
         Exception? lastException = null;
         int totalAttempts = options.RetryCount + 1;
         Func<TResponse, bool> effectivePredicate = predicate ?? (_ => true);
@@ -141,9 +130,7 @@ public static class RequestExtensions
                     client,
                     predicate: effectivePredicate,
                     timeoutMs: options.TimeoutMs,
-                    sendAsync: token => options.Encrypt
-                        ? ((TcpSession)client).SendAsync(request, encrypt: true, token)
-                        : client.SendAsync(request, encrypt: false, token),
+                    sendAsync: token => client.SendAsync(request, encrypt: options.Encrypt, token),
                     ct).ConfigureAwait(false);
 
                 return result;

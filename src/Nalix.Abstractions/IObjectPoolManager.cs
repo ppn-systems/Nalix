@@ -15,7 +15,7 @@ namespace Nalix.Abstractions;
 /// operations for monitoring and tuning performance.
 /// </remarks>
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Naming", "CA1716:Identifiers should not match keywords", Justification = "<Pending>")]
-public interface IObjectPoolManager
+public interface IObjectPoolManager : IReportable
 {
     /// <summary>
     /// Retrieves an instance of <typeparamref name="T"/> from the pool,

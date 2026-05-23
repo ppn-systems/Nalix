@@ -1,0 +1,138 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/object-pools"
+@inherits MetricPageBase
+
+<PageTitle>Object Pools — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Pool" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Object Pools</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.ObjectPools.ObjectPoolsReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse object pools report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Pool Count"
+                            Value="@MetricFormat.Count(report.PoolCount)"
+                            Detail="@($"Peak {MetricFormat.Count(report.PeakPoolCount)}")"
+                            ValueColor="@(report.UnhealthyPoolCount > 0 ? Color.Error : Color.Default)" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Cache Hit Rate" Value="@MetricFormat.Percent(report.CacheHitRate)" Detail="@($"Hits {MetricFormat.Count(report.TotalCacheHits)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Throughput" Value="@($"{MetricFormat.Number(report.Throughput)} ops/s")" Detail="@($"Created {MetricFormat.Count(report.TotalCreated)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Net Objects" Value="@MetricFormat.Count(report.NetObjects)" Detail="@($"Leaked {MetricFormat.Count(report.TotalLeaked)}")" />
+            </MudItem>
+        </MudGrid>
+
+        <MudGrid Spacing="2" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Default Capacity" Value="@MetricFormat.Count(report.DefaultMaxPoolSize)" Detail="@($"Unhealthy {MetricFormat.Count(report.UnhealthyPoolCount)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Returns" Value="@MetricFormat.Count(report.TotalReturnOperations)" Detail="@($"Gets {MetricFormat.Count(report.TotalGetOperations)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Misses" Value="@MetricFormat.Count(report.TotalCacheMisses)" Detail="@($"Disposed {MetricFormat.Count(report.TotalDisposed)}")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Creation Rate" Value="@($"{MetricFormat.Number(report.CreationRate)} ops/s")" Detail="@($"Uptime {MetricFormat.Seconds(report.UptimeSeconds)}")" />
+            </MudItem>
+        </MudGrid>
+
+        @if (report.Pools is { Count: > 0 } pools)
+        {
+            <MetricSection Title="Pools">
+                <MudTable Items="@pools" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Available / Max</MudTh>
+                        <MudTh>Traffic</MudTh>
+                        <MudTh>Outstanding</MudTh>
+                        <MudTh>Last Access</MudTh>
+                        <MudTh>Hit Rate</MudTh>
+                        <MudTh>Status</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="p">
+                        <MudTd Class="metric-table__wide">@MetricFormat.TypeName(p.Type)</MudTd>
+                        <MudTd>@MetricFormat.Count(p.Available) / @MetricFormat.Count(p.MaxCapacity)</MudTd>
+                        <MudTd>@MetricFormat.Count(p.Gets) / @MetricFormat.Count(p.Hits)</MudTd>
+                        <MudTd>
+                            <MudText Color="@(p.Outstanding > 0 ? Color.Warning : Color.Default)">
+                                @MetricFormat.Count(p.Outstanding)
+                            </MudText>
+                        </MudTd>
+                        <MudTd>@(p.LastAccessType ?? "-")</MudTd>
+                        <MudTd>@MetricFormat.Percent(p.HitRate)</MudTd>
+                        <MudTd>
+                            <MudChip T="string" Size="Size.Small"
+                                     Variant="Variant.Text"
+                                     Color="@(p.ConsecutiveFailures > 0 ? Color.Error : p.Status == "Warming" ? Color.Warning : p.IsActive ? Color.Success : Color.Default)">
+                                @(p.ConsecutiveFailures > 0 ? $"Fail ({p.ConsecutiveFailures})" : (p.Status ?? (p.IsActive ? "Active" : "Idle")))
+                            </MudChip>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+
+        @if (report.UnhealthyPools is { Count: > 0 } unhealthy)
+        {
+            <MetricSection Title="Unhealthy Pools">
+                <MudTable Items="@unhealthy" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Type</MudTh>
+                        <MudTh>Failures</MudTh>
+                        <MudTh>Outstanding</MudTh>
+                        <MudTh>Last Access</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="p">
+                        <MudTd Class="metric-table__wide">@MetricFormat.TypeName(p.Type)</MudTd>
+                        <MudTd>@MetricFormat.Count(p.ConsecutiveFailures)</MudTd>
+                        <MudTd>@MetricFormat.Count(p.Outstanding)</MudTd>
+                        <MudTd>@MetricFormat.DateTimeOrDash(p.LastAccessUtc)</MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.OBJECT_POOLS;
+    protected override string Route => "/metrics/object-pools";
+}
