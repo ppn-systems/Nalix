@@ -25,6 +25,7 @@ using Nalix.Framework.Tasks;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Routing;
+using Nalix.Runtime.Middleware;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -48,6 +49,7 @@ public sealed class PacketDispatchChannel
     private int _activeLoops;
     private int _dispatchLoops;
     private int _wakeRequested;
+    private long _deserializationErrors;
 
     private long _wakeSignals;
     private long _wakeReadSignals;
@@ -68,7 +70,7 @@ public sealed class PacketDispatchChannel
     {
         _dispatch = new DispatchChannel<IPacket>();
         _wakeSignal = new SemaphoreSlim(0, int.MaxValue);
-        _maxDrainPerWake = Math.Clamp(System.Environment.ProcessorCount * this.Options.MaxDrainPerWakeMultiplier, this.Options.MinDrainPerWake, this.Options.MaxDrainPerWake);
+        _maxDrainPerWake = Math.Clamp(System.Environment.ProcessorCount * this.Options.Drain.MaxDrainPerWakeMultiplier, this.Options.Drain.MinDrainPerWake, this.Options.Drain.MaxDrainPerWake);
     }
 
     #endregion Constructors
@@ -111,7 +113,7 @@ public sealed class PacketDispatchChannel
 
         Volatile.Write(ref _activeLoops, 0);
 
-        _dispatchLoops = this.Options.DispatchLoopCount ?? Math.Clamp(System.Environment.ProcessorCount, this.Options.MinDispatchLoops, this.Options.MaxDispatchLoops);
+        _dispatchLoops = this.Options.Drain.Count == 0 ? Math.Clamp(System.Environment.ProcessorCount, this.Options.Drain.MinDispatchLoops, this.Options.Drain.MaxDispatchLoops) : this.Options.Drain.Count;
         _workerHandle = new IWorkerHandle[_dispatchLoops];
         CancellationToken linkedTokenRef = linkedToken;
 
@@ -263,6 +265,7 @@ public sealed class PacketDispatchChannel
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
+        PipelineMetrics metrics = this.Options.Metrics;
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running              : {(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops        : {_dispatchLoops}");
@@ -302,6 +305,29 @@ public sealed class PacketDispatchChannel
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kv.Key.NetworkEndpoint,-22}| {kv.Value,6}");
         }
 
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine("Pipeline Statistics:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Executions    : {this.Options.Metrics.ActiveExecutions}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Executions     : {this.Options.Metrics.TotalExecutions}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors         : {this.Options.Metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deserialization Err : {Volatile.Read(ref _deserializationErrors)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Time (ms)    : {this.Options.Metrics.AverageExecutionTime.TotalMilliseconds:F4}");
+
+        ReadOnlySpan<PerMiddlewareMetrics> mwMetrics = this.Options.MiddlewareMetrics;
+        if (this.Options.MiddlewareMetrics.Length > 0)
+        {
+            _ = sb.AppendLine();
+            _ = sb.AppendLine("Middleware Performance:");
+            _ = sb.AppendLine("Middleware                           | Executions | Errors | Avg Time (ms)");
+            _ = sb.AppendLine("-------------------------------------|------------|--------|--------------");
+            foreach (ref readonly PerMiddlewareMetrics m in this.Options.MiddlewareMetrics)
+            {
+                double avgMs = m.TotalExecutions == 0 ? 0 : TimeSpan.FromTicks(m.TotalExecutionTicks / m.TotalExecutions).TotalMilliseconds;
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{m.MiddlewareType.Name,-36} | {m.TotalExecutions,-10} | {m.TotalErrors,-6} | {avgMs:F4}");
+            }
+        }
+
         return sb.ToString();
     }
 
@@ -309,6 +335,7 @@ public sealed class PacketDispatchChannel
     public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
+        PipelineMetrics metrics = this.Options.Metrics;
 
         writer.WriteStartObject();
         writer.WriteString("UtcNow", DateTime.UtcNow);
@@ -344,6 +371,30 @@ public sealed class PacketDispatchChannel
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
+
+        writer.WriteStartObject("PipelineMetrics");
+        writer.WriteNumber("ActiveExecutions", this.Options.Metrics.ActiveExecutions);
+        writer.WriteNumber("TotalExecutions", this.Options.Metrics.TotalExecutions);
+        writer.WriteNumber("TotalErrors", this.Options.Metrics.TotalErrors);
+        writer.WriteNumber("DeserializationErrors", Volatile.Read(ref _deserializationErrors));
+        writer.WriteNumber("AverageTimeMs", this.Options.Metrics.AverageExecutionTime.TotalMilliseconds);
+        writer.WriteEndObject();
+
+        if (this.Options.MiddlewareMetrics.Length > 0)
+        {
+            writer.WriteStartArray("MiddlewareMetrics");
+            foreach (ref readonly PerMiddlewareMetrics m in this.Options.MiddlewareMetrics)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("Type", m.MiddlewareType.Name);
+                writer.WriteNumber("TotalExecutions", m.TotalExecutions);
+                writer.WriteNumber("TotalErrors", m.TotalErrors);
+                double avgMs = m.TotalExecutions == 0 ? 0 : TimeSpan.FromTicks(m.TotalExecutionTicks / m.TotalExecutions).TotalMilliseconds;
+                writer.WriteNumber("AverageTimeMs", avgMs);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }
 
         writer.WriteEndObject();
     }
@@ -503,6 +554,7 @@ public sealed class PacketDispatchChannel
             // 4. Normal deserialization fallback for structured packets
             if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? deserialized) || deserialized is null)
             {
+                _ = Interlocked.Increment(ref _deserializationErrors);
                 lease.Dispose();
                 connection.IncrementErrorCount();
                 return ValueTask.CompletedTask;

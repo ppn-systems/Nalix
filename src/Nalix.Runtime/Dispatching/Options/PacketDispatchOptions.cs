@@ -11,9 +11,9 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Options;
 
 namespace Nalix.Network.Routing;
 
@@ -66,40 +66,19 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     public ILogger? Logging { get; private set; }
 
     /// <summary>
-    /// Specifies how many dispatch loops the <see cref="PacketDispatchChannel"/> should start.
-    /// When <see langword="null"/>, the dispatcher chooses <c>Math.Clamp(Environment.ProcessorCount, MinDispatchLoops, MaxDispatchLoops)</c>.
+    /// Gets the concurrency options for draining packets from the channel.
     /// </summary>
-    public int? DispatchLoopCount { get; private set; }
+    public PacketDrainOptions Drain { get; } = new();
 
     /// <summary>
-    /// Multiplier for the number of packets to drain from the connection hub per wake signal.
-    /// Default: 8.
+    /// Gets the aggregated metrics for the pipeline.
     /// </summary>
-    public int MaxDrainPerWakeMultiplier { get; set; } = 8;
+    public PipelineMetrics Metrics => _pipeline.Metrics;
 
     /// <summary>
-    /// Minimum number of packets to drain per wake signal.
-    /// Default: 64.
+    /// Gets the metrics for each individual middleware instance in the pipeline.
     /// </summary>
-    public int MinDrainPerWake { get; set; } = 64;
-
-    /// <summary>
-    /// Maximum number of packets to drain per wake signal.
-    /// Default: 2048.
-    /// </summary>
-    public int MaxDrainPerWake { get; set; } = 2048;
-
-    /// <summary>
-    /// Minimum number of dispatch loops to start.
-    /// Default: 1.
-    /// </summary>
-    public int MinDispatchLoops { get; set; } = 1;
-
-    /// <summary>
-    /// Maximum number of dispatch loops to start.
-    /// Default: 64.
-    /// </summary>
-    public int MaxDispatchLoops { get; set; } = 64;
+    public ReadOnlySpan<PerMiddlewareMetrics> MiddlewareMetrics => _pipeline.MiddlewareMetrics;
 
     internal int RegisteredHandlerCount => Volatile.Read(ref _handlerCount);
 
@@ -110,45 +89,7 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     /// <summary>
     /// Validates the dispatch options and throws if any values are invalid.
     /// </summary>
-    public void Validate()
-    {
-        if (this.MaxDrainPerWakeMultiplier <= 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDrainPerWakeMultiplier must be positive.");
-        }
-
-        if (this.MinDrainPerWake <= 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MinDrainPerWake must be positive.");
-        }
-
-        if (this.MaxDrainPerWake <= 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDrainPerWake must be positive.");
-        }
-
-        if (this.MinDrainPerWake > this.MaxDrainPerWake)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
-                $"MinDrainPerWake ({this.MinDrainPerWake}) must be <= MaxDrainPerWake ({this.MaxDrainPerWake}).");
-        }
-
-        if (this.MinDispatchLoops <= 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MinDispatchLoops must be positive.");
-        }
-
-        if (this.MaxDispatchLoops <= 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDispatchLoops must be positive.");
-        }
-
-        if (this.MinDispatchLoops > this.MaxDispatchLoops)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException(
-                $"MinDispatchLoops ({this.MinDispatchLoops}) must be <= MaxDispatchLoops ({this.MaxDispatchLoops}).");
-        }
-    }
+    public void Validate() => this.Drain.Validate();
 
     #endregion Validation
 }

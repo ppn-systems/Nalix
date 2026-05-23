@@ -101,14 +101,12 @@ public sealed partial class PacketDispatchOptions<TPacket>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithDispatchLoopCount(int? loopCount)
     {
-        if (loopCount.HasValue && (loopCount.Value < 1 || loopCount.Value > 64))
+        if (loopCount.HasValue && (loopCount.Value <= 0 || loopCount.Value > 64))
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(loopCount),
-                "Dispatch loop count must be between 1 and 64.");
+            throw new ArgumentOutOfRangeException(nameof(loopCount), "Dispatch loop count must be between 1 and 64.");
         }
 
-        this.DispatchLoopCount = loopCount;
+        this.Drain.Count = loopCount ?? 0;
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
             this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");

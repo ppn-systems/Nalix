@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -12,11 +13,14 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
+using Nalix.Framework.Injection;
+using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Connections;
 using Nalix.Network.Options;
 
@@ -50,14 +54,29 @@ public sealed class ConnectionHub : IConnectionHub
     private long _totalBytesSent;
     private long _totalBytesReceived;
 
+    private long _ingressBytesPerSecond;
+    private long _egressBytesPerSecond;
+
+    private long _lastTotalBytesSentSnapshot;
+    private long _lastTotalBytesReceivedSnapshot;
+
+    private readonly IRecurringHandle? _throughputTask;
+
     /// <summary>
     /// Outbound-allocated collections for bulk operations
     /// </summary>
-    private static readonly System.Buffers.ArrayPool<IConnection> s_connectionPool;
+    private static readonly ArrayPool<IConnection> s_connectionPool;
 
     #endregion Fields
 
     #region Properties
+
+    /// <summary>
+    /// Gets the recurring name used for buffer trimming operations.
+    /// This value is embedded in the recurring job name so trimming jobs from
+    /// different manager instances remain distinct.
+    /// </summary>
+    public static readonly string RecurringName;
 
     /// <summary>
     /// Gets the current number of active connections.
@@ -76,7 +95,11 @@ public sealed class ConnectionHub : IConnectionHub
     /// <summary>
     /// Initializes static members of the <see cref="ConnectionHub"/> class.
     /// </summary>
-    static ConnectionHub() => s_connectionPool = System.Buffers.ArrayPool<IConnection>.Shared;
+    static ConnectionHub()
+    {
+        RecurringName = "hub.throughput";
+        s_connectionPool = ArrayPool<IConnection>.Shared;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
@@ -98,6 +121,10 @@ public sealed class ConnectionHub : IConnectionHub
          */
         _shardCount = Math.Max(1, _options.ShardCount);
         _registry = new ConnectionRegistry(_shardCount, 31);
+
+        _throughputTask = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
+                                                  .ScheduleRecurring(TaskNaming.Recurring
+                                                  .CleanupJobId(RecurringName, this.GetHashCode()), TimeSpan.FromSeconds(1), this.CalculateThroughputAsync);
     }
 
     #endregion Constructor
@@ -312,6 +339,7 @@ public sealed class ConnectionHub : IConnectionHub
         }
 
         _disposed = true;
+        _throughputTask?.Dispose();
         this.DisposeAllConnections();
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
@@ -374,6 +402,8 @@ public sealed class ConnectionHub : IConnectionHub
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Sent   : {sumBytesSent:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Received : {sumBytesReceived:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Ingress Bps          : {Volatile.Read(ref _ingressBytesPerSecond):N0} B/s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Egress Bps           : {Volatile.Read(ref _egressBytesPerSecond):N0} B/s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture,
             $"Average Uptime     : {(total > 0 ? sumUptime / total : 0)}s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connection Time: {maxUptime}s");
@@ -406,6 +436,8 @@ public sealed class ConnectionHub : IConnectionHub
         writer.WriteNumber("ShardCount", _shardCount);
         writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _totalBytesSent));
         writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _totalBytesReceived));
+        writer.WriteNumber("IngressBytesPerSecond", Volatile.Read(ref _ingressBytesPerSecond));
+        writer.WriteNumber("EgressBytesPerSecond", Volatile.Read(ref _egressBytesPerSecond));
         writer.WriteEndObject();
     }
 
@@ -582,7 +614,7 @@ public sealed class ConnectionHub : IConnectionHub
         CancellationToken cancellationToken,
         string operationName) where T : class
     {
-        Task[] tasks = System.Buffers.ArrayPool<Task>.Shared.Rent(connections.Length);
+        Task[] tasks = ArrayPool<Task>.Shared.Rent(connections.Length);
         IConnection[] owners = s_connectionPool.Rent(connections.Length);
         int taskCount = 0;
 
@@ -646,7 +678,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             Array.Clear(tasks, 0, taskCount);
             Array.Clear(owners, 0, taskCount);
-            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
+            ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
             s_connectionPool.Return(owners, clearArray: true);
         }
     }
@@ -690,7 +722,7 @@ public sealed class ConnectionHub : IConnectionHub
         CancellationToken cancellationToken) where T : class
     {
         int batchSize = Math.Max(1, _options.BroadcastBatchSize);
-        Task[] tasks = System.Buffers.ArrayPool<Task>.Shared.Rent(batchSize);
+        Task[] tasks = ArrayPool<Task>.Shared.Rent(batchSize);
         IConnection[] owners = s_connectionPool.Rent(batchSize);
         int taskCount = 0;
 
@@ -746,7 +778,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             Array.Clear(tasks, 0, taskCount);
             Array.Clear(owners, 0, taskCount);
-            System.Buffers.ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
+            ArrayPool<Task>.Shared.Return(tasks, clearArray: true);
             s_connectionPool.Return(owners, clearArray: true);
         }
     }
@@ -793,6 +825,41 @@ public sealed class ConnectionHub : IConnectionHub
         Success = 0,
         Disposed = 1,
         Duplicate = 2
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private ValueTask CalculateThroughputAsync(CancellationToken ct)
+    {
+        if (_disposed)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        long sumBytesSent = Volatile.Read(ref _totalBytesSent);
+        long sumBytesReceived = Volatile.Read(ref _totalBytesReceived);
+
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _registry.Shards)
+        {
+            foreach (IConnection conn in shard.Values)
+            {
+                sumBytesSent += conn.BytesSent;
+                sumBytesReceived += conn.BytesReceived;
+            }
+        }
+
+        long lastSent = Volatile.Read(ref _lastTotalBytesSentSnapshot);
+        long lastReceived = Volatile.Read(ref _lastTotalBytesReceivedSnapshot);
+
+        if (lastSent > 0 || lastReceived > 0)
+        {
+            Volatile.Write(ref _egressBytesPerSecond, Math.Max(0, sumBytesSent - lastSent));
+            Volatile.Write(ref _ingressBytesPerSecond, Math.Max(0, sumBytesReceived - lastReceived));
+        }
+
+        Volatile.Write(ref _lastTotalBytesSentSnapshot, sumBytesSent);
+        Volatile.Write(ref _lastTotalBytesReceivedSnapshot, sumBytesReceived);
+
+        return ValueTask.CompletedTask;
     }
 
     #endregion Private Methods

@@ -32,11 +32,11 @@ public abstract partial class TcpListenerBase : IListener
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
 
-    private readonly ObjectPoolManager _pool;
     private readonly NetworkSocketOptions _config;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly TimingWheel _timing;
+    private readonly ObjectPoolManager _pool;
     private readonly ConnectionGuard _limiter;
 #pragma warning restore CA2213 // Disposable fields should be disposed
 
