@@ -81,6 +81,7 @@
                     <MudTd Style="white-space:nowrap">@entry.Timestamp.LocalDateTime.ToString("HH:mm:ss")</MudTd>
                     <MudTd>
                         <MudChip T="string" Size="Size.Small"
+                                 Variant="Variant.Text"
                                  Color="@LevelColor(entry.Level)">@entry.Level</MudChip>
                     </MudTd>
                     <MudTd Style="word-break:break-word">@entry.Message</MudTd>

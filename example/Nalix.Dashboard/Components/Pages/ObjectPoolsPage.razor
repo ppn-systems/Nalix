@@ -100,8 +100,9 @@
                         <MudTd>@MetricFormat.Percent(p.HitRate)</MudTd>
                         <MudTd>
                             <MudChip T="string" Size="Size.Small"
-                                     Color="@(p.ConsecutiveFailures > 0 ? Color.Error : p.IsActive ? Color.Success : Color.Default)">
-                                @(p.Status ?? (p.IsActive ? "Active" : "Idle"))
+                                     Variant="Variant.Text"
+                                     Color="@(p.ConsecutiveFailures > 0 ? Color.Error : p.Status == "Warming" ? Color.Warning : p.IsActive ? Color.Success : Color.Default)">
+                                @(p.ConsecutiveFailures > 0 ? $"Fail ({p.ConsecutiveFailures})" : (p.Status ?? (p.IsActive ? "Active" : "Idle")))
                             </MudChip>
                         </MudTd>
                     </RowTemplate>
