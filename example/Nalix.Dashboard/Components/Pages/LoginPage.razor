@@ -30,8 +30,8 @@
                           Disabled="_isBusy"
                           AutoFocus="true" />
 
-            <MudCheckBox @bind-Value="_remember"
-                         Label="Remember until tab closes"
+            <MudCheckBox T="bool" @bind-Value="_saveKey"
+                         Label="Save key for next time"
                          Color="Color.Primary"
                          Disabled="_isBusy" />
 
@@ -62,26 +62,27 @@
 @code {
     private string _apiKey = string.Empty;
     private bool _showKey;
-    private bool _remember;
+    private bool _saveKey;
     private bool _isBusy;
     private string? _error;
 
     protected override async Task OnInitializedAsync()
     {
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        _saveKey = settings.SaveKeyForNextTime;
+
         if (State.HasApiKey)
         {
             Nav.NavigateTo("/");
             return;
         }
 
-        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
-        _remember = settings.RememberSessionUntilTabClose;
-
-        if (DevDashboardKey.IsConfigured)
+        string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(savedKey))
         {
-            _apiKey = DevDashboardKey.ApiKey;
-            _remember = true;
+            _apiKey = savedKey;
             await ConnectAsync().ConfigureAwait(false);
+            return;
         }
     }
 
@@ -99,16 +100,25 @@
         _isBusy = true;
         try
         {
-            AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
-            settings.RememberSessionUntilTabClose = _remember;
-            await SettingsStore.SaveAsync(settings).ConfigureAwait(false);
+            // Configure key in client first so we can ping test
             await Client.SetApiKeyAsync(_apiKey).ConfigureAwait(false);
+
+            // Attempt connection test (ping)
+            await Client.PingAsync(CancellationToken.None).ConfigureAwait(false);
+
+            // Connection succeeded! Save settings and persist API key.
+            AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+            settings.SaveKeyForNextTime = _saveKey;
+            await SettingsStore.SaveAsync(settings).ConfigureAwait(false);
             await SettingsStore.SetApiKeyAsync(_apiKey, settings).ConfigureAwait(false);
+
             Nav.NavigateTo("/");
         }
         catch (Exception ex)
         {
-            _error = ex.Message;
+            _error = $"Failed to authenticate: {ex.Message}";
+            // Clear client key since verification failed
+            await Client.SetApiKeyAsync(string.Empty).ConfigureAwait(false);
         }
         finally
         {

@@ -69,8 +69,12 @@ internal sealed class BrowserAdminSettingsStore : IAdminSettingsStore
     {
         try
         {
-            return await _js.InvokeAsync<string?>("adminStorage.getSession", ct, ApiKeyKey)
-                .ConfigureAwait(false);
+            string? key = await _js.InvokeAsync<string?>("adminStorage.getSession", ct, ApiKeyKey).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(key))
+            {
+                return key;
+            }
+            return await _js.InvokeAsync<string?>("adminStorage.getLocal", ct, ApiKeyKey).ConfigureAwait(false);
         }
         catch
         {
@@ -80,14 +84,26 @@ internal sealed class BrowserAdminSettingsStore : IAdminSettingsStore
 
     public async Task SetApiKeyAsync(string apiKey, AdminSettings settings, CancellationToken ct = default)
     {
-        if (!settings.RememberSessionUntilTabClose)
+        try
         {
-            return;
+            await _js.InvokeVoidAsync("adminStorage.removeSession", ct, ApiKeyKey).ConfigureAwait(false);
+            await _js.InvokeVoidAsync("adminStorage.removeLocal", ct, ApiKeyKey).ConfigureAwait(false);
+        }
+        catch
+        {
+            // Best effort
         }
 
         try
         {
-            await _js.InvokeVoidAsync("adminStorage.setSession", ct, ApiKeyKey, apiKey).ConfigureAwait(false);
+            if (settings.SaveKeyForNextTime)
+            {
+                await _js.InvokeVoidAsync("adminStorage.setLocal", ct, ApiKeyKey, apiKey).ConfigureAwait(false);
+            }
+            else
+            {
+                await _js.InvokeVoidAsync("adminStorage.setSession", ct, ApiKeyKey, apiKey).ConfigureAwait(false);
+            }
         }
         catch
         {
@@ -101,6 +117,7 @@ internal sealed class BrowserAdminSettingsStore : IAdminSettingsStore
         try
         {
             await _js.InvokeVoidAsync("adminStorage.removeSession", ct, ApiKeyKey).ConfigureAwait(false);
+            await _js.InvokeVoidAsync("adminStorage.removeLocal", ct, ApiKeyKey).ConfigureAwait(false);
             await _js.InvokeVoidAsync("adminStorage.clearSession", ct).ConfigureAwait(false);
         }
         catch

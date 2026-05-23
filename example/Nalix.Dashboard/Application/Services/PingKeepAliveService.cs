@@ -24,7 +24,7 @@ internal sealed class PingKeepAliveService : IAsyncDisposable
         _stateReader = stateReader;
         _stateWriter = stateWriter;
         _settings = settings;
-        _pingTask = RunPingLoopAsync(_cts.Token);
+        _pingTask = this.RunPingLoopAsync(_cts.Token);
     }
 
     private async Task RunPingLoopAsync(CancellationToken ct)

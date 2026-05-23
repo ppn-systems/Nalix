@@ -31,7 +31,7 @@ public sealed class AdminSettings
 
     public string WebSocketPath { get; set; } = "/ws/";
 
-    public bool RememberSessionUntilTabClose { get; set; }
+    public bool SaveKeyForNextTime { get; set; }
 
     public bool ShowRawJsonDebug { get; set; }
 

@@ -1,5 +1,7 @@
 @namespace Nalix.Dashboard.Components.Pages
 @page "/settings"
+@inject IDashboardStateReader State
+@inject IAdminClient Client
 @inject IAdminSettingsStore SettingsStore
 @inject NavigationManager Nav
 
@@ -74,8 +76,10 @@
 
             <MudPaper Class="pa-4" Elevation="1">
                 <MudText Typo="Typo.subtitle1" GutterBottom="true">Session</MudText>
-                <MudSwitch @bind-Value="_settings.RememberSessionUntilTabClose"
-                           Label="Remember API key until tab closes" Color="Color.Primary" />
+                <MudStack Spacing="2">
+                    <MudSwitch @bind-Value="_settings.SaveKeyForNextTime"
+                               Label="Save API key for next time" Color="Color.Primary" />
+                </MudStack>
             </MudPaper>
 
             @if (_saved)
@@ -113,6 +117,20 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (!State.HasApiKey)
+        {
+            string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(savedKey))
+            {
+                await Client.SetApiKeyAsync(savedKey).ConfigureAwait(false);
+            }
+            else
+            {
+                Nav.NavigateTo("/login");
+                return;
+            }
+        }
+
         _settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
         _settings = new AdminSettings
         {
@@ -127,7 +145,7 @@
             ReconnectBackoffMaxMs = _settings.ReconnectBackoffMaxMs,
             UseTls = _settings.UseTls,
             WebSocketPath = _settings.WebSocketPath,
-            RememberSessionUntilTabClose = _settings.RememberSessionUntilTabClose,
+            SaveKeyForNextTime = _settings.SaveKeyForNextTime,
             ShowRawJsonDebug = _settings.ShowRawJsonDebug,
             CompactTableDensity = _settings.CompactTableDensity,
             ChartTimeWindowSeconds = _settings.ChartTimeWindowSeconds,
@@ -135,6 +153,7 @@
             MaxLogEntries = _settings.MaxLogEntries
         };
     }
+
 
     private async Task SaveAsync()
     {
@@ -147,6 +166,14 @@
         try
         {
             await SettingsStore.SaveAsync(_settings).ConfigureAwait(false);
+
+            // Migrate active API key to the new storage if it's currently saved
+            string? currentKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(currentKey))
+            {
+                await SettingsStore.SetApiKeyAsync(currentKey, _settings).ConfigureAwait(false);
+            }
+
             _saved = true;
         }
         catch (Exception ex)

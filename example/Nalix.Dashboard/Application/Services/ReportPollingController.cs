@@ -1,7 +1,7 @@
-using Nalix.Observability.Contracts;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Dashboard.Application.Abstractions;
 using Nalix.Dashboard.Application.State;
+using Nalix.Observability.Contracts;
 
 namespace Nalix.Dashboard.Application.Services;
 
@@ -33,7 +33,7 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
 
     public event Action? Changed;
 
-    public RuntimeObservationTarget? ActiveTarget => _activeTarget;
+    public RuntimeObservationTarget? ActiveTarget => this._activeTarget;
     public string? ActiveRoute => _activeRoute;
     public bool IsPolling => _activeTargetRaw != NoTarget && !_isPaused && _pollTask is { IsCompleted: false };
     public bool IsPaused => _isPaused;
@@ -53,11 +53,11 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
     public void Activate(RuntimeObservationTarget target, string route, int intervalMs)
     {
         _intervalMs = Math.Max(500, intervalMs);
-        _activeTarget = target;
+        this._activeTarget = target;
         _activeRoute = route;
         _isPaused = false;
-        RestartLoop();
-        NotifyChanged();
+        this.RestartLoop();
+        this.NotifyChanged();
     }
 
     public void Deactivate(string route)
@@ -67,42 +67,50 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
             return;
         }
 
-        _activeTarget = null;
+        this._activeTarget = null;
         _activeRoute = null;
-        CancelLoop();
-        NotifyChanged();
+        this.CancelLoop();
+        this.NotifyChanged();
     }
 
     public void Pause()
     {
-        if (_isPaused) return;
+        if (_isPaused)
+        {
+            return;
+        }
+
         _isPaused = true;
-        CancelLoop();
-        NotifyChanged();
+        this.CancelLoop();
+        this.NotifyChanged();
     }
 
     public void Resume()
     {
-        if (!_isPaused || !_activeTarget.HasValue) return;
+        if (!_isPaused || !this._activeTarget.HasValue)
+        {
+            return;
+        }
+
         _isPaused = false;
-        RestartLoop();
-        NotifyChanged();
+        this.RestartLoop();
+        this.NotifyChanged();
     }
 
     public void SetInterval(int intervalMs)
     {
         _intervalMs = Math.Max(500, intervalMs);
-        if (_activeTarget.HasValue && !_isPaused)
+        if (this._activeTarget.HasValue && !_isPaused)
         {
-            RestartLoop();
+            this.RestartLoop();
         }
-        NotifyChanged();
+        this.NotifyChanged();
     }
 
     public async Task RequestOnceAsync(RuntimeObservationTarget target, CancellationToken ct)
     {
         lock (_timeLock) { _lastRequestUtc = DateTimeOffset.UtcNow; }
-        NotifyChanged();
+        this.NotifyChanged();
         try
         {
             await _client.RefreshAsync(target, ct).ConfigureAwait(false);
@@ -119,7 +127,7 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
         }
         finally
         {
-            NotifyChanged();
+            this.NotifyChanged();
         }
     }
 
@@ -128,7 +136,7 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
         CancellationTokenSource? old = Interlocked.Exchange(ref _pollCts, new CancellationTokenSource());
         old?.Cancel();
         old?.Dispose();
-        _pollTask = RunLoopAsync(_pollCts!.Token);
+        _pollTask = this.RunLoopAsync(_pollCts.Token);
     }
 
     private void CancelLoop()
@@ -140,16 +148,16 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
 
     private async Task RunLoopAsync(CancellationToken ct)
     {
-        while (!ct.IsCancellationRequested && _activeTarget is { } target)
+        while (!ct.IsCancellationRequested && this._activeTarget is { } target)
         {
             lock (_timeLock) { _lastRequestUtc = DateTimeOffset.UtcNow; }
-            NotifyChanged();
+            this.NotifyChanged();
 
             try
             {
                 await _client.RefreshAsync(target, ct).ConfigureAwait(false);
                 lock (_timeLock) { _lastSuccessUtc = DateTimeOffset.UtcNow; _lastFailureMessage = null; }
-                NotifyChanged();
+                this.NotifyChanged();
                 await Task.Delay(_intervalMs, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
@@ -160,7 +168,7 @@ internal sealed class ReportPollingController : IReportPollingController, IAsync
             {
                 lock (_timeLock) { _lastFailureUtc = DateTimeOffset.UtcNow; _lastFailureMessage = ex.Message; }
                 _stateWriter.Log("WARN", $"Poll failed target={target}: {ex.Message}");
-                NotifyChanged();
+                this.NotifyChanged();
                 int backoff = Math.Min(30_000, _intervalMs * 2);
                 try { await Task.Delay(backoff, ct).ConfigureAwait(false); } catch (OperationCanceledException) { break; }
             }

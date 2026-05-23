@@ -160,3 +160,28 @@ h1:focus {
 .blazor-error-boundary::after {
     content: "An error has occurred.";
 }
+
+/* Brand header logo */
+.nalix-brand {
+    align-items: center;
+    color: inherit;
+    display: inline-flex;
+    font-weight: 700;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.nalix-brand:hover {
+    color: inherit;
+    opacity: 0.85;
+}
+
+.nalix-brand__logo {
+    display: block;
+    height: 22px !important;
+    width: 22px !important;
+}
+
+.nalix-brand__name {
+    font-size: 0.95rem;
+}

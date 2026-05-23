@@ -4,6 +4,7 @@ using Nalix.Observability.Contracts;
 using Microsoft.Extensions.Options;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Dashboard.Application.Abstractions;
 using Nalix.Dashboard.Application.State;
@@ -193,7 +194,16 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
         _state.Log("INFO", "Handshake complete.");
         _state.MarkConnected();
 
-        await this.AuthorizeAsync(session, ct).ConfigureAwait(false);
+        try
+        {
+            await this.AuthorizeAsync(session, ct).ConfigureAwait(false);
+        }
+        catch
+        {
+            await this.ResetSessionAsync().ConfigureAwait(false);
+            throw;
+        }
+
         return session;
     }
 
@@ -204,8 +214,23 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
             throw new NetworkException("Enter an API key before connecting.");
         }
 
+        if (_apiKey.Length != 64)
+        {
+            throw new NetworkException("Invalid API key format. Expected a 64-character hexadecimal key.");
+        }
+
+        Bytes32 parsedKey;
+        try
+        {
+            parsedKey = Bytes32.Parse(_apiKey);
+        }
+        catch
+        {
+            throw new NetworkException("Invalid API key format. Expected a 64-character hexadecimal key.");
+        }
+
         using ObservabilityAccess request = ObservabilityAccess.Create();
-        request.Initialize(ObservabilityAccessStage.REQUEST, accessKey: _apiKey);
+        request.Initialize(ObservabilityAccessStage.REQUEST, accessKey: parsedKey);
 
         Application.Settings.AdminSettings cfg = await _settings.LoadAsync(ct).ConfigureAwait(false);
 

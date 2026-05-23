@@ -3,7 +3,6 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Backend.Attributes;
-using Nalix.Observability.Handlers;
 using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
@@ -14,6 +13,7 @@ using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
+using Nalix.Observability.Handlers;
 using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
@@ -33,6 +33,8 @@ internal class Startup
         Justification = "Registered services are owned by the Nalix InstanceManager and host lifecycle.")]
     public static NetworkApplication Configure(ILogger logger)
     {
+        ObservabilityAccessHandlers.SetPrivateKeyPath(ResolveSharedFile("observability.private"));
+
         ConnectionHub hub = new();
         BufferPoolManager bufferPool = new();
         ObjectPoolManager objectPool = new();

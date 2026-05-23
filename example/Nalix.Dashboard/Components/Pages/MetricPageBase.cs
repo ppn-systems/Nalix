@@ -31,13 +31,16 @@ public abstract class MetricPageBase : ComponentBase, IDisposable
     {
         if (!this.State.HasApiKey)
         {
-            if (!DevDashboardKey.IsConfigured)
+            string? savedKey = await this.SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(savedKey))
+            {
+                await this.Client.SetApiKeyAsync(savedKey).ConfigureAwait(false);
+            }
+            else
             {
                 this.Nav.NavigateTo("/login");
                 return;
             }
-
-            await this.Client.SetApiKeyAsync(DevDashboardKey.ApiKey).ConfigureAwait(false);
         }
 
         this.Settings = await this.SettingsStore.LoadAsync().ConfigureAwait(false);

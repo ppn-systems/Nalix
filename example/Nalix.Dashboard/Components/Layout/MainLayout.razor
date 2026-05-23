@@ -12,69 +12,72 @@
 <MudSnackbarProvider />
 
 <MudLayout>
-    <MudAppBar Elevation="1" Dense="true">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu"
-                       Color="Color.Inherit"
-                       Edge="Edge.Start"
-                       OnClick="ToggleDrawer"
-                       aria-label="Toggle navigation" />
-
-        <a href="/" class="nalix-brand">
-            <img src="assets/brand/dashboard.png" alt="" class="nalix-brand__logo" />
-            <span class="nalix-brand__name">Nalix Admin</span>
-        </a>
-
-        <MudSpacer />
-
-        @if (State.HasApiKey)
-        {
-            <MudChip T="string"
-                     Size="Size.Small"
-                     Color="@(State.IsConnected ? Color.Success : Color.Error)"
-                     Variant="Variant.Filled"
-                     Class="mr-1">
-                @(State.IsConnected ? "Connected" : "Disconnected")
-            </MudChip>
-
-            @if (State.LastPingMilliseconds is { } ms)
-            {
-                <MudText Typo="Typo.caption" Color="Color.Inherit" Class="mr-2">
-                    @ms.ToString("F0") ms
-                </MudText>
-            }
-        }
-        else
-        {
-            <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="mr-1">
-                No Key
-            </MudChip>
-        }
-
-        <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
-                       Color="Color.Inherit"
-                       OnClick="ToggleTheme"
-                       title="@(_isDarkMode ? "Light mode" : "Dark mode")" />
-
-        @if (State.HasApiKey)
-        {
-            <MudIconButton Icon="@Icons.Material.Outlined.Logout"
+    @if (!IsLoginPage)
+    {
+        <MudAppBar Elevation="1" Dense="true">
+            <MudIconButton Icon="@Icons.Material.Filled.Menu"
                            Color="Color.Inherit"
-                           OnClick="LogoutAsync"
-                           title="Logout" />
-        }
-    </MudAppBar>
+                           Edge="Edge.Start"
+                           OnClick="ToggleDrawer"
+                           aria-label="Toggle navigation" />
 
-    <MudDrawer @bind-Open="_drawerOpen"
-               Elevation="1"
-               Variant="DrawerVariant.Responsive"
-               ClipMode="DrawerClipMode.Never">
-        <MudDrawerHeader Dense="true">
-            <MudText Typo="Typo.overline" Class="mud-text-secondary">Menu</MudText>
-        </MudDrawerHeader>
-        <AdminNavMenu />
-    </MudDrawer>
+            <a href="/" class="nalix-brand">
+                <img src="assets/brand/dashboard.png" alt="" class="nalix-brand__logo" style="height: 22px; width: 22px; display: block;" />
+                <span class="nalix-brand__name">Nalix Admin</span>
+            </a>
 
-    <MudMainContent Class="nalix-main">
+            <MudSpacer />
+
+            @if (State.HasApiKey)
+            {
+                <MudChip T="string"
+                         Size="Size.Small"
+                         Color="@(State.IsConnected ? Color.Success : Color.Error)"
+                         Variant="Variant.Filled"
+                         Class="mr-1">
+                    @(State.IsConnected ? "Connected" : "Disconnected")
+                </MudChip>
+
+                @if (State.LastPingMilliseconds is { } ms)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Inherit" Class="mr-2">
+                        @ms.ToString("F0") ms
+                    </MudText>
+                }
+            }
+            else
+            {
+                <MudChip T="string" Size="Size.Small" Color="Color.Warning" Variant="Variant.Filled" Class="mr-1">
+                    No Key
+                </MudChip>
+            }
+
+            <MudIconButton Icon="@(_isDarkMode ? Icons.Material.Outlined.LightMode : Icons.Material.Outlined.DarkMode)"
+                           Color="Color.Inherit"
+                           OnClick="ToggleTheme"
+                           title="@(_isDarkMode ? "Light mode" : "Dark mode")" />
+
+            @if (State.HasApiKey)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Logout"
+                               Color="Color.Inherit"
+                               OnClick="LogoutAsync"
+                               title="Logout" />
+            }
+        </MudAppBar>
+
+        <MudDrawer @bind-Open="_drawerOpen"
+                   Elevation="1"
+                   Variant="DrawerVariant.Responsive"
+                   ClipMode="DrawerClipMode.Never">
+            <MudDrawerHeader Dense="true">
+                <MudText Typo="Typo.overline" Class="mud-text-secondary">Menu</MudText>
+            </MudDrawerHeader>
+            <AdminNavMenu />
+        </MudDrawer>
+    }
+
+    <MudMainContent Class="@(IsLoginPage ? "pa-0" : "nalix-main")">
         @Body
     </MudMainContent>
 </MudLayout>
@@ -128,9 +131,12 @@
         }
     };
 
+    private bool IsLoginPage => Nav.ToBaseRelativePath(Nav.Uri).StartsWith("login", StringComparison.OrdinalIgnoreCase);
+
     protected override void OnInitialized()
     {
         State.Changed += OnStateChanged;
+        Nav.LocationChanged += OnLocationChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -142,7 +148,6 @@
         _isDarkMode = settings.ThemeMode != ThemeMode.Light;
 
         string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
-        savedKey ??= DevDashboardKey.IsConfigured ? DevDashboardKey.ApiKey : null;
         if (!string.IsNullOrWhiteSpace(savedKey))
         {
             await Client.SetApiKeyAsync(savedKey).ConfigureAwait(false);
@@ -152,6 +157,8 @@
     }
 
     private void OnStateChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(StateHasChanged);
 
     private void ToggleDrawer() => _drawerOpen = !_drawerOpen;
 
@@ -167,5 +174,6 @@
     public void Dispose()
     {
         State.Changed -= OnStateChanged;
+        Nav.LocationChanged -= OnLocationChanged;
     }
 }

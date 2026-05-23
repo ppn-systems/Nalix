@@ -2,6 +2,7 @@
 @page "/diagnostics"
 @inject IDashboardStateReader State
 @inject IDashboardStateWriter StateWriter
+@inject IAdminSettingsStore SettingsStore
 @inject IAdminClient Client
 @inject NavigationManager Nav
 @implements IDisposable
@@ -102,13 +103,16 @@
     {
         if (!State.HasApiKey)
         {
-            if (!DevDashboardKey.IsConfigured)
+            string? savedKey = await SettingsStore.GetApiKeyAsync().ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(savedKey))
+            {
+                await Client.SetApiKeyAsync(savedKey).ConfigureAwait(false);
+            }
+            else
             {
                 Nav.NavigateTo("/login");
                 return;
             }
-
-            await Client.SetApiKeyAsync(DevDashboardKey.ApiKey).ConfigureAwait(false);
         }
 
         State.Changed += OnStateChanged;

@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
@@ -30,8 +31,7 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
     public PermissionLevel AccessLevel { get; set; }
 
     [SerializeOrder(3)]
-    [SerializeDynamicSize(256)]
-    public string AccessKey { get; set; } = string.Empty;
+    public Bytes32 AccessKey { get; set; } = Bytes32.Zero;
 
     public ObservabilityAccess() => this.ResetForPool();
 
@@ -39,7 +39,7 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         ObservabilityAccessStage stage,
         ProtocolReason reason = ProtocolReason.NONE,
         PermissionLevel AccessLevel = PermissionLevel.NONE,
-        string accessKey = "",
+        Bytes32 accessKey = default,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
         this.OpCode = OpCodeValue;
@@ -60,14 +60,14 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         this.Stage = ObservabilityAccessStage.NONE;
         this.Reason = ProtocolReason.NONE;
         this.AccessLevel = PermissionLevel.NONE;
-        this.AccessKey = string.Empty;
+        this.AccessKey = Bytes32.Zero;
     }
 
     public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
         bool isValid = this.Stage switch
         {
-            ObservabilityAccessStage.REQUEST => !string.IsNullOrWhiteSpace(this.AccessKey),
+            ObservabilityAccessStage.REQUEST => !this.AccessKey.IsZero,
             ObservabilityAccessStage.RESPONSE => this.Reason != ProtocolReason.NONE || this.AccessLevel > PermissionLevel.NONE,
             ObservabilityAccessStage.NONE or _ => false
         };

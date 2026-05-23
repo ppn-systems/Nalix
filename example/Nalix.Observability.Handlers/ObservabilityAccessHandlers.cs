@@ -2,10 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Security.Cryptography;
-using System.Text;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Environment.IO;
 using Nalix.Observability.Contracts;
 using Nalix.Runtime.Pooling;
 
@@ -17,7 +18,60 @@ namespace Nalix.Observability.Handlers;
 [PacketController("Nalix.ObservabilityAccess")]
 public sealed class ObservabilityAccessHandlers
 {
-    private const int KeyByteLength = 32;
+    private static int s_isInitialized;
+    private static readonly Lock s_initLock = new();
+    private static Bytes32 s_adminKey = Bytes32.Zero;
+
+    /// <summary>
+    /// Gets the administrative access key.
+    /// </summary>
+    public static Bytes32 AdminKey
+    {
+        get
+        {
+            if (Volatile.Read(ref s_isInitialized) == 0)
+            {
+                Initialize();
+            }
+            return s_adminKey;
+        }
+    }
+
+    /// <summary>
+    /// Initializes the observability access handlers by loading the default administrative key.
+    /// </summary>
+    public static void Initialize()
+    {
+        if (Volatile.Read(ref s_isInitialized) != 0)
+        {
+            return;
+        }
+
+        lock (s_initLock)
+        {
+            if (Volatile.Read(ref s_isInitialized) != 0)
+            {
+                return;
+            }
+
+            LOAD_PRIVATE_KEY(Path.Combine(Directories.ConfigurationDirectory, "observability.private"));
+            Volatile.Write(ref s_isInitialized, 1);
+        }
+    }
+
+    /// <summary>
+    /// Sets a custom path for the administrative private key and initializes it.
+    /// </summary>
+    /// <param name="path">The absolute path to the private key file.</param>
+    public static void SetPrivateKeyPath(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        lock (s_initLock)
+        {
+            LOAD_PRIVATE_KEY(path);
+            Volatile.Write(ref s_isInitialized, 1);
+        }
+    }
 
     /// <summary>
     /// Handles an incoming administrative access request and upgrades the connection's permission level if authorized.
@@ -33,22 +87,20 @@ public sealed class ObservabilityAccessHandlers
 
         if (context.Packet.Stage != ObservabilityAccessStage.REQUEST || !context.Packet.Validate(out _))
         {
-            return CreateResponse(ProtocolReason.MALFORMED_PACKET);
+            return CREATE_RESPONSE(ProtocolReason.MALFORMED_PACKET);
         }
 
-        string key = LoadOrCreateSharedKey();
-
-        if (!FixedTimeEquals(context.Packet.AccessKey, key))
+        if (context.Packet.AccessKey != AdminKey)
         {
-            return CreateResponse(ProtocolReason.UNAUTHORIZED);
+            return CREATE_RESPONSE(ProtocolReason.UNAUTHORIZED);
         }
 
         context.Connection.Level = PermissionLevel.SUPERVISOR;
 
-        return CreateResponse(ProtocolReason.NONE, PermissionLevel.SUPERVISOR);
+        return CREATE_RESPONSE(ProtocolReason.NONE, PermissionLevel.SUPERVISOR);
     }
 
-    private static ValueTask<ObservabilityAccess> CreateResponse(ProtocolReason reason, PermissionLevel AccessLevel = PermissionLevel.NONE)
+    private static ValueTask<ObservabilityAccess> CREATE_RESPONSE(ProtocolReason reason, PermissionLevel AccessLevel = PermissionLevel.NONE)
     {
         PacketScope<ObservabilityAccess> lease = PacketFactory<ObservabilityAccess>.Acquire();
 
@@ -65,45 +117,96 @@ public sealed class ObservabilityAccessHandlers
         }
     }
 
-    private static string LoadOrCreateSharedKey()
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Design", "CA1031:Do not catch general exception types",
+        Justification = "Best-effort file access and fallback generation logic must not throw to ensure system availability.")]
+    private static void LOAD_PRIVATE_KEY(string keyPath)
     {
-        string path = GetSharedKeyPath();
-        _ = Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-
-        if (File.Exists(path))
+        try
         {
-            return File.ReadAllText(path).Trim();
+            _ = Directory.CreateDirectory(Path.GetDirectoryName(keyPath)!);
+        }
+        catch
+        {
+            // Ignore directory creation failures
         }
 
-        string key = Convert.ToHexString(RandomNumberGenerator.GetBytes(KeyByteLength)).ToLowerInvariant();
-        File.WriteAllText(path, key + System.Environment.NewLine);
-        return key;
-    }
-
-    private static string GetSharedKeyPath()
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-
-        while (current is not null)
+        if (!File.Exists(keyPath))
         {
-            string candidate = Path.Combine(current.FullName, "shared");
-            if (Directory.Exists(candidate))
+            byte[] rawBytes = RandomNumberGenerator.GetBytes(Bytes32.Size);
+            string hexStr = Convert.ToHexString(rawBytes).ToLowerInvariant();
+            try
             {
-                return Path.Combine(candidate, "admin.key");
+                File.WriteAllText(keyPath, hexStr + System.Environment.NewLine);
+                s_adminKey = new Bytes32(rawBytes);
+                return;
+            }
+            catch
+            {
+                s_adminKey = new Bytes32(rawBytes);
+                return;
+            }
+        }
+
+        try
+        {
+            string? hex = null;
+            string[] lines = File.ReadAllLines(keyPath);
+
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                string line = lines[i];
+                if (string.IsNullOrWhiteSpace(line))
+                {
+                    continue;
+                }
+
+                string trimmed = line.Trim();
+                if (trimmed.StartsWith('#'))
+                {
+                    continue;
+                }
+
+                hex = trimmed;
+                break;
             }
 
-            current = current.Parent;
+            Bytes32 parsedKey = Bytes32.Zero;
+            bool parseSuccess = false;
+            if (!string.IsNullOrWhiteSpace(hex) && hex.Trim().Length == 64)
+            {
+                try
+                {
+                    parsedKey = Bytes32.Parse(hex.Trim());
+                    parseSuccess = true;
+                }
+                catch
+                {
+                    // Ignore parse error and trigger regeneration
+                }
+            }
+
+            if (!parseSuccess)
+            {
+                byte[] rawBytes = RandomNumberGenerator.GetBytes(Bytes32.Size);
+                string hexStr = Convert.ToHexString(rawBytes).ToLowerInvariant();
+                try
+                {
+                    File.WriteAllText(keyPath, hexStr + System.Environment.NewLine);
+                }
+                catch
+                {
+                    // Ignore write failures on recovery path
+                }
+                s_adminKey = new Bytes32(rawBytes);
+                return;
+            }
+
+            s_adminKey = parsedKey;
         }
-
-        return Path.Combine(AppContext.BaseDirectory, "shared", "admin.key");
-    }
-
-    private static bool FixedTimeEquals(string left, string right)
-    {
-        byte[] leftBytes = Encoding.UTF8.GetBytes(left.Trim());
-        byte[] rightBytes = Encoding.UTF8.GetBytes(right.Trim());
-        return leftBytes.Length == rightBytes.Length &&
-               CryptographicOperations.FixedTimeEquals(leftBytes, rightBytes);
+        catch
+        {
+            s_adminKey = new Bytes32(RandomNumberGenerator.GetBytes(Bytes32.Size));
+        }
     }
 }
-

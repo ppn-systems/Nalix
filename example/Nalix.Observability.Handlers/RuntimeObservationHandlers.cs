@@ -42,19 +42,19 @@ public sealed class RuntimeObservationHandlers
 
         if (request.Stage != RuntimeObservationStage.REQUEST || !request.Validate(out _))
         {
-            return CreateResponse(request.Target, ProtocolReason.MALFORMED_PACKET);
+            return CREATE_RESPONSE(request.Target, ProtocolReason.MALFORMED_PACKET);
         }
 
-        if (!TryResolveReportable(request.Target, out IReportable? reportable))
+        if (!TRY_RESOLVE_REPORTABLE(request.Target, out IReportable? reportable))
         {
-            return CreateResponse(request.Target, ProtocolReason.NOT_FOUND);
+            return CREATE_RESPONSE(request.Target, ProtocolReason.NOT_FOUND);
         }
 
-        BufferLease lease = SerializeReportData(reportable!);
-        return CreateResponse(request.Target, ProtocolReason.NONE, lease);
+        BufferLease lease = SERIALIZE_REPORT_DATA(reportable!);
+        return CREATE_RESPONSE(request.Target, ProtocolReason.NONE, lease);
     }
 
-    private static ValueTask<RuntimeObservation> CreateResponse(
+    private static ValueTask<RuntimeObservation> CREATE_RESPONSE(
         RuntimeObservationTarget target,
         ProtocolReason reason,
         BufferLease? bufferLease = null)
@@ -78,7 +78,7 @@ public sealed class RuntimeObservationHandlers
         }
     }
 
-    private static bool TryResolveReportable(RuntimeObservationTarget target, out IReportable? reportable)
+    private static bool TRY_RESOLVE_REPORTABLE(RuntimeObservationTarget target, out IReportable? reportable)
     {
         int index = (int)target;
         if (index >= 0 && index < s_reportableCache.Length)
@@ -114,7 +114,7 @@ public sealed class RuntimeObservationHandlers
         return reportable is not null;
     }
 
-    private static BufferLease SerializeReportData(IReportable reportable)
+    private static BufferLease SERIALIZE_REPORT_DATA(IReportable reportable)
     {
         using BufferWriter bufferWriter = new(1024 * 8);
         using (Utf8JsonWriter writer = new(bufferWriter, new JsonWriterOptions
