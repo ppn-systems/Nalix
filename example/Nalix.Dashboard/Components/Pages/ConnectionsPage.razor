@@ -55,6 +55,15 @@
                 <MetricTile Label="Bytes Received" Value="@MetricFormat.Bytes(report.TotalBytesReceived)" />
             </MudItem>
         </MudGrid>
+
+        <MudGrid Spacing="3" Class="mt-1">
+            <MudItem xs="12" sm="6" md="6">
+                <MetricTile Label="Ingress Throughput" Value="@($"{MetricFormat.Bytes(report.IngressBytesPerSecond)}/s")" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="6">
+                <MetricTile Label="Egress Throughput" Value="@($"{MetricFormat.Bytes(report.EgressBytesPerSecond)}/s")" />
+            </MudItem>
+        </MudGrid>
     }
 </MudContainer>
 

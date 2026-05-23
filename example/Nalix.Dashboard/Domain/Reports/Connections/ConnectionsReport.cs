@@ -5,4 +5,6 @@ public sealed record ConnectionsReport(
     long TotalConnections,
     int ShardCount,
     long TotalBytesSent,
-    long TotalBytesReceived);
+    long TotalBytesReceived,
+    long IngressBytesPerSecond,
+    long EgressBytesPerSecond);

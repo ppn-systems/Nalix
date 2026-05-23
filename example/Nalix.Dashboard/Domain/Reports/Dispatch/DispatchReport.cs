@@ -22,6 +22,7 @@ public sealed record PipelineMetricsReport(
     long ActiveExecutions,
     long TotalExecutions,
     long TotalErrors,
+    long DeserializationErrors,
     double AverageTimeMs);
 
 public sealed record MiddlewareMetricEntry(

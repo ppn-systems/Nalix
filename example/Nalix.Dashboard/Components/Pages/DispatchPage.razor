@@ -62,17 +62,20 @@
         @if (report.PipelineMetrics is { } pipe)
         {
             <MudGrid Spacing="3" Class="mb-4">
-                <MudItem xs="12" sm="6" md="3">
+                <MudItem xs="12" sm="6" md="4">
                     <MetricTile Label="Active Executions" Value="@MetricFormat.Count(pipe.ActiveExecutions)" />
                 </MudItem>
-                <MudItem xs="12" sm="6" md="3">
+                <MudItem xs="12" sm="6" md="4">
                     <MetricTile Label="Total Executions" Value="@MetricFormat.Count(pipe.TotalExecutions)" />
                 </MudItem>
-                <MudItem xs="12" sm="6" md="3">
+                <MudItem xs="12" sm="6" md="4">
+                    <MetricTile Label="Average Time" Value="@($"{pipe.AverageTimeMs:F4} ms")" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="6">
                     <MetricTile Label="Total Errors" Value="@MetricFormat.Count(pipe.TotalErrors)" />
                 </MudItem>
-                <MudItem xs="12" sm="6" md="3">
-                    <MetricTile Label="Avg Time" Value="@($"{pipe.AverageTimeMs:F4} ms")" />
+                <MudItem xs="12" sm="6" md="6">
+                    <MetricTile Label="Deserialization Errors" Value="@MetricFormat.Count(pipe.DeserializationErrors)" />
                 </MudItem>
             </MudGrid>
         }
