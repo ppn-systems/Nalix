@@ -59,7 +59,6 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
     #endregion Fields & Constants
 
-
     #region Properties
 
     /// <summary>Gets the largest buffer size from the buffer allocations list.</summary>

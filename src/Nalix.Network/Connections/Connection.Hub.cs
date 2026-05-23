@@ -72,6 +72,13 @@ public sealed class ConnectionHub : IConnectionHub
     #region Properties
 
     /// <summary>
+    /// Gets the recurring name used for buffer trimming operations.
+    /// This value is embedded in the recurring job name so trimming jobs from
+    /// different manager instances remain distinct.
+    /// </summary>
+    public static readonly string RecurringName;
+
+    /// <summary>
     /// Gets the current number of active connections.
     /// </summary>
     public int Count => _registry.Count;
@@ -88,7 +95,11 @@ public sealed class ConnectionHub : IConnectionHub
     /// <summary>
     /// Initializes static members of the <see cref="ConnectionHub"/> class.
     /// </summary>
-    static ConnectionHub() => s_connectionPool = ArrayPool<IConnection>.Shared;
+    static ConnectionHub()
+    {
+        RecurringName = "hub.throughput";
+        s_connectionPool = ArrayPool<IConnection>.Shared;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ConnectionHub"/> class.
@@ -112,7 +123,8 @@ public sealed class ConnectionHub : IConnectionHub
         _registry = new ConnectionRegistry(_shardCount, 31);
 
         _throughputTask = InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-            .ScheduleRecurring($"ConnectionHub.ThroughputCalculator_{Guid.NewGuid():N}", TimeSpan.FromSeconds(1), this.CalculateThroughputAsync);
+                                                  .ScheduleRecurring(TaskNaming.Recurring
+                                                  .CleanupJobId(RecurringName, this.GetHashCode()), TimeSpan.FromSeconds(1), this.CalculateThroughputAsync);
     }
 
     #endregion Constructor
