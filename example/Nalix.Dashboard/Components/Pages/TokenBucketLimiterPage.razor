@@ -1,0 +1,123 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/token-bucket-limiter"
+@inherits MetricPageBase
+
+<PageTitle>Token Bucket Limiter — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.HourglassEmpty" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Token Bucket Limiter</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.TokenBucketLimiter.TokenBucketLimiterReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse token bucket report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Tracked Endpoints" Value="@($"{MetricFormat.Count(report.TrackedEndpoints)} / {MetricFormat.Count(report.MaxTrackedEndpoints)}")" Detail="Active rate limit states" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Blocked Endpoints" Value="@MetricFormat.Count(report.HardBlockedCount)" ValueColor="@(report.HardBlockedCount > 0 ? Color.Error : Color.Default)" Detail="Currently in lockout" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Default Capacity" Value="@report.CapacityTokens.ToString("N0")" Detail="Tokens per bucket" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MetricTile Label="Default Refill" Value="@($"{report.RefillPerSecond.ToString("N0")}/s")" Detail="Refill rate" />
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Outlined="true" Class="pa-4 metric-card mb-4">
+            <MudText Typo="Typo.subtitle1" Style="font-weight: bold;" Class="mb-2">Engine System Settings</MudText>
+            <MudDivider Class="my-2" />
+            <MudGrid>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.body2"><b>Shards:</b> @report.Shards</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.body2"><b>Token Scale:</b> @report.TokenScale.ToString("N0")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.body2"><b>Hard Lockout:</b> @report.HardLockoutSeconds seconds</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudText Typo="Typo.body2"><b>Cleanup Interval:</b> @report.CleanupIntervalSecs seconds</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+
+        @if (report.Endpoints is { Count: > 0 } endpoints)
+        {
+            <MetricSection Title="Top Endpoints by Pressure">
+                <MudTable Items="@endpoints" Dense="true" Hover="true" Striped="false" Class="metric-table">
+                    <HeaderContent>
+                        <MudTh>Endpoint (IP / Option / Key)</MudTh>
+                        <MudTh>Status</MudTh>
+                        <MudTh>Remaining Credit</MudTh>
+                        <MudTh>Micro Balance</MudTh>
+                        <MudTh>Retry After</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="ep">
+                        <MudTd Style="font-family: monospace;">@ep.Endpoint</MudTd>
+                        <MudTd>
+                            @if (ep.Blocked)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Filled">Blocked</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Text">Allowed</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd>@ep.Credit</MudTd>
+                        <MudTd>@ep.MicroBalance.ToString("N0")</MudTd>
+                        <MudTd>
+                            @if (ep.RetryAfterMs > 0)
+                            {
+                                <span style="color: var(--mud-palette-error);">@($"{ep.RetryAfterMs:N0} ms")</span>
+                            }
+                            else
+                            {
+                                <span>-</span>
+                            }
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MetricSection>
+        }
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.TOKEN_BUCKET_LIMITER;
+    protected override string Route => "/metrics/token-bucket-limiter";
+}

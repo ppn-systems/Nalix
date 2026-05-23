@@ -1,0 +1,92 @@
+@namespace Nalix.Dashboard.Components.Pages
+@page "/metrics/policy-rate-limiter"
+@inherits MetricPageBase
+
+<PageTitle>Policy Rate Limiter — Nalix</PageTitle>
+
+@if (IsLoading)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" Class="mb-0" />
+}
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="metrics-page">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Class="metrics-toolbar" Spacing="2">
+        <MudIcon Icon="@Icons.Material.Outlined.Speed" Color="Color.Primary" />
+        <MudText Typo="Typo.h5">Policy Rate Limiter</MudText>
+        @if (IsStale)
+        {
+            <MudChip T="string" Size="Size.Small" Color="Color.Warning">Stale</MudChip>
+        }
+        <MudSpacer />
+        <MudIconButton Icon="@Icons.Material.Outlined.Refresh" Size="Size.Small"
+                       OnClick="ManualRefreshAsync" title="Refresh" />
+        <MudIconButton Icon="@(Polling.IsPaused ? Icons.Material.Outlined.PlayArrow : Icons.Material.Outlined.Pause)"
+                       Size="Size.Small"
+                       OnClick="@(Polling.IsPaused ? Resume : Pause)"
+                       title="@(Polling.IsPaused ? "Resume" : "Pause")" />
+    </MudStack>
+
+    @{
+        var report = Snapshot is null ? null
+            : Parsers.Parse<Nalix.Dashboard.Domain.Reports.PolicyRateLimiter.PolicyRateLimiterReport>(Target, Snapshot.ObservationData);
+    }
+
+    @if (Snapshot is null)
+    {
+        <MudAlert Severity="Severity.Info">Waiting for data…</MudAlert>
+    }
+    else if (report is null)
+    {
+        <MudAlert Severity="Severity.Warning">Could not parse policy rate limiter report.</MudAlert>
+    }
+    else
+    {
+        <MudGrid Spacing="3" Class="mb-4">
+            <MudItem xs="12" sm="6" md="4">
+                <MetricTile Label="Evaluations" Value="@MetricFormat.Count(report.CheckCounter)" Detail="Total rate limit checks" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MetricTile Label="Engine Tracked Endpoints" Value="@MetricFormat.Count(report.SharedEngine?.TrackedEndpoints ?? 0)" Detail="Active IP/op limits" />
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MetricTile Label="Engine Blocked" Value="@MetricFormat.Count(report.SharedEngine?.HardBlockedCount ?? 0)" Detail="Lockout endpoints" />
+            </MudItem>
+        </MudGrid>
+
+        <MudPaper Outlined="true" Class="pa-4 metric-card mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">Shared Token Bucket Engine Status</MudText>
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" Href="/metrics/token-bucket-limiter">
+                    View Engine Details
+                </MudButton>
+            </MudStack>
+            <MudDivider Class="my-2" />
+            @if (report.SharedEngine is { } engine)
+            {
+                <MudGrid>
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.body2"><b>Capacity Tokens:</b> @engine.CapacityTokens.ToString("N0")</MudText>
+                        <MudText Typo="Typo.body2"><b>Refill Rate:</b> @engine.RefillPerSecond.ToString("N0") / sec</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.body2"><b>Hard Lockout:</b> @engine.HardLockoutSeconds seconds</MudText>
+                        <MudText Typo="Typo.body2"><b>Stale Entry Expiry:</b> @engine.StaleEntrySeconds seconds</MudText>
+                    </MudItem>
+                    <MudItem xs="12" sm="4">
+                        <MudText Typo="Typo.body2"><b>Shard Count:</b> @engine.Shards</MudText>
+                        <MudText Typo="Typo.body2"><b>Max Tracked Limit:</b> @engine.MaxTrackedEndpoints.ToString("N0")</MudText>
+                    </MudItem>
+                </MudGrid>
+            }
+            else
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Shared engine telemetry not available.</MudText>
+            }
+        </MudPaper>
+    }
+</MudContainer>
+
+@code {
+    protected override RuntimeObservationTarget Target => RuntimeObservationTarget.POLICY_RATE_LIMITER;
+    protected override string Route => "/metrics/policy-rate-limiter";
+}

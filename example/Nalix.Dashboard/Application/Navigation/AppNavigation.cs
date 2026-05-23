@@ -21,6 +21,12 @@ public static class AppNavigation
                 new NavItem("Instances",       "/metrics/instances",       Icons.Material.Outlined.AccountTree,     PermissionLevel.SUPERVISOR),
                 new NavItem("Object Pools",    "/metrics/object-pools",    Icons.Material.Outlined.Pool,            PermissionLevel.SUPERVISOR),
                 new NavItem("Connection Guard","/metrics/connection-guard", Icons.Material.Outlined.Shield,         PermissionLevel.SUPERVISOR),
+                new NavItem("Listeners",       "/metrics/listeners",       Icons.Material.Outlined.Dns,             PermissionLevel.SUPERVISOR),
+                new NavItem("Protocols",       "/metrics/protocols",       Icons.Material.Outlined.SwapHoriz,       PermissionLevel.SUPERVISOR),
+                new NavItem("Sessions",        "/metrics/sessions",        Icons.Material.Outlined.VpnKey,          PermissionLevel.SUPERVISOR),
+                new NavItem("Concurrency Gate","/metrics/concurrency-gate",Icons.Material.Outlined.Lock,             PermissionLevel.SUPERVISOR),
+                new NavItem("Policy Rate Limiter","/metrics/policy-rate-limiter",Icons.Material.Outlined.Speed,        PermissionLevel.SUPERVISOR),
+                new NavItem("Token Bucket Limiter","/metrics/token-bucket-limiter",Icons.Material.Outlined.HourglassEmpty,PermissionLevel.SUPERVISOR),
             ]),
             new NavSection("System",
             [
