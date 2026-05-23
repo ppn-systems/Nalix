@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
@@ -29,7 +30,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     private readonly List<MiddlewareEntry> _inbound = [];
     private readonly List<MiddlewareEntry> _outbound = [];
     private readonly List<MiddlewareEntry> _outboundAlways = [];
-    private readonly HashSet<IPacketMiddleware<TPacket>> _registeredMiddlewares = [];
+    private readonly Dictionary<IPacketMiddleware<TPacket>, int> _registeredMiddlewares = [];
 
     private bool _isSorted;
     private bool _continueOnError;
@@ -45,9 +46,28 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     private readonly PooledPipelineContext[] _localPool = new PooledPipelineContext[32];
     private long _localPoolMask;
 
+    private long _activeExecutions;
+    private long _totalExecutions;
+    private long _totalExecutionTicks;
+    private long _totalErrors;
+
     #endregion Fields
 
     #region APIs
+
+    /// <summary>
+    /// Gets the aggregated metrics for the pipeline.
+    /// </summary>
+    public PipelineMetrics Metrics => new(
+        Interlocked.Read(ref _activeExecutions),
+        Interlocked.Read(ref _totalExecutions),
+        Interlocked.Read(ref _totalExecutionTicks),
+        Interlocked.Read(ref _totalErrors));
+
+    /// <summary>
+    /// Gets the metrics for each individual middleware instance.
+    /// </summary>
+    public ReadOnlySpan<PerMiddlewareMetrics> MiddlewareMetrics => Volatile.Read(ref _snapshot).Metrics;
 
     /// <summary>
     /// Gets a value indicating whether the pipeline has no middleware in any stage.
@@ -83,14 +103,15 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
         lock (_lock)
         {
-            if (!_registeredMiddlewares.Add(middleware))
+            if (!_registeredMiddlewares.TryAdd(middleware, _registeredMiddlewares.Count))
             {
                 throw new InternalErrorException(
                     $"Middleware '{middleware.GetType().FullName}' already registered");
             }
 
+            int metricIndex = _registeredMiddlewares[middleware];
             MiddlewareMetadata metadata = GetMiddlewareMetadata(middleware.GetType());
-            MiddlewareEntry entry = new(middleware, metadata.Order);
+            MiddlewareEntry entry = new(middleware, metadata.Order, metricIndex);
 
             switch (metadata.Stage)
             {
@@ -140,17 +161,29 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(handler);
 
+        _ = Interlocked.Increment(ref _activeExecutions);
+        long startTicks = Stopwatch.GetTimestamp();
+
         PipelineSnapshot snapshot = Volatile.Read(ref _snapshot);
         if (snapshot.IsEmpty)
         {
-            return handler(ct);
+            ValueTask handlerPending = handler(ct);
+            if (handlerPending.IsCompletedSuccessfully)
+            {
+#pragma warning disable CA1849 // Completed-success fast path; GetResult observes synchronous exceptions without blocking or allocating an async state machine.
+                handlerPending.GetAwaiter().GetResult();
+#pragma warning restore CA1849
+                this.RECORD_EXECUTION(startTicks);
+                return ValueTask.CompletedTask;
+            }
+            return AwaitPendingEmptyAsync(this, handlerPending, startTicks);
         }
 
         PooledPipelineContext? runner = this.AcquireRunner();
         runner ??= s_pool.Get<PooledPipelineContext>();
 
         // Initialize for full pipeline execution to avoid intermediate closures.
-        runner.InitializeFull(snapshot, context, handler, ct);
+        runner.InitializeFull(this, snapshot, context, handler, ct);
 
         ValueTask pending = runner.RunAsync();
         if (pending.IsCompletedSuccessfully)
@@ -166,12 +199,13 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                 this.ReturnRunnerSync(runner);
             }
 
+            this.RECORD_EXECUTION(startTicks);
             return ValueTask.CompletedTask;
         }
 
-        return AwaitPendingAsync(this, pending, runner);
+        return AwaitPendingAsync(this, pending, runner, startTicks);
 
-        static async ValueTask AwaitPendingAsync(MiddlewarePipeline<TPacket> owner, ValueTask operation, PooledPipelineContext pooledRunner)
+        static async ValueTask AwaitPendingAsync(MiddlewarePipeline<TPacket> owner, ValueTask operation, PooledPipelineContext pooledRunner, long startTicks)
         {
             try
             {
@@ -180,13 +214,40 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             finally
             {
                 owner.ReturnRunnerSync(pooledRunner);
+                owner.RECORD_EXECUTION(startTicks);
+            }
+        }
+
+        static async ValueTask AwaitPendingEmptyAsync(MiddlewarePipeline<TPacket> owner, ValueTask operation, long startTicks)
+        {
+            try
+            {
+                await operation.ConfigureAwait(false);
+            }
+            finally
+            {
+                owner.RECORD_EXECUTION(startTicks);
             }
         }
     }
 
     #endregion APIs
 
+    #region Internal Methods
+
+    internal void RECORD_ERROR() => Interlocked.Increment(ref _totalErrors);
+
+    #endregion Internal Methods
+
     #region Private Methods
+
+    private void RECORD_EXECUTION(long startTicks)
+    {
+        long elapsed = Stopwatch.GetTimestamp() - startTicks;
+        _ = Interlocked.Add(ref _totalExecutionTicks, elapsed);
+        _ = Interlocked.Increment(ref _totalExecutions);
+        _ = Interlocked.Decrement(ref _activeExecutions);
+    }
 
     private static MiddlewareMetadata GetMiddlewareMetadata(Type middlewareType)
     {
@@ -305,7 +366,13 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             outboundAlways[i] = _outboundAlways[i];
         }
 
-        PipelineSnapshot snapshot = new(inbound, outbound, outboundAlways, _continueOnError, _errorHandler);
+        PerMiddlewareMetrics[] metrics = new PerMiddlewareMetrics[_registeredMiddlewares.Count];
+        foreach (KeyValuePair<IPacketMiddleware<TPacket>, int> kvp in _registeredMiddlewares)
+        {
+            metrics[kvp.Value] = new PerMiddlewareMetrics { _middlewareType = kvp.Key.GetType() };
+        }
+
+        PipelineSnapshot snapshot = new(inbound, outbound, outboundAlways, _continueOnError, _errorHandler, metrics);
 
         Volatile.Write(ref _snapshot, snapshot);
     }
@@ -314,7 +381,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
 
     #region Nested Types
 
-    private readonly record struct MiddlewareEntry(IPacketMiddleware<TPacket> Middleware, int Order);
+    private readonly record struct MiddlewareEntry(IPacketMiddleware<TPacket> Middleware, int Order, int MetricIndex);
 
     private readonly record struct MiddlewareMetadata(int Order, MiddlewareStage Stage, bool AlwaysExecute);
 
@@ -322,19 +389,20 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
     {
         #region Static Fields
 
-        public static readonly PipelineSnapshot Empty = new([], [], [], continueOnError: false, errorHandler: null);
+        public static readonly PipelineSnapshot Empty = new([], [], [], continueOnError: false, errorHandler: null, []);
 
         #endregion Static Fields
 
         #region Constructors
 
-        public PipelineSnapshot(MiddlewareEntry[] inbound, MiddlewareEntry[] outbound, MiddlewareEntry[] outboundAlways, bool continueOnError, Action<Exception, Type>? errorHandler)
+        public PipelineSnapshot(MiddlewareEntry[] inbound, MiddlewareEntry[] outbound, MiddlewareEntry[] outboundAlways, bool continueOnError, Action<Exception, Type>? errorHandler, PerMiddlewareMetrics[] metrics)
         {
             this.Inbound = inbound;
             this.Outbound = outbound;
             this.OutboundAlways = outboundAlways;
             this.ContinueOnError = continueOnError;
             this.ErrorHandler = errorHandler;
+            this.Metrics = metrics;
         }
 
         #endregion Constructors
@@ -350,6 +418,8 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         public MiddlewareEntry[] OutboundAlways { get; }
 
         public Action<Exception, Type>? ErrorHandler { get; }
+
+        public PerMiddlewareMetrics[] Metrics { get; }
 
         public bool IsEmpty => this.Inbound.Length == 0 && this.Outbound.Length == 0 && this.OutboundAlways.Length == 0;
 
@@ -371,6 +441,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         private Func<CancellationToken, ValueTask>[] _steps = [];
 
         // Full pipeline state
+        private MiddlewarePipeline<TPacket>? _owner;
         private PipelineSnapshot? _snapshot;
         private PipelineStage _currentStage;
         private Func<CancellationToken, ValueTask>? _rootHandler;
@@ -398,11 +469,13 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
         }
 
         public void InitializeFull(
+            MiddlewarePipeline<TPacket> owner,
             PipelineSnapshot snapshot,
             PacketContext<TPacket> context,
             Func<CancellationToken, ValueTask> handler,
             CancellationToken ct)
         {
+            _owner = owner;
             _snapshot = snapshot;
             _context = context;
             _rootHandler = handler;
@@ -423,6 +496,7 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             _rootCt = default;
             _continueOnError = false;
             _errorHandler = null;
+            _owner = null;
             _snapshot = null;
             _rootHandler = null;
             _currentStage = PipelineStage.None;
@@ -492,18 +566,37 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             MiddlewareEntry entry = _middlewares[index];
             Func<CancellationToken, ValueTask> next = _steps[index + 1];
 
+            long startTicks = Stopwatch.GetTimestamp();
+
             try
             {
                 ValueTask pending = entry.Middleware.InvokeAsync(context, next);
-                if (!_continueOnError || pending.IsCompletedSuccessfully)
+                if (pending.IsCompletedSuccessfully)
                 {
+                    long elapsed = Stopwatch.GetTimestamp() - startTicks;
+                    if (_snapshot is not null)
+                    {
+                        _ = Interlocked.Add(ref _snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
+                        _ = Interlocked.Increment(ref _snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                    }
                     return pending;
                 }
 
-                return AwaitWithContinueAsync(this, pending, entry, next, token);
+                if (!_continueOnError)
+                {
+                    return AwaitAndRecordAsync(this, pending, entry, startTicks);
+                }
+
+                return AwaitWithContinueAndRecordAsync(this, pending, entry, next, token, startTicks);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
+                if (_snapshot is not null)
+                {
+                    _ = Interlocked.Increment(ref _snapshot.Metrics[entry.MetricIndex]._totalErrors);
+                }
+                _owner?.RECORD_ERROR();
+
                 if (!_continueOnError)
                 {
                     return ValueTask.FromException(ex);
@@ -538,11 +631,8 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
                     _currentStage = PipelineStage.Finished;
                     break;
                 case PipelineStage.None:
-                    break;
                 case PipelineStage.Mid:
-                    break;
                 case PipelineStage.Finished:
-                    break;
                 default:
                     break;
             }
@@ -582,21 +672,46 @@ internal sealed class MiddlewarePipeline<TPacket> where TPacket : IPacket
             }
         }
 
-        private static async ValueTask AwaitWithContinueAsync(
+        private static async ValueTask AwaitWithContinueAndRecordAsync(
             PooledPipelineContext runner,
             ValueTask pending,
             MiddlewareEntry entry,
             Func<CancellationToken, ValueTask> next,
-            CancellationToken token)
+            CancellationToken token,
+            long startTicks)
         {
             try
             {
                 await pending.ConfigureAwait(false);
+
+                long elapsed = Stopwatch.GetTimestamp() - startTicks;
+                if (runner._snapshot is not null)
+                {
+                    _ = Interlocked.Add(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
+                    _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutions);
+                }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
+                if (runner._snapshot is not null)
+                {
+                    _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalErrors);
+                }
+                runner._owner?.RECORD_ERROR();
+
                 runner._errorHandler?.Invoke(ex, entry.Middleware.GetType());
                 await next(token).ConfigureAwait(false);
+            }
+        }
+
+        private static async ValueTask AwaitAndRecordAsync(PooledPipelineContext runner, ValueTask pending, MiddlewareEntry entry, long startTicks)
+        {
+            await pending.ConfigureAwait(false);
+            long elapsed = Stopwatch.GetTimestamp() - startTicks;
+            if (runner._snapshot is not null)
+            {
+                _ = Interlocked.Add(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutionTicks, elapsed);
+                _ = Interlocked.Increment(ref runner._snapshot.Metrics[entry.MetricIndex]._totalExecutions);
             }
         }
 

@@ -3,8 +3,10 @@
 
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -16,6 +18,7 @@ using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
+using Nalix.Runtime.Middleware;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -214,14 +217,69 @@ public sealed class InlinePacketDispatcher
 
     /// <inheritdoc/>
     [StackTraceHidden]
-    public string GenerateReport() => $"InlinePacketDispatcher: Running={(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}";
+    public string GenerateReport()
+    {
+        StringBuilder sb = new(1024);
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] InlinePacketDispatcher:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running              : {(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
+        _ = sb.AppendLine();
+
+        PipelineMetrics metrics = this.Options.Metrics;
+        _ = sb.AppendLine("---------------------------------------------------------------------");
+        _ = sb.AppendLine("Pipeline Statistics:");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Executions    : {metrics.ActiveExecutions}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Executions     : {metrics.TotalExecutions}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors         : {metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Time (ms)    : {metrics.AverageExecutionTime.TotalMilliseconds:F4}");
+
+        ReadOnlySpan<PerMiddlewareMetrics> mwMetrics = this.Options.MiddlewareMetrics;
+        if (mwMetrics.Length > 0)
+        {
+            _ = sb.AppendLine();
+            _ = sb.AppendLine("Middleware Performance:");
+            _ = sb.AppendLine("Middleware                           | Executions | Errors | Avg Time (ms)");
+            _ = sb.AppendLine("-------------------------------------|------------|--------|--------------");
+            foreach (ref readonly PerMiddlewareMetrics m in mwMetrics)
+            {
+                double avgMs = m.TotalExecutions == 0 ? 0 : TimeSpan.FromTicks(m.TotalExecutionTicks / m.TotalExecutions).TotalMilliseconds;
+                _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{m.MiddlewareType.Name,-36} | {m.TotalExecutions,-10} | {m.TotalErrors,-6} | {avgMs:F4}");
+            }
+        }
+
+        return sb.ToString();
+    }
 
     /// <inheritdoc/>
     public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
         writer.WriteStartObject();
+        writer.WriteString("UtcNow", DateTime.UtcNow);
         writer.WriteBoolean("Running", Volatile.Read(ref _running) == 1);
+
+        writer.WriteStartObject("PipelineMetrics");
+        writer.WriteNumber("ActiveExecutions", this.Options.Metrics.ActiveExecutions);
+        writer.WriteNumber("TotalExecutions", this.Options.Metrics.TotalExecutions);
+        writer.WriteNumber("TotalErrors", this.Options.Metrics.TotalErrors);
+        writer.WriteNumber("AverageTimeMs", this.Options.Metrics.AverageExecutionTime.TotalMilliseconds);
+        writer.WriteEndObject();
+
+        if (this.Options.MiddlewareMetrics.Length > 0)
+        {
+            writer.WriteStartArray("MiddlewareMetrics");
+            foreach (ref readonly PerMiddlewareMetrics m in this.Options.MiddlewareMetrics)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("Type", m.MiddlewareType.Name);
+                writer.WriteNumber("TotalExecutions", m.TotalExecutions);
+                writer.WriteNumber("TotalErrors", m.TotalErrors);
+                double avgMs = m.TotalExecutions == 0 ? 0 : TimeSpan.FromTicks(m.TotalExecutionTicks / m.TotalExecutions).TotalMilliseconds;
+                writer.WriteNumber("AverageTimeMs", avgMs);
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }
+
         writer.WriteEndObject();
     }
 }
