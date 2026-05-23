@@ -38,6 +38,17 @@ public sealed class ReportRegistry : SingletonBase<ReportRegistry>, IReportable
         ArgumentNullException.ThrowIfNull(instance);
 
         _registry[(key, typeof(T))] = instance;
+
+        Type concreteType = instance.GetType();
+        _registry[(key, concreteType)] = instance;
+
+        foreach (Type iface in concreteType.GetInterfaces())
+        {
+            if (typeof(IReportable).IsAssignableFrom(iface))
+            {
+                _registry[(key, iface)] = instance;
+            }
+        }
     }
 
     /// <summary>
@@ -65,7 +76,22 @@ public sealed class ReportRegistry : SingletonBase<ReportRegistry>, IReportable
     {
         ArgumentNullException.ThrowIfNull(key);
 
-        return _registry.TryRemove((key, typeof(T)), out _);
+        bool removed = _registry.TryRemove((key, typeof(T)), out IReportable? instance);
+        if (instance is not null)
+        {
+            Type concreteType = instance.GetType();
+            _ = _registry.TryRemove((key, concreteType), out _);
+
+            foreach (Type iface in concreteType.GetInterfaces())
+            {
+                if (typeof(IReportable).IsAssignableFrom(iface))
+                {
+                    _ = _registry.TryRemove((key, iface), out _);
+                }
+            }
+        }
+
+        return removed;
     }
 
     /// <summary>

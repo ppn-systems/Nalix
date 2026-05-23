@@ -4,8 +4,10 @@
 using System;
 using System.Text.Json;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework;
+using Nalix.Framework.Injection;
 using Xunit;
 
 namespace Nalix.Framework.Tests;
@@ -85,6 +87,26 @@ public sealed class ReportRegistryTests : IDisposable
         }
         string jsonReport = System.Text.Encoding.UTF8.GetString(ms.ToArray());
         Assert.Contains("TCP", jsonReport);
+    }
+
+    [Fact(DisplayName = "Registering task manager in InstanceManager should automatically index it in ReportRegistry")]
+    public void RegisteringITaskManagerAutoIndexesInReportRegistry()
+    {
+        var manager = new InstanceManager();
+        var taskManager = new Nalix.Framework.Tasks.TaskManager();
+
+        try
+        {
+            manager.Register<ITaskManager>(taskManager);
+
+            var resolved = _registry.Get<ITaskManager>(CoreTelemetryTarget.Tasks);
+            Assert.Same(taskManager, resolved);
+        }
+        finally
+        {
+            taskManager.Dispose();
+            manager.Clear(dispose: true);
+        }
     }
 
     private sealed class FakeReportable(string data) : IReportable
