@@ -49,6 +49,7 @@ public sealed class PacketDispatchChannel
     private int _activeLoops;
     private int _dispatchLoops;
     private int _wakeRequested;
+    private long _deserializationErrors;
 
     private long _wakeSignals;
     private long _wakeReadSignals;
@@ -264,6 +265,7 @@ public sealed class PacketDispatchChannel
     public string GenerateReport()
     {
         StringBuilder sb = new(2048);
+        PipelineMetrics metrics = this.Options.Metrics;
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] PacketDispatchChannel:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Running              : {(Volatile.Read(ref _running) == 1 ? "Yes" : "No")}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops        : {_dispatchLoops}");
@@ -309,6 +311,7 @@ public sealed class PacketDispatchChannel
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Executions    : {this.Options.Metrics.ActiveExecutions}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Executions     : {this.Options.Metrics.TotalExecutions}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors         : {this.Options.Metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deserialization Err : {Volatile.Read(ref _deserializationErrors)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Time (ms)    : {this.Options.Metrics.AverageExecutionTime.TotalMilliseconds:F4}");
 
         ReadOnlySpan<PerMiddlewareMetrics> mwMetrics = this.Options.MiddlewareMetrics;
@@ -332,6 +335,7 @@ public sealed class PacketDispatchChannel
     public void WriteReportData(System.Text.Json.Utf8JsonWriter writer)
     {
         ArgumentNullException.ThrowIfNull(writer);
+        PipelineMetrics metrics = this.Options.Metrics;
 
         writer.WriteStartObject();
         writer.WriteString("UtcNow", DateTime.UtcNow);
@@ -372,6 +376,7 @@ public sealed class PacketDispatchChannel
         writer.WriteNumber("ActiveExecutions", this.Options.Metrics.ActiveExecutions);
         writer.WriteNumber("TotalExecutions", this.Options.Metrics.TotalExecutions);
         writer.WriteNumber("TotalErrors", this.Options.Metrics.TotalErrors);
+        writer.WriteNumber("DeserializationErrors", Volatile.Read(ref _deserializationErrors));
         writer.WriteNumber("AverageTimeMs", this.Options.Metrics.AverageExecutionTime.TotalMilliseconds);
         writer.WriteEndObject();
 
@@ -549,6 +554,7 @@ public sealed class PacketDispatchChannel
             // 4. Normal deserialization fallback for structured packets
             if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? deserialized) || deserialized is null)
             {
+                _ = Interlocked.Increment(ref _deserializationErrors);
                 lease.Dispose();
                 connection.IncrementErrorCount();
                 return ValueTask.CompletedTask;

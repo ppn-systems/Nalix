@@ -32,6 +32,7 @@ public sealed class InlinePacketDispatcher
     : PacketDispatcherBase<IPacket>, IPacketDispatch, IActivatable
 {
     private int _running;
+    private long _deserializationErrors;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="InlinePacketDispatcher"/> class.
@@ -120,6 +121,7 @@ public sealed class InlinePacketDispatcher
             // 4. Normal deserialization fallback for structured packets
             if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? deserialized) || deserialized is null)
             {
+                _ = Interlocked.Increment(ref _deserializationErrors);
                 lease.Dispose();
                 connection.IncrementErrorCount();
                 return ValueTask.CompletedTask;
@@ -230,6 +232,7 @@ public sealed class InlinePacketDispatcher
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Active Executions    : {metrics.ActiveExecutions}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Executions     : {metrics.TotalExecutions}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Errors         : {metrics.TotalErrors}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Deserialization Err  : {Volatile.Read(ref _deserializationErrors)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Average Time (ms)    : {metrics.AverageExecutionTime.TotalMilliseconds:F4}");
 
         ReadOnlySpan<PerMiddlewareMetrics> mwMetrics = this.Options.MiddlewareMetrics;
@@ -261,6 +264,7 @@ public sealed class InlinePacketDispatcher
         writer.WriteNumber("ActiveExecutions", this.Options.Metrics.ActiveExecutions);
         writer.WriteNumber("TotalExecutions", this.Options.Metrics.TotalExecutions);
         writer.WriteNumber("TotalErrors", this.Options.Metrics.TotalErrors);
+        writer.WriteNumber("DeserializationErrors", Volatile.Read(ref _deserializationErrors));
         writer.WriteNumber("AverageTimeMs", this.Options.Metrics.AverageExecutionTime.TotalMilliseconds);
         writer.WriteEndObject();
 

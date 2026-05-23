@@ -50,6 +50,14 @@ public sealed class ConnectionHub : IConnectionHub
     private long _totalBytesSent;
     private long _totalBytesReceived;
 
+    private long _ingressBytesPerSecond;
+    private long _egressBytesPerSecond;
+
+    private long _lastTotalBytesSentSnapshot;
+    private long _lastTotalBytesReceivedSnapshot;
+
+    private readonly System.Threading.Timer? _throughputTimer;
+
     /// <summary>
     /// Outbound-allocated collections for bulk operations
     /// </summary>
@@ -98,6 +106,8 @@ public sealed class ConnectionHub : IConnectionHub
          */
         _shardCount = Math.Max(1, _options.ShardCount);
         _registry = new ConnectionRegistry(_shardCount, 31);
+
+        _throughputTimer = new System.Threading.Timer(this.CalculateThroughput, null, 1000, 1000);
     }
 
     #endregion Constructor
@@ -312,6 +322,7 @@ public sealed class ConnectionHub : IConnectionHub
         }
 
         _disposed = true;
+        _throughputTimer?.Dispose();
         this.DisposeAllConnections();
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
@@ -374,6 +385,8 @@ public sealed class ConnectionHub : IConnectionHub
 
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Sent   : {sumBytesSent:N0}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Bytes Received : {sumBytesReceived:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Ingress Bps          : {Volatile.Read(ref _ingressBytesPerSecond):N0} B/s");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Egress Bps           : {Volatile.Read(ref _egressBytesPerSecond):N0} B/s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture,
             $"Average Uptime     : {(total > 0 ? sumUptime / total : 0)}s");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Max Connection Time: {maxUptime}s");
@@ -406,6 +419,8 @@ public sealed class ConnectionHub : IConnectionHub
         writer.WriteNumber("ShardCount", _shardCount);
         writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _totalBytesSent));
         writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _totalBytesReceived));
+        writer.WriteNumber("IngressBytesPerSecond", Volatile.Read(ref _ingressBytesPerSecond));
+        writer.WriteNumber("EgressBytesPerSecond", Volatile.Read(ref _egressBytesPerSecond));
         writer.WriteEndObject();
     }
 
@@ -793,6 +808,39 @@ public sealed class ConnectionHub : IConnectionHub
         Success = 0,
         Disposed = 1,
         Duplicate = 2
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    private void CalculateThroughput(object? state)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        long sumBytesSent = Volatile.Read(ref _totalBytesSent);
+        long sumBytesReceived = Volatile.Read(ref _totalBytesReceived);
+
+        foreach (ConcurrentDictionary<ulong, IConnection> shard in _registry.Shards)
+        {
+            foreach (IConnection conn in shard.Values)
+            {
+                sumBytesSent += conn.BytesSent;
+                sumBytesReceived += conn.BytesReceived;
+            }
+        }
+
+        long lastSent = Volatile.Read(ref _lastTotalBytesSentSnapshot);
+        long lastReceived = Volatile.Read(ref _lastTotalBytesReceivedSnapshot);
+
+        if (lastSent > 0 || lastReceived > 0)
+        {
+            Volatile.Write(ref _egressBytesPerSecond, Math.Max(0, sumBytesSent - lastSent));
+            Volatile.Write(ref _ingressBytesPerSecond, Math.Max(0, sumBytesReceived - lastReceived));
+        }
+
+        Volatile.Write(ref _lastTotalBytesSentSnapshot, sumBytesSent);
+        Volatile.Write(ref _lastTotalBytesReceivedSnapshot, sumBytesReceived);
     }
 
     #endregion Private Methods
