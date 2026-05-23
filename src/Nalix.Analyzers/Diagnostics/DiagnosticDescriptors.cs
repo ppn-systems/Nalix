@@ -259,15 +259,6 @@ internal static class DiagnosticDescriptors
         isEnabledByDefault: true,
         description: "Nalix RequestOptions timeout must be zero or greater. Use 0 to wait indefinitely.");
 
-    public static readonly DiagnosticDescriptor RequestEncryptRequiresTcpSession = new(
-        id: "NALIX029",
-        title: "Encrypted RequestAsync requires TcpSession",
-        messageFormat: "RequestAsync uses RequestOptions.Encrypt=true, but client type '{0}' is not assignable to TcpSession",
-        category: "SDK",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Nalix encrypted RequestAsync overload requires the client to be a TcpSession.");
-
     public static readonly DiagnosticDescriptor PacketMiddlewareMissingOrder = new(
         id: "NALIX030",
         title: "Packet middleware should declare MiddlewareOrder",
@@ -465,15 +456,6 @@ internal static class DiagnosticDescriptors
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Nalix packet discovery and registry binding expect a ReadOnlySpan<byte> Deserialize entry point.");
-
-    public static readonly DiagnosticDescriptor RequestEncryptVariableRequiresTcpSession = new(
-        id: "NALIX053",
-        title: "Encrypted RequestAsync requires TcpSession (options variable path)",
-        messageFormat: "RequestAsync uses options variable '{0}' with Encrypt=true, but client type '{1}' is not assignable to TcpSession",
-        category: "SDK",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Nalix encrypted RequestAsync overload requires the client to be a TcpSession, including when options are built via local variables.");
 
     public static readonly DiagnosticDescriptor DuplicatePacketControllerName = new(
         id: "NALIX054",

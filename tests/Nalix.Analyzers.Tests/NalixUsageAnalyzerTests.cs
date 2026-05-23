@@ -376,62 +376,7 @@ public sealed class DemoConfig : ConfigurationLoader
         await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX024");
     }
 
-    [Fact]
-    public async Task RequestAsyncEncryptInlineOnNonTcpClient_ReportsNalix029()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.DataFrames;
-using Nalix.SDK.Options;
-using Nalix.SDK.Transport;
-using Nalix.SDK.Transport.Extensions;
 
-public sealed class DemoPacket : PacketBase<DemoPacket>
-{
-    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
-}
-
-public static class RequestUsage
-{
-    public static void Call(IClientConnection client, DemoPacket packet)
-    {
-        _ = client.RequestAsync<DemoPacket>(packet, RequestOptions.Default.WithEncrypt(true));
-    }
-}
-""";
-
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX029");
-    }
-
-    [Fact]
-    public async Task RequestAsyncEncryptVariableOnNonTcpClient_ReportsNalix053()
-    {
-        const string source = """
-namespace Demo;
-using Nalix.Abstractions.Networking.Packets;
-using Nalix.Codec.DataFrames;
-using Nalix.SDK.Options;
-using Nalix.SDK.Transport;
-using Nalix.SDK.Transport.Extensions;
-
-public sealed class DemoPacket : PacketBase<DemoPacket>
-{
-    public static new DemoPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<DemoPacket>.Deserialize(buffer);
-}
-
-public static class RequestUsage
-{
-    public static void Call(IClientConnection client, DemoPacket packet)
-    {
-        RequestOptions options = RequestOptions.Default.WithEncrypt(true);
-        _ = client.RequestAsync<DemoPacket>(packet, options);
-    }
-}
-""";
-
-        await AnalyzerTestHarness.AssertDiagnosticIdsAsync(source, "NALIX053");
-    }
 
     [Fact]
     public async Task ReservedOpcodeInController_ReportsNalix035()

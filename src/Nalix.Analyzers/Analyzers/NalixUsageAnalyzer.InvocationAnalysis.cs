@@ -189,34 +189,6 @@ public sealed partial class NalixUsageAnalyzer
                 retryCountValue.Value);
         }
 
-        bool encryptFromVariable = optionsArgument.Value is ILocalReferenceOperation;
-        bool? encryptValue = TryGetEncryptValueWithLocalResolution(optionsArgument.Value, context, symbols);
-        if (encryptValue != true)
-        {
-            return;
-        }
-
-        ITypeSymbol clientType = GetUnderlyingType(invocation.Arguments[0].Value) ?? targetMethod.Parameters[0].Type;
-        if (!IsAssignable(clientType, symbols.TcpSessionBaseType))
-        {
-            if (encryptFromVariable && optionsArgument.Value is ILocalReferenceOperation localReference)
-            {
-                Report(
-                    context,
-                    DiagnosticDescriptors.RequestEncryptVariableRequiresTcpSession,
-                    invocation.Syntax.GetLocation(),
-                    localReference.Local.Name,
-                    clientType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-            }
-            else
-            {
-                Report(
-                    context,
-                    DiagnosticDescriptors.RequestEncryptRequiresTcpSession,
-                    invocation.Syntax.GetLocation(),
-                    clientType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat));
-            }
-        }
     }
 
     private static bool TryGetTimeoutAndRetryValues(
@@ -299,60 +271,7 @@ public sealed partial class NalixUsageAnalyzer
         return false;
     }
 
-    private static bool? TryGetEncryptValueWithLocalResolution(IOperation operation, OperationAnalysisContext context, SymbolSet symbols)
-    {
-        bool? direct = TryGetEncryptValue(operation, symbols);
-        if (direct.HasValue)
-        {
-            return direct;
-        }
 
-        if (operation is not ILocalReferenceOperation localReference)
-        {
-            return null;
-        }
-
-        foreach (SyntaxReference syntaxReference in localReference.Local.DeclaringSyntaxReferences)
-        {
-            if (syntaxReference.GetSyntax(context.CancellationToken) is not VariableDeclaratorSyntax declarator
-                || declarator.Initializer is null)
-            {
-                continue;
-            }
-
-            string initText = declarator.Initializer.Value.ToString();
-            bool? resolved = ResolveEncryptFromInitializerText(initText);
-            if (resolved == true || resolved == false)
-            {
-                return resolved;
-            }
-        }
-
-        return null;
-    }
-
-    private static bool? ResolveEncryptFromInitializerText(string initializerText)
-    {
-        if (string.IsNullOrWhiteSpace(initializerText))
-        {
-            return null;
-        }
-
-        if (initializerText.IndexOf("WithEncrypt()", System.StringComparison.Ordinal) >= 0
-            || initializerText.IndexOf("WithEncrypt(true)", System.StringComparison.Ordinal) >= 0
-            || initializerText.IndexOf("Encrypt = true", System.StringComparison.Ordinal) >= 0)
-        {
-            return true;
-        }
-
-        if (initializerText.IndexOf("WithEncrypt(false)", System.StringComparison.Ordinal) >= 0
-            || initializerText.IndexOf("Encrypt = false", System.StringComparison.Ordinal) >= 0)
-        {
-            return false;
-        }
-
-        return null;
-    }
 
     private static void AnalyzeRegisterPacketInvocation(OperationAnalysisContext context, IInvocationOperation invocation, SymbolSet symbols)
     {
