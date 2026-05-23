@@ -16,6 +16,7 @@ namespace Nalix.Framework.Tests;
 /// <summary>
 /// Verifies the correctness of the <see cref="ReportRegistry"/> class.
 /// </summary>
+[Collection("Sequential Pooling Tests")]
 public sealed class ReportRegistryTests : IDisposable
 {
     private readonly ReportRegistry _registry = ReportRegistry.Instance;
@@ -110,6 +111,46 @@ public sealed class ReportRegistryTests : IDisposable
         }
     }
 
+    [Fact(DisplayName = "Registering BufferPoolManager concrete type should auto index in ReportRegistry")]
+    public void RegisteringBufferPoolManagerConcreteAutoIndexes()
+    {
+        var manager = new InstanceManager();
+        var bufferManager = new Nalix.Framework.Memory.Buffers.BufferPoolManager();
+
+        try
+        {
+            manager.Register<Nalix.Framework.Memory.Buffers.BufferPoolManager>(bufferManager);
+
+            var resolved = _registry.Get<IBufferPoolManager>(CoreTelemetryTarget.Buffers);
+            Assert.Same(bufferManager, resolved);
+        }
+        finally
+        {
+            bufferManager.Dispose();
+            manager.Clear(dispose: true);
+        }
+    }
+
+    [Fact(DisplayName = "Registering ObjectPoolManager concrete type should auto index in ReportRegistry")]
+    public void RegisteringObjectPoolManagerConcreteAutoIndexes()
+    {
+        var manager = new InstanceManager();
+        var objectManager = new Nalix.Framework.Memory.Objects.ObjectPoolManager();
+
+        try
+        {
+            manager.Register<Nalix.Framework.Memory.Objects.ObjectPoolManager>(objectManager);
+
+            var resolved = _registry.Get<IObjectPoolManager>(CoreTelemetryTarget.ObjectPools);
+            Assert.Same(objectManager, resolved);
+        }
+        finally
+        {
+            objectManager.Dispose();
+            manager.Clear(dispose: true);
+        }
+    }
+
     [Fact(DisplayName = "Registering different rate limiters in InstanceManager should automatically index them without collision")]
     public void RegisteringRateLimitersAutoIndexesWithoutCollision()
     {
@@ -154,6 +195,57 @@ public sealed class ReportRegistryTests : IDisposable
     {
         public string GenerateReport() => nameof(TokenBucketLimiter);
         public void WriteReportData(Utf8JsonWriter writer) {}
+    }
+
+    [Fact(DisplayName = "WriteReportData<T> should serialize only registered instances of the specified type")]
+    public void WriteReportDataGenericShouldSerializeOnlySpecifiedType()
+    {
+        var listener = new FakeTestListener("listener metrics");
+        var protocol = new FakeTestProtocol("protocol metrics");
+
+        _registry.Register<ITestListener>(NetworkTransport.TCP, listener);
+        _registry.Register<ITestProtocol>(NetworkTransport.UDP, protocol);
+
+        using var ms = new System.IO.MemoryStream();
+        using (var writer = new Utf8JsonWriter(ms))
+        {
+            _registry.WriteReportData<ITestListener>(writer);
+        }
+        string jsonReport = System.Text.Encoding.UTF8.GetString(ms.ToArray());
+
+        Assert.Contains("listener metrics", jsonReport);
+        Assert.DoesNotContain("protocol metrics", jsonReport);
+    }
+
+    private interface ITestListener : IReportable {}
+    private interface ITestProtocol : IReportable {}
+
+    private sealed class FakeTestListener(string data) : ITestListener
+    {
+        public string Data { get; } = data;
+
+        public void WriteReportData(Utf8JsonWriter writer)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("Data", Data);
+            writer.WriteEndObject();
+        }
+
+        public string GenerateReport() => Data;
+    }
+
+    private sealed class FakeTestProtocol(string data) : ITestProtocol
+    {
+        public string Data { get; } = data;
+
+        public void WriteReportData(Utf8JsonWriter writer)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("Data", Data);
+            writer.WriteEndObject();
+        }
+
+        public string GenerateReport() => Data;
     }
 
     private sealed class FakeReportable(string data) : IReportable

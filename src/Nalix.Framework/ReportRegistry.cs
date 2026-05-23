@@ -129,6 +129,41 @@ public sealed class ReportRegistry : SingletonBase<ReportRegistry>, IReportable
         writer.WriteEndObject();
     }
 
+    /// <summary>
+    /// Writes report data for all registered instances of type <typeparamref name="T"/> to the specified JSON writer.
+    /// </summary>
+    /// <typeparam name="T">The type of reportable instances to include.</typeparam>
+    /// <param name="writer">The JSON writer to write to.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="writer"/> is null.</exception>
+    public void WriteReportData<T>(Utf8JsonWriter writer) where T : class, IReportable
+    {
+        ArgumentNullException.ThrowIfNull(writer);
+
+        writer.WriteStartObject();
+        writer.WriteStartArray("Registrations");
+
+        foreach (KeyValuePair<(Enum Key, Type Type), IReportable> pair in _registry)
+        {
+            if (pair.Key.Type == typeof(T))
+            {
+                writer.WriteStartObject();
+
+                Type keyType = pair.Key.Key.GetType();
+                writer.WriteString("KeyType", keyType.FullName ?? keyType.Name);
+                writer.WriteString("KeyValue", pair.Key.Key.ToString());
+                writer.WriteString("TargetType", pair.Key.Type.FullName ?? pair.Key.Type.Name);
+
+                writer.WritePropertyName("Data");
+                pair.Value.WriteReportData(writer);
+
+                writer.WriteEndObject();
+            }
+        }
+
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+    }
+
     /// <inheritdoc />
     public string GenerateReport()
     {

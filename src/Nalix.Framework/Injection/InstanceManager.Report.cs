@@ -151,15 +151,16 @@ public sealed partial class InstanceManager
         CoreTelemetryTarget target = reportable switch
         {
             ITaskManager => CoreTelemetryTarget.Tasks,
+            IConnectionHub => CoreTelemetryTarget.Connections,
             IBufferPoolManager => CoreTelemetryTarget.Buffers,
             IObjectPoolManager => CoreTelemetryTarget.ObjectPools,
-            IConnectionHub => CoreTelemetryTarget.Connections,
-            _ when reportable.GetType().Name == "ConnectionGuard" || reportable.GetType().GetInterface("IConnectionGuard") is not null => CoreTelemetryTarget.ConnectionGuard,
-            _ when reportable.GetType().Name == "PacketDispatchChannel" || reportable.GetType().GetInterface("IPacketDispatch") is not null => CoreTelemetryTarget.PacketDispatch,
+            _ when reportable.GetType().Name == "TaskManager" => CoreTelemetryTarget.Tasks,
             _ when reportable.GetType().Name == "ConcurrencyGate" => CoreTelemetryTarget.ConcurrencyGate,
+            _ when reportable.GetType().Name == "ConnectionGuard" => CoreTelemetryTarget.ConnectionGuard,
             _ when reportable.GetType().Name == "PolicyRateLimiter" => CoreTelemetryTarget.PolicyRateLimiter,
             _ when reportable.GetType().Name == "TokenBucketLimiter" => CoreTelemetryTarget.TokenBucketLimiter,
-            _ when reportable.GetType().Name == "SessionService" || reportable.GetType().GetInterface("ISessionService") is not null => CoreTelemetryTarget.Sessions,
+            _ when reportable.GetType().GetInterface("ISessionService") is not null => CoreTelemetryTarget.Sessions,
+            _ when reportable.GetType().GetInterface("IPacketDispatch") is not null => CoreTelemetryTarget.PacketDispatch,
             _ => CoreTelemetryTarget.None
         };
 
