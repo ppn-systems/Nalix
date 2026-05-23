@@ -3,11 +3,13 @@
 
 using System.Text.Json;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Diagnostics;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Memory;
+using Nalix.Framework;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.RateLimiting;
@@ -24,8 +26,6 @@ namespace Nalix.Observability.Handlers;
 [PacketController("Nalix.RuntimeObservation")]
 public sealed class RuntimeObservationHandlers
 {
-    private static readonly IReportable?[] s_reportableCache = new IReportable?[256];
-
     /// <summary>
     /// Handles an incoming runtime observation request.
     /// </summary>
@@ -80,38 +80,44 @@ public sealed class RuntimeObservationHandlers
 
     private static bool TRY_RESOLVE_REPORTABLE(RuntimeObservationTarget target, out IReportable? reportable)
     {
-        int index = (int)target;
-        if (index >= 0 && index < s_reportableCache.Length)
-        {
-            IReportable? cached = s_reportableCache[index];
-            if (cached is not null)
-            {
-                reportable = cached;
-                return true;
-            }
-        }
-
         InstanceManager instances = InstanceManager.Instance;
 
         reportable = target switch
         {
             RuntimeObservationTarget.INSTANCES => instances,
             RuntimeObservationTarget.NONE => throw new NotImplementedException(),
-            RuntimeObservationTarget.TASKS => instances.GetExistingInstance<TaskManager>(),
-            RuntimeObservationTarget.DISPATCH => instances.GetExistingInstance<IPacketDispatch>(),
-            RuntimeObservationTarget.BUFFERS => instances.GetExistingInstance<IBufferPoolManager>(),
-            RuntimeObservationTarget.CONNECTIONS => instances.GetExistingInstance<IConnectionHub>(),
-            RuntimeObservationTarget.OBJECT_POOLS => instances.GetExistingInstance<IObjectPoolManager>(),
-            RuntimeObservationTarget.CONNECTION_GUARD => instances.GetExistingInstance<ConnectionGuard>(),
+            RuntimeObservationTarget.TASKS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Tasks),
+            RuntimeObservationTarget.DISPATCH => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.PacketDispatch),
+            RuntimeObservationTarget.BUFFERS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Buffers),
+            RuntimeObservationTarget.CONNECTIONS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Connections),
+            RuntimeObservationTarget.OBJECT_POOLS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.ObjectPools),
+            RuntimeObservationTarget.CONNECTION_GUARD => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.ConnectionGuard),
+            RuntimeObservationTarget.CONCURRENCY_GATE => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.ConcurrencyGate),
+            RuntimeObservationTarget.POLICY_RATE_LIMITER => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.PolicyRateLimiter),
+            RuntimeObservationTarget.TOKEN_BUCKET_LIMITER => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.TokenBucketLimiter),
+            RuntimeObservationTarget.SESSIONS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Sessions),
+            RuntimeObservationTarget.LISTENER => TypedRegistryReportWrapper<IListener>.Instance,
+            RuntimeObservationTarget.PROTOCOL => TypedRegistryReportWrapper<IProtocol>.Instance,
             _ => null
         };
 
-        if (reportable is not null && index >= 0 && index < s_reportableCache.Length)
+        return reportable is not null;
+    }
+
+    private sealed class TypedRegistryReportWrapper<T> : IReportable where T : class, IReportable
+    {
+        public static readonly TypedRegistryReportWrapper<T> Instance = new();
+
+        private TypedRegistryReportWrapper()
         {
-            s_reportableCache[index] = reportable;
         }
 
-        return reportable is not null;
+        public string GenerateReport() => string.Empty;
+
+        public void WriteReportData(Utf8JsonWriter writer)
+        {
+            ReportRegistry.Instance.WriteReportData<T>(writer);
+        }
     }
 
     private static BufferLease SERIALIZE_REPORT_DATA(IReportable reportable)
