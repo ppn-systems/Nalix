@@ -11,6 +11,16 @@ public sealed class AdminSettings
 {
     public ThemeMode ThemeMode { get; set; } = ThemeMode.Dark;
 
+    /// <summary>
+    /// Gets or sets the custom server host to connect to. If null or empty, the default host is used.
+    /// </summary>
+    public string? ServerHost { get; set; }
+
+    /// <summary>
+    /// Gets or sets the custom server port to connect to. If null, the default port is used.
+    /// </summary>
+    public ushort? ServerPort { get; set; }
+
     public int DefaultPollingIntervalMs { get; set; } = 3000;
 
     public Dictionary<string, int> PerPagePollingIntervalMs { get; set; } = [];

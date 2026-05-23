@@ -5,14 +5,22 @@
 @inject IDashboardStateReader State
 @inject NavigationManager Nav
 
-<PageTitle>Login — Nalix Admin</PageTitle>
+<PageTitle>Login — Nalix</PageTitle>
 
 <div class="login-wrap">
+    <div style="position: absolute; top: 16px; right: 16px;">
+        <MudIconButton Icon="@Icons.Material.Outlined.Settings"
+                       Color="Color.Default"
+                       Size="Size.Medium"
+                       OnClick="OpenServerSettings"
+                       title="Server settings" />
+    </div>
+
     <MudPaper Class="login-card pa-8" Elevation="4" MaxWidth="400px">
         <MudStack Spacing="4">
             <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
                 <img src="assets/brand/dashboard.png" alt="" style="height:36px;width:36px" />
-                <MudText Typo="Typo.h5">Nalix Admin</MudText>
+                <MudText Typo="Typo.h5">Nalix</MudText>
             </MudStack>
 
             <MudText Typo="Typo.body2" Color="Color.Secondary">
@@ -57,6 +65,36 @@
             </MudButton>
         </MudStack>
     </MudPaper>
+
+    <MudDialog @bind-Visible="_showServerDialog" Options="_dialogOptions">
+        <TitleContent>
+            <MudText Typo="Typo.h6">Server Connection</MudText>
+        </TitleContent>
+        <DialogContent>
+            <MudStack Spacing="3">
+                <MudTextField @bind-Value="_serverHost"
+                              Label="Host"
+                              Placeholder="localhost"
+                              Variant="Variant.Outlined"
+                              HelperText="IP address or hostname (leave blank for default)" />
+                <MudNumericField @bind-Value="_serverPort"
+                                 Label="Port"
+                                 Min="1" Max="65535"
+                                 Variant="Variant.Outlined"
+                                 HelperText="Default: 57206" />
+                <MudSwitch T="bool" @bind-Value="_useTls"
+                           Label="Use TLS"
+                           Color="Color.Primary" />
+            </MudStack>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="CancelServerSettings"
+                       Variant="Variant.Text">Cancel</MudButton>
+            <MudButton OnClick="SaveServerSettings"
+                       Variant="Variant.Filled"
+                       Color="Color.Primary">Save</MudButton>
+        </DialogActions>
+    </MudDialog>
 </div>
 
 @code {
@@ -65,6 +103,36 @@
     private bool _saveKey;
     private bool _isBusy;
     private string? _error;
+
+    private bool _showServerDialog;
+    private string _serverHost = string.Empty;
+    private int _serverPort = 57206;
+    private bool _useTls;
+    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true };
+
+    private async Task OpenServerSettings()
+    {
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        _serverHost = settings.ServerHost ?? string.Empty;
+        _serverPort = settings.ServerPort ?? 57206;
+        _useTls = settings.UseTls;
+        _showServerDialog = true;
+    }
+
+    private void CancelServerSettings()
+    {
+        _showServerDialog = false;
+    }
+
+    private async Task SaveServerSettings()
+    {
+        AdminSettings settings = await SettingsStore.LoadAsync().ConfigureAwait(false);
+        settings.ServerHost = string.IsNullOrWhiteSpace(_serverHost) ? null : _serverHost.Trim();
+        settings.ServerPort = _serverPort == 57206 ? null : (ushort)_serverPort;
+        settings.UseTls = _useTls;
+        await SettingsStore.SaveAsync(settings).ConfigureAwait(false);
+        _showServerDialog = false;
+    }
 
     protected override async Task OnInitializedAsync()
     {

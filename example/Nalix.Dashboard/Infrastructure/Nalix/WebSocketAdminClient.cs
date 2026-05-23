@@ -160,10 +160,15 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
 
         Application.Settings.AdminSettings cfg = await _settings.LoadAsync(ct).ConfigureAwait(false);
 
+        string host = !string.IsNullOrWhiteSpace(cfg.ServerHost)
+            ? cfg.ServerHost.Trim()
+            : _options.BackendHost;
+        ushort port = cfg.ServerPort ?? _options.BackendPort;
+
         TransportOptions transport = new()
         {
-            Address = _options.BackendHost,
-            Port = _options.BackendPort,
+            Address = host,
+            Port = port,
             ConnectTimeoutMillis = cfg.RequestTimeoutMs,
             ServerPublicKey = _options.ServerPublicKey,
             ReconnectEnabled = false,
@@ -188,7 +193,7 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
         };
 
         _session = session;
-        _state.Log("INFO", $"Connecting WebSocket to {_options.BackendHost}:{_options.BackendPort}{cfg.WebSocketPath}");
+        _state.Log("INFO", $"Connecting WebSocket to {host}:{port.ToString(CultureInfo.InvariantCulture)}{cfg.WebSocketPath}");
         await session.ConnectAsync(ct: ct).ConfigureAwait(false);
         _state.Log("INFO", "WebSocket connected — starting handshake.");
         await session.HandshakeAsync(ct).ConfigureAwait(false);

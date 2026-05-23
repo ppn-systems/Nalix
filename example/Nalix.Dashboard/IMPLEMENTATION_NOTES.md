@@ -1,4 +1,4 @@
-# Nalix Admin Dashboard — Implementation Notes
+# Nalix Dashboard — Implementation Notes
 
 > **Purpose:** Continuity document for a large in-progress rebuild.  
 > If context/tokens run out, the next agent reads this file and continues from the TODO section.
@@ -7,7 +7,7 @@
 
 ## Current Goal and Scope
 
-Rebuild `example/Dashboard` from a single-page design into a professional, portable, multi-page Nalix Admin Dashboard.
+Rebuild `example/Dashboard` from a single-page design into a professional, portable, multi-page Nalix Dashboard.
 
 **Constraints:**
 - Self-contained under `example/Dashboard` + `example/Contracts`

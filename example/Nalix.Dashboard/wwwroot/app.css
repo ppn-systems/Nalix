@@ -1,8 +1,38 @@
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('fonts/inter/Inter-Regular.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url('fonts/inter/Inter-Medium.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url('fonts/inter/Inter-SemiBold.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('fonts/inter/Inter-Bold.woff2') format('woff2');
+}
+
 html,
 body {
-    background: #0d1117;
-    color: #f0f6fc;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Arial, sans-serif;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     margin: 0;
 }
 
@@ -120,11 +150,11 @@ h1:focus {
 }
 
 .log-error {
-    color: #f85149;
+    color: #F87171;
 }
 
 .log-warn {
-    color: #d29922;
+    color: #FBBF24;
 }
 
 .log-info {
@@ -185,3 +215,30 @@ h1:focus {
 .nalix-brand__name {
     font-size: 0.95rem;
 }
+
+/* Dashboard main layout and footer */
+.nalix-main {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 48px);
+    padding: 24px;
+}
+
+@media (max-width: 600px) {
+    .nalix-main {
+        padding: 16px;
+    }
+}
+
+.nalix-footer {
+    border-top: 1px solid var(--mud-palette-divider);
+    margin-top: auto;
+    padding: 16px 24px;
+}
+
+.nalix-footer__inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    width: 100%;
+}
+
