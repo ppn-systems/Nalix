@@ -57,10 +57,10 @@ public sealed class RuntimeDispatchAndHandlersTests
         PacketDispatchOptions<TestPacket> options = new();
 
         _ = options.WithDispatchLoopCount(null);
-        Assert.Null(options.DispatchLoopCount);
+        Assert.Equal(0, options.Drain.Count);
 
         _ = options.WithDispatchLoopCount(8);
-        Assert.Equal(8, options.DispatchLoopCount);
+        Assert.Equal(8, options.Drain.Count);
     }
 
     [Fact]
