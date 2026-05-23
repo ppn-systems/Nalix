@@ -70,7 +70,7 @@
 
 @code {
     private static readonly IReadOnlyList<NavItem> _metrics =
-        AppNavigation.Build(PermissionLevel.SYSTEM_ADMINISTRATOR)[1].Items;
+        AppNavigation.Build(PermissionLevel.SUPERVISOR)[1].Items;
 
     protected override async Task OnInitializedAsync()
     {

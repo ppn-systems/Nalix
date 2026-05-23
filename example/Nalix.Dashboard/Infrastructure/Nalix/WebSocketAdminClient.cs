@@ -1,6 +1,5 @@
 using System.Diagnostics;
 using System.Globalization;
-using Nalix.Observability.Contracts;
 using Microsoft.Extensions.Options;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking.Protocols;
@@ -11,6 +10,7 @@ using Nalix.Dashboard.Application.State;
 using Nalix.Dashboard.Domain.Reports;
 using Nalix.Dashboard.Infrastructure.Options;
 using Nalix.Dashboard.Infrastructure.Serialization;
+using Nalix.Observability.Contracts;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -78,10 +78,11 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _logger.LogWarning(ex, "Refresh failed for {Target}.", target);
-            _state.Log("WARN", $"Refresh failed target={target}: {ex.Message}");
+            _logger.LogWarning(ex, "Failed to refresh target={Target}", target);
+            _state.Log("WARN", $"Failed to refresh target={target}: {ex.Message}");
             _state.MarkDisconnected(ex.Message);
             await this.ResetSessionAsync().ConfigureAwait(false);
+            throw;
         }
         finally
         {
@@ -129,6 +130,7 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
             _state.Log("WARN", $"Ping failed: {ex.Message}");
             _state.MarkDisconnected(ex.Message);
             await this.ResetSessionAsync().ConfigureAwait(false);
+            throw;
         }
         finally
         {
@@ -240,7 +242,7 @@ internal sealed class WebSocketAdminClient : IAdminClient, IAsyncDisposable
             predicate: p => p.Stage == ObservabilityAccessStage.RESPONSE,
             ct).ConfigureAwait(false);
 
-        if (response.Reason != ProtocolReason.NONE || response.AccessLevel < PermissionLevel.SYSTEM_ADMINISTRATOR)
+        if (response.Reason != ProtocolReason.NONE || response.AccessLevel < PermissionLevel.SUPERVISOR)
         {
             _state.Log("WARN", $"Authority denied: reason={response.Reason} level={response.AccessLevel}");
             throw new NetworkException($"Authority grant failed: {response.Reason}");

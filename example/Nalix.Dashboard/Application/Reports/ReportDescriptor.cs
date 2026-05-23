@@ -13,4 +13,4 @@ public sealed record ReportDescriptor(
     int MaximumPollingIntervalMs,
     bool SupportsRawJsonPreview,
     bool SupportsCharts,
-    PermissionLevel RequiredPermissionLevel = PermissionLevel.SYSTEM_ADMINISTRATOR);
+    PermissionLevel RequiredPermissionLevel = PermissionLevel.SUPERVISOR);
