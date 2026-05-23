@@ -39,7 +39,6 @@ internal sealed class SocketEventBridge : ITransportEventSink
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private static readonly NetworkCallbackOptions s_opts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
 
-    private readonly IConnectEventArgs _cachedArgs;
     private readonly EventHandler<IConnectEventArgs>? _callbackProcess;
     private readonly EventHandler<IConnectEventArgs>? _callbackPost;
     private readonly EventHandler<IConnectEventArgs>? _callbackClose;
@@ -59,16 +58,11 @@ internal sealed class SocketEventBridge : ITransportEventSink
     /// Initializes a new bridge that will dispatch transport events
     /// through the specified callback delegates.
     /// </summary>
-    /// <param name="cachedArgs">
-    /// Pre-initialized event args used to read <see cref="IConnectEventArgs.Connection"/>
-    /// for new args initialization.
-    /// </param>
     /// <param name="callbackProcess">Process (receive) event handler.</param>
     /// <param name="callbackPost">Post-process (send-complete) event handler.</param>
     /// <param name="callbackClose">Close event handler.</param>
-    internal SocketEventBridge(IConnectEventArgs cachedArgs, EventHandler<IConnectEventArgs>? callbackProcess, EventHandler<IConnectEventArgs>? callbackPost, EventHandler<IConnectEventArgs>? callbackClose)
+    internal SocketEventBridge(EventHandler<IConnectEventArgs>? callbackProcess, EventHandler<IConnectEventArgs>? callbackPost, EventHandler<IConnectEventArgs>? callbackClose)
     {
-        _cachedArgs = cachedArgs;
         _callbackProcess = callbackProcess;
         _callbackPost = callbackPost;
         _callbackClose = callbackClose;
@@ -109,7 +103,7 @@ internal sealed class SocketEventBridge : ITransportEventSink
         ConnectionEventArgs? args = (connection as Connection)?.AcquireEventArgs()
                                     ?? s_pool.Get<ConnectionEventArgs>();
 
-        args.Initialize(lease, _cachedArgs.Connection);
+        args.Initialize(lease, connection);
 
         if (!AsyncCallback.Invoke(_callbackProcess, connection, args, releasePendingPacketOnCompletion: true))
         {
@@ -127,7 +121,7 @@ internal sealed class SocketEventBridge : ITransportEventSink
     {
         ConnectionEventArgs? args = (connection as Connection)?.AcquireEventArgs()
                                     ?? s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(_cachedArgs.Connection);
+        args.Initialize(connection);
 
         if (!AsyncCallback.Invoke(_callbackPost, connection, args))
         {
@@ -140,7 +134,7 @@ internal sealed class SocketEventBridge : ITransportEventSink
     public void OnTransportClosed(IConnection connection)
     {
         ConnectionEventArgs args = s_pool.Get<ConnectionEventArgs>();
-        args.Initialize(_cachedArgs.Connection);
+        args.Initialize(connection);
 
         if (!AsyncCallback.InvokeHighPriority(_callbackClose, connection, args))
         {

@@ -49,7 +49,6 @@ public sealed partial class Connection :
 
     private readonly Lock _lock;
     private readonly SocketEventBridge _bridge;
-    private readonly ConnectionEventArgs _args;
 
     private int _errorCount;
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
@@ -93,15 +92,12 @@ public sealed partial class Connection :
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
 
-        _args = s_pool.Get<ConnectionEventArgs>();
-        _args.Initialize(this);
-
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
 
         // Create the event bridge that converts transport-level frame events
         // into the connection-level callback pipeline.
-        _bridge = new SocketEventBridge(_args, OnProcessEventBridge, OnPostProcessEventBridge, this.OnCloseEventBridge);
+        _bridge = new SocketEventBridge(OnProcessEventBridge, OnPostProcessEventBridge, this.OnCloseEventBridge);
 
         this.Socket = new SocketConnection(socket, this, _bridge, logger);
 
@@ -416,9 +412,6 @@ public sealed partial class Connection :
 
             try { this.Socket.Dispose(); }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "socket"); }
-
-            try { _args.Dispose(); }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "args"); }
 
             try
             {
