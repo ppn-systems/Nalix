@@ -11,11 +11,8 @@ using Nalix.Abstractions.Security;
 using Nalix.Environment.Memory;
 using Nalix.Framework;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Tasks;
-using Nalix.Network.RateLimiting;
 using Nalix.Observability.Contracts;
 using Nalix.Observability.Handlers.Internal;
-using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Pooling;
 
 namespace Nalix.Observability.Handlers;
@@ -85,30 +82,29 @@ public sealed class RuntimeObservationHandlers
         reportable = target switch
         {
             RuntimeObservationTarget.INSTANCES => instances,
-            RuntimeObservationTarget.NONE => throw new NotImplementedException(),
+            RuntimeObservationTarget.LISTENER => CombinedListenerReport.Instance,
+            RuntimeObservationTarget.PROTOCOL => CombinedProtocolReport.Instance,
             RuntimeObservationTarget.TASKS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Tasks),
-            RuntimeObservationTarget.DISPATCH => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.PacketDispatch),
             RuntimeObservationTarget.BUFFERS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Buffers),
+            RuntimeObservationTarget.SESSIONS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Sessions),
             RuntimeObservationTarget.CONNECTIONS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Connections),
+            RuntimeObservationTarget.DISPATCH => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.PacketDispatch),
             RuntimeObservationTarget.OBJECT_POOLS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.ObjectPools),
             RuntimeObservationTarget.CONNECTION_GUARD => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.ConnectionGuard),
             RuntimeObservationTarget.CONCURRENCY_GATE => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.ConcurrencyGate),
             RuntimeObservationTarget.POLICY_RATE_LIMITER => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.PolicyRateLimiter),
             RuntimeObservationTarget.TOKEN_BUCKET_LIMITER => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.TokenBucketLimiter),
-            RuntimeObservationTarget.SESSIONS => ReportRegistry.Instance.Get<IReportable>(CoreTelemetryTarget.Sessions),
-            RuntimeObservationTarget.LISTENER => TypedRegistryReportWrapper<IListener>.Instance,
-            RuntimeObservationTarget.PROTOCOL => TypedRegistryReportWrapper<IProtocol>.Instance,
-            _ => null
+            RuntimeObservationTarget.NONE or _ => null
         };
 
         return reportable is not null;
     }
 
-    private sealed class TypedRegistryReportWrapper<T> : IReportable where T : class, IReportable
+    private sealed class CombinedListenerReport : IReportable
     {
-        public static readonly TypedRegistryReportWrapper<T> Instance = new();
+        public static readonly CombinedListenerReport Instance = new();
 
-        private TypedRegistryReportWrapper()
+        private CombinedListenerReport()
         {
         }
 
@@ -116,7 +112,73 @@ public sealed class RuntimeObservationHandlers
 
         public void WriteReportData(Utf8JsonWriter writer)
         {
-            ReportRegistry.Instance.WriteReportData<T>(writer);
+            ArgumentNullException.ThrowIfNull(writer);
+
+            writer.WriteStartObject();
+
+            IListener? tcp = ReportRegistry.Instance.Get<IListener>(NetworkTransport.TCP);
+            if (tcp is not null)
+            {
+                writer.WritePropertyName("TCP");
+                tcp.WriteReportData(writer);
+            }
+
+            IListener? udp = ReportRegistry.Instance.Get<IListener>(NetworkTransport.UDP);
+            if (udp is not null)
+            {
+                writer.WritePropertyName("UDP");
+                udp.WriteReportData(writer);
+            }
+
+            IListener? ws = ReportRegistry.Instance.Get<IListener>(NetworkTransport.WEBSOCKET);
+            if (ws is not null)
+            {
+                writer.WritePropertyName("WEBSOCKET");
+                ws.WriteReportData(writer);
+            }
+
+            writer.WriteEndObject();
+        }
+    }
+
+    private sealed class CombinedProtocolReport : IReportable
+    {
+        public static readonly CombinedProtocolReport Instance = new();
+
+        private CombinedProtocolReport()
+        {
+        }
+
+        public string GenerateReport() => string.Empty;
+
+        public void WriteReportData(Utf8JsonWriter writer)
+        {
+            ArgumentNullException.ThrowIfNull(writer);
+
+            writer.WriteStartObject();
+
+            IProtocol? tcp = ReportRegistry.Instance.Get<IProtocol>(NetworkTransport.TCP);
+            if (tcp is not null)
+            {
+                writer.WritePropertyName("TCP");
+                tcp.WriteReportData(writer);
+            }
+
+            IProtocol? udp = ReportRegistry.Instance.Get<IProtocol>(NetworkTransport.UDP);
+            if (udp is not null)
+            {
+                writer.WritePropertyName("UDP");
+                udp.WriteReportData(writer);
+            }
+
+            IProtocol? ws = ReportRegistry.Instance.Get<IProtocol>(NetworkTransport.WEBSOCKET);
+            if (ws is not null)
+            {
+                writer.WritePropertyName("WEBSOCKET");
+                ws.WriteReportData(writer);
+            }
+
+            writer.WriteEndObject();
         }
     }
 

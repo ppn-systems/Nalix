@@ -90,7 +90,7 @@ internal class Startup
             {
                 _ = o.WithMiddleware(new TimeoutMiddleware());
                 _ = o.WithMiddleware(new PacketTagMiddleware());
-                //_ = o.WithMiddleware(new RateLimitMiddleware());
+                _ = o.WithMiddleware(new RateLimitMiddleware());
                 _ = o.WithMiddleware(new PermissionMiddleware());
                 _ = o.WithMiddleware(new ConcurrencyMiddleware());
 
