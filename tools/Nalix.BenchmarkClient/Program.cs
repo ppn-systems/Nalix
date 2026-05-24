@@ -130,8 +130,8 @@ public static class Program
                         Interlocked.Increment(ref s_failedPings);
                     }
 
-                    // Small throttle to avoid local client socket exhaustion
-                    await Task.Delay(10, ct).ConfigureAwait(false);
+                    // Max speed: yield control to allow cooperative multitasking, but no sleep delay
+                    await Task.Yield();
                 }
             }
             catch (OperationCanceledException)
