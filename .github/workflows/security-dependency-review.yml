@@ -50,7 +50,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Dependency review
-        uses: actions/dependency-review-action@v4
+        uses: actions/dependency-review-action@v5
         with:
           # Block merge on high or critical severity CVEs
           fail-on-severity: high
