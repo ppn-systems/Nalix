@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using Nalix.Codec.DataFrames;
 using Nalix.Codec.ProtocolFrames;
+using Nalix.Environment.Memory;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -35,7 +36,7 @@ public static class Program
         // Parse target parameters
         string host = "127.0.0.1";
         ushort port = 57206; // Default Backend example port
-        int concurrentConnections = 50;
+        int concurrentConnections = 500;
         int durationSeconds = 15;
         int timeoutMs = 5000;
         int payloadSize = 1500; // Default to 1.5 KB payload for the example project
@@ -87,9 +88,18 @@ public static class Program
             PacketRegistry.Build();
         }
 
-        Console.WriteLine($"[DEBUG] Client BenchmarkPacket Magic: 0x{Nalix.Codec.DataFrames.PacketSchema<Nalix.Codec.ProtocolFrames.BenchmarkPacket>.AutoMagic:X8}");
+        Console.WriteLine($"[DEBUG] Client BenchmarkPacket Magic: 0x{PacketSchema<BenchmarkPacket>.AutoMagic:X8}");
+        Console.WriteLine($"[DEBUG] Client BenchmarkPacket StaticSize: {PacketSchema<BenchmarkPacket>.StaticSize}");
 
-        using CancellationTokenSource cts = new CancellationTokenSource(TimeSpan.FromSeconds(durationSeconds));
+        using (BenchmarkPacket testPacket = BenchmarkPacket.Create())
+        {
+            testPacket.Payload = new byte[payloadSize];
+            Console.WriteLine($"[DEBUG] testPacket.Length: {testPacket.Length}");
+            using BufferLease lease = BufferLease.Rent(testPacket.Length + (testPacket.Length / 20));
+            Console.WriteLine($"[DEBUG] Rented lease capacity: {lease.Capacity}, SpanFull length: {lease.SpanFull.Length}");
+        }
+
+        using CancellationTokenSource cts = new(TimeSpan.FromSeconds(durationSeconds));
         CancellationToken token = cts.Token;
 
         // Start connection workers
@@ -169,7 +179,7 @@ public static class Program
         {
             try
             {
-                using TcpSession session = new TcpSession(new TransportOptions
+                using TcpSession session = new(new TransportOptions
                 {
                     Address = host,
                     Port = port

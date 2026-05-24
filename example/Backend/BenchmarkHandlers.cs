@@ -21,7 +21,10 @@ public sealed class BenchmarkHandlers
     [PacketOpcode(0x0100)]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    public static async ValueTask HandleAsync(IPacketContext<BenchmarkPacket> context) =>
-        // Echo the packet back to the client immediately
-        await context.Connection.TCP.SendAsync(context.Packet).ConfigureAwait(false);
+    public static async ValueTask HandleAsync(IPacketContext<BenchmarkPacket> context)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        //await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
+        await context.Connection.TCP.SendAsync(context.Packet, context.CancellationToken).ConfigureAwait(false);
+    }
 }
