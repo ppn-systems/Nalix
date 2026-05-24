@@ -92,7 +92,7 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
             throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
         }
 
-        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
+        using BufferLease lease = BufferLease.Rent(packetLength);
         int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
         lease.CommitLength(bytesWrittenHeap);
         await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
