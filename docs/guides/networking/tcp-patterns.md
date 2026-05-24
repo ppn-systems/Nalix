@@ -188,6 +188,9 @@ public async ValueTask Handle(IPacketContext<Control> context, CancellationToken
 }
 ```
 
+!!! warning "Critical Best Practice"
+    Always pass `context.CancellationToken` (or the injected `CancellationToken` as shown above) to any `await SendAsync()` or background I/O calls inside your handler. Failing to do so breaks the lifecycle synchronization between the Dispatcher and your background task, leading to orphaned tasks and severe memory-pooling race conditions under high load.
+
 Use this style when:
 
 - you want multiple replies
