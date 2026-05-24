@@ -21,7 +21,7 @@ public static class Program
         ILogger logger = Startup.CreateBootstrapLogger();
         using CancellationTokenSource exit = new();
 
-        Console.CursorVisible = false;
+        TrySetCursorVisible(false);
         Console.CancelKeyPress += (_, e) =>
         {
             e.Cancel = true;
@@ -32,8 +32,31 @@ public static class Program
 
         try
         {
+            // Auto-activate the server on startup
+            await host.ActivateAsync(exit.Token).ConfigureAwait(false);
+            s_listeningMessage(logger, Startup.ListenAddress, Startup.ListenPort, null);
+
+            Console.WriteLine($"[DEBUG] Server BenchmarkPacket Magic: 0x{Nalix.Codec.DataFrames.PacketSchema<Nalix.Codec.ProtocolFrames.BenchmarkPacket>.AutoMagic:X8}");
+
             WriteControls(logger);
-            await RunCommandLoopAsync(host, logger, exit.Token).ConfigureAwait(false);
+
+            try
+            {
+                if (!Console.IsInputRedirected)
+                {
+                    await RunCommandLoopAsync(host, logger, exit.Token).ConfigureAwait(false);
+                }
+                else
+                {
+                    // Background execution: wait indefinitely until canceled
+                    await Task.Delay(Timeout.InfiniteTimeSpan, exit.Token).ConfigureAwait(false);
+                }
+            }
+            catch (Exception loopEx) when (loopEx is InvalidOperationException or IOException)
+            {
+                logger.LogWarning(loopEx, "Console key listener failed to start. Falling back to background wait mode.");
+                await Task.Delay(Timeout.InfiniteTimeSpan, exit.Token).ConfigureAwait(false);
+            }
 
             return 0;
         }
@@ -43,6 +66,9 @@ public static class Program
         }
         catch (Exception ex)
         {
+#pragma warning disable CA1849 // Synchronous write is acceptable for fatal crash reporting
+            Console.Error.WriteLine($"[FATAL] Server crashed: {ex}");
+#pragma warning restore CA1849
             ILogger activeLogger = InstanceManager.Instance.GetExistingInstance<ILogger>() ?? logger;
             activeLogger.LogError(ex, "server-fatal");
 
@@ -51,7 +77,24 @@ public static class Program
         finally
         {
             await host.DeactivateAsync().ConfigureAwait(false);
-            Console.CursorVisible = true;
+            TrySetCursorVisible(true);
+            if (logger is IDisposable disposableLogger)
+            {
+                disposableLogger.Dispose();
+            }
+        }
+    }
+
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Console cursor visibility is best-effort and should not crash headless servers.")]
+    private static void TrySetCursorVisible(bool visible)
+    {
+        try
+        {
+            Console.CursorVisible = visible;
+        }
+        catch
+        {
+            // Ignore console control errors when stdout/stderr is redirected
         }
     }
 

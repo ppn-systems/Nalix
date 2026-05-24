@@ -41,6 +41,7 @@ internal class Startup
             .ConfigureObjectPoolManager(objectPool)
             .AddHandler<ObservabilityAccessHandlers>()
             .AddHandler<RuntimeObservationHandlers>()
+            .AddHandler<BenchmarkHandlers>()
             .Configure<NetworkSocketOptions>(o =>
             {
                 o.Port = ListenPort;

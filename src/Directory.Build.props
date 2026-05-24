@@ -43,13 +43,13 @@
 	</PropertyGroup>
 	
 	<ItemGroup Condition="'$(PublishAot)' != 'true' And '$(DisableNalixAnalyzers)' != 'true' And '$(MSBuildProjectName)' != 'Nalix.Analyzers' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests'">
-		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers\Nalix.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible" />
-		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers.CodeFixes\Nalix.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible" />
+		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers\Nalix.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
+		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers.CodeFixes\Nalix.Analyzers.CodeFixes.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
 	</ItemGroup>
 
 	<!-- Source generator for ConfigurationLoader AOT binding -->
 	<ItemGroup Condition="'$(PublishAot)' != 'true' And '$(MSBuildProjectName)' != 'Nalix.Analyzers' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Generators' And '$(MSBuildProjectName)' != 'Nalix.Abstractions' And '$(MSBuildProjectName)' != 'Nalix.Environment' And '$(MSBuildProjectName)' != 'Nalix.Codec'">
-		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible" />
+		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
 	</ItemGroup>
 
 </Project>

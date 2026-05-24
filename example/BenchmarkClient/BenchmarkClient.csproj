@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<OutputType>Exe</OutputType>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<TargetFramework>net10.0</TargetFramework>
+		<AssemblyName>BenchmarkClient</AssemblyName>
+		<RootNamespace>BenchmarkClient</RootNamespace>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Codec\Nalix.Codec.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Environment\Nalix.Environment.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Abstractions\Nalix.Abstractions.csproj" />
+		
+		<ProjectReference Include="..\..\src\Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\Backend\BenchmarkPacket.cs" Link="BenchmarkPacket.cs" />
+	</ItemGroup>
+
+</Project>
