@@ -4,11 +4,14 @@ This directory contains per-project Claude Code skills for the **Nalix** ecosyst
 
 ## Dependency Graph
 
+- Do not introduce new NuGet dependencies unless explicitly requested.
+- Prefer existing Nalix infrastructure before external packages.
+
 ```plaintext
-Level 0 : Nalix.Abstractions            (zero deps)
-Level 0 : Nalix.Analyzers               (Roslyn only, netstandard2.0)
-Level 0 : Nalix.Analyzers.Generators    (Roslyn only, netstandard2.0)
-Level 1 : Nalix.Analyzers.CodeFixes     → Analyzers
+Level 0 : Nalix.Analyzers               → (Roslyn only, netstandard2.0, packed into Abstractions)
+Level 0 : Nalix.Analyzers.CodeFixes     → Analyzers (packed into Abstractions)
+Level 0 : Nalix.Analyzers.Generators    → (Roslyn only, netstandard2.0, packed into Abstractions)
+Level 0 : Nalix.Abstractions            → (zero deps, packs analyzers)
 Level 1 : Nalix.Environment             → Abstractions
 Level 2 : Nalix.Codec                   → Abstractions, Environment, Analyzers.Generators (generator)
 Level 2 : Nalix.Framework               → Abstractions, Environment, Codec
@@ -17,10 +20,35 @@ Level 3 : Nalix.Network                 → Abstractions, Framework
 Level 3 : Nalix.Logging                 → Abstractions, Framework
 Level 3 : Nalix.SDK                     → Codec
 Level 4 : Nalix.Hosting                 → Abstractions, Framework, Codec, Runtime, Network
-Level 5 : Nalix.SDK.Native              → SDK (Native AOT, C ABI)
+Level 5 : Nalix.SDK.Native              → SDK (Native AOT, C ABI, internal only)
 ```
 
 **NEVER introduce circular references or skip dependency levels.**
+
+## Global Rules
+
+- **Language:** C# 14 on .NET 10 (`net10.0`). Analyzers/generators target `netstandard2.0`.
+- **Namespaces:** File-scoped only.
+- **Nullable:** Enabled everywhere — never disable.
+- **Classes:** Prefer `sealed` unless inheritance is required.
+- **Structs:** Prefer `readonly struct`.
+- **XML docs:** Required on all public APIs.
+- **Hot paths:** Zero-allocation. Use `Span<T>`, pooled buffers, no LINQ.
+- **Security:** Never invent crypto. Reuse existing primitives in `Nalix.Codec.Security`. Never log secrets.
+- **Subclasses:** Large classes are split into `.cs`, `.Types.cs`, `.Cleanup.cs`, `.Report.cs` files — please follow this pattern consistently — and only split when the file is larger than 800 lines.
+
+## API Stability
+
+- Do not rename, remove, reorder, or change public APIs unless explicitly requested.
+- Preserve backward compatibility whenever possible.
+
+## Build & Test
+
+- **Build:** `dotnet build src/Nalix.sln --configuration Release`
+- **Test:** `dotnet test tests/Nalix.Tests.sln --configuration Release`
+- Run build and test only if files under `src/` or `tests/` were modified.
+- Changes outside `src/` and `tests/` do not require validation.
+- Do not run build or test for documentation, workflow, repository metadata, or other non-source changes.
 
 ## Skills Index
 
@@ -43,26 +71,6 @@ Each skill contains: **Triggers** (when to use it), **Rules** (invariants from s
 | [nalix-analyzers-codefixes](skills/nalix-analyzers-codefixes.md) | `Nalix.Analyzers.CodeFixes` | MEF discovery; trivia preservation; adding code fixes |
 | [documentation](skills/documentation.md) | `Documentation` | MkDocs rules R1–R20; signature validation; reusable prompt template |
 
-## Global Rules
-
-- **Language:** C# 14 on .NET 10 (`net10.0`). Analyzers/generators target `netstandard2.0`.
-- **Namespaces:** File-scoped only.
-- **Nullable:** Enabled everywhere — never disable.
-- **Classes:** Prefer `sealed` unless inheritance is required.
-- **Structs:** Prefer `readonly struct`.
-- **XML docs:** Required on all public APIs.
-- **Hot paths:** Zero-allocation. Use `Span<T>`, pooled buffers, no LINQ.
-- **Security:** Never invent crypto. Reuse existing primitives in `Nalix.Codec.Security`. Never log secrets.
-- **Subclasses:** Large classes are split into `.cs`, `.Types.cs`, `.Cleanup.cs`, `.Report.cs` files — please follow this pattern consistently — and only split when the file is larger than 800 lines.
-
-## Build & Test
-
-- **Build:** `dotnet build src/Nalix.sln --configuration Release`
-- **Test:** `dotnet test tests/Nalix.Tests.sln --configuration Release`
-- Run build and test only if files under `src/` or `tests/` were modified.
-- Changes outside `src/` and `tests/` do not require validation.
-- Do not run build or test for documentation, workflow, repository metadata, or other non-source changes.
-
 ## Coding Behavior
 
 Guidelines derived from [Andrej Karpathy's observations](https://x.com/karpathy/status/2015883857489522876) on LLM coding pitfalls. Bias toward caution over speed; use judgment for trivial tasks.
@@ -83,8 +91,7 @@ Guidelines derived from [Andrej Karpathy's observations](https://x.com/karpathy/
 
 ### Surgical Changes
 
-- Touch only what the task requ
-ires. Don't improve adjacent code or formatting.
+- Touch only what the task requires. Don't improve adjacent code or formatting.
 - Match existing style even if you'd do it differently.
 - If you notice unrelated dead code, mention it — don't delete it.
 - Remove imports/variables/functions that **your** changes made unused. Don't remove pre-existing dead code unless asked.

@@ -43,6 +43,10 @@
   color: "e11d48"
   description: "Security vulnerability or related issue"
 
+- name: "dependencies"
+  color: "0366d6"
+  description: "Pull requests that update a dependency file"
+
 # ── Status ───────────────────────────────────────────────────────────────────
 - name: "in progress"
   color: "fbca04"
