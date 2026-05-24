@@ -104,7 +104,7 @@ jobs:
 
       # Upload once here; deploy job reuses this artifact — no double-build
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./site
 
