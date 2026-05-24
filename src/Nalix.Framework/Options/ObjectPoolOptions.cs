@@ -22,6 +22,13 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader
     public bool EnableDiagnostics { get; set; } = false;
 
     /// <summary>
+    /// Enables lightweight traffic metrics for object pools (gets, returns, hit rate, traffic).
+    /// Safe for production high-performance usage.
+    /// </summary>
+    [IniComment("Enable lightweight traffic metrics (safe for production)")]
+    public bool EnableMetrics { get; set; } = true;
+
+    /// <summary>
     /// Captures stack traces when objects are rented from the pool.
     /// Extremely expensive; enable only for debugging leaks. Requires EnableDiagnostics=true.
     /// </summary>
