@@ -142,6 +142,15 @@ jobs:
         shell: bash
         run: cat "${COVERAGE_REPORT_DIR}/SummaryGithub.md" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Upload coverage to Codecov
+        if: always() && steps.coverage_files.outputs.found == 'true'
+        uses: codecov/codecov-action@v5
+        with:
+          files: ${{ env.TEST_RESULTS_DIR }}/**/coverage.cobertura.xml
+          flags: ${{ runner.os }}
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7
