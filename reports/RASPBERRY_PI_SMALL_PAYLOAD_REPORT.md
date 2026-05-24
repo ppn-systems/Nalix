@@ -1,12 +1,14 @@
-# NALIX CORE RASPBERRY PI 5 PERFORMANCE & BENCHMARK REPORT
+# NALIX CORE RASPBERRY PI 5: SMALL PAYLOAD (32-BYTE) STRESS TEST REPORT
 
-> **Extreme High-Concurrency Stress Testing and LAN Telemetry Analysis on .NET 10 (ARM64)**
+> **Comprehensive Analysis of System Performance under High-Concurrency Load with Small Packets (32 Bytes)**
 
 ---
 
-## 1. Test Environment & System Specifications
+## 1. Executive Summary & Test Context
 
-To evaluate the efficiency of the Nalix Core framework on low-power, edge-hardware platforms, an extreme high-concurrency stress test was executed on a physical Raspberry Pi 5.
+This telemetry report details the performance of the **Nalix Core** framework on a physical Raspberry Pi 5 under an extreme high-concurrency stress profile.
+
+**Key Characteristic:** This test utilizes small **~32-byte payloads** (the internal `Control` packet). This profile is designed to evaluate the framework's raw packet parsing speed, dispatch pipeline efficiency, and lock-free object pool throughput without being bottlenecked by physical memory bandwidth or kernel memory copying overhead.
 
 ### Hardware Specifications (Target Host)
 
