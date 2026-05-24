@@ -77,7 +77,6 @@ template: |
 version-resolver:
   major:
     labels:
-      - 'major'
       - 'breaking-change'
   minor:
     labels:
