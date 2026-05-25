@@ -77,6 +77,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
     private int _disposed;
     private int _trimCycleCount;
+    private readonly int _defaultMaxPoolSize;
     private long _totalTrimmedObjects;
 
     private const int MinimumHealthSample = 32;
@@ -87,15 +88,6 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     #endregion Fields
 
     #region Properties
-
-    /// <summary>
-    /// Gets the default maximum size for new pools.
-    /// </summary>
-    public int DefaultMaxPoolSize
-    {
-        get;
-        set => field = value > 0 ? value : 1024;
-    } = 1024;
 
     /// <summary>
     /// Gets the total number of pools currently managed.
@@ -171,6 +163,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
         _config = config;
         _config.Validate();
         _lastHealthCheckUtc = DateTime.UtcNow.Ticks;
+        _defaultMaxPoolSize = config.DefaultMaxPoolSize;
 
         if (_config.EnableObjectTrimming)
         {
@@ -508,7 +501,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             {
                 ["TypeName"] = type.Name,
                 ["AvailableCount"] = 0,
-                ["MaxCapacity"] = this.DefaultMaxPoolSize,
+                ["MaxCapacity"] = _defaultMaxPoolSize,
                 ["IsActive"] = false,
                 ["TotalGets"] = 0L,
                 ["TotalReturns"] = 0L,
@@ -726,7 +719,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             return existing;
         }
 
-        ObjectPool pool = new(this.DefaultMaxPoolSize);
+        ObjectPool pool = new(_defaultMaxPoolSize);
         if (_poolDict.TryAdd(type, pool))
         {
             // Update peak pool count on new pool creation.

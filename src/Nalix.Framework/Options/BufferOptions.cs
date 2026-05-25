@@ -39,14 +39,14 @@ public sealed partial class BufferOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Interval in minutes between light trim cycles (1–60)")]
     [Range(1, 60, ErrorMessage = "TrimIntervalMinutes must be between 1 and 60.")]
-    public int TrimIntervalMinutes { get; set; } = 10;
+    public int TrimIntervalMinutes { get; set; } = 2;
 
     /// <summary>
     /// Time interval in minutes for deep trimming operations.
     /// </summary>
     [IniComment("Interval in minutes between deep trim cycles (1–1440)")]
     [Range(1, 1440, ErrorMessage = "DeepTrimIntervalMinutes must be between 1 and 1440.")]
-    public int DeepTrimIntervalMinutes { get; set; } = 30;
+    public int DeepTrimIntervalMinutes { get; set; } = 10;
 
     /// <summary>
     /// Enable buffer usage analytics to optimize allocation strategy.

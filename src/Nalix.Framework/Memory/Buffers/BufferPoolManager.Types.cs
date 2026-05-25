@@ -21,16 +21,16 @@ public sealed partial class BufferPoolManager
         public double MinimumRetentionPercent { get; set; } = 0.25;
 
         /// <summary>
-        /// Maximum buffers to shrink in a single operation.
-        /// This caps the amount of memory the trimmer can remove in one pass.
+        /// The fraction of excess buffers to shrink per cycle.
+        /// Exponential decay factor (0.5 = shrink 50% of idle excess).
         /// </summary>
-        public int MaxSingleShrinkStep { get; set; } = 20;
+        public double ExponentialDecayFactor { get; set; } = 0.5;
 
         /// <summary>
-        /// Maximum percentage of total buffers to shrink per trim cycle.
-        /// This prevents a single trim job from collapsing the pool too aggressively.
+        /// The percentage of InUse buffers to add as dynamic headroom padding.
+        /// 0.5 means keeping a safety cushion of 50% over the active usage.
         /// </summary>
-        public double MaxShrinkPercentPerCycle { get; set; } = 0.20;
+        public double DynamicHeadroomPercent { get; set; } = 0.5;
 
         /// <summary>
         /// Minimum absolute buffers per pool.

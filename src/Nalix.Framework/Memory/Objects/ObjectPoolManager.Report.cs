@@ -78,7 +78,7 @@ public sealed partial class ObjectPoolManager
 
         // Configuration
         _ = sb.AppendLine("Configuration:");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size: {this.DefaultMaxPoolSize}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Default Max s_pool Size: {_defaultMaxPoolSize}");
         _ = sb.AppendLine();
 
         // Pool Details
@@ -182,7 +182,7 @@ public sealed partial class ObjectPoolManager
         writer.WriteNumber(nameof(this.PoolCount), this.PoolCount);
         writer.WriteNumber(nameof(this.PeakPoolCount), this.PeakPoolCount);
         writer.WriteNumber(nameof(this.UnhealthyPoolCount), this.UnhealthyPoolCount);
-        writer.WriteNumber(nameof(this.DefaultMaxPoolSize), this.DefaultMaxPoolSize);
+        writer.WriteNumber("DefaultMaxPoolSize", _defaultMaxPoolSize);
         writer.WriteString("StartTime", _startTime);
         writer.WriteNumber("LastHealthCheckTicks", _lastHealthCheckUtc);
         writer.WriteNumber(nameof(this.TotalGetOperations), this.TotalGetOperations);
@@ -213,7 +213,7 @@ public sealed partial class ObjectPoolManager
             writer.WriteStartObject();
             writer.WriteString("Type", kvp.Key.FullName ?? kvp.Key.Name);
             writer.WriteNumber("Available", poolInfo.TryGetValue("AvailableCount", out object? available) ? Convert.ToInt32(available, CultureInfo.InvariantCulture) : 0);
-            writer.WriteNumber("MaxCapacity", poolInfo.TryGetValue("MaxCapacity", out object? maxcap) ? Convert.ToInt32(maxcap, CultureInfo.InvariantCulture) : this.DefaultMaxPoolSize);
+            writer.WriteNumber("MaxCapacity", poolInfo.TryGetValue("MaxCapacity", out object? maxcap) ? Convert.ToInt32(maxcap, CultureInfo.InvariantCulture) : _defaultMaxPoolSize);
             writer.WriteBoolean("IsActive", !poolInfo.TryGetValue("IsActive", out object? active) || Convert.ToBoolean(active, CultureInfo.InvariantCulture));
 
             if (_metricsDict.TryGetValue(kvp.Key, out PoolMetrics? metrics))

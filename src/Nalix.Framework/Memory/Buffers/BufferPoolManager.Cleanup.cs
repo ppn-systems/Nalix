@@ -169,45 +169,56 @@ public sealed partial class BufferPoolManager
     private int CALCULATE_SAFE_SHRINK_STEP(in BufferPoolState info, int cycle)
     {
         /*
-         * [Safe Shrink Step Calculation]
-         * We apply 4 layers of safety before shrinking a pool:
-         * 1. Target Size: Based on the configured allocation ratio.
-         * 2. Retention Floor: Never shrink below initial capacity or a % of current size.
-         * 3. Liveness: Only trim buffers that are currently free.
-         * 4. Damping: Cap the shrink amount per cycle to avoid oscillations.
+         * [Safe Shrink Step Calculation - Exponential Decay with Dynamic Headroom]
+         * We apply layers of safety before shrinking a pool:
+         * 1. Base Target: Based on the configured allocation ratio and absolute floor.
+         * 2. Dynamic Target: Buffer active `InUse` plus a dynamic headroom padding (e.g. 50%).
+         * 3. Liveness: Only trim from buffers that are currently free.
+         * 4. Exponential Decay: We shrink a fraction (e.g. 50%) of the excess per cycle.
          */
         if (info.TotalBuffers <= 0)
         {
             return 0;
         }
 
-        // 1. Translate the configured allocation ratio into a target pool size.
+        // 1. Calculate Base Target from absolute floors and configured allocation ratio.
         double targetAllocation = this.GetAllocationForSize(info.BufferSize);
-        int targetBuffers = (int)Math.Max(
+        int baseTarget = (int)Math.Max(
             _shrinkPolicy.AbsoluteMinimum,
             targetAllocation * _config.TotalBuffers
         );
+        int minimumRetain = (int)Math.Ceiling(info.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent);
+        baseTarget = Math.Max(baseTarget, Math.Max(minimumRetain, info.InitialCapacity));
 
-        // 2. Never shrink below the retention floor OR the initial capacity, even if the allocation ratio is lower.
-        int minimumRetain = (int)Math.Ceiling(
-            info.TotalBuffers * _shrinkPolicy.MinimumRetentionPercent
-        );
-        targetBuffers = Math.Max(targetBuffers, Math.Max(minimumRetain, info.InitialCapacity));
+        // 2. Calculate Dynamic Target based on current active usage (InUse) + Headroom.
+        int inUse = info.TotalBuffers - info.FreeBuffers;
+        int dynamicTarget = inUse + (int)Math.Ceiling(inUse * _shrinkPolicy.DynamicHeadroomPercent);
 
-        // 3. Only trim from buffers that are actually free.
-        int excessBuffers = info.FreeBuffers - targetBuffers;
-        if (excessBuffers <= 0)
+        // 3. The actual target is the maximum of the static floor and the dynamic load requirement.
+        int targetBuffers = Math.Max(baseTarget, dynamicTarget);
+
+        // 4. Calculate total excess buffers above the target.
+        int excessTotal = info.TotalBuffers - targetBuffers;
+        if (excessTotal <= 0)
         {
             return 0;
         }
 
-        // 4. Cap the trim step per cycle so the pool does not oscillate on short idle bursts.
-        int maxPerCycle = (int)Math.Ceiling(
-            info.TotalBuffers * _shrinkPolicy.MaxShrinkPercentPerCycle
-        );
+        // 5. Ensure we only shrink from buffers that are actually free.
+        int excessFree = Math.Min(excessTotal, info.FreeBuffers);
+        if (excessFree <= 0)
+        {
+            return 0; // Everything above target is currently InUse, so we can't shrink.
+        }
 
-        int shrinkStep = Math.Min(excessBuffers, maxPerCycle);
-        shrinkStep = Math.Min(shrinkStep, _shrinkPolicy.MaxSingleShrinkStep);
+        // 6. Exponential Decay: Shrink a fraction of the excess.
+        int shrinkStep = (int)Math.Ceiling(excessFree * _shrinkPolicy.ExponentialDecayFactor);
+
+        // Optional: If excess is very small (e.g. < 4), just shrink it completely instead of halving endlessly.
+        if (excessFree <= 4)
+        {
+            shrinkStep = excessFree;
+        }
 
         return Math.Max(0, shrinkStep);
     }

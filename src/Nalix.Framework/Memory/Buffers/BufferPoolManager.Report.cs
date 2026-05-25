@@ -64,8 +64,8 @@ public sealed partial class BufferPoolManager
 
         writer.WriteStartObject("ShrinkSafetyPolicy");
         writer.WriteNumber("MinimumRetentionPercent", _shrinkPolicy.MinimumRetentionPercent);
-        writer.WriteNumber("MaxSingleShrinkStep", _shrinkPolicy.MaxSingleShrinkStep);
-        writer.WriteNumber("MaxShrinkPercentPerCycle", _shrinkPolicy.MaxShrinkPercentPerCycle);
+        writer.WriteNumber("ExponentialDecayFactor", _shrinkPolicy.ExponentialDecayFactor);
+        writer.WriteNumber("DynamicHeadroomPercent", _shrinkPolicy.DynamicHeadroomPercent);
         writer.WriteNumber("AbsoluteMinimum", _shrinkPolicy.AbsoluteMinimum);
         writer.WriteEndObject();
 
@@ -230,8 +230,8 @@ public sealed partial class BufferPoolManager
         _ = sb.AppendLine();
         _ = sb.AppendLine("Shrink Safety Policy:");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Minimum Retention       : {_shrinkPolicy.MinimumRetentionPercent * 100:F1}%");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Max Single Shrink Step  : {_shrinkPolicy.MaxSingleShrinkStep}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Max Shrink Per Cycle    : {_shrinkPolicy.MaxShrinkPercentPerCycle * 100:F1}%");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Exponential Decay Factor: {_shrinkPolicy.ExponentialDecayFactor}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"  Dynamic Headroom        : {_shrinkPolicy.DynamicHeadroomPercent * 100:F1}%");
         _ = sb.AppendLine();
     }
 
