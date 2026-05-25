@@ -40,14 +40,32 @@ internal class Startup
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
+            .Configure<BufferOptions>(o =>
+            {
+                o.TotalBuffers = 50_000;
+                o.ThreadCacheDepth = 64;
+                o.MaxMemoryPercentage = 0.90;
+                o.EnableAnalytics = false;
+            })
+            .Configure<Nalix.Network.Options.PoolingOptions>(o =>
+            {
+                o.AcceptContextCapacity = 10_000;
+                o.AcceptContextPreallocate = 100;
+                o.SocketArgsCapacity = 100_000;
+                o.SocketArgsPreallocate = 2_000;
+                o.ReceiveContextCapacity = 100_000;
+                o.ReceiveContextPreallocate = 2_000;
+                o.TimeoutTaskCapacity = 100_000;
+                o.ConnectEventContextCapacity = 100_000;
+            })
             .AddHandler<ObservabilityAccessHandlers>()
             .AddHandler<RuntimeObservationHandlers>()
             .AddHandler<BenchmarkHandlers>()
             .Configure<NetworkSocketOptions>(o =>
             {
                 o.Port = ListenPort;
-                o.BufferSize = 1024 * 64;
-                o.Backlog = 1024;
+                o.BufferSize = 65536;
+                o.Backlog = 16384;
             })
             .Configure<ProxyProtocolOptions>(o =>
             {
@@ -79,12 +97,12 @@ internal class Startup
             })
             .Configure<ObjectPoolOptions>(o =>
             {
-                o.EnableMetrics = true;
-                o.DefaultPreallocate = 128;
+                o.EnableMetrics = false;
+                o.DefaultMaxPoolSize = 100_000;
+                o.DefaultPreallocate = 2_000;
                 o.EnableDiagnostics = false;
                 o.CaptureStackTraces = false;
                 o.EnableLeakDetection = false;
-                o.SuspiciousThresholdSeconds = 10;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddMetadataProvider<PacketTagMetadataProvider>()
