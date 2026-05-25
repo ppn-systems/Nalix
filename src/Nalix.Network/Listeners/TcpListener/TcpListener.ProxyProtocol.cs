@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Net;
@@ -13,6 +12,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
+using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -264,7 +264,7 @@ public abstract partial class TcpListenerBase
     /// </param>
     /// <remarks>
     /// This method rents a <see cref="ProxyHeaderContext"/>, rents a small buffer from
-    /// <see cref="ArrayPool{T}"/>, registers the state for timeout sweeping, and starts
+    /// <see cref="BufferLease.ByteArrayPool"/>, registers the state for timeout sweeping, and starts
     /// the first asynchronous receive. If the receive completes synchronously, processing
     /// continues inline through <see cref="OnProxyReadCompleted"/>.
     /// </remarks>
@@ -273,7 +273,7 @@ public abstract partial class TcpListenerBase
         ProxyHeaderContext state = _pool.Get<ProxyHeaderContext>();
         state.Socket = socket;
         state.HandshakeStartTimeTicks = Stopwatch.GetTimestamp();
-        state.Buffer = ArrayPool<byte>.Shared.Rent(232);
+        state.Buffer = BufferLease.ByteArrayPool.Rent(256);
         state.BytesReceived = 0;
 
 #pragma warning disable CA2000
@@ -392,7 +392,7 @@ public abstract partial class TcpListenerBase
     /// <see langword="false"/> when the socket must be closed as part of cleanup.
     /// </param>
     /// <remarks>
-    /// The rented header buffer is returned to <see cref="ArrayPool{T}"/>, the receive
+    /// The rented header buffer is returned to <see cref="BufferLease.ByteArrayPool"/>, the receive
     /// arguments are pushed back into the local pool, and failed handshakes close the
     /// socket before the state object is returned to the shared object pool.
     /// </remarks>
@@ -400,7 +400,7 @@ public abstract partial class TcpListenerBase
     {
         if (state.Buffer is { } buf)
         {
-            ArrayPool<byte>.Shared.Return(buf);
+            BufferLease.ByteArrayPool.Return(buf);
             state.Buffer = null;
         }
 
