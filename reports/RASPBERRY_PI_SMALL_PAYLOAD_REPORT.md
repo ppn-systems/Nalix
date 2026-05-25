@@ -40,7 +40,7 @@ This telemetry report details the performance of the **Nalix Core** framework on
 
 The high-concurrency stress test was initiated from a separate Windows x64 client machine over the physical LAN targeting the Raspberry Pi 5's TCP socket port.
 
-* **Client Machine:** Windows 11 (x64) PC running `Nalix.BenchmarkClient`
+* **Client Machine:** Windows 11 (x64) PC running `Nalix.LoadTester`
 * **Concurrent Connections:** **2,000 concurrent TCP connections**
 * **Test Duration:** **60.05 seconds**
 * **SLA Timeout Threshold:** **5,000 ms** (Set to allow measurement of true queueing latency under extreme load without artificial clipping)
@@ -168,11 +168,14 @@ The Pinned Slab Allocator maintained a **100.0% hit rate** across the run, compl
 
 The central packet dispatcher processed **1,944,721 executions** with an average execution time of **2.3966 ms** under peak concurrent queue pressure:
 
-* **TimeoutMiddleware:** **2.1629 ms**
-* **PacketTagMiddleware:** **2.1336 ms**
-* **RateLimitMiddleware:** **2.3222 ms**
-* **PermissionMiddleware:** **2.3621 ms**
-* **ConcurrencyMiddleware:** **2.1937 ms**
+> [!WARNING]
+> **Middleware Execution Bypass:** The middleware execution times shown below reflect the pipeline's *bypass overhead*. The benchmark's test packets lacked the necessary middleware attributes, causing the dispatcher to skip the actual middleware logic. These times primarily represent queueing and pipeline traversal latency.
+
+* **TimeoutMiddleware (Skipped):** **2.1629 ms**
+* **PacketTagMiddleware (Skipped):** **2.1336 ms**
+* **RateLimitMiddleware (Skipped):** **2.3222 ms**
+* **PermissionMiddleware (Skipped):** **2.3621 ms**
+* **ConcurrencyMiddleware (Skipped):** **2.1937 ms**
 
 > [!NOTE]
 > **Queue Latency vs. Execution Latency:** Under a massive load of 2,000 concurrent clients, task queues pile up. The 2.39 ms execution time represents the end-to-end processing pipeline including time spent in queue waiting for CPU time slice allocation on the Pi 5's 4 cores. The actual native code execution of the middleware functions is in the microsecond range, but concurrent queueing pressure expands this to 2.39 ms.

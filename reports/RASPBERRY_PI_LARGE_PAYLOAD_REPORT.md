@@ -119,11 +119,14 @@ The large payload size dramatically increased execution latency across the entir
 
 ### 4.1. Latency Tripling
 
-**Observed behavior:** In prior tests, middleware execution was ~2.1 ms. With >1.4KB payloads, timings increased to **6.4 - 6.9 ms**.
+> [!WARNING]
+> **Middleware Execution Bypass:** In these tests, the benchmark packets did not attach the required middleware attributes, causing the dispatcher to skip the actual middleware logic. Therefore, the "middleware execution" times reported here are actually measuring the *bypass overhead* plus the severe queueing latency caused by thread contention.
+
+**Observed behavior:** In prior tests, middleware bypass overhead was ~2.1 ms. With >1.4KB payloads, timings for skipping middleware increased to **6.4 - 6.9 ms**.
 
 ```mermaid
 xychart-beta
-    title "Middleware Latency: Small (<100B) vs Large (>1.4KB) Packets"
+    title "Middleware Latency (Skipped/Bypassed): Small (<100B) vs Large (>1.4KB)"
     x-axis ["Timeout", "PacketTag", "RateLimit", "Permission", "Concurrency"]
     y-axis "Latency (ms)" 0 --> 8
     line [2.1, 2.3, 2.2, 2.1, 2.3]

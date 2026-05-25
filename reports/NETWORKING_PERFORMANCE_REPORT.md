@@ -25,7 +25,7 @@ To establish a clear baseline and ensure transparency, all benchmarks and soak t
 
 ## 2. Test Phase 1: High-Concurrency Scalability Stress Test (15 Seconds)
 
-We utilized the end-to-end [Nalix.BenchmarkClient](tools/Nalix.BenchmarkClient/Program.cs) load testing tool to fire concurrent requests to the TCP socket port of the Backend server for **15 seconds** continuously under three separate scalability scenarios:
+We utilized the end-to-end [Nalix.LoadTester](tools/Nalix.LoadTester/Program.cs) load testing tool to fire concurrent requests to the TCP socket port of the Backend server for **15 seconds** continuously under three separate scalability scenarios:
 
 | Metric | Scenario 1: Baseline (100 Clients) | Scenario 2: High Load (500 Clients) | Scenario 3: Extreme Stress (1,000 Clients) |
 | :--- | :---: | :---: | :---: |
@@ -144,7 +144,11 @@ The dispatcher acts as the central router for Nalix. Tiered PGO compiled the dis
 * **Wake Signals:** 7,523,531 reads.
 * **Total Dispatch Executions:** **80,944,823** executions.
 * **Dispatcher Loop Time (Average):** **0.0336 ms (33.6 micro-seconds)** under peak load.
-* **Middleware Overhead:**
+
+> [!WARNING]
+> **Middleware Execution Bypass:** The remarkably fast middleware latency numbers recorded below reflect the pipeline's *bypass overhead*. The benchmark's test packets did not have the required middleware attributes attached, causing the dispatcher to skip their execution logic entirely.
+
+* **Middleware Overhead (Skipped/Bypassed):**
   * `TimeoutMiddleware`: **0.0314 ms** (31.4 μs)
   * `PacketTagMiddleware`: **0.0311 ms** (31.1 μs)
   * `RateLimitMiddleware`: **0.0329 ms** (32.9 μs)
@@ -181,5 +185,5 @@ The benchmark client registered connection error rates of 0.33% to 2.69% across 
 The benchmarking results validate the efficiency of Nalix Core v12.5.0:
 
 1. **Flawless Pinned Heap Leasing:** Pinning **96.27%** of the heap via the Slab Allocator upfront significantly reduces garbage collection pauses and compaction overhead by limiting the dynamic sweep area, resulting in 14 Gen 2 collections over the 39.3-minute continuous load test.
-2. **Minimal Middleware Dispatch Overhead:** Achieving loop times under **34 μs** for the application-layer dispatch pipeline demonstrates the efficiency of dynamic JIT compilation (PGO) and native pre-optimization (ReadyToRun) on .NET 10.
+2. **Minimal Middleware Bypass Overhead:** Achieving pipeline bypass loop times under **34 μs** for packets skipping middleware execution demonstrates the efficiency of dynamic JIT compilation (PGO) and native pre-optimization (ReadyToRun) on .NET 10.
 3. **Low-Overhead Observability:** Splitting heavy diagnostics from active metrics via the `EnableMetrics` engine successfully restores live telemetry on the dashboard (Gets, Returns, Hit Rate) while preserving high performance.
