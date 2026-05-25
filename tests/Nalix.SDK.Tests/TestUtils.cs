@@ -11,6 +11,7 @@ using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Memory;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Handlers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 
@@ -43,8 +44,11 @@ internal static class TestUtils
 
         if (certPath != null)
         {
-            Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(certPath);
+            HandshakeHandlers.SetCertificatePath(certPath);
+            return;
         }
+
+        HandshakeHandlers.Initialize();
     }
 
     public static int GetFreePort()
@@ -89,6 +93,12 @@ internal static class TestUtils
                 }
                 return trimmed;
             }
+        }
+
+        SetupCertificate();
+        if (!HandshakeHandlers.ServerPublicKey.IsZero)
+        {
+            return HandshakeHandlers.ServerPublicKey.ToString();
         }
 
         throw new System.IO.FileNotFoundException("Public key file not found.");
@@ -190,7 +200,6 @@ internal sealed class FakePacketRegistry : IPacketRegistry
         return true;
     }
 }
-
 
 
 
