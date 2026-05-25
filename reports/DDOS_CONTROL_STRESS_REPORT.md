@@ -220,8 +220,8 @@ xychart-beta
 
 ### Current Findings
 
-- Nalix Core on the Raspberry Pi 5 effortlessly absorbed 34.4 million requests (573,000 RPS) with **zero memory leaks** and practically **zero CPU strain** (~99% system idle).
-- The temperature peaked at a comfortable 44.6°C, indicating the architecture appears suitable for low-power edge environments without active cooling concerns.
+- Nalix Core on the Raspberry Pi 5 successfully processed 34.4 million requests (573,000 RPS) with **zero memory leaks** while operating at **95.91% active CPU utilization** during the active flood window.
+- The temperature peaked at a comfortable 44.6°C, indicating that the low-power hardware remained thermally stable under peak workloads without requiring active cooling.
 
 ### Potential Optimizations
 
