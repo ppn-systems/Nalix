@@ -11,7 +11,7 @@ namespace Nalix.Network.Internal.Protocol;
 /// Pooled to avoid heap allocation per connection during SYN floods.
 /// Doubles as an intrusive doubly-linked list node for the O(k) timeout sweep.
 /// </summary>
-internal sealed class ProxyHandshakeState : IPoolable
+internal sealed class ProxyHeaderContext : IPoolable
 {
     // ── Socket ───────────────────────────────────────────────────────────────
     public Socket? Socket;
@@ -23,8 +23,8 @@ internal sealed class ProxyHandshakeState : IPoolable
     public long HandshakeStartTimeTicks;
 
     // ── Intrusive doubly-linked list — zero-allocation timeout sweep ─────────
-    public ProxyHandshakeState? Next;
-    public ProxyHandshakeState? Prev;
+    public ProxyHeaderContext? Next;
+    public ProxyHeaderContext? Prev;
 
     public bool RemovedFromList { get; set; }
 

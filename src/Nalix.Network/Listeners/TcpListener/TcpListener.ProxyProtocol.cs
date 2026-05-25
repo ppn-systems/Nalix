@@ -32,12 +32,12 @@ public abstract partial class TcpListenerBase
     /// <summary>
     /// First pending Proxy Protocol handshake in insertion order.
     /// </summary>
-    private ProxyHandshakeState? _proxyHead;
+    private ProxyHeaderContext? _proxyHead;
 
     /// <summary>
     /// Last pending Proxy Protocol handshake in insertion order.
     /// </summary>
-    private ProxyHandshakeState? _proxyTail;
+    private ProxyHeaderContext? _proxyTail;
 
     /// <summary>
     /// Recurring timeout sweeper handle for pending Proxy Protocol handshakes.
@@ -96,10 +96,10 @@ public abstract partial class TcpListenerBase
 
         lock (_proxyLock)
         {
-            ProxyHandshakeState? node = _proxyHead;
+            ProxyHeaderContext? node = _proxyHead;
             while (node is not null)
             {
-                ProxyHandshakeState? next = node.Next;
+                ProxyHeaderContext? next = node.Next;
                 this.SafeCloseSocket(node.Socket!);
                 node = next;
             }
@@ -124,10 +124,10 @@ public abstract partial class TcpListenerBase
 
         lock (_proxyLock)
         {
-            ProxyHandshakeState? node = _proxyHead;
+            ProxyHeaderContext? node = _proxyHead;
             while (node is not null)
             {
-                ProxyHandshakeState? next = node.Next;
+                ProxyHeaderContext? next = node.Next;
 
                 if (now - node.HandshakeStartTimeTicks < timeoutTicks)
                 {
@@ -158,7 +158,7 @@ public abstract partial class TcpListenerBase
     /// The source that completed the receive operation. May be <see langword="null"/>.
     /// </param>
     /// <param name="args">
-    /// Receive event arguments containing a <see cref="ProxyHandshakeState"/> in
+    /// Receive event arguments containing a <see cref="ProxyHeaderContext"/> in
     /// <see cref="SocketAsyncEventArgs.UserToken"/>. Must not be <see langword="null"/>.
     /// </param>
     /// <remarks>
@@ -169,7 +169,7 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     private void OnProxyReadCompleted(object? sender, SocketAsyncEventArgs args)
     {
-        ProxyHandshakeState state = (ProxyHandshakeState)args.UserToken!;
+        ProxyHeaderContext state = (ProxyHeaderContext)args.UserToken!;
 
         if (args.SocketError != SocketError.Success || args.BytesTransferred == 0)
         {
@@ -263,14 +263,14 @@ public abstract partial class TcpListenerBase
     /// Must not be <see langword="null"/>.
     /// </param>
     /// <remarks>
-    /// This method rents a <see cref="ProxyHandshakeState"/>, rents a small buffer from
+    /// This method rents a <see cref="ProxyHeaderContext"/>, rents a small buffer from
     /// <see cref="ArrayPool{T}"/>, registers the state for timeout sweeping, and starts
     /// the first asynchronous receive. If the receive completes synchronously, processing
     /// continues inline through <see cref="OnProxyReadCompleted"/>.
     /// </remarks>
     private void BeginProxyHeaderRead(Socket socket)
     {
-        ProxyHandshakeState state = _pool.Get<ProxyHandshakeState>();
+        ProxyHeaderContext state = _pool.Get<ProxyHeaderContext>();
         state.Socket = socket;
         state.HandshakeStartTimeTicks = Stopwatch.GetTimestamp();
         state.Buffer = ArrayPool<byte>.Shared.Rent(232);
@@ -317,10 +317,10 @@ public abstract partial class TcpListenerBase
     /// The handshake state to detach. Must not be <see langword="null"/>.
     /// </param>
     /// <remarks>
-    /// The operation is idempotent through <see cref="ProxyHandshakeState.RemovedFromList"/>.
+    /// The operation is idempotent through <see cref="ProxyHeaderContext.RemovedFromList"/>.
     /// Callers must hold <see cref="_proxyLock"/> before invoking this method.
     /// </remarks>
-    private void DetachProxyContext(ProxyHandshakeState state)
+    private void DetachProxyContext(ProxyHeaderContext state)
     {
         if (state.RemovedFromList)
         {
@@ -360,7 +360,7 @@ public abstract partial class TcpListenerBase
     /// <remarks>
     /// Callers must hold <see cref="_proxyLock"/> before invoking this method.
     /// </remarks>
-    private void EnqueueProxyContext(ProxyHandshakeState state)
+    private void EnqueueProxyContext(ProxyHeaderContext state)
     {
         state.Next = null;
         state.Prev = _proxyTail;
@@ -396,7 +396,7 @@ public abstract partial class TcpListenerBase
     /// arguments are pushed back into the local pool, and failed handshakes close the
     /// socket before the state object is returned to the shared object pool.
     /// </remarks>
-    private void ReleaseProxyContext(ProxyHandshakeState state, SocketAsyncEventArgs args, bool success)
+    private void ReleaseProxyContext(ProxyHeaderContext state, SocketAsyncEventArgs args, bool success)
     {
         if (state.Buffer is { } buf)
         {
