@@ -1,23 +1,25 @@
 @echo off
-title Nalix Core — 2-Hour High-Load Soak Test
+title Nalix Core - 2-Hour High-Load Soak Test
 cls
 echo =====================================================================
-echo           Nalix Core High-Performance Soak Testing Script            
+echo             Nalix Core High-Performance Soak Test
 echo =====================================================================
 echo.
-echo This script will execute a long-running soak test (endurance test)
-echo using the compiled Release version of the Nalix BenchmarkClient.
+echo This script will execute a long-running payload soak test using
+echo the compiled Release version of Nalix.LoadTester.
 echo.
 echo Test Configurations:
+echo   - Scenario     : payload
 echo   - Target Host  : 127.0.0.1 (Localhost)
 echo   - Target Port  : 57206 (Backend Default Listen Port)
 echo   - Concurrency  : 500 Concurrent Clients
 echo   - Duration     : 2 Hours (7,200 Seconds)
+echo   - Timeout      : 5,000 ms
+echo   - Payload Size : 1,500 bytes
 echo.
 echo ---------------------------------------------------------------------
 echo WARNING: This is a heavy stress test designed to run for 2 hours.
-echo Please ensure the Backend Server is running in Extreme JIT Mode
-echo (with DOTNET_TC_QuickJit=0 and DOTNET_TieredPGO=1) before launching.
+echo Please ensure the Backend Server is running before launching.
 echo ---------------------------------------------------------------------
 echo.
 
@@ -30,15 +32,15 @@ if /i not "%confirm%"=="y" (
 )
 
 echo.
-echo Ensuring the BenchmarkClient is compiled in Release mode...
-dotnet build "%~dp0Nalix.BenchmarkClient.csproj" -c Release >nul
+echo Ensuring Nalix.LoadTester is compiled in Release mode...
+dotnet build "%~dp0Nalix.LoadTester.csproj" -c Release >nul
 
 echo.
-echo Launching Nalix BenchmarkClient Native Executable...
-echo Running command: .\bin\Release\net10.0\Nalix.BenchmarkClient.exe 127.0.0.1 57206 500 7200
+echo Launching Nalix.LoadTester...
+echo Running command: .\bin\Release\net10.0\Nalix.LoadTester.exe --scenario payload --host 127.0.0.1 --port 57206 --connections 500 --duration 7200 --timeout 5000 --payload-size 1500
 echo.
 
-"%~dp0bin\Release\net10.0\Nalix.BenchmarkClient.exe" 127.0.0.1 57206 500 7200
+"%~dp0bin\Release\net10.0\Nalix.LoadTester.exe" --scenario payload --host 127.0.0.1 --port 57206 --connections 500 --duration 7200 --timeout 5000 --payload-size 1500
 
 echo.
 echo =====================================================================

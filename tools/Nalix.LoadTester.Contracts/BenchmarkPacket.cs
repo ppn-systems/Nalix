@@ -3,11 +3,10 @@
 
 using System.Diagnostics;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
-namespace Nalix.Codec.ProtocolFrames;
+namespace Nalix.LoadTester.Contracts;
 
 /// <summary>
 /// Represents a packet used for custom payload size and fragment benchmarking.

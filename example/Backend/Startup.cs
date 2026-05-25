@@ -8,6 +8,7 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Hosting;
+using Nalix.LoadTester.Contracts;
 using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
@@ -30,6 +31,8 @@ internal class Startup
 
     public static NetworkApplication Configure(ILogger logger)
     {
+        System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(BenchmarkPacket).Module.ModuleHandle);
+
         ConnectionHub hub = new();
         BufferPoolManager bufferPool = new();
         ObjectPoolManager objectPool = new();

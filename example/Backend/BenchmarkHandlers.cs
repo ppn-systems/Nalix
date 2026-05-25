@@ -3,7 +3,7 @@
 
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
-using Nalix.Codec.ProtocolFrames;
+using Nalix.LoadTester.Contracts;
 
 namespace Backend;
 
