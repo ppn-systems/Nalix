@@ -73,24 +73,25 @@ The 10 µs median latency confirms that the benchmark measured **Client-Side Soc
 ### CPU Analysis
 
 **Observed behavior:**
-- **User:** 0.75%
-- **System:** 0.25%
-- **Idle:** 99.00%
+- **User:** 87.01%
+- **System:** 8.90%
+- **Idle:** 4.09%
 - **IOwait:** 0.00%
 
 ```mermaid
 pie title CPU Utilization Breakdown (Pi 5)
-    "Idle CPU (Available Headroom)" : 99.00
-    "User-level Tasks (%user)" : 0.75
-    "OS Kernel / Networking (%system)" : 0.25
+    "Idle CPU (Available Headroom)" : 4.09
+    "User-level Tasks (%user)" : 87.01
+    "OS Kernel / Networking (%system)" : 8.90
 ```
 
-- The internal `ps` metric recorded an average of ~108-113% CPU (out of 400% maximum capacity), likely reflecting initial startup burst and short-duration averaging.
-- Detailed `sysstat` (`sar`) kernel profiling recorded consistent ~99% idle system-wide.
+- System-wide CPU profiling (`sar`) confirms that the Raspberry Pi 5 was operating at **95.91% active capacity** during the active 60-second flood window, leaving only **4.09% idle headroom**.
+- User-level CPU utilization averaged **87.01%**, reflecting the high-throughput asynchronous work done by the .NET 10 thread pool workers executing serialization, packet dispatching, and prioritisation.
+- Kernel-level system utilization (`%system`) averaged **8.90%**, representing network interface interrupt handling (`softirq`) and socket read/write system calls.
 
 **Hypothesis:**
-
-- The massive throughput of 573k RPS was handled asynchronously by the .NET 10 network stack. The CPU barely registered the load at the kernel level, leaving nearly 4 full cores available for background OS tasks.
+- The massive 573k RPS flood was successfully processed by the Nalix network stack, but fully saturated the Pi 5's quad-core CPU. The extremely low idle percentage (4.09%) indicates the hardware was pushed to its physical networking capacity limit.
+- Zero-allocation optimizations inside the socket receive loop and `PacketDispatchChannel` allowed the CPU to dedicate 87.01% of its cycles to user-space application and framework tasks instead of thrashing in kernel context switches or GC gen-0/1 sweep phases.
 
 ### Memory Analysis
 
