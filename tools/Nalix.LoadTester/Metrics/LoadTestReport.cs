@@ -7,6 +7,7 @@ internal sealed class LoadTestReport
 {
     public LoadTestReport(
         TimeSpan elapsed,
+        TimeSpan measuredDuration,
         Int64 successfulRequests,
         Int64 failedRequests,
         Int64 timeoutErrors,
@@ -19,6 +20,7 @@ internal sealed class LoadTestReport
         Double p999LatencyMs)
     {
         this.Elapsed = elapsed;
+        this.MeasuredDuration = measuredDuration;
         this.SuccessfulRequests = successfulRequests;
         this.FailedRequests = failedRequests;
         this.TimeoutErrors = timeoutErrors;
@@ -32,6 +34,8 @@ internal sealed class LoadTestReport
     }
 
     public TimeSpan Elapsed { get; }
+
+    public TimeSpan MeasuredDuration { get; }
 
     public Int64 SuccessfulRequests { get; }
 
@@ -53,7 +57,7 @@ internal sealed class LoadTestReport
 
     public Double P999LatencyMs { get; }
 
-    public Double RequestsPerSecond => this.Elapsed.TotalSeconds > 0
-        ? this.SuccessfulRequests / this.Elapsed.TotalSeconds
+    public Double RequestsPerSecond => this.MeasuredDuration.TotalSeconds > 0
+        ? this.SuccessfulRequests / this.MeasuredDuration.TotalSeconds
         : 0;
 }

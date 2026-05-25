@@ -20,6 +20,12 @@ internal sealed class LatencySampleBuffer
         _samples[(Int32)(index % _samples.Length)] = latencyMs;
     }
 
+    public void Reset()
+    {
+        Volatile.Write(ref _sampleIndex, 0);
+        Array.Clear(_samples);
+    }
+
     public Double[] Snapshot(out Int64 count)
     {
         count = Math.Min(Volatile.Read(ref _sampleIndex), _samples.Length);

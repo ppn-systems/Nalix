@@ -1,6 +1,8 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Diagnostics;
+
 namespace Nalix.LoadTester.Metrics;
 
 internal sealed class MetricsCollector
@@ -12,6 +14,9 @@ internal sealed class MetricsCollector
     private Int64 _socketErrors;
     private Int64 _otherErrors;
     private Int64 _totalLatencyMs;
+    private Int64 _measurementStartTimestamp;
+    private Int64 _measuredTicks;
+    private Int32 _isMeasuring;
 
     public MetricsCollector(LatencySampleBuffer latencySamples)
     {
@@ -22,8 +27,50 @@ internal sealed class MetricsCollector
 
     public Int64 FailedRequests => Volatile.Read(ref _failedRequests);
 
+    public Boolean IsMeasuring => Volatile.Read(ref _isMeasuring) != 0;
+
+    public TimeSpan MeasuredElapsed
+    {
+        get
+        {
+            if (this.IsMeasuring)
+            {
+                Int64 started = Volatile.Read(ref _measurementStartTimestamp);
+                return started > 0 ? Stopwatch.GetElapsedTime(started) : TimeSpan.Zero;
+            }
+
+            return TimeSpan.FromTicks(Volatile.Read(ref _measuredTicks));
+        }
+    }
+
+    public void StartMeasurement()
+    {
+        Reset();
+        Volatile.Write(ref _measurementStartTimestamp, Stopwatch.GetTimestamp());
+        Volatile.Write(ref _isMeasuring, 1);
+    }
+
+    public void StopMeasurement()
+    {
+        if (Interlocked.Exchange(ref _isMeasuring, 0) == 0)
+        {
+            return;
+        }
+
+        Int64 started = Volatile.Read(ref _measurementStartTimestamp);
+        if (started > 0)
+        {
+            Volatile.Write(ref _measuredTicks, Stopwatch.GetElapsedTime(started).Ticks);
+        }
+    }
+
     public void RecordSuccess(Double latencyMs)
     {
+        if (!this.IsMeasuring)
+        {
+            return;
+        }
+
         _ = Interlocked.Increment(ref _successfulRequests);
         _ = Interlocked.Add(ref _totalLatencyMs, (Int64)Math.Round(latencyMs));
         _latencySamples.Add(latencyMs);
@@ -31,6 +78,11 @@ internal sealed class MetricsCollector
 
     public Int64 RecordFailure(ErrorKind kind)
     {
+        if (!this.IsMeasuring)
+        {
+            return 0;
+        }
+
         _ = Interlocked.Increment(ref _failedRequests);
         return kind switch
         {
@@ -40,7 +92,19 @@ internal sealed class MetricsCollector
         };
     }
 
-    public LoadTestReport CreateReport(TimeSpan elapsed)
+    private void Reset()
+    {
+        Volatile.Write(ref _successfulRequests, 0);
+        Volatile.Write(ref _failedRequests, 0);
+        Volatile.Write(ref _timeoutErrors, 0);
+        Volatile.Write(ref _socketErrors, 0);
+        Volatile.Write(ref _otherErrors, 0);
+        Volatile.Write(ref _totalLatencyMs, 0);
+        Volatile.Write(ref _measuredTicks, 0);
+        _latencySamples.Reset();
+    }
+
+    public LoadTestReport CreateReport(TimeSpan elapsed, TimeSpan measuredDuration)
     {
         Int64 successful = Volatile.Read(ref _successfulRequests);
         Int64 failed = Volatile.Read(ref _failedRequests);
@@ -51,6 +115,7 @@ internal sealed class MetricsCollector
         Double[] samples = _latencySamples.Snapshot(out Int64 sampleCount);
         return new LoadTestReport(
             elapsed,
+            measuredDuration,
             successful,
             failed,
             Volatile.Read(ref _timeoutErrors),

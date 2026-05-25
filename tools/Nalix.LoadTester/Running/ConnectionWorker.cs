@@ -14,47 +14,61 @@ internal sealed class ConnectionWorker
     private readonly LoadTestOptions _options;
     private readonly ILoadScenario _scenario;
     private readonly MetricsCollector _metrics;
+    private readonly WorkloadState _state;
 
-    public ConnectionWorker(LoadTestOptions options, ILoadScenario scenario, MetricsCollector metrics)
+    public ConnectionWorker(
+        LoadTestOptions options,
+        ILoadScenario scenario,
+        MetricsCollector metrics,
+        WorkloadState state)
     {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _scenario = scenario ?? throw new ArgumentNullException(nameof(scenario));
         _metrics = metrics ?? throw new ArgumentNullException(nameof(metrics));
+        _state = state ?? throw new ArgumentNullException(nameof(state));
     }
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
-        while (!cancellationToken.IsCancellationRequested)
+        _state.WorkerStarted();
+        try
         {
-            try
+            while (!cancellationToken.IsCancellationRequested)
             {
-                using TcpSession session = new(new TransportOptions
+                try
                 {
-                    Address = _options.Host,
-                    Port = _options.Port
-                });
+                    using TcpSession session = new(new TransportOptions
+                    {
+                        Address = _options.Host,
+                        Port = _options.Port
+                    });
 
-                await session.ConnectAsync(ct: cancellationToken).ConfigureAwait(false);
+                    await session.ConnectAsync(ct: cancellationToken).ConfigureAwait(false);
 
-                while (!cancellationToken.IsCancellationRequested && session.IsConnected)
+                    while (!cancellationToken.IsCancellationRequested && session.IsConnected)
+                    {
+                        await ExecuteRequestAsync(session, cancellationToken).ConfigureAwait(false);
+                        await Task.Yield();
+                    }
+                }
+                catch (OperationCanceledException)
                 {
-                    await ExecuteRequestAsync(session, cancellationToken).ConfigureAwait(false);
-                    await Task.Yield();
+                    break;
+                }
+                catch (Exception) when (cancellationToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    RecordFailure(ex);
+                    await DelayBeforeReconnectAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception) when (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                RecordFailure(ex);
-                await DelayBeforeReconnectAsync(cancellationToken).ConfigureAwait(false);
-            }
+        }
+        finally
+        {
+            _state.WorkerStopped();
         }
     }
 
@@ -102,7 +116,7 @@ internal sealed class ConnectionWorker
         };
 
         Int64 count = _metrics.RecordFailure(kind);
-        if (kind == ErrorKind.Other && count <= 5)
+        if (kind == ErrorKind.Other && count is > 0 and <= 5)
         {
             Console.Error.WriteLine($"[ERROR] Unexpected client exception: {exception.GetType().Name}: {exception.Message}");
         }

@@ -31,27 +31,47 @@ internal sealed class LoadTestRunner
     {
         _reporter.WriteStart(_options, _scenario);
 
-        using CancellationTokenSource duration = new(TimeSpan.FromSeconds(_options.DurationSeconds));
-        using CancellationTokenSource linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, duration.Token);
-
-        Task[] workers = new Task[_options.Connections];
+        WorkloadState state = new();
         Stopwatch stopwatch = Stopwatch.StartNew();
-
-        for (Int32 i = 0; i < workers.Length; i++)
-        {
-            ConnectionWorker worker = new(_options, _scenario, _metrics);
-            workers[i] = worker.RunAsync(linked.Token);
-        }
+        using WorkerPool workers = new(_options, _scenario, _metrics, state, cancellationToken);
+        using CancellationTokenSource progressCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
         Task progress = _reporter.ReportProgressAsync(
             stopwatch,
             _metrics,
+            state,
+            _options.Connections,
             _options.ReportIntervalSeconds,
-            linked.Token);
+            progressCancellation.Token);
 
         try
         {
-            await Task.WhenAll(workers).ConfigureAwait(false);
+            await RunRampUpAsync(workers, state, cancellationToken).ConfigureAwait(false);
+            await RunDelayPhaseAsync(state, WorkloadPhase.Warmup, _options.WarmupSeconds, cancellationToken).ConfigureAwait(false);
+
+            state.Phase = WorkloadPhase.Steady;
+            _metrics.StartMeasurement();
+            await Task.Delay(TimeSpan.FromSeconds(_options.DurationSeconds), cancellationToken).ConfigureAwait(false);
+            _metrics.StopMeasurement();
+
+            state.Phase = WorkloadPhase.Cooldown;
+            await workers.StopWorkersGraduallyAsync(TimeSpan.FromSeconds(_options.CooldownSeconds), cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            _metrics.StopMeasurement();
+            state.Phase = WorkloadPhase.Completed;
+            workers.StopAll();
+            progressCancellation.Cancel();
+        }
+
+        try
+        {
+            await workers.WaitAsync().ConfigureAwait(false);
+            await progress.ConfigureAwait(false);
         }
         catch (OperationCanceledException)
         {
@@ -59,15 +79,61 @@ internal sealed class LoadTestRunner
 
         stopwatch.Stop();
 
-        try
+        LoadTestReport report = _metrics.CreateReport(
+            stopwatch.Elapsed,
+            _metrics.MeasuredElapsed);
+        _reporter.WriteFinal(report);
+
+        if (!String.IsNullOrWhiteSpace(_options.OutputPath))
         {
-            await progress.ConfigureAwait(false);
+            await ReportExporter.ExportAsync(
+                _options.OutputPath,
+                _options,
+                _scenario,
+                report,
+                cancellationToken).ConfigureAwait(false);
+
+            _reporter.WriteExported(_options.OutputPath);
         }
-        catch (OperationCanceledException)
+    }
+
+    private async Task RunRampUpAsync(WorkerPool workers, WorkloadState state, CancellationToken cancellationToken)
+    {
+        state.Phase = WorkloadPhase.RampUp;
+
+        if (_options.RampUpSeconds == 0)
         {
+            workers.StartWorkers(_options.Connections);
+            return;
         }
 
-        LoadTestReport report = _metrics.CreateReport(stopwatch.Elapsed);
-        _reporter.WriteFinal(report);
+        workers.StartWorkers(_options.StartConnections);
+
+        Int32 remaining = _options.Connections - _options.StartConnections;
+        if (remaining <= 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(_options.RampUpSeconds), cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        TimeSpan delay = TimeSpan.FromTicks(Math.Max(1, TimeSpan.FromSeconds(_options.RampUpSeconds).Ticks / remaining));
+        for (Int32 i = 0; i < remaining; i++)
+        {
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
+            workers.StartWorkers(1);
+        }
+    }
+
+    private static async Task RunDelayPhaseAsync(
+        WorkloadState state,
+        WorkloadPhase phase,
+        Int32 seconds,
+        CancellationToken cancellationToken)
+    {
+        state.Phase = phase;
+        if (seconds > 0)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(seconds), cancellationToken).ConfigureAwait(false);
+        }
     }
 }

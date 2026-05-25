@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using Nalix.LoadTester.Metrics;
+using Nalix.LoadTester.Running;
 using Nalix.LoadTester.Scenarios;
 
 namespace Nalix.LoadTester.Reporting;
@@ -20,8 +21,12 @@ internal sealed class ConsoleProgressReporter
         Console.WriteLine($"Scenario           : {scenario.Name}");
         Console.WriteLine($"Target Host        : {options.Host}");
         Console.WriteLine($"Target Port        : {options.Port}");
-        Console.WriteLine($"Concurrent Clients : {options.Connections}");
-        Console.WriteLine($"Duration           : {options.DurationSeconds} seconds");
+        Console.WriteLine($"Peak Clients       : {options.Connections}");
+        Console.WriteLine($"Start Clients      : {(options.RampUpSeconds > 0 ? options.StartConnections : options.Connections)}");
+        Console.WriteLine($"Ramp-up            : {options.RampUpSeconds} seconds");
+        Console.WriteLine($"Warmup             : {options.WarmupSeconds} seconds");
+        Console.WriteLine($"Measured Duration  : {options.DurationSeconds} seconds");
+        Console.WriteLine($"Cooldown           : {options.CooldownSeconds} seconds");
         Console.WriteLine($"Request Timeout    : {options.TimeoutMs} ms");
         Console.WriteLine($"Payload Size       : {options.PayloadSize} bytes");
         Console.WriteLine("---------------------------------------------------------");
@@ -30,23 +35,32 @@ internal sealed class ConsoleProgressReporter
     public async Task ReportProgressAsync(
         Stopwatch stopwatch,
         MetricsCollector metrics,
+        WorkloadState state,
+        Int32 peakWorkers,
         Int32 intervalSeconds,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stopwatch);
         ArgumentNullException.ThrowIfNull(metrics);
+        ArgumentNullException.ThrowIfNull(state);
 
-        while (!cancellationToken.IsCancellationRequested)
+        while (!cancellationToken.IsCancellationRequested && state.Phase != WorkloadPhase.Completed)
         {
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(intervalSeconds), cancellationToken).ConfigureAwait(false);
+                if (state.Phase == WorkloadPhase.Completed)
+                {
+                    break;
+                }
+
                 Double elapsed = stopwatch.Elapsed.TotalSeconds;
+                Double measuredElapsed = metrics.MeasuredElapsed.TotalSeconds;
                 Int64 successful = metrics.SuccessfulRequests;
                 Int64 failed = metrics.FailedRequests;
-                Double currentRps = elapsed > 0 ? successful / elapsed : 0;
+                Double currentRps = measuredElapsed > 0 ? successful / measuredElapsed : 0;
 
-                Console.WriteLine($"[{elapsed:F0}s] Successful: {successful} | Failed: {failed} | Current RPS: {currentRps:F1}");
+                Console.WriteLine($"[{elapsed:F0}s] Phase: {state.Phase} | Workers: {state.ActiveWorkers}/{peakWorkers} | Successful: {successful} | Failed: {failed} | Measured RPS: {currentRps:F1}");
             }
             catch (OperationCanceledException)
             {
@@ -62,7 +76,8 @@ internal sealed class ConsoleProgressReporter
         Console.WriteLine();
         Console.WriteLine("---------------------------------------------------------");
         Console.WriteLine("Load Test Completed!");
-        Console.WriteLine($"Elapsed Time       : {report.Elapsed.TotalSeconds:F2} seconds");
+        Console.WriteLine($"Total Runtime      : {report.Elapsed.TotalSeconds:F2} seconds");
+        Console.WriteLine($"Measured Duration  : {report.MeasuredDuration.TotalSeconds:F2} seconds");
         Console.WriteLine($"Successful Requests: {report.SuccessfulRequests}");
         Console.WriteLine($"Failed Requests    : {report.FailedRequests}");
 
@@ -80,5 +95,12 @@ internal sealed class ConsoleProgressReporter
         Console.WriteLine($"P99 Latency        : {report.P99LatencyMs:F2} ms");
         Console.WriteLine($"P99.9 Latency      : {report.P999LatencyMs:F2} ms");
         Console.WriteLine("=========================================================");
+    }
+
+    public void WriteExported(String outputPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
+
+        Console.WriteLine($"Report written     : {Path.GetFullPath(outputPath)}");
     }
 }

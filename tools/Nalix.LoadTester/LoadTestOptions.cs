@@ -25,6 +25,16 @@ internal sealed class LoadTestOptions
 
     public Int32 SampleCapacity { get; private init; } = 10_000_000;
 
+    public Int32 StartConnections { get; private init; } = 1;
+
+    public Int32 RampUpSeconds { get; private init; }
+
+    public Int32 WarmupSeconds { get; private init; }
+
+    public Int32 CooldownSeconds { get; private init; }
+
+    public String? OutputPath { get; private init; }
+
     public static Boolean TryParse(
         String[] args,
         out LoadTestOptions options,
@@ -108,6 +118,11 @@ internal sealed class LoadTestOptions
         writer.WriteLine("  --payload-size <bytes>");
         writer.WriteLine("  --report-interval <seconds>");
         writer.WriteLine("  --sample-capacity <count>");
+        writer.WriteLine("  --start-connections <count>");
+        writer.WriteLine("  --ramp-up <seconds>");
+        writer.WriteLine("  --warmup <seconds>");
+        writer.WriteLine("  --cooldown <seconds>");
+        writer.WriteLine("  --output <report.json|report.csv|report.md>");
     }
 
     private Boolean Validate(out String? error)
@@ -156,6 +171,48 @@ internal sealed class LoadTestOptions
             return false;
         }
 
+        if (this.StartConnections <= 0)
+        {
+            error = "--start-connections must be greater than 0.";
+            return false;
+        }
+
+        if (this.StartConnections > this.Connections)
+        {
+            error = "--start-connections cannot be greater than --connections.";
+            return false;
+        }
+
+        if (this.RampUpSeconds < 0)
+        {
+            error = "--ramp-up cannot be negative.";
+            return false;
+        }
+
+        if (this.WarmupSeconds < 0)
+        {
+            error = "--warmup cannot be negative.";
+            return false;
+        }
+
+        if (this.CooldownSeconds < 0)
+        {
+            error = "--cooldown cannot be negative.";
+            return false;
+        }
+
+        if (!String.IsNullOrWhiteSpace(this.OutputPath))
+        {
+            String extension = Path.GetExtension(this.OutputPath);
+            if (!StringComparer.OrdinalIgnoreCase.Equals(extension, ".json") &&
+                !StringComparer.OrdinalIgnoreCase.Equals(extension, ".csv") &&
+                !StringComparer.OrdinalIgnoreCase.Equals(extension, ".md"))
+            {
+                error = "--output must end with .json, .csv, or .md.";
+                return false;
+            }
+        }
+
         return true;
     }
 
@@ -170,6 +227,11 @@ internal sealed class LoadTestOptions
         private Int32 _payloadSize = 1500;
         private Int32 _reportIntervalSeconds = 1;
         private Int32 _sampleCapacity = 10_000_000;
+        private Int32 _startConnections = 1;
+        private Int32 _rampUpSeconds;
+        private Int32 _warmupSeconds;
+        private Int32 _cooldownSeconds;
+        private String? _outputPath;
 
         public LoadTestOptions Build() => new()
         {
@@ -181,7 +243,12 @@ internal sealed class LoadTestOptions
             TimeoutMs = _timeoutMs,
             PayloadSize = _payloadSize,
             ReportIntervalSeconds = _reportIntervalSeconds,
-            SampleCapacity = _sampleCapacity
+            SampleCapacity = _sampleCapacity,
+            StartConnections = _startConnections,
+            RampUpSeconds = _rampUpSeconds,
+            WarmupSeconds = _warmupSeconds,
+            CooldownSeconds = _cooldownSeconds,
+            OutputPath = _outputPath
         };
 
         public Boolean TrySet(String name, String value, out String? error)
@@ -230,6 +297,22 @@ internal sealed class LoadTestOptions
 
                 case "--sample-capacity":
                     return TryParseInt32(value, name, out _sampleCapacity, out error);
+
+                case "--start-connections":
+                    return TryParseInt32(value, name, out _startConnections, out error);
+
+                case "--ramp-up":
+                    return TryParseInt32(value, name, out _rampUpSeconds, out error);
+
+                case "--warmup":
+                    return TryParseInt32(value, name, out _warmupSeconds, out error);
+
+                case "--cooldown":
+                    return TryParseInt32(value, name, out _cooldownSeconds, out error);
+
+                case "--output":
+                    _outputPath = value;
+                    return true;
 
                 default:
                     error = $"Unknown option '{name}'.";
