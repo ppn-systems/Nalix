@@ -19,8 +19,6 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Connections;
 
-#pragma warning disable CA2213 // Disposable fields should be disposed
-
 namespace Nalix.Network.Listeners.Web;
 
 public abstract partial class WebSocketListenerBase
@@ -120,7 +118,10 @@ public abstract partial class WebSocketListenerBase
 
                 if (context.Request.IsWebSocketRequest)
                 {
-                    if (_proxyConfig.Enabled && _proxyConfig.RequireTrustedProxy && context.Request.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
+                    if (_forwardedConfig.Enabled &&
+                        _forwardedConfig.RequireTrustedProxy &&
+                        context.Request.RemoteEndPoint is IPEndPoint remoteEp &&
+                        !_limiter.IsTrustedProxy(remoteEp))
                     {
                         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                         {
@@ -323,7 +324,7 @@ public abstract partial class WebSocketListenerBase
     /// </summary>
     private EndPoint GET_REAL_ENDPOINT(HttpListenerRequest request)
     {
-        if (!_proxyConfig.Enabled)
+        if (!_forwardedConfig.Enabled)
         {
             return request.RemoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0);
         }
@@ -331,6 +332,7 @@ public abstract partial class WebSocketListenerBase
         // 1. Check standard proxy headers.
         // Cloudflare uses CF-Connecting-IP. Nginx/HAProxy typically use X-Forwarded-For or X-Real-IP.
         string? forwardedFor = request.Headers["CF-Connecting-IP"] ?? request.Headers["X-Forwarded-For"] ?? request.Headers["X-Real-IP"];
+
         if (!string.IsNullOrEmpty(forwardedFor))
         {
             int commaIndex = forwardedFor.IndexOf(',', StringComparison.Ordinal);
@@ -341,6 +343,7 @@ public abstract partial class WebSocketListenerBase
                 return new IPEndPoint(ip, request.RemoteEndPoint?.Port ?? 0);
             }
         }
+
         return request.RemoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0);
     }
 
