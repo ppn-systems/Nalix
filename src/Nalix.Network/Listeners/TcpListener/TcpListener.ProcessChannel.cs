@@ -13,6 +13,9 @@ using Nalix.Abstractions.Networking;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
+#pragma warning disable IDE0079
+#pragma warning disable CA2213
+
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -36,7 +39,7 @@ public abstract partial class TcpListenerBase
     /// <param name="cancellationToken"></param>
     private void START_PROCESS_CHANNEL(CancellationToken cancellationToken)
     {
-        if (_config.EnableProxyProtocol)
+        if (_proxyConfig.Enabled)
         {
             this.START_PROXY_SWEEP(cancellationToken);
         }
@@ -79,7 +82,7 @@ public abstract partial class TcpListenerBase
     /// </summary>
     private void STOP_PROCESS_CHANNEL()
     {
-        if (_config.EnableProxyProtocol)
+        if (_proxyConfig.Enabled)
         {
             this.STOP_PROXY_SWEEP();
         }

@@ -56,7 +56,7 @@ public abstract partial class TcpListenerBase
 
     /// <summary>
     /// Starts the recurring worker that closes Proxy Protocol handshakes which exceed
-    /// <see cref="Options.NetworkSocketOptions.ProxyHandshakeTimeoutMs"/>.
+    /// <see cref="Options.ProxyProtocolOptions.HeaderTimeoutMs"/>.
     /// </summary>
     /// <param name="ct">
     /// Cancellation token reserved for listener shutdown coordination.
@@ -77,7 +77,7 @@ public abstract partial class TcpListenerBase
                 {
                     Tag = TaskNaming.Tags.Net,
                     NonReentrant = true,
-                    ExecutionTimeout = TimeSpan.FromMilliseconds(_config.ProxyHandshakeTimeoutMs)
+                    ExecutionTimeout = TimeSpan.FromMilliseconds(_proxyConfig.HeaderTimeoutMs)
                 });
     }
 
@@ -120,7 +120,7 @@ public abstract partial class TcpListenerBase
     private void SWEEP_PROXY_TIMEOUTS()
     {
         long now = Stopwatch.GetTimestamp();
-        long timeoutTicks = _config.ProxyHandshakeTimeoutMs * (Stopwatch.Frequency / 1000L);
+        long timeoutTicks = _proxyConfig.HeaderTimeoutMs * (Stopwatch.Frequency / 1000L);
 
         lock (_proxyLock)
         {

@@ -152,23 +152,6 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader
     [System.ComponentModel.DataAnnotations.Range(64, 65507, ErrorMessage = "MaxUdpDatagramSize must be between 64 and 65507.")]
     public int MaxUdpDatagramSize { get; set; } = 1400;
 
-    /// <summary>
-    /// Enable Proxy Protocol V1/V2 header parsing to extract the real client IP.
-    /// Must be true when the server sits behind HAProxy, AWS NLB, or any proxy
-    /// that injects a PROXY header.
-    /// </summary>
-    [IniComment("Enable Proxy Protocol V1/V2 parsing to obtain the real client IP (default: false)")]
-    public bool EnableProxyProtocol { get; set; } = false;
-
-    /// <summary>
-    /// Maximum milliseconds to wait for the PROXY header to arrive after TCP accept.
-    /// Connections that do not deliver a complete header within this window are dropped.
-    /// Tune to roughly RTT_max + 50ms. Default 2000ms.
-    /// </summary>
-    [IniComment("Timeout in ms for the PROXY header handshake (default: 2000)")]
-    [System.ComponentModel.DataAnnotations.Range(100, 30000, ErrorMessage = "ProxyHandshakeTimeoutMs must be between 100 and 30000.")]
-    public int ProxyHandshakeTimeoutMs { get; set; } = 2000;
-
     #endregion Properties
 
     /// <summary>

@@ -399,9 +399,22 @@ public abstract partial class TcpListenerBase
                     return;
                 }
 
-                if (_config.EnableProxyProtocol)
+                if (_proxyConfig.Enabled)
                 {
-                    // Return context to pool since proxy handshake doesn't need it.
+                    if (_proxyConfig.RequireTrustedProxy && socket.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
+                    {
+                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                        {
+                            this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] untrusted-proxy-rejected remote={remoteEp}");
+                        }
+
+                        this.Metrics.RECORD_REJECTED();
+                        this.SafeCloseSocket(socket);
+                        this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                        return;
+                    }
+
+                    // Return context to pool since proxy header read doesn't need it.
                     _pool.Return(context);
                     this.BeginProxyHeaderRead(socket);
                 }
@@ -871,9 +884,15 @@ public abstract partial class TcpListenerBase
                 Throw.InvalidSocket();
             }
 
-            if (_config.EnableProxyProtocol)
+            if (_proxyConfig.Enabled)
             {
-                // We return the context right away because the handshake is async.
+                if (_proxyConfig.RequireTrustedProxy && socket.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
+                {
+                    this.SafeCloseSocket(socket);
+                    Throw.ConnectionRejectedByLimiter();
+                }
+
+                // We return the context right away because the proxy header read is async.
                 _pool.Return(context);
                 contextOwned = false; // So finally block doesn't double-return
 
