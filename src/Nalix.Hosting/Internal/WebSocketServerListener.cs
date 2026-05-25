@@ -47,7 +47,6 @@ internal sealed class WebSocketServerListener : WebSocketListenerBase
 
             if (!args.Connection.TCP.ReceiveSequence.IsValid(seq, window: this.SequenceOptions.TcpWindow))
             {
-                current.Dispose();
                 return;
             }
 
