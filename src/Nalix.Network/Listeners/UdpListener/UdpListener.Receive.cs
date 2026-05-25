@@ -345,6 +345,8 @@ public abstract partial class UdpListenerBase
         _ = Interlocked.Increment(ref _rxPackets);
         _ = Interlocked.Add(ref _rxBytes, lease.Length);
 
+        connection.UdpTransport?.RecordBytesReceived(lease.Length);
+
         // Strip the 8-byte Session Token and wrap the remaining payload into a new lease.
         // We take ownership of the underlying buffer from the original lease but only for the payload slice.
         if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length) || rawBuffer is null)

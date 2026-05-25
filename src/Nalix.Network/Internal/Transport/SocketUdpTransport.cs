@@ -57,6 +57,16 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     /// <inheritdoc/>
     public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
 
+    /// <summary>
+    /// Gets the total number of bytes sent by this UDP transport instance.
+    /// </summary>
+    public long BytesSent => Volatile.Read(ref _bytesSent);
+
+    /// <summary>
+    /// Gets the total number of bytes received by this UDP transport instance.
+    /// </summary>
+    public long BytesReceived => Volatile.Read(ref _bytesReceived);
+
     #endregion Properties
 
     #region APIs
@@ -105,6 +115,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     /// If <c>false</c>, the socket is provided by a listener and should not be disposed here.
     /// </summary>
     private bool _ownsSocket;
+
+    private long _bytesSent;
+    private long _bytesReceived;
 
     #endregion Fields
 
@@ -251,6 +264,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             {
                 Throw.UdpPartialSendNow();
             }
+            _ = Interlocked.Add(ref _bytesSent, sent);
         }
         catch (Exception ex) when (ex is not NetworkException)
         {
@@ -295,6 +309,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             {
                 Throw.UdpPartialSendNow();
             }
+            _ = Interlocked.Add(ref _bytesSent, sentBytes);
         }
         catch (OperationCanceledException) { throw; }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -309,6 +324,11 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         // Outbound transport does not handle incoming packets directly.
         // Reception is managed by UdpListenerBase or similar listener logic.
     }
+
+    /// <summary>
+    /// Records bytes received from the listener.
+    /// </summary>
+    internal void RecordBytesReceived(long bytes) => Interlocked.Add(ref _bytesReceived, bytes);
 
     #endregion Transmission
 
@@ -326,6 +346,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
 
         _socket = null;
         _ownsSocket = false;
+
+        _bytesSent = 0;
+        _bytesReceived = 0;
     }
 
     /// <inheritdoc/>

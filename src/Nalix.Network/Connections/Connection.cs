@@ -197,19 +197,21 @@ public sealed partial class Connection :
     /// Gets the total number of bytes sent over the life of the connection.
     /// </summary>
     /// <remarks>
-    /// This value is retrieved directly from the underlying <see cref="SocketConnection.BytesSent"/>.
+    /// This value combines data from the underlying <see cref="SocketConnection.BytesSent"/> (TCP)
+    /// and the <see cref="SocketUdpTransport.BytesSent"/> (UDP) if available.
     /// It represents raw wire data, including protocol headers.
     /// </remarks>
-    public long BytesSent => this.Socket.BytesSent;
+    public long BytesSent => this.Socket.BytesSent + (this.UdpTransport?.BytesSent ?? 0);
 
     /// <summary>
     /// Gets the total number of bytes received over the life of the connection.
     /// </summary>
     /// <remarks>
-    /// This value is retrieved directly from the underlying <see cref="SocketConnection.BytesReceived"/>.
+    /// This value combines data from the underlying <see cref="SocketConnection.BytesReceived"/> (TCP)
+    /// and the <see cref="SocketUdpTransport.BytesReceived"/> (UDP) if available.
     /// It represents raw wire data before any frame processing or decompression.
     /// </remarks>
-    public long BytesReceived => this.Socket.BytesReceived;
+    public long BytesReceived => this.Socket.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0);
 
     /// <inheritdoc />
     public void IncrementErrorCount()
