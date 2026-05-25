@@ -28,6 +28,7 @@ public sealed class PacketSender : IPacketSender
 {
     #region Fields
 
+    private CancellationToken _token;
     private IConnection? _connection;
     private PacketMetadata _attributes;
 
@@ -57,11 +58,13 @@ public sealed class PacketSender : IPacketSender
         ArgumentNullException.ThrowIfNull(context);
         _connection = context.Connection;
         _attributes = context.Attributes;
+        _token = context.CancellationToken;
     }
 
     /// <inheritdoc/>
     public void ResetForPool()
     {
+        _token = default;
         _connection = null;
         _attributes = default;
     }
@@ -72,26 +75,26 @@ public sealed class PacketSender : IPacketSender
         ArgumentNullException.ThrowIfNull(packet);
         bool needEncrypt = _attributes.Encryption?.IsEncrypted ?? false;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, needEncrypt, ct);
+        CancellationToken safeToken = ct == default ? _token : ct;
+
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, needEncrypt, safeToken);
     }
 
     /// <inheritdoc/>
     public ValueTask SendAsync(IPacket packet, bool forceEncrypt, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(packet);
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, forceEncrypt, ct);
+
+        CancellationToken safeToken = ct == default ? _token : ct;
+
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, forceEncrypt, safeToken);
     }
 
     #endregion APIs
 
     #region Private Methods
 
-    private static async ValueTask SEND_CORE_ASYNC(
-        IConnection connection,
-        PacketMetadata attributes,
-        IPacket packet,
-        bool needEncrypt,
-        CancellationToken ct)
+    private static async ValueTask SEND_CORE_ASYNC(IConnection connection, PacketMetadata attributes, IPacket packet, bool needEncrypt, CancellationToken ct)
     {
         int packetLength = packet.Length;
 
@@ -106,6 +109,7 @@ public sealed class PacketSender : IPacketSender
         // branches can reuse the same payload without reserializing the packet.
         BufferLease rawLease = BufferLease.Rent(packetLength);
         IConnection.ITransport transport = GetTransport(connection, attributes);
+
         try
         {
             int written = packet.Serialize(rawLease.SpanFull);

@@ -60,3 +60,4 @@ scratch/
 .nuget/
 compare_test/
 build_errors*.txt
+/LoadTesterBin

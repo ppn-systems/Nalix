@@ -8,6 +8,7 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Hosting;
+using Nalix.LoadTester.Contracts;
 using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
@@ -25,25 +26,25 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogix(
         cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true))
-                  .SetMinimumLevel(LogLevel.Debug)
+                  .SetMinimumLevel(LogLevel.Information)
     );
 
     public static NetworkApplication Configure(ILogger logger)
     {
-        ObservabilityAccessHandlers.SetPrivateKeyPath(ResolveSharedFile("observability.private"));
+        System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(BenchmarkPacket).Module.ModuleHandle);
 
         ConnectionHub hub = new();
         BufferPoolManager bufferPool = new();
         ObjectPoolManager objectPool = new();
 
         NetworkApplication host = NetworkApplication.CreateBuilder()
-            .ConfigureCertificate(ResolveSharedFile("certificate.private"))
             .ConfigureLogging(logger)
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
             .AddHandler<ObservabilityAccessHandlers>()
             .AddHandler<RuntimeObservationHandlers>()
+            .AddHandler<BenchmarkHandlers>()
             .Configure<NetworkSocketOptions>(o =>
             {
                 o.Port = ListenPort;
@@ -76,9 +77,10 @@ internal class Startup
             })
             .Configure<ObjectPoolOptions>(o =>
             {
-                o.EnableLeakDetection = true;
-                o.EnableDiagnostics = true;
-                o.CaptureStackTraces = true;
+                o.EnableLeakDetection = false;
+                o.EnableDiagnostics = false;
+                o.EnableMetrics = true;
+                o.CaptureStackTraces = false;
                 o.SuspiciousThresholdSeconds = 10;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
@@ -102,22 +104,5 @@ internal class Startup
             .Build();
 
         return host;
-    }
-
-    private static string ResolveSharedFile(string fileName)
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            string candidate = Path.Combine(current.FullName, "shared", fileName);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-
-            current = current.Parent;
-        }
-
-        return Path.GetFullPath(Path.Combine("shared", fileName));
     }
 }

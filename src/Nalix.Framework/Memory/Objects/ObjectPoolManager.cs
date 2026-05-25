@@ -253,7 +253,8 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             _ = Interlocked.Increment(ref _totalCreated);
         }
 
-        if (_config.EnableDiagnostics)
+        // 1. Lightweight metrics tracking (Safe for Production)
+        if (_config.EnableMetrics || _config.EnableDiagnostics)
         {
             if (isCacheHit)
             {
@@ -285,7 +286,11 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
             metrics.LastAccessUtc = DateTime.UtcNow;
             metrics.LastAccessType = "Get";
+        }
 
+        // 2. Heavyweight diagnostics (Development / QA leaks tracking)
+        if (_config.EnableDiagnostics)
+        {
             PoolSentinel sentinel = new(result, _config.CaptureStackTraces);
 
             // CWT keeps sentinel alive as long as 'result' is alive
@@ -327,11 +332,9 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
         }
 
         // Diagnostics Path
+        // 1. Heavyweight diagnostics (Development / QA leaks tracking)
         if (_config.EnableDiagnostics)
         {
-            metrics.LastAccessType = "Return";
-            metrics.LastAccessUtc = DateTime.UtcNow;
-
             if (_activeSentinels.TryGetValue(obj, out PoolSentinel? sentinel))
             {
                 sentinel.MarkReturned();
@@ -361,6 +364,13 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
                     metrics.LifetimeReservoir[index] = elapsedTicks;
                 }
             }
+        }
+
+        // 2. Lightweight metrics tracking (Safe for Production)
+        if (_config.EnableMetrics || _config.EnableDiagnostics)
+        {
+            metrics.LastAccessType = "Return";
+            metrics.LastAccessUtc = DateTime.UtcNow;
 
             _ = Interlocked.Increment(ref metrics.TotalReturns);
 

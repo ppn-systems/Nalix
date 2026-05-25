@@ -59,7 +59,7 @@ public abstract class PacketBase<
     public override byte[] Serialize() => LiteSerializer.Serialize((TSelf)this);
 
     /// <inheritdoc/>
-    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small for the serialized packet.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="buffer"/> is too small, which can indicate an insufficiently sized buffer or a concurrent mutation (Use-After-Free).</exception>
     /// <exception cref="SerializationFailureException">Thrown when the packet cannot be serialized by the configured formatter.</exception>
     /// <exception cref="InvalidOperationException">Thrown when no formatter is available for the packet type.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,7 +69,10 @@ public abstract class PacketBase<
         if (buffer.Length < required)
         {
             throw new ArgumentException(
-                $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}.");
+                $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. " +
+                $"If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: " +
+                $"the packet size was mutated by another thread. This is typically caused by an orphaned I/O task " +
+                $"missing a CancellationToken.");
         }
 
         try
@@ -84,7 +87,10 @@ public abstract class PacketBase<
             if (buffer.Length < required)
             {
                 throw new ArgumentException(
-                    $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}.", ex);
+                    $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. " +
+                    $"If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: " +
+                    $"the packet size was mutated by another thread. This is typically caused by an orphaned I/O task " +
+                    $"missing a CancellationToken.", ex);
             }
 
             throw;

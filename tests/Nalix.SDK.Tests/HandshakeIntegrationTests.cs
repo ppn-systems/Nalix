@@ -5,7 +5,6 @@ using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Codec.DataFrames;
 using Nalix.Framework.Injection;
 using Nalix.Hosting;
-using Nalix.Runtime.Handlers;
 using Nalix.Runtime.Sessions;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
@@ -16,69 +15,14 @@ namespace Nalix.SDK.Tests;
 [Collection("RealServerTests")]
 public sealed class HandshakeIntegrationTests : IDisposable
 {
-    private readonly string _certPath;
     private readonly Bytes32 _serverPublicKey;
 
     public HandshakeIntegrationTests()
     {
         if (!PacketRegistry.IsBuilt)
             PacketRegistry.Build();
-        // Setup Server Identity
-        string? current = AppDomain.CurrentDomain.BaseDirectory;
-        _certPath = null!;
-        while (current != null)
-        {
-            string candidate = Path.Combine(current, "shared", "certificate.private");
-            if (File.Exists(candidate))
-            {
-                _certPath = candidate;
-                break;
-            }
-            current = Path.GetDirectoryName(current);
-        }
-
-        if (_certPath == null)
-        {
-            // Try absolute fallback if we know we are on user's machine
-            if (File.Exists(@"e:\Cs\Nalix\shared\certificate.private"))
-            {
-                _certPath = @"e:\Cs\Nalix\shared\certificate.private";
-            }
-        }
-
-        if (_certPath == null)
-        {
-            throw new FileNotFoundException("Could not find certificate.private in any parent directory.");
-        }
-
-        // Load the public key corresponding to the private key in certificate.private
-        // HandshakeHandlers uses the private key to sign/agreement.
-        // The client needs the PUBLIC key.
-        // Since TestUtils.SetupCertificate() generates a fixed pair (for testing) 
-        // or we can just read it if we know the format.
-
-        // HandshakeHandlers.SetCertificatePath(_certPath);
-
-        // Load the public key from certificate.public
+        TestUtils.SetupCertificate();
         _serverPublicKey = Bytes32.Parse(TestUtils.GetServerPublicKey());
-
-        // Initialize HandshakeHandlers with the private key path
-        HandshakeHandlers.SetCertificatePath(_certPath);
-    }
-
-    private static string READ_HEX_FROM_FILE(string path)
-    {
-        string[] lines = File.ReadAllLines(path);
-        foreach (string line in lines)
-        {
-            string trimmed = line.Trim();
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith('#'))
-            {
-                continue;
-            }
-            return trimmed;
-        }
-        throw new InvalidOperationException($"No hex found in {path}");
     }
 
     [Fact]
@@ -214,8 +158,6 @@ public sealed class HandshakeIntegrationTests : IDisposable
         }
     }
 }
-
-
 
 
 

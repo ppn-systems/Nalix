@@ -166,9 +166,7 @@ public sealed class HandshakeHandlers
     {
         if (!File.Exists(certPath))
         {
-            throw new InternalErrorException(
-                $"Handshake failed: certificate file was not found at '{certPath}'. "
-                + "Please provide a valid server identity file.");
+            CREATE_CERTIFICATE(certPath);
         }
 
         try
@@ -217,6 +215,43 @@ public sealed class HandshakeHandlers
         {
             throw new InternalErrorException(
                 $"Handshake failed: Invalid server identity format in '{certPath}'. Exception detail: " + ex.Message, ex);
+        }
+    }
+
+    private static void CREATE_CERTIFICATE(string certPath)
+    {
+        string? directory = Path.GetDirectoryName(certPath);
+
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            _ = Directory.CreateDirectory(directory);
+        }
+
+        X25519.X25519KeyPair key = X25519.GenerateKeyPair();
+        if (!TRY_WRITE_NEW_FILE(certPath, key.PrivateKey.ToString()))
+        {
+            return;
+        }
+
+        string publicPath = Path.Combine(
+            directory ?? string.Empty,
+            Path.GetFileNameWithoutExtension(certPath) + ".public");
+
+        _ = TRY_WRITE_NEW_FILE(publicPath, key.PublicKey.ToString());
+    }
+
+    private static bool TRY_WRITE_NEW_FILE(string path, string content)
+    {
+        try
+        {
+            using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            using StreamWriter writer = new(stream);
+            writer.WriteLine(content);
+            return true;
+        }
+        catch (IOException) when (File.Exists(path))
+        {
+            return false;
         }
     }
 

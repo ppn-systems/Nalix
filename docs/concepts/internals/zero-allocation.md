@@ -148,7 +148,13 @@ public ValueTask HandleUpdate(IPacketContext<HighFreqUpdate> context)
 }
 ```
 
+!!! danger "Cancellation Hazards & Use-After-Free"
+    When writing asynchronous handlers (`async ValueTask`), you **must** pass `context.CancellationToken` to any I/O calls (such as `SendAsync`). 
+    
+    **Why?** Nalix uses aggressive `ObjectPool` caching for every packet. If a connection drops, the Dispatcher instantly cancels the pending pipeline and **returns the packet to the pool**. If your `SendAsync` call doesn't accept the cancellation token, it becomes an orphaned task running in the background. It will continue attempting to read from the pooled packet that has already been cleared or reassigned to a new connection, resulting in severe `ArgumentException` (e.g. `Buffer too small`) or memory corruption.
+
 ---
+
 
 ## 4. Zero-Allocation Error Handling
 

@@ -449,63 +449,63 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     }
 
     /// <summary>
-    /// Processes a single frame by copying it into a new BufferLease.
-    /// This allows the receive loop to continue without waiting for the pipeline.
+    /// Processes a single frame. Fragmented frames are handled zero-copy directly
+    /// from the receive buffer. Regular frames are copied into a new BufferLease.
     /// </summary>
     private void PROCESS_FRAME_FROM_BUFFER(int offset, int payloadLen)
     {
+        ReadOnlySpan<byte> rawPayloadSpan = MemoryExtensions.AsSpan(_buffer, offset, payloadLen);
+
+        // Fragment Assembly Check (Zero-Copy Peak).
+        // A FragmentHeader is 8 bytes. We peek directly from the SAEA buffer BEFORE renting any leases.
+        if (FragmentAssembler.IsFragmentedFrame(rawPayloadSpan, out FragmentHeader header))
+        {
+            // Direct zero-copy handoff. Only the inner chunk body is passed.
+            this.HANDLE_FRAGMENTED_FRAME_DIRECT(header, rawPayloadSpan[FragmentHeader.WireSize..]);
+            return;
+        }
+
         /*
-         * [Buffer Leasing]
+         * [Buffer Leasing - Regular Frame Path]
          * We copy the frame into a new BufferLease so the receive loop can 
          * continue reading from the socket without waiting for the protocol 
          * handler to finish.
          */
-        BufferLease lease = BufferLease.CopyFrom(MemoryExtensions.AsSpan(_buffer, offset, payloadLen));
+        BufferLease lease = BufferLease.CopyFrom(rawPayloadSpan);
         lease.IsReliable = true;
 
-        ReadOnlySpan<byte> payloadSpan = lease.Span;
-
-        // Fragment Assembly Check.
-        // A FragmentHeader is 8 bytes. If it's a fragment, we handle it separately.
-        if (FragmentAssembler.IsFragmentedFrame(payloadSpan, out FragmentHeader header))
+        // Safety: The application protocol (FramePipeline) requires a 10-byte header.
+        // If the payload is too small, it's a malformed packet that would cause OOB reads.
+        if (payloadLen < PacketConstants.HeaderSize)
         {
-            this.HANDLE_FRAGMENTED_FRAME(lease, header);
+#if DEBUG
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning($"[NW.{nameof(SocketConnection)}] malformed-payload " +
+                                 $"length={payloadLen} (too small for protocol header) ep={_endpointString}");
+            }
+#endif
+            lease.Dispose();
+            return;
         }
-        else
+
+        // Regular Frame Path.
+        // Update last-ping timestamp at the transport layer so the timing
+        // wheel sees activity even if the sink drops the frame.
+        this.LastPingTime = Clock.UnixMillisecondsNow();
+
+        // Delegate throttle check, event-args creation, and async dispatch
+        // to the event sink (SocketEventBridge).
+        if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
         {
-            // Safety: The application protocol (FramePipeline) requires a 10-byte header.
-            // If the payload is too small, it's a malformed packet that would cause OOB reads.
-            if (payloadLen < PacketConstants.HeaderSize)
-            {
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-                {
-                    _logger.LogWarning($"[NW.{nameof(SocketConnection)}] malformed-payload " +
-                                     $"length={payloadLen} (too small for protocol header) ep={_endpointString}");
-                }
-#endif
-                lease.Dispose();
-                return;
-            }
-
-            // Regular Frame Path.
-            // Update last-ping timestamp at the transport layer so the timing
-            // wheel sees activity even if the sink drops the frame.
-            this.LastPingTime = Clock.UnixMillisecondsNow();
-
-            // Delegate throttle check, event-args creation, and async dispatch
-            // to the event sink (SocketEventBridge).
-            if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-#if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-                {
-                    _logger.LogWarning($"[NW.{nameof(SocketConnection)}] frame-dropped " +
-                                     $"length={payloadLen} ep={_endpointString}");
-                }
-#endif
-                lease.Dispose();
+                _logger.LogWarning($"[NW.{nameof(SocketConnection)}] frame-dropped " +
+                                 $"length={payloadLen} ep={_endpointString}");
             }
+#endif
+            lease.Dispose();
         }
 
 #if DEBUG
@@ -519,14 +519,14 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     }
 
     /// <summary>
-    /// Helper to handle fragmented frames, extracted for clarity.
+    /// Helper to handle fragmented frames directly from the receive buffer.
+    /// This eliminates double-copying and temporary chunk lease renting.
     /// </summary>
-    private void HANDLE_FRAGMENTED_FRAME(BufferLease lease, FragmentHeader header)
+    private void HANDLE_FRAGMENTED_FRAME_DIRECT(FragmentHeader header, ReadOnlySpan<byte> chunkBody)
     {
         try
         {
             FragmentAssembler fragmentAssembler = this.GET_OR_CREATE_FRAGMENT_ASSEMBLER();
-            ReadOnlySpan<byte> chunkBody = lease.Span[FragmentHeader.WireSize..];
 
             if (header.ChunkIndex == 0)
             {
@@ -587,10 +587,9 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 Interlocked.Decrement(ref _openFragmentStreams);
             }
         }
-        finally
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            // ALWAYS dispose the input lease because fragmentAssembler.Add COPIES the data.
-            lease.Dispose();
+            _owner?.ThrottledError(_logger, "socket.receive.fragment_error", $"fragment-error ep={_owner.NetworkEndpoint.Address}", ex);
         }
     }
 

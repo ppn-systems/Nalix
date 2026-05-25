@@ -235,8 +235,10 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
         if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
         {
-            _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
+            ((IPooledConnectContextPool)this).ReleasePendingPacket();
+            _ = args.ExchangeLease(null);
             args.Dispose();
+            lease.Dispose();
         }
     }
 

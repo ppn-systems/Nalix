@@ -242,6 +242,7 @@ public sealed partial class Connection :
         if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
         {
             ((IPooledConnectContextPool)this).ReleasePendingPacket();
+            args.ExchangeLease(null);
             args.Dispose();
             lease.Dispose();
         }

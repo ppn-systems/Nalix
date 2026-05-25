@@ -175,6 +175,29 @@ public sealed class SlabAllocationTests
         Assert.Equal(0, errors);
     }
 
+    [Fact]
+    public void SlabBucket_DoubleReturn_DoesNotUnderflow()
+    {
+        using SlabBucket bucket = new(256, 4);
+        byte[] arr = bucket.Rent();
+        
+        // Initial state: 1 rented, 3 free, total 4
+        Assert.Equal(4, bucket.GetPoolInfo().TotalBuffers);
+        Assert.Equal(3, bucket.GetPoolInfo().FreeBuffers);
+
+        // First return: 0 rented, 4 free, total 4
+        bucket.Return(arr);
+        Assert.Equal(4, bucket.GetPoolInfo().FreeBuffers);
+
+        // Second return (Double-Return) should be safely ignored
+        bucket.Return(arr);
+        
+        // FreeBuffers should NOT exceed TotalBuffers (underflow makes FreeBuffers > TotalBuffers)
+        BufferPoolState info = bucket.GetPoolInfo();
+        Assert.Equal(4, info.TotalBuffers);
+        Assert.Equal(4, info.FreeBuffers);
+    }
+
     #endregion SlabBucket Tests
 
     #region SlabPoolManager Tests

@@ -2,7 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
@@ -31,6 +31,7 @@ internal sealed class SlabBucket : IDisposable
     private readonly int _cacheDepth;
     private readonly Lock _slabLock;
     private readonly SlabBucketRing _freeRing;
+    private readonly ConcurrentDictionary<IntPtr, byte> _rentedAddresses = new(concurrencyLevel: 128, capacity: 1024);
 
     [ThreadStatic]
     [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
@@ -125,6 +126,16 @@ internal sealed class SlabBucket : IDisposable
             byte[]? cached = cache.Cache[idx];
             cache.Cache[idx] = null;
 
+            IntPtr addr;
+            unsafe
+            {
+                fixed (byte* p = cached)
+                {
+                    addr = (IntPtr)p;
+                }
+            }
+            _ = _rentedAddresses.TryAdd(addr, 0);
+
             _ = Interlocked.Increment(ref _rentedCount);
             cache.LocalHits++;
             cache.LocalBytesRented += _segmentSize;
@@ -142,6 +153,16 @@ internal sealed class SlabBucket : IDisposable
 
         if (_freeRing.TryDequeue(out array))
         {
+            IntPtr addr;
+            unsafe
+            {
+                fixed (byte* p = array)
+                {
+                    addr = (IntPtr)p;
+                }
+            }
+            _ = _rentedAddresses.TryAdd(addr, 0);
+
             _ = Interlocked.Increment(ref _rentedCount);
             cache.LocalHits++;
             cache.LocalBytesRented += _segmentSize;
@@ -216,6 +237,14 @@ internal sealed class SlabBucket : IDisposable
 
         if (!this.IsOwnedAddress(addr))
         {
+            return;
+        }
+
+        if (!_rentedAddresses.TryRemove(addr, out _))
+        {
+#if DEBUG
+            Debug.WriteLine($"[FW.Memory] Double-return detected in SlabBucket of size {_segmentSize}!");
+#endif
             return;
         }
 

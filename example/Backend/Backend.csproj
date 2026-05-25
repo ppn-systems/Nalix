@@ -14,17 +14,21 @@
 
 		<Optimize>true</Optimize>
 		<TieredCompilation>true</TieredCompilation>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Nalix.SDK" Version="12.5.0" />
-		<PackageReference Include="Nalix.Logging" Version="12.5.0" />
-		<PackageReference Include="Nalix.Network" Version="12.5.0" />
-		<PackageReference Include="Nalix.Runtime" Version="12.5.0" />
-		<PackageReference Include="Nalix.Hosting" Version="12.5.0" />
-		<PackageReference Include="Nalix.Framework" Version="12.5.0" />
+		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Network\Nalix.Network.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
+		<ProjectReference Include="..\..\tools\Nalix.LoadTester.Contracts\Nalix.LoadTester.Contracts.csproj" />
 		
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
+		
+		<ProjectReference Include="..\..\src\Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
 	</ItemGroup>
 
 	<ItemGroup>

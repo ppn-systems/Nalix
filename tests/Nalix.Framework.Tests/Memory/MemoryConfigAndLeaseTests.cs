@@ -3,7 +3,10 @@ using Nalix.Environment.Memory;
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Xunit;
 
@@ -178,10 +181,17 @@ public sealed partial class MemoryTests
         Assert.Equal([5, 6], segment.ToArray());
     }
 #endif
+    [Fact]
+    public void TestBufferLeaseRent()
+    {
+        using var manager = new BufferPoolManager();
+        BufferLease.ByteArrayPool.Configure(manager);
+        byte[] arr = BufferLease.ByteArrayPool.Rent(2114);
+        Assert.True(arr.Length >= 2114, $"Expected >= 2114, got {arr.Length}");
+    }
+
+
 }
-
-
-
 
 
 

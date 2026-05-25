@@ -325,7 +325,9 @@ internal sealed partial class SocketConnection
                 {
                     throw HANDLE_PEER_CLOSED_EXCEPTION(self);
                 }
+
                 sent += n;
+                Interlocked.Add(ref self._bytesSent, n);
 
                 while (sent < totalLength)
                 {
@@ -600,7 +602,9 @@ internal sealed partial class SocketConnection
                         self.INVOKE_CLOSE_ONCE();
                         return ValueTask.FromException(Throw.GetSendFailed());
                     }
+
                     sent += n;
+                    _ = Interlocked.Add(ref self._bytesSent, n);
                 }
                 else
                 {
@@ -620,7 +624,9 @@ internal sealed partial class SocketConnection
                     self.INVOKE_CLOSE_ONCE();
                     Throw.SendFailedNow();
                 }
+
                 sent += n;
+                _ = Interlocked.Add(ref self._bytesSent, n);
 
                 while (sent < frame.Length)
                 {
@@ -631,7 +637,9 @@ internal sealed partial class SocketConnection
                         self.INVOKE_CLOSE_ONCE();
                         Throw.SendFailedNow();
                     }
+
                     sent += n;
+                    _ = Interlocked.Add(ref self._bytesSent, n);
                 }
             }
         }

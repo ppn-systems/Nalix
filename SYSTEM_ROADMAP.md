@@ -235,4 +235,18 @@ Incorrect implementation can lead to:
 
 ---
 
+### 7. Refactor DDoS Mitigation & Firewall Offloading
+
+**Status:** 🔲 Not Started  
+**Objective:** Simplify `ConnectionGuard` by removing complex, stateful L7 firewall logic (progressive banning, IP blacklists) that consumes excessive RAM during botnet attacks. Offload active DDoS mitigation to edge proxies (e.g., Cloudflare, NGINX).
+
+**Architectural Guidelines:**
+
+- **Remove Stateful Bans:** Delete `NetworkBanRepository`, `BanCount`, and progressive time-based banning logic (`CALCULATE_PROGRESSIVE_BAN_DURATION`). Banning IPs at the application layer is ineffective against IP spoofing and exhausts process memory.
+- **Remove Blacklists:** Deprecate `NetworkAccessList` for manual IP blacklisting. 
+- **Retain Resource Protection:** Keep the concurrent connection counter (`MaxConnectionsPerIpAddress`). If an IP exceeds its concurrent connection limit, immediately drop the connection (`return false`) without saving a long-term ban state.
+- **Retain UDP Protection:** Keep the lock-free CAS-based packet-per-second limiter in `DatagramGuard` to prevent internal queue overflows.
+
+---
+
 *Prepared for Nalix Open-Source Enterprise Development*
