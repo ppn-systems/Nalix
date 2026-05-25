@@ -120,6 +120,18 @@ public abstract partial class WebSocketListenerBase
 
                 if (context.Request.IsWebSocketRequest)
                 {
+                    if (_proxyConfig.Enabled && _proxyConfig.RequireTrustedProxy && context.Request.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
+                    {
+                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                        {
+                            this.Logger.LogWarning($"[NW.{nameof(WebSocketListenerBase)}:{nameof(AcceptConnectionsAsync)}] untrusted-proxy-rejected remote={remoteEp}");
+                        }
+
+                        context.Response.StatusCode = 403; // Forbidden
+                        context.Response.Close();
+                        continue;
+                    }
+
                     EndPoint realEndpoint = this.GET_REAL_ENDPOINT(context.Request);
 
                     // 1. Check Rate Limiter BEFORE accepting the WebSocket handshake.
@@ -311,6 +323,11 @@ public abstract partial class WebSocketListenerBase
     /// </summary>
     private EndPoint GET_REAL_ENDPOINT(HttpListenerRequest request)
     {
+        if (!_proxyConfig.Enabled)
+        {
+            return request.RemoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0);
+        }
+
         // 1. Check standard proxy headers.
         // Cloudflare uses CF-Connecting-IP. Nginx/HAProxy typically use X-Forwarded-For or X-Real-IP.
         string? forwardedFor = request.Headers["CF-Connecting-IP"] ?? request.Headers["X-Forwarded-For"] ?? request.Headers["X-Real-IP"];

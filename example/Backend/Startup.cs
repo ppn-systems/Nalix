@@ -53,7 +53,7 @@ internal class Startup
             })
             .Configure<ProxyProtocolOptions>(o =>
             {
-                o.Enabled = true;
+                o.Enabled = false;
             })
             .Configure<NetworkWebSocketOptions>(o =>
             {
