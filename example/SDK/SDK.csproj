@@ -16,7 +16,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix.Observability.Contracts\Nalix.Observability.Contracts.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.SDK\Nalix.SDK.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Logging\Nalix.Logging.csproj" />
 	</ItemGroup>

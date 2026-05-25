@@ -25,8 +25,8 @@ internal class Startup
     public const string ListenAddress = "0.0.0.0";
 
     public static ILogger CreateBootstrapLogger() => new NLogix(
-        cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = true))
-                  .SetMinimumLevel(LogLevel.Information)
+        cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
+                  .SetMinimumLevel(LogLevel.Trace)
     );
 
     public static NetworkApplication Configure(ILogger logger)
@@ -50,6 +50,10 @@ internal class Startup
                 o.Port = ListenPort;
                 o.BufferSize = 1024 * 64;
                 o.Backlog = 1024;
+            })
+            .Configure<ProxyProtocolOptions>(o =>
+            {
+                o.Enabled = true;
             })
             .Configure<NetworkWebSocketOptions>(o =>
             {

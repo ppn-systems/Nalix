@@ -21,7 +21,7 @@ public sealed partial class ProxyProtocolOptions : ConfigurationLoader
     public bool Enabled { get; set; } = false;
 
     /// <summary>
-    /// When true, only connections originating from IPs listed in the Trusted Proxies list 
+    /// When true, only connections originating from IPs listed in the Trusted Proxies list
     /// are allowed to perform a Proxy Protocol header read. All other connections are dropped.
     /// </summary>
     [IniComment("Drop Proxy Protocol headers from untrusted physical IPs (default: false)")]
