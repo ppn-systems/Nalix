@@ -81,6 +81,15 @@ public sealed partial class Connection :
     /// <param name="logger">The logger instance for logging connection events.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="socket"/> is null.</exception>
     public Connection(Socket socket, ILogger? logger = null)
+        : this(socket, socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."), logger)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a Connection with an overridden real endpoint (Proxy Protocol).
+    /// Use this overload when the TCP peer is a proxy that injects a PROXY header.
+    /// </summary>
+    public Connection(Socket socket, System.Net.EndPoint realEndPoint, ILogger? logger = null)
     {
         _logger = logger;
         _disposed = false;
@@ -90,7 +99,10 @@ public sealed partial class Connection :
         // Snapshot the remote endpoint up front so the connection can be logged
         // and tracked even before protocol-level events begin.
         this.ID = Snowflake.NewId(SnowflakeType.Session);
-        this.NetworkEndpoint = SocketEndpoint.FromEndPoint(socket?.RemoteEndPoint ?? throw new InternalErrorException("Socket does not expose a remote endpoint."));
+
+        // Use realEndPoint (from PROXY header) instead of socket.RemoteEndPoint (LB IP).
+        this.NetworkEndpoint = SocketEndpoint.FromEndPoint(
+            realEndPoint ?? throw new ArgumentNullException(nameof(realEndPoint)));
 
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
@@ -242,7 +254,7 @@ public sealed partial class Connection :
         if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
         {
             ((IPooledConnectContextPool)this).ReleasePendingPacket();
-            args.ExchangeLease(null);
+            _ = args.ExchangeLease(null);
             args.Dispose();
             lease.Dispose();
         }

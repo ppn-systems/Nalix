@@ -13,8 +13,6 @@ using Nalix.Abstractions.Networking;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 
-#pragma warning disable CA2213 // Disposable fields should be disposed
-
 namespace Nalix.Network.Listeners.Tcp;
 
 public abstract partial class TcpListenerBase
@@ -38,6 +36,11 @@ public abstract partial class TcpListenerBase
     /// <param name="cancellationToken"></param>
     private void START_PROCESS_CHANNEL(CancellationToken cancellationToken)
     {
+        if (_config.EnableProxyProtocol)
+        {
+            this.START_PROXY_SWEEP(cancellationToken);
+        }
+
         _processChannel = System.Threading.Channels.Channel.CreateBounded<IConnection>(
             new System.Threading.Channels.BoundedChannelOptions(_config.ProcessChannelCapacity)
             {
@@ -76,6 +79,11 @@ public abstract partial class TcpListenerBase
     /// </summary>
     private void STOP_PROCESS_CHANNEL()
     {
+        if (_config.EnableProxyProtocol)
+        {
+            this.STOP_PROXY_SWEEP();
+        }
+
         // TryComplete() -> marks the channel as "closed" (will not accept any new items).
         // The consumer worker will drain the remaining items and then exit the loop.
         _ = (_processChannel?.Writer.TryComplete());
@@ -85,7 +93,7 @@ public abstract partial class TcpListenerBase
         if (worker != null)
         {
             Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(worker.Id);
+                                                        .CancelWorker(worker.Id);
 
             int elapsed = 0;
             int timeout = _config.ProcessChannelDrainTimeout;
