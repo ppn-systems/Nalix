@@ -109,7 +109,7 @@ internal sealed class LoadTestOptions
         writer.WriteLine("  dotnet run --project tools/Nalix.LoadTester/Nalix.LoadTester.csproj -- --scenario payload --host 127.0.0.1 --port 57206");
         writer.WriteLine();
         writer.WriteLine("Options:");
-        writer.WriteLine("  --scenario ping|payload");
+        writer.WriteLine("  --scenario ping|payload|ddos");
         writer.WriteLine("  --host <address>");
         writer.WriteLine("  --port <1-65535>");
         writer.WriteLine("  --connections <count>");
@@ -270,7 +270,13 @@ internal sealed class LoadTestOptions
                         return true;
                     }
 
-                    error = "--scenario must be either 'ping' or 'payload'.";
+                    if (StringComparer.OrdinalIgnoreCase.Equals(value, "ddos"))
+                    {
+                        _scenario = LoadTestScenarioKind.DdosControl;
+                        return true;
+                    }
+
+                    error = "--scenario must be 'ping', 'payload', or 'ddos'.";
                     return false;
 
                 case "--host":

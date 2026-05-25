@@ -39,6 +39,7 @@ internal static class Program
         {
             LoadTestScenarioKind.Ping => new PingScenario(options.TimeoutMs),
             LoadTestScenarioKind.Payload => new PayloadEchoScenario(options.TimeoutMs, options.PayloadSize),
+            LoadTestScenarioKind.DdosControl => new DdosControlScenario(options.TimeoutMs),
             _ => throw new InvalidOperationException($"Unsupported scenario: {options.Scenario}")
         };
 

@@ -6,5 +6,7 @@ namespace Nalix.LoadTester;
 internal enum LoadTestScenarioKind
 {
     Ping,
-    Payload
+    Payload,
+    DdosControl
 }
+

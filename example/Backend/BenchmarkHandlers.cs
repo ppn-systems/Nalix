@@ -3,6 +3,7 @@
 
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.ProtocolFrames;
 using Nalix.LoadTester.Contracts;
 
 namespace Backend;
@@ -26,5 +27,17 @@ public sealed class BenchmarkHandlers
         ArgumentNullException.ThrowIfNull(context);
         //await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
         await context.Connection.TCP.SendAsync(context.Packet, context.CancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Handles incoming DDOS control test packets.
+    /// </summary>
+    [PacketOpcode(0x0111)]
+    [PacketEncryption(false)]
+    [PacketPermission(PermissionLevel.NONE)]
+    [PacketRateLimit(10, 1.0)] // 10 req/s, no burst
+    public static ValueTask HandleDdosControlAsync(IPacketContext<Control> context)
+    {
+        return ValueTask.CompletedTask;
     }
 }
