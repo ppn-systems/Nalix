@@ -16,13 +16,21 @@
 ## 2. Test Environment & System Specifications
 
 ### Hardware
-- **CPU:** ARM64 architecture (Raspberry Pi 5)
-- **Core Count:** 4 physical cores
-- **System Memory (RAM):** 4 GB LPDDR4X
-- **Network Interface:** Physical Gigabit Ethernet on local LAN.
-- **Thermal Status:** Peak temperature of **44.6°C** during the test, well below the thermal throttling limit. No active throttling observed.
+
+* **Hardware Model:** Raspberry Pi 5 Model B Rev 1.0
+* **Processor (CPU):** Broadcom BCM2712 (Cortex-A76, 4 Physical Cores, 4 Threads)
+  * **Frequency Range:** 1500.00 MHz (Min) - 2400.00 MHz (Max / Sustained)
+  * **Stepping:** r4p1
+  * **L1 Cache:** L1d 256 KiB, L1i 256 KiB
+  * **L2 Cache:** 2 MiB (4 instances)
+  * **L3 Cache:** 2 MiB (1 instance)
+* **System Memory (RAM):** 4.0 GB LPDDR5 (Total: 4,147,648 kB / ~4.0 GB)
+* **Storage:** 30 GB MicroSD Card (mmcblk0)
+* **Network Interface:** Physical Gigabit Ethernet (eth0 - 1 Gbps Link) on local LAN
+* **Thermal Status:** Peak temperature of **44.6°C** during the test, well below the thermal throttling limit. No active throttling observed.
 
 ### Software
+
 - **Operating System:** Unix 6.12.25.2712
 - **Kernel Version:** 6.12.25
 - **Runtime Version:** .NET 10.0.8 (linux-arm64, self-contained)
@@ -63,6 +71,7 @@ The 10 µs median latency confirms that the benchmark measured **Client-Side Soc
 ## 5. System Resource Analysis (Raspberry Pi 5)
 
 ### CPU Analysis
+
 **Observed behavior:**
 - **User:** 0.75%
 - **System:** 0.25%
@@ -80,10 +89,13 @@ pie title CPU Utilization Breakdown (Pi 5)
 - Detailed `sysstat` (`sar`) kernel profiling recorded consistent ~99% idle system-wide.
 
 **Hypothesis:**
+
 - The massive throughput of 573k RPS was handled asynchronously by the .NET 10 network stack. The CPU barely registered the load at the kernel level, leaving nearly 4 full cores available for background OS tasks.
 
 ### Memory Analysis
+
 **Observed behavior:**
+
 - **Baseline memory (Start):** 15.0 MB
 - **Average memory:** 269.4 MB
 - **Peak memory:** 422.0 MB
@@ -99,6 +111,7 @@ xychart-beta
 ```
 
 **Hypothesis:**
+
 - Memory growth patterns indicate absolute stability. The memory footprint ramped up to allocate buffers and connection states, then remained completely flat after warmup, proving a strict zero-allocation processing pipeline.
 
 ---
@@ -106,7 +119,9 @@ xychart-beta
 ## 6. Internal Framework Telemetry
 
 ### Object Pool Analysis
+
 **Observed behavior:**
+
 - **Overall hit rate:** 97.2% (38,232,033 hits).
 - **Throughput:** 191,513.8 ops/s.
 - **Net objects leaked:** 0.
@@ -120,10 +135,13 @@ xychart-beta
 | **PacketContext\<IPacket\>** | 100.0% | 1,035,530 / 1,035,529 | 1 | OK |
 
 **Hypothesis:**
+
 - The object pool effectively absorbed the allocation pressure. The zero-leak metric confirms flawless resource recycling.
 
 ### Buffer Pool Analysis
+
 **Observed behavior:**
+
 - **Slab math:** 256-byte chunks.
 - **Allocations:** Data not collected (pre-allocated).
 - **Hit rate:** 100.0% (34,218,240 hits).
@@ -133,12 +151,15 @@ xychart-beta
 - Throughput: 40.31 MB/s.
 
 **Hypothesis:**
+
 - The 256-byte buffer slabs perfectly encapsulated the 34 million incoming payloads. The system absorbed over 1 GB of raw payload data with negligible memory impact.
 
 ---
 
 ### Task Scheduling & GC
+
 **Observed behavior:**
+
 - **Workers:** 43 active (Peak 44).
 - **Active threads:** 3 (1 running).
 - **Completed work:** 1,152,043 handles.
@@ -146,12 +167,15 @@ xychart-beta
 - **GC Generations:** Gen 0 (3,020), Gen 1 (58), Gen 2 (23).
 
 **Hypothesis:**
+
 - Scheduling implications suggest the 43 workers were predominantly blocked on asynchronous socket waits rather than CPU-bound work. GC implications demonstrate minimal Gen 2 promotion, confirming zero-allocation paths for the packet payloads.
 
 ---
 
 ### Dispatch Pipeline
+
 **Observed behavior:**
+
 - **Execution counts:** 1,035,541 pipeline executions.
 - **Queue latency:** Data not collected.
 - **Execution latency:** 0.7317 ms average time.
@@ -164,6 +188,7 @@ xychart-beta
 > **Layer-4 Load Shedding (Backpressure):** While the test payload correctly included `[PacketRateLimit(10, 1.0)]`, the middleware pipeline only executed 1.03 million times against 34 million buffered packets. This confirms that the internal socket receiver actively shed (dropped) ~33 million packets before they reached the Layer-7 middleware.
 
 **Hypothesis:**
+
 - Because the flood reached 573,000 RPS, the Dispatcher's pending queue per IP immediately hit its maximum capacity limit. Once saturated, the Nalix Socket pipeline engaged strict Layer-4 backpressure: it continued to read from the OS socket to prevent TCP window collapse (hence 34M BufferLease hits), but immediately dropped the frames instead of allocating `PacketContext`s and pushing them to the full Layer-7 queue. Therefore, the `PacketRateLimit` middleware only evaluated the packets that actually fit into the queue (~1 million), while the remaining 33 million were efficiently shed at the edge.
 
 ---
@@ -171,11 +196,13 @@ xychart-beta
 ## 7. Root Cause Analysis
 
 ### Observed behavior
+
 - The client injected 34.4 million requests.
 - Buffer pools hit 34.2 million times.
 - Middleware pipeline executed 1.03 million times.
 
 ### Hypothesis
+
 - The massive throughput scaling (573k RPS) and low resource usage is driven by early Layer-4 load shedding. While Layer-7 middleware attributes like `[PacketRateLimit]` are enforced for queued tasks, the sheer volume of the flood caused the socket layer to proactively drop packets when the internal dispatch queue hit capacity, avoiding object allocation and GC overhead for 97% of the traffic.
 
 ---
@@ -191,8 +218,10 @@ xychart-beta
 ## 9. Conclusions & Optimization Paths
 
 ### Current Findings
+
 - Nalix Core on the Raspberry Pi 5 effortlessly absorbed 34.4 million requests (573,000 RPS) with **zero memory leaks** and practically **zero CPU strain** (~99% system idle).
 - The temperature peaked at a comfortable 44.6°C, indicating the architecture appears suitable for low-power edge environments without active cooling concerns.
 
 ### Potential Optimizations
+
 - **Early-Reject Telemetry:** Add explicit cumulative counters for packets dropped at the Layer-4/socket layer to provide perfect mathematical reconciliation between the 34.4M ingress buffer hits and the 1M middleware pipeline executions.
