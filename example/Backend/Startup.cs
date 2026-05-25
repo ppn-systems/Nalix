@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using Backend.Attributes;
-using Backend.Middleware;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
@@ -14,7 +13,6 @@ using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
 using Nalix.Observability.Handlers;
-using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
 namespace Backend;
@@ -26,7 +24,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogix(
         cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-                  .SetMinimumLevel(LogLevel.Trace)
+                  .SetMinimumLevel(LogLevel.Information)
     );
 
     public static NetworkApplication Configure(ILogger logger)
@@ -81,21 +79,22 @@ internal class Startup
             })
             .Configure<ObjectPoolOptions>(o =>
             {
-                o.EnableLeakDetection = false;
-                o.EnableDiagnostics = false;
                 o.EnableMetrics = true;
+                o.DefaultPreallocate = 128;
+                o.EnableDiagnostics = false;
                 o.CaptureStackTraces = false;
+                o.EnableLeakDetection = false;
                 o.SuspiciousThresholdSeconds = 10;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .ConfigureDispatchOptions(o =>
             {
-                _ = o.WithMiddleware(new TimeoutMiddleware());
-                _ = o.WithMiddleware(new PacketTagMiddleware());
-                _ = o.WithMiddleware(new RateLimitMiddleware());
-                _ = o.WithMiddleware(new PermissionMiddleware());
-                _ = o.WithMiddleware(new ConcurrencyMiddleware());
+                //_ = o.WithMiddleware(new TimeoutMiddleware());
+                //_ = o.WithMiddleware(new PacketTagMiddleware());
+                //_ = o.WithMiddleware(new RateLimitMiddleware());
+                //_ = o.WithMiddleware(new PermissionMiddleware());
+                //_ = o.WithMiddleware(new ConcurrencyMiddleware());
 
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
