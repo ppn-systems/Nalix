@@ -102,10 +102,28 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
         for (int i = 0; i < Size; i++)
         {
             long bit = 1L << i;
+            long oldMask;
+            long newMask;
+            bool success = false;
 
-            // Check if slot is free and attempt to claim it atomically
-            if ((Interlocked.Read(ref _mask) & bit) == 0 &&
-                (Interlocked.Or(ref _mask, bit) & bit) == 0)
+            do
+            {
+                oldMask = Volatile.Read(ref _mask);
+                if ((oldMask & DestroyedBit) != 0)
+                {
+                    return null;
+                }
+
+                if ((oldMask & bit) != 0)
+                {
+                    break; // Slot is busy, try next slot
+                }
+
+                newMask = oldMask | bit;
+                success = Interlocked.CompareExchange(ref _mask, newMask, oldMask) == oldMask;
+            } while (!success);
+
+            if (success)
             {
                 T item = items[i];
 
