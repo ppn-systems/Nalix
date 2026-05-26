@@ -113,6 +113,14 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader
     public int MinimumKeepObjects { get; set; } = 8;
 
     /// <summary>
+    /// Gets or sets the default maximum capacity for newly created object pools.
+    /// Default value is 8192. This applies to pools like BufferLease and ConnectionEventArgs.
+    /// </summary>
+    [IniComment("Default max capacity for any dynamically created pool (default 8192)")]
+    [Range(1024, 1_000_000, ErrorMessage = "DefaultMaxPoolSize must be between 1024 and 1,000,000.")]
+    public int DefaultMaxPoolSize { get; set; } = 8192;
+
+    /// <summary>
     /// Number of instances to preallocate when a new object type pool is created.
     /// </summary>
     [IniComment("Objects to warm up for each newly created type pool (default 0 = lazy allocation)")]

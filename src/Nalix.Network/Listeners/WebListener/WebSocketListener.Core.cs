@@ -34,6 +34,7 @@ public abstract partial class WebSocketListenerBase : IListener
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
     private readonly NetworkWebSocketOptions _config;
+    private readonly ForwardedHeadersOptions _forwardedConfig;
 
     private int _state;
     private int _isDisposed;
@@ -112,6 +113,7 @@ public abstract partial class WebSocketListenerBase : IListener
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
+        _forwardedConfig = ConfigurationManager.Instance.Get<ForwardedHeadersOptions>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
 
         _config.Validate();

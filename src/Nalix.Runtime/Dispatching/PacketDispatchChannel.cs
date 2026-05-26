@@ -523,44 +523,62 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
-        // 1. Read the packet header directly from the raw span to determine routing
-        PacketHeader header = MemoryMarshal.Read<PacketHeader>(lease.Span);
-
-        // 2. Resolve the handler using the parsed opcode
-        if (!this.Options.TryResolveHandler(header.OpCode, out PacketHandler<IPacket> handler))
-        {
-            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
-            {
-                connection.ThrottledWarn(
-                    this.Logging,
-                    "dispatch.execute",
-                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] no-handler opcode={header.OpCode}");
-            }
-
-            lease.Dispose();
-            connection.IncrementErrorCount();
-            return ValueTask.CompletedTask;
-        }
-
         IPacket packet;
+        PacketHeader header;
+        PacketHandler<IPacket> handler;
 
-        // 3. Bypass deserialization if the handler expects raw memory
-        if (handler.ExpectedPacketType == typeof(MemoryPacket))
+        try
         {
-            packet = new MemoryPacket(lease.Memory, header);
-        }
-        else
-        {
-            // 4. Normal deserialization fallback for structured packets
-            if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? deserialized) || deserialized is null)
+            // 1. Read the packet header directly from the raw span to determine routing
+            header = MemoryMarshal.Read<PacketHeader>(lease.Span);
+
+            // 2. Resolve the handler using the parsed opcode
+            if (!this.Options.TryResolveHandler(header.OpCode, out handler))
             {
-                _ = Interlocked.Increment(ref _deserializationErrors);
+                if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
+                {
+                    connection.ThrottledWarn(
+                        this.Logging,
+                        "dispatch.execute",
+                        $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] no-handler opcode={header.OpCode}");
+                }
+
                 lease.Dispose();
                 connection.IncrementErrorCount();
                 return ValueTask.CompletedTask;
             }
 
-            packet = deserialized;
+            // 3. Bypass deserialization if the handler expects raw memory
+            if (handler.ExpectedPacketType == typeof(MemoryPacket))
+            {
+                packet = new MemoryPacket(lease.Memory, header);
+            }
+            else
+            {
+                // 4. Normal deserialization fallback for structured packets
+                if (!PacketRegistry.TryDeserialize(lease.Span, out IPacket? deserialized) || deserialized is null)
+                {
+                    _ = Interlocked.Increment(ref _deserializationErrors);
+                    lease.Dispose();
+                    connection.IncrementErrorCount();
+                    return ValueTask.CompletedTask;
+                }
+
+                packet = deserialized;
+            }
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            connection.IncrementErrorCount();
+            if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
+            {
+                connection.ThrottledError(
+                    this.Logging,
+                    "dispatch.execute_prep",
+                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] prepare-error ep={connection.NetworkEndpoint}", ex);
+            }
+            lease.Dispose();
+            return ValueTask.CompletedTask;
         }
 
         try

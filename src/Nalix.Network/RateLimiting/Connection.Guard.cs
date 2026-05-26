@@ -145,6 +145,12 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     }
 
     /// <summary>
+    /// Checks if the provided endpoint belongs to a known trusted proxy.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsTrustedProxy(IPEndPoint? endPoint) => endPoint?.Address != null && _accessList.IsTrustedProxy(endPoint.Address);
+
+    /// <summary>
     /// Attempts to acquire a connection slot for the given endpoint.
     /// </summary>
     /// <param name="endPoint">The IP endpoint requesting connection.</param>

@@ -316,7 +316,13 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     /// <param name="connection">The destination connection.</param>
     /// <param name="raw">The packet lease to enqueue.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Push(IConnection connection, IBufferLease raw) => _ = this.PushCore(connection, raw);
+    public void Push(IConnection connection, [Borrowed] IBufferLease raw)
+    {
+        if (!this.PushCore(connection, raw))
+        {
+            raw?.Dispose();
+        }
+    }
 
     /// <inheritdoc/>
     public void Dispose()
@@ -350,11 +356,10 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     /// <param name="noBlock">When <see langword="true"/>, block-mode overflow will fail fast instead of waiting for capacity.</param>
     /// <returns><see langword="true"/> if a ready queue entry was emitted.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    internal bool PushCore(IConnection connection, IBufferLease raw, bool noBlock = false)
+    internal bool PushCore(IConnection connection, [Borrowed] IBufferLease raw, bool noBlock = false)
     {
         if (connection is null)
         {
-            raw?.Dispose();
             return false;
         }
 
@@ -366,7 +371,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         ConnectionState state = this.GetOrCreateState(connection);
         if (!state.IsActive)
         {
-            raw.Dispose();
             return false;
         }
 
@@ -374,7 +378,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
         if (_maxPerConnectionQueue > 0 && !this.EnsureCapacity(state, noBlock))
         {
-            raw.Dispose();
             return false;
         }
 
@@ -389,7 +392,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
             }
             else
             {
-                raw.Dispose();
                 return false;
             }
         }

@@ -100,7 +100,8 @@ public sealed partial class MemoryTests
     [Fact]
     public void Get_ObjectPoolManagerLifecycle_TracksStatisticsAndReports()
     {
-        ObjectPoolManager manager = new() { DefaultMaxPoolSize = 8 };
+        ObjectPoolOptions options = new() { DefaultMaxPoolSize = 1024 };
+        ObjectPoolManager manager = new(options);
 
         TestPoolable first = manager.Get<TestPoolable>();
         first.Value = 9;

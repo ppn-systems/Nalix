@@ -235,6 +235,42 @@ public abstract partial class TcpListenerBase
         }
     }
 
+    /// <inheritdoc/>
+    [DebuggerStepThrough]
+    private IConnection InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
+    {
+        this.InitializeOptions(socket);
+
+        EndPoint endpoint = realEndPoint ?? socket.RemoteEndPoint!;
+        Connection connection = new(socket, endpoint, this.Logger);
+
+        try
+        {
+            connection.OnCloseEvent += this.HandleConnectionClose;
+            connection.OnCloseEvent += _limiter.OnConnectionClosed;
+            connection.OnProcessEvent += this.ProcessFrame;
+            connection.OnPostProcessEvent += this.Protocol.PostProcessMessage;
+
+            if (_config.EnableTimeout)
+            {
+                _timing.Register(connection);
+            }
+
+            if (bytesReceived > headerBytesConsumed && receiveBuffer != null)
+            {
+                ReadOnlySpan<byte> extraBytes = receiveBuffer.AsSpan(headerBytesConsumed, bytesReceived - headerBytesConsumed);
+                connection.Socket.InjectPreReadBytes(extraBytes);
+            }
+
+            return connection;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            connection.Dispose();
+            throw;
+        }
+    }
+
     /// <summary>
     /// Closes a socket, swallowing any exception that occurs during the close operation.
     /// </summary>
@@ -363,12 +399,34 @@ public abstract partial class TcpListenerBase
                     return;
                 }
 
+                if (_proxyConfig.Enabled)
+                {
+                    if (_proxyConfig.RequireTrustedProxy && socket.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
+                    {
+                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                        {
+                            this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] untrusted-proxy-rejected remote={remoteEp}");
+                        }
+
+                        this.Metrics.RECORD_REJECTED();
+                        this.SafeCloseSocket(socket);
+                        this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
+                        return;
+                    }
+
+                    // Return context to pool since proxy header read doesn't need it.
+                    _pool.Return(context);
+                    this.BeginProxyHeaderRead(socket);
+                }
+                else
+                {
 #pragma warning disable CA2000
-                connection = this.ProcessAcceptedSocket(socket, context);
+                    connection = this.ProcessAcceptedSocket(socket, context);
 #pragma warning restore CA2000
 
-                // Process the connection
-                this.DISPATCH_CONNECTION(connection);
+                    // Process the connection
+                    this.DISPATCH_CONNECTION(connection);
+                }
 
                 // Prepare args for the NEXT accept immediately.
                 // WHY prepare now: AcceptNext will call AcceptAsync with this args.
@@ -651,7 +709,7 @@ public abstract partial class TcpListenerBase
             // It can detect and restart/alert based on heartbeat timeout.
             ctx.Beat();
 
-            IConnection connection;
+            IConnection? connection;
             try
             {
                 connection = await this.CreateConnectionAsync(cancellationToken)
@@ -717,15 +775,18 @@ public abstract partial class TcpListenerBase
                 continue;
             }
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (connection != null)
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
-                    $"accepted remote={connection.NetworkEndpoint} port={_port}");
-            }
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+                {
+                    this.Logger.LogTrace(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
+                        $"accepted remote={connection.NetworkEndpoint} port={_port}");
+                }
 
-            // Send the connection to process channel -> consumer thread for processing.
-            this.DISPATCH_CONNECTION(connection);
+                // Send the connection to process channel -> consumer thread for processing.
+                this.DISPATCH_CONNECTION(connection);
+            }
             ctx.Advance(1, note: "accepted");
         }
 
@@ -771,7 +832,7 @@ public abstract partial class TcpListenerBase
     /// <para>
     /// A <see cref="PooledAcceptContext"/> is borrowed from the pool before the async accept
     /// and is returned to the pool in all exit paths — either by
-    /// <see cref="InitializeConnection"/> on the success path, or explicitly in every
+    /// <see cref="InitializeConnection(Socket, PooledAcceptContext)"/> on the success path, or explicitly in every
     /// catch/early-return branch via a <c>contextReturned</c> guard flag to avoid
     /// double-return bugs.
     /// </para>
@@ -785,7 +846,7 @@ public abstract partial class TcpListenerBase
     [MethodImpl(MethodImplOptions.NoInlining)]
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    protected async ValueTask<IConnection> CreateConnectionAsync(CancellationToken cancellationToken)
+    protected async ValueTask<IConnection?> CreateConnectionAsync(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -821,6 +882,22 @@ public abstract partial class TcpListenerBase
             {
                 this.SafeCloseSocket(socket);
                 Throw.InvalidSocket();
+            }
+
+            if (_proxyConfig.Enabled)
+            {
+                if (_proxyConfig.RequireTrustedProxy && socket.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
+                {
+                    this.SafeCloseSocket(socket);
+                    Throw.ConnectionRejectedByLimiter();
+                }
+
+                // We return the context right away because the proxy header read is async.
+                _pool.Return(context);
+                contextOwned = false; // So finally block doesn't double-return
+
+                this.BeginProxyHeaderRead(socket);
+                return null;
             }
 
             if (socket.RemoteEndPoint is not IPEndPoint ip || !_limiter.TryAccept(ip))

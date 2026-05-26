@@ -109,7 +109,7 @@ public sealed partial class ObjectPoolManager
 
         // Get current pool state (available count and capacity)
         int available = 0;
-        int maxCap = this.DefaultMaxPoolSize;
+        int maxCap = _defaultMaxPoolSize;
         if (_poolDict.TryGetValue(type, out ObjectPool? pool))
         {
             Dictionary<string, object> info = pool.GetTypeInfoByType(type);

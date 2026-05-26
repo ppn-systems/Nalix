@@ -11,6 +11,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
+using Nalix.Network.Internal.Pooling;
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -165,7 +166,7 @@ public abstract partial class TcpListenerBase
     /// </param>
     /// <remarks>
     /// <para>
-    /// Called by <see cref="InitializeConnection"/> immediately after a socket is accepted,
+    /// Called by <see cref="InitializeConnection(Socket, PooledAcceptContext)"/> immediately after a socket is accepted,
     /// before the <see cref="IConnection"/> wrapper is constructed. Options applied here
     /// affect only the individual client socket — not the listener socket itself.
     /// </para>

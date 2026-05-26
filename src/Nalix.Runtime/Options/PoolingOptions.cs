@@ -33,16 +33,16 @@ public sealed partial class PoolingOptions : ConfigurationLoader
     /// <summary>
     /// Maximum number of <see cref="PacketContext{T}"/> instances retained in the pool.
     /// </summary>
-    [IniComment("Max pooled IPacketContext instances (default 1024)")]
+    [IniComment("Max pooled IPacketContext instances (default 8192)")]
     [Range(1, 1_000_000, ErrorMessage = "IPacketContext.Capacity must be between 1 and 1,000,000.")]
     public int PacketContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PacketContext{T}"/> instances to create at startup.
     /// </summary>
-    [IniComment("IPacketContext instances to warm up at startup (default 32)")]
+    [IniComment("IPacketContext instances to warm up at startup (default 64)")]
     [Range(0, 1_000_000, ErrorMessage = "IPacketContext.Preallocate must be between 0 and 1,000,000.")]
-    public int PacketContextPreallocate { get; set; } = 32;
+    public int PacketContextPreallocate { get; set; } = 64;
 
     #endregion Packet Context — reusable packet processing contexts
 

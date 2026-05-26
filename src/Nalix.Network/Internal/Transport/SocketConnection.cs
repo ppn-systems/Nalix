@@ -209,6 +209,26 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         _receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
     }
 
+    /// <summary>
+    /// Injects pre-read bytes (e.g. trailing data after a PROXY protocol header)
+    /// into the connection's receive buffer before the normal receive loop starts.
+    /// </summary>
+    internal void InjectPreReadBytes(ReadOnlySpan<byte> preReadBytes)
+    {
+        if (preReadBytes.IsEmpty)
+        {
+            return;
+        }
+
+        if (_bufferDataLength + preReadBytes.Length > _buffer!.Length)
+        {
+            throw new InvalidOperationException("Pre-read bytes exceed receive buffer capacity.");
+        }
+
+        preReadBytes.CopyTo(_buffer.AsSpan(_bufferDataLength));
+        _bufferDataLength += preReadBytes.Length;
+    }
+
     #endregion Public Methods
 
     #region Dispose Pattern

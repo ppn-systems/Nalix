@@ -91,6 +91,11 @@ public static class TaskNaming
         /// Tag for tasks that handle logging or telemetry.
         /// </summary>
         public const string Logging = "log";
+
+        /// <summary>
+        /// Tag for tasks that manage proxies or intermediaries.
+        /// </summary>
+        public const string Proxy = "proxy";
     }
 
     /// <summary>

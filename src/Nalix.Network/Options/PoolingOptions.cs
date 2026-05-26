@@ -34,21 +34,21 @@ public sealed partial class PoolingOptions : ConfigurationLoader
     /// Maximum number of <see cref="PooledAcceptContext"/> instances retained in the pool.
     /// <para>
     /// Each accept-loop worker holds exactly one context while waiting for a connection.
-    /// Set this to at least the number of accept workers (default 20) plus a small buffer.
+    /// Set this to at least the number of accept workers (default 32) plus a small buffer.
     /// </para>
     /// </summary>
     [IniComment("Max pooled AcceptContext instances — set to accept-worker count + buffer (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "AcceptContext.Capacity must be between 1 and 1,000,000.")]
-    public int AcceptContextCapacity { get; set; } = 4096;
+    public int AcceptContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledAcceptContext"/> instances to create at startup.
     /// </summary>
-    [IniComment("AcceptContext instances to warm up at startup (default 20 = typical worker count)")]
+    [IniComment("AcceptContext instances to warm up at startup (default 32 = typical worker count)")]
     [System.ComponentModel.DataAnnotations.Range(0, 1_000_000,
         ErrorMessage = "AcceptContext.Preallocate must be between 0 and 1,000,000.")]
-    public int AcceptContextPreallocate { get; set; } = 20;
+    public int AcceptContextPreallocate { get; set; } = 32;
 
     #endregion Accept Context — one per in-flight AcceptAsync operation
 
@@ -64,7 +64,7 @@ public sealed partial class PoolingOptions : ConfigurationLoader
     [IniComment("Max pooled SocketAsyncEventArgs — accept workers + peak connections (default 4096)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "SocketArgs.Capacity must be between 1 and 1,000,000.")]
-    public int SocketArgsCapacity { get; set; } = 4096;
+    public int SocketArgsCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledSocketAsyncEventArgs"/> instances to create at startup.
@@ -85,10 +85,10 @@ public sealed partial class PoolingOptions : ConfigurationLoader
     /// Set this to the expected peak concurrent connection count.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled ReceiveContext instances — set to peak concurrent connections (default 4096)")]
+    [IniComment("Max pooled ReceiveContext instances — set to peak concurrent connections (default 8192)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "ReceiveContext.Capacity must be between 1 and 1,000,000.")]
-    public int ReceiveContextCapacity { get; set; } = 4096;
+    public int ReceiveContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledSocketReceiveContext"/> instances to create at startup.
@@ -139,10 +139,10 @@ public sealed partial class PoolingOptions : ConfigurationLoader
     /// Set this to the expected peak number of queued connection callbacks.
     /// </para>
     /// </summary>
-    [IniComment("Max pooled ConnectEventContext instances — set to peak queued connection callbacks (default 4096)")]
+    [IniComment("Max pooled ConnectEventContext instances — set to peak queued connection callbacks (default 8192)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1_000_000,
         ErrorMessage = "ConnectEventContext.Capacity must be between 1 and 1,000,000.")]
-    public int ConnectEventContextCapacity { get; set; } = 4096;
+    public int ConnectEventContextCapacity { get; set; } = 8192;
 
     /// <summary>
     /// Number of <see cref="PooledConnectEventContext"/> instances to create at startup.

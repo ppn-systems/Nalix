@@ -33,6 +33,7 @@ public abstract partial class TcpListenerBase : IListener
     private readonly IConnectionHub _hub;
 
     private readonly NetworkSocketOptions _config;
+    private readonly ProxyProtocolOptions _proxyConfig;
 
 #pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly TimingWheel _timing;
@@ -113,6 +114,7 @@ public abstract partial class TcpListenerBase : IListener
         this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
 
         _config = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
+        _proxyConfig = ConfigurationManager.Instance.Get<ProxyProtocolOptions>();
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
         _limiter = InstanceManager.Instance.GetOrCreateInstance<ConnectionGuard>();
@@ -475,7 +477,8 @@ public abstract partial class TcpListenerBase : IListener
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
 
             this.STOP_PROCESS_CHANNEL();
-            Interlocked.Exchange(ref _processWorker, null)?.Dispose();
+            _processWorker?.Dispose();
+            _processWorker = null;
             _processChannel = null;
 
             _lock.Dispose();

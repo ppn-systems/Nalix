@@ -67,7 +67,6 @@ internal sealed class UdpServerListener : UdpListenerBase
 
             if (!args.Connection.UDP.ReceiveSequence.IsValid(seq, window: this.SequenceOptions.UdpWindow))
             {
-                current.Dispose();
                 return;
             }
 
