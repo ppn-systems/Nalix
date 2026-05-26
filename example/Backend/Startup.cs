@@ -74,8 +74,8 @@ internal class Startup
             })
             .Configure<ForwardedHeadersOptions>(o =>
             {
-                o.Enabled = true;
-                o.RequireTrustedProxy = true;
+                o.Enabled = false;
+                o.RequireTrustedProxy = false;
             })
             .Configure<NetworkWebSocketOptions>(o =>
             {
