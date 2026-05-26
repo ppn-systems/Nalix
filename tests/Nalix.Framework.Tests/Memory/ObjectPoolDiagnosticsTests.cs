@@ -19,7 +19,7 @@ public sealed class ObjectPoolDiagnosticsTests
     public void Get_PeakOutstanding_AlwaysTracked()
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true };
-        ObjectPoolManager manager = new(config);
+        using ObjectPoolManager manager = new(config);
 
         // Rent 3 items
         TestPoolable item1 = manager.Get<TestPoolable>();
@@ -45,7 +45,7 @@ public sealed class ObjectPoolDiagnosticsTests
         // Use a private config instance to avoid interference with other tests using the singleton
         ObjectPoolOptions config = new() { EnableDiagnostics = true };
 
-        ObjectPoolManager manager = new(config);
+        using ObjectPoolManager manager = new(config);
         
         TestPoolable item = manager.Get<TestPoolable>();
         Thread.Sleep(50); 
@@ -79,7 +79,7 @@ public sealed class ObjectPoolDiagnosticsTests
 
         try
         {
-            ObjectPoolManager manager = new();
+            using ObjectPoolManager manager = new();
 
             TestPoolable item = manager.Get<TestPoolable>();
 
@@ -102,7 +102,7 @@ public sealed class ObjectPoolDiagnosticsTests
     public void PerformHealthCheck_LifetimeMissesWithoutNewTraffic_DoesNotSpamPoolFailure()
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
-        ObjectPoolManager manager = new(config);
+        using ObjectPoolManager manager = new(config);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
 
         for (int i = 0; i < 32; i++)
@@ -121,7 +121,7 @@ public sealed class ObjectPoolDiagnosticsTests
     public void PerformHealthCheck_LowSampleMisses_AreWarmingNotUnhealthy()
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
-        ObjectPoolManager manager = new(config);
+        using ObjectPoolManager manager = new(config);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
 
         for (int i = 0; i < 6; i++)
@@ -138,7 +138,7 @@ public sealed class ObjectPoolDiagnosticsTests
     public void PerformHealthCheck_HealthyWindowAfterFailure_ResetsStatus()
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
-        ObjectPoolManager manager = new(config);
+        using ObjectPoolManager manager = new(config);
         List<HealthCheckPoolable> rented = new(32);
 
         for (int i = 0; i < 32; i++)
@@ -167,7 +167,7 @@ public sealed class ObjectPoolDiagnosticsTests
     public void PerformHealthCheck_PoolFailurePayload_UsesReadableGenericTypeName()
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
-        ObjectPoolManager manager = new(config);
+        using ObjectPoolManager manager = new(config);
         using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
 
         for (int i = 0; i < 32; i++)
@@ -195,7 +195,7 @@ public sealed class ObjectPoolDiagnosticsTests
             EnableLeakDetection = true
         };
 
-        ObjectPoolManager manager = new(config);
+        using ObjectPoolManager manager = new(config);
 
         // Rent and drop reference (leak)
         this.CreateLeak(manager);
