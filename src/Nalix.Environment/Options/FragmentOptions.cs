@@ -34,10 +34,10 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// <para>
     /// This value must be less than <see cref="PacketConstants.PacketSizeLimit"/> minus 9 bytes (header overhead).
     /// </para>
-    /// Default: 1,400 bytes (fits a single Ethernet MTU after TCP/IP overhead).
+    /// Default: 32KB (fits a single Ethernet MTU after TCP/IP overhead).
     /// </summary>
-    [IniComment("Max chunk size in bytes (default 1400)")]
-    public int MaxChunkSize { get; set; } = 1_400;
+    [IniComment("Max chunk size in bytes (default 32KB)")]
+    public int MaxChunkSize { get; set; } = 32_000;
 
     /// <summary>
     /// Maximum total bytes that <see cref="FragmentAssembler"/> will accumulate for a single stream.
@@ -65,9 +65,9 @@ public sealed partial class FragmentOptions : ConfigurationLoader
             throw new ValidationException($"MaxPayloadSize={this.MaxPayloadSize} must be positive.");
         }
 
-        if (this.MaxChunkSize <= 0 || this.MaxChunkSize > 65000)
+        if (this.MaxChunkSize < 4096 || this.MaxChunkSize > 65000)
         {
-            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be in range [1, 65000].");
+            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be in range [4096, 65000].");
         }
 
         if (this.MaxReassemblyBytes <= 0)
