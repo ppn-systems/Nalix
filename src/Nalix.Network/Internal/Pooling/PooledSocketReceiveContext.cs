@@ -347,24 +347,25 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
 
             _args.Completed -= AsyncReceiveCompleted;
             _args.UserToken = null;
-            _args.SetBuffer(null, 0, 0);
 
-            if (_args is PooledSocketAsyncEventArgs pooled)
+            if (!isBusy)
             {
-                pooled.ResetForPool();
-                if (!isBusy)
+                _args.SetBuffer(null, 0, 0);
+
+                if (_args is PooledSocketAsyncEventArgs pooled)
                 {
+                    pooled.ResetForPool();
                     InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                             .Return(pooled);
                 }
-#if DEBUG
-                else
-                {
-                    Debug.WriteLine(
-                        $"[PooledSocketReceiveContext] LEAKING busy SAEA to prevent corruption ctx={RuntimeHelpers.GetHashCode(this)}");
-                }
-#endif
             }
+#if DEBUG
+            else if (_args is PooledSocketAsyncEventArgs)
+            {
+                Debug.WriteLine(
+                    $"[PooledSocketReceiveContext] LEAKING busy SAEA to prevent corruption ctx={RuntimeHelpers.GetHashCode(this)}");
+            }
+#endif
 
             _args = null;
         }

@@ -10,7 +10,7 @@
 
 ### 1. Resilient Error Logging & Spoofing Prevention
 
-**Status:** ✅ Completed    
+**Status:** ✅ Completed
 **Objective:** Handle client-originated `ControlType.ERROR` / `FAIL` packets securely without exposing the server to log spam or disk I/O exhaustion (DDoS).
 
 **Architectural Guidelines:**
@@ -81,7 +81,7 @@
 
 ### 5. Real IP Resolution & Proxy Protocol Support (L4 Protection Integration)
 
-**Status:** 🔲 Not Started  
+**Status:** ✅ Completed
 **Objective:** Accurately resolve the real client IP when the TCP server is deployed behind L4 proxies (e.g., Cloudflare Spectrum, HAProxy, NGINX stream) while preserving security guarantees against spoofing and rate-limit bypass.
 
 **Architectural Guidelines:**
@@ -109,7 +109,7 @@ The server MUST support both industry-standard formats:
 
 ###### PROXY v1 (Text-based)
 
-```
+```plaintext
 PROXY TCP4 1.2.3.4 5.6.7.8 12345 80\r\n
 ```
 
@@ -117,7 +117,7 @@ PROXY TCP4 1.2.3.4 5.6.7.8 12345 80\r\n
 
 - Magic header:
 
-```
+```plaintext
 \r\n\r\n\0\r\nQUIT\n
 ```
 

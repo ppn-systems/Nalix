@@ -66,10 +66,16 @@ internal class Startup
                 o.Port = ListenPort;
                 o.BufferSize = 65536;
                 o.Backlog = 16384;
+                o.MaxParallel = 5;
             })
             .Configure<ProxyProtocolOptions>(o =>
             {
                 o.Enabled = false;
+            })
+            .Configure<ForwardedHeadersOptions>(o =>
+            {
+                o.Enabled = true;
+                o.RequireTrustedProxy = true;
             })
             .Configure<NetworkWebSocketOptions>(o =>
             {
@@ -88,21 +94,22 @@ internal class Startup
             })
             .Configure<NetworkCallbackOptions>(o =>
             {
-                o.MaxPerConnectionPendingPackets = 512;
                 o.MaxPendingPerIp = 10_000;
+                o.MaxPooledCallbackStates = 64_000;
+                o.CallbackWarningThreshold = 10_000;
+                o.MaxPerConnectionPendingPackets = 512;
                 o.MaxPendingNormalCallbacks = 1_000_000;
                 o.MaxPerConnectionOpenFragmentStreams = 256;
-                o.CallbackWarningThreshold = 10_000;
-                o.MaxPooledCallbackStates = 64_000;
             })
             .Configure<ObjectPoolOptions>(o =>
             {
-                o.EnableMetrics = false;
-                o.DefaultMaxPoolSize = 100_000;
-                o.DefaultPreallocate = 2_000;
+                o.EnableMetrics = true;
                 o.EnableDiagnostics = false;
                 o.CaptureStackTraces = false;
                 o.EnableLeakDetection = false;
+
+                o.DefaultPreallocate = 2_000;
+                o.DefaultMaxPoolSize = 100_000;
             })
             .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
             .AddMetadataProvider<PacketTagMetadataProvider>()
@@ -113,7 +120,7 @@ internal class Startup
                 //_ = o.WithMiddleware(new RateLimitMiddleware());
                 //_ = o.WithMiddleware(new PermissionMiddleware());
                 //_ = o.WithMiddleware(new ConcurrencyMiddleware());
-
+                _ = o.WithDispatchLoopCount(16);
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .BindTcp<DefaultProtocol>()
