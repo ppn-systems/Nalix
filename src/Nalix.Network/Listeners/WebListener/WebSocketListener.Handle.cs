@@ -19,6 +19,9 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Connections;
 
+#pragma warning disable IDE0079
+#pragma warning disable CA2213
+
 namespace Nalix.Network.Listeners.Web;
 
 public abstract partial class WebSocketListenerBase
