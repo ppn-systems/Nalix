@@ -82,6 +82,11 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
 
     public override void Initialize(AnalysisContext context)
     {
+        if (context is null)
+        {
+            return;
+        }
+
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
         context.RegisterCompilationStartAction(static startContext =>
@@ -1365,7 +1370,9 @@ public sealed partial class NalixUsageAnalyzer : DiagnosticAnalyzer
         }
 
         string name = type.Name;
-        return name.EndsWith("Exception") || name == "CancellationTokenSource" || name == "StringBuilder";
+        return name.EndsWith("Exception", StringComparison.Ordinal) ||
+               string.Equals(name, "StringBuilder", StringComparison.Ordinal) ||
+               string.Equals(name, "CancellationTokenSource", StringComparison.Ordinal);
     }
 
     private static bool IsNalixHotPath(IMethodSymbol method, SymbolSet symbols)

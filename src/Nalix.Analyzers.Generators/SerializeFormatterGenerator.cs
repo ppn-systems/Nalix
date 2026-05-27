@@ -137,6 +137,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
             _ = sb.AppendLine($"using {KnownNames.CodecExtensionsNamespace};");
             _ = sb.AppendLine();
             _ = sb.AppendLine("#pragma warning disable CS1591");
+            _ = sb.AppendLine("#pragma warning disable IDE0240");
             _ = sb.AppendLine("#nullable enable");
             _ = sb.AppendLine();
             _ = sb.AppendLine($"namespace {generatedNamespace}.{KnownNames.FormatterName};");
@@ -363,6 +364,7 @@ public sealed class SerializeFormatterGenerator : IIncrementalGenerator
         _ = sb.AppendLine("using System.Runtime.CompilerServices;");
         _ = sb.AppendLine();
         _ = sb.AppendLine("#pragma warning disable CA2255");
+        _ = sb.AppendLine("#pragma warning disable IDE0240");
         _ = sb.AppendLine("#nullable enable");
         _ = sb.AppendLine();
         _ = sb.AppendLine($"namespace {generatedNamespace};");

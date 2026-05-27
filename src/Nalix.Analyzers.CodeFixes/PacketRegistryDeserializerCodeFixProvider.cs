@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Composition;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -49,10 +50,11 @@ public sealed class PacketRegistryDeserializerCodeFixProvider : CodeFixProvider
             return;
         }
 
-        string typeName = ExtractQuotedName(diagnostic.GetMessage()) ?? typeDeclaration.Identifier.ValueText;
+        string typeName = ExtractQuotedName(diagnostic.GetMessage(CultureInfo.InvariantCulture)) ?? typeDeclaration.Identifier.ValueText;
         TypeDeclarationSyntax? targetType = root.DescendantNodes()
             .OfType<TypeDeclarationSyntax>()
             .FirstOrDefault(t => t.Identifier.ValueText == typeName);
+
         if (targetType is null)
         {
             return;
