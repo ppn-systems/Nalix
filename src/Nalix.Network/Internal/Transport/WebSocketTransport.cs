@@ -122,6 +122,14 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
         _receiveLoopTask = this.RECEIVE_LOOP_ASYNC(cancellationToken);
     }
 
+    /// <inheritdoc/>
+    public void UseFraming(TransportFraming framing, int maxPacketSize = 0)
+    {
+        if (framing != TransportFraming.None)
+        {
+            throw new NotSupportedException("WebSocket transport does not support framing mechanisms natively as it provides its own message framing. Use TransportFraming.None.");
+        }
+    }
     #endregion APIs
 
     #region Receive Loop

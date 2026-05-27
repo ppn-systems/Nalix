@@ -27,6 +27,7 @@ using Nalix.Network.Options;
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 #endif
 
 namespace Nalix.Network.Internal.Transport;
@@ -124,7 +125,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Lifecycle
 
     /// <summary>
-    /// Sets an external socket to be used for transmission. 
+    /// Sets an external socket to be used for transmission.
     /// Used when the transport should share the listener's socket.
     /// </summary>
     internal void SetSocket(Socket socket)
@@ -141,7 +142,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     }
 
     /// <summary>
-    /// Initializes the transport with a target endpoint. 
+    /// Initializes the transport with a target endpoint.
     /// If no socket is currently set, a new one is created.
     /// </summary>
     public void Initialize(ref IPEndPoint iPEndPoint)
@@ -323,6 +324,15 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     {
         // Outbound transport does not handle incoming packets directly.
         // Reception is managed by UdpListenerBase or similar listener logic.
+    }
+
+    /// <inheritdoc/>
+    public void UseFraming(TransportFraming framing, int maxPacketSize = 0)
+    {
+        if (framing != TransportFraming.None)
+        {
+            throw new NotSupportedException("UDP transport does not support framing mechanisms. Use TransportFraming.None.");
+        }
     }
 
     /// <summary>

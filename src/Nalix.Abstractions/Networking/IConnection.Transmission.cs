@@ -69,6 +69,13 @@ public partial interface IConnection
         /// Call this method to initiate listening for incoming data on the connection.
         /// </remarks>
         void BeginReceive(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Sets the framing mode for this transport.
+        /// Must be called before <see cref="BeginReceive"/> is invoked.
+        /// </summary>
+        /// <param name="framing">The framing mode to use.</param>
+        /// <param name="maxPacketSize">Optional custom max packet size limit. 0 means use the default limit for the framing mode.</param>
+        void UseFraming(TransportFraming framing, int maxPacketSize = 0);
     }
 }
-

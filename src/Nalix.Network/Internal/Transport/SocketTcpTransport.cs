@@ -54,6 +54,10 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
     }
 
     [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void UseFraming(TransportFraming framing, int maxPacketSize = 0) => _outer.Socket.SetFraming(framing, maxPacketSize);
+
+    [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Send(IPacket packet)
     {

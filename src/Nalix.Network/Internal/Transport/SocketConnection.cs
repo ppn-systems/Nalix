@@ -196,6 +196,9 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             return;
         }
 
+        // Lock framing mode. Once we start receiving, framing cannot be changed.
+        Interlocked.CompareExchange(ref _framingLocked, 1, 0);
+
         // Acquire PooledReceiveContext from ObjectPoolManager — same pattern as
         // PooledAcceptContext usage in the accept loop.
         _recvCtx = s_pool.Get<PooledSocketReceiveContext>();
@@ -204,11 +207,18 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop started ep={_endpointString}");
+            _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop started ep={_endpointString} framing={_framing}");
         }
 #endif
 
-        _receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
+        if (_framing == TransportFraming.VarIntLengthPrefixed)
+        {
+            _receiveLoopTask = this.SAEA_RECEIVE_LOOP_VARINT_ASYNC(cancellationToken);
+        }
+        else
+        {
+            _receiveLoopTask = this.SAEA_RECEIVE_LOOP_ASYNC(cancellationToken);
+        }
     }
 
     /// <summary>
@@ -263,7 +273,9 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 $"MaxChunkSize must be > 0, got {s_fragmentOptions.MaxChunkSize}.");
         }
 
-        return sizeof(ushort) + FragmentHeader.WireSize + s_fragmentOptions.MaxChunkSize;
+        // 5 bytes is the max size of a VarInt header. We use this to ensure the buffer is
+        // always large enough to fit the largest possible framing header (VarInt vs 2-byte ushort).
+        return 5 + FragmentHeader.WireSize + s_fragmentOptions.MaxChunkSize;
     }
 
     /// <summary>
@@ -332,8 +344,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
                     /*
                      * [Step 3: Fragment Cleanup]
-                     * Periodic check to evict stale fragment streams. This prevents 
-                     * "slow-drip" DDoS attacks where an attacker sends partial fragments 
+                     * Periodic check to evict stale fragment streams. This prevents
+                     * "slow-drip" DDoS attacks where an attacker sends partial fragments
                      * to consume server memory.
                      */
                     if ((++_packetCount & (FragmentAssembler.EvictInterval - 1)) == 0)
@@ -356,7 +368,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
                 /*
                  * [Step 4: Buffer Compaction]
-                 * Move any unconsumed data (partial frames) to the front of the 
+                 * Move any unconsumed data (partial frames) to the front of the
                  * buffer so we can read more data into the free space at the end.
                  */
                 if (consumed > 0)
@@ -460,8 +472,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         int freeSpace = _buffer!.Length - _bufferDataLength;
         if (freeSpace == 0)
         {
-            // If the buffer is full but we haven't parsed a complete frame, it means a single 
-            // frame has exceeded our buffer capacity (MaxChunkSize * 2). 
+            // If the buffer is full but we haven't parsed a complete frame, it means a single
+            // frame has exceeded our buffer capacity (MaxChunkSize * 2).
             // Since the system is configured to never send frames > 1400 bytes, this is a protocol violation.
             return ValueTask.FromException(Throw.GetMessageSize());
         }
@@ -523,8 +535,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
         /*
          * [Buffer Leasing - Regular Frame Path]
-         * We copy the frame into a new BufferLease so the receive loop can 
-         * continue reading from the socket without waiting for the protocol 
+         * We copy the frame into a new BufferLease so the receive loop can
+         * continue reading from the socket without waiting for the protocol
          * handler to finish.
          */
         BufferLease lease = BufferLease.CopyFrom(rawPayloadSpan);
@@ -742,7 +754,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             //    longer use it.
             if (_recvCtx is not null)
             {
-                // Always dispose/return context. PooledSocketReceiveContext.Dispose() 
+                // Always dispose/return context. PooledSocketReceiveContext.Dispose()
                 // contains defensive wait logic to ensure kernel marks SAEA as idle.
                 // Not returning it here caused the approx 524 object leak identified in stress tests.
                 _recvCtx.Dispose();
@@ -762,8 +774,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
         // 4. Return the receive buffer. Interlocked.Exchange prevents double-
         //    return if Dispose races with the receive loop cleanup.
-        //    IMPORTANT: We move this OUTSIDE the 'if (disposing)' block to ensure 
-        //    the pooled buffer is returned even if the connection object is leaked 
+        //    IMPORTANT: We move this OUTSIDE the 'if (disposing)' block to ensure
+        //    the pooled buffer is returned even if the connection object is leaked
         //    and GC'd without an explicit Dispose() call.
         byte[]? bufToReturn = Interlocked.Exchange(ref _buffer, null!);
         if (bufToReturn is not null)
@@ -781,13 +793,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #endif
     }
 
-    [DebuggerStepThrough]
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void WRITE_FRAME_HEADER(Span<byte> buffer, ushort totalLength, ReadOnlySpan<byte> payload)
-    {
-        BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
-        payload.CopyTo(buffer[HeaderSize..]);
-    }
+
 
     private static bool IS_VALID_PACKET_SIZE(uint size)
         => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
