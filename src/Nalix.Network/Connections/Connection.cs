@@ -55,7 +55,6 @@ public sealed partial class Connection :
     private int _closeSignaled;
     private int _isDispatchingClose; // 0=no, 1=yes
 
-    private IConnection.ITransport? _tcp;
     private SlidingWindow? _udpReplayWindow;
     private IObjectMap<string, object>? _attributes;
     private ConcurrentDictionary<ushort, object>? _rateLimitCache;
@@ -91,18 +90,11 @@ public sealed partial class Connection :
     /// </summary>
     public Connection(Socket socket, System.Net.EndPoint realEndPoint, ILogger? logger = null)
     {
+        ArgumentNullException.ThrowIfNull(realEndPoint);
+
         _logger = logger;
         _disposed = false;
         _lock = new Lock();
-
-        this.Secret = Bytes32.Zero;
-        // Snapshot the remote endpoint up front so the connection can be logged
-        // and tracked even before protocol-level events begin.
-        this.ID = Snowflake.NewId(SnowflakeType.Session);
-
-        // Use realEndPoint (from PROXY header) instead of socket.RemoteEndPoint (LB IP).
-        this.NetworkEndpoint = SocketEndpoint.FromEndPoint(
-            realEndPoint ?? throw new ArgumentNullException(nameof(realEndPoint)));
 
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
@@ -111,7 +103,16 @@ public sealed partial class Connection :
         // into the connection-level callback pipeline.
         _bridge = new SocketEventBridge(OnProcessEventBridge, OnPostProcessEventBridge, this.OnCloseEventBridge);
 
-        this.Socket = new SocketConnection(socket, this, _bridge, logger);
+        this.Secret = Bytes32.Zero;
+        // Snapshot the remote endpoint up front so the connection can be logged
+        // and tracked even before protocol-level events begin.
+        this.ID = Snowflake.NewId(SnowflakeType.Session);
+
+        // Use realEndPoint (from PROXY header) instead of socket.RemoteEndPoint (LB IP).
+        this.NetworkEndpoint = SocketEndpoint.FromEndPoint(realEndPoint);
+
+        // Initialize the TCP transport with the socket and event bridge.
+        this.TcpTransport = new SocketTcpTransport(socket, this, _bridge, logger);
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
@@ -133,7 +134,7 @@ public sealed partial class Connection :
     public ISnowflake ID { get; }
 
     /// <inheritdoc/>
-    public IConnection.ITransport TCP => _tcp ??= new SocketTcpTransport(this);
+    public IConnection.ITransport TCP => this.TcpTransport;
 
     /// <inheritdoc/>
     public IConnection.ITransport UDP
@@ -162,10 +163,10 @@ public sealed partial class Connection :
     public int ErrorCount => _errorCount;
 
     /// <inheritdoc />
-    public long UpTime => this.Socket.Uptime;
+    public long UpTime => this.TcpTransport.Uptime;
 
     /// <inheritdoc />
-    public long LastPingTime => this.Socket.LastPingTime;
+    public long LastPingTime => this.TcpTransport.LastPingTime;
 
     /// <summary>
     /// Returns the number of packets currently pending in the async callback pipeline.
@@ -201,7 +202,7 @@ public sealed partial class Connection :
     /// and the <see cref="SocketUdpTransport.BytesSent"/> (UDP) if available.
     /// It represents raw wire data, including protocol headers.
     /// </remarks>
-    public long BytesSent => this.Socket.BytesSent + (this.UdpTransport?.BytesSent ?? 0);
+    public long BytesSent => this.TcpTransport.BytesSent + (this.UdpTransport?.BytesSent ?? 0);
 
     /// <summary>
     /// Gets the total number of bytes received over the life of the connection.
@@ -211,7 +212,7 @@ public sealed partial class Connection :
     /// and the <see cref="SocketUdpTransport.BytesReceived"/> (UDP) if available.
     /// It represents raw wire data before any frame processing or decompression.
     /// </remarks>
-    public long BytesReceived => this.Socket.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0);
+    public long BytesReceived => this.TcpTransport.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0);
 
     /// <inheritdoc />
     public void IncrementErrorCount()
@@ -229,7 +230,7 @@ public sealed partial class Connection :
 
     #region Internal
 
-    internal SocketConnection Socket { get; }
+    internal SocketTcpTransport TcpTransport { get; }
 
     internal SocketUdpTransport? UdpTransport { get; private set; }
 
@@ -425,7 +426,7 @@ public sealed partial class Connection :
                 ((TimingWheel.ITimeoutTrackedConnection)this).TimeoutTask = null;
             }
 
-            try { this.Socket.Dispose(); }
+            try { this.TcpTransport.Dispose(); }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "socket"); }
 
             try
