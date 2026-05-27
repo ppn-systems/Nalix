@@ -37,12 +37,12 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
     private readonly Shard[] _shards;
     private readonly double _swFreq;
-    private readonly TokenBucketOptions _options;
     private readonly long _capacityMicro;
     private readonly double _refillPerTick;
     private readonly long _refillPerSecMicro;
     private readonly int _cleanupIntervalSec;
     private readonly long _initialBalanceMicro;
+    private readonly TokenBucketOptions _options;
 
     private ILogger? _logger;
 

@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
@@ -42,12 +43,38 @@ public abstract partial class UdpListenerBase
     #endregion Datagram Layout
 
     /// <summary>
+    /// Background receive loop worker managed by <see cref="Nalix.Framework.Tasks.TaskManager"/>.
+    /// </summary>
+    [DebuggerStepThrough]
+    private async Task RunReceiveWorkerAsync(int index, IWorkerContext ctx, CancellationToken cancellationToken)
+    {
+        PooledUdpReceiveEventArgs args = new();
+        args.Completed += this.OnReceiveCompleted;
+
+        try
+        {
+            this.StartReceive(args, ctx, cancellationToken);
+
+            TaskCompletionSource tcs = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (cancellationToken.Register(state => ((TaskCompletionSource)state!).TrySetResult(), tcs))
+            {
+                await tcs.Task.ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            args.Completed -= this.OnReceiveCompleted;
+            args.Dispose();
+        }
+    }
+
+    /// <summary>
     /// Repeatedly receives datagrams using a <see cref="PooledUdpReceiveEventArgs"/> 
     /// synchronously if possible, or sets up the async callback.
     /// </summary>
     [StackTraceHidden]
     [DebuggerStepThrough]
-    private void StartReceive(PooledUdpReceiveEventArgs args)
+    private void StartReceive(PooledUdpReceiveEventArgs args, IWorkerContext ctx, CancellationToken cancellationToken)
     {
         if (Volatile.Read(ref _isDisposed) != 0 || _socket is null)
         {
@@ -56,10 +83,12 @@ public abstract partial class UdpListenerBase
 
         try
         {
-            while (!_cancellationToken.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
+                ctx.Beat();
                 args.ResetForPool();
                 args.RemoteEndPoint = _anyEndPoint;
+                args.UserToken = (ctx, cancellationToken);
 
                 bool pending = _socket.ReceiveFromAsync(args);
                 if (pending)
@@ -69,10 +98,10 @@ public abstract partial class UdpListenerBase
                 }
 
                 // Completed synchronously
-                this.HandleReceive(args);
+                this.HandleReceive(args, ctx);
             }
         }
-        catch (ObjectDisposedException ex) when (Volatile.Read(ref _isDisposed) != 0 || _cancellationToken.IsCancellationRequested)
+        catch (ObjectDisposedException ex) when (Volatile.Read(ref _isDisposed) != 0 || cancellationToken.IsCancellationRequested)
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
             {
@@ -90,7 +119,7 @@ public abstract partial class UdpListenerBase
                 this.Logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}");
             }
         }
-        catch (Exception ex) when (!_cancellationToken.IsCancellationRequested)
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
             _ = Interlocked.Increment(ref _recvErrors);
 
@@ -100,14 +129,14 @@ public abstract partial class UdpListenerBase
             }
 
             // Brief delay to prevent tight error loops on synchronous failure.
-            this.ScheduleRetryStartReceive(args, _cancellationToken);
+            this.ScheduleRetryStartReceive(args, ctx, cancellationToken);
         }
     }
 
     [DebuggerStepThrough]
-    private void ScheduleRetryStartReceive(PooledUdpReceiveEventArgs args, CancellationToken cancellationToken)
+    private void ScheduleRetryStartReceive(PooledUdpReceiveEventArgs args, IWorkerContext ctx, CancellationToken cancellationToken)
     {
-        Task retryTask = this.RetryStartReceiveAsync(args, cancellationToken);
+        Task retryTask = this.RetryStartReceiveAsync(args, ctx, cancellationToken);
         if (retryTask.IsCompletedSuccessfully)
         {
             return;
@@ -121,7 +150,7 @@ public abstract partial class UdpListenerBase
             }
 
             Exception? error = task.Exception?.GetBaseException();
-            if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !self._cancellationToken.IsCancellationRequested)
+            if (error is not null && Volatile.Read(ref self._isDisposed) == 0 && !cancellationToken.IsCancellationRequested)
             {
                 _ = Interlocked.Increment(ref self._recvErrors);
                 if (self.Logger != null && self.Logger.IsEnabled(LogLevel.Error))
@@ -135,7 +164,7 @@ public abstract partial class UdpListenerBase
     }
 
     [DebuggerStepThrough]
-    private async Task RetryStartReceiveAsync(PooledUdpReceiveEventArgs args, CancellationToken cancellationToken)
+    private async Task RetryStartReceiveAsync(PooledUdpReceiveEventArgs args, IWorkerContext ctx, CancellationToken cancellationToken)
     {
         try
         {
@@ -151,16 +180,23 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        this.StartReceive(args);
+        this.StartReceive(args, ctx, cancellationToken);
     }
 
     [DebuggerStepThrough]
     private void OnReceiveCompleted(object? sender, SocketAsyncEventArgs e)
     {
         PooledUdpReceiveEventArgs args = (PooledUdpReceiveEventArgs)e;
+        if (args.UserToken is not ValueTuple<IWorkerContext, CancellationToken> state)
+        {
+            return;
+        }
+        IWorkerContext ctx = state.Item1;
+        CancellationToken cancellationToken = state.Item2;
+
         try
         {
-            this.HandleReceive(args);
+            this.HandleReceive(args, ctx);
         }
         catch (SocketException ex)
         {
@@ -176,7 +212,7 @@ public abstract partial class UdpListenerBase
                 this.Logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}");
             }
         }
-        catch (OperationCanceledException ex) when (_cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
@@ -185,16 +221,16 @@ public abstract partial class UdpListenerBase
         }
         finally
         {
-            if (Volatile.Read(ref _isDisposed) == 0 && !_cancellationToken.IsCancellationRequested)
+            if (Volatile.Read(ref _isDisposed) == 0 && !cancellationToken.IsCancellationRequested)
             {
-                this.StartReceive(args);
+                this.StartReceive(args, ctx, cancellationToken);
             }
         }
     }
 
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void HandleReceive(PooledUdpReceiveEventArgs args)
+    private void HandleReceive(PooledUdpReceiveEventArgs args, IWorkerContext ctx)
     {
         if (args.SocketError != SocketError.Success ||
             args.BytesTransferred == 0 ||
@@ -226,6 +262,7 @@ public abstract partial class UdpListenerBase
             lease.IsReliable = false;
 
             this.ProcessDatagram(lease, args.RemoteEndPoint);
+            ctx.Advance(1);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {

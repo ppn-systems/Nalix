@@ -10,11 +10,13 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
-using Nalix.Network.Internal.Pooling;
 
 namespace Nalix.Network.Listeners.Udp;
 
@@ -104,21 +106,26 @@ public abstract partial class UdpListenerBase : IListener
                     $"listening port={_port} protocol={this.Protocol.GetType().Name}");
             }
 
-            // Dispatch parallel SAEA receive workers
+            // Dispatch parallel SAEA receive workers via TaskManager
             int concurrency = Math.Max(1, _options.MaxParallelUDP);
+            IWorkerHandle[] receiveWorkers = new IWorkerHandle[concurrency];
             for (int i = 0; i < concurrency; i++)
             {
-#pragma warning disable CA2000 // Ownership transfers to StartReceive/SAEA completion once queued to the ThreadPool.
-                PooledUdpReceiveEventArgs args = new();
-#pragma warning restore CA2000
-                args.Completed += this.OnReceiveCompleted;
-
-                // Offload start to ThreadPool to prevent blocking Activate if ReceiveFromAsync completes inline.
-                _ = ThreadPool.UnsafeQueueUserWorkItem(state =>
-                {
-                    this.StartReceive((PooledUdpReceiveEventArgs)state!);
-                }, args);
+                int workerIndex = i;
+                receiveWorkers[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                    name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Accept}.{i}",
+                    group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
+                    work: async (ctx, ct) => await this.RunReceiveWorkerAsync(workerIndex, ctx, ct).ConfigureAwait(false),
+                    options: new WorkerOptions
+                    {
+                        Tag = TaskNaming.Tags.Net,
+                        IdType = SnowflakeType.System,
+                        CancellationToken = _cancellationToken,
+                        RetainFor = TimeSpan.FromSeconds(30),
+                    }
+                );
             }
+            _receiveWorkers = receiveWorkers;
         }
         catch (OperationCanceledException)
         {
@@ -251,6 +258,15 @@ public abstract partial class UdpListenerBase : IListener
             }
 
             _socket = null;
+
+            IWorkerHandle[]? receiveWorkers = Interlocked.Exchange(ref _receiveWorkers, null);
+            if (receiveWorkers != null)
+            {
+                foreach (IWorkerHandle? worker in receiveWorkers)
+                {
+                    worker?.Dispose();
+                }
+            }
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
             {
