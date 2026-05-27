@@ -91,7 +91,7 @@ The internal component that translates a handler's return type into a send actio
 
 ## Snowflake
 
-A customized 64-bit distributed identifier used for internal task tracking and packet correlation. Provides 1 ms timestamp resolution with 12 bits for sequence (4,096 IDs per millisecond per shard).
+A customized 64-bit distributed identifier used for internal task tracking and packet correlation. Uses 32-bit Unix seconds timestamp, 14-bit sequence (16,384 IDs per second per node), and 10-bit machine ID (1,024 nodes).
 
 ## TCP vs UDP
 

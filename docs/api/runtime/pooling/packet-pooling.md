@@ -4,8 +4,8 @@
 
 ## Source mapping
 
-- `src/Nalix.Runtime/Pooling/PacketFactory.cs`
-- `src/Nalix.Runtime/Pooling/PacketScope.cs`
+- `src/Nalix.Codec/Pooling/PacketFactory.cs`
+- `src/Nalix.Codec/Pooling/PacketScope.cs`
 
 ## Main types
 

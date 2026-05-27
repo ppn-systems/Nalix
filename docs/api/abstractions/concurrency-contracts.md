@@ -1,5 +1,8 @@
 # Concurrency Contracts
 
+**Namespace:** `Nalix.Abstractions.Concurrency`
+**Assembly:** `Nalix.Abstractions`
+
 This page covers the shared background-work contracts in `Nalix.Abstractions.Concurrency`.
 
 ## Source mapping
@@ -24,11 +27,11 @@ This page covers the shared background-work contracts in `Nalix.Abstractions.Con
 
 | Type | Public members |
 | --- | --- |
-| `ITaskManager` | `Title`, `ScheduleRecurring(...)`, `RunOnceAsync(...)`, `ScheduleWorker(...)`, `CancelAllWorkers()`, `CancelWorker(...)`, `CancelGroup(...)`, `CancelRecurring(...)`, `GetWorkers(...)`, `TryGetWorker(...)`, `GetRecurring()`, `TryGetRecurring(...)` |
+| `ITaskManager` | `Title`, `ScheduleRecurring(...)`, `RunOnceAsync(...)`, `ScheduleWorker(...)`, `CancelAllWorkers()`, `CancelWorker(...)`, `CancelGroup(...)`, `CancelRecurring(...)`, `GetWorkers(...)`, `TryGetWorker(...)`, `GetRecurring()`, `TryGetRecurring(...)`, `WaitGroupAsync(...)`, `ScheduleWorker<TState>(...)` |
 | `IWorkerContext` | `Beat()`, `Advance(...)`, and worker progress/heartbeat reporting members used by the current runtime |
-| `IWorkerHandle` | worker identity, group, running state, progress, last run, next run, and cancellation/reporting helpers |
-| `IRecurringHandle` | recurring job identity, next run, running state, and cancellation/reporting helpers |
-| `IWorkerOptions` | `Tag`, `MachineId`, `IdType`, `Priority`, `OnCompleted`, `OnFailed`, `ExecutionTimeout`, `RetainFor`, `GroupConcurrencyLimit`, `TryAcquireSlotImmediately`, `CancellationToken` |
+| `IWorkerHandle` | `Id`, `Name`, `Group`, `TotalRuns`, `Progress`, `LastNote`, `Options`, `IsRunning`, `StartedUtc`, `LastHeartbeatUtc` |
+| `IRecurringHandle` | `Name`, `TotalRuns`, `IsRunning`, `IsPaused`, `Interval`, `Options`, `ConsecutiveFailures`, `LastRunUtc`, `NextRunUtc` |
+| `IWorkerOptions` | `Tag`, `MachineId`, `IdType`, `Priority`, `OnCompleted`, `OnFailed`, `ExecutionTimeout`, `RetainFor`, `GroupConcurrencyLimit`, `TryAcquireSlotImmediately`, `CancellationToken`, `OSPriority` |
 | `IRecurringOptions` | `Tag`, `Jitter`, `BackoffCap`, `ExecutionTimeout`, `NonReentrant`, `FailuresBeforeBackoff` |
 
 ## ITaskManager
@@ -73,8 +76,10 @@ IRecurringHandle recurring = taskManager.ScheduleRecurring(
 - `TryGetWorker(id, out handle)`
 - `GetRecurring()`
 - `TryGetRecurring(name, out handle)`
+- `WaitGroupAsync(group, ct)`
+- `ScheduleWorker<TState>(name, work, state)`
 
-### 1.Common pitfalls
+### 1. Common pitfalls
 
 - scheduling recurring work and then dropping the handle immediately
 - using worker names without a consistent naming convention
@@ -91,7 +96,7 @@ ctx.Beat();
 ctx.Advance(5, "batch completed");
 ```
 
-### 2.Common pitfalls`
+### 2. Common pitfalls
 
 - assuming the worker will update progress automatically
 - forgetting to call `Beat()` inside long-running loops
@@ -108,10 +113,10 @@ You typically read:
 - `Group`
 - `IsRunning`
 - `Progress`
-- `LastRunUtc`
-- `NextRunUtc`
+- `StartedUtc`
+- `LastHeartbeatUtc`
 
-### 3.Common pitfalls
+### 3. Common pitfalls
 
 - reading handle state after the manager has already disposed it
 - assuming a recurring job is still active just because the handle exists
@@ -121,7 +126,7 @@ You typically read:
 
 `IWorkerOptions` and `IRecurringOptions` describe the knobs the task manager uses to shape execution.
 
-### 4.Common pitfalls
+### 4. Common pitfalls
 
 - leaving `Tag` empty when you rely on it for diagnostics or grouping
 - setting `ExecutionTimeout` too low for a job that does real work

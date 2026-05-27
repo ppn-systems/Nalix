@@ -4,9 +4,9 @@ Session resumption enables low-latency reconnection by bypassing the full X25519
 
 ## Source Mapping
 
-- `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.Codec/ProtocolFrames/SessionResume.cs`
 - `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
-- `src/Nalix.Network/Sessions/SessionService.cs`
+- `src/Nalix.Runtime/Sessions/SessionService.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionService.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionFactory.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`

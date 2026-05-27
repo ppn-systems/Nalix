@@ -87,7 +87,7 @@ public sealed class AccountHandlers
     [PacketOpcode(0x2001)]
     [PacketPermission(PermissionLevel.USER)]
     [PacketTimeout(5000)]
-    [PacketRateLimit(maxRequests: 10, windowSeconds: 60)]
+    [PacketRateLimit(requestsPerSecond: 10)]
     public ValueTask<AccountResponse> GetProfile(
         IPacketContext<ProfileRequest> context)
     {

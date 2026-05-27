@@ -13,7 +13,7 @@ packets fail-closed when permission metadata is missing or insufficient.
 | `src/Nalix.Abstractions/Middleware/MiddlewareStageAttribute.cs` | Declares middleware stage metadata. |
 | `src/Nalix.Abstractions/Networking/ConnectionAttributes.cs` | Stores per-connection directive throttle timestamps. |
 | `src/Nalix.Runtime/Internal/RateLimiting/DirectiveGuard.cs` | Rate-gates repeated directive responses. |
-| `src/Nalix.Codec/DataFrames/SignalFrames/Directive.cs` | Rejection signal frame sent to the client. |
+| `src/Nalix.Codec/ProtocolFrames/Directive.cs` | Rejection signal frame sent to the client. |
 
 ## Runtime Metadata
 

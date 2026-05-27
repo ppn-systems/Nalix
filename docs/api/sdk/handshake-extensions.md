@@ -6,7 +6,7 @@ For reconnect flows, see [`ResumeExtensions`](./resume-extensions.md).
 ## Source mapping
 
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`
-- `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`
+- `src/Nalix.Codec/ProtocolFrames/Handshake.cs`
 - `src/Nalix.Codec/Security/HandshakeX25519.cs`
 
 ## Implementation Flow

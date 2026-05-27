@@ -2,6 +2,10 @@
 
 The `WebSocketTransportOptions` class configures the client-side WebSocket transport used by the `WebSocketSession`.
 
+## Source Mapping
+
+- `src/Nalix.SDK/Options/WebSocketTransportOptions.cs`
+
 ## Overview
 
 These settings manage the endpoint path, subprotocol handshakes, TLS usage, and message size constraints on the client.

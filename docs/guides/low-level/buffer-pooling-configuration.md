@@ -23,15 +23,15 @@ To use buffer pooling, you must register a `BufferPoolManager` with the applicat
 ```csharp
 using Nalix.Hosting;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Framework.Options;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Initialize and configure the pool manager
-    .ConfigureBufferPoolManager(new BufferPoolManager(logger) 
+    .ConfigureBufferPoolManager(new BufferPoolManager(new BufferOptions
     {
         // Optional: Tuning parameters
-        TotalBuffers = 10000,
-        InitialCapacity = 1024
-    })
+        TotalBuffers = 10000
+    }))
     .Build();
 ```
 
@@ -40,12 +40,12 @@ var app = NetworkApplication.CreateBuilder()
 You can precisely control how many buffers of each size are pre-allocated using the `BufferAllocations` format: `size,ratio; size,ratio`.
 
 ```csharp
-builder.ConfigureBufferPoolManager(new BufferPoolManager(logger)
+builder.ConfigureBufferPoolManager(new BufferPoolManager(new BufferOptions
 {
     // Define a custom profile:
     // 256 bytes (15%), 1KB (15%), 4KB (30%), 16KB (30%), 32KB (10%)
     BufferAllocations = "256,0.15; 1024,0.15; 4096,0.30; 16384,0.30; 32768,0.10"
-});
+}));
 ```
 
 ---
@@ -58,7 +58,6 @@ In production, it is often better to tune these values without recompiling. Nali
 ```ini
 [BufferOptions]
 TotalBuffers = 50000
-InitialCapacity = 2048
 BufferAllocations = 512,0.20; 2048,0.40; 8192,0.40
 ```
 

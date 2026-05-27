@@ -27,7 +27,7 @@ Nalix avoids "magic" and hidden side-effects common in higher-level frameworks.
 
 ## 3. Modular Layers over Monolithic Integration
 
-Nalix is split into focused packages (`Common`, `Framework`, `Runtime`, `Network`).
+Nalix is split into focused packages (`Abstractions`, `Environment`, `Codec`, `Framework`, `Runtime`, `Network`).
 
 - **The Tradeoff:** You must explicitly manage dependencies between layers.
 - **Pros:** Leaner binaries for clients, ability to swap the transport (TCP to UDP) without touching business logic, and clear separation of concerns.

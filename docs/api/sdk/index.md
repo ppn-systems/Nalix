@@ -13,7 +13,6 @@
 - `src/Nalix.SDK/Options`
 - `src/Nalix.SDK/InlineDispatcher.cs`
 - `src/Nalix.SDK/IThreadDispatcher.cs`
-- `src/Nalix.SDK/Bootstrap.cs`
 - `src/Nalix.SDK/TimeSyncCalculator.cs`
 
 ## Why This Package Exists

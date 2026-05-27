@@ -5,7 +5,7 @@
 ## Source Mapping
 
 - `src/Nalix.SDK/Transport/Extensions/ResumeExtensions.cs`
-- `src/Nalix.Codec/DataFrames/SignalFrames/SessionResume.cs`
+- `src/Nalix.Codec/ProtocolFrames/SessionResume.cs`
 - `src/Nalix.SDK/Options/TransportOptions.cs`
 
 ## Implementation Flow

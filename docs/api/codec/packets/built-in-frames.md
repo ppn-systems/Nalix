@@ -8,6 +8,7 @@ This page covers the built-in packet types that Nalix ships out of the box.
 - `src/Nalix.Codec/ProtocolFrames/Handshake.cs`
 - `src/Nalix.Codec/ProtocolFrames/SessionResume.cs`
 - `src/Nalix.Codec/ProtocolFrames/Directive.cs`
+- `src/Nalix.Codec/ProtocolFrames/KeyExchange.cs`
 
 ## Main types
 
@@ -15,6 +16,7 @@ This page covers the built-in packet types that Nalix ships out of the box.
 - `Handshake`
 - `SessionResume`
 - `Directive`
+- `KeyExchange`
 
 ## Control
 
@@ -82,6 +84,18 @@ handshake.Initialize(HandshakeStage.CLIENT_HELLO, pubKey, nonce);
 - `PacketBase<TSelf>.Create()`: Rents an instance from the underlying `IObjectPoolManager`.
 - `PacketBase<TSelf>.Dispose()`: Returns the instance to the pool.
 - `PacketRegistry.Manager`: The global pool manager used for all packet types.
+
+## KeyExchange
+
+`KeyExchange` is a lightweight key exchange packet for Trust-On-First-Use (TOFU).
+
+Important public members:
+
+- `Initialize(KeyExchangeStage, Bytes32)`
+- `Validate(out string?)`
+- `ResetForPool()`
+- `Stage` — the current key exchange stage (`NONE`, `REQUEST`, `RESPONSE`)
+- `PublicKey` — the server's public key (populated in `RESPONSE`)
 
 ## Related APIs
 

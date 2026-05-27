@@ -72,7 +72,7 @@ You can tune the parallelism of your application by adjusting the number of shar
 | `DispatchLoopCount` | `null` (auto) | Set explicitly for deterministic loop count, or keep auto mode. |
 | `MinDispatchLoops` / `MaxDispatchLoops` | `1` / `64` | Clamp auto loop selection based on host capacity. |
 | `MaxDrainPerWake` | `2,048` | Upper cap for drain budget. Actual drain uses `Clamp(ProcessorCount * MaxDrainPerWakeMultiplier, MinDrainPerWake, MaxDrainPerWake)`. |
-| `MaxDrainPerWakeMultiplier` | `8` | Multiplier applied to `ProcessorCount` to compute the actual drain budget per wake cycle. |
+| `MaxDrainPerWakeMultiplier` | `5` | Multiplier applied to `ProcessorCount` to compute the actual drain budget per wake cycle. |
 
 ```csharp
 using Nalix.Hosting;
@@ -85,11 +85,11 @@ builder.ConfigureDispatchOptions(options =>
     options.WithDispatchLoopCount(Environment.ProcessorCount / 2);
     
     // 2. Auto-mode guardrails (used only when DispatchLoopCount is null)
-    options.MinDispatchLoops = 2;
-    options.MaxDispatchLoops = 32;
-    
+    options.Drain.MinDispatchLoops = 2;
+    options.Drain.MaxDispatchLoops = 32;
+
     // 3. Throughput Tuning: Process 16 packets per wake to improve cache locality
-    options.MaxDrainPerWakeMultiplier = 16; 
+    options.Drain.MaxDrainPerWakeMultiplier = 16;
 });
 ```
 

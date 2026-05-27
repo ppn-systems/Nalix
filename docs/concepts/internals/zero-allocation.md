@@ -246,7 +246,7 @@ var app = NetworkApplication.CreateBuilder()
         // Scale dispatch loops to the current machine's logical CPU count
         options.WithDispatchLoopCount(Environment.ProcessorCount);
         // Increase per-wake drain budget for burst workloads
-        options.MaxDrainPerWakeMultiplier = 12;
+        options.Drain.MaxDrainPerWakeMultiplier = 12;
     })
     .Build();
 ```
