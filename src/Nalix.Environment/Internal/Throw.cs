@@ -24,7 +24,7 @@ internal static class Throw
         new CachedArgumentOutOfRangeException("count", "Advance out of buffer bounds.");
 
     private static readonly FormatException s_overlongLeb128 =
-        new CachedFormatException("LEB128 sequence is overlong or corrupt (exceeds 5 bytes for a 32-bit value).");
+        new("LEB128 sequence is overlong or corrupt (exceeds 5 bytes for a 32-bit value).");
 
     [DoesNotReturn]
     [StackTraceHidden]
@@ -60,12 +60,6 @@ internal static class Throw
 
     [StackTraceHidden]
     private sealed class CachedArgumentOutOfRangeException(string paramName, string message) : ArgumentOutOfRangeException(paramName, message)
-    {
-        public override string StackTrace => "   at Nalix.Environment.Memory (Cached Exception)";
-    }
-
-    [StackTraceHidden]
-    private sealed class CachedFormatException(string message) : FormatException(message)
     {
         public override string StackTrace => "   at Nalix.Environment.Memory (Cached Exception)";
     }
