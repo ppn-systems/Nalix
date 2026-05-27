@@ -1,0 +1,62 @@
+#if DEBUG
+using System;
+using System.Net;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using Moq;
+using Xunit;
+using Nalix.Abstractions.Networking;
+using Nalix.Network.Internal.Transport;
+using Nalix.Network.Internal.Abstractions;
+
+namespace Nalix.Network.Tests;
+
+public class SocketConnectionFramingTests
+{
+    private SocketConnection CreateConnection()
+    {
+        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        var ownerMock = new Mock<IConnection>();
+        var endpointMock = new Mock<INetworkEndpoint>();
+        ownerMock.Setup(m => m.NetworkEndpoint).Returns(endpointMock.Object);
+        var sinkMock = new Mock<ITransportEventSink>();
+
+        return new SocketConnection(socket, ownerMock.Object, sinkMock.Object);
+    }
+
+    [Fact]
+    public void SetFraming_WhenNotStarted_Succeeds()
+    {
+        using var conn = CreateConnection();
+
+        // Arrange & Act - Should not throw
+        conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024);
+    }
+
+    [Fact]
+    public void SetFraming_WhenAlreadyLocked_ThrowsInvalidOperationException()
+    {
+        using var conn = CreateConnection();
+
+        conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024);
+
+        // Calling it again should throw
+        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.NalixDefault, 1024));
+        Assert.Contains("already been locked", ex.Message);
+    }
+
+    [Fact]
+    public void SetFraming_AfterBeginReceive_ThrowsInvalidOperationException()
+    {
+        using var conn = CreateConnection();
+
+        // Start receive loop
+        conn.BeginReceive(CancellationToken.None);
+
+        // Setting framing after started should throw
+        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024));
+        Assert.Contains("receiving has started", ex.Message);
+    }
+}
+#endif

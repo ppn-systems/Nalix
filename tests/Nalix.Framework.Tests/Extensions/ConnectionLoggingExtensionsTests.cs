@@ -146,6 +146,8 @@ public sealed class ConnectionLoggingExtensionsTests
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> message, System.Threading.CancellationToken cancellationToken = default) =>
             ValueTask.CompletedTask;
+
+        public void UseFraming(TransportFraming framing, int maxPacketSize = 0) { }
     }
 
     private sealed class TestEndpoint : INetworkEndpoint
@@ -210,18 +212,3 @@ public sealed class ConnectionLoggingExtensionsTests
         public void Dispose() { }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
