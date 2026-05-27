@@ -239,6 +239,24 @@ public abstract partial class TcpListenerBase
             connection = this.InitializeConnection(state.Socket!, realIp, consumed, state.Buffer, state.BytesReceived);
 #pragma warning restore CA2000
         }
+        catch (ObjectDisposedException)
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(OnProxyReadCompleted)}] socket-disposed-during-init");
+            }
+        }
+        catch (SocketException ex) when (
+            ex.SocketErrorCode is
+            SocketError.ConnectionReset or
+            SocketError.ConnectionAborted or
+            SocketError.OperationAborted)
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(OnProxyReadCompleted)}] socket-error-during-init: {ex.SocketErrorCode}");
+            }
+        }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))

@@ -113,7 +113,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(GET_RECEIVE_BUFFER_SIZE());
 
     private int _bufferDataLength;
-    private readonly string _endpointString = FORMAT_ENDPOINT(socket);
+    private readonly string _endpointString = owner.NetworkEndpoint.ToString();
 
     #endregion Fields
 
@@ -522,7 +522,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
                 _logger.LogWarning($"[NW.{nameof(SocketConnection)}] frame-dropped " +
-                                 $"length={payloadLen} ep={_endpointString}");
+                                  $"length={payloadLen} ep={_endpointString}");
             }
 #endif
             lease.Dispose();
@@ -756,20 +756,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private static bool IS_VALID_PACKET_SIZE(uint size)
         => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
 
-    [DebuggerStepThrough]
-    private static string FORMAT_ENDPOINT(Socket s)
-    {
-        try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
-        catch (ObjectDisposedException) { return "<disposed>"; }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            _ = ex.HResult;
-#if DEBUG
-            Debug.WriteLine($"[SocketConnection] FORMAT_ENDPOINT failed: {ex}");
-#endif
-            return "<unknown>";
-        }
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OBSERVE_RECEIVE_LOOP_SHUTDOWN(Task receiveLoopTask)
