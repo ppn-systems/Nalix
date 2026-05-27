@@ -1,10 +1,10 @@
 using System;
+using Nalix.Environment.Memory;
 using Xunit;
-using Nalix.Network.Internal.Transport;
 
-namespace Nalix.Network.Tests;
+namespace Nalix.Environment.Tests.Memory;
 
-public class VarIntTests
+public class Leb128Tests
 {
     [Theory]
     [InlineData(0, 1)]
@@ -16,9 +16,9 @@ public class VarIntTests
     [InlineData(2097151, 3)]
     [InlineData(2147483647, 5)]
     [InlineData(-1, 5)]
-    public void GetByteCount_ReturnsCorrectSize(int value, int expectedSize)
+    public void GetByteCount_ReturnsExpected(int value, int expectedSize)
     {
-        Assert.Equal(expectedSize, VarInt.GetByteCount(value));
+        Assert.Equal(expectedSize, Leb128.GetByteCount(value));
     }
 
     [Theory]
@@ -34,12 +34,12 @@ public class VarIntTests
     public void WriteAndRead_Succeeds(int value, byte[] expectedBytes)
     {
         Span<byte> buffer = stackalloc byte[5];
-        int written = VarInt.Write(buffer, value);
+        int written = Leb128.Write(buffer, value);
 
         Assert.Equal(expectedBytes.Length, written);
         Assert.True(buffer[..written].SequenceEqual(expectedBytes));
 
-        bool success = VarInt.TryRead(buffer[..written], out int readValue, out int bytesRead);
+        bool success = Leb128.TryRead(buffer[..written], out int readValue, out int bytesRead);
 
         Assert.True(success);
         Assert.Equal(value, readValue);
@@ -51,7 +51,7 @@ public class VarIntTests
     {
         ReadOnlySpan<byte> buffer = stackalloc byte[] { 0x80 }; // Needs 1 more byte
 
-        bool success = VarInt.TryRead(buffer, out int value, out int bytesRead);
+        bool success = Leb128.TryRead(buffer, out int value, out int bytesRead);
 
         Assert.False(success);
         Assert.Equal(0, value);
@@ -63,6 +63,6 @@ public class VarIntTests
     {
         byte[] buffer = new byte[] { 0x80, 0x80, 0x80, 0x80, 0x80, 0x01 }; // 6 bytes
 
-        Assert.Throws<FormatException>(() => VarInt.TryRead(buffer, out _, out _));
+        Assert.Throws<FormatException>(() => Leb128.TryRead(buffer, out int _, out int _));
     }
 }

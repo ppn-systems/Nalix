@@ -42,8 +42,8 @@ public class SocketConnectionFramingTests
         conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024);
 
         // Calling it again should throw
-        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.NalixDefault, 1024));
-        Assert.Contains("already been locked", ex.Message);
+        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.UInt16LengthPrefixed, 1024));
+        Assert.Contains("Framing can only be configured once before receive", ex.Message);
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class SocketConnectionFramingTests
 
         // Setting framing after started should throw
         var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024));
-        Assert.Contains("receiving has started", ex.Message);
+        Assert.Contains("Framing can only be configured once before receive", ex.Message);
     }
 }
 #endif

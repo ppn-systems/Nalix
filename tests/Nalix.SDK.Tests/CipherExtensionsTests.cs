@@ -11,7 +11,7 @@ using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Runtime.Pooling;
+using Nalix.Codec.Pooling;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -74,19 +74,3 @@ public sealed class CipherExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
