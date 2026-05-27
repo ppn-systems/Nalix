@@ -11,7 +11,7 @@ namespace Nalix.Codec.Options;
 /// to justify the cost of compressing them.
 /// </summary>
 [IniComment("Compression configuration — controls when and how data is compressed")]
-public sealed partial class CompressionOptions : ConfigurationLoader
+public sealed partial class CompressionOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets whether compression is enabled globally.
@@ -28,6 +28,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader
     /// to benefit from compression.
     /// </remarks>
     [IniComment("Minimum data size (bytes) to trigger compression (e.g. 1024 = 1KB)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MinSizeToCompress must be greater than 0.")]
     public int MinSizeToCompress { get; set; } = 1024; // 1KB default
 
     /// <summary>
@@ -38,6 +39,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader
     /// If a packet declares an original size larger than this limit, it will be rejected.
     /// </remarks>
     [IniComment("Maximum allowed size (bytes) for a decompressed packet payload (default 32MB)")]
+    [System.ComponentModel.DataAnnotations.Range(1024, 256 * 1024 * 1024, ErrorMessage = "MaxDecompressedSize must be at least 1024 bytes and not exceed 256 MB to prevent zip-bomb attacks.")]
     public int MaxDecompressedSize { get; set; } = 32 * 1024 * 1024; // 32MB default
 
     /// <summary>
@@ -52,20 +54,7 @@ public sealed partial class CompressionOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        if (this.MinSizeToCompress <= 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MinSizeToCompress must be greater than 0.");
-        }
-
-        if (this.MaxDecompressedSize < 1024)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDecompressedSize must be at least 1024 bytes.");
-        }
-
-        if (this.MaxDecompressedSize > 256 * 1024 * 1024)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MaxDecompressedSize must not exceed 256 MB to prevent zip-bomb attacks.");
-        }
+        this.ValidateDataAnnotations();
 
         if (this.MinSizeToCompress > this.MaxDecompressedSize)
         {

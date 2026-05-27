@@ -11,24 +11,27 @@ namespace Nalix.Codec.Options;
 /// Configures memory limits and safety thresholds for serialization.
 /// </summary>
 [IniComment("Serialization configuration — controls memory limits for data writing and object encoding")]
-public sealed partial class SerializationOptions : ConfigurationLoader
+public sealed partial class SerializationOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the maximum allowed element count for arrays and collections during deserialization.
     /// </summary>
     [IniComment("Maximum number of elements in an array or collection (default 1M)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxArrayLength must be positive.")]
     public int MaxArrayLength { get; set; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxArrayLength)
 
     /// <summary>
     /// Gets or sets the maximum allowed length, in bytes, for UTF-8 strings during deserialization.
     /// </summary>
     [IniComment("Maximum length (bytes) for a UTF-8 string (default 1M)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxStringLength must be positive.")]
     public int MaxStringLength { get; set; } = 1_048_576; // 1M default (matches old SerializationStaticOptions.Instance.MaxStringLength)
 
     /// <summary>
     /// Gets or sets the maximum nested formatter depth during deserialization.
     /// </summary>
     [IniComment("Maximum nested formatter depth during deserialization (default 256)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxDeserializationDepth must be positive.")]
     public int MaxDeserializationDepth { get; set; } = 256;
 
     /// <summary>
@@ -36,19 +39,6 @@ public sealed partial class SerializationOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        if (this.MaxArrayLength <= 0)
-        {
-            throw new ValidationException($"MaxArrayLength must be positive.");
-        }
-
-        if (this.MaxStringLength <= 0)
-        {
-            throw new ValidationException($"MaxStringLength must be positive.");
-        }
-
-        if (this.MaxDeserializationDepth <= 0)
-        {
-            throw new ValidationException($"MaxDeserializationDepth must be positive.");
-        }
+        this.ValidateDataAnnotations();
     }
 }

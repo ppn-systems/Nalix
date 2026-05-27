@@ -12,7 +12,7 @@ namespace Nalix.Runtime.Options;
 /// Store options for resumable sessions, controlling how long inactive sessions are retained before expiration.
 /// </summary>
 [IniComment("Session store configuration — controls retention of resumable sessions and their expiration")]
-public sealed partial class SessionStoreOptions : ConfigurationLoader
+public sealed partial class SessionStoreOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the time-to-live for resumable sessions.
@@ -34,6 +34,7 @@ public sealed partial class SessionStoreOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
+        this.ValidateDataAnnotations();
 
         if (this.SessionTtl <= TimeSpan.Zero)
         {

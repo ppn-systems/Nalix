@@ -11,7 +11,7 @@ namespace Nalix.Runtime.Options;
 /// Configuration for inbound directive anti-spam guard behavior.
 /// </summary>
 [IniComment("Inbound directive guard configuration — controls cooldown used to suppress repeated fail/timeout responses")]
-public sealed partial class DirectiveGuardOptions : ConfigurationLoader
+public sealed partial class DirectiveGuardOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Minimum interval (milliseconds) between repeated directives of the same category per connection.
@@ -24,10 +24,5 @@ public sealed partial class DirectiveGuardOptions : ConfigurationLoader
     /// <summary>
     /// Validates option values.
     /// </summary>
-    public void Validate()
-    {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }
-

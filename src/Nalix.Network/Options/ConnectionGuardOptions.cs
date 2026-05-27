@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents configuration options for connection protection against abuse.
 /// </summary>
 [IniComment("Connection protection — limits that prevent abuse (errors, packet spam, progressive bans)")]
-public sealed partial class ConnectionGuardOptions : ConfigurationLoader
+public sealed partial class ConnectionGuardOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the maximum number of concurrent connections allowed globally.
@@ -64,6 +64,7 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
+        this.ValidateDataAnnotations();
         if (this.MaxConnections < -1 || this.MaxConnections == 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections must be -1 (unlimited) or positive.");

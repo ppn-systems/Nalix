@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents network configuration settings for socket and TCP connections.
 /// </summary>
 [IniComment("Network socket configuration — controls port, buffering, concurrency, and socket behavior")]
-public sealed partial class NetworkSocketOptions : ConfigurationLoader
+public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Constants
 
@@ -160,9 +160,5 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

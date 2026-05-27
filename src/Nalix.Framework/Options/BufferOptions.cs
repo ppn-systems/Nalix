@@ -18,7 +18,7 @@ namespace Nalix.Framework.Options;
 /// Configuration for buffer settings with validation and performance/security options.
 /// </summary>
 [IniComment("Buffer pool configuration — controls pool sizing, trimming, adaptive growth, and memory limits")]
-public sealed partial class BufferOptions : ConfigurationLoader
+public sealed partial class BufferOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Properties
     /// <summary>
@@ -140,7 +140,7 @@ public sealed partial class BufferOptions : ConfigurationLoader
 
     /// <summary>
     /// Enable capturing stack traces for buffer leaks.
-    /// Capturing stack trace is extremely expensive and should be disabled 
+    /// Capturing stack trace is extremely expensive and should be disabled
     /// during high-concurrency benchmarks.
     /// </summary>
     [IniComment("Enable expensive stack trace capture for buffer leak detection")]
@@ -190,8 +190,7 @@ public sealed partial class BufferOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
+        this.ValidateDataAnnotations();
 
         if (this.ExpandThresholdPercent >= this.ShrinkThresholdPercent)
         {

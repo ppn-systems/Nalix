@@ -12,7 +12,7 @@ namespace Nalix.Runtime.Options;
 /// Options for dispatch channels (per-connection queue bound and drop behavior).
 /// </summary>
 [IniComment("Dispatch channel configuration — controls per-connection queue size, drop policy, and block timeout")]
-public sealed partial class DispatchOptions : ConfigurationLoader
+public sealed partial class DispatchOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Properties
 
@@ -81,8 +81,7 @@ public sealed partial class DispatchOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        this.ValidateDataAnnotations();
 
         if (this.MinBucketCount > this.MaxBucketCount)
         {

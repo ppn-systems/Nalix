@@ -19,7 +19,7 @@ namespace Nalix.Logging.Options;
 [ExcludeFromCodeCoverage]
 [DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
 [IniComment("Logging system configuration — controls log level, timestamp format, and entry metadata")]
-public sealed partial class NLogixOptions : ConfigurationLoader, IDisposable
+public sealed partial class NLogixOptions : ConfigurationLoader, IValidatableConfiguration, IDisposable
 {
     #region Fields
 
@@ -200,11 +200,7 @@ public sealed partial class NLogixOptions : ConfigurationLoader, IDisposable
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public void Validate()
-    {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 
     #endregion APIs
 }

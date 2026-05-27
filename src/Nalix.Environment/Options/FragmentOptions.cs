@@ -14,7 +14,7 @@ namespace Nalix.Environment.Options;
 /// Options for fragmentation and reassembly of large frames.
 /// </summary>
 [IniComment("Fragmentation configuration — controls chunking and reassembly of large data payloads")]
-public sealed partial class FragmentOptions : ConfigurationLoader
+public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Maximum allowed size (in bytes) of the raw payload the caller can pass to <c>SendAsync</c>.
@@ -26,6 +26,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// Default: 16 MB.
     /// </summary>
     [IniComment("Max allowed payload size in bytes before sending (default 16MB)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxPayloadSize must be positive.")]
     public int MaxPayloadSize { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
@@ -37,6 +38,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// Default: 32KB (fits a single Ethernet MTU after TCP/IP overhead).
     /// </summary>
     [IniComment("Max chunk size in bytes (default 32KB)")]
+    [System.ComponentModel.DataAnnotations.Range(4096, 65000, ErrorMessage = "MaxChunkSize must be in range [4096, 65000].")]
     public int MaxChunkSize { get; set; } = 32_000;
 
     /// <summary>
@@ -45,6 +47,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// Default: 16 MB.
     /// </summary>
     [IniComment("Max reassembly buffer per stream (default 16MB)")]
+    [System.ComponentModel.DataAnnotations.Range(1, int.MaxValue, ErrorMessage = "MaxReassemblyBytes must be positive.")]
     public int MaxReassemblyBytes { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>
@@ -52,6 +55,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// Default: 30,000 ms.
     /// </summary>
     [IniComment("Incomplete stream reassembly timeout in milliseconds (default 30,000)")]
+    [System.ComponentModel.DataAnnotations.Range(100, 3600000, ErrorMessage = "ReassemblyTimeoutMs must be at least 100 ms and at most 1 hour (3600000 ms).")]
     public long ReassemblyTimeoutMs { get; set; } = 30_000;
 
     /// <summary>
@@ -63,6 +67,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// Default: 4096.
     /// </summary>
     [IniComment("Base size of the elastic receive buffer in bytes (default 4096)")]
+    [System.ComponentModel.DataAnnotations.Range(1024, int.MaxValue, ErrorMessage = "MinReceiveBufferSize must be at least 1024 bytes to avoid network MTU thrashing (recommended 4096).")]
     public int MinReceiveBufferSize { get; set; } = 4096;
 
     /// <summary>
@@ -71,35 +76,7 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     /// <exception cref="ValidationException">Thrown when any fragmentation limit is invalid.</exception>
     public void Validate()
     {
-        if (this.MinReceiveBufferSize < 1024)
-        {
-            throw new ValidationException($"MinReceiveBufferSize={this.MinReceiveBufferSize} must be at least 1024 bytes to avoid network MTU thrashing (recommended 4096).");
-        }
-
-        if (this.MaxPayloadSize <= 0)
-        {
-            throw new ValidationException($"MaxPayloadSize={this.MaxPayloadSize} must be positive.");
-        }
-
-        if (this.MaxChunkSize < 4096 || this.MaxChunkSize > 65000)
-        {
-            throw new ValidationException($"MaxChunkSize={this.MaxChunkSize} must be in range [4096, 65000].");
-        }
-
-        if (this.MaxReassemblyBytes <= 0)
-        {
-            throw new ValidationException($"MaxReassemblyBytes={this.MaxReassemblyBytes} must be positive.");
-        }
-
-        if (this.ReassemblyTimeoutMs < 100)
-        {
-            throw new ValidationException($"ReassemblyTimeoutMs={this.ReassemblyTimeoutMs} must be at least 100 ms.");
-        }
-
-        if (this.ReassemblyTimeoutMs > 3600000)
-        {
-            throw new ValidationException($"ReassemblyTimeoutMs={this.ReassemblyTimeoutMs} must be at most 1 hour (3600000 ms).");
-        }
+        this.ValidateDataAnnotations();
 
         if (this.MaxPayloadSize < this.MaxChunkSize)
         {

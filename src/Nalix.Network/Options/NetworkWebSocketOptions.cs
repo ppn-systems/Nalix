@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents network configuration settings for WebSocket connections.
 /// </summary>
 [IniComment("Network WebSocket configuration — controls endpoint, subprotocol, and behavior")]
-public sealed partial class NetworkWebSocketOptions : ConfigurationLoader
+public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the port number for the WebSocket connection.
@@ -79,9 +79,5 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

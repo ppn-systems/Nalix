@@ -10,7 +10,7 @@ namespace Nalix.Runtime.Options;
 /// Configures concurrency and worker limits for draining packets from the channel.
 /// </summary>
 [IniComment("Configures concurrency and worker limits for draining packets from the channel")]
-public sealed partial class PacketDrainOptions : ConfigurationLoader
+public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Specifies how many worker loops the dispatcher should start.
@@ -65,8 +65,7 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        this.ValidateDataAnnotations();
 
         if (this.MinDrainPerWake > this.MaxDrainPerWake)
         {

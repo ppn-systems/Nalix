@@ -11,7 +11,7 @@ namespace Nalix.Network.Options;
 /// Provides configuration options for <see cref="IConnectionHub"/>.
 /// </summary>
 [IniComment("Connection hub configuration — controls capacity, limits, concurrency, and disposal behavior")]
-public sealed partial class ConnectionHubOptions : ConfigurationLoader
+public sealed partial class ConnectionHubOptions : ConfigurationLoader, IValidatableConfiguration
 {
     // Concurrency
 
@@ -49,25 +49,11 @@ public sealed partial class ConnectionHubOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        if (this.ParallelDisconnectDegree < -1)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ParallelDisconnectDegree), "ParallelDisconnectDegree must be -1 (default) or positive.");
-        }
-
-        if (this.BroadcastBatchSize < 0)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.BroadcastBatchSize), "BroadcastBatchSize cannot be negative.");
-        }
-
-        if (this.ShardCount < 1)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ShardCount), "ShardCount must be at least 1.");
-        }
+        this.ValidateDataAnnotations();
 
         if (this.ParallelDisconnectDegree == 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.ParallelDisconnectDegree), "ParallelDisconnectDegree cannot be zero. Use -1 for default or a positive value.");
         }
-
     }
 }

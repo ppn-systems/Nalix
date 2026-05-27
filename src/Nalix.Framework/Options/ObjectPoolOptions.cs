@@ -12,7 +12,7 @@ namespace Nalix.Framework.Options;
 /// Configuration for object pool diagnostics and performance settings.
 /// </summary>
 [IniComment("Object pool configuration — controls diagnostics, lifetime tracking, and leak detection")]
-public sealed partial class ObjectPoolOptions : ConfigurationLoader
+public sealed partial class ObjectPoolOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Enables advanced diagnostics for object pools.
@@ -133,9 +133,5 @@ public sealed partial class ObjectPoolOptions : ConfigurationLoader
     /// <exception cref="ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

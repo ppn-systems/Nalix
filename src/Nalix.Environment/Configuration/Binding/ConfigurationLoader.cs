@@ -8,6 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.Contracts;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions;
 
 namespace Nalix.Environment.Configuration.Binding;
 
@@ -118,6 +119,15 @@ public abstract partial class ConfigurationLoader
         // Source generator will override this
     }
 
+    /// <summary>
+    /// Validates all properties marked with DataAnnotations.
+    /// Overridden by source generators for AOT compatibility.
+    /// </summary>
+    protected virtual void ValidateDataAnnotations()
+    {
+        // Source generator will override this
+    }
+
     #endregion Protected Methods
 
     #region Private Methods
@@ -134,6 +144,11 @@ public abstract partial class ConfigurationLoader
 
         string section = GetSectionName(this.GetType());
         this.BindProperties(configFile, section);
+
+        if (this is IValidatableConfiguration validatable)
+        {
+            validatable.Validate();
+        }
 
         _ = Interlocked.Exchange(ref _isInitialized, 1);
         this.LastInitializationTime = DateTime.UtcNow;

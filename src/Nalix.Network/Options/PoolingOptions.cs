@@ -26,7 +26,7 @@ namespace Nalix.Network.Options;
 /// </para>
 /// </summary>
 [IniComment("Object pool configuration — capacity ceiling and startup preallocations for network contexts")]
-public sealed partial class PoolingOptions : ConfigurationLoader
+public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Accept Context — one per in-flight AcceptAsync operation
 
@@ -162,55 +162,7 @@ public sealed partial class PoolingOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        if (this.AcceptContextCapacity < 1 || this.AcceptContextCapacity > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.AcceptContextCapacity), "AcceptContext.Capacity must be between 1 and 1,000,000.");
-        }
-
-        if (this.AcceptContextPreallocate < 0 || this.AcceptContextPreallocate > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.AcceptContextPreallocate), "AcceptContext.Preallocate must be between 0 and 1,000,000.");
-        }
-
-        if (this.SocketArgsCapacity < 1 || this.SocketArgsCapacity > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.SocketArgsCapacity), "SocketArgs.Capacity must be between 1 and 1,000,000.");
-        }
-
-        if (this.SocketArgsPreallocate < 0 || this.SocketArgsPreallocate > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.SocketArgsPreallocate), "SocketArgs.Preallocate must be between 0 and 1,000,000.");
-        }
-
-        if (this.ReceiveContextCapacity < 1 || this.ReceiveContextCapacity > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ReceiveContextCapacity), "ReceiveContext.Capacity must be between 1 and 1,000,000.");
-        }
-
-        if (this.ReceiveContextPreallocate < 0 || this.ReceiveContextPreallocate > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ReceiveContextPreallocate), "ReceiveContext.Preallocate must be between 0 and 1,000,000.");
-        }
-
-        if (this.TimeoutTaskCapacity < 1 || this.TimeoutTaskCapacity > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.TimeoutTaskCapacity), "TimeoutTask.Capacity must be between 1 and 1,000,000.");
-        }
-
-        if (this.TimeoutTaskPreallocate < 0 || this.TimeoutTaskPreallocate > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.TimeoutTaskPreallocate), "TimeoutTask.Preallocate must be between 0 and 1,000,000.");
-        }
-
-        if (this.ConnectEventContextCapacity < 1 || this.ConnectEventContextCapacity > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ConnectEventContextCapacity), "ConnectEventContext.Capacity must be between 1 and 1,000,000.");
-        }
-
-        if (this.ConnectEventContextPreallocate < 0 || this.ConnectEventContextPreallocate > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ConnectEventContextPreallocate), "ConnectEventContext.Preallocate must be between 0 and 1,000,000.");
-        }
+        this.ValidateDataAnnotations();
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.AcceptContextPreallocate), this.AcceptContextPreallocate,

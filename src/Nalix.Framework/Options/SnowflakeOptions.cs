@@ -11,7 +11,7 @@ namespace Nalix.Framework.Options;
 /// Identifier configuration options.
 /// </summary>
 [IniComment("Identifier configuration — controls distributed ID generation machine mapping")]
-public sealed partial class SnowflakeOptions : ConfigurationLoader
+public sealed partial class SnowflakeOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Machine ID (1-1023) used in distributed ID generation.
@@ -23,9 +23,5 @@ public sealed partial class SnowflakeOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public void Validate()
-    {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }
