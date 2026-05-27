@@ -19,6 +19,12 @@
 		</PackageReleaseNotes>
 	</PropertyGroup>
 
+	<ItemGroup>
+		<PackageReference Condition="'$(Configuration)' == 'Release'" Include="Microsoft.SourceLink.GitHub" Version="10.0.300">
+			<PrivateAssets>All</PrivateAssets>
+		</PackageReference>
+	</ItemGroup>
+
 	<Import Project="..\Nalix.Build.props" />
 	<Import Project="..\Package.Build.props" />
 
