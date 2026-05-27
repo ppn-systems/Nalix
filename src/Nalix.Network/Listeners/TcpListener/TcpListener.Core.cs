@@ -34,13 +34,9 @@ public abstract partial class TcpListenerBase : IListener
 
     private readonly NetworkSocketOptions _config;
     private readonly ProxyProtocolOptions _proxyConfig;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly TimingWheel _timing;
     private readonly ObjectPoolManager _pool;
     private readonly ConnectionGuard _limiter;
-#pragma warning restore CA2213 // Disposable fields should be disposed
-
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
