@@ -252,10 +252,6 @@ public abstract partial class UdpListenerBase : IListener
 
             _socket = null;
 
-            // Cancel any scheduled workers in the UDP group for this port.
-            _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                        .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}");
-
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
             {
                 this.Logger.LogInformation(

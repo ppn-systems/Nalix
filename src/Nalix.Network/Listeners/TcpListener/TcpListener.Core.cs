@@ -8,13 +8,13 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
@@ -47,6 +47,7 @@ public abstract partial class TcpListenerBase : IListener
 
     private Socket? _listener;
     private CancellationTokenSource? _cts;
+    private IWorkerHandle[]? _acceptWorkers;
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
@@ -229,8 +230,14 @@ public abstract partial class TcpListenerBase : IListener
 
                 try
                 {
-                    _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{self._port}");
+                    IWorkerHandle[]? acceptWorkers = Interlocked.Exchange(ref self._acceptWorkers, null);
+                    if (acceptWorkers != null)
+                    {
+                        foreach (IWorkerHandle? worker in acceptWorkers)
+                        {
+                            worker?.Dispose();
+                        }
+                    }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
@@ -475,6 +482,15 @@ public abstract partial class TcpListenerBase : IListener
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+
+            IWorkerHandle[]? acceptWorkers = Interlocked.Exchange(ref _acceptWorkers, null);
+            if (acceptWorkers != null)
+            {
+                foreach (IWorkerHandle? worker in acceptWorkers)
+                {
+                    worker?.Dispose();
+                }
+            }
 
             this.STOP_PROCESS_CHANNEL();
             _processWorker?.Dispose();

@@ -33,7 +33,7 @@ public sealed partial class ConnectionGuard
     {
         TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
 
-        _ = taskManager.ScheduleRecurring(
+        _cleanupJob = taskManager.ScheduleRecurring(
             name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: _cleanupInterval,
             work: _ =>
@@ -53,7 +53,7 @@ public sealed partial class ConnectionGuard
 
         if (_banRepository.IsEnabled)
         {
-            _ = taskManager.ScheduleRecurring(
+            _saveJob = taskManager.ScheduleRecurring(
                 name: TaskNaming.Recurring.CleanupJobId(RecurringName + ".save", this.GetHashCode()),
                 interval: _banRepository.AutoSaveInterval,
                 work: _ =>

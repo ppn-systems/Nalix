@@ -8,11 +8,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
-using Nalix.Framework.Injection;
-using Nalix.Framework.Tasks;
 using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Throttling;
@@ -50,6 +49,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     private int _totalEndpointCount;
     private int _cleanupShardStart;
     private volatile bool _disposed;
+    private IRecurringHandle? _cleanupJob;
 
     #endregion Fields
 
@@ -934,9 +934,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         _disposed = true;
 
-        InstanceManager.Instance.GetOrCreateInstance<TaskManager>()?
-                                .CancelRecurring(TaskNaming.Recurring
-                                .CleanupJobId(RecurringName, this.GetHashCode()));
+        _cleanupJob?.Dispose();
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {

@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.PoolTypes;
@@ -38,6 +39,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     /// Per-pool metrics tracking
     /// </summary>
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, PoolMetrics> _metricsDict = new();
+
     private PoolMetrics?[] _metrics = new PoolMetrics?[64];
     private readonly System.Collections.Concurrent.ConcurrentDictionary<Type, byte> _defaultPreallocatedTypes = new();
 
@@ -77,8 +79,10 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
     private int _disposed;
     private int _trimCycleCount;
-    private readonly int _defaultMaxPoolSize;
     private long _totalTrimmedObjects;
+
+    private readonly int _defaultMaxPoolSize;
+    private readonly IRecurringHandle? _trimJob;
 
     private const int MinimumHealthSample = 32;
     private const double FailureThreshold = 0.1;
@@ -167,7 +171,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
 
         if (_config.EnableObjectTrimming)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+            _trimJob = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
                 interval: TimeSpan.FromMinutes(Math.Max(1, _config.TrimIntervalMinutes)),
                 work: _ =>
@@ -906,11 +910,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             return;
         }
 
-        if (_config.EnableObjectTrimming)
-        {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()));
-        }
+        _trimJob?.Dispose();
     }
 
     #endregion IDisposable
