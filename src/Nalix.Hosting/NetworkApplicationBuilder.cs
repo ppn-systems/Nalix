@@ -22,6 +22,7 @@ using Nalix.Network.Connections;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
+using Nalix.Runtime.Options;
 using Nalix.Runtime.Sessions;
 
 namespace Nalix.Hosting;
@@ -514,6 +515,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     private void EnsureSessionServiceRegistered()
     {
         ISessionService? service = InstanceManager.Instance.GetExistingInstance<ISessionService>();
+
+        if (!ConfigurationManager.Instance.Get<SessionStoreOptions>().Enabled)
+        {
+            return;
+        }
 
         if (service == null)
         {

@@ -15,10 +15,12 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Extensions;
+using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -28,6 +30,8 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Nalix.Session")]
 public sealed class SessionHandlers
 {
+    private static readonly bool s_isSessionStoreEnabled = ConfigurationManager.Instance.Get<SessionStoreOptions>().Enabled;
+
     /// <summary>
     /// Handles a session resume request and restores the connection state when the token is valid.
     /// </summary>
@@ -41,6 +45,11 @@ public sealed class SessionHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        if (!s_isSessionStoreEnabled)
+        {
+            context.Connection.IncrementErrorCount();
+            return;
+        }
 
         IConnectionHub? hub = context.Connection.GetHub();
         if (hub is null)
