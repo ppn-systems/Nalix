@@ -4,7 +4,7 @@ Nalix implements an authenticated X25519-based handshake using the built-in `Han
 
 ## Source Mapping
 
-- `src/Nalix.Codec/DataFrames/SignalFrames/Handshake.cs`
+- `src/Nalix.Codec/ProtocolFrames/Handshake.cs`
 - `src/Nalix.Codec/Security/HandshakeX25519.cs`
 - `src/Nalix.Runtime/Handlers/HandshakeHandlers.cs`
 - `src/Nalix.SDK/Transport/Extensions/HandshakeExtensions.cs`

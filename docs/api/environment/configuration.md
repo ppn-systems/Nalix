@@ -25,10 +25,8 @@ flowchart LR
 
 - `src/Nalix.Environment/Configuration/ConfigurationManager.cs`
 - `src/Nalix.Environment/Configuration/Binding/ConfigurationLoader.cs`
-- `src/Nalix.Environment/Configuration/Binding/ConfigurationLoader.Metadata.cs`
 - `src/Nalix.Environment/Configuration/Binding/ConfigurationLoader.SectionName.cs`
-- `src/Nalix.Environment/Configuration/Binding/ConfigurationLoader.ValueParser.cs`
-- `src/Nalix.Environment/Configuration/Internal/IniConfig.cs`
+- `src/Nalix.Environment/Configuration/Binding/IniConfig.cs`
 
 ## ConfigurationManager
 

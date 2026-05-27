@@ -2,6 +2,10 @@
 
 The `ConnectionBlacklistStoreOptions` class defines configuration parameters for managing and loading permanent IP blacklists.
 
+## Source Mapping
+
+- `src/Nalix.Network/Options/ConnectionBlacklistStoreOptions.cs`
+
 ## Overview
 
 Unlike dynamic/progressive bans that expire, the permanent IP blacklist allows developers and administrators to load a list of IP addresses or CIDR subnets from disk that are permanently blocked from connecting.

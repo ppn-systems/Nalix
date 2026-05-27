@@ -1,5 +1,8 @@
 # Connection Contracts
 
+**Namespace:** `Nalix.Abstractions.Networking`
+**Assembly:** `Nalix.Abstractions`
+
 `Nalix.Abstractions.Networking` defines the contracts shared by the network runtime and higher-level application code.
 
 ## Source mapping
@@ -19,9 +22,8 @@
 
 | Type | Public members |
 |---|---|
-| `IConnection` | `ID`, `UpTime`, `BytesSent`, `BytesReceived`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `IsUdpCreated`, `TCP`, `UDP`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
-| `IConnectionHub` | `Count`, `SessionService`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ListConnections(...)` |
-| `IConnectionTerminator` | `CloseByEndpoint(...)`, `CloseAll(...)` |
+| `IConnection` | `IsDisposed`, `ID`, `UpTime`, `BytesSent`, `BytesReceived`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `IsUdpCreated`, `TCP`, `UDP`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
+| `IConnectionHub` | `Count`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ListConnections(...)` |
 | `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
 
 ## IConnection
@@ -52,8 +54,6 @@ It supports:
 - lookup by ID
 - register and unregister
 - listing active connections
-- session service access via `SessionService`
-- close-all operations
 
 ### Common pitfalls
 

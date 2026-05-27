@@ -19,11 +19,11 @@
 | --- | --- | ---: |
 | `Logging` | Optional logger used by dispatch setup/execution logs. | `null` |
 | `DispatchLoopCount` | Explicit worker-loop count. `null` means auto-select during `Activate()`. | `null` |
-| `MaxDrainPerWakeMultiplier` | Multiplier used to compute per-wake drain budget. | `8` |
-| `MinDrainPerWake` | Lower clamp for per-wake drain budget. | `64` |
-| `MaxDrainPerWake` | Upper clamp for per-wake drain budget. | `2048` |
-| `MinDispatchLoops` | Lower clamp for auto loop selection. | `1` |
-| `MaxDispatchLoops` | Upper clamp for auto loop selection. | `64` |
+| `Drain.MaxDrainPerWakeMultiplier` | Multiplier used to compute per-wake drain budget. | `5` |
+| `Drain.MinDrainPerWake` | Lower clamp for per-wake drain budget. | `64` |
+| `Drain.MaxDrainPerWake` | Upper clamp for per-wake drain budget. | `2048` |
+| `Drain.MinDispatchLoops` | Lower clamp for auto loop selection. | `1` |
+| `Drain.MaxDispatchLoops` | Upper clamp for auto loop selection. | `64` |
 
 ## Fluent configuration methods
 

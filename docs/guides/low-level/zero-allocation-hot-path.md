@@ -93,13 +93,11 @@ var app = NetworkApplication.CreateBuilder()
 If you are not using the Hosting layer, you must manually populate the dispatch options:
 
 ```csharp
-var options = new PacketDispatchOptions<IPacket>();
-
-// Manually trigger compilation for a controller
-options.WithHandler(() => new MyController());
-
-// The dispatch channel will now use these compiled handlers
-var channel = new PacketDispatchChannel(options);
+var channel = new PacketDispatchChannel(options =>
+{
+    // Manually trigger compilation for a controller
+    options.WithHandler(() => new MyController());
+});
 ```
 
 ---
@@ -280,7 +278,7 @@ builder.ConfigureDispatchOptions(options => {
     options.WithDispatchLoopCount(Environment.ProcessorCount);
     
     // Increase the 'budget' of packets processed per core wake-up
-    options.MaxDrainPerWakeMultiplier = 12; 
+    options.Drain.MaxDrainPerWakeMultiplier = 12;
 });
 ```
 

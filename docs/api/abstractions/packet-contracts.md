@@ -58,7 +58,6 @@ Metadata-aware send contract:
 ### Supporting Contracts
 
 - `PacketDeserializer`: delegate from raw bytes to `IPacket`
-- `PacketDeserializerInto<TPacket>`: delegate that deserializes into an existing instance via `ref`
 - `IPacketDeserializer<TPacket>`:
   - `Deserialize(ReadOnlySpan<byte> buffer)` — returns a new `TPacket` instance
 - `IPacketHeader`: contract for zero-copy header access

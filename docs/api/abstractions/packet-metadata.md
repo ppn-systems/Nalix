@@ -52,6 +52,7 @@ Key members:
 - `Encryption`
 - `RateLimit`
 - `ConcurrencyLimit`
+- `Transport`
 - `Add(Attribute)`
 - `Get<TAttribute>()`
 - `Build()`

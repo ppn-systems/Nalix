@@ -6,8 +6,8 @@ The `Nalix.Abstractions` package defines the fundamental interfaces, attributes,
 
 - [**Packet Contracts**](./packet-contracts.md) — `IPacket`, `PacketOpcodeAttribute`, and basic framing.
 - [**Connection Contracts**](./connection-contracts.md) — `IConnection`, `IConnectionHub`, and state tracking.
-- [**Session Contracts**](./session-contracts.md) — `ISessionService`, `ISessionFactory`, `ISessionStore`, and `IHostedWorker` background scheduling.
-- [**Concurrency Contracts**](./concurrency-contracts.md) — `IConcurrencyGate` and throttling interfaces.
+- [**Session Contracts**](./session-contracts.md) — `ISessionService`, `ISessionFactory`, `ISessionStore`, and session state persistence.
+- [**Concurrency Contracts**](./concurrency-contracts.md) — `ITaskManager`, `IWorkerHandle`, `IWorkerContext`, and recurring job contracts.
 
 ## High-Level Primitives
 

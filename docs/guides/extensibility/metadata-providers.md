@@ -97,10 +97,12 @@ public sealed class TenantGuardMiddleware<TPacket> : IPacketMiddleware<TPacket>
 
         if (!allowed)
         {
-            await context.Connection.SendAsync(
+            using var lease = PacketFactory<Directive>.Acquire();
+            lease.Value.Initialize(
                 ControlType.FAIL,
-                ProtocolReason.UNAUTHORIZED,
-                ProtocolAdvice.REAUTHENTICATE);
+                ProtocolReason.UNAUTHORIZED, ProtocolAdvice.REAUTHENTICATE,
+                sequenceId: context.Packet.Header.SequenceId);
+            await context.Sender.SendAsync(lease.Value);
             return;
         }
 

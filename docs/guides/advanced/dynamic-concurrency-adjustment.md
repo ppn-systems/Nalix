@@ -103,7 +103,7 @@ You can also use this pattern to implement **Fairness Policies**, where "VIP" cl
 ```csharp
 public async ValueTask InvokeAsync(IPacketContext<IPacket> context, Func<CancellationToken, ValueTask> next)
 {
-    bool isVip = context.Connection.RemoteIdentity.IsAuthenticated;
+    bool isVip = context.Connection.Level >= PermissionLevel.USER;
     
     // Dynamically assign a limit based on identity
     context.Attributes.ConcurrencyLimit = new PacketConcurrencyLimitAttribute(

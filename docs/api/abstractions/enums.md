@@ -15,6 +15,7 @@ Defines the reserved OpCodes for Nalix system and protocol-level internal packet
 | `HANDSHAKE` | `0x0000` | The default handshake protocol packet for key exchange and transcript verification. |
 | `SYSTEM_CONTROL` | `0x0001` | Used for system-level control packets like PING, PONG, ERROR, DISCONNECT. |
 | `SESSION_SIGNAL` | `0x0002` | Unified packet flow for session management (resume, ack, reject). |
+| `KEY_EXCHANGE` | `0x0003` | Used for initial key exchange (TOFU). |
 
 ### PacketPriority
 

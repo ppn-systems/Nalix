@@ -2,6 +2,10 @@
 
 The `NetworkWebSocketOptions` class represents configuration settings for the hosted server-side WebSocket listeners.
 
+## Source Mapping
+
+- `src/Nalix.Network/Options/NetworkWebSocketOptions.cs`
+
 ## Overview
 
 These settings manage binding properties (port, host, path), subprotocol handshakes, channel queues, timeouts, and maximum payload constraints.

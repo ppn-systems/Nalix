@@ -37,7 +37,7 @@ flowchart LR
 
 ---
 
-## ðŸ—ï¸ Configuration Pillars
+## Configuration Pillars
 
 ### ConfigurationManager
 

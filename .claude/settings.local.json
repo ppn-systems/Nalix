@@ -21,7 +21,8 @@
       "Bash(curl -s -I \"http://localhost:5200/_framework/blazor.webassembly.js\")",
       "Bash(Get-ChildItem -Path docs -Recurse -Filter \"*.md\")",
       "Bash(Select-Object -ExpandProperty FullName)",
-      "Bash(Sort-Object)"
+      "Bash(Sort-Object)",
+      "Bash(mkdocs build *)"
     ]
   }
 }

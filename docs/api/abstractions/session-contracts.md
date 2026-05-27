@@ -4,7 +4,6 @@
 
 ## Source mapping
 
-- `src/Nalix.Abstractions/IHostedWorker.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionService.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionFactory.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionStore.cs`
@@ -16,7 +15,6 @@
 - `ISessionService`
 - `ISessionFactory`
 - `ISessionStore`
-- `IHostedWorker`
 - `SessionEntry`
 - `SessionSnapshot`
 
@@ -27,7 +25,6 @@
 | `ISessionService` | `SaveSessionAsync(...)`, `ConsumeAsync(...)` |
 | `ISessionFactory` | `CreateSession(...)` |
 | `ISessionStore` | `StoreAsync(...)`, `ConsumeAsync(...)` |
-| `IHostedWorker` | `ExecuteAsync(...)` |
 | `SessionEntry` | `Snapshot`, `ConnectionId`, `Return()` |
 | `SessionSnapshot` | `SessionToken`, `CreatedAtUnixMilliseconds`, `ExpiresAtUnixMilliseconds`, `Secret`, `Algorithm`, `Level`, `Attributes` |
 
@@ -70,15 +67,6 @@ It is responsible for:
 
 - treating the store as a cache and forgetting that custom implementations (e.g., Redis) **must** implement `ConsumeAsync` atomically to prevent resumption replay exploits
 - forgetting to return the `SessionEntry` resources to the object pool (`entry.Return()`) if a store operation fails or a session expires
-
-## IHostedWorker
-
-`IHostedWorker` represents a long-running background task managed by the runtime's scheduler (`TaskManager`).
-
-It is responsible for:
-
-- executing background tasks (e.g., periodic scavenging of expired session entries)
-- integrating seamlessly with the runtime's lifecycle management and cancellation tokens
 
 ## SessionEntry
 

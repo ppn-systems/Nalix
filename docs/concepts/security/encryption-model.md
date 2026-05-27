@@ -41,11 +41,14 @@ Nalix allows developers to decide which packets require encryption using attribu
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
 
-[PacketEncryption(false)] 
-public class HeartbeatPacket : PacketBase<HeartbeatPacket> { ... }
+public sealed class GameHandlers
+{
+    [PacketEncryption(false)]
+    public ValueTask HandleHeartbeat(IPacketContext<HeartbeatPacket> ctx) { ... }
 
-[PacketEncryption(true)] 
-public class PrivateMessage : PacketBase<PrivateMessage> { ... }
+    [PacketEncryption(true)]
+    public ValueTask HandlePrivateMessage(IPacketContext<PrivateMessage> ctx) { ... }
+}
 ```
 
 ### Dynamic Overrides
