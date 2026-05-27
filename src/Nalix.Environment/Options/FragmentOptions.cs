@@ -55,9 +55,9 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     public long ReassemblyTimeoutMs { get; set; } = 30_000;
 
     /// <summary>
-    /// The base size (in bytes) of the elastic receive buffer. 
+    /// The base size (in bytes) of the elastic receive buffer.
     /// <para>
-    /// This dictates the starting and resting memory footprint of a socket connection. 
+    /// This dictates the starting and resting memory footprint of a socket connection.
     /// It should ideally align with the OS page size (4096 bytes) and exceed a standard network MTU (1500 bytes).
     /// </para>
     /// Default: 4096.

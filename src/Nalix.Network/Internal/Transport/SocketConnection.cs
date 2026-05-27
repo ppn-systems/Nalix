@@ -109,7 +109,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private static readonly int s_maxReceiveBufferSize = GET_RECEIVE_BUFFER_SIZE();
 
     /// <summary>
-    /// Elastic receive buffer for opportunistic reads. 
+    /// Elastic receive buffer for opportunistic reads.
     /// Starts small and grows dynamically for large packets to save memory.
     /// </summary>
     private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
@@ -372,7 +372,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 /*
                  * [Step 4.5: Elastic Buffer Resizing]
                  * If a large frame is pending, grow the buffer exactly to its size.
-                 * If we just finished processing all data and are completely idle 
+                 * If we just finished processing all data and are completely idle
                  * (0 bytes left) and not processing a fragment stream, shrink the buffer.
                  */
                 if (pendingFrameSize.HasValue)
