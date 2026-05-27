@@ -7,7 +7,6 @@
 		<IsPackable>false</IsPackable>
 		<IsRoslynComponent>true</IsRoslynComponent>
 		<IncludeBuildOutput>false</IncludeBuildOutput>
-		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AssemblyName>Nalix.Analyzers.CodeFixes</AssemblyName>
 		<Description>Roslyn code fixes for Nalix analyzers.</Description>
 		<PublishAot>false</PublishAot>
@@ -18,7 +17,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Nalix.Analyzers\Nalix.Analyzers.csproj" />
+		<ProjectReference Visible="false" Include="..\Nalix.Analyzers\Nalix.Analyzers.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
