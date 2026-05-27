@@ -2,11 +2,13 @@
 	<Import Project="Version.props" Condition="Exists('$(MSBuildThisFileDirectory)Version.props') AND '$(Version)' == ''" />
 
 	<PropertyGroup>
-		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
-	</PropertyGroup>
+		<AnalysisLevel>latest</AnalysisLevel>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
-	<PropertyGroup>
 		<RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+
+		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 	</PropertyGroup>
 
 	<!-- Auto-define NALIX_AOT when Native AOT publishing is enabled -->
