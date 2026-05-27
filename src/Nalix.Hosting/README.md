@@ -17,7 +17,7 @@
 ## Installation
 
 ```bash
-dotnet add package Nalix.Network.Hosting
+dotnet add package Nalix.Hosting
 ```
 
 ## Quick Example
@@ -39,13 +39,13 @@ await app.RunAsync();
 
 ## Advanced Example: Enterprise Server Bootstrap
 
-For production environments, `NetworkApplicationBuilder` integrates deeply with Microsoft Dependency Injection, logging frameworks, and custom configuration options:
+For production environments, `NetworkApplicationBuilder` integrates deeply with system logger frameworks, custom configuration options, and the native Nalix `InstanceManager` container:
 
 ```csharp
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Nalix.Hosting;
 using Nalix.Network.Options;
+using Nalix.Framework.Injection;
 
 // Initialize the builder
 var builder = NetworkApplication.CreateBuilder();
@@ -63,8 +63,8 @@ builder.Configure<NetworkSocketOptions>(options =>
     options.BufferSize = 65536;         // Socket buffer size (64KB)
 });
 
-// 3. Register custom application services in the DI container
-builder.Services.AddSingleton<IMyDatabase, MyDatabase>();
+// 3. Register custom application services in the InstanceManager container
+InstanceManager.Instance.Register<IMyDatabase>(new MyDatabase());
 
 // 4. Discover custom PacketController types in the assembly
 builder.ScanHandlers<Program>();
@@ -72,12 +72,21 @@ builder.ScanHandlers<Program>();
 // Build and run the server application host
 using var host = builder.Build();
 
-var logger = host.Services.GetRequiredService<ILogger<Program>>();
+var logger = InstanceManager.Instance.GetOrCreateInstance<ILogger>();
 logger.LogInformation("Server bootstrap completed successfully!");
 
 await host.RunAsync();
 ```
 
+## Key Namespaces
+
+| Namespace | Purpose | Key Types |
+| :--- | :--- | :--- |
+| `Nalix.Hosting` | Microsoft-style fluent host and builder APIs for quick bootstrapping | `NetworkApplication`, `NetworkApplicationBuilder`, `INetworkApplicationBuilder`, `DefaultProtocol` |
+| `Nalix.Hosting.Internal` | Lifecycle event listeners, telemetry diagnostics, and logging bridges | `DiagnosticListenerFactory`, `HostingBuilderContext` |
+| `Nalix.Hosting.Options` | Core execution and host bootstrapping configuration options | `HostEnvironmentOptions` |
+
 ## Documentation
 
 For full end-to-end setup guides, check the [Quickstart](https://ppn-system.me/quickstart).
+

@@ -3,7 +3,7 @@
 
 using Nalix.Codec.DataFrames;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Runtime.Pooling;
+using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Xunit;
 

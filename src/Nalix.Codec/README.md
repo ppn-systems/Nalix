@@ -4,14 +4,28 @@
 
 **Nalix.Codec** provides the unified pipeline for data handling in Nalix. It orchestrates serialization, LZ4 compression, AEAD cryptography, and protocol framing into a cohesive, high-throughput transform chain.
 
-## Core Components
+## Core Features
 
 | Feature | Description |
 | :--- | :--- |
-| 🛡️ **Security Engine** | ChaCha20-Poly1305 and X25519 based crypto stack. |
-| 📦 **Packet System** | `PacketBase<T>` primitives with integrated pooling. |
-| 🗜️ **Compression** | Custom pool-backed LZ4 block compression. |
-| ⛓️ **Frame Pipeline** | Orchestrated transformation chains (Compress → Encrypt). |
+| 🛡️ **Security Engine** | Hardened AEAD cryptography (Chacha20Poly1305, Salsa20Poly1305) and secure X25519 handshake. |
+| 📦 **Packet System** | Highly optimized `PacketBase<TPacket>` and `FrameBase` primitives with integrated buffer pooling. |
+| 🗜️ **Compression** | High-speed, zero-allocation custom pool-backed LZ4 block compression. |
+| ⛓️ **Frame Pipeline** | Multi-layered orchestrated transformation pipelines (e.g., Serialize → Compress → Encrypt). |
+
+## Key Namespaces
+
+| Namespace | Purpose | Key Types |
+| :--- | :--- | :--- |
+| `Nalix.Codec.DataFrames` | High-performance data framing and runtime packet registry | `PacketBase<TPacket>`, `FrameBase`, `PacketRegistry`, `PacketSchema` |
+| `Nalix.Codec.ProtocolFrames` | Specialized low-level framing for control, directives, handshakes, and key exchanges | `Control`, `Directive`, `Handshake`, `KeyExchange`, `SessionResume` |
+| `Nalix.Codec.Transforms` | Orchestrated pipelines and transformers sequencing compression and encryption | `FrameTransformer`, `FramePipeline`, `FrameCompression`, `FrameCipher` |
+| `Nalix.Codec.Serialization` | Zero-allocation source-generated binary serialization and formatters | `LiteSerializer`, `FormatterProvider`, `IFormatter<T>`, `IFillableFormatter<T>` |
+| `Nalix.Codec.Security` | Cryptographic algorithms, envelope ciphers, and key exchange layers | `HandshakeX25519`, `EnvelopeCipher` |
+| `Nalix.Codec.Security.Symmetric` | Optimized C# stream cipher implementations | `ChaCha20`, `Salsa20` |
+| `Nalix.Codec.Security.Hashing` | Custom high-performance hash functions, message authenticators, and PBKDF2 | `Poly1305`, `Keccak256`, `Pbkdf2`, `HmacKeccak256` |
+| `Nalix.Codec.LZ4` & `.Engine` | High-performance stream/block compression and encoder pools | `LZ4BlockEncoder`, `LZ4Codec`, `LZ4Encoder`, `LZ4Decoder`, `LZ4HashTablePool` |
+| `Nalix.Codec.Pooling` | Scoped allocation lifecycle guards and factories | `PacketScope`, `PacketFactory` |
 
 ## Installation
 

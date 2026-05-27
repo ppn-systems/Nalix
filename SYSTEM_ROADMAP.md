@@ -249,4 +249,31 @@ Incorrect implementation can lead to:
 
 ---
 
+### 8. UDP Data Integrity Verification (Network & SDK)
+
+**Status:** 🔲 Not Started  
+**Objective:** Add end-to-end integrity checks for UDP datagrams so corrupted, truncated, replayed, or tampered packets are rejected consistently by both `Nalix.Network` and `Nalix.SDK`.
+
+**Architectural Guidelines:**
+
+- **Datagram Envelope:** Define a compact UDP envelope containing payload length, protocol version, flags, sequence number, and integrity tag. The envelope MUST be validated before dispatching the payload into higher-level handlers.
+
+- **Integrity Tagging:** Use existing primitives from `Nalix.Codec.Security` to generate and verify an authentication tag (e.g., keyed MAC) for authenticated UDP sessions. Do not introduce new cryptography or external dependencies.
+
+- **Fast Corruption Rejection:** Validate length, header bounds, sequence window, and integrity tag before allocating or decoding application payloads. Invalid datagrams MUST be dropped silently or counted through existing diagnostics without producing log spam.
+
+- **Replay Protection:** Extend the UDP anti-replay window to bind sequence numbers to the integrity verification flow. A valid tag with an already-consumed sequence number MUST still be rejected.
+
+- **SDK Send Path:** The SDK UDP client MUST stamp outgoing datagrams with the agreed sequence number and integrity tag after serialization, before transport send.
+
+- **SDK Receive Path:** The SDK MUST verify the envelope and integrity tag before raising callbacks, completing requests, or exposing payload bytes to application code.
+
+- **Failure Contract:** Integrity failures MUST NOT trigger automatic reconnect loops by default. Surface them as lightweight diagnostics/counters, and reserve disconnect behavior for repeated failures that indicate session corruption or key mismatch.
+
+- **Compatibility Mode:** Provide a migration path for unauthenticated or legacy UDP traffic. Integrity enforcement SHOULD be configurable per session/protocol mode, with secure mode enabled by default for authenticated clients.
+
+- **Performance Mandate:** Verification must remain zero-allocation on the hot path. Use `Span<byte>`, `ReadOnlySpan<byte>`, stack-based parsing, pooled buffers, and avoid LINQ or per-packet heap objects.
+
+---
+
 *Prepared for Nalix Open-Source Enterprise Development*

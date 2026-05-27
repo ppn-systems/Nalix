@@ -10,10 +10,10 @@ using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
-using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Middleware.Standard;
 

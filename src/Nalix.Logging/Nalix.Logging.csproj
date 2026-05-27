@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -10,16 +10,16 @@
 		<Deterministic>true</Deterministic>
 		
 		<Description><![CDATA[
-Nalix.Logging is a high-performance, asynchronous logging subsystem designed for large-scale and low-latency applications in the Nalix ecosystem.
+Nalix.Logging is a lightweight, asynchronous logging subsystem designed STRICTLY for DEVELOPMENT environments within the Nalix ecosystem.
 
-It features a modular engine with pluggable sinks (console, file, channel), batched file writing, and fully configurable logging options. Built with a zero-lock, channel-based pipeline, it ensures efficient, non-blocking log processing under heavy concurrent workloads.
+⚠️ WARNING: This logging library is NOT intended for production use. It is designed to provide quick, debug-friendly console and file outputs during the development phase. For production environments, please use a robust, production-ready logging framework such as Serilog, NLog, or an OpenTelemetry-compatible sink.
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
-- Asynchronous Performance: High-throughput, channel-based logging engine designed for non-blocking execution under extreme horizontal load.
-- Structured Target System: Pluggable sinks including high-speed batched file I/O, optimized console output, and multi-channel message routing.
-- Batching & Efficiency: Minimized disk contention through advanced batch file writing and configurable buffering strategies.
-- Unified Facade: Simplified NLogix access points for seamless, context-aware logging across all Nalix-based applications.
+- Development Only: Explicitly marked as a development-only tool. Do NOT use in production environments.
+- Asynchronous Performance: Basic channel-based logging engine designed for non-blocking local execution.
+- Simple Targets: Built-in sinks including basic file I/O and console output for debugging purposes.
+- Unified Facade: Provides simple NLogix access points for development-phase logging.
 		]]></PackageReleaseNotes>
 
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>

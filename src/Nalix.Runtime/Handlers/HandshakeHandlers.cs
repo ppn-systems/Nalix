@@ -15,6 +15,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security;
 using Nalix.Codec.Security.Asymmetric;
@@ -22,7 +23,6 @@ using Nalix.Codec.Security.Primitives;
 using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
-using Nalix.Runtime.Pooling;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -47,7 +47,7 @@ public sealed class HandshakeHandlers
     {
         /*
          * [Handshake Entry Point]
-         * We route the handshake packet based on its Stage. 
+         * We route the handshake packet based on its Stage.
          * The server only expects CLIENT_HELLO and CLIENT_FINISH.
          */
         ArgumentNullException.ThrowIfNull(context);
@@ -261,7 +261,7 @@ public sealed class HandshakeHandlers
          * [Stage 1: Client Hello]
          * 1. Acquire a handshake slot to prevent race conditions.
          * 2. Generate a fresh ephemeral X25519 key pair for the server.
-         * 3. Perform two key agreements: 
+         * 3. Perform two key agreements:
          *    - EE (Ephemeral-Ephemeral): For forward secrecy.
          *    - SE (Static-Ephemeral): For server authentication.
          * 4. Compute transcript hash and derive the temporary session key.

@@ -18,7 +18,10 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:5200/app.css\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:5200/_framework/dotnet.js\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://localhost:5200/_content/MudBlazor/MudBlazor.min.css\")",
-      "Bash(curl -s -I \"http://localhost:5200/_framework/blazor.webassembly.js\")"
+      "Bash(curl -s -I \"http://localhost:5200/_framework/blazor.webassembly.js\")",
+      "Bash(Get-ChildItem -Path docs -Recurse -Filter \"*.md\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Sort-Object)"
     ]
   }
 }

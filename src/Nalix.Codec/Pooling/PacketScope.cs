@@ -5,7 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Nalix.Codec.DataFrames;
 
-namespace Nalix.Runtime.Pooling;
+namespace Nalix.Codec.Pooling;
 
 /// <summary>
 /// A zero-allocation wrapper that ensures a rented packet is returned to its pool upon disposal.

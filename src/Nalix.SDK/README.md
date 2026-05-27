@@ -4,13 +4,24 @@
 
 ## Key Features
 
-| Feature | Source | Description |
+| Feature | Description | Key Concept / Type |
 | :--- | :--- | :--- |
-| 🔗 **Transport Sessions** | `Transport/TransportSession.cs`, `TcpSession.cs`, `UdpSession.cs` | Shared session abstraction plus TCP and UDP client transports. |
-| 🔄 **Request / Response** | `Transport/Extensions/RequestExtensions.cs` | Race-safe typed request/response with timeout and retry options. |
-| 🤝 **Handshake / Resume** | `Transport/Extensions/HandshakeExtensions.cs`, `ResumeExtensions.cs` | X25519 handshake and optional session resume helpers. |
-| 🔐 **Cipher Updates** | `Transport/Extensions/CipherExtensions.cs` | Runtime cipher switching for TCP sessions. |
-| 📡 **Typed Subscriptions** | `Transport/Extensions/TcpSessionSubscriptions.cs` | `On<TPacket>()` and `OnExact<TPacket>()` packet subscription helpers. |
+| 🔗 **Transport Sessions** | Shared session abstraction plus high-performance TCP, UDP, and WebSocket client transports. | `TransportSession`, `TcpSession`, `UdpSession`, `WebSocketSession` |
+| 🔄 **Request / Response** | Race-safe, correlated typed request/response matching with timeouts and retries. | `RequestAsync<TResponse>`, `RequestOptions` |
+| 🤝 **Handshake / Resume** | High-security X25519 handshakes and fast session resumption helpers. | `ConnectAsync`, `ResumeAsync` |
+| 🔐 **Cipher Updates** | Dynamic runtime symmetric encryption cipher switching and rotation. | `UpdateCipherAsync` |
+| 📡 **Typed Subscriptions** | Highly performant typed packet subscription handlers with automatic dispatch. | `On<TPacket>()`, `OnExact<TPacket>()` |
+
+## Key Namespaces
+
+| Namespace | Purpose | Key Types |
+| :--- | :--- | :--- |
+| `Nalix.SDK` | Root namespace containing thread dispatchers and time synchronization calculators | `IThreadDispatcher`, `InlineDispatcher`, `TimeSyncCalculator` |
+| `Nalix.SDK.Transport` | Core client transport sessions supporting TCP, UDP, and WebSockets | `TransportSession`, `TcpSession`, `UdpSession`, `WebSocketSession` |
+| `Nalix.SDK.Transport.Extensions` | Fluent APIs for handshakes, request/response, session resumption, and ciphers | `RequestExtensions`, `HandshakeExtensions`, `ResumeExtensions`, `CipherExtensions` |
+| `Nalix.SDK.Transport.Internal` | High-efficiency transport frame readers, frame senders, and packet correlation | `PacketAwaiter`, `TcpFrameReader`, `UdpFrameReader`, `WsFrameReader` |
+| `Nalix.SDK.Options` | Client socket transport and request timeout settings configuration | `TransportOptions`, `WebSocketTransportOptions`, `RequestOptions` |
+| `Nalix.SDK.Extensions` | General helper extensions and subscription utilities | `SubscriptionExtensions` |
 
 ## Installation
 
