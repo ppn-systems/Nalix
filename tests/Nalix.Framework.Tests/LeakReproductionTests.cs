@@ -5,7 +5,7 @@ using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Serialization;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Injection;
-using Nalix.Runtime.Pooling;
+using Nalix.Codec.Pooling;
 
 namespace Nalix.Framework.Tests;
 
