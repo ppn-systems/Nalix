@@ -4,6 +4,7 @@
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using Nalix.Environment.Internal;
 
 namespace Nalix.Environment.Memory;
 
@@ -183,14 +184,5 @@ public static class Leb128
         value = 0;
         bytesRead = 0;
         return false;
-    }
-
-    // ── Throw helper (keeps throw out of inlined hot paths) ───────────────────
-
-    private static class Throw
-    {
-        [MethodImpl(MethodImplOptions.NoInlining)]
-        internal static void OverlongLeb128()
-            => throw new FormatException("LEB128 sequence is overlong or corrupt (exceeds 5 bytes for a 32-bit value).");
     }
 }
