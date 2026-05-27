@@ -77,5 +77,13 @@ public partial interface IConnection
         /// <param name="framing">The framing mode to use.</param>
         /// <param name="maxPacketSize">Optional custom max packet size limit. 0 means use the default limit for the framing mode.</param>
         void UseFraming(TransportFraming framing, int maxPacketSize = 0);
+
+        /// <summary>
+        /// Detaches the underlying OS socket from the transport engine for TCP connections.
+        /// This allows the caller to take ownership of the socket without it being disposed by the connection.
+        /// </summary>
+        /// <returns>The detached <see cref="System.Net.Sockets.Socket"/>, if supported.</returns>
+        /// <exception cref="NotSupportedException">Thrown if the transport does not support socket unwrapping.</exception>
+        System.Net.Sockets.Socket Unwrap();
     }
 }

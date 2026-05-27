@@ -93,7 +93,9 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     /// 0 = no, 1 = yes
     /// </summary>
     private int _disposed;
+
     private int _closeSignaled;
+
     /// <summary>
     /// 0 = not yet, 1 = started
     /// </summary>
@@ -102,6 +104,11 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     /// 0 = not yet, 1 = started
     /// </summary>
     private int _cancelSignaled;
+
+    /// <summary>
+    /// 0 = no, 1 = yes
+    /// </summary>
+    private int _socketDetached;
 
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
@@ -239,6 +246,17 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
         preReadBytes.CopyTo(_buffer.AsSpan(_bufferDataLength));
         _bufferDataLength += preReadBytes.Length;
+    }
+
+    /// <summary>
+    /// Detaches the underlying socket, preventing it from being disposed.
+    /// </summary>
+    /// <returns>The detached socket.</returns>
+    public Socket Unwrap()
+    {
+        Volatile.Write(ref _socketDetached, 1);
+        this.CANCEL_RECEIVE_ONCE();
+        return _socket;
     }
 
     #endregion Public Methods
@@ -682,65 +700,68 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             // 2. Shutdown and close the socket. This forces any in-flight SAEA
             //    receive to complete or abort, which lets the pooled receive
             //    context observe an idle state and become returnable.
-            try
+            if (Volatile.Read(ref _socketDetached) == 0)
             {
-                if (_socket.Connected)
+                try
                 {
-                    _socket.Shutdown(SocketShutdown.Both);
+                    if (_socket.Connected)
+                    {
+                        _socket.Shutdown(SocketShutdown.Both);
+                    }
                 }
-            }
-            catch (ObjectDisposedException ex)
-            {
-                _ = ex.HResult;
+                catch (ObjectDisposedException ex)
+                {
+                    _ = ex.HResult;
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-                {
-                    _logger.LogTrace(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
-                        $"socket-shutdown-ignored disposed ep={_endpointString} ex={ex.Message}");
-                }
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace(
+                            $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                            $"socket-shutdown-ignored disposed ep={_endpointString} ex={ex.Message}");
+                    }
 #endif
-            }
-            catch (SocketException ex) when (IS_BENIGN_DISCONNECT(ex))
-            {
+                }
+                catch (SocketException ex) when (IS_BENIGN_DISCONNECT(ex))
+                {
 #if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-                {
-                    _logger.LogTrace(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
-                        $"socket-shutdown-benign ep={_endpointString} code={ex.SocketErrorCode}");
-                }
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace(
+                            $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                            $"socket-shutdown-benign ep={_endpointString} code={ex.SocketErrorCode}");
+                    }
 #endif
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
-                {
-                    _logger.LogWarning(ex, $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] socket-shutdown-failed ep={_endpointString}");
                 }
-            }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(ex, $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] socket-shutdown-failed ep={_endpointString}");
+                    }
+                }
 
-            try
-            {
-                _socket.Close();
-            }
-            catch (ObjectDisposedException ex)
-            {
-                _ = ex.HResult;
-#if DEBUG
-                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                try
                 {
-                    _logger.LogTrace(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
-                        $"socket-close-ignored disposed ep={_endpointString} ex={ex.Message}");
+                    _socket.Close();
                 }
-#endif
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                catch (ObjectDisposedException ex)
                 {
-                    _logger.LogWarning(ex, $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] socket-close-failed ep={_endpointString}");
+                    _ = ex.HResult;
+#if DEBUG
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+                    {
+                        _logger.LogTrace(
+                            $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
+                            $"socket-close-ignored disposed ep={_endpointString} ex={ex.Message}");
+                    }
+#endif
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+                    if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+                    {
+                        _logger.LogWarning(ex, $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] socket-close-failed ep={_endpointString}");
+                    }
                 }
             }
 
@@ -768,7 +789,10 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             this.INVOKE_CLOSE_ONCE();
 
             // 7. Dispose remaining resources.
-            _socket.Dispose();
+            if (Volatile.Read(ref _socketDetached) == 0)
+            {
+                _socket.Dispose();
+            }
             Interlocked.Exchange(ref _fragmentAssembler, null)?.Dispose();
         }
 

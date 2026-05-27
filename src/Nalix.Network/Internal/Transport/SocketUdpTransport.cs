@@ -335,6 +335,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         }
     }
 
+    /// <inheritdoc/>
+    public Socket Unwrap() => throw new NotSupportedException("Unwrapping is not supported for UDP transports.");
+
     /// <summary>
     /// Records bytes received from the listener.
     /// </summary>
