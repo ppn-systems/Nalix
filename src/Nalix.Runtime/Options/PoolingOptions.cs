@@ -26,7 +26,7 @@ namespace Nalix.Runtime.Options;
 /// </para>
 /// </summary>
 [IniComment("Object pool configuration — capacity ceiling and startup preallocations for runtime contexts")]
-public sealed partial class PoolingOptions : ConfigurationLoader
+public sealed partial class PoolingOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Packet Context — reusable packet processing contexts
 
@@ -54,8 +54,7 @@ public sealed partial class PoolingOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        ValidationContext ctx = new(this);
-        Validator.ValidateObject(this, ctx, validateAllProperties: true);
+        this.ValidateDataAnnotations();
 
         ASSERT_PREALLOCATE_LE_CAPACITY(
             nameof(this.PacketContextPreallocate), this.PacketContextPreallocate,

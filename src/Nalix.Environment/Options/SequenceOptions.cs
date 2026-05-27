@@ -11,7 +11,7 @@ namespace Nalix.Environment.Options;
 /// Configuration for sequence number validation windows (anti-replay + reordering support).
 /// </summary>
 [IniComment("Sequence counter configuration - controls replay protection and packet reordering tolerance")]
-public sealed partial class SequenceOptions : ConfigurationLoader
+public sealed partial class SequenceOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the reordering window size for TCP connections.
@@ -34,15 +34,7 @@ public sealed partial class SequenceOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        if (this.TcpWindow > 256)
-        {
-            throw new ValidationException("TcpWindow should not exceed 256 for security reasons (TCP has low reordering).");
-        }
-
-        if (this.UdpWindow > 1024)
-        {
-            throw new ValidationException("UdpWindow should not exceed 1024. Larger values weaken replay protection.");
-        }
+        this.ValidateDataAnnotations();
 
         if (this.UdpWindow < this.TcpWindow)
         {

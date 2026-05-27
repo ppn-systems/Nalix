@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
@@ -50,6 +51,7 @@ public abstract partial class UdpListenerBase
     private EndPoint _anyEndPoint;
     private CancellationTokenSource? _cts;
     private CancellationToken _cancellationToken;
+    private IWorkerHandle[]? _receiveWorkers;
 
     private int _state;
     private int _isDisposed;
@@ -174,6 +176,15 @@ public abstract partial class UdpListenerBase
         if (disposing)
         {
             this.Deactivate();
+
+            IWorkerHandle[]? receiveWorkers = Interlocked.Exchange(ref _receiveWorkers, null);
+            if (receiveWorkers != null)
+            {
+                foreach (IWorkerHandle? worker in receiveWorkers)
+                {
+                    worker?.Dispose();
+                }
+            }
 
             try
             {

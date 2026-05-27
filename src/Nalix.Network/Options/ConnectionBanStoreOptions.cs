@@ -11,7 +11,7 @@ namespace Nalix.Network.Options;
 /// Configuration options for the persistent Banned IP store.
 /// </summary>
 [IniComment("Configuration for persisting banned IP addresses to disk")]
-public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader
+public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets a value indicating whether disk persistence is enabled.
@@ -54,21 +54,5 @@ public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    public void Validate()
-    {
-        if (this.AutoSaveInterval < TimeSpan.FromMinutes(1) || this.AutoSaveInterval > TimeSpan.FromHours(1))
-        {
-            throw new ArgumentOutOfRangeException(nameof(this.AutoSaveInterval), "AutoSaveInterval must be between 1 minute and 1 hour.");
-        }
-
-        if (this.BanCountDecayWindow < TimeSpan.FromHours(1) || this.BanCountDecayWindow > TimeSpan.FromDays(30))
-        {
-            throw new ArgumentOutOfRangeException(nameof(this.BanCountDecayWindow), "BanCountDecayWindow must be between 1 hour and 30 days.");
-        }
-
-        if (this.MaxPersistedBans < 10 || this.MaxPersistedBans > 1_000_000)
-        {
-            throw new ArgumentOutOfRangeException(nameof(this.MaxPersistedBans), "MaxPersistedBans must be between 10 and 1,000,000.");
-        }
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

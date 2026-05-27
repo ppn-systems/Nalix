@@ -133,9 +133,10 @@ public abstract partial class TcpListenerBase
             // Spawn N accept-worker async tasks, where N = MaxParallel.
             // Multiple workers let the listener accept several connections in
             // parallel instead of serializing every accept behind one loop.
+            IWorkerHandle[] acceptWorkers = new IWorkerHandle[_config.MaxParallel];
             for (int i = 0; i < _config.MaxParallel; i++)
             {
-                IWorkerHandle h = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
+                acceptWorkers[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}",
                     work: async (ctx, ct) => await this.AcceptConnectionsAsync(ctx, ct).ConfigureAwait(false),
@@ -148,6 +149,7 @@ public abstract partial class TcpListenerBase
                     }
                 );
             }
+            _acceptWorkers = acceptWorkers;
 
             this.START_PROCESS_CHANNEL(linkedToken);
         }
@@ -302,8 +304,14 @@ public abstract partial class TcpListenerBase
 
             this.STOP_PROCESS_CHANNEL();
 
-            _ = (InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                         .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{_port}"));
+            IWorkerHandle[]? acceptWorkers = Interlocked.Exchange(ref _acceptWorkers, null);
+            if (acceptWorkers != null)
+            {
+                foreach (IWorkerHandle? worker in acceptWorkers)
+                {
+                    worker?.Dispose();
+                }
+            }
 
             if (_config.EnableTimeout)
             {

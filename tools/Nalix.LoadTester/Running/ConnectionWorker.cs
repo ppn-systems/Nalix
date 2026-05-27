@@ -37,13 +37,60 @@ internal sealed class ConnectionWorker
             {
                 try
                 {
-                    using TcpSession session = new(new TransportOptions
+                    TransportOptions transportOptions = new()
                     {
                         Address = _options.Host,
                         Port = _options.Port
-                    });
+                    };
 
-                    await session.ConnectAsync(ct: cancellationToken).ConfigureAwait(false);
+                    byte[]? proxyHeader = null;
+                    if (_options.UseProxyProtocol)
+                    {
+                        proxyHeader = new byte[28];
+                        "\r\n\r\n\0\r\nQUIT\n"u8.CopyTo(proxyHeader);
+                        proxyHeader[12] = 0x21; // Version 2, Command PROXY
+                        proxyHeader[13] = 0x11; // AF_INET, STREAM
+                        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(proxyHeader.AsSpan(14, 2), 12); // Length
+
+                        // Src IP
+                        proxyHeader[16] = (byte)Random.Shared.Next(1, 255);
+                        proxyHeader[17] = (byte)Random.Shared.Next(0, 256);
+                        proxyHeader[18] = (byte)Random.Shared.Next(0, 256);
+                        proxyHeader[19] = (byte)Random.Shared.Next(1, 255);
+
+                        // Dst IP
+                        if (System.Net.IPAddress.TryParse(_options.Host, out System.Net.IPAddress? hostIp) && hostIp.AddressFamily == AddressFamily.InterNetwork)
+                        {
+                            hostIp.TryWriteBytes(proxyHeader.AsSpan(20, 4), out _);
+                        }
+
+                        // Ports
+                        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(proxyHeader.AsSpan(24, 2), (ushort)Random.Shared.Next(1024, 65535));
+                        System.Buffers.Binary.BinaryPrimitives.WriteUInt16BigEndian(proxyHeader.AsSpan(26, 2), _options.Port);
+                    }
+
+                    using TcpSession session = new(transportOptions);
+
+                    if (proxyHeader != null)
+                    {
+                        await session.ConnectWithProxyAsync(proxyHeader, ct: cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        await session.ConnectAsync(ct: cancellationToken).ConfigureAwait(false);
+                    }
+
+                    // Send exactly ONE warmup packet to warm up JIT & pools on server/client side
+                    try
+                    {
+                        using CancellationTokenSource warmupCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                        warmupCts.CancelAfter(TimeSpan.FromSeconds(15)); // Extended timeout for JIT overhead
+                        await _scenario.ExecuteAsync(session, warmupCts.Token).ConfigureAwait(false);
+                    }
+                    catch (Exception) when (!cancellationToken.IsCancellationRequested)
+                    {
+                        // Non-fatal warning if warmup fails but connection is still active
+                    }
 
                     while (!cancellationToken.IsCancellationRequested && session.IsConnected)
                     {

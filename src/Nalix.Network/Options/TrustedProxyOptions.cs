@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents configuration options for trusted reverse proxies (e.g., Cloudflare, NGINX).
 /// </summary>
 [IniComment("Trusted proxy configuration — allows CDN/proxies to bypass standard limits but enforces ceilings")]
-public sealed partial class TrustedProxyOptions : ConfigurationLoader
+public sealed partial class TrustedProxyOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the file name used for storing trusted proxy IPs/CIDRs.
@@ -46,21 +46,5 @@ public sealed partial class TrustedProxyOptions : ConfigurationLoader
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        if (this.MaxConnectionsPerTrustedProxy < 1 || this.MaxConnectionsPerTrustedProxy > 100_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnectionsPerTrustedProxy), "MaxConnectionsPerTrustedProxy must be between 1 and 100,000.");
-        }
-
-        if (this.MaxAttemptsPerTrustedProxyWindow < 1 || this.MaxAttemptsPerTrustedProxyWindow > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxAttemptsPerTrustedProxyWindow), "MaxAttemptsPerTrustedProxyWindow must be between 1 and 10,000,000.");
-        }
-
-        if (this.MaxTrustedProxies < 10 || this.MaxTrustedProxies > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxTrustedProxies), "MaxTrustedProxies must be between 10 and 1,000,000.");
-        }
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

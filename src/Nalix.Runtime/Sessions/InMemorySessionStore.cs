@@ -67,7 +67,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
                 if (pair.Value.Snapshot.ExpiresAtUnixMilliseconds <= now &&
                     ((ICollection<KeyValuePair<ulong, SessionEntry>>)store).Remove(pair))
                 {
-                    Interlocked.Increment(ref self._totalExpired);
+                    _ = Interlocked.Increment(ref self._totalExpired);
                     pair.Value.Return();
                 }
 
@@ -94,7 +94,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
 
             if (_store.TryAdd(token, entry))
             {
-                Interlocked.Increment(ref _totalStored);
+                _ = Interlocked.Increment(ref _totalStored);
                 return ValueTask.CompletedTask;
             }
 
@@ -111,7 +111,7 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
 
             if (_store.TryUpdate(token, entry, current))
             {
-                Interlocked.Increment(ref _totalStored);
+                _ = Interlocked.Increment(ref _totalStored);
                 current.Return();
                 return ValueTask.CompletedTask;
             }
@@ -136,12 +136,12 @@ public sealed class InMemorySessionStore : ISessionStore, IWorker, IReportable
         // Check TTL — if expired, return the entry resources and report null.
         if (entry.Snapshot.ExpiresAtUnixMilliseconds <= Clock.UnixMillisecondsNow())
         {
-            Interlocked.Increment(ref _totalExpired);
+            _ = Interlocked.Increment(ref _totalExpired);
             entry.Return();
             return ValueTask.FromResult<SessionEntry?>(null);
         }
 
-        Interlocked.Increment(ref _totalConsumed);
+        _ = Interlocked.Increment(ref _totalConsumed);
         return ValueTask.FromResult<SessionEntry?>(entry);
     }
 

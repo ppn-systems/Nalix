@@ -11,6 +11,7 @@ using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Internal.Buffers;
@@ -55,7 +56,9 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
     private long _cachedMemoryBudget;
     private long _lastBudgetComputeTime;
     private long _peakMemoryUsage;
+
     private readonly DateTime _startTime;
+    private readonly IRecurringHandle? _trimJob;
 
     #endregion Fields & Constants
 
@@ -113,7 +116,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
         if (_config.EnableMemoryTrimming)
         {
-            _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+            _trimJob = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
                 name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
                 interval: TimeSpan.FromMinutes(Math.Max(1, _config.TrimIntervalMinutes)),
                 work: _ =>
@@ -545,12 +548,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
         _metricsCache.Clear();
         _slabPool.Dispose();
 
-        if (_config.EnableMemoryTrimming)
-        {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelRecurring(TaskNaming.Recurring
-                                    .CleanupJobId(RecurringName, this.GetHashCode()));
-        }
+        _trimJob?.Dispose();
 
         if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Memory.PoolTrimmed))
         {

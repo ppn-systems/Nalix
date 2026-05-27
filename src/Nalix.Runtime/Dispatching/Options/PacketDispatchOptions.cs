@@ -83,13 +83,4 @@ public sealed partial class PacketDispatchOptions<TPacket> : IWithLogging<Packet
     internal int RegisteredHandlerCount => Volatile.Read(ref _handlerCount);
 
     #endregion Properties
-
-    #region Validation
-
-    /// <summary>
-    /// Validates the dispatch options and throws if any values are invalid.
-    /// </summary>
-    public void Validate() => this.Drain.Validate();
-
-    #endregion Validation
 }

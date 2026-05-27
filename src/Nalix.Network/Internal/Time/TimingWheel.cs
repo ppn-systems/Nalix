@@ -348,8 +348,7 @@ internal sealed class TimingWheel : IActivatable
         IWorkerHandle? worker = Interlocked.Exchange(ref _worker, null);
         if (worker != null)
         {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                    .CancelWorker(worker.Id);
+            worker.Dispose();
 
             int elapsed = 0;
             int timeout = _options.WheelDrainTimeoutMs;

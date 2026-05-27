@@ -380,7 +380,7 @@ internal static class AsyncCallback
 
                 if (currentCount == 0)
                 {
-                    return; // Should not happen in balanced system, but safe fallback
+                    break; // Empty slot, but our hash might be further down the probe chain due to a previous collision that was freed!
                 }
 
                 if (currentHash != hash)

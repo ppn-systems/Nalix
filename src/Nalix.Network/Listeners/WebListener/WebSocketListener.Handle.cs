@@ -234,7 +234,7 @@ public abstract partial class WebSocketListenerBase
         IWorkerHandle? worker = Interlocked.Exchange(ref _processWorker, null);
         if (worker != null)
         {
-            InstanceManager.Instance.GetOrCreateInstance<TaskManager>().CancelWorker(worker.Id);
+            worker.Dispose();
 
             int elapsed = 0;
             int timeout = _config.ProcessChannelDrainTimeout;
@@ -243,8 +243,6 @@ public abstract partial class WebSocketListenerBase
                 Thread.Sleep(10);
                 elapsed += 10;
             }
-
-            worker.Dispose();
         }
     }
 

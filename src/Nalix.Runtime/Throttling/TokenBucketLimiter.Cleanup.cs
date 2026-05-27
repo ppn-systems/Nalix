@@ -314,7 +314,7 @@ public sealed partial class TokenBucketLimiter
     /// </summary>
     private void SCHEDULE_CLEANUP_JOB()
     {
-        _ = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+        _cleanupJob = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
             name: TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()),
             interval: TimeSpan.FromSeconds(_cleanupIntervalSec),
             work: _ =>

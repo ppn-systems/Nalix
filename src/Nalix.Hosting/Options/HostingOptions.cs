@@ -11,7 +11,7 @@ namespace Nalix.Hosting.Options;
 /// Provides configuration options for Nalix hosting and bootstrapping.
 /// </summary>
 [IniComment("Hosting configuration — controls startup diagnostics, console behavior, and lifecycle settings")]
-public sealed partial class HostingOptions : ConfigurationLoader
+public sealed partial class HostingOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets a value indicating whether to disable clearing the console on startup.
@@ -29,12 +29,14 @@ public sealed partial class HostingOptions : ConfigurationLoader
     /// Gets or sets the minimum number of worker threads in the ThreadPool.
     /// </summary>
     [IniComment("Minimum worker threads for the ThreadPool (0 = system default, recommended: processor count * 2)")]
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "MinWorkerThreads cannot be negative.")]
     public int MinWorkerThreads { get; set; } = 0;
 
     /// <summary>
     /// Gets or sets the minimum number of completion port threads in the ThreadPool.
     /// </summary>
     [IniComment("Minimum completion port threads for the ThreadPool (0 = system default)")]
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "MinCompletionPortThreads cannot be negative.")]
     public int MinCompletionPortThreads { get; set; } = 0;
 
     /// <summary>
@@ -59,16 +61,5 @@ public sealed partial class HostingOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public void Validate()
-    {
-        if (this.MinWorkerThreads < 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MinWorkerThreads cannot be negative.");
-        }
-
-        if (this.MinCompletionPortThreads < 0)
-        {
-            throw new System.ComponentModel.DataAnnotations.ValidationException("MinCompletionPortThreads cannot be negative.");
-        }
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

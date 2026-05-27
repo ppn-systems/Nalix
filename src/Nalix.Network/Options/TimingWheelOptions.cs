@@ -11,7 +11,7 @@ namespace Nalix.Network.Options;
 /// Defines how long an inactive connection can stay open before being automatically closed.
 /// </summary>
 [IniComment("Timing wheel configuration — controls idle timeout detection for TCP and UDP connections")]
-public sealed partial class TimingWheelOptions : ConfigurationLoader
+public sealed partial class TimingWheelOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the size of the timing wheel (number of buckets).
@@ -50,26 +50,5 @@ public sealed partial class TimingWheelOptions : ConfigurationLoader
     /// <exception cref="System.ArgumentOutOfRangeException">
     /// Thrown when one or more values are outside their allowed range.
     /// </exception>
-    public void Validate()
-    {
-        if (this.BucketCount < 1)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.BucketCount), "BucketCount must be at least 1.");
-        }
-
-        if (this.TickDuration < 1)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.TickDuration), "TickDuration must be at least 1.");
-        }
-
-        if (this.IdleTimeoutMs < 1)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.IdleTimeoutMs), "IdleTimeoutMs must be at least 1.");
-        }
-
-        if (this.WheelDrainTimeoutMs < 0 || this.WheelDrainTimeoutMs > 60000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.WheelDrainTimeoutMs), "WheelDrainTimeoutMs must be between 0 and 60000 ms.");
-        }
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

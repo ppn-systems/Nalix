@@ -11,7 +11,7 @@ namespace Nalix.SDK.Options;
 /// Client-side WebSocket configuration used by <c>WebSocketSession</c>.
 /// </summary>
 [IniComment("Client WebSocket transport configuration")]
-public sealed partial class WebSocketTransportOptions : ConfigurationLoader
+public sealed partial class WebSocketTransportOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the WebSocket endpoint path.
@@ -41,9 +41,5 @@ public sealed partial class WebSocketTransportOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public void Validate()
-    {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

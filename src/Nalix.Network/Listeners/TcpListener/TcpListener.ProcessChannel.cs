@@ -95,8 +95,7 @@ public abstract partial class TcpListenerBase
 
         if (worker != null)
         {
-            Framework.Injection.InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                                        .CancelWorker(worker.Id);
+            worker.Dispose();
 
             int elapsed = 0;
             int timeout = _config.ProcessChannelDrainTimeout;
@@ -105,9 +104,6 @@ public abstract partial class TcpListenerBase
                 Thread.Sleep(10);
                 elapsed += 10;
             }
-
-            worker.Dispose();
-            _processWorker = null;
         }
     }
 

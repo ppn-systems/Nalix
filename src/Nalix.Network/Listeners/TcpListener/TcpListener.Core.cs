@@ -8,17 +8,20 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Pooling;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
+
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2213 // Disposable fields should be disposed
 
 namespace Nalix.Network.Listeners.Tcp;
 
@@ -34,19 +37,16 @@ public abstract partial class TcpListenerBase : IListener
 
     private readonly NetworkSocketOptions _config;
     private readonly ProxyProtocolOptions _proxyConfig;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly TimingWheel _timing;
     private readonly ObjectPoolManager _pool;
     private readonly ConnectionGuard _limiter;
-#pragma warning restore CA2213 // Disposable fields should be disposed
-
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
 
     private Socket? _listener;
     private CancellationTokenSource? _cts;
+    private IWorkerHandle[]? _acceptWorkers;
     private CancellationToken _cancellationToken;
     private CancellationTokenRegistration _cancelReg;
 
@@ -229,8 +229,14 @@ public abstract partial class TcpListenerBase : IListener
 
                 try
                 {
-                    _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Tcp}/{self._port}");
+                    IWorkerHandle[]? acceptWorkers = Interlocked.Exchange(ref self._acceptWorkers, null);
+                    if (acceptWorkers != null)
+                    {
+                        foreach (IWorkerHandle? worker in acceptWorkers)
+                        {
+                            worker?.Dispose();
+                        }
+                    }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                 {
@@ -475,6 +481,15 @@ public abstract partial class TcpListenerBase : IListener
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+
+            IWorkerHandle[]? acceptWorkers = Interlocked.Exchange(ref _acceptWorkers, null);
+            if (acceptWorkers != null)
+            {
+                foreach (IWorkerHandle? worker in acceptWorkers)
+                {
+                    worker?.Dispose();
+                }
+            }
 
             this.STOP_PROCESS_CHANNEL();
             _processWorker?.Dispose();

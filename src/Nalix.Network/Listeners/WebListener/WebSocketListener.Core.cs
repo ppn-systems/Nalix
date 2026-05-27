@@ -8,15 +8,18 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
+
+#pragma warning disable IDE0079
+#pragma warning disable CA2213
 
 namespace Nalix.Network.Listeners.Web;
 
@@ -42,11 +45,9 @@ public abstract partial class WebSocketListenerBase : IListener
     private HttpListener? _listener;
     private CancellationTokenSource? _cts;
     private CancellationTokenRegistration _cancelReg;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
+    private IWorkerHandle[]? _acceptWorkers;
     private readonly TimingWheel _timing;
     private readonly ConnectionGuard _limiter;
-#pragma warning restore CA2213 // Disposable fields should be disposed
 
     #endregion Fields
 
@@ -181,8 +182,14 @@ public abstract partial class WebSocketListenerBase : IListener
 
                 try
                 {
-                    _ = InstanceManager.Instance.GetExistingInstance<TaskManager>()?
-                                                .CancelGroup($"{TaskNaming.Tags.Net}/{TaskNaming.Tags.WebSocket}/{self._port}");
+                    IWorkerHandle[]? acceptWorkers = Interlocked.Exchange(ref self._acceptWorkers, null);
+                    if (acceptWorkers != null)
+                    {
+                        foreach (IWorkerHandle? worker in acceptWorkers)
+                        {
+                            worker?.Dispose();
+                        }
+                    }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
 
@@ -263,6 +270,15 @@ public abstract partial class WebSocketListenerBase : IListener
             }
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
+
+            IWorkerHandle[]? acceptWorkers = Interlocked.Exchange(ref _acceptWorkers, null);
+            if (acceptWorkers != null)
+            {
+                foreach (IWorkerHandle? worker in acceptWorkers)
+                {
+                    worker?.Dispose();
+                }
+            }
 
             this.STOP_PROCESS_CHANNEL();
             _processWorker?.Dispose();

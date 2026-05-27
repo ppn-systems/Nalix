@@ -15,6 +15,9 @@ using Nalix.Network.Options;
 using Nalix.Observability.Handlers;
 using Nalix.Runtime.Options;
 
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2000 // Dispose objects before losing scope
+
 namespace Backend;
 
 internal class Startup
@@ -40,66 +43,271 @@ internal class Startup
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
+            .AddHandler<BenchmarkHandlers>()
+            .AddHandler<RuntimeObservationHandlers>()
+            .AddHandler<ObservabilityAccessHandlers>()
+            .AddMetadataProvider<PacketTagMetadataProvider>()
             .Configure<BufferOptions>(o =>
             {
-                o.TotalBuffers = 50_000;
-                o.ThreadCacheDepth = 64;
-                o.MaxMemoryPercentage = 0.90;
+                o.TotalBuffers = 20_000;
+
+                // Keep trimming enabled so the server can recover after burst traffic.
+                o.EnableMemoryTrimming = true;
+                o.TrimIntervalMinutes = 1;
+                o.DeepTrimIntervalMinutes = 5;
+
+                // Disable analytics during benchmark to avoid extra overhead.
                 o.EnableAnalytics = false;
+
+                // Allow controlled growth under pressure.
+                o.AdaptiveGrowthFactor = 2.0;
+                o.ExpandThresholdPercent = 0.25;
+                o.ShrinkThresholdPercent = 0.70;
+                o.MinimumIncrease = 256;
+                o.MaxBufferIncreaseLimit = 4096;
+
+                // Keep memory bounded by percentage unless you want a fixed byte cap.
+                o.MaxMemoryPercentage = 0.60;
+                o.MaxMemoryBytes = 0;
+
+                // Max allowed by your option validation. Good for hot receive paths.
+                o.ThreadCacheDepth = 64;
+
+                o.SuitablePoolSizeCacheLimit = 2000;
+                o.FallbackToArrayPool = true;
+
+                // Tune this to your benchmark packet size.
+                // This profile favors small/medium packets.
+                o.BufferAllocations = "256,0.30; 1024,0.30; 4096,0.25; 16384,0.10; 32768,0.05";
+
+                // Never enable these during DDoS/high-concurrency benchmarks.
+                o.EnableBufferLeakDetection = false;
+                o.EnableBufferLeakStackTrace = false;
+
+                o.UsageAggressiveFactor = 0.75;
+                o.MissRateAggressiveFactor = 2.0;
+                o.ExpansionSoftCapRatio = 0.25;
+                o.InitialSlabTrackingCapacity = 512;
+
+                o.SuspiciousThresholdSeconds = 30;
             })
-            .Configure<Nalix.Network.Options.PoolingOptions>(o =>
+            .Configure<ObjectPoolOptions>(o =>
             {
-                o.AcceptContextCapacity = 10_000;
-                o.AcceptContextPreallocate = 100;
-                o.SocketArgsCapacity = 100_000;
-                o.SocketArgsPreallocate = 2_000;
-                o.ReceiveContextCapacity = 100_000;
-                o.ReceiveContextPreallocate = 2_000;
-                o.TimeoutTaskCapacity = 100_000;
-                o.ConnectEventContextCapacity = 100_000;
+                // Lightweight metrics are useful for reports and safe enough for benchmark.
+                o.EnableMetrics = true;
+
+                // Heavy diagnostics should stay off during stress/DDoS benchmark.
+                o.EnableDiagnostics = false;
+                o.CaptureStackTraces = false;
+                o.EnableLeakDetection = false;
+
+                o.SuspiciousThresholdSeconds = 30;
+                o.LifetimeReservoirSize = 64;
+
+                // Let pools recover after burst traffic.
+                o.EnableObjectTrimming = true;
+                o.TrimIntervalMinutes = 2;
+                o.DeepTrimIntervalMinutes = 10;
+
+                // Keep hot pools warm, trim cold pools more aggressively.
+                o.BaseKeepPercentage = 25;
+                o.DeepTrimPercentage = 60;
+                o.HotHitRateThreshold = 85.0;
+                o.MinimumKeepObjects = 16;
+
+                // Applies to dynamically created object pools.
+                o.DefaultPreallocate = 1_000;
+                o.DefaultMaxPoolSize = 20_000;
             })
-            .AddHandler<ObservabilityAccessHandlers>()
-            .AddHandler<RuntimeObservationHandlers>()
-            .AddHandler<BenchmarkHandlers>()
+            .Configure<TaskManagerOptions>(o =>
+            {
+                o.IsEnableLatency = true;
+
+                // For repeatable benchmarks, disable dynamic adjustment.
+                // Enable it only when testing production self-tuning behavior.
+                o.DynamicAdjustmentEnabled = false;
+
+                o.MaxWorkers = Math.Max(128, Environment.ProcessorCount * 32);
+
+                o.ThresholdHighCpu = 85.0;
+                o.ThresholdLowCpu = 45.0;
+
+                o.ObservingInterval = TimeSpan.FromSeconds(2);
+                o.CpuWarmupDuration = TimeSpan.FromSeconds(15);
+                o.AdjustmentStreakRequired = 3;
+
+                // Avoid long busy-wait during DDoS benchmark.
+                o.BusyWaitThreshold = TimeSpan.FromTicks(1000); // 100 µs
+
+                o.BackoffMaxPower = 5;
+                o.BackoffBaseInterval = TimeSpan.FromSeconds(1);
+
+                o.CleanupInterval = TimeSpan.FromSeconds(15);
+            })
             .Configure<NetworkSocketOptions>(o =>
             {
                 o.Port = ListenPort;
-                o.BufferSize = 65536;
-                o.Backlog = 16384;
-                o.MaxParallel = 5;
+
+                // OS-level TCP listen backlog. High value is useful for accept-spike benchmarks.
+                o.Backlog = 16_384;
+
+                // OS socket send/receive buffer size. This is not the managed BufferPool buffer size.
+                o.BufferSize = 8192;
+
+                // Number of parallel accept/listener workers.
+                o.MaxParallel = 8;
+
+                // Accepted socket queue before the connection processing loop catches up.
+                o.ProcessChannelCapacity = 8_192;
+                o.ProcessChannelDrainTimeout = 5_000;
+
+                o.NoDelay = true;
+                o.KeepAlive = true;
+                o.ReuseAddress = true;
+                o.ReusePort = true;
+
+                // Disable unless you specifically benchmark TCP Fast Open.
+                o.TcpFastOpen = false;
             })
-            .Configure<ProxyProtocolOptions>(o =>
+            .Configure<NetworkCallbackOptions>(o =>
             {
-                o.Enabled = false;
-            })
-            .Configure<ForwardedHeadersOptions>(o =>
-            {
-                o.Enabled = false;
-                o.RequireTrustedProxy = false;
+                // Layer 1: per-connection receive pressure.
+                // Higher for benchmark, lower for production.
+                o.MaxPerConnectionPendingPackets = 128;
+                o.MaxPerConnectionOpenFragmentStreams = 16;
+
+                // Layer 2: global callback backlog.
+                // This is the main GC/lag protection boundary.
+                o.MaxPendingNormalCallbacks = 250_000;
+                o.CallbackWarningThreshold = 50_000;
+
+                // For local/single-IP benchmark, keep this high.
+                // For production, use 64-512 instead.
+                o.MaxPendingPerIp = 50_000;
+
+                o.MaxPooledCallbackStates = 100_000;
+                o.FairnessMapSize = 65_536;
             })
             .Configure<NetworkWebSocketOptions>(o =>
             {
                 o.Host = "+";
                 o.Port = 57207;
                 o.Path = "/ws/";
+
+                o.EnableTimeout = true;
+                o.ProcessChannelCapacity = 4_096;
+                o.ProcessChannelDrainTimeout = 5_000;
+
+                // Keep this close to your real protocol payload size.
+                // 1 MiB is too large if benchmark packets are small.
+                o.MaxMessageSize = 64 * 1024;
             })
-            .Configure<ConnectionQuotaOptions>(o =>
+            .Configure<TimingWheelOptions>(o =>
             {
-                o.MaxConnectionsPerIpAddress = 10_000;
-                o.MaxConnectionsPerWindow = 10_000_000;
+                // More buckets reduce collision when many connections are registered.
+                o.BucketCount = 4096;
+
+                // 1s tick is cheaper; 500ms is more responsive but costs more CPU.
+                o.TickDuration = 1000;
+
+                // Shorter timeout helps clear idle flood connections.
+                o.IdleTimeoutMs = 30_000;
+
+                o.WheelDrainTimeoutMs = 5_000;
+            })
+            .Configure<ConnectionHubOptions>(o =>
+            {
+                // More shards reduce dictionary contention under high connection count.
+                o.ShardCount = Math.Max(16, Environment.ProcessorCount * 4);
+
+                // Keep latency enabled during benchmark, but verify that it measures queue wait too.
+                o.IsEnableLatency = true;
+
+                o.ParallelDisconnectDegree = Math.Max(4, Environment.ProcessorCount);
+                o.BroadcastBatchSize = 1024;
             })
             .Configure<ConnectionGuardOptions>(o =>
             {
-                o.MaxPacketPerSecond = 1_000_000;
+                // Global concurrent connection ceiling.
+                // Set higher than the target benchmark peak.
+                o.MaxConnections = 50_000;
+
+                // Per-connection packet rate.
+                // This is not global PPS.
+                o.MaxPacketPerSecond = 5_000;
+
+                // Disconnect noisy/malformed connections earlier.
+                o.MaxErrorThreshold = 20;
+
+                o.BanDuration = TimeSpan.FromMinutes(5);
+                o.DDoSLogSuppressWindow = TimeSpan.FromSeconds(20);
+                o.EnableProgressiveBanning = true;
             })
-            .Configure<NetworkCallbackOptions>(o =>
+            .Configure<ConnectionQuotaOptions>(o =>
             {
-                o.MaxPendingPerIp = 10_000;
-                o.MaxPooledCallbackStates = 64_000;
-                o.CallbackWarningThreshold = 10_000;
-                o.MaxPerConnectionPendingPackets = 512;
-                o.MaxPendingNormalCallbacks = 1_000_000;
-                o.MaxPerConnectionOpenFragmentStreams = 256;
+                // For single-machine/local benchmark, this must be high enough,
+                // otherwise your tester IP becomes the bottleneck.
+                o.MaxConnectionsPerIpAddress = 10_000;
+
+                // Connection attempts per IP within ConnectionRateWindow.
+                o.MaxConnectionsPerWindow = 100_000;
+                o.ConnectionRateWindow = TimeSpan.FromSeconds(5);
+
+                o.InactivityThreshold = TimeSpan.FromMinutes(2);
+                o.CleanupInterval = TimeSpan.FromSeconds(30);
+                o.MaxCleanupKeysPerRun = 50_000;
+
+                // Vietnam timezone daily reset offset.
+                o.DailyResetTimeOffset = TimeSpan.FromHours(7);
+            })
+            .Configure<ConnectionBanStoreOptions>(o =>
+            {
+                o.Enabled = true;
+                o.AutoSaveInterval = TimeSpan.FromMinutes(1);
+                o.StoreFileName = "banned_ips.bin";
+                o.BanCountDecayWindow = TimeSpan.FromDays(7);
+                o.MaxPersistedBans = 100_000;
+            })
+            .Configure<ConnectionBlacklistStoreOptions>(o =>
+            {
+                o.Enabled = true;
+                o.StoreFileName = "blacklist.txt";
+                o.MaxBlacklistedIps = 100_000;
+            })
+            .Configure<Nalix.Network.Options.PoolingOptions>(o =>
+            {
+                // AcceptContext is one per in-flight accept operation, not one per connection.
+                o.AcceptContextCapacity = 512;
+                o.AcceptContextPreallocate = 64;
+
+                // SocketArgs and ReceiveContext scale with active TCP connections.
+                o.SocketArgsCapacity = 60_000;
+                o.SocketArgsPreallocate = 4_096;
+
+                o.ReceiveContextCapacity = 60_000;
+                o.ReceiveContextPreallocate = 4_096;
+
+                // TimingWheel keeps timeout tasks for active connections.
+                o.TimeoutTaskCapacity = 60_000;
+                o.TimeoutTaskPreallocate = 4_096;
+
+                // Connection callback wrappers scale with queued connection events.
+                o.ConnectEventContextCapacity = 100_000;
+                o.ConnectEventContextPreallocate = 4_096;
+            })
+            .Configure<ProxyProtocolOptions>(o =>
+            {
+                // Enable only if your TCP proxy actually sends PROXY protocol V1/V2.
+                // For direct TCP benchmark, keep this false.
+                o.Enabled = true;
+                o.RequireTrustedProxy = true;
+                o.HeaderTimeoutMs = 1000;
+            })
+            .Configure<ForwardedHeadersOptions>(o =>
+            {
+                // Use this for HTTP/WebSocket reverse proxies that send CF-Connecting-IP or X-Forwarded-For.
+                o.Enabled = false;
+                o.RequireTrustedProxy = true;
             })
             .Configure<ObjectPoolOptions>(o =>
             {
@@ -108,11 +316,15 @@ internal class Startup
                 o.CaptureStackTraces = false;
                 o.EnableLeakDetection = false;
 
-                o.DefaultPreallocate = 2_000;
-                o.DefaultMaxPoolSize = 100_000;
+                o.DefaultPreallocate = 1_000;
+                o.DefaultMaxPoolSize = 20_000;
             })
-            .Configure<DispatchOptions>(o => o.MaxPerConnectionQueue = 0)
-            .AddMetadataProvider<PacketTagMetadataProvider>()
+            .Configure<DispatchOptions>(o =>
+            {
+                // Per-connection dispatch queue cap.
+                // Prevents one connection from holding unlimited work.
+                o.MaxPerConnectionQueue = 128;
+            })
             .ConfigureDispatchOptions(o =>
             {
                 //_ = o.WithMiddleware(new TimeoutMiddleware());

@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents network configuration settings for WebSocket connections.
 /// </summary>
 [IniComment("Network WebSocket configuration — controls endpoint, subprotocol, and behavior")]
-public sealed partial class NetworkWebSocketOptions : ConfigurationLoader
+public sealed partial class NetworkWebSocketOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the port number for the WebSocket connection.
@@ -67,14 +67,17 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader
     public int MaxMessageSize { get; set; } = 1_048_576;
 
     /// <summary>
+    /// Number of concurrent accept workers to spawn for handling new WebSocket connections.
+    /// </summary>
+    [IniComment("Number of concurrent accept workers (default 1)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel must be between 1 and 1024.")]
+    public int MaxParallel { get; set; } = 1;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

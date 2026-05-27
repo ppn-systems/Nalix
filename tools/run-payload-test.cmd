@@ -1,10 +1,10 @@
 @echo off
-title Nalix DDoS Load Tester
+title Nalix Payload Echo Load Tester
 setlocal
 cd /d "%~dp0.."
 
 echo ===========================================================
-echo            Nalix DDoS Load Tester (PC to Pi)
+echo            Nalix Payload Echo Load Tester (PC to Pi)
 echo ===========================================================
 echo.
 set /p RASPI_IP="Enter Raspberry Pi IP address (default 192.168.1.169): "
@@ -16,19 +16,19 @@ dotnet publish tools\Nalix.LoadTester\Nalix.LoadTester.csproj -c Release -o .\Lo
 
 echo.
 echo Firing 1000 connections targeting %RASPI_IP%:57206...
-echo Scenario: ddos
+echo Scenario: payload
 echo Duration: 60 seconds
 echo.
-echo Test is running for 60 seconds... 
+echo Test is running for 60 seconds...
 echo You will see live progress on the console.
-echo The final report will be exported to: reports\test-data\ddos_client.md
+echo The final report will be exported to: reports\test-data\payload_client.md
 echo ===========================================================
 echo.
 
 if not exist reports\test-data mkdir reports\test-data
-.\LoadTesterBin\Nalix.LoadTester.exe --scenario ddos --host %RASPI_IP% --port 57206 --connections 5000 --duration 60 --output reports\test-data\ddos_client.md
+.\LoadTesterBin\Nalix.LoadTester.exe --scenario payload --host %RASPI_IP% --port 57206 --connections 1000 --duration 60 --warmup 5 --ramp-up 2 --payload-size 1500 --output reports\test-data\payload_client.md
 
 echo.
 echo ===========================================================
-echo Test finished! Check reports\test-data\ddos_client.md for the detailed result.
+echo Test finished! Check reports\test-data\payload_client.md for the detailed result.
 pause

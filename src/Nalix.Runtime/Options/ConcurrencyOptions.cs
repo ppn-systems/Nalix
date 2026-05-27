@@ -12,7 +12,7 @@ namespace Nalix.Runtime.Options;
 /// Configuration for the global concurrency gate and circuit breaker.
 /// </summary>
 [IniComment("Concurrency gate configuration — controls circuit breaker thresholds and entry cleanup")]
-public sealed partial class ConcurrencyOptions : ConfigurationLoader
+public sealed partial class ConcurrencyOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Rejection rate threshold (0.0-1.0) to trip the circuit breaker.
@@ -60,9 +60,5 @@ public sealed partial class ConcurrencyOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    public void Validate()
-    {
-        ValidationContext context = new(this);
-        Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

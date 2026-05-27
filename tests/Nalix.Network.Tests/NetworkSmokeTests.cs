@@ -33,14 +33,14 @@ public sealed class NetworkSmokeTests
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]
-    public void Validate_ConnectionGuardOptions_InvalidMaxPacketPerSecond_ThrowsArgumentOutOfRangeException(int value)
+    public void Validate_ConnectionGuardOptions_InvalidMaxPacketPerSecond_ThrowsValidationException(int value)
     {
         ConnectionGuardOptions options = new()
         {
             MaxPacketPerSecond = value
         };
 
-        _ = Assert.Throws<System.ArgumentOutOfRangeException>(options.Validate);
+        _ = Assert.Throws<System.ComponentModel.DataAnnotations.ValidationException>(() => options.Validate());
     }
 
     [Fact]
@@ -80,17 +80,3 @@ public sealed class NetworkSmokeTests
     {
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents configuration options for Proxy Protocol V1/V2 parsing.
 /// </summary>
 [IniComment("Proxy Protocol configuration — handling real IP extraction behind load balancers")]
-public sealed partial class ProxyProtocolOptions : ConfigurationLoader
+public sealed partial class ProxyProtocolOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Enable Proxy Protocol V1/V2 header parsing to extract the real client IP.
@@ -42,9 +42,5 @@ public sealed partial class ProxyProtocolOptions : ConfigurationLoader
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

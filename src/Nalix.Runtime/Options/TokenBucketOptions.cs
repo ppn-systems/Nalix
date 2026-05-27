@@ -10,7 +10,7 @@ namespace Nalix.Runtime.Options;
 /// Provides configuration options for a high-performance token-bucket rate limiter.
 /// </summary>
 [IniComment("Token-bucket rate limiter configuration — controls burst capacity, refill rate, sharding, and violation policy")]
-public sealed partial class TokenBucketOptions : ConfigurationLoader
+public sealed partial class TokenBucketOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Properties
 
@@ -121,8 +121,7 @@ public sealed partial class TokenBucketOptions : ConfigurationLoader
     /// </exception>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        this.ValidateDataAnnotations();
 
         if (this.ShardCount <= 0)
         {

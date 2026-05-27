@@ -2,11 +2,13 @@
 	<Import Project="Version.props" Condition="Exists('$(MSBuildThisFileDirectory)Version.props') AND '$(Version)' == ''" />
 
 	<PropertyGroup>
-		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
-	</PropertyGroup>
+		<AnalysisLevel>latest</AnalysisLevel>
+		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
-	<PropertyGroup>
 		<RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
+
+		<BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)..\build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
 	</PropertyGroup>
 
 	<!-- Auto-define NALIX_AOT when Native AOT publishing is enabled -->
@@ -48,7 +50,7 @@
 	</ItemGroup>
 
 	<!-- Source generator for ConfigurationLoader AOT binding -->
-	<ItemGroup Condition="'$(PublishAot)' != 'true' And '$(MSBuildProjectName)' != 'Nalix.Analyzers' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Generators' And '$(MSBuildProjectName)' != 'Nalix.Abstractions' And '$(MSBuildProjectName)' != 'Nalix.Environment' And '$(MSBuildProjectName)' != 'Nalix.Codec'">
+	<ItemGroup Condition="'$(PublishAot)' != 'true' And '$(MSBuildProjectName)' != 'Nalix.Analyzers' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Generators' And '$(MSBuildProjectName)' != 'Nalix.Abstractions'">
 		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
 	</ItemGroup>
 

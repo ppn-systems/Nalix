@@ -11,7 +11,7 @@ namespace Nalix.Network.Options;
 /// behavior per IP address.
 /// </summary>
 [IniComment("Per-IP connection limiting — mitigates abuse, DoS, and excessive resource consumption")]
-public sealed partial class ConnectionQuotaOptions : ConfigurationLoader
+public sealed partial class ConnectionQuotaOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the maximum number of concurrent connections allowed per IP address.
@@ -70,41 +70,5 @@ public sealed partial class ConnectionQuotaOptions : ConfigurationLoader
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        if (this.MaxConnectionsPerIpAddress < 1 || this.MaxConnectionsPerIpAddress > 10_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnectionsPerIpAddress), "MaxConnectionsPerIpAddress must be between 1 and 10,000.");
-        }
-
-        if (this.MaxConnectionsPerWindow < 1 || this.MaxConnectionsPerWindow > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnectionsPerWindow), "MaxConnectionsPerWindow must be between 1 and 10,000,000.");
-        }
-
-        if (this.ConnectionRateWindow < System.TimeSpan.FromSeconds(1) || this.ConnectionRateWindow > System.TimeSpan.FromMinutes(10))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.ConnectionRateWindow), "ConnectionRateWindow must be between 1 second and 10 minutes.");
-        }
-
-        if (this.CleanupInterval < System.TimeSpan.FromSeconds(1) || this.CleanupInterval > System.TimeSpan.FromHours(1))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.CleanupInterval), "CleanupInterval must be between 1 second and 1 hour.");
-        }
-
-        if (this.InactivityThreshold < System.TimeSpan.FromSeconds(1) || this.InactivityThreshold > System.TimeSpan.FromDays(1))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.InactivityThreshold), "InactivityThreshold must be at least 1 second and at most 1 day.");
-        }
-
-        if (this.MaxCleanupKeysPerRun < 0 || this.MaxCleanupKeysPerRun > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxCleanupKeysPerRun), "MaxCleanupKeysPerRun must be between 0 and 10,000,000.");
-        }
-
-        if (this.DailyResetTimeOffset < System.TimeSpan.FromHours(-14) || this.DailyResetTimeOffset > System.TimeSpan.FromHours(14))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.DailyResetTimeOffset), "DailyResetTimeOffset must be between -14:00:00 and 14:00:00.");
-        }
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

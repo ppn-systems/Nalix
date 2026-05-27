@@ -199,6 +199,70 @@ public class ConfigurationGenerator : IIncrementalGenerator
         }
 
         _ = sb.AppendLine($"{i}}}");
+
+        // ── ValidateDataAnnotations ──
+        _ = sb.AppendLine($"{i}/// <summary>");
+        _ = sb.AppendLine($"{i}/// Auto-generated method that validates all properties marked with DataAnnotations.");
+        _ = sb.AppendLine($"{i}/// </summary>");
+        _ = sb.AppendLine($"{i}protected override void ValidateDataAnnotations()");
+        _ = sb.AppendLine($"{i}{{");
+        foreach (IPropertySymbol p in props)
+        {
+            foreach (AttributeData attr in p.GetAttributes())
+            {
+                string attrName = attr.AttributeClass?.Name ?? "";
+                if (attrName == "RangeAttribute")
+                {
+                    string minVal = "";
+                    string maxVal = "";
+                    string minStr = "";
+                    string maxStr = "";
+
+                    if (attr.ConstructorArguments.Length >= 3 || attr.ConstructorArguments[0].Kind == TypedConstantKind.Type)
+                    {
+                        minStr = attr.ConstructorArguments[1].Value?.ToString() ?? "0";
+                        maxStr = attr.ConstructorArguments[2].Value?.ToString() ?? "0";
+                        minVal = minStr;
+                        maxVal = maxStr;
+
+                        if (attr.ConstructorArguments[0].Value is ITypeSymbol ts)
+                        {
+                            if (ts.SpecialType == SpecialType.System_Double) { minVal += "d"; maxVal += "d"; }
+                            else if (ts.SpecialType == SpecialType.System_Single) { minVal += "f"; maxVal += "f"; }
+                            else if (ts.SpecialType == SpecialType.System_Decimal) { minVal += "m"; maxVal += "m"; }
+                            else if (ts.Name == "TimeSpan")
+                            {
+                                minVal = $"global::System.TimeSpan.Parse(\"{minStr}\")";
+                                maxVal = $"global::System.TimeSpan.Parse(\"{maxStr}\")";
+                            }
+                        }
+                    }
+                    else
+                    {
+                        minStr = attr.ConstructorArguments[0].Value?.ToString() ?? "0";
+                        maxStr = attr.ConstructorArguments[1].Value?.ToString() ?? "0";
+                        minVal = minStr;
+                        maxVal = maxStr;
+
+                        if (attr.ConstructorArguments[0].Value is double) { minVal += "d"; maxVal += "d"; }
+                        else if (attr.ConstructorArguments[0].Value is float) { minVal += "f"; maxVal += "f"; }
+                    }
+
+                    _ = sb.AppendLine($"{i}    if (this.{p.Name} < {minVal} || this.{p.Name} > {maxVal})");
+                    _ = sb.AppendLine($"{i}        throw new global::System.ComponentModel.DataAnnotations.ValidationException(\"{p.Name} must be between {minStr} and {maxStr}.\");");
+                }
+                else if (attrName == "RequiredAttribute")
+                {
+                    if (!p.Type.IsValueType || p.Type.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T)
+                    {
+                        _ = sb.AppendLine($"{i}    if (this.{p.Name} == null)");
+                        _ = sb.AppendLine($"{i}        throw new global::System.ComponentModel.DataAnnotations.ValidationException(\"{p.Name} is required.\");");
+                    }
+                }
+            }
+        }
+        _ = sb.AppendLine($"{i}}}");
+
         _ = sb.AppendLine($"{indent}}}");
 
         // Close nesting chain

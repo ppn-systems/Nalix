@@ -7,6 +7,8 @@ namespace Nalix.LoadTester;
 
 internal sealed class LoadTestOptions
 {
+    public Boolean UseProxyProtocol { get; private init; }
+
     public LoadTestScenarioKind Scenario { get; private init; } = LoadTestScenarioKind.Payload;
 
     public String Host { get; private init; } = "127.0.0.1";
@@ -75,14 +77,22 @@ internal sealed class LoadTestOptions
             else
             {
                 name = arg;
-                if (i + 1 >= args.Length || args[i + 1].StartsWith("--", StringComparison.Ordinal))
-                {
-                    error = $"Option '{name}' requires a value.";
-                    options = builder.Build();
-                    return false;
-                }
 
-                value = args[++i];
+                if (StringComparer.OrdinalIgnoreCase.Equals(name, "--proxy-protocol"))
+                {
+                    value = "true";
+                }
+                else
+                {
+                    if (i + 1 >= args.Length || args[i + 1].StartsWith("--", StringComparison.Ordinal))
+                    {
+                        error = $"Option '{name}' requires a value.";
+                        options = builder.Build();
+                        return false;
+                    }
+
+                    value = args[++i];
+                }
             }
 
             if (!builder.TrySet(name, value, out error))
@@ -123,6 +133,7 @@ internal sealed class LoadTestOptions
         writer.WriteLine("  --warmup <seconds>");
         writer.WriteLine("  --cooldown <seconds>");
         writer.WriteLine("  --output <report.json|report.csv|report.md>");
+        writer.WriteLine("  --proxy-protocol (Enable Proxy Protocol V2 injection)");
     }
 
     private Boolean Validate(out String? error)
@@ -232,9 +243,11 @@ internal sealed class LoadTestOptions
         private Int32 _warmupSeconds;
         private Int32 _cooldownSeconds;
         private String? _outputPath;
+        private Boolean _useProxyProtocol;
 
         public LoadTestOptions Build() => new()
         {
+            UseProxyProtocol = _useProxyProtocol,
             Scenario = _scenario,
             Host = _host,
             Port = _port,
@@ -318,6 +331,10 @@ internal sealed class LoadTestOptions
 
                 case "--output":
                     _outputPath = value;
+                    return true;
+
+                case "--proxy-protocol":
+                    _useProxyProtocol = true;
                     return true;
 
                 default:

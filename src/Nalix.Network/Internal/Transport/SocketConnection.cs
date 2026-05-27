@@ -106,14 +106,16 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
     private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
 
+    private static readonly int s_maxReceiveBufferSize = GET_RECEIVE_BUFFER_SIZE();
+
     /// <summary>
-    /// Persistent receive buffer for opportunistic reads. 
-    /// Rented once for the lifetime of the connection.
+    /// Elastic receive buffer for opportunistic reads.
+    /// Starts small and grows dynamically for large packets to save memory.
     /// </summary>
-    private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(GET_RECEIVE_BUFFER_SIZE());
+    private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
 
     private int _bufferDataLength;
-    private readonly string _endpointString = FORMAT_ENDPOINT(socket);
+    private readonly string _endpointString = owner.NetworkEndpoint.ToString() ?? "Unknown";
 
     #endregion Fields
 
@@ -289,6 +291,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 // Step 1: Parse all complete frames currently in the buffer.
                 int consumed = 0;
                 bool parsedAtLeastOne = false;
+                int? pendingFrameSize = null;
 
                 while (_bufferDataLength - consumed >= HeaderSize)
                 {
@@ -315,6 +318,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                     if (_bufferDataLength - consumed < size)
                     {
                         // Current frame is incomplete. Break and wait for more data.
+                        pendingFrameSize = size;
                         break;
                     }
 
@@ -363,6 +367,38 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                         Buffer.BlockCopy(_buffer!, consumed, _buffer!, 0, remaining);
                     }
                     _bufferDataLength = remaining;
+                }
+
+                /*
+                 * [Step 4.5: Elastic Buffer Resizing]
+                 * If a large frame is pending, grow the buffer exactly to its size.
+                 * If we just finished processing all data and are completely idle
+                 * (0 bytes left) and not processing a fragment stream, shrink the buffer.
+                 */
+                if (pendingFrameSize.HasValue)
+                {
+                    int requiredSize = pendingFrameSize.Value;
+                    if (requiredSize > s_maxReceiveBufferSize)
+                    {
+                        throw Throw.GetMessageSize();
+                    }
+
+                    if (requiredSize > _buffer!.Length)
+                    {
+                        byte[] newBuffer = BufferLease.ByteArrayPool.Rent(requiredSize);
+                        if (_bufferDataLength > 0)
+                        {
+                            Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _bufferDataLength);
+                        }
+                        BufferLease.ByteArrayPool.Return(_buffer);
+                        _buffer = newBuffer;
+                    }
+                }
+                else if (_bufferDataLength == 0 && _buffer!.Length > s_fragmentOptions.MinReceiveBufferSize && Volatile.Read(ref _openFragmentStreams) == 0)
+                {
+                    byte[] newBuffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
+                    BufferLease.ByteArrayPool.Return(_buffer);
+                    _buffer = newBuffer;
                 }
 
                 /*
@@ -522,7 +558,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
                 _logger.LogWarning($"[NW.{nameof(SocketConnection)}] frame-dropped " +
-                                 $"length={payloadLen} ep={_endpointString}");
+                                  $"length={payloadLen} ep={_endpointString}");
             }
 #endif
             lease.Dispose();
@@ -756,20 +792,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private static bool IS_VALID_PACKET_SIZE(uint size)
         => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
 
-    [DebuggerStepThrough]
-    private static string FORMAT_ENDPOINT(Socket s)
-    {
-        try { return s.RemoteEndPoint?.ToString() ?? "<unknown>"; }
-        catch (ObjectDisposedException) { return "<disposed>"; }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            _ = ex.HResult;
-#if DEBUG
-            Debug.WriteLine($"[SocketConnection] FORMAT_ENDPOINT failed: {ex}");
-#endif
-            return "<unknown>";
-        }
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OBSERVE_RECEIVE_LOOP_SHUTDOWN(Task receiveLoopTask)

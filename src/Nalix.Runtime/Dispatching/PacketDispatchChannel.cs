@@ -167,8 +167,7 @@ public sealed class PacketDispatchChannel
             {
                 if (i < _workerHandle.Length && _workerHandle[i] is not null)
                 {
-                    InstanceManager.Instance.GetOrCreateInstance<TaskManager>()
-                                            .CancelWorker(_workerHandle[i].Id);
+                    _workerHandle[i].Dispose();
                 }
             }
 

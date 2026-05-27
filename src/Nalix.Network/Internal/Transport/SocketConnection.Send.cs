@@ -120,7 +120,7 @@ internal sealed partial class SocketConnection
                     if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                     {
                         _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                      $"stackalloc-benign-disconnect ep={FORMAT_ENDPOINT(_socket)} ex={ex.GetType().Name}");
+                                      $"stackalloc-benign-disconnect ep={_endpointString} ex={ex.GetType().Name}");
                     }
 #endif
                 }
@@ -129,7 +129,7 @@ internal sealed partial class SocketConnection
                     _owner.ThrottledError(
                         _logger,
                         "socket.send.stackalloc_error",
-                        $"stackalloc-error ep={FORMAT_ENDPOINT(_socket)}", ex);
+                        $"stackalloc-error ep={_endpointString}", ex);
                 }
                 throw;
             }
@@ -205,7 +205,7 @@ internal sealed partial class SocketConnection
                 {
                     _logger.LogDebug(
                         "[NW.{Class}:{Method}] pooled-benign-disconnect ep={Ep} ex={ExType}",
-                        nameof(SocketConnection), nameof(Send), FORMAT_ENDPOINT(_socket), ex.GetType().Name);
+                        nameof(SocketConnection), nameof(Send), _endpointString, ex.GetType().Name);
                 }
 #endif
             }
@@ -214,7 +214,7 @@ internal sealed partial class SocketConnection
                 _owner.ThrottledError(
                     _logger,
                     "socket.send.pooled_error",
-                    $"pooled-error ep={FORMAT_ENDPOINT(_socket)}", ex);
+                    $"pooled-error ep={_endpointString}", ex);
             }
             throw;
         }
@@ -372,7 +372,7 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._owner.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
+                self._owner.ThrottledError(self._logger, "socket.send.error", $"error ep={self._endpointString}", ex);
             }
             return ValueTask.FromException(ex);
         }
@@ -381,7 +381,7 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._owner.ThrottledError(self._logger, "socket.send.error", $"error ep={FORMAT_ENDPOINT(self._socket)}", ex);
+                self._owner.ThrottledError(self._logger, "socket.send.error", $"error ep={self._endpointString}", ex);
             }
             return ex;
         }

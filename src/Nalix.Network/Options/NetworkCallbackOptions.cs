@@ -30,7 +30,7 @@ namespace Nalix.Network.Options;
 /// </para>
 /// </summary>
 [IniComment("Async callback dispatcher and per-connection throttle settings (DDoS protection)")]
-public sealed partial class NetworkCallbackOptions : ConfigurationLoader
+public sealed partial class NetworkCallbackOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Layer 1 — Per-connection receive throttle
 
@@ -120,40 +120,8 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader
     /// <inheritdoc/>
     public void Validate()
     {
-        if (this.MaxPerConnectionPendingPackets < 1 || this.MaxPerConnectionPendingPackets > 1024)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPerConnectionPendingPackets), "MaxPerConnectionPendingPackets must be between 1 and 1024.");
-        }
+        this.ValidateDataAnnotations();
 
-        if (this.MaxPerConnectionOpenFragmentStreams < 1 || this.MaxPerConnectionOpenFragmentStreams > 256)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPerConnectionOpenFragmentStreams), "MaxPerConnectionOpenFragmentStreams must be between 1 and 256.");
-        }
-
-        if (this.MaxPendingNormalCallbacks < 100 || this.MaxPendingNormalCallbacks > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPendingNormalCallbacks), "MaxPendingNormalCallbacks must be between 100 and 1,000,000.");
-        }
-
-        if (this.CallbackWarningThreshold < 0 || this.CallbackWarningThreshold > 1_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.CallbackWarningThreshold), "CallbackWarningThreshold must be between 0 and 1,000,000.");
-        }
-
-        if (this.MaxPendingPerIp < 1 || this.MaxPendingPerIp > 10_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPendingPerIp), "MaxPendingPerIp must be between 1 and 10,000.");
-        }
-
-        if (this.MaxPooledCallbackStates < 64 || this.MaxPooledCallbackStates > 100_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.MaxPooledCallbackStates), "MaxPooledCallbackStates must be between 64 and 100,000.");
-        }
-
-        if (this.FairnessMapSize < 1024 || this.FairnessMapSize > 65536)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.FairnessMapSize), "FairnessMapSize must be between 1024 and 65536.");
-        }
 
         // Cross-field guard: warning threshold should be below global cap
         if (this.CallbackWarningThreshold > 0 && this.CallbackWarningThreshold >= this.MaxPendingNormalCallbacks)

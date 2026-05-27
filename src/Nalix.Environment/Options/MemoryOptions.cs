@@ -12,7 +12,7 @@ namespace Nalix.Environment.Options;
 /// Configures memory limits and safety thresholds for shared memory primitives.
 /// </summary>
 [IniComment("Memory configuration — controls limits for shared memory primitives")]
-public sealed partial class MemoryOptions : ConfigurationLoader
+public sealed partial class MemoryOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the maximum capacity, in bytes, that a single <see cref="DataWriter"/> is allowed to expand to.
@@ -22,12 +22,14 @@ public sealed partial class MemoryOptions : ConfigurationLoader
     /// by requesting extremely large buffer expansions.
     /// </remarks>
     [IniComment("Maximum capacity (bytes) for a single DataWriter buffer (default 128MB)")]
+    [System.ComponentModel.DataAnnotations.Range(1024, int.MaxValue, ErrorMessage = "MaxWriterCapacity must be at least 1024 bytes.")]
     public int MaxWriterCapacity { get; set; } = 128 * 1024 * 1024;
 
     /// <summary>
     /// Gets or sets the maximum number of slots in the thread-local lease cache.
     /// </summary>
     [IniComment("Max slots for BufferLease thread-local cache (default 8)")]
+    [System.ComponentModel.DataAnnotations.Range(0, int.MaxValue, ErrorMessage = "BufferLeaseThreadLocalCacheMaxSlots cannot be negative.")]
     public int BufferLeaseThreadLocalCacheMaxSlots { get; set; } = 8;
 
     /// <summary>
@@ -41,15 +43,7 @@ public sealed partial class MemoryOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        if (this.MaxWriterCapacity < 1024)
-        {
-            throw new ValidationException($"MaxWriterCapacity must be at least 1024 bytes.");
-        }
-
-        if (this.BufferLeaseThreadLocalCacheMaxSlots < 0)
-        {
-            throw new ValidationException($"BufferLeaseThreadLocalCacheMaxSlots cannot be negative.");
-        }
+        this.ValidateDataAnnotations();
 
         if (this.BufferLeaseSharedPoolSize <= 0 || (this.BufferLeaseSharedPoolSize & (this.BufferLeaseSharedPoolSize - 1)) != 0)
         {

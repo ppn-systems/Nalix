@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents network configuration settings for socket and TCP connections.
 /// </summary>
 [IniComment("Network socket configuration — controls port, buffering, concurrency, and socket behavior")]
-public sealed partial class NetworkSocketOptions : ConfigurationLoader
+public sealed partial class NetworkSocketOptions : ConfigurationLoader, IValidatableConfiguration
 {
     #region Constants
 
@@ -76,9 +76,9 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader
     /// <summary>
     /// Gets or sets the maximum number of parallel connections.
     /// </summary>
-    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 2)")]
+    [IniComment("Maximum simultaneous parallel listeners/acceptors (1–1024, default 1)")]
     [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel UDP must be between 1 and 1024.")]
-    public int MaxParallelUDP { get; set; } = 2;
+    public int MaxParallelUDP { get; set; } = 1;
 
     /// <summary>
     /// Gets or sets the buffer size for both sending and receiving data.
@@ -160,9 +160,5 @@ public sealed partial class NetworkSocketOptions : ConfigurationLoader
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

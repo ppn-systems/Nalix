@@ -10,7 +10,7 @@ namespace Nalix.Network.Options;
 /// Represents configuration options for UDP datagram source rate limiting.
 /// </summary>
 [IniComment("UDP datagram guard — bounds source tracking and cleanup behavior")]
-public sealed partial class DatagramGuardOptions : ConfigurationLoader
+public sealed partial class DatagramGuardOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets or sets the maximum number of IPv4 source windows tracked at once.
@@ -72,36 +72,5 @@ public sealed partial class DatagramGuardOptions : ConfigurationLoader
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    public void Validate()
-    {
-        if (this.IPv4Windows < 1 || this.IPv4Windows > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.IPv4Windows), "IPv4Windows must be between 1 and 10,000,000.");
-        }
-
-        if (this.IPv6Windows < 1 || this.IPv6Windows > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.IPv6Windows), "IPv6Windows must be between 1 and 10,000,000.");
-        }
-
-        if (this.IPv4Capacity < 1 || this.IPv4Capacity > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.IPv4Capacity), "IPv4Capacity must be between 1 and 10,000,000.");
-        }
-
-        if (this.IPv6Capacity < 1 || this.IPv6Capacity > 10_000_000)
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.IPv6Capacity), "IPv6Capacity must be between 1 and 10,000,000.");
-        }
-
-        if (this.CleanupInterval < System.TimeSpan.FromSeconds(1) || this.CleanupInterval > System.TimeSpan.FromHours(1))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.CleanupInterval), "CleanupInterval must be between 1 second and 1 hour.");
-        }
-
-        if (this.IdleTimeout < System.TimeSpan.FromSeconds(1) || this.IdleTimeout > System.TimeSpan.FromHours(1))
-        {
-            throw new System.ArgumentOutOfRangeException(nameof(this.IdleTimeout), "IdleTimeout must be between 1 second and 1 hour.");
-        }
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

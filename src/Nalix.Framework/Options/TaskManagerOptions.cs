@@ -26,7 +26,7 @@ namespace Nalix.Framework.Options;
 /// </example>
 /// </remarks>
 [IniComment("Task manager configuration — controls concurrency, CPU thresholds, and cleanup behavior")]
-public sealed partial class TaskManagerOptions : ConfigurationLoader
+public sealed partial class TaskManagerOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
     /// Gets a value indicating whether latency measurement is enabled.
@@ -117,8 +117,7 @@ public sealed partial class TaskManagerOptions : ConfigurationLoader
     /// </summary>
     public void Validate()
     {
-        System.ComponentModel.DataAnnotations.ValidationContext context = new(this);
-        System.ComponentModel.DataAnnotations.Validator.ValidateObject(this, context, validateAllProperties: true);
+        this.ValidateDataAnnotations();
 
         if (this.ThresholdHighCpu < this.ThresholdLowCpu)
         {

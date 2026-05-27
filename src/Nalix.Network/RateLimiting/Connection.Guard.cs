@@ -10,12 +10,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
+using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
-using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Security;
 using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
@@ -60,6 +60,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private ILogger? _logger;
 
     private int _disposed;
+    private IRecurringHandle? _cleanupJob;
+    private IRecurringHandle? _saveJob;
 
     /// <summary>
     /// Metrics for monitoring
@@ -244,6 +246,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     /// <param name="sender">Event sender (unused).</param>
     /// <param name="args">Connection event arguments.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Because it's required by the event signature")]
     public void OnConnectionClosed(object? sender, IConnectEventArgs args)
     {
         if (Volatile.Read(ref _disposed) != 0)
@@ -561,10 +564,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         try
         {
-            TaskManager? taskManager = InstanceManager.Instance.GetExistingInstance<TaskManager>();
-
-            taskManager?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName, this.GetHashCode()));
-            taskManager?.CancelRecurring(TaskNaming.Recurring.CleanupJobId(RecurringName + ".save", this.GetHashCode()));
+            _cleanupJob?.Dispose();
+            _saveJob?.Dispose();
 
             if (_banRepository.IsEnabled)
             {

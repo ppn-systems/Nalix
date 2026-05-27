@@ -67,18 +67,17 @@ public abstract partial class TcpListenerBase
     /// </remarks>
     private void START_PROXY_SWEEP(CancellationToken ct)
     {
-        _proxySweepHandle = InstanceManager.Instance
-            .GetOrCreateInstance<TaskManager>()
-            .ScheduleRecurring(
-                name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Proxy}.Sweep.{_port}",
-                interval: TimeSpan.FromMilliseconds(500),
-                work: _ => { this.SWEEP_PROXY_TIMEOUTS(); return ValueTask.CompletedTask; },
-                options: new RecurringOptions
-                {
-                    Tag = TaskNaming.Tags.Net,
-                    NonReentrant = true,
-                    ExecutionTimeout = TimeSpan.FromMilliseconds(_proxyConfig.HeaderTimeoutMs)
-                });
+        _proxySweepHandle = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleRecurring(
+            name: $"{TaskNaming.Tags.Tcp}.{TaskNaming.Tags.Proxy}.Sweep.{_port}",
+            interval: TimeSpan.FromMilliseconds(500),
+            work: _ => { this.SWEEP_PROXY_TIMEOUTS(ct); return ValueTask.CompletedTask; },
+            options: new RecurringOptions
+            {
+                Tag = TaskNaming.Tags.Net,
+                NonReentrant = true,
+                ExecutionTimeout = TimeSpan.FromMilliseconds(_proxyConfig.HeaderTimeoutMs)
+            }
+        );
     }
 
     /// <summary>
@@ -117,7 +116,7 @@ public abstract partial class TcpListenerBase
     /// that has not timed out. This keeps each sweep proportional to the number of expired
     /// handshakes rather than the total number of pending sockets.
     /// </remarks>
-    private void SWEEP_PROXY_TIMEOUTS()
+    private void SWEEP_PROXY_TIMEOUTS(CancellationToken cancellation)
     {
         long now = Stopwatch.GetTimestamp();
         long timeoutTicks = _proxyConfig.HeaderTimeoutMs * (Stopwatch.Frequency / 1000L);
@@ -125,8 +124,14 @@ public abstract partial class TcpListenerBase
         lock (_proxyLock)
         {
             ProxyHeaderContext? node = _proxyHead;
+
             while (node is not null)
             {
+                if (cancellation.IsCancellationRequested)
+                {
+                    break;
+                }
+
                 ProxyHeaderContext? next = node.Next;
 
                 if (now - node.HandshakeStartTimeTicks < timeoutTicks)
@@ -238,6 +243,24 @@ public abstract partial class TcpListenerBase
 #pragma warning disable CA2000
             connection = this.InitializeConnection(state.Socket!, realIp, consumed, state.Buffer, state.BytesReceived);
 #pragma warning restore CA2000
+        }
+        catch (ObjectDisposedException)
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(OnProxyReadCompleted)}] socket-disposed-during-init");
+            }
+        }
+        catch (SocketException ex) when (
+            ex.SocketErrorCode is
+            SocketError.ConnectionReset or
+            SocketError.ConnectionAborted or
+            SocketError.OperationAborted)
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(OnProxyReadCompleted)}] socket-error-during-init: {ex.SocketErrorCode}");
+            }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
