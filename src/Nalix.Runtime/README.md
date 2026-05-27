@@ -1,15 +1,28 @@
 # Nalix.Runtime
 
-> Application-level execution engine — handles packet routing, shard-aware dispatch, and middleware execution.
+> Application-level execution engine — handles packet routing, shard-aware Weighted Round-Robin dispatch, throttling, sessions, and middleware execution.
 
 ## Key Features
 
-| Feature | Description |
-| :--- | :--- |
-| ⚡ **PacketDispatchChannel** | Shard-aware execution loops that move packet handling off the network threads. |
-| 🛤️ **Middleware Pipeline** | Inbound and outbound middleware support with `[MiddlewareOrder]`-aware ordering. |
-| 🎯 **Controllers** | Attribute-based routing via `[PacketController]` and `[PacketOpcode]`. |
-| 💉 **Context Injection** | Provides `IPacketContext<T>` to handlers with access to buffers, metadata, and connection state. |
+| Feature | Description | Key Concept / Type |
+| :--- | :--- | :--- |
+| ⚡ **Packet Dispatch** | Shard-aware Weighted Round-Robin execution loops decoupling packet handling from network socket threads. | `PacketDispatchChannel`, `PacketContext` |
+| 🛤️ **Middleware Pipeline** | Highly performant inbound and outbound packet interceptor chain with custom ordering. | `MiddlewarePipeline`, `IPacketMiddleware` |
+| 🎯 **Controllers** | Attribute-based compile-time generated routing routes via static controllers. | `[PacketController]`, `[PacketOpcode]` |
+| 💾 **Session Tracking** | Thread-safe, high-speed in-memory session persistence, factories, and observers. | `SessionService`, `InMemorySessionStore` |
+| 🚦 **Traffic Throttling** | Low-overhead request rate limiters and concurrent execution gate filters. | `ConcurrencyGate`, `TokenBucketLimiter` |
+
+## Key Namespaces
+
+| Namespace | Purpose | Key Types |
+| :--- | :--- | :--- |
+| `Nalix.Runtime.Dispatching` | Shard-aware concurrent message dispatch channels and packet contexts | `PacketDispatchChannel`, `PacketContext`, `PacketDispatcherBase` |
+| `Nalix.Runtime.Middleware` | Inbound/outbound pipeline engines and standard middleware blocks | `MiddlewarePipeline`, `RateLimitMiddleware`, `TimeoutMiddleware` |
+| `Nalix.Runtime.Handlers` | Pre-built core handshake, key exchange, and system controllers | `SessionHandlers`, `HandshakeHandlers`, `KeyExchangeHandlers` |
+| `Nalix.Runtime.Throttling` | Microsecond-optimized concurrency controls and rate limiting filters | `ConcurrencyGate`, `TokenBucketLimiter`, `PolicyRateLimiter` |
+| `Nalix.Runtime.Sessions` | Distributed session services, persistence caches, and session stores | `SessionService`, `InMemorySessionStore`, `SessionPersistenceObserver` |
+| `Nalix.Runtime.Timekeeping` | Monotonic time synchronization and clock skew adapters | `TimeSynchronizer` |
+| `Nalix.Runtime.Options` | Option models mapping settings for dispatchers and throttling rules | `DispatchOptions`, `TokenBucketOptions`, `SessionStoreOptions` |
 
 ## Installation
 

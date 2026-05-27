@@ -6,13 +6,29 @@
 
 ## Key Features
 
-| Component | Purpose |
-| :--- | :--- |
-| 🧩 **Memory Primitives** | `DataReader`, `DataWriter`, and `BufferLease` for zero-copy I/O. |
-| ⚙️ **Configuration** | INI-based config system with AOT-safe binding. |
-| 🧱 **Fragmentation** | `FragmentAssembler` for handling large packet reassembly. |
-| 📂 **Secure IO** | Cross-platform directory and permission management. |
-| ⏱️ **Time & Hashing** | Unix clock utilities and non-crypto hashing (XxHash32). |
+| Component | Purpose | Key Concept / Type |
+| :--- | :--- | :--- |
+| 🧩 **Memory Primitives** | Zero-copy high-performance reading, writing, and buffer leasing. | `DataReader`, `DataWriter`, `BufferLease` |
+| ⚙️ **Configuration** | Fully AOT-safe INI configuration loading and settings binding. | `ConfigurationManager`, `ConfigurationLoader` |
+| 🧱 **Fragmentation** | Dynamic reassembly and timeout tracking for large packet chunks. | `FragmentAssembler`, `FragmentHeader` |
+| 📂 **Secure IO** | Cross-platform secure filesystem directories and Unix permissions. | `Directories` |
+| ⏱️ **Time & Hashing** | Monotonic Unix clock helpers and blazing-fast non-cryptographic hashes. | `Clock`, `XxHash32` |
+
+## Key Namespaces
+
+| Namespace | Purpose | Key Types |
+| :--- | :--- | :--- |
+| `Nalix.Environment` | Root namespace containing project-wide bootstrapper events | `DiagnosticsEvents` |
+| `Nalix.Environment.Memory` | High-performance zero-allocation stream reading/writing and buffer leasing | `DataReader`, `DataWriter`, `BufferLease` |
+| `Nalix.Environment.Configuration` & `.Binding` | AOT-safe INI configuration loader and POCO settings binding engines | `ConfigurationManager`, `ConfigurationLoader`, `IniConfig` |
+| `Nalix.Environment.Fragments` | Multi-chunk packet fragmentation reassembly and stream lifecycle engines | `FragmentAssembler`, `FragmentHeader`, `FragmentAssemblyResult`, `FragmentStreamId` |
+| `Nalix.Environment.IO` | Cross-platform directories setup and Unix filesystem permissions sanitizer | `Directories` |
+| `Nalix.Environment.Time` | Monotonic Unix clocks and timing scopes for benchmarking | `Clock`, `TimingScope` |
+| `Nalix.Environment.Hashing` | Blazing-fast non-cryptographic hashing algorithms | `XxHash32` |
+| `Nalix.Environment.Random` | Thread-safe pseudo-random and cryptographically secure random generators | `Csprng`, `OsCsprng`, `OsRandom` |
+| `Nalix.Environment.Sequencing` | Lightweight monotonic sequence validation counters | `SequenceCounter` |
+| `Nalix.Environment.Options` | Strongly-typed configuration options POCO models | `MemoryOptions`, `FragmentOptions`, `SequenceOptions` |
+| `Nalix.Environment.Diagnostics` | Diagnostics listeners and telemetry providers | `DiagnosticListenerFactory` |
 
 ## Installation
 

@@ -1,17 +1,27 @@
 # Nalix.Network
 
-> Low-level networking primitives for high-concurrency TCP and UDP applications.
+> Low-level networking primitives for high-concurrency TCP, UDP, and WebSocket applications.
 
 ## Key Features
 
-| Feature | Description |
-| :--- | :--- |
-| 📡 **TCP listener base** | High-throughput asynchronous TCP listener foundation for custom transports. |
-| 🚀 **UDP listener base** | Session-aware UDP listener foundation with token lookup, endpoint pinning, and replay checks. |
-| 🔗 **ConnectionHub** | Central management for active sessions with shard-aware lookup and reporting. |
-| 💾 **Session Store** | Built-in in-memory session persistence with support for custom stores. |
-| 🛡️ **Admission Control** | Native support for connection limits, datagram guards, and IP-based protection. |
-| 🔌 **Protocols** | Pluggable protocol bridge that translates transport events into packet dispatch. |
+| Feature | Description | Key Concept / Type |
+| :--- | :--- | :--- |
+| 📡 **TCP Listeners** | High-throughput asynchronous TCP listener foundation for custom transports. | `TcpListenerBase`, `TcpServerListener` |
+| 🚀 **UDP Listeners** | Session-aware UDP listener loop with endpoint pinning and sliding window anti-replay protection. | `UdpListenerBase`, `UdpServerListener` |
+| 🔗 **Connection Hub** | Central thread-safe management for active client connections with shard-aware lookups and evictions. | `ConnectionHub`, `ConnectionTerminator` |
+| 🛡️ **Admission Control** | Concurrency safety gates, flood protection datagram counters, and IP blacklists. | `ConnectionGuard`, `DatagramGuard` |
+| 🔌 **Protocol Base** | Pluggable protocol base classes translating low-level socket actions to high-level protocol messages. | `Protocol` |
+
+## Key Namespaces
+
+| Namespace | Purpose | Key Types |
+| :--- | :--- | :--- |
+| `Nalix.Network` | Root namespace containing core network interfaces and events | `NetworkEndpoint`, `IConnectEventArgs` |
+| `Nalix.Network.Listeners` | Concurrent socket listening loops and server hosts | `TcpServerListener`, `UdpServerListener`, `WebSocketServerListener` |
+| `Nalix.Network.Connections` | Centralized registry for all active TCP/UDP/WS connection sessions | `ConnectionHub`, `ConnectionTerminator` |
+| `Nalix.Network.Protocols` | Base abstract handlers for managing transport protocol lifecycles and states | `Protocol` |
+| `Nalix.Network.RateLimiting` | Security emission guards, socket flood limits, and IP address blacklists | `ConnectionGuard`, `DatagramGuard` |
+| `Nalix.Network.Options` | Core network, socket acceptor, TIMING wheel, and ban store options | `NetworkSocketOptions`, `ConnectionGuardOptions`, `DatagramGuardOptions`, `ConnectionHubOptions` |
 
 ## Installation
 

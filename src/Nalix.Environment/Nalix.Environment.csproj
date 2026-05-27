@@ -15,7 +15,7 @@
 			<![CDATA[- Infrastructure Decoupling: Successfully migrated Environment IO, Unix Directory Permissions, and Configuration Loading logic from the main framework to Nalix.Environment.
 - Secure Bootstrapping: Hardened filesystem sanitization and directory preparation helpers for cross-platform reliability.
 - Performance Configuration: Optimized ConfigurationLoader and Binding systems to support zero-allocation POCO options.
-- Clean Dependency Flow: Established a lean foundation that serves as the primary configuration provider for Nalix.Engine and Nalix.Framework.]]>
+- Clean Dependency Flow: Established a lean foundation that serves as the primary configuration provider for Nalix.Codec, Nalix.Framework, and Nalix.Runtime.]]>
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

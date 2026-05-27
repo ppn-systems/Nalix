@@ -12,13 +12,13 @@
 			<![CDATA[Nalix.Codec is a high-performance data transformation and framing engine for the Nalix ecosystem. It provides a unified pipeline for serialization, stream compression (LZ4), and AEAD cryptography. 
 Designed for .NET 10, it enables zero-allocation object-to-packet transformation, secure handshake protocols, and robust data framing, ensuring maximum throughput and end-to-end data integrity.]]>
 		</Description>
-		<PackageReleaseNotes>
-			<![CDATA[- Pipeline-Oriented Architecture: Unified Serialization, Compression, and Security into a cohesive Codec stack.
-- High-Performance Framing: Integrated DataFrames and FragmentAssembler for reliable large-packet handling.
-- Advanced Cryptography: Hardened AEAD engines (ChaCha20Poly1305/Salsa20Poly1305) and X25519 handshake logic.
+		<PackageReleaseNotes><![CDATA[
+- Pipeline-Oriented Architecture: Unified Serialization, Compression, and Security into a cohesive Codec stack.
+- High-Performance Framing: Integrated DataFrames (PacketBase, FrameBase) and structured ProtocolFrames for unified control and data transport.
+- Advanced Cryptography: Hardened AEAD engines (Chacha20Poly1305/Salsa20Poly1305) and high-speed X25519 key exchange.
 - Optimized Serialization: Refined LiteSerializer with source-generated codecs for complex types and fast unmanaged paths.
-- Efficient Compression: Integrated LZ4 block encoders with custom memory pool support to minimize GC pressure.]]>
-		</PackageReleaseNotes>
+- Efficient Compression: Integrated LZ4 block encoders with custom memory pool support to minimize GC pressure.
+		]]></PackageReleaseNotes>
 	</PropertyGroup>
 
 	<Import Project="..\Nalix.Build.props" />

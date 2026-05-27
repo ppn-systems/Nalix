@@ -33,29 +33,25 @@
 			android-arm64;android-x64
 		</RuntimeIdentifiers>
 
-		<Description>
-			<![CDATA[
+		<Description><![CDATA[
 Nalix.SDK.Native is the native AOT interop layer for the Nalix ecosystem.
-It provides a clean C ABI (UnmanagedCallersOnly) allowing Java (JNI/JNA), 
-C/C++, Rust, Python, Go and other languages to call into Nalix networking stack.
+It provides a clean, stable C ABI (via UnmanagedCallersOnly) allowing Java (JNI/JNA), C/C++, Rust, Python, Go, and other languages to consume high-performance Nalix networking functionality.
 
 Features:
-• High-performance TcpSession and UdpSession with full handshake, encryption, fragmentation
-• Request-Response pattern with completion callbacks
-• Session resume, dynamic cipher update, ping, time sync
-• Zero-copy where possible + memory safety through BufferLease
-      ]]>
-		</Description>
+• High-performance TcpSession with cryptographic X25519 handshakes, AEAD symmetric encryption, and frame parsing.
+• Event callback bindings for transport lifecycle events (OnConnected, OnMessage, OnError, OnDisconnected).
+• Protocol extension utilities: dynamic runtime cipher suite updates, sub-millisecond round-trip ping measurements, network-wide time synchronization, session resumption, and control frame dispatch.
+• Thread-safe unmanaged error tracking (LastError) for easy foreign function interface (FFI) integration.
+		]]></Description>
 
-		<PackageReleaseNotes>
-			<![CDATA[
-- Initial Native AOT export with C ABI
-- Full TcpSession interop support (Connect, Send, Handshake, RequestAsync via callback)
-- Callback support for OnMessageReceived, OnDisconnected, OnError
-- Multi-RID publishing (Windows, Linux, macOS, Android)
-- Optimized for JNI / FFI usage
-      ]]>
-		</PackageReleaseNotes>
+		<PackageReleaseNotes><![CDATA[
+- Native AOT Export: Stable C ABI exports using Cdecl calling convention.
+- TcpSession interop support: Connect, Send, Handshake, Disconnect, and Free.
+- Event Callback bindings: Full support for OnConnected, OnMessage, OnError, and OnDisconnected events.
+- Advanced Protocol Utilities: Support for ConnectWithResume, Handshake, DisconnectGraceful, Ping, SyncTime, ResumeSession, UpdateCipher, and SendControl.
+- Thread-safe Diagnostics: Retrieve last exception messages via GetLastError and FreeError.
+- Multi-RID publishing support (Windows, Linux, macOS, Android).
+		]]></PackageReleaseNotes>
 
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>

@@ -16,16 +16,16 @@
 		<IsAotCompatible>true</IsAotCompatible>
 
 		<Description><![CDATA[
-Nalix.Abstractions defines the fundamental abstractions, enums, and shared contracts for the Nalix ecosystem. It provides base interfaces, environment helpers, serialization primitives, and protocol definitions used across all Nalix modules.
+Nalix.Abstractions defines the fundamental abstractions, enums, and shared contracts for the Nalix ecosystem. It provides base interfaces, core metadata attributes, serialization primitives, and protocol definitions used across all Nalix modules.
 
-This library focuses on performance, consistency, and cross-platform reliability — serving as the foundation for higher-level components such as Nalix.Framework, Nalix.Network, Nalix.SDK, Nalix.Shared, and Nalix.Logging.
+This library focuses on performance, consistency, and cross-platform reliability — serving as the foundation for higher-level components such as Nalix.Environment, Nalix.Codec, Nalix.Framework, Nalix.Network, Nalix.SDK, Nalix.Logging, and Nalix.Hosting.
 		]]></Description>
 
 		<PackageReleaseNotes><![CDATA[
 - Foundational Abstractions: Core interfaces for connection lifecycles and shared framework contracts used across all Nalix modules.
-- Networking Standards: Unified IPacket, IBufferLease, and protocol enums (CipherSuite, Snowflake) for consistent communication.
+- Networking Standards: Unified IPacket, IBufferLease, and protocol enums (CipherSuiteType, SnowflakeType/ISnowflake) for consistent communication.
 - Memory & Concurrency: High-performance gating and memory-leasing primitives designed for low-allocation networking scenarios.
-- System Diagnostics: Flexible exception models and logging abstractions providing the base for framework-wide observability.
+- System Diagnostics & Logging: Flexible exception models and logging capability contracts (IWithLogging) providing the base for framework-wide observability.
 		]]></PackageReleaseNotes>
     </PropertyGroup>
 

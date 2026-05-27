@@ -19,8 +19,7 @@
 		<IlcGenerateCompleteTypeMetadata>false</IlcGenerateCompleteTypeMetadata>
 
 		<Description><![CDATA[
-Nalix.SDK provides the client-side development kit for the Nalix ecosystem, offering high-level APIs, controller abstractions, time synchronization helpers, and localization (L10N) utilities for building distributed applications.
-
+Nalix.SDK provides the client-side development kit for the Nalix ecosystem, offering high-level APIs, transport sessions (TCP, UDP, and WebSockets), time synchronization helpers, and typed message subscription models for building distributed applications.
 It acts as the bridge between application logic and the Nalix.Network layer, simplifying remote communication, configuration, and message orchestration through clean, extensible, and developer-friendly interfaces.
 		]]></Description>
 
