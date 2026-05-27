@@ -20,6 +20,9 @@ using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2213 // Disposable fields should be disposed
+
 namespace Nalix.Network.Listeners.Tcp;
 
 [SkipLocalsInit]
