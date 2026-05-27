@@ -3,6 +3,7 @@
 
 using System.Collections.Immutable;
 using System.Composition;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,10 +36,7 @@ public sealed class PacketControllerCodeFixProvider : CodeFixProvider
         }
 
         Diagnostic diagnostic = context.Diagnostics[0];
-        string? controllerName = diagnostic.GetMessage()
-            .Split('\'')
-            .Skip(1)
-            .FirstOrDefault();
+        string? controllerName = diagnostic.GetMessage(CultureInfo.InvariantCulture).Split('\'').Skip(1).FirstOrDefault();
 
         if (string.IsNullOrWhiteSpace(controllerName))
         {

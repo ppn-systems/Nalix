@@ -12,12 +12,6 @@
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Condition="'$(Configuration)' == 'Release'" Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
-			<PrivateAssets>All</PrivateAssets>
-		</PackageReference>
-	</ItemGroup>
-
 	<ItemGroup Label="Package Properties">
 		<None Include="..\..\LICENSE" Condition="'$(Configuration)' == 'Release'">
 			<Pack>True</Pack>
