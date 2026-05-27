@@ -55,11 +55,27 @@ public sealed partial class FragmentOptions : ConfigurationLoader
     public long ReassemblyTimeoutMs { get; set; } = 30_000;
 
     /// <summary>
+    /// The base size (in bytes) of the elastic receive buffer. 
+    /// <para>
+    /// This dictates the starting and resting memory footprint of a socket connection. 
+    /// It should ideally align with the OS page size (4096 bytes) and exceed a standard network MTU (1500 bytes).
+    /// </para>
+    /// Default: 4096.
+    /// </summary>
+    [IniComment("Base size of the elastic receive buffer in bytes (default 4096)")]
+    public int MinReceiveBufferSize { get; set; } = 4096;
+
+    /// <summary>
     /// Validates the chunking configuration to ensure it meets the necessary constraints for proper operation.
     /// </summary>
     /// <exception cref="ValidationException">Thrown when any fragmentation limit is invalid.</exception>
     public void Validate()
     {
+        if (this.MinReceiveBufferSize < 1024)
+        {
+            throw new ValidationException($"MinReceiveBufferSize={this.MinReceiveBufferSize} must be at least 1024 bytes to avoid network MTU thrashing (recommended 4096).");
+        }
+
         if (this.MaxPayloadSize <= 0)
         {
             throw new ValidationException($"MaxPayloadSize={this.MaxPayloadSize} must be positive.");
