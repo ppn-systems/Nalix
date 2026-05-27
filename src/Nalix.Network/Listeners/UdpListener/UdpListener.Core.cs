@@ -177,10 +177,10 @@ public abstract partial class UdpListenerBase
         {
             this.Deactivate();
 
-            var receiveWorkers = Interlocked.Exchange(ref _receiveWorkers, null);
+            IWorkerHandle[]? receiveWorkers = Interlocked.Exchange(ref _receiveWorkers, null);
             if (receiveWorkers != null)
             {
-                foreach (var worker in receiveWorkers)
+                foreach (IWorkerHandle? worker in receiveWorkers)
                 {
                     worker?.Dispose();
                 }
