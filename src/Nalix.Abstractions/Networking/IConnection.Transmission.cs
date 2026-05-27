@@ -4,7 +4,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions.Networking.Packets;
 
 namespace Nalix.Abstractions.Networking;
 
@@ -26,27 +25,10 @@ public partial interface IConnection
     interface ITransport : ITransportSequencer
     {
         /// <summary>
-        /// Sends a packet synchronously over the connection.
-        /// </summary>
-        /// <param name="packet">The packet to send.</param>
-        void Send(IPacket packet);
-
-        /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
         void Send(ReadOnlySpan<byte> message);
-
-        /// <summary>
-        /// Sends a message asynchronously over the connection.
-        /// </summary>
-        /// <param name="packet">The packet to send.</param>
-        /// <param name="cancellationToken">A token to cancel the sending operation.</param>
-        /// <returns>A task that represents the asynchronous sending operation.</returns>
-        /// <remarks>
-        /// If the connection has been authenticated, the data will be encrypted before sending.
-        /// </remarks>
-        ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.

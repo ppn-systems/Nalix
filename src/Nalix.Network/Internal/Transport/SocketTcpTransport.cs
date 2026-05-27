@@ -10,9 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
-using Nalix.Environment.Memory;
 using Nalix.Network.Connections;
 using Nalix.Network.Internal.Abstractions;
 using Nalix.Network.Internal.Security;
@@ -103,23 +101,6 @@ internal sealed class SocketTcpTransport : IConnection.ITransport, IDisposable
 
     /// <inheritdoc/>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Send(IPacket packet)
-    {
-        int packetLength = packet.Length;
-        if (packetLength == 0)
-        {
-            throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
-        int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWrittenHeap);
-        this.Send(lease.Span);
-    }
-
-    /// <inheritdoc/>
-    [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Send(ReadOnlySpan<byte> message)
     {
@@ -129,24 +110,6 @@ internal sealed class SocketTcpTransport : IConnection.ITransport, IDisposable
         }
 
         _socket.Send(message);
-    }
-
-    /// <inheritdoc/>
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-    public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-    {
-        int packetLength = packet.Length;
-        if (packetLength == 0)
-        {
-            throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength);
-        int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWrittenHeap);
-        await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

@@ -13,10 +13,8 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
@@ -229,23 +227,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Transmission
 
     /// <inheritdoc/>
-    public void Send(IPacket packet)
-    {
-        ArgumentNullException.ThrowIfNull(packet);
-        int packetLength = packet.Length;
-
-        if (packetLength == 0)
-        {
-            return;
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
-        int written = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(written);
-        this.Send(lease.Span);
-    }
-
-    /// <inheritdoc/>
     public void Send(ReadOnlySpan<byte> message)
     {
         if (message.IsEmpty || _endPoint == null || _socket == null)
@@ -271,23 +252,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         {
             Throw.UdpSendFailedNow();
         }
-    }
-
-    /// <inheritdoc/>
-    public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(packet);
-        int packetLength = packet.Length;
-
-        if (packetLength == 0)
-        {
-            return;
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
-        int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWrittenHeap);
-        await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
