@@ -15,6 +15,9 @@ using Nalix.Network.Options;
 using Nalix.Observability.Handlers;
 using Nalix.Runtime.Options;
 
+#pragma warning disable IDE0079 // Remove unnecessary suppression
+#pragma warning disable CA2000 // Dispose objects before losing scope
+
 namespace Backend;
 
 internal class Startup
@@ -40,15 +43,106 @@ internal class Startup
             .ConfigureConnectionHub(hub)
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
-            .AddHandler<ObservabilityAccessHandlers>()
-            .AddHandler<RuntimeObservationHandlers>()
             .AddHandler<BenchmarkHandlers>()
+            .AddHandler<RuntimeObservationHandlers>()
+            .AddHandler<ObservabilityAccessHandlers>()
+            .AddMetadataProvider<PacketTagMetadataProvider>()
             .Configure<BufferOptions>(o =>
             {
-                o.TotalBuffers = 10_000;
-                o.ThreadCacheDepth = 32;
-                o.MaxMemoryPercentage = 0.60;
+                o.TotalBuffers = 20_000;
+
+                // Keep trimming enabled so the server can recover after burst traffic.
+                o.EnableMemoryTrimming = true;
+                o.TrimIntervalMinutes = 1;
+                o.DeepTrimIntervalMinutes = 5;
+
+                // Disable analytics during benchmark to avoid extra overhead.
                 o.EnableAnalytics = false;
+
+                // Allow controlled growth under pressure.
+                o.AdaptiveGrowthFactor = 2.0;
+                o.ExpandThresholdPercent = 0.25;
+                o.ShrinkThresholdPercent = 0.70;
+                o.MinimumIncrease = 256;
+                o.MaxBufferIncreaseLimit = 4096;
+
+                // Keep memory bounded by percentage unless you want a fixed byte cap.
+                o.MaxMemoryPercentage = 0.60;
+                o.MaxMemoryBytes = 0;
+
+                // Max allowed by your option validation. Good for hot receive paths.
+                o.ThreadCacheDepth = 64;
+
+                o.SuitablePoolSizeCacheLimit = 2000;
+                o.FallbackToArrayPool = true;
+
+                // Tune this to your benchmark packet size.
+                // This profile favors small/medium packets.
+                o.BufferAllocations = "256,0.30; 1024,0.30; 4096,0.25; 16384,0.10; 32768,0.05";
+
+                // Never enable these during DDoS/high-concurrency benchmarks.
+                o.EnableBufferLeakDetection = false;
+                o.EnableBufferLeakStackTrace = false;
+
+                o.UsageAggressiveFactor = 0.75;
+                o.MissRateAggressiveFactor = 2.0;
+                o.ExpansionSoftCapRatio = 0.25;
+                o.InitialSlabTrackingCapacity = 512;
+
+                o.SuspiciousThresholdSeconds = 30;
+            })
+            .Configure<ObjectPoolOptions>(o =>
+            {
+                // Lightweight metrics are useful for reports and safe enough for benchmark.
+                o.EnableMetrics = true;
+
+                // Heavy diagnostics should stay off during stress/DDoS benchmark.
+                o.EnableDiagnostics = false;
+                o.CaptureStackTraces = false;
+                o.EnableLeakDetection = false;
+
+                o.SuspiciousThresholdSeconds = 30;
+                o.LifetimeReservoirSize = 64;
+
+                // Let pools recover after burst traffic.
+                o.EnableObjectTrimming = true;
+                o.TrimIntervalMinutes = 2;
+                o.DeepTrimIntervalMinutes = 10;
+
+                // Keep hot pools warm, trim cold pools more aggressively.
+                o.BaseKeepPercentage = 25;
+                o.DeepTrimPercentage = 60;
+                o.HotHitRateThreshold = 85.0;
+                o.MinimumKeepObjects = 16;
+
+                // Applies to dynamically created object pools.
+                o.DefaultPreallocate = 1_000;
+                o.DefaultMaxPoolSize = 20_000;
+            })
+            .Configure<TaskManagerOptions>(o =>
+            {
+                o.IsEnableLatency = true;
+
+                // For repeatable benchmarks, disable dynamic adjustment.
+                // Enable it only when testing production self-tuning behavior.
+                o.DynamicAdjustmentEnabled = false;
+
+                o.MaxWorkers = Math.Max(128, Environment.ProcessorCount * 32);
+
+                o.ThresholdHighCpu = 85.0;
+                o.ThresholdLowCpu = 45.0;
+
+                o.ObservingInterval = TimeSpan.FromSeconds(2);
+                o.CpuWarmupDuration = TimeSpan.FromSeconds(15);
+                o.AdjustmentStreakRequired = 3;
+
+                // Avoid long busy-wait during DDoS benchmark.
+                o.BusyWaitThreshold = TimeSpan.FromTicks(1000); // 100 µs
+
+                o.BackoffMaxPower = 5;
+                o.BackoffBaseInterval = TimeSpan.FromSeconds(1);
+
+                o.CleanupInterval = TimeSpan.FromSeconds(15);
             })
             .Configure<NetworkSocketOptions>(o =>
             {
@@ -231,7 +325,6 @@ internal class Startup
                 // Prevents one connection from holding unlimited work.
                 o.MaxPerConnectionQueue = 128;
             })
-            .AddMetadataProvider<PacketTagMetadataProvider>()
             .ConfigureDispatchOptions(o =>
             {
                 //_ = o.WithMiddleware(new TimeoutMiddleware());
