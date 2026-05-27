@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using Nalix.Abstractions;
 using Nalix.Codec.DataFrames;
 
-namespace Nalix.Runtime.Pooling;
+namespace Nalix.Codec.Pooling;
 
 /// <summary>
 /// Provides a high-performance, type-specific pool for packet instances.
