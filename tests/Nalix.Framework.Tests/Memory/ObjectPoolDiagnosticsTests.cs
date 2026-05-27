@@ -103,7 +103,8 @@ public sealed class ObjectPoolDiagnosticsTests
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
         using ObjectPoolManager manager = new(config);
-        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
+        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,
+            payload => DiagnosticCollector.GetProperty<string>(payload, "Type") == "HealthCheckPoolable");
 
         for (int i = 0; i < 32; i++)
         {
@@ -111,10 +112,16 @@ public sealed class ObjectPoolDiagnosticsTests
         }
 
         Assert.Equal(1, manager.PerformHealthCheck());
-        Assert.Equal(1, collector.Events.Count);
+        lock (collector.Events)
+        {
+            Assert.Equal(1, collector.Events.Count);
+        }
 
         Assert.Equal(0, manager.PerformHealthCheck());
-        Assert.Equal(1, collector.Events.Count);
+        lock (collector.Events)
+        {
+            Assert.Equal(1, collector.Events.Count);
+        }
     }
 
     [Fact]
@@ -122,7 +129,8 @@ public sealed class ObjectPoolDiagnosticsTests
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
         using ObjectPoolManager manager = new(config);
-        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
+        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,
+            payload => DiagnosticCollector.GetProperty<string>(payload, "Type") == "HealthCheckPoolable");
 
         for (int i = 0; i < 6; i++)
         {
@@ -130,7 +138,10 @@ public sealed class ObjectPoolDiagnosticsTests
         }
 
         Assert.Equal(0, manager.PerformHealthCheck());
-        Assert.Empty(collector.Events);
+        lock (collector.Events)
+        {
+            Assert.Empty(collector.Events);
+        }
         Assert.Equal("Warming", manager.GetTypeInfo<HealthCheckPoolable>()["Status"]);
     }
 
@@ -168,7 +179,8 @@ public sealed class ObjectPoolDiagnosticsTests
     {
         ObjectPoolOptions config = new() { EnableDiagnostics = true, EnableObjectTrimming = false };
         using ObjectPoolManager manager = new(config);
-        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure);
+        using DiagnosticCollector collector = new(DiagnosticsEvents.Memory.PoolFailure,
+            payload => DiagnosticCollector.GetProperty<string>(payload, "Type") == "GenericPoolable<HealthCheckPoolable>");
 
         for (int i = 0; i < 32; i++)
         {
@@ -176,7 +188,11 @@ public sealed class ObjectPoolDiagnosticsTests
         }
 
         Assert.Equal(1, manager.PerformHealthCheck());
-        object payload = Assert.Single(collector.Events);
+        object payload;
+        lock (collector.Events)
+        {
+            payload = Assert.Single(collector.Events);
+        }
 
         Assert.Equal("GenericPoolable<HealthCheckPoolable>", DiagnosticCollector.GetProperty<string>(payload, "Type"));
         Assert.Equal(32L, DiagnosticCollector.GetProperty<long>(payload, "WindowGets"));
@@ -217,11 +233,13 @@ public sealed class ObjectPoolDiagnosticsTests
     private sealed class DiagnosticCollector : IObserver<KeyValuePair<string, object?>>, IDisposable
     {
         private readonly string _eventName;
+        private readonly Func<object, bool>? _filter;
         private IDisposable? _listenerSubscription;
 
-        public DiagnosticCollector(string eventName)
+        public DiagnosticCollector(string eventName, Func<object, bool>? filter = null)
         {
             _eventName = eventName;
+            _filter = filter;
             _listenerSubscription = DiagnosticsEvents.Source.Subscribe(this, name => name == _eventName);
         }
 
@@ -231,7 +249,13 @@ public sealed class ObjectPoolDiagnosticsTests
         {
             if (value.Key == _eventName && value.Value != null)
             {
-                this.Events.Add(value.Value);
+                if (_filter == null || _filter(value.Value))
+                {
+                    lock (this.Events)
+                    {
+                        this.Events.Add(value.Value);
+                    }
+                }
             }
         }
 

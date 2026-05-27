@@ -36,9 +36,9 @@ public sealed partial class DataFramesPublicApiTests
     }
 
     [Theory]
-    [InlineData(1400, 1400, true)]
-    [InlineData(0, 1400, false)]
-    [InlineData(1000, 1400, false)]
+    [InlineData(8192, 8192, true)]
+    [InlineData(0, 8192, false)]
+    [InlineData(4096, 8192, false)]
     public void ValidateWhenFragmentOptionsVaryMatchesExpectedValidity(
         int maxPayloadSize,
         int maxChunkSize,
