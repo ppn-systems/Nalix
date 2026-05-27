@@ -9,16 +9,19 @@
 		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<!-- Package metadata -->
-		<Authors>PPN Corporation</Authors>
 		<Product>Nalix® .NET</Product>
+		<Authors>PPN Corporation</Authors>
 		<Company>PPN Corporation</Company>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-		<RepositoryUrl>https://github.com/ppn-systems/Nalix</RepositoryUrl>
 		<RepositoryType>git</RepositoryType>
 		<NeutralLanguage>en-US</NeutralLanguage>
 
-		<AnalysisLevel>latest</AnalysisLevel>
-		<EnableNETAnalyzers>true</EnableNETAnalyzers>
+		<PackageIcon>nalix.png</PackageIcon>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<RepositoryUrl>https://github.com/ppn-systems/Nalix</RepositoryUrl>
+		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+		<PackageProjectUrl>https://github.com/ppn-systems/Nalix</PackageProjectUrl>
+		<Copyright>Copyright (c) 2025-2026 PPN Corporation. All rights reserved.</Copyright>
 	</PropertyGroup>
 
 	<PropertyGroup Label="Assembly Properties">

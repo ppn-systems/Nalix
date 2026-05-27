@@ -10,14 +10,6 @@
 		<DebugType>portable</DebugType>
 		<IncludeSymbols>true</IncludeSymbols>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-
-		<PackageIcon>nalix.png</PackageIcon>
-		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-		<PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-		<PackageProjectUrl>https://github.com/ppn-systems/Nalix</PackageProjectUrl>
-		<Copyright>Copyright (c) 2025-2026 PPN Corporation. All rights reserved.</Copyright>
 	</PropertyGroup>
 
 	<ItemGroup>
