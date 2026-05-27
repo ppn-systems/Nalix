@@ -13,7 +13,7 @@ public sealed partial class VarIntFramingOptions : ConfigurationLoader
     /// <summary>
     /// The maximum allowed payload size for a VarInt-framed packet.
     /// Connections sending packets larger than this will be disconnected.
-    /// Default is 2 MB (2097152 bytes).
+    /// Default is 128 KB (131_072 bytes).
     /// </summary>
-    public int MaxPayloadSize { get; set; } = 2 * 1024 * 1024;
+    public int MaxPayloadSize { get; set; } = 131_072;
 }

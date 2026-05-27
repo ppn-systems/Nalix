@@ -55,6 +55,9 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     #region Properties
 
     /// <inheritdoc/>
+    public TransportFraming Framing => TransportFraming.None;
+
+    /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sequencer.SendSequence;
 
     /// <inheritdoc/>
@@ -106,7 +109,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     }
 
     /// <inheritdoc/>
-    public void UseFraming(TransportFraming framing, int maxPacketSize = 0)
+    public void UseFraming(TransportFraming framing)
     {
         if (framing != TransportFraming.None)
         {

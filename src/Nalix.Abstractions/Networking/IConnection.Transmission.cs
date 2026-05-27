@@ -25,6 +25,11 @@ public partial interface IConnection
     interface ITransport : ITransportSequencer
     {
         /// <summary>
+        /// Gets the framing strategy used by this protocol.
+        /// </summary>
+        TransportFraming Framing { get; }
+
+        /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
@@ -57,8 +62,7 @@ public partial interface IConnection
         /// Must be called before <see cref="BeginReceive"/> is invoked.
         /// </summary>
         /// <param name="framing">The framing mode to use.</param>
-        /// <param name="maxPacketSize">Optional custom max packet size limit. 0 means use the default limit for the framing mode.</param>
-        void UseFraming(TransportFraming framing, int maxPacketSize = 0);
+        void UseFraming(TransportFraming framing);
 
         /// <summary>
         /// Detaches the underlying OS socket from the transport engine for TCP connections.

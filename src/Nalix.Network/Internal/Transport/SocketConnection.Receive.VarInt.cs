@@ -24,8 +24,9 @@ internal sealed partial class SocketConnection
             while (Volatile.Read(ref _disposed) == 0 && !token.IsCancellationRequested)
             {
                 int consumed = 0;
-                bool parsedAtLeastOne = false;
+                bool incomplete = false;
                 int? pendingFrameSize = null;
+                bool parsedAtLeastOne = false;
 
                 while (_bufferDataLength - consumed > 0)
                 {
@@ -34,6 +35,7 @@ internal sealed partial class SocketConnection
                     if (!Leb128.TryRead(currentBuffer, out int payloadLen, out int varIntBytesRead))
                     {
                         // Incomplete VarInt header. Wait for more data.
+                        incomplete = true;
                         break;
                     }
 
@@ -72,6 +74,7 @@ internal sealed partial class SocketConnection
                     {
                         Buffer.BlockCopy(_buffer!, consumed, _buffer!, 0, remaining);
                     }
+
                     _bufferDataLength = remaining;
                 }
 
@@ -83,23 +86,24 @@ internal sealed partial class SocketConnection
                     if (requiredSize > _buffer!.Length)
                     {
                         byte[] newBuffer = BufferLease.ByteArrayPool.Rent(requiredSize);
+
                         if (_bufferDataLength > 0)
                         {
                             Buffer.BlockCopy(_buffer, 0, newBuffer, 0, _bufferDataLength);
                         }
+
                         BufferLease.ByteArrayPool.Return(_buffer);
                         _buffer = newBuffer;
                     }
                 }
                 else if (_bufferDataLength == 0 && _buffer!.Length > s_fragmentOptions.MinReceiveBufferSize)
                 {
-                    byte[] newBuffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
                     BufferLease.ByteArrayPool.Return(_buffer);
-                    _buffer = newBuffer;
+                    _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
                 }
 
                 // Opportunistic Read
-                if (!parsedAtLeastOne || _bufferDataLength == 0)
+                if (!parsedAtLeastOne || _bufferDataLength == 0 || incomplete)
                 {
                     await this.RECEIVE_OPPORTUNISTIC_ASYNC(token).ConfigureAwait(false);
                 }

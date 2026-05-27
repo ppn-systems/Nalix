@@ -13,15 +13,16 @@ internal sealed partial class SocketConnection
 {
     private static readonly VarIntFramingOptions s_varIntOpts = ConfigurationManager.Instance.Get<VarIntFramingOptions>();
 
+    private readonly int _maxVarIntPayloadSize = s_varIntOpts.MaxPayloadSize;
+
     private int _framingLocked;
-    private int _maxVarIntPayloadSize = s_varIntOpts.MaxPayloadSize;
     private TransportFraming _framing = TransportFraming.UInt16LengthPrefixed;
 
     /// <summary>
     /// Sets the framing mode for this connection.
     /// Must be called before <see cref="BeginReceive"/> is invoked.
     /// </summary>
-    public void SetFraming(TransportFraming framing, int maxPacketSize)
+    public void SetFraming(TransportFraming framing)
     {
         if (Volatile.Read(ref _framingLocked) == 1)
         {
@@ -31,10 +32,6 @@ internal sealed partial class SocketConnection
         if (Interlocked.CompareExchange(ref _framingLocked, 1, 0) == 0)
         {
             _framing = framing;
-            if (maxPacketSize > 0)
-            {
-                _maxVarIntPayloadSize = maxPacketSize;
-            }
         }
         else
         {

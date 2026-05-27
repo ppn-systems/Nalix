@@ -82,6 +82,8 @@ public abstract partial class Protocol
                     s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
                 }
 
+                connection.TCP.UseFraming(this.Framing);
+
                 // Start receiving data from the connection
                 connection.TCP.BeginReceive(cancellationToken);
 

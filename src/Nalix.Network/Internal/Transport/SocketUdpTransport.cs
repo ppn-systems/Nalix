@@ -51,6 +51,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Properties
 
     /// <inheritdoc/>
+    public TransportFraming Framing => TransportFraming.None;
+
+    /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sequencer.SendSequence;
 
     /// <inheritdoc/>
@@ -291,7 +294,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     }
 
     /// <inheritdoc/>
-    public void UseFraming(TransportFraming framing, int maxPacketSize = 0)
+    public void UseFraming(TransportFraming framing)
     {
         if (framing != TransportFraming.None)
         {

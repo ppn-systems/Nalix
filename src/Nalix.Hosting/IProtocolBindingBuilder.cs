@@ -21,6 +21,13 @@ public interface IProtocolBindingBuilder
     IProtocolBindingBuilder OnPort(ushort port);
 
     /// <summary>
+    /// Specifies the framing strategy to use for the binding.
+    /// </summary>
+    /// <param name="framing">The framing strategy.</param>
+    /// <returns>The current builder instance.</returns>
+    IProtocolBindingBuilder WithFraming(TransportFraming framing);
+
+    /// <summary>
     /// Uses a custom factory to create protocol instances instead of the default activator.
     /// </summary>
     /// <param name="factory">The factory delegate.</param>

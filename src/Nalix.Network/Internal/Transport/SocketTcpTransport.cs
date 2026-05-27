@@ -37,6 +37,8 @@ internal sealed class SocketTcpTransport : IConnection.ITransport, IDisposable
 
     #region Properties
 
+    public TransportFraming Framing { get; private set; }
+
     /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sequencer.SendSequence;
 
@@ -87,7 +89,11 @@ internal sealed class SocketTcpTransport : IConnection.ITransport, IDisposable
     /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void UseFraming(TransportFraming framing, int maxPacketSize = 0) => _socket.SetFraming(framing, maxPacketSize);
+    public void UseFraming(TransportFraming framing)
+    {
+        this.Framing = framing;
+        _socket.SetFraming(framing);
+    }
 
     /// <inheritdoc/>
     [StackTraceHidden]

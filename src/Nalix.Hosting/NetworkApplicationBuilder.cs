@@ -19,6 +19,7 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
+using Nalix.Network.Protocols;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
@@ -323,17 +324,21 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
                     ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
                 if (registration.BindingBuilder is ProtocolBindingBuilder tcpBuilder)
                 {
                     port = tcpBuilder.Port ?? port;
+
+                    if (protocol is Protocol baseProtocol && tcpBuilder.Framing.HasValue)
+                    {
+                        baseProtocol.Framing = tcpBuilder.Framing.Value;
+                    }
                 }
 
-                TcpServerListener listener = port.HasValue
-                    ? new(port.Value, protocol, hub)
-                    : new(protocol, hub);
+                TcpServerListener listener = port.HasValue ? new(port.Value, protocol, hub) : new(protocol, hub);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.TCP);
             });
