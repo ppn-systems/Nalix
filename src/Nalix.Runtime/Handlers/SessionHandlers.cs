@@ -45,22 +45,25 @@ public sealed class SessionHandlers
     {
         ArgumentNullException.ThrowIfNull(context);
 
+        IConnection connection = context.Connection;
+
         if (!s_isSessionStoreEnabled)
         {
-            context.Connection.IncrementErrorCount();
+            connection.IncrementErrorCount();
             return;
         }
 
-        IConnectionHub? hub = context.Connection.GetHub();
+        IConnectionHub? hub = connection.GetHub();
+
         if (hub is null)
         {
-            await HandleFailureAsync(context.Connection, ProtocolReason.SERVICE_UNAVAILABLE).ConfigureAwait(false);
+            await HandleFailureAsync(context, ProtocolReason.SERVICE_UNAVAILABLE).ConfigureAwait(false);
             return;
         }
 
-        if (context.Connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
         {
-            await HandleFailureAsync(context.Connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            await HandleFailureAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
         }
 
@@ -68,7 +71,7 @@ public sealed class SessionHandlers
 
         if (!packet.Validate(out string? reason))
         {
-            await HandleFailureAsync(context.Connection, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
+            await HandleFailureAsync(context, ProtocolReason.MALFORMED_PACKET).ConfigureAwait(false);
             return;
         }
 
@@ -85,7 +88,7 @@ public sealed class SessionHandlers
                                                     .ConfigureAwait(false);
         if (session == null)
         {
-            await HandleFailureAsync(context.Connection, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
+            await HandleFailureAsync(context, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
             return;
         }
 
@@ -95,7 +98,7 @@ public sealed class SessionHandlers
         if (session.Snapshot.Secret.IsZero)
         {
             session.Return();
-            await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
+            await HandleFailureAsync(context, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
         }
 
@@ -124,41 +127,41 @@ public sealed class SessionHandlers
         if (!validProof)
         {
             session.Return();
-            await HandleFailureAsync(context.Connection, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
+            await HandleFailureAsync(context, ProtocolReason.TOKEN_REVOKED).ConfigureAwait(false);
             return;
         }
 
         // Token was already consumed atomically by ConsumeAsync — no separate RemoveAsync needed.
-        RestoreSessionSnapshot(context.Connection, session);
-        context.Connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
+        RestoreSessionSnapshot(connection, session);
+        connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
 
         // Restore sequence number
-        if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.TcpSendSequence, out object? ts) && ts is uint tcpSend)
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.TcpSendSequence, out object? ts) && ts is uint tcpSend)
         {
-            context.Connection.TCP.SendSequence.ResumeFrom(tcpSend);
+            connection.TCP.SendSequence.ResumeFrom(tcpSend);
         }
 
-        if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.TcpReceiveSequence, out object? tr) && tr is uint tcpRecv)
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.TcpReceiveSequence, out object? tr) && tr is uint tcpRecv)
         {
-            context.Connection.TCP.ReceiveSequence.ResumeFrom(tcpRecv);
+            connection.TCP.ReceiveSequence.ResumeFrom(tcpRecv);
         }
 
-        if (context.Connection.IsUdpCreated)
+        if (connection.IsUdpCreated)
         {
-            if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
+            if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpSendSequence, out object? us) && us is uint udpSend)
             {
-                context.Connection.UDP.SendSequence.ResumeFrom(udpSend);
+                connection.UDP.SendSequence.ResumeFrom(udpSend);
             }
 
-            if (context.Connection.Attributes.TryGetValue(ConnectionAttributes.UdpReceiveSequence, out object? ur) && ur is uint udpRecv)
+            if (connection.Attributes.TryGetValue(ConnectionAttributes.UdpReceiveSequence, out object? ur) && ur is uint udpRecv)
             {
-                context.Connection.UDP.ReceiveSequence.ResumeFrom(udpRecv);
+                connection.UDP.ReceiveSequence.ResumeFrom(udpRecv);
             }
         }
 
-        await sessionService.SaveSessionAsync(context.Connection).ConfigureAwait(false);
+        await sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
 
-        ulong newToken = context.Connection.ID.ToUInt64();
+        ulong newToken = connection.ID.ToUInt64();
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
 
         Span<byte> responseMessageBytes = stackalloc byte[16];
@@ -176,7 +179,7 @@ public sealed class SessionHandlers
             proof: new Bytes32(responseProofBytes),
             flags: packet.Flags);
 
-        await context.Connection.TCP.SendAsync(ack).ConfigureAwait(false);
+        await context.Sender.SendAsync(ack).ConfigureAwait(false);
         session.Return();
     }
 
@@ -207,12 +210,10 @@ public sealed class SessionHandlers
     /// <summary>
     /// Sends a failure acknowledgement and disconnects the connection.
     /// </summary>
-    /// <param name="connection">The connection to close.</param>
+    /// <param name="context">The connection to close.</param>
     /// <param name="reason">The failure reason to report.</param>
-    private static async ValueTask HandleFailureAsync(IConnection connection, ProtocolReason reason)
+    private static async ValueTask HandleFailureAsync(IPacketContext<SessionResume> context, ProtocolReason reason)
     {
-        IConnection.ITransport tcp = connection.TCP;
-
         using PacketScope<SessionResume> lease = PacketFactory<SessionResume>.Acquire();
         SessionResume ack = lease.Value;
         ack.Initialize(
@@ -223,12 +224,12 @@ public sealed class SessionHandlers
 
         try
         {
-            await tcp.SendAsync(ack).ConfigureAwait(false);
+            await context.Sender.SendAsync(ack).ConfigureAwait(false);
             await Task.Delay(50).ConfigureAwait(false);
         }
         finally
         {
-            connection.Disconnect($"Session resume rejected: {reason}");
+            context.Connection.Disconnect($"Session resume rejected: {reason}");
         }
     }
 }

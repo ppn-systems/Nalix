@@ -52,7 +52,7 @@ public sealed class KeyExchangeHandlers
                     reply.PublicKey = HandshakeHandlers.ServerPublicKey;
                     reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
-                    await connection.TCP.SendAsync(reply).ConfigureAwait(false);
+                    await context.Sender.SendAsync(reply).ConfigureAwait(false);
                 }
                 break;
 

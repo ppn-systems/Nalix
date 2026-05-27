@@ -57,18 +57,18 @@ public sealed class HandshakeHandlers
 
         if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
         }
 
         switch (packet.Stage)
         {
             case HandshakeStage.CLIENT_HELLO:
-                await HandleClientHelloAsync(connection, packet).ConfigureAwait(false);
+                await HandleClientHelloAsync(context).ConfigureAwait(false);
                 break;
 
             case HandshakeStage.CLIENT_FINISH:
-                await HandleClientFinishAsync(connection, packet).ConfigureAwait(false);
+                await HandleClientFinishAsync(context).ConfigureAwait(false);
                 break;
 
             case HandshakeStage.ERROR:
@@ -79,7 +79,7 @@ public sealed class HandshakeHandlers
             case HandshakeStage.SERVER_HELLO:
             case HandshakeStage.SERVER_FINISH:
             default:
-                await RejectHandshakeAsync(connection, ProtocolReason.UNEXPECTED_MESSAGE).ConfigureAwait(false);
+                await RejectHandshakeAsync(context, ProtocolReason.UNEXPECTED_MESSAGE).ConfigureAwait(false);
                 break;
         }
     }
@@ -255,8 +255,11 @@ public sealed class HandshakeHandlers
         }
     }
 
-    private static async ValueTask HandleClientHelloAsync(IConnection connection, Handshake packet)
+    private static async ValueTask HandleClientHelloAsync(IPacketContext<Handshake> context)
     {
+        Handshake packet = context.Packet;
+        IConnection connection = context.Connection;
+
         /*
          * [Stage 1: Client Hello]
          * 1. Acquire a handshake slot to prevent race conditions.
@@ -269,7 +272,7 @@ public sealed class HandshakeHandlers
         // BUG-75: Atomically reserve handshake state to prevent re-entry races.
         if (!TryAcquireHandshakeSlot(connection, out object claimToken))
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
         }
 
@@ -278,7 +281,7 @@ public sealed class HandshakeHandlers
 
         if (sharedSecretEE.IsZero)
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
             return;
         }
 
@@ -286,7 +289,7 @@ public sealed class HandshakeHandlers
 
         if (sharedSecretSE.IsZero)
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
             return;
         }
 
@@ -315,7 +318,7 @@ public sealed class HandshakeHandlers
 
         if (!TryPublishHandshakeState(connection, claimToken, state))
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
         }
 
@@ -328,27 +331,30 @@ public sealed class HandshakeHandlers
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
         reply.TranscriptHash = transcriptHash;
 
-        await connection.TCP.SendAsync(reply).ConfigureAwait(false);
+        await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }
 
-    private static async ValueTask HandleClientFinishAsync(IConnection connection, Handshake packet)
+    private static async ValueTask HandleClientFinishAsync(IPacketContext<Handshake> context)
     {
+        Handshake packet = context.Packet;
+        IConnection connection = context.Connection;
+
         if (!TryGetState(connection, out HandshakeContext? state) || state is null)
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.STATE_VIOLATION).ConfigureAwait(false);
             return;
         }
 
         Bytes32 expectedProof = HandshakeX25519.ComputeClientProof(state.SharedSecret, state.TranscriptHash);
         if (packet.Proof != expectedProof)
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.SIGNATURE_INVALID).ConfigureAwait(false);
             return;
         }
 
         if (packet.TranscriptHash != state.TranscriptHash)
         {
-            await RejectHandshakeAsync(connection, ProtocolReason.CHECKSUM_FAILED).ConfigureAwait(false);
+            await RejectHandshakeAsync(context, ProtocolReason.CHECKSUM_FAILED).ConfigureAwait(false);
             return;
         }
 
@@ -377,11 +383,13 @@ public sealed class HandshakeHandlers
         reply.TranscriptHash = state.TranscriptHash;
         reply.SessionToken = connection.ID.ToUInt64();
 
-        await connection.TCP.SendAsync(reply).ConfigureAwait(false);
+        await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }
 
-    private static async ValueTask RejectHandshakeAsync(IConnection connection, ProtocolReason reason)
+    private static async ValueTask RejectHandshakeAsync(IPacketContext<Handshake> context, ProtocolReason reason)
     {
+        IConnection connection = context.Connection;
+
         if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is IDisposable disposable)
         {
             disposable.Dispose();
@@ -394,7 +402,7 @@ public sealed class HandshakeHandlers
 
             Handshake error = lease.Value;
             error.InitializeError(reason, flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
-            await connection.TCP.SendAsync(error).ConfigureAwait(false);
+            await context.Sender.SendAsync(error).ConfigureAwait(false);
         }
         finally
         {
