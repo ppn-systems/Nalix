@@ -92,8 +92,13 @@ public abstract partial class WebSocketListenerBase
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>().Activate(linkedToken);
             }
 
-            // Since HttpListener is somewhat different from raw sockets, we only need 1 or a few workers
-            int workers = Math.Max(1, System.Environment.ProcessorCount / 2);
+            if (_config.MaxParallel < 1)
+            {
+                throw new InternalErrorException("_config.MaxParallel must be at least 1.");
+            }
+
+            // Spawn N accept-worker async tasks, where N = MaxParallel.
+            int workers = _config.MaxParallel;
             IWorkerHandle[] acceptWorkers = new IWorkerHandle[workers];
             for (int i = 0; i < workers; i++)
             {
@@ -249,6 +254,7 @@ public abstract partial class WebSocketListenerBase
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Port                : {_port}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Path                : {_path}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"StateWrapper        : {this.State}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"MaxParallelAccepts  : {_config.MaxParallel}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Disposed            : {_isDisposed}");
         _ = sb.AppendLine("--------------------------------------------");
         return sb.ToString();
@@ -263,6 +269,7 @@ public abstract partial class WebSocketListenerBase
         writer.WriteNumber("Port", _port);
         writer.WriteString("Path", _path);
         writer.WriteString(nameof(this.State), this.State.ToString());
+        writer.WriteNumber("MaxParallelAccepts", _config.MaxParallel);
         writer.WriteBoolean("Disposed", _isDisposed != 0);
         writer.WriteEndObject();
     }

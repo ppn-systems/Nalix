@@ -67,6 +67,13 @@ public sealed partial class NetworkWebSocketOptions : ConfigurationLoader
     public int MaxMessageSize { get; set; } = 1_048_576;
 
     /// <summary>
+    /// Number of concurrent accept workers to spawn for handling new WebSocket connections.
+    /// </summary>
+    [IniComment("Number of concurrent accept workers (default 1)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 1024, ErrorMessage = "MaxParallel must be between 1 and 1024.")]
+    public int MaxParallel { get; set; } = 1;
+
+    /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">

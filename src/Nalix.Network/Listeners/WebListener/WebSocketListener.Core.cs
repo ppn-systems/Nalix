@@ -43,11 +43,8 @@ public abstract partial class WebSocketListenerBase : IListener
     private CancellationTokenSource? _cts;
     private CancellationTokenRegistration _cancelReg;
     private IWorkerHandle[]? _acceptWorkers;
-
-#pragma warning disable CA2213 // Disposable fields should be disposed
     private readonly TimingWheel _timing;
     private readonly ConnectionGuard _limiter;
-#pragma warning restore CA2213 // Disposable fields should be disposed
 
     #endregion Fields
 
