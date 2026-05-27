@@ -115,6 +115,69 @@ public class TcpSession : TransportSession
             }
 
             await _socket.ConnectAsync(effectiveHost, effectivePort, connectCts.Token).ConfigureAwait(false);
+
+            this.OnConnected?.Invoke(this, EventArgs.Empty);
+
+            // Start background worker for reading frames
+            _loopCts = new CancellationTokenSource();
+
+            _ = Task.Factory.StartNew(() => _reader.ReceiveLoopAsync(_loopCts.Token),
+                _loopCts.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default).Unwrap();
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            await this.DisconnectInternalAsync().ConfigureAwait(false);
+            this.OnError?.Invoke(this, ex);
+            throw new NetworkException($"Connection failed: {ex.Message}", ex);
+        }
+        finally
+        {
+            _ = _connectionLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// Connects to the configured remote endpoint and injects a Proxy Protocol V2 header upon connection.
+    /// Used primarily for testing and spoofing client IP addresses.
+    /// </summary>
+    public async Task ConnectWithProxyAsync(byte[] proxyProtocolV2, string? host = null, ushort? port = null, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(proxyProtocolV2);
+
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, nameof(TcpSession));
+
+        if (!PacketRegistry.IsBuilt)
+        {
+            PacketRegistry.Build();
+        }
+
+        await _connectionLock.WaitAsync(ct).ConfigureAwait(false);
+
+        try
+        {
+            string effectiveHost = string.IsNullOrWhiteSpace(host) ? this.Options.Address : host;
+            ushort effectivePort = port ?? this.Options.Port;
+
+            // Ensure single connection at a time
+            if (this.IsConnected)
+            {
+                await this.DisconnectInternalAsync().ConfigureAwait(false);
+            }
+
+            // Initialize socket with NoDelay to reduce latency
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+
+            using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            if (this.Options.ConnectTimeoutMillis > 0)
+            {
+                connectCts.CancelAfter(TimeSpan.FromMilliseconds(this.Options.ConnectTimeoutMillis));
+            }
+
+            await _socket.ConnectAsync(effectiveHost, effectivePort, connectCts.Token).ConfigureAwait(false);
+
+            // Inject Proxy Protocol V2 header if configured before triggering connected events
+            _ = await _socket.SendAsync(proxyProtocolV2, SocketFlags.None, connectCts.Token).ConfigureAwait(false);
+
             this.OnConnected?.Invoke(this, EventArgs.Empty);
 
             // Start background worker for reading frames
