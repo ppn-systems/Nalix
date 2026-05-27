@@ -1,12 +1,11 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  
-	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+
+	<PropertyGroup>
 		<!-- Packing -->
 		<IsPackable>true</IsPackable>
 		<OutputType>Library</OutputType>
 		<Deterministic>true</Deterministic>
 		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 
 		<!-- Package metadata -->
 		<Product>Nalix® .NET</Product>
@@ -14,7 +13,9 @@
 		<Company>PPN Corporation</Company>
 		<RepositoryType>git</RepositoryType>
 		<NeutralLanguage>en-US</NeutralLanguage>
+	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<PackageIcon>nalix.png</PackageIcon>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -30,7 +31,6 @@
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<AssemblyVersion>$(Version)</AssemblyVersion>
 		<ProduceReferenceAssembly>True</ProduceReferenceAssembly>
-		<GenerateDocumentationFile>true</GenerateDocumentationFile>
 	</PropertyGroup>
-  
+
 </Project>
