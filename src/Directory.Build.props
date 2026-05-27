@@ -48,7 +48,7 @@
 	</ItemGroup>
 
 	<!-- Source generator for ConfigurationLoader AOT binding -->
-	<ItemGroup Condition="'$(PublishAot)' != 'true' And '$(MSBuildProjectName)' != 'Nalix.Analyzers' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Generators' And '$(MSBuildProjectName)' != 'Nalix.Abstractions' And '$(MSBuildProjectName)' != 'Nalix.Environment' And '$(MSBuildProjectName)' != 'Nalix.Codec'">
+	<ItemGroup Condition="'$(PublishAot)' != 'true' And '$(MSBuildProjectName)' != 'Nalix.Analyzers' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.CodeFixes' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Tests' And '$(MSBuildProjectName)' != 'Nalix.Analyzers.Generators' And '$(MSBuildProjectName)' != 'Nalix.Abstractions'">
 		<ProjectReference Include="$(MSBuildThisFileDirectory)Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible;RuntimeIdentifier;RuntimeIdentifiers" />
 	</ItemGroup>
 

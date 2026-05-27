@@ -18,6 +18,9 @@ using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
 
+#pragma warning disable IDE0079
+#pragma warning disable CA2213
+
 namespace Nalix.Network.Listeners.Web;
 
 /// <summary>
