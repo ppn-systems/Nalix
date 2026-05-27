@@ -19,6 +19,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
+using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -26,6 +27,7 @@ using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Routing;
 using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -529,7 +531,7 @@ public sealed class PacketDispatchChannel
         try
         {
             // 1. Read the packet header directly from the raw span to determine routing
-            header = MemoryMarshal.Read<PacketHeader>(lease.Span);
+            header = ReadHeader(lease, connection, this.Options.Drain);
 
             // 2. Resolve the handler using the parsed opcode
             if (!this.Options.TryResolveHandler(header.OpCode, out handler))
@@ -684,6 +686,25 @@ public sealed class PacketDispatchChannel
 
         _ = _wakeSignal.Release(count);
         _ = Interlocked.Increment(ref _wakeSignals);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static PacketHeader ReadHeader(IBufferLease lease, IConnection connection, PacketDrainOptions drainOptions)
+    {
+        if (connection.TCP.Framing == TransportFraming.VarIntLengthPrefixed)
+        {
+            if (Leb128.TryRead(lease.Span, out int mcPacketId, out int _))
+            {
+                return new PacketHeader
+                {
+                    OpCode = (ushort)(drainOptions.VirtualOpCodeOffset + mcPacketId),
+                };
+            }
+
+            return new PacketHeader { OpCode = 0xFFFF };
+        }
+
+        return MemoryMarshal.Read<PacketHeader>(lease.Span);
     }
 
     #endregion Private Methods
