@@ -1,15 +1,17 @@
 # Nalix.Logging
 
-> High-performance logging system optimized for low-latency networking environments.
+> ⚠️ **WARNING: DEVELOPMENT USE ONLY**
+> This logging system is designed **strictly for development environments**.
+> It is NOT intended for production use. For production environments, please switch to a robust, enterprise-grade logging library such as [Serilog](https://serilog.net/), [NLog](https://nlog-project.org/), or use [OpenTelemetry](https://opentelemetry.io/).
 
 ## Key Features
 
 | Feature | Description |
 | :--- | :--- |
-| ⚡ **NLogix** | Zero-allocation logger built for hot-path networking execution. |
-| 📦 **Batched Sinks** | Asynchronous batching prevents logging from blocking network throughput. |
-| 🔌 **Modular Targets** | Support for Console, File, and external collector targets. |
-| 📊 **Diagnostic API** | Built-in statistics and metrics reporting. |
+| ⚡ **NLogix** | Lightweight logger built for local execution and debugging. |
+| 📦 **Batched Sinks** | Asynchronous batching to prevent logging from blocking throughput during testing. |
+| 🔌 **Modular Targets** | Basic support for Console and File targets for local development. |
+| 🛑 **Dev-Only** | Simplified, unbloated pipeline optimized for the developer experience. |
 
 ## Installation
 
@@ -23,8 +25,9 @@ dotnet add package Nalix.Logging
 using Microsoft.Extensions.Logging;
 using Nalix.Logging;
 
+// WARNING: Use only in development!
 ILogger logger = NLogix.Host.Instance;
-logger.LogInformation("Nalix system initialized successfully.");
+logger.LogInformation("Nalix system initialized successfully in DEV mode.");
 ```
 
 ## Documentation
