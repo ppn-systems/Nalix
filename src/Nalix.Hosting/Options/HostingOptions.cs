@@ -61,8 +61,5 @@ public sealed partial class HostingOptions : ConfigurationLoader, IValidatableCo
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

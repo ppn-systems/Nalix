@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
@@ -37,8 +36,5 @@ public sealed partial class SerializationOptions : ConfigurationLoader, IValidat
     /// <summary>
     /// Validates the configuration options.
     /// </summary>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }
