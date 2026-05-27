@@ -70,8 +70,5 @@ public sealed partial class ConnectionQuotaOptions : ConfigurationLoader, IValid
     /// <exception cref="System.ComponentModel.DataAnnotations.ValidationException">
     /// Thrown when one or more validation attributes fail.
     /// </exception>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

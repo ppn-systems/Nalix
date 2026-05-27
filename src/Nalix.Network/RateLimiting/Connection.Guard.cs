@@ -246,6 +246,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     /// <param name="sender">Event sender (unused).</param>
     /// <param name="args">Connection event arguments.</param>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "Because it's required by the event signature")]
     public void OnConnectionClosed(object? sender, IConnectEventArgs args)
     {
         if (Volatile.Read(ref _disposed) != 0)

@@ -54,8 +54,5 @@ public sealed partial class ConnectionBanStoreOptions : ConfigurationLoader, IVa
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

@@ -115,7 +115,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private byte[]? _buffer = BufferLease.ByteArrayPool.Rent(s_fragmentOptions.MinReceiveBufferSize);
 
     private int _bufferDataLength;
-    private readonly string _endpointString = owner.NetworkEndpoint.ToString();
+    private readonly string _endpointString = owner.NetworkEndpoint.ToString() ?? "Unknown";
 
     #endregion Fields
 

@@ -50,8 +50,5 @@ public sealed partial class TimingWheelOptions : ConfigurationLoader, IValidatab
     /// <exception cref="System.ArgumentOutOfRangeException">
     /// Thrown when one or more values are outside their allowed range.
     /// </exception>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

@@ -72,8 +72,5 @@ public sealed partial class DatagramGuardOptions : ConfigurationLoader, IValidat
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

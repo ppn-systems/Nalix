@@ -46,7 +46,7 @@ public abstract partial class UdpListenerBase
     /// Background receive loop worker managed by <see cref="Nalix.Framework.Tasks.TaskManager"/>.
     /// </summary>
     [DebuggerStepThrough]
-    private async Task RunReceiveWorkerAsync(int index, IWorkerContext ctx, CancellationToken cancellationToken)
+    private async Task RunReceiveWorkerAsync(IWorkerContext ctx, CancellationToken cancellationToken)
     {
         PooledUdpReceiveEventArgs args = new();
         args.Completed += this.OnReceiveCompleted;

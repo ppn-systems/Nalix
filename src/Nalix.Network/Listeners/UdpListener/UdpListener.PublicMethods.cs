@@ -115,7 +115,7 @@ public abstract partial class UdpListenerBase : IListener
                 receiveWorkers[i] = InstanceManager.Instance.GetOrCreateInstance<TaskManager>().ScheduleWorker(
                     name: $"{TaskNaming.Tags.Udp}.{TaskNaming.Tags.Accept}.{i}",
                     group: $"{TaskNaming.Tags.Net}/{TaskNaming.Tags.Udp}/{_port}",
-                    work: async (ctx, ct) => await this.RunReceiveWorkerAsync(workerIndex, ctx, ct).ConfigureAwait(false),
+                    work: async (ctx, ct) => await this.RunReceiveWorkerAsync(ctx, ct).ConfigureAwait(false),
                     options: new WorkerOptions
                     {
                         Tag = TaskNaming.Tags.Net,

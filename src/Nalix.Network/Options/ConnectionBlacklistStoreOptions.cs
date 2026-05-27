@@ -1,7 +1,6 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using Nalix.Abstractions;
 using Nalix.Environment.Configuration.Binding;
 
@@ -37,8 +36,5 @@ public sealed partial class ConnectionBlacklistStoreOptions : ConfigurationLoade
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>
-    public void Validate()
-    {
-        this.ValidateDataAnnotations();
-    }
+    public void Validate() => this.ValidateDataAnnotations();
 }

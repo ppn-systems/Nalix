@@ -67,6 +67,7 @@ public sealed class BatchConsoleLogTarget : INLogixTarget, IDisposable
     #region API
 
     /// <inheritdoc/>
+    [SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]
     public void Publish(
         DateTime timestampUtc,
         LogLevel logLevel,
