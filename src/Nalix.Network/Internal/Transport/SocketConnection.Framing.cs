@@ -25,7 +25,7 @@ internal sealed partial class SocketConnection
     {
         if (Volatile.Read(ref _framingLocked) == 1)
         {
-            throw new InvalidOperationException("Cannot change framing mode after receiving has started or framing has already been locked.");
+            throw new InvalidOperationException("Framing can only be configured once before receive starts.");
         }
 
         if (Interlocked.CompareExchange(ref _framingLocked, 1, 0) == 0)

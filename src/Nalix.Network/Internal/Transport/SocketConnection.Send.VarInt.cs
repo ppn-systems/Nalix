@@ -18,7 +18,7 @@ internal sealed partial class SocketConnection
 {
     private void SEND_VARINT(ReadOnlySpan<byte> data)
     {
-        int varIntSize = VarInt.GetByteCount(data.Length);
+        int varIntSize = Leb128.GetByteCount(data.Length);
         long totalLengthLong = (long)data.Length + varIntSize;
 
         if (totalLengthLong > _maxVarIntPayloadSize)
@@ -116,7 +116,7 @@ internal sealed partial class SocketConnection
 
     private ValueTask SEND_VARINT_ASYNC(ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
-        int varIntSize = VarInt.GetByteCount(data.Length);
+        int varIntSize = Leb128.GetByteCount(data.Length);
         long totalLengthLong = (long)data.Length + varIntSize;
 
         if (totalLengthLong > _maxVarIntPayloadSize)
@@ -224,7 +224,7 @@ internal sealed partial class SocketConnection
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void WRITE_VARINT_FRAME_HEADER(Span<byte> buffer, int payloadLength, int varIntSize, ReadOnlySpan<byte> payload)
     {
-        _ = VarInt.Write(buffer, payloadLength);
+        _ = Leb128.Write(buffer, payloadLength);
         payload.CopyTo(buffer[varIntSize..]);
     }
 }

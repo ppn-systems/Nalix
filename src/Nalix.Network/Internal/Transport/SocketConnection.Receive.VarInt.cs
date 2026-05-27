@@ -31,7 +31,7 @@ internal sealed partial class SocketConnection
                 {
                     // 1. Attempt to read the VarInt header.
                     ReadOnlySpan<byte> currentBuffer = MemoryExtensions.AsSpan(_buffer!, consumed, _bufferDataLength - consumed);
-                    if (!VarInt.TryRead(currentBuffer, out int payloadLen, out int varIntBytesRead))
+                    if (!Leb128.TryRead(currentBuffer, out int payloadLen, out int varIntBytesRead))
                     {
                         // Incomplete VarInt header. Wait for more data.
                         break;

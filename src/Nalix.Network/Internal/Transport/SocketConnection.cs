@@ -798,7 +798,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private static bool IS_VALID_PACKET_SIZE(uint size)
         => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
 
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void OBSERVE_RECEIVE_LOOP_SHUTDOWN(Task receiveLoopTask)
     {
