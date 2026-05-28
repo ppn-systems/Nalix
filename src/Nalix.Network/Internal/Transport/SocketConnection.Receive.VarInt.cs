@@ -21,7 +21,7 @@ internal sealed partial class SocketConnection
     {
         try
         {
-            while (Volatile.Read(ref _disposed) == 0 && !token.IsCancellationRequested)
+            while (Volatile.Read(ref _disposed) == 0 && Volatile.Read(ref _cancelSignaled) == 0 && !token.IsCancellationRequested)
             {
                 int consumed = 0;
                 bool incomplete = false;

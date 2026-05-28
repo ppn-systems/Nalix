@@ -74,29 +74,29 @@ public static class Leb128
 
     //// ── Write fully-unrolled (fastest for known small values) ─────────────────
 
-    ///// <summary>
-    ///// Fully-unrolled LEB128 write for values that fit in 32 bits.
-    ///// Eliminates the loop entirely — the JIT/CPU sees straight-line code.
-    ///// Prefer this on hot paths where the value range is known to be small.
-    ///// </summary>
-    //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-    //public static unsafe int WriteUnrolled(Span<byte> buffer, uint value)
-    //{
-    //    fixed (byte* p = &MemoryMarshal.GetReference(buffer))
-    //    {
-    //        if (value < 0x80u) { p[0] = (byte)value; return 1; }
-    //        if (value < 0x4000u) { p[0] = (byte)(value | 0x80u); p[1] = (byte)(value >> 7); return 2; }
-    //        if (value < 0x20_0000u) { p[0] = (byte)(value | 0x80u); p[1] = (byte)((value >> 7) | 0x80u); p[2] = (byte)(value >> 14); return 3; }
-    //        if (value < 0x1000_0000u) { p[0] = (byte)(value | 0x80u); p[1] = (byte)((value >> 7) | 0x80u); p[2] = (byte)((value >> 14) | 0x80u); p[3] = (byte)(value >> 21); return 4; }
+    /// <summary>
+    /// Fully-unrolled LEB128 write for values that fit in 32 bits.
+    /// Eliminates the loop entirely — the JIT/CPU sees straight-line code.
+    /// Prefer this on hot paths where the value range is known to be small.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe int WriteUnrolled(Span<byte> buffer, uint value)
+    {
+        fixed (byte* p = &MemoryMarshal.GetReference(buffer))
+        {
+            if (value < 0x80u) { p[0] = (byte)value; return 1; }
+            if (value < 0x4000u) { p[0] = (byte)(value | 0x80u); p[1] = (byte)(value >> 7); return 2; }
+            if (value < 0x20_0000u) { p[0] = (byte)(value | 0x80u); p[1] = (byte)((value >> 7) | 0x80u); p[2] = (byte)(value >> 14); return 3; }
+            if (value < 0x1000_0000u) { p[0] = (byte)(value | 0x80u); p[1] = (byte)((value >> 7) | 0x80u); p[2] = (byte)((value >> 14) | 0x80u); p[3] = (byte)(value >> 21); return 4; }
 
-    //        p[0] = (byte)(value | 0x80u);
-    //        p[1] = (byte)((value >> 7) | 0x80u);
-    //        p[2] = (byte)((value >> 14) | 0x80u);
-    //        p[3] = (byte)((value >> 21) | 0x80u);
-    //        p[4] = (byte)(value >> 28);
-    //        return 5;
-    //    }
-    //}
+            p[0] = (byte)(value | 0x80u);
+            p[1] = (byte)((value >> 7) | 0x80u);
+            p[2] = (byte)((value >> 14) | 0x80u);
+            p[3] = (byte)((value >> 21) | 0x80u);
+            p[4] = (byte)(value >> 28);
+            return 5;
+        }
+    }
 
     // ── TryRead (unsafe, maximal inlining) ────────────────────────────────────
 

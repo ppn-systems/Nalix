@@ -328,17 +328,33 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
+                TransportFraming? framing = null;
+
                 if (registration.BindingBuilder is ProtocolBindingBuilder tcpBuilder)
                 {
                     port = tcpBuilder.Port ?? port;
 
                     if (protocol is Protocol baseProtocol && tcpBuilder.Framing.HasValue)
                     {
+                        framing = tcpBuilder.Framing.Value;
                         baseProtocol.Framing = tcpBuilder.Framing.Value;
                     }
                 }
 
-                TcpServerListener listener = port.HasValue ? new(port.Value, protocol, hub) : new(protocol, hub);
+                IListener listener;
+
+                if (framing.HasValue)
+                {
+                    listener = port.HasValue
+                        ? new TcpPassthroughListener(port.Value, protocol, hub)
+                        : new TcpPassthroughListener(protocol, hub);
+                }
+                else
+                {
+                    listener = port.HasValue
+                        ? new TcpServerListener(port.Value, protocol, hub)
+                        : new TcpServerListener(protocol, hub);
+                }
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.TCP);
             });

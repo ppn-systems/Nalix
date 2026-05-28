@@ -39,17 +39,6 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     long UpTime { get; }
 
     /// <summary>
-    /// Gets the total number of bytes sent over the connection.
-    /// Useful for monitoring bandwidth usage and data transfer statistics.
-    /// </summary>
-    long BytesSent { get; }
-
-    /// <summary>
-    /// Gets the total number of bytes received over the life of the connection.
-    /// </summary>
-    long BytesReceived { get; }
-
-    /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
     /// This value can help determine the latency of the network connection.
     /// </summary>
@@ -80,6 +69,12 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// Gets or sets the encryption mode used.
     /// </summary>
     CipherSuiteType Algorithm { get; set; }
+
+    /// <summary>
+    /// Indicates the active idle timeout (TimingWheel) for this connection.
+    /// Set to false to ignore inactive timeouts when performing raw piping.
+    /// </summary>
+    bool IsIdleTimeoutEnabled { get; set; }
 
     /// <summary>
     /// Occurs when the connection is closed.

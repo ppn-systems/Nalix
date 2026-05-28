@@ -101,6 +101,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     public bool IsUdpCreated => false; // UDP is not supported over WebSocket
 
     /// <inheritdoc/>
+    public bool IsIdleTimeoutEnabled { get; set; } = true;
+
+    /// <inheritdoc/>
     public ISnowflake ID { get; }
 
     /// <inheritdoc/>

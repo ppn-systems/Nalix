@@ -316,7 +316,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         try
         {
             // The opportunistic loop: read as much as possible, then parse as many frames as possible.
-            while (Volatile.Read(ref _disposed) == 0 && !token.IsCancellationRequested)
+            while (Volatile.Read(ref _disposed) == 0 && Volatile.Read(ref _cancelSignaled) == 0 && !token.IsCancellationRequested)
             {
                 // Step 1: Parse all complete frames currently in the buffer.
                 int consumed = 0;

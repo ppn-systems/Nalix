@@ -36,6 +36,7 @@ namespace Nalix.Network.Connections;
 public sealed partial class Connection :
     IConnection,
     IConnectionErrorTracked,
+    IConnectionTrafficMetrics,
     IPooledConnectContextPool,
     TimingWheel.ITimeoutTrackedConnection
 {
@@ -49,6 +50,9 @@ public sealed partial class Connection :
 
     private readonly Lock _lock;
     private readonly SocketEventBridge _bridge;
+
+    private long _bytesSent;
+    private long _bytesReceived;
 
     private int _errorCount;
     private int _disposeState; // 0=Active, 1=Closing(Event running), 2=Disposed
@@ -130,6 +134,9 @@ public sealed partial class Connection :
     /// <inheritdoc/>
     public bool IsUdpCreated => this.UdpTransport is not null;
 
+    /// <inheritdoc/>
+    public bool IsIdleTimeoutEnabled { get; set; } = true;
+
     /// <inheritdoc />
     public ISnowflake ID { get; }
 
@@ -202,7 +209,7 @@ public sealed partial class Connection :
     /// and the <see cref="SocketUdpTransport.BytesSent"/> (UDP) if available.
     /// It represents raw wire data, including protocol headers.
     /// </remarks>
-    public long BytesSent => this.TcpTransport.BytesSent + (this.UdpTransport?.BytesSent ?? 0);
+    public long BytesSent => this.TcpTransport.BytesSent + (this.UdpTransport?.BytesSent ?? 0) + Volatile.Read(ref _bytesSent);
 
     /// <summary>
     /// Gets the total number of bytes received over the life of the connection.
@@ -212,19 +219,7 @@ public sealed partial class Connection :
     /// and the <see cref="SocketUdpTransport.BytesReceived"/> (UDP) if available.
     /// It represents raw wire data before any frame processing or decompression.
     /// </remarks>
-    public long BytesReceived => this.TcpTransport.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0);
-
-    /// <inheritdoc />
-    public void IncrementErrorCount()
-    {
-        int count = Interlocked.Increment(ref _errorCount);
-
-        // SEC-54: Disconnect persistent noisy/malformed connections
-        if (s_options.MaxErrorThreshold > 0 && count >= s_options.MaxErrorThreshold)
-        {
-            this.Disconnect("Exceeded maximum error threshold.");
-        }
-    }
+    public long BytesReceived => this.TcpTransport.BytesReceived + (this.UdpTransport?.BytesReceived ?? 0) + Volatile.Read(ref _bytesReceived);
 
     #endregion Properties
 
@@ -295,6 +290,26 @@ public sealed partial class Connection :
     #endregion Events
 
     #region Methods
+
+    /// <inheritdoc />
+    public void IncrementErrorCount()
+    {
+        int count = Interlocked.Increment(ref _errorCount);
+
+        // SEC-54: Disconnect persistent noisy/malformed connections
+        if (s_options.MaxErrorThreshold > 0 && count >= s_options.MaxErrorThreshold)
+        {
+            this.Disconnect("Exceeded maximum error threshold.");
+        }
+    }
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void IncrementBytesSent(int bytes) => Interlocked.Add(ref _bytesSent, bytes);
+
+    /// <inheritdoc />
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void IncrementBytesReceived(int bytes) => Interlocked.Add(ref _bytesReceived, bytes);
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
