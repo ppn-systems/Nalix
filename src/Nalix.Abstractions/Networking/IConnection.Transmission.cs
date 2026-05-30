@@ -10,12 +10,13 @@ namespace Nalix.Abstractions.Networking;
 public partial interface IConnection
 {
     /// <summary>
-    /// Gets the Transmission CONTROL number (TCP) transmission interface
+    /// Gets the Transmission CONTROL number (TCP) transmission interface.
+    /// For socket-based connections, cast to <see cref="ISocketTransport"/> for direct socket access.
     /// </summary>
     ITransport TCP { get; }
 
     /// <summary>
-    /// Gets the USER Datagram number (UDP) transmission interface
+    /// Gets the USER Datagram number (UDP) transmission interface.
     /// </summary>
     ITransport UDP { get; }
 
@@ -63,13 +64,36 @@ public partial interface IConnection
         /// </summary>
         /// <param name="framing">The framing mode to use.</param>
         void UseFraming(TransportFraming framing);
+    }
+
+    /// <summary>
+    /// Extends <see cref="ITransport"/> with direct access to the underlying OS socket.
+    /// Only applicable to socket-based transports (e.g., TCP).
+    /// </summary>
+    interface ISocketTransport : ITransport
+    {
+        /// <summary>
+        /// Gets the underlying <see cref="System.Net.Sockets.Socket"/> used by this transport.
+        /// </summary>
+        System.Net.Sockets.Socket Socket { get; }
 
         /// <summary>
-        /// Detaches the underlying OS socket from the transport engine for TCP connections.
+        /// Gets the task representing the receive loop.
+        /// Used by unwrapped connections to await loop shutdown and recover stolen packets.
+        /// </summary>
+        Task? ReceiveLoopTask { get; }
+
+        /// <summary>
+        /// Contains bytes that were read from the kernel but not processed by the framework
+        /// due to <see cref="Unwrap"/> or cancellation.
+        /// </summary>
+        byte[]? StolenData { get; }
+
+        /// <summary>
+        /// Detaches the underlying OS socket from the transport engine.
         /// This allows the caller to take ownership of the socket without it being disposed by the connection.
         /// </summary>
-        /// <returns>The detached <see cref="System.Net.Sockets.Socket"/>, if supported.</returns>
-        /// <exception cref="NotSupportedException">Thrown if the transport does not support socket unwrapping.</exception>
+        /// <returns>The detached <see cref="System.Net.Sockets.Socket"/>.</returns>
         System.Net.Sockets.Socket Unwrap();
     }
 }

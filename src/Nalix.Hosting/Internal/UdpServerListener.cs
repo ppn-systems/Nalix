@@ -86,6 +86,8 @@ internal sealed class UdpServerListener : UdpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
+            args.Connection.IncrementErrorCount();
+
             if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
             {
 #if DEBUG

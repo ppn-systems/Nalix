@@ -25,7 +25,7 @@ namespace Nalix.Network.Internal.Transport;
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class SocketTcpTransport : IConnection.ITransport, IDisposable
+internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDisposable
 {
     #region Fields
 
@@ -38,6 +38,9 @@ internal sealed class SocketTcpTransport : IConnection.ITransport, IDisposable
     #region Properties
 
     public TransportFraming Framing { get; private set; }
+
+    /// <inheritdoc/>
+    public System.Net.Sockets.Socket Socket => _socket.Socket;
 
     /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sequencer.SendSequence;
@@ -104,6 +107,12 @@ internal sealed class SocketTcpTransport : IConnection.ITransport, IDisposable
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public System.Net.Sockets.Socket Unwrap() => _socket.Unwrap();
+
+    /// <inheritdoc/>
+    public Task? ReceiveLoopTask => _socket.ReceiveLoopTask;
+
+    /// <inheritdoc/>
+    public byte[]? StolenData => _socket.StolenData;
 
     /// <inheritdoc/>
     [StackTraceHidden]

@@ -40,7 +40,8 @@ internal sealed class ConnectionWorker
                     TransportOptions transportOptions = new()
                     {
                         Address = _options.Host,
-                        Port = _options.Port
+                        Port = _options.Port,
+                        ServerPublicKey = "4529389AC9F8866CBE80EBBB8048008AF9CA4589E5785FD4E43B4D6251D57975"
                     };
 
                     byte[]? proxyHeader = null;
@@ -79,6 +80,9 @@ internal sealed class ConnectionWorker
                     {
                         await session.ConnectAsync(ct: cancellationToken).ConfigureAwait(false);
                     }
+
+                    // Perform cryptographic handshake so the session gets key agreement established
+                    await Nalix.SDK.Transport.Extensions.HandshakeExtensions.HandshakeAsync(session, cancellationToken).ConfigureAwait(false);
 
                     // Send exactly ONE warmup packet to warm up JIT & pools on server/client side
                     try

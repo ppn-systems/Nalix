@@ -25,8 +25,7 @@ public sealed class BenchmarkHandlers
     public static async ValueTask HandleAsync(IPacketContext<BenchmarkPacket> context)
     {
         ArgumentNullException.ThrowIfNull(context);
-        //await context.Sender.SendAsync(context.Packet).ConfigureAwait(false);
-        await context.Connection.TCP.SendAsync(context.Packet, context.CancellationToken).ConfigureAwait(false);
+        await context.Sender.SendAsync(context.Packet, context.CancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

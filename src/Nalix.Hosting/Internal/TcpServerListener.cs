@@ -66,6 +66,8 @@ internal sealed class TcpServerListener : TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
+            args.Connection.IncrementErrorCount();
+
             if (ex is CipherException or InternalErrorException or SerializationFailureException or LZ4Exception)
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))

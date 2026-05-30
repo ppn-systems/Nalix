@@ -343,7 +343,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
                 IListener listener;
 
-                if (framing.HasValue)
+                if (framing == TransportFraming.VarIntLengthPrefixed)
                 {
                     listener = port.HasValue
                         ? new TcpPassthroughListener(port.Value, protocol, hub)
@@ -370,20 +370,46 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
                 ushort? port = registration.Port;
                 Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? authen = registration.Authentication;
+                TransportFraming? framing = null;
 
                 if (registration.BindingBuilder is ProtocolBindingBuilder udpBuilder)
                 {
                     port = udpBuilder.Port ?? port;
                     authen = udpBuilder.Authen ?? authen;
+
+                    if (protocol is Network.Protocols.Protocol baseProtocol && udpBuilder.Framing.HasValue)
+                    {
+                        framing = udpBuilder.Framing.Value;
+                        baseProtocol.Framing = udpBuilder.Framing.Value;
+                    }
                 }
 
-                UdpServerListener listener = authen != null
-                    ? (port.HasValue
-                        ? new(port.Value, protocol, hub, authen)
-                        : new(protocol, hub, authen))
-                    : (port.HasValue
-                        ? new(port.Value, protocol, hub)
-                        : new(protocol, hub));
+                IListener listener;
+
+                if (framing == TransportFraming.None)
+                {
+                    if (authen is not null)
+                    {
+                        throw new InvalidOperationException(
+                            "UDP passthrough framing (TransportFraming.None) does not support " +
+                            "Nalix authentication hooks. The protocol layer is responsible for " +
+                            "its own authentication when using passthrough mode.");
+                    }
+
+                    listener = port.HasValue
+                        ? new UdpPassthroughListener(port.Value, protocol, hub)
+                        : new UdpPassthroughListener(protocol, hub);
+                }
+                else
+                {
+                    listener = authen is not null
+                        ? (port.HasValue
+                            ? new UdpServerListener(port.Value, protocol, hub, authen)
+                            : new UdpServerListener(protocol, hub, authen))
+                        : (port.HasValue
+                            ? new UdpServerListener(port.Value, protocol, hub)
+                            : new UdpServerListener(protocol, hub));
+                }
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.UDP);
             });

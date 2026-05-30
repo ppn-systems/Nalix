@@ -8,6 +8,7 @@ using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
@@ -116,9 +117,6 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
             throw new NotSupportedException("WebSocket transport does not support framing mechanisms natively as it provides its own message framing. Use TransportFraming.None.");
         }
     }
-
-    /// <inheritdoc/>
-    public System.Net.Sockets.Socket Unwrap() => throw new NotSupportedException("Unwrapping is not supported for WebSocket transports.");
 
     #endregion APIs
 

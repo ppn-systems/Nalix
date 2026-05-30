@@ -73,6 +73,11 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     private readonly Lock _sendLock = new();
     private readonly Socket _socket = socket;
     private readonly ILogger? _logger = logger;
+
+    /// <summary>
+    /// Gets the underlying <see cref="System.Net.Sockets.Socket"/> for direct access.
+    /// </summary>
+    internal Socket Socket => _socket;
     private readonly IConnection _owner = owner ?? throw new ArgumentNullException(nameof(owner));
     private readonly ITransportEventSink _sink = sink ?? throw new ArgumentNullException(nameof(sink));
 
@@ -158,6 +163,18 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         get => Interlocked.Read(ref field);
         set => Interlocked.Exchange(ref field, value);
     } = Clock.UnixMillisecondsNow();
+
+    /// <summary>
+    /// Gets the task representing the receive loop.
+    /// Used by unwrapped connections to await loop shutdown and recover stolen packets.
+    /// </summary>
+    public Task? ReceiveLoopTask => _receiveLoopTask;
+
+    /// <summary>
+    /// Contains bytes that were read from the kernel but not processed by the framework
+    /// due to Unwrap() or cancellation.
+    /// </summary>
+    public byte[]? StolenData { get; private set; }
 
     /// <summary>
     /// Returns the event sink (bridge) wired to this transport.
@@ -474,6 +491,11 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         }
         finally
         {
+            if (Volatile.Read(ref _socketDetached) == 1 && _bufferDataLength > 0)
+            {
+                StolenData = new byte[_bufferDataLength];
+                Buffer.BlockCopy(_buffer!, 0, StolenData, 0, _bufferDataLength);
+            }
             this.CANCEL_RECEIVE_ONCE();
             this.INVOKE_CLOSE_ONCE();
         }
