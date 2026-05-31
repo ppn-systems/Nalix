@@ -39,7 +39,7 @@ public static class NetworkApplicationBuilderExtensions
 
         if (resolvedPath is null && builder is NetworkApplicationBuilder concrete)
         {
-            resolvedPath = concrete.GetIdentityCertificatePath();
+            resolvedPath = concrete._state.IdentityCertificatePath;
         }
 
         if (resolvedPath is not null)

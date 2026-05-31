@@ -3,6 +3,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Hosting;
+using Nalix.Hosting.Protocols;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 using Nalix.SDK.Options;
@@ -143,13 +144,9 @@ public sealed class NetworkApplicationIntegrationTests
 public sealed class IntegrationTestProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
+    private readonly DefaultFrameProcessor _frameProcessor;
 
     public static int ProcessedCount;
-
-    private sealed class NoOpFrameProcessor : IFrameProcessor
-    {
-        public void ProcessFrame(object? sender, IConnectEventArgs args) { }
-    }
 
     private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
     {
@@ -157,12 +154,14 @@ public sealed class IntegrationTestProtocol : Protocol
             payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
     }
 
-    public override IFrameProcessor FrameProcessor { get; } = new NoOpFrameProcessor();
+    public override IFrameProcessor FrameProcessor => _frameProcessor;
     public override Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor OpCodeExtractor { get; } = new StubOpCodeExtractor();
 
     public IntegrationTestProtocol(IPacketDispatch dispatch)
     {
         _dispatch = dispatch;
+        _frameProcessor = new DefaultFrameProcessor(this);
+        this.KeepConnectionOpen = true;
         this.SetConnectionAcceptance(true);
     }
 
