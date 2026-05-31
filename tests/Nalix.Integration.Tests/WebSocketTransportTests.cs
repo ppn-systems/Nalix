@@ -16,6 +16,7 @@ using Nalix.SDK.Transport;
 using Nalix.Network.Protocols;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Framework.Options;
 
@@ -164,8 +165,9 @@ public class WebSocketTransportTests : IDisposable
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
         EnsureCertificate();
 
-        var builder = Nalix.Hosting.NetworkApplication.CreateBuilder();
+        var builder = NetworkApplication.CreateBuilder();
         builder.ConfigureCertificate(_certificatePath);
+        builder.UseSecureConnections();
         
         // Bind WebSocket using the fluent API
         builder.BindWebSocket<IntegrationTestProtocol>()
@@ -252,8 +254,9 @@ public class WebSocketTransportTests : IDisposable
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
         EnsureCertificate();
 
-        var builder = Nalix.Hosting.NetworkApplication.CreateBuilder();
+        var builder = NetworkApplication.CreateBuilder();
         builder.ConfigureCertificate(_certificatePath);
+        builder.UseSecureConnections();
         var protocol = new IntegrationTestProtocol();
         builder.BindWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
@@ -334,8 +337,9 @@ public class WebSocketTransportTests : IDisposable
         ConfigurationManager.Instance.Get<NetworkWebSocketOptions>().Host = "127.0.0.1";
         EnsureCertificate();
 
-        var builder = Nalix.Hosting.NetworkApplication.CreateBuilder();
+        var builder = NetworkApplication.CreateBuilder();
         builder.ConfigureCertificate(_certificatePath);
+        builder.UseSecureConnections();
         builder.BindWebSocket<IntegrationTestProtocol>()
                .OnPort(port)
                .WithPath("/ws/")

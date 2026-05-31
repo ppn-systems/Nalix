@@ -22,9 +22,6 @@ using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Handlers;
-using Nalix.Runtime.Options;
-using Nalix.Runtime.Sessions;
 
 namespace Nalix.Hosting;
 
@@ -53,14 +50,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(RegisterHandlerCore));
     }
 
-    internal NetworkApplicationBuilder(HostingBuilderContext state)
-    {
-        _state = state ?? throw new ArgumentNullException(nameof(state));
-        _ = this.AddHandler<SessionHandlers>()
-                .AddHandler<HandshakeHandlers>()
-                .AddHandler<KeyExchangeHandlers>()
-                .AddHandler<SystemControlHandlers>();
-    }
+    internal NetworkApplicationBuilder(HostingBuilderContext state) => _state = state ?? throw new ArgumentNullException(nameof(state));
 
     #endregion Constructors
 
@@ -301,17 +291,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             RegisterLogger(_state);
 
             this.EnsureConnectionHubRegistered();
-            this.EnsureSessionServiceRegistered();
             this.EnsureBufferPoolManagerRegistered();
-
-            if (_state.IdentityCertificatePath is not null)
-            {
-                HandshakeHandlers.SetCertificatePath(_state.IdentityCertificatePath);
-            }
-            else
-            {
-                HandshakeHandlers.Initialize();
-            }
 
             RegisterMetadataProviders(_state);
         }
@@ -540,49 +520,10 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
     }
 
-    private void EnsureSessionServiceRegistered()
-    {
-        ISessionService? service = InstanceManager.Instance.GetExistingInstance<ISessionService>();
-
-        if (!ConfigurationManager.Instance.Get<SessionStoreOptions>().Enabled)
-        {
-            return;
-        }
-
-        if (service == null)
-        {
-            ISessionFactory? factory = InstanceManager.Instance.GetExistingInstance<ISessionFactory>();
-            ISessionStore? store = InstanceManager.Instance.GetExistingInstance<ISessionStore>();
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-            service = new SessionService(factory, store);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-            try
-            {
-                InstanceManager.Instance.Register<ISessionService>(service);
-            }
-            catch
-            {
-                if (service is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-                throw;
-            }
-        }
-
-        if (InstanceManager.Instance.GetExistingInstance<SessionPersistenceObserver>() == null)
-        {
-            IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
-            if (hub is not null)
-            {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                SessionPersistenceObserver observer = new(hub, service);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-                InstanceManager.Instance.Register<SessionPersistenceObserver>(observer);
-            }
-        }
-    }
+    /// <summary>
+    /// Gets the configured identity certificate path, if any.
+    /// </summary>
+    internal string? GetIdentityCertificatePath() => _state.IdentityCertificatePath;
 
     [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
         Justification = "On successful registration InstanceManager and BufferLease.ByteArrayPool own the manager lifetime; failure disposes the local instance.")]
