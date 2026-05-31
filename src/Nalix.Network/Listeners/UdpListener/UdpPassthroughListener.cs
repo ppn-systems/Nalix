@@ -144,11 +144,14 @@ public sealed class UdpPassthroughListener : UdpListenerBase
 
         PassthroughConnection connection = _connections.GetOrAdd(
             ipEndPoint,
-            static ep => new PassthroughConnection(ep));
+            static (ep, extractor) => new PassthroughConnection(extractor, ep), // Thêm chữ static
+            this.Protocol.OpCodeExtractor // Truyền state từ bên ngoài vào
+        );
+
 
         if (connection.IsDisposed)
         {
-            if (_connections.TryUpdate(ipEndPoint, new PassthroughConnection(ipEndPoint), connection))
+            if (_connections.TryUpdate(ipEndPoint, new PassthroughConnection(this.Protocol.OpCodeExtractor, ipEndPoint), connection))
             {
                 connection = _connections[ipEndPoint];
             }

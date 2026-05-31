@@ -24,6 +24,8 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Nalix.Control")]
 public sealed class SystemControlHandlers
 {
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <summary>
     /// Handles incoming system control packets.
     /// </summary>
@@ -81,12 +83,6 @@ public sealed class SystemControlHandlers
                 break;
         }
     }
-
-    #region Fields
-
-    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-    #endregion Fields
 
     #region Private Methods
 
@@ -170,10 +166,9 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (Logging != null &&
-            Logging.IsEnabled(LogLevel.Error))
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
         {
-            Logging.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            s_logger.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
     }
 
@@ -191,10 +186,9 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (Logging != null &&
-            Logging.IsEnabled(LogLevel.Warning))
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
         {
-            Logging.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            s_logger.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
     }
 
@@ -210,10 +204,9 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (Logging != null &&
-            Logging.IsEnabled(LogLevel.Debug))
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
         {
-            Logging.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            s_logger.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
     }
 

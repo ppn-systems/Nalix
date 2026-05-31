@@ -17,9 +17,9 @@ public sealed partial class DirectiveGuardOptions : ConfigurationLoader, IValida
     /// Minimum interval (milliseconds) between repeated directives of the same category per connection.
     /// Set to 0 to disable suppression.
     /// </summary>
-    [IniComment("Minimum cooldown in milliseconds for repeated inbound directives (0 = disabled, default 500)")]
+    [IniComment("Minimum cooldown in milliseconds for repeated inbound directives (0 = disabled, default 1000)")]
     [Range(0, 60000, ErrorMessage = "DefaultCooldownMs must be between 0 and 60000.")]
-    public int DefaultCooldownMs { get; set; } = 500;
+    public int DefaultCooldownMs { get; set; } = 1_000;
 
     /// <summary>
     /// Validates option values.
