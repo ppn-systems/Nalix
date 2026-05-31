@@ -321,13 +321,16 @@ public sealed partial class Connection :
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void Disconnect(string? reason = null)
     {
-#if DEBUG
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogDebug($"[NW.{nameof(Connection)}:{nameof(this.Disconnect)}] " +
-                           $"disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}");
+            _logger.LogTrace(
+                "[NW.{Type}:{Method}] disconnect request id={ConnectionId} remote={Remote} reason={Reason}",
+                nameof(Connection),
+                nameof(Disconnect),
+                this.ID,
+                this.NetworkEndpoint,
+                reason);
         }
-#endif
 
         this.Dispose();
     }
@@ -454,8 +457,7 @@ public sealed partial class Connection :
             {
                 if (this.UdpTransport != null)
                 {
-                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Return(this.UdpTransport);
+                    s_pool.Return(this.UdpTransport);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { LOG_ERROR(ex, "udptransport"); }

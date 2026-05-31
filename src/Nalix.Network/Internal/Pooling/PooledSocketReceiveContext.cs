@@ -62,6 +62,8 @@ namespace Nalix.Network.Internal.Pooling;
 [DebuggerDisplay("Args={Args}, ActiveOps={_activeOps}, AwaiterPending={_consumerAwaitPending}")]
 internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValueTaskSource<int>
 {
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     /// <summary>
     /// Static completion handler shared across all instances.
     /// It resolves the receive task and decrements the active-operation counter
@@ -165,8 +167,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
             return;
         }
 
-        PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                                                        .Get<PooledSocketAsyncEventArgs>();
+        PooledSocketAsyncEventArgs pooledArgs = s_pool.Get<PooledSocketAsyncEventArgs>();
 
 #if DEBUG
         Debug.WriteLine(
@@ -354,9 +355,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
 
                 if (_args is PooledSocketAsyncEventArgs pooled)
                 {
-                    pooled.ResetForPool();
-                    InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                            .Return(pooled);
+                    s_pool.Return(pooled);
                 }
             }
 #if DEBUG

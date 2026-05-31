@@ -33,6 +33,8 @@ namespace Nalix.Network.Internal.Pooling;
 [EditorBrowsable(EditorBrowsableState.Never)]
 internal sealed class PooledAcceptContext : IPoolable
 {
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     [SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>")]
     private static readonly EventHandler<SocketAsyncEventArgs> AsyncAcceptCompleted = static (s, e) =>
     {
@@ -73,9 +75,7 @@ internal sealed class PooledAcceptContext : IPoolable
     {
         if (_args == null)
         {
-            PooledSocketAsyncEventArgs pooledArgs = InstanceManager.Instance
-                .GetOrCreateInstance<ObjectPoolManager>()
-                .Get<PooledSocketAsyncEventArgs>();
+            PooledSocketAsyncEventArgs pooledArgs = s_pool.Get<PooledSocketAsyncEventArgs>();
 
             if (pooledArgs == null)
             {
@@ -220,9 +220,7 @@ internal sealed class PooledAcceptContext : IPoolable
 
             if (_args is PooledSocketAsyncEventArgs pooled)
             {
-                pooled.ResetForPool();
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                        .Return(pooled);
+                s_pool.Return(pooled);
             }
 
             _args = null;

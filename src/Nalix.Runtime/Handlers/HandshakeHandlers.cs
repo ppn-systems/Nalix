@@ -137,6 +137,9 @@ public sealed class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
+
+    private static readonly ISessionService? s_sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>();
+
     #endregion Fields
 
     #region Private Methods
@@ -370,9 +373,9 @@ public sealed class HandshakeHandlers
         }
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
-        if (InstanceManager.Instance.GetExistingInstance<ISessionService>() is { } sessionService)
+        if (s_sessionService != null)
         {
-            await sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+            await s_sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
         }
 
         using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();

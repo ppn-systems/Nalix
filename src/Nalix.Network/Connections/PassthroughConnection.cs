@@ -58,6 +58,8 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
 
     #region Fields
 
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     private readonly ILogger? _logger;
     private readonly long _createdAtMs;
     private readonly EndPoint _endPointKey;
@@ -65,9 +67,10 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     private SocketUdpTransport? _udpTransport;
     private IObjectMap<string, object>? _attributes;
     private EventHandler<IConnectEventArgs>? _onCloseEvent;
+
+    private int _isDisposed;
     private long _lastPingTime;
     private int _pendingPackets;
-    private int _isDisposed;
 
     #endregion Fields
 
@@ -78,14 +81,15 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     /// </summary>
     /// <param name="packetClassifier">The opcode extractor for classifying incoming packets.</param>
     /// <param name="remoteEndPoint">The remote UDP endpoint (must be an <see cref="IPEndPoint"/>).</param>
-    public PassthroughConnection(IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint)
+    /// <param name="logger">The logger instance.</param>
+    public PassthroughConnection(IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint, ILogger? logger = null)
     {
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
         ArgumentNullException.ThrowIfNull(packetClassifier);
 
+        _logger = logger;
         _endPointKey = remoteEndPoint;
         _lastPingTime = _createdAtMs = Clock.UnixMillisecondsNow();
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         this.IsIdleTimeoutEnabled = true;
         this.PacketClassifier = packetClassifier;
@@ -113,9 +117,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
             return;
         }
 
-        SocketUdpTransport transport = InstanceManager.Instance
-            .GetOrCreateInstance<ObjectPoolManager>()
-            .Get<SocketUdpTransport>();
+        SocketUdpTransport transport = s_pool.Get<SocketUdpTransport>();
 
         transport.SetSocket(listenerSocket);
 
@@ -360,7 +362,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
         {
             try
             {
-                InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>().Return(_udpTransport);
+                s_pool.Return(_udpTransport);
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
 

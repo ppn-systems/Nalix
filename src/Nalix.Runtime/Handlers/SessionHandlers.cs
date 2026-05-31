@@ -15,12 +15,9 @@ using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Codec.Security.Hashing;
-using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
-using Nalix.Framework.Injection;
 using Nalix.Runtime.Extensions;
-using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -30,7 +27,15 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Nalix.Session")]
 public sealed class SessionHandlers
 {
-    private static readonly bool s_isSessionStoreEnabled = ConfigurationManager.Instance.Get<SessionStoreOptions>().Enabled;
+    private readonly ISessionService _sessionService;
+
+    /// <inheritdoc/>
+    public SessionHandlers(ISessionService sessionService)
+    {
+        ArgumentNullException.ThrowIfNull(sessionService);
+
+        _sessionService = sessionService;
+    }
 
     /// <summary>
     /// Handles a session resume request and restores the connection state when the token is valid.
@@ -41,17 +46,11 @@ public sealed class SessionHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketOpcode((ushort)ProtocolOpCode.SESSION_SIGNAL)]
-    public static async ValueTask HandleAsync(IPacketContext<SessionResume> context)
+    public async ValueTask HandleAsync(IPacketContext<SessionResume> context)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         IConnection connection = context.Connection;
-
-        if (!s_isSessionStoreEnabled)
-        {
-            connection.IncrementErrorCount();
-            return;
-        }
 
         IConnectionHub? hub = connection.GetHub();
 
@@ -83,9 +82,8 @@ public sealed class SessionHandlers
         // SEC-33: Use ConsumeAsync for atomic retrieve-and-remove to prevent TOCTOU race.
         // Two parallel requests with the same token: only the first gets the entry,
         // the second gets null because TryRemove is atomic.
-        ISessionService sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>()!;
-        SessionEntry? session = await sessionService.ConsumeAsync(packet.SessionToken)
-                                                    .ConfigureAwait(false);
+        SessionEntry? session = await _sessionService.ConsumeAsync(packet.SessionToken)
+                                                     .ConfigureAwait(false);
         if (session == null)
         {
             await HandleFailureAsync(context, ProtocolReason.SESSION_EXPIRED).ConfigureAwait(false);
@@ -159,7 +157,7 @@ public sealed class SessionHandlers
             }
         }
 
-        await sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+        await _sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
 
         ulong newToken = connection.ID.ToUInt64();
         Snowflake newTokenSnowflake = Snowflake.NewId(newToken);
