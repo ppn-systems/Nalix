@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -416,6 +417,100 @@ public sealed partial class InstanceManager
             }
         }
     }
+
+    #region Create Instance With Injection
+
+    /// <summary>
+    /// Creates a new instance by auto-resolving all constructor parameters from the instance cache.
+    /// Selects the greedy constructor — the one with the most parameters where all are resolvable.
+    /// </summary>
+    /// <typeparam name="T">The type to create an instance of.</typeparam>
+    /// <returns>An instance with dependencies injected.</returns>
+    /// <exception cref="ObjectDisposedException"/>
+    /// <exception cref="InternalErrorException">No suitable constructor found.</exception>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T CreateInstanceWithInjection<T>() where T : class
+        => Unsafe.As<T>(this.CreateInstanceWithInjection(typeof(T)));
+
+    /// <summary>
+    /// Creates a new instance by auto-resolving all constructor parameters from the instance cache.
+    /// Selects the greedy constructor — the one with the most parameters where all are resolvable.
+    /// </summary>
+    /// <param name="type">The type to create an instance of.</param>
+    /// <returns>An instance with dependencies injected.</returns>
+    /// <exception cref="ObjectDisposedException"/>
+    /// <exception cref="ArgumentNullException"/>
+    /// <exception cref="InternalErrorException">No suitable constructor found.</exception>
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public object CreateInstanceWithInjection(
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] Type type)
+    {
+        ObjectDisposedException.ThrowIf(
+            Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0,
+            nameof(InstanceManager));
+        ArgumentNullException.ThrowIfNull(type);
+
+        // 1. Get all public constructors, sort by param count descending
+        ConstructorInfo[] ctors = type.GetConstructors(BindingFlags.Public | BindingFlags.Instance);
+
+        Array.Sort(ctors, static (a, b) =>
+            b.GetParameters().Length.CompareTo(a.GetParameters().Length));
+
+        // 2. Greedy: try from the constructor with the most params
+        for (int i = 0; i < ctors.Length; i++)
+        {
+            ConstructorInfo ctor = ctors[i];
+            ParameterInfo[] ps = ctor.GetParameters();
+
+            // Parameterless → always match
+            if (ps.Length == 0)
+            {
+                return this.CREATE_VIA_ACTIVATOR(type, []);
+            }
+
+            // Try to resolve each parameter from cache
+            object?[] args = new object?[ps.Length];
+            bool allResolved = true;
+
+            for (int j = 0; j < ps.Length; j++)
+            {
+                RuntimeTypeHandle handle = ps[j].ParameterType.TypeHandle;
+                if (_instanceCache.TryGetValue(handle, out object? resolved))
+                {
+                    args[j] = resolved;
+                }
+                else
+                {
+                    allResolved = false;
+                    break;
+                }
+            }
+
+            if (allResolved)
+            {
+                return this.CREATE_VIA_ACTIVATOR(type, args);
+            }
+        }
+
+        // 3. No match → detailed error
+        throw new InternalErrorException(
+            $"Cannot auto-inject '{type.Name}': no public constructor found " +
+            $"where all parameters are resolvable from InstanceManager cache. " +
+            $"Registered types: [{string.Join(", ", this.GetRegisteredTypeNames())}].");
+    }
+
+    /// <summary>
+    /// Returns the names of types currently in the instance cache (for diagnostic messages).
+    /// </summary>
+    private IEnumerable<string> GetRegisteredTypeNames()
+    {
+        foreach (RuntimeTypeHandle handle in _instanceCache.Keys)
+        {
+            yield return Type.GetTypeFromHandle(handle)?.Name ?? "?";
+        }
+    }
+
+    #endregion Create Instance With Injection
 
     #endregion Slow Paths & Activators
 }

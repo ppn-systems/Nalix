@@ -125,7 +125,7 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
         // Lazily start the idle-eviction timer on first datagram.
         if (_sweepTimer is null)
         {
-            _ = Interlocked.CompareExchange(ref this._sweepTimer,
+            _ = Interlocked.CompareExchange(ref _sweepTimer,
                 new Timer(this.SweepIdleConnections, null, s_sweepInterval, s_sweepInterval),
                 null);
         }
@@ -260,7 +260,7 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
 
         public ConnectionEntry(EndPoint remoteEndPoint)
         {
-            this.Connection = new PassthroughConnection(remoteEndPoint);
+            Connection = new PassthroughConnection(remoteEndPoint);
             _lastActiveMs = global::System.Environment.TickCount64;
         }
 

@@ -188,38 +188,39 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     #region APIs
 
     /// <summary>
-    /// Attempts to dequeue one packet using Weighted Round-Robin (DRR) to prevent priority starvation.
-    /// Prefers higher priorities but ensures lower priorities receive a minimum quota of processing time.
+    /// Attempts to claim exclusive processing rights over a connection's mailbox.
+    /// Uses Weighted Round-Robin (DRR) to prevent priority starvation.
+    /// The returned session grants sole ownership of the connection's packet queue;
+    /// disposing it releases the claim and re-enqueues the connection if it still
+    /// has pending packets.
     /// </summary>
-    /// <param name="connection">The packet owner connection when successful.</param>
-    /// <param name="raw">The dequeued packet lease when successful.</param>
-    /// <returns><see langword="true"/> when an item was dequeued.</returns>
+    /// <param name="session">The exclusive dispatch session when successful.</param>
+    /// <returns><see langword="true"/> when a connection was claimed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool Pull([NotNullWhen(true)] out IConnection connection, [NotNullWhen(true)] out IBufferLease raw)
+    public bool TryClaim([NotNullWhen(true)] out IDispatchSession session)
     {
-
         // Attempt 1: Weighted selection based on current budgets
-        if (this.TryPullWeighted(out connection, out raw))
+        if (this.TryClaimWeighted(out session))
         {
             return true;
         }
 
-        // Attempt 2: If we failed to pull but there are still packets, all active
+        // Attempt 2: If we failed to claim but there are still packets, all active
         // priorities might have exhausted their budgets. Reset and try one more time.
         if (this.HasPacket)
         {
             this.ResetBudgets();
-            return this.TryPullWeighted(out connection, out raw);
+            return this.TryClaimWeighted(out session);
         }
 
+        session = null!;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private bool TryPullWeighted(out IConnection connection, out IBufferLease raw)
+    private bool TryClaimWeighted([NotNullWhen(true)] out IDispatchSession session)
     {
-        connection = null!;
-        raw = null!;
+        session = null!;
 
         // SCAN: Highest to Lowest, but gated by individual priority budgets.
         for (int p = HighestPriorityIndex; p >= LowestPriorityIndex; p--)
@@ -268,35 +269,28 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
                 continue;
             }
 
-            if (!TryDequeueHighest(state, out raw, out int dequeuedFrom))
-            {
-                // This connection became empty unexpectedly. Try another.
-                p++;
-                continue;
-            }
-
-            _ = state.OnDequeued(dequeuedFrom);
-            DecrementNonNegative(ref _packetCount.Value);
-
-            if (!state.IsActive)
-            {
-                raw.Dispose();
-                raw = null!;
-                p++; // Keep trying this priority level.
-                continue;
-            }
-
-            connection = state.Connection;
-
-            if (state.TotalCount > 0)
-            {
-                this.RequeueReady(state);
-            }
-
+            // Claim succeeded — return an exclusive session.
+            // The connection is NOT re-enqueued here; that happens when the
+            // session is disposed (via Release) if packets remain.
+            session = new DispatchSession(state, this);
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Releases a previously claimed connection back to the ready queue
+    /// if it still has pending packets.
+    /// </summary>
+    /// <param name="state">The connection state to release.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private void Release(ConnectionState state)
+    {
+        if (state.TotalCount > 0)
+        {
+            this.RequeueReady(state);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
@@ -781,6 +775,73 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     #endregion Private Methods
 
     #region Nested Types
+
+    /// <summary>
+    /// Grants exclusive processing rights over a single connection's mailbox.
+    /// While the session is active, only the holder may dequeue packets from
+    /// the underlying connection, guaranteeing strict in-order delivery.
+    /// </summary>
+    [SkipLocalsInit]
+    private struct DispatchSession : IDispatchSession
+    {
+        private readonly ConnectionState _state;
+        private readonly DispatchChannel<TPacket> _owner;
+        private int _disposed;
+
+        public DispatchSession(ConnectionState state, DispatchChannel<TPacket> owner)
+        {
+            _state = state;
+            _owner = owner;
+            _disposed = 0;
+        }
+
+        /// <inheritdoc/>
+        public readonly IConnection Connection => _state.Connection;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public bool TryDequeue([NotNullWhen(true)] out IBufferLease raw)
+        {
+            if (Volatile.Read(ref _disposed) != 0)
+            {
+                raw = null!;
+                return false;
+            }
+
+            ConnectionState state = _state;
+            if (!state.IsActive || state.TotalCount <= 0)
+            {
+                raw = null!;
+                return false;
+            }
+
+            if (TryDequeueHighest(state, out raw, out int dequeuedFrom))
+            {
+                _ = state.OnDequeued(dequeuedFrom);
+                DecrementNonNegative(ref _owner._packetCount.Value);
+                return true;
+            }
+
+            raw = null!;
+            return false;
+        }
+
+        /// <summary>
+        /// Releases the exclusive claim. If the connection still has pending
+        /// packets, it is re-enqueued into the ready queue for any worker
+        /// to claim next.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
+            _owner.Release(_state);
+        }
+    }
 
     private sealed class Node(IConnection connection, ConnectionState state, Node? next)
     {

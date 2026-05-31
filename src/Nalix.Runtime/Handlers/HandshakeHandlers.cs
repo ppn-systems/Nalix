@@ -370,7 +370,10 @@ public sealed class HandshakeHandlers
         }
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
-        await InstanceManager.Instance.GetExistingInstance<ISessionService>()!.SaveSessionAsync(connection).ConfigureAwait(false);
+        if (InstanceManager.Instance.GetExistingInstance<ISessionService>() is { } sessionService)
+        {
+            await sessionService.SaveSessionAsync(connection).ConfigureAwait(false);
+        }
 
         using PacketScope<Handshake> lease = PacketFactory<Handshake>.Acquire();
 

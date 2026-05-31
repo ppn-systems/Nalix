@@ -195,9 +195,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
     {
+#pragma warning disable CA2263 // Factory is Func<object>; generic overload not applicable
         _state.Handlers.Add(new HandlerDescriptor(
             typeof(THandler),
-            () => InstanceManager.Instance.CreateInstance(typeof(THandler))));
+            () => InstanceManager.Instance.CreateInstanceWithInjection(typeof(THandler))));
+#pragma warning restore CA2263
 
         return this;
     }
@@ -531,7 +533,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
                 _ = handlers.TryAdd(type, new HandlerDescriptor(
                     type,
-                    () => InstanceManager.Instance.CreateInstance(type)));
+                    () => InstanceManager.Instance.CreateInstanceWithInjection(type)));
             }
         }
 

@@ -50,7 +50,7 @@ public sealed class PacketDispatchChannel
     private int _running;
     private int _activeLoops;
     private int _dispatchLoops;
-    private int _wakeRequested;
+    private long _idleWorkers;
     private long _deserializationErrors;
 
     private long _wakeSignals;
@@ -109,7 +109,7 @@ public sealed class PacketDispatchChannel
             linkedToken = _cts.Token;
         }
 
-        _ = Interlocked.Exchange(ref _wakeRequested, 0);
+        _ = Interlocked.Exchange(ref _idleWorkers, 0);
         _ = Interlocked.Exchange(ref _wakeSignals, 0);
         _ = Interlocked.Exchange(ref _wakeReadSignals, 0);
 
@@ -226,7 +226,7 @@ public sealed class PacketDispatchChannel
             return;
         }
 
-        if ((uint)lease.Length < PacketConstants.HeaderSize)
+        if (connection.TCP.Framing == TransportFraming.UInt16LengthPrefixed && (uint)lease.Length < PacketConstants.HeaderSize)
         {
             lease.Dispose();
             connection.IncrementErrorCount();
@@ -272,7 +272,7 @@ public sealed class PacketDispatchChannel
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"DispatchLoops        : {_dispatchLoops}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"WakeSignals          : {Interlocked.Read(ref _wakeSignals)}");
         _ = sb.AppendLine(CultureInfo.InvariantCulture, $"WakeReads            : {Interlocked.Read(ref _wakeReadSignals)}");
-        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"WakeRequested        : {Volatile.Read(ref _wakeRequested)}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"IdleWorkers          : {Volatile.Read(ref _idleWorkers)}");
         _ = sb.AppendLine();
 
         _ = sb.AppendLine("---------------------------------------------------------------------");
@@ -347,7 +347,7 @@ public sealed class PacketDispatchChannel
         writer.WriteNumber("ReadyConnections", _dispatch.ReadyConnections);
         writer.WriteNumber("WakeSignals", Interlocked.Read(ref _wakeSignals));
         writer.WriteNumber("WakeReads", Interlocked.Read(ref _wakeReadSignals));
-        writer.WriteBoolean("WakeRequested", Volatile.Read(ref _wakeRequested) == 1);
+        writer.WriteNumber("IdleWorkers", Volatile.Read(ref _idleWorkers));
         writer.WriteString("PacketRegistryType", nameof(PacketRegistry));
 
         int[] priorities = _dispatch.PendingPerPriority;
@@ -415,9 +415,11 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
     private async ValueTask DispatchWorkerLoopAsync(IWorkerContext ctx, CancellationToken ct, int index)
     {
-        // PURE ASYNC LOOP.
-        // Performance is maintained by pooled async state machines in .NET 10.
-        // Eliminates Gen 1 GC pressure by removing '.AsTask()' allocations.
+        // WORK-STEALING / ACTOR-MAILBOX LOOP.
+        // Each worker claims an entire connection's mailbox (session),
+        // processes a batch of packets, then releases the claim.
+        // This guarantees strict per-connection ordering while distributing
+        // load evenly across all workers.
 
         try
         {
@@ -426,62 +428,62 @@ public sealed class PacketDispatchChannel
             {
                 int processed = 0;
 
-#pragma warning disable CA2000
-                /*
-                 * [The Hot Loop: Draining the Channel]
-                 * We drain up to _maxDrainPerWake packets in a single pass.
-                 * Draining is asynchronous but optimized: synchronous completions 
-                 * (Abstractions) are essentially free.
-                 */
-                while (processed < _maxDrainPerWake &&
-                       _dispatch.Pull(out IConnection? connection, out IBufferLease? lease))
+                if (_dispatch.TryClaim(out IDispatchSession? session))
                 {
-                    // Dispatch directly using await. 
-                    // Zero-allocation for sync completion; Pooled for async.
-                    await this.ExecutePacketAsync(connection, lease, ct).ConfigureAwait(false);
-                    processed++;
-                }
+                    try
+                    {
+#pragma warning disable CA2000
+                        /*
+                         * [The Hot Loop: Draining a Claimed Connection]
+                         * We drain up to _maxDrainPerWake packets from a single
+                         * connection's mailbox. The session holds exclusive rights,
+                         * so no other worker can touch this connection.
+                         */
+                        while (processed < _maxDrainPerWake &&
+                               session.TryDequeue(out IBufferLease? lease))
+                        {
+                            // Dispatch directly using await.
+                            // Zero-allocation for sync completion; Pooled for async.
+                            await this.ExecutePacketAsync(session.Connection, lease, ct).ConfigureAwait(false);
+                            processed++;
+                        }
 #pragma warning restore CA2000
+                    }
+                    finally
+                    {
+                        // Release the session: re-enqueues the connection if packets remain.
+                        session.Dispose();
+                    }
+                }
 
                 if (processed > 0)
                 {
                     ctx.Advance(processed);
-                    // If we processed some but were capped by _maxDrainPerWake,
-                    // continue immediately to finish draining without waiting for signal.
+
+                    // If we hit the batch cap, immediately try to claim another session
+                    // to keep draining without sleeping.
                     if (processed >= _maxDrainPerWake)
                     {
                         continue;
                     }
                 }
 
-                // No more packets immediately available.
-                // Reset wake requested flag before waiting.
-                _ = Interlocked.Exchange(ref _wakeRequested, 0);
-
-                // Check again before waiting to avoid lost wake-up.
-                if (_dispatch.TotalPackets > 0)
-                {
-                    continue;
-                }
+                // Signal that this worker is about to go idle.
+                _ = Interlocked.Increment(ref _idleWorkers);
 
                 try
                 {
                     /*
-                     * [Wait Strategy: Coalesced Wake-up]
-                     * If the channel is empty, we enter an asynchronous wait.
-                     * We use a SemaphoreSlim to wake up just enough workers 
-                     * based on the incoming load.
+                     * [Wait Strategy: Idle Worker + Coalesced Wake-up]
+                     * We register as idle before waiting so that the next
+                     * RequestWake() will correctly Release() this worker's
+                     * semaphore slot, eliminating the starvation bug.
                      */
                     int spins = 0;
                     while (_dispatch.TotalPackets == 0 && spins < 16)
                     {
                         Thread.SpinWait(8);
                         spins++;
-                    }
-
-                    if (_dispatch.TotalPackets > 0)
-                    {
-                        continue;
                     }
 
                     // Zero-allocation asynchronous wait.
@@ -496,6 +498,12 @@ public sealed class PacketDispatchChannel
                 catch (OperationCanceledException)
                 {
                     break;
+                }
+                finally
+                {
+                    // Whether we were woken by signal or timeout, we are no longer idle.
+                    // If we got work, we stay active; if not, we loop back and re-idle.
+                    DecrementNonNegative(ref _idleWorkers);
                 }
 
                 ctx.Beat();
@@ -672,20 +680,34 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void RequestWake()
     {
-        if (Interlocked.Exchange(ref _wakeRequested, 1) != 0)
+        // Release exactly one wake signal for each currently idle worker.
+        // This eliminates the starvation bug: under sustained load, the
+        // semaphore is released every time a new packet arrives, waking
+        // workers one-by-one until none remain idle.
+        long idle = Volatile.Read(ref _idleWorkers);
+        if (idle <= 0)
         {
             return;
         }
 
-        // Calculate how many wake signals to release.
-        // Wake less frequently when the queue is not full.
-        // If there are too many packets, wake all dispatch loops. 
-        // Otherwise, wake just enough based on the number of packets.
-        long total = _dispatch.TotalPackets;
-        int count = total > _maxDrainPerWake ? _dispatchLoops : Math.Max(1, (int)(total / _maxDrainPerWake * _dispatchLoops) + 1);
+        int toWake = (int)Math.Min(idle, _dispatchLoops);
+        if (toWake <= 0)
+        {
+            return;
+        }
 
-        _ = _wakeSignal.Release(count);
+        _ = _wakeSignal.Release(toWake);
         _ = Interlocked.Increment(ref _wakeSignals);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void DecrementNonNegative(ref long value)
+    {
+        long after = Interlocked.Decrement(ref value);
+        if (after < 0)
+        {
+            _ = Interlocked.Exchange(ref value, 0);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
