@@ -12,6 +12,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Time;
@@ -75,17 +76,21 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     /// <summary>
     /// Initializes a new instance of <see cref="PassthroughConnection"/>.
     /// </summary>
+    /// <param name="packetClassifier">The opcode extractor for classifying incoming packets.</param>
     /// <param name="remoteEndPoint">The remote UDP endpoint (must be an <see cref="IPEndPoint"/>).</param>
-    public PassthroughConnection(EndPoint remoteEndPoint)
+    public PassthroughConnection(IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint)
     {
-        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        _endPointKey = remoteEndPoint ?? throw new ArgumentNullException(nameof(remoteEndPoint));
-        _createdAtMs = Clock.UnixMillisecondsNow();
-        _lastPingTime = _createdAtMs;
+        ArgumentNullException.ThrowIfNull(remoteEndPoint);
+        ArgumentNullException.ThrowIfNull(packetClassifier);
 
+        _endPointKey = remoteEndPoint;
+        _lastPingTime = _createdAtMs = Clock.UnixMillisecondsNow();
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+        this.IsIdleTimeoutEnabled = true;
+        this.PacketClassifier = packetClassifier;
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint as IPEndPoint);
-        this.IsIdleTimeoutEnabled = true;
     }
 
     #endregion Constructor
@@ -179,6 +184,9 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
         get => Volatile.Read(ref _lastPingTime);
         set => Volatile.Write(ref _lastPingTime, value);
     }
+
+    /// <inheritdoc/>
+    public IOpCodeExtractor PacketClassifier { get; }
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }

@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 
@@ -29,6 +30,10 @@ namespace Nalix.Hosting.Protocols;
 public sealed class DefaultProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
+    private static readonly IOpCodeExtractor s_opCodeExtractor = new DefaultOpCodeExtractor();
+
+    /// <inheritdoc/>
+    public override IOpCodeExtractor OpCodeExtractor => s_opCodeExtractor;
 
     /// <summary>
     /// Creates a new <see cref="DefaultProtocol"/> that routes packets into the given dispatch pipeline.
@@ -37,7 +42,10 @@ public sealed class DefaultProtocol : Protocol
     /// <exception cref="ArgumentNullException"><paramref name="dispatch"/> is <see langword="null"/>.</exception>
     public DefaultProtocol(IPacketDispatch dispatch)
     {
-        _dispatch = dispatch ?? throw new ArgumentNullException(nameof(dispatch));
+        ArgumentNullException.ThrowIfNull(dispatch);
+
+        _dispatch = dispatch;
+
         this.IsAccepting = true;
         this.KeepConnectionOpen = true;
     }

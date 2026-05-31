@@ -3,6 +3,7 @@
 
 using System;
 using System.Threading;
+using Nalix.Abstractions.Networking.Protocols;
 
 namespace Nalix.Abstractions.Networking;
 
@@ -17,6 +18,12 @@ public interface IProtocol : IDisposable, IReportable
     /// If true, the connection will remain open after message processing.
     /// </summary>
     bool KeepConnectionOpen { get; }
+
+    /// <summary>
+    /// Represents the operation code extractor used by this protocol
+    /// to classify incoming messages and determine their packet types.
+    /// </summary>
+    IOpCodeExtractor OpCodeExtractor { get; }
 
     /// <summary>
     /// Handles a protocol message at this pipeline stage.

@@ -154,7 +154,7 @@ public abstract partial class WebSocketListenerBase
                     HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
 
 #pragma warning disable CA2000
-                    WebSocketConnection connection = new(wsContext.WebSocket, realEndpoint, this.Logger);
+                    WebSocketConnection connection = new(wsContext.WebSocket, this.Protocol.OpCodeExtractor, realEndpoint, this.Logger);
 #pragma warning restore CA2000
 
                     try

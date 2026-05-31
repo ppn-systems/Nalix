@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +18,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
-using Nalix.Environment.Memory;
+using Nalix.Environment.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
@@ -27,7 +26,6 @@ using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Routing;
 using Nalix.Runtime.Middleware;
-using Nalix.Runtime.Options;
 
 namespace Nalix.Runtime.Dispatching;
 
@@ -532,24 +530,24 @@ public sealed class PacketDispatchChannel
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
+        ushort opcode;
         IPacket packet;
-        PacketHeader header;
         PacketHandler<IPacket> handler;
 
         try
         {
             // 1. Read the packet header directly from the raw span to determine routing
-            header = ReadHeader(lease, connection, this.Options.Drain);
+            opcode = connection.PacketClassifier.Extract(lease.Span);
 
             // 2. Resolve the handler using the parsed opcode
-            if (!this.Options.TryResolveHandler(header.OpCode, out handler))
+            if (!this.Options.TryResolveHandler(opcode, out handler))
             {
                 if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
                 {
                     connection.ThrottledWarn(
                         this.Logging,
                         "dispatch.execute",
-                        $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] no-handler opcode={header.OpCode}");
+                        $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] no-handler opcode={opcode}");
                 }
 
                 lease.Dispose();
@@ -560,7 +558,23 @@ public sealed class PacketDispatchChannel
             // 3. Bypass deserialization if the handler expects raw memory
             if (handler.ExpectedPacketType == typeof(MemoryPacket))
             {
-                packet = new MemoryPacket(lease.Memory, header);
+                // HACK: [Technical Debt] Initialize a "dummy" PacketHeader containing only OpCode
+                // to satisfy the MemoryPacket constructor for routing.
+                // WARNING: Other attributes such as SequenceId and Flags in this Header will have default values ​​(0).
+                // Middleware (RateLimit, Timeout, Concurrency, etc.) must be cautious when reading data from Packet.Header.
+                // TODO: In the future, if the system requires stricter QoS control, IOpCodeExtractor should be upgraded to IHeaderParser.
+
+                if (lease.Length >= PacketConstants.HeaderSize)
+                {
+                    PacketHeader header = HeaderExtensions.AsHeaderRef(lease.Span);
+
+                    header.OpCode = opcode;
+                    packet = new MemoryPacket(lease.Memory, header);
+                }
+                else
+                {
+                    packet = new MemoryPacket(lease.Memory, new PacketHeader { OpCode = opcode });
+                }
             }
             else
             {
@@ -708,25 +722,6 @@ public sealed class PacketDispatchChannel
         {
             _ = Interlocked.Exchange(ref value, 0);
         }
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static PacketHeader ReadHeader(IBufferLease lease, IConnection connection, PacketDrainOptions drainOptions)
-    {
-        if (connection.TCP.Framing == TransportFraming.VarIntLengthPrefixed)
-        {
-            if (Leb128.TryRead(lease.Span, out int mcPacketId, out int _))
-            {
-                return new PacketHeader
-                {
-                    OpCode = (ushort)(drainOptions.VirtualOpCodeOffset + mcPacketId),
-                };
-            }
-
-            return new PacketHeader { OpCode = 0xFFFF };
-        }
-
-        return MemoryMarshal.Read<PacketHeader>(lease.Span);
     }
 
     #endregion Private Methods

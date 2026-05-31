@@ -493,8 +493,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         {
             if (Volatile.Read(ref _socketDetached) == 1 && _bufferDataLength > 0)
             {
-                StolenData = new byte[_bufferDataLength];
-                Buffer.BlockCopy(_buffer!, 0, StolenData, 0, _bufferDataLength);
+                this.StolenData = new byte[_bufferDataLength];
+                Buffer.BlockCopy(_buffer!, 0, this.StolenData, 0, _bufferDataLength);
             }
             this.CANCEL_RECEIVE_ONCE();
             this.INVOKE_CLOSE_ONCE();

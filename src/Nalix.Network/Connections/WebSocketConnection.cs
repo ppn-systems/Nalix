@@ -11,6 +11,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
@@ -71,16 +72,23 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     /// </summary>
     /// <param name="webSocket">The underlying WebSocket instance.</param>
     /// <param name="remoteEndPoint">The remote endpoint of the client.</param>
+    /// <param name="packetClassifier">The opcode extractor for classifying incoming packets.</param>
     /// <param name="logger">The logger instance.</param>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="webSocket"/> is null.</exception>
-    public WebSocketConnection(WebSocket webSocket, EndPoint remoteEndPoint, ILogger? logger = null)
+    public WebSocketConnection(WebSocket webSocket, IOpCodeExtractor packetClassifier, EndPoint remoteEndPoint, ILogger? logger = null)
     {
-        _webSocket = webSocket ?? throw new ArgumentNullException(nameof(webSocket));
-        _logger = logger;
+        ArgumentNullException.ThrowIfNull(webSocket);
+        ArgumentNullException.ThrowIfNull(remoteEndPoint);
+        ArgumentNullException.ThrowIfNull(packetClassifier);
 
+        _logger = logger;
+        _webSocket = webSocket;
+
+        this.Secret = Bytes32.Zero;
+        this.PacketClassifier = packetClassifier;
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint ?? new IPEndPoint(IPAddress.Loopback, 0));
-        this.Secret = Bytes32.Zero;
+
         _argsPool = new LocalPool<ConnectionEventArgs>(s_pool);
         _contextPool = new LocalPool<PooledConnectEventContext>(s_pool);
 
@@ -105,6 +113,9 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
     /// <inheritdoc/>
     public ISnowflake ID { get; }
+
+    /// <inheritdoc/>
+    public IOpCodeExtractor PacketClassifier { get; }
 
     /// <inheritdoc/>
     public IConnection.ITransport TCP => _tcp ??= new WebSocketTransport(this);

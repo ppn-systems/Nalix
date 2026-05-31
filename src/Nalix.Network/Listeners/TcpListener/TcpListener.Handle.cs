@@ -200,7 +200,7 @@ public abstract partial class TcpListenerBase
         // This pool slot will be reused for the next accept without waiting.
         _pool.Return(context);
 
-        Connection connection = new(socket, this.Logger);
+        Connection connection = new(socket, this.Protocol.OpCodeExtractor, this.Logger);
         try
         {
             // Subscribe lifecycle events.
@@ -242,7 +242,7 @@ public abstract partial class TcpListenerBase
         this.InitializeOptions(socket);
 
         EndPoint endpoint = realEndPoint ?? socket.RemoteEndPoint!;
-        Connection connection = new(socket, endpoint, this.Logger);
+        Connection connection = new(socket, this.Protocol.OpCodeExtractor, endpoint, this.Logger);
 
         try
         {

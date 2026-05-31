@@ -3,6 +3,7 @@
 
 using System;
 using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 
@@ -43,6 +44,11 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// This value can help determine the latency of the network connection.
     /// </summary>
     long LastPingTime { get; }
+
+    /// <summary>
+    /// Gets the OP code extractor responsible for parsing incoming messages and determining their types.
+    /// </summary>
+    IOpCodeExtractor PacketClassifier { get; }
 
     /// <summary>
     /// Key identifying the endpoint associated with the connection.

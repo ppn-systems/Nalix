@@ -63,7 +63,7 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader, IValid
     public void Validate()
     {
         this.ValidateDataAnnotations();
-        
+
         if (this.MaxConnections < -1 || this.MaxConnections == 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections must be -1 (unlimited) or positive.");
