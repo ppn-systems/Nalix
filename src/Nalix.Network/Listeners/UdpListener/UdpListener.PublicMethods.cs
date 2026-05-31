@@ -350,35 +350,6 @@ public abstract partial class UdpListenerBase : IListener
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public abstract bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload);
 
-    /// <summary>
-    /// Processes an incoming network frame from a connected client.
-    /// Applies inbound pipeline transformations (e.g., decrypt, decompress),
-    /// optionally replaces the underlying buffer lease, then forwards the
-    /// processed message to the protocol layer for handling.
-    /// </summary>
-    /// <param name="sender">The source of the event triggering this frame processing.</param>
-    /// <param name="args">Connection event arguments containing the frame data and connection context.</param>
-    /// <remarks>
-    /// This method is performance-critical and is intentionally marked with <see cref="DebuggerStepThroughAttribute"/>
-    /// to avoid stepping into during debugging sessions.
-    ///
-    /// Pipeline behavior:
-    /// <list type="number">
-    /// <item>Validates and extracts the buffer lease from event args.</item>
-    /// <item>Applies inbound transformations via <c>FramePipeline.ProcessInbound</c>.</item>
-    /// <item>Replaces the lease if pipeline produces a new buffer.</item>
-    /// <item>Forwards the event to protocol handler.</item>
-    /// </list>
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="args"/> is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when lease is missing from event args.</exception>
-    /// <exception cref="CipherException">May occur during cryptographic processing.</exception>
-    /// <exception cref="InvalidCastException">May occur during frame decoding.</exception>
-    /// <exception cref="SerializationFailureException">Thrown when deserialization fails.</exception>
-    /// <exception cref="Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
-    [DebuggerStepThrough]
-    public abstract void ProcessFrame(object? sender, IConnectEventArgs args);
-
     #region IReportable Implementation
 
     /// <summary>

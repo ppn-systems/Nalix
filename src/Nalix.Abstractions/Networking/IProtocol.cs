@@ -20,6 +20,12 @@ public interface IProtocol : IDisposable, IReportable
     bool KeepConnectionOpen { get; }
 
     /// <summary>
+    /// Represents the frame processor responsible for handling the network frames
+    /// according to the protocol's specifications and processing logic.
+    /// </summary>
+    IFrameProcessor FrameProcessor { get; }
+
+    /// <summary>
     /// Represents the operation code extractor used by this protocol
     /// to classify incoming messages and determine their packet types.
     /// </summary>

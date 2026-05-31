@@ -78,35 +78,6 @@ public abstract partial class TcpListenerBase
     }
 
     /// <summary>
-    /// Processes an incoming network frame from a connected client.
-    /// Applies inbound pipeline transformations (e.g., decrypt, decompress),
-    /// optionally replaces the underlying buffer lease, then forwards the
-    /// processed message to the protocol layer for handling.
-    /// </summary>
-    /// <param name="sender">The source of the event triggering this frame processing.</param>
-    /// <param name="args">Connection event arguments containing the frame data and connection context.</param>
-    /// <remarks>
-    /// This method is performance-critical and is intentionally marked with <see cref="DebuggerStepThroughAttribute"/>
-    /// to avoid stepping into during debugging sessions.
-    ///
-    /// Pipeline behavior:
-    /// <list type="number">
-    /// <item>Validates and extracts the buffer lease from event args.</item>
-    /// <item>Applies inbound transformations via <c>FramePipeline.ProcessInbound</c>.</item>
-    /// <item>Replaces the lease if pipeline produces a new buffer.</item>
-    /// <item>Forwards the event to protocol handler.</item>
-    /// </list>
-    /// </remarks>
-    /// <exception cref="ArgumentNullException">Thrown when <paramref name="args"/> is null.</exception>
-    /// <exception cref="InvalidOperationException">Thrown when lease is missing from event args.</exception>
-    /// <exception cref="CipherException">May occur during cryptographic processing.</exception>
-    /// <exception cref="InvalidCastException">May occur during frame decoding.</exception>
-    /// <exception cref="SerializationFailureException">Thrown when deserialization fails.</exception>
-    /// <exception cref="Exception">Unhandled exceptions are logged and reported to connection error handler.</exception>
-    [DebuggerStepThrough]
-    public abstract void ProcessFrame(object? sender, IConnectEventArgs args);
-
-    /// <summary>
     /// Handles the <see cref="IConnection.OnCloseEvent"/> event raised when a client connection
     /// is closed, either by the remote peer or by the server.
     /// </summary>
@@ -140,8 +111,8 @@ public abstract partial class TcpListenerBase
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
 
         // Keep unwiring post-process as before (if you subscribed it).
-        args.Connection.OnProcessEvent -= this.ProcessFrame;
         args.Connection.OnPostProcessEvent -= this.Protocol.PostProcessMessage;
+        args.Connection.OnProcessEvent -= this.Protocol.FrameProcessor.ProcessFrame;
 
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
         {
@@ -209,13 +180,13 @@ public abstract partial class TcpListenerBase
             connection.OnCloseEvent += this.HandleConnectionClose;
             connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-            // Wire the internal listener method to handle the shared pipeline before routing.
-            connection.OnProcessEvent += this.ProcessFrame;
-
             // Keep post-process as you already have (optional).
             // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK
             // as long as it depends on the same args lifecycle rules.
             connection.OnPostProcessEvent += this.Protocol.PostProcessMessage;
+
+            // Wire the internal listener method to handle the shared pipeline before routing.
+            connection.OnProcessEvent += this.Protocol.FrameProcessor.ProcessFrame;
 
             if (_config.EnableTimeout)
             {
@@ -248,8 +219,9 @@ public abstract partial class TcpListenerBase
         {
             connection.OnCloseEvent += this.HandleConnectionClose;
             connection.OnCloseEvent += _limiter.OnConnectionClosed;
-            connection.OnProcessEvent += this.ProcessFrame;
+
             connection.OnPostProcessEvent += this.Protocol.PostProcessMessage;
+            connection.OnProcessEvent += this.Protocol.FrameProcessor.ProcessFrame;
 
             if (_config.EnableTimeout)
             {

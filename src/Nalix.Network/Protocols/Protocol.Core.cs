@@ -22,6 +22,9 @@ namespace Nalix.Network.Protocols;
 [DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
+    /// <inheritdoc/>
+    public abstract IFrameProcessor FrameProcessor { get; }
+
     /// <summary>
     /// Represents the operation code extractor used by this protocol
     /// to classify incoming messages and determine their packet types.

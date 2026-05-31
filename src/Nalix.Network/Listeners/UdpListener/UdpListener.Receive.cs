@@ -541,7 +541,7 @@ public abstract partial class UdpListenerBase
 
         try
         {
-            self.ProcessFrame(sender, e);
+            self.Protocol.FrameProcessor.ProcessFrame(sender, e);
         }
         finally
         {

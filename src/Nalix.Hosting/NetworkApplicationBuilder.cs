@@ -20,7 +20,6 @@ using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
-using Nalix.Network.Protocols;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Handlers;
@@ -331,33 +330,17 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
-                TransportFraming? framing = null;
 
                 if (registration.BindingBuilder is ProtocolBindingBuilder tcpBuilder)
                 {
                     port = tcpBuilder.Port ?? port;
-
-                    if (protocol is Protocol baseProtocol && tcpBuilder.Framing.HasValue)
-                    {
-                        framing = tcpBuilder.Framing.Value;
-                        baseProtocol.Framing = tcpBuilder.Framing.Value;
-                    }
                 }
 
                 IListener listener;
 
-                if (framing == TransportFraming.VarIntLengthPrefixed)
-                {
-                    listener = port.HasValue
-                        ? new TcpPassthroughListener(port.Value, protocol, hub)
-                        : new TcpPassthroughListener(protocol, hub);
-                }
-                else
-                {
-                    listener = port.HasValue
-                        ? new TcpServerListener(port.Value, protocol, hub)
-                        : new TcpServerListener(protocol, hub);
-                }
+                listener = port.HasValue
+                    ? new TcpServerListener(port.Value, protocol, hub)
+                    : new TcpServerListener(protocol, hub);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.TCP);
             });
@@ -372,24 +355,19 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
+                OperatingMode mode = OperatingMode.Server;
                 Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? authen = registration.Authentication;
-                TransportFraming? framing = null;
 
                 if (registration.BindingBuilder is ProtocolBindingBuilder udpBuilder)
                 {
+                    mode = udpBuilder.Mode;
                     port = udpBuilder.Port ?? port;
                     authen = udpBuilder.Authen ?? authen;
-
-                    if (protocol is Protocol baseProtocol && udpBuilder.Framing.HasValue)
-                    {
-                        framing = udpBuilder.Framing.Value;
-                        baseProtocol.Framing = udpBuilder.Framing.Value;
-                    }
                 }
 
                 IListener listener;
 
-                if (framing == TransportFraming.None)
+                if (mode == OperatingMode.Passthrough)
                 {
                     if (authen is not null)
                     {

@@ -13,7 +13,8 @@ internal sealed class ProtocolBindingBuilder : IProtocolBindingBuilder
     private readonly INetworkApplicationBuilder _parent;
 
     internal ushort? Port { get; private set; }
-    internal TransportFraming? Framing { get; private set; }
+    public OperatingMode Mode { get; private set; } = OperatingMode.Server;
+
     internal Func<IPacketDispatch, IProtocol>? Factory { get; private set; }
     internal Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool>? Authen { get; private set; }
 
@@ -25,9 +26,9 @@ internal sealed class ProtocolBindingBuilder : IProtocolBindingBuilder
         return this;
     }
 
-    public IProtocolBindingBuilder WithFraming(TransportFraming framing)
+    public IProtocolBindingBuilder WithMode(OperatingMode mode)
     {
-        this.Framing = framing;
+        this.Mode = mode;
         return this;
     }
 

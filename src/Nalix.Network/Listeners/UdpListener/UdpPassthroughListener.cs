@@ -226,7 +226,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
                 return;
             }
 
-            args.Listener?.ProcessFrame(args.Listener, args);
+            args.Listener?.Protocol.FrameProcessor.ProcessFrame(args.Listener, args);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
@@ -244,13 +244,6 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     #region ProcessFrame
 
     /// <inheritdoc />
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        ArgumentNullException.ThrowIfNull(args);
-        this.Protocol.ProcessMessage(sender, args);
-    }
-
-    /// <inheritdoc />
     public override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload) => true;
 
     #endregion ProcessFrame
@@ -264,8 +257,8 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         public PassthroughArgs(IBufferLease lease, IConnection connection, UdpPassthroughListener listener)
         {
             _lease = lease;
-            this.Connection = connection;
             this.Listener = listener;
+            this.Connection = connection;
         }
 
         public IConnection Connection { get; }

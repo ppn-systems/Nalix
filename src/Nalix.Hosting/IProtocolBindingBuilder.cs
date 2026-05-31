@@ -21,11 +21,19 @@ public interface IProtocolBindingBuilder
     IProtocolBindingBuilder OnPort(ushort port);
 
     /// <summary>
-    /// Specifies the framing strategy to use for the binding.
+    /// Configures how UDP traffic is handled by the listener.
     /// </summary>
-    /// <param name="framing">The framing strategy.</param>
-    /// <returns>The current builder instance.</returns>
-    IProtocolBindingBuilder WithFraming(TransportFraming framing);
+    /// <param name="mode">
+    /// The UDP operating mode.
+    /// <see cref="OperatingMode.Server"/> enables session management,
+    /// authentication, and protocol processing.
+    /// <see cref="OperatingMode.Passthrough"/> forwards raw datagrams
+    /// without protocol-level handling.
+    /// </param>
+    /// <returns>
+    /// The current binding builder instance.
+    /// </returns>
+    IProtocolBindingBuilder WithMode(OperatingMode mode);
 
     /// <summary>
     /// Uses a custom factory to create protocol instances instead of the default activator.

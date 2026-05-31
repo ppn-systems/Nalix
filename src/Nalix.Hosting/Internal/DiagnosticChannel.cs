@@ -71,8 +71,11 @@ internal sealed class DiagnosticChannel :
         [DiagnosticsEvents.Time.Synchronized] = LogLevel.Information,
     };
 
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     private IDisposable? _listenerSubscription;
     private IDisposable? _allListenersSubscription;
+
     private readonly LogLevel _minLevel;
 
     public DiagnosticChannel(LogLevel minLevel) => _minLevel = minLevel;
@@ -104,31 +107,29 @@ internal sealed class DiagnosticChannel :
 
     void IObserver<KeyValuePair<string, object?>>.OnNext(KeyValuePair<string, object?> value)
     {
-        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        if (logger is null)
+        if (s_logger is null)
         {
             return;
         }
 
         LogLevel level = MapLogLevel(value.Key);
 
-        if (level < _minLevel)
+        if (level < _minLevel || !s_logger.IsEnabled(level))
         {
             return;
         }
 
-        if (!logger.IsEnabled(level))
-        {
-            return;
-        }
-
-        logger.Log(level, "[DIAG] {EventName} {@Payload}", value.Key, value.Value);
+        s_logger.Log(level, "[DIAG] {EventName} {@Payload}", value.Key, value.Value);
     }
 
     void IObserver<KeyValuePair<string, object?>>.OnError(Exception error)
     {
-        ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        logger?.LogError(error, "[DIAG] DiagnosticListener error");
+        if (s_logger is null || !s_logger.IsEnabled(LogLevel.Error))
+        {
+            return;
+        }
+
+        s_logger?.LogError(error, "[DIAG] DiagnosticListener error");
     }
 
     void IObserver<KeyValuePair<string, object?>>.OnCompleted() { }

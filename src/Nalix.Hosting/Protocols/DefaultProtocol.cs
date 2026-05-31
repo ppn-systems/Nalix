@@ -30,7 +30,11 @@ namespace Nalix.Hosting.Protocols;
 public sealed class DefaultProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
+    private readonly DefaultFrameProcessor _frameProcessor;
     private static readonly IOpCodeExtractor s_opCodeExtractor = new DefaultOpCodeExtractor();
+
+    /// <inheritdoc/>
+    public override IFrameProcessor FrameProcessor => _frameProcessor;
 
     /// <inheritdoc/>
     public override IOpCodeExtractor OpCodeExtractor => s_opCodeExtractor;
@@ -45,6 +49,7 @@ public sealed class DefaultProtocol : Protocol
         ArgumentNullException.ThrowIfNull(dispatch);
 
         _dispatch = dispatch;
+        _frameProcessor = new DefaultFrameProcessor(this);
 
         this.IsAccepting = true;
         this.KeepConnectionOpen = true;
