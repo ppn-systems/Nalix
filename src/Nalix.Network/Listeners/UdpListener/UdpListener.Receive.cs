@@ -245,12 +245,28 @@ public abstract partial class UdpListenerBase
             if (args.RemoteEndPoint is IPEndPoint ip && !_rateLimiter.TryAccept(ip))
             {
                 _ = Interlocked.Increment(ref _dropRateLimited);
+
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+                {
+                    this.Logger.LogTrace(
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(HandleReceive)}] " +
+                        $"rate-limit-drop remote={ip}");
+                }
+
                 return;
             }
 
             if (args.BytesTransferred > _options.MaxUdpDatagramSize)
             {
                 _ = Interlocked.Increment(ref _dropOversize);
+
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+                {
+                    this.Logger.LogTrace(
+                        $"[NW.{nameof(UdpListenerBase)}:{nameof(HandleReceive)}] " +
+                        $"oversize-drop remote={args.RemoteEndPoint} size={args.BytesTransferred}");
+                }
+
                 return;
             }
 
@@ -300,16 +316,15 @@ public abstract partial class UdpListenerBase
         if (lease == null || remoteEndPoint == null || lease.Length < SessionTokenSize)
         {
             _ = Interlocked.Increment(ref _dropShort);
-            lease?.Dispose();
 
-#if DEBUG
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogDebug(
+                this.Logger.LogTrace(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"short-packet len={lease?.Length} from={remoteEndPoint}");
+                    $"short-packet-drop remote={remoteEndPoint} len={lease?.Length}");
             }
-#endif
+
+            lease?.Dispose();
             return;
         }
 
@@ -323,6 +338,14 @@ public abstract partial class UdpListenerBase
         if (payload.Length < PacketHeader.Size)
         {
             _ = Interlocked.Increment(ref _dropShort);
+
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"short-packet-drop remote={remoteEndPoint} payloadLen={payload.Length}");
+            }
+
             lease.Dispose();
             return;
         }
@@ -332,6 +355,14 @@ public abstract partial class UdpListenerBase
         if ((header.Flags & PacketFlags.UNRELIABLE) == 0)
         {
             _ = Interlocked.Increment(ref _dropShort);
+
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"invalid-flags-drop remote={remoteEndPoint} flags={header.Flags}");
+            }
+
             lease.Dispose();
             return;
         }
@@ -345,6 +376,14 @@ public abstract partial class UdpListenerBase
 #pragma warning restore CA2000
         {
             _ = Interlocked.Increment(ref _dropUnknown);
+
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"unknown-token-drop remote={remoteEndPoint}");
+            }
+
             lease.Dispose();
             return;
         }
@@ -355,6 +394,14 @@ public abstract partial class UdpListenerBase
             !this.IsPinnedEndpointMatch(connection.NetworkEndpoint, remoteIpEndPoint))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
+
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"endpoint-mismatch-drop expected={connection.NetworkEndpoint} actual={remoteEndPoint} connId={connection.ID}");
+            }
+
             lease.Dispose();
             return;
         }
@@ -364,6 +411,14 @@ public abstract partial class UdpListenerBase
         if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
+
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"replay-window-drop seq={header.SequenceId} connId={connection.ID}");
+            }
+
             lease.Dispose();
             return;
         }
@@ -372,6 +427,14 @@ public abstract partial class UdpListenerBase
         if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
+
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
+                    $"unauth-drop remote={remoteEndPoint} connId={connection.ID}");
+            }
+
             lease.Dispose();
             return;
         }
@@ -410,14 +473,12 @@ public abstract partial class UdpListenerBase
                 args.Dispose();
             }
 
-#if DEBUG
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
                 this.Logger.LogTrace(
                     $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"bound+protocol id={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
+                    $"accepted connId={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
             }
-#endif
         }
         finally
         {

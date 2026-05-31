@@ -19,6 +19,7 @@ using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
 using Nalix.Network.Connections;
+using Nalix.Network.Listeners.Udp;
 using Nalix.Network.Protocols;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
@@ -379,7 +380,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                     port = udpBuilder.Port ?? port;
                     authen = udpBuilder.Authen ?? authen;
 
-                    if (protocol is Network.Protocols.Protocol baseProtocol && udpBuilder.Framing.HasValue)
+                    if (protocol is Protocol baseProtocol && udpBuilder.Framing.HasValue)
                     {
                         framing = udpBuilder.Framing.Value;
                         baseProtocol.Framing = udpBuilder.Framing.Value;

@@ -6,7 +6,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 
-namespace Nalix.Hosting;
+namespace Nalix.Hosting.Protocols;
 
 /// <summary>
 /// A ready-to-use protocol that forwards all inbound packets to the dispatch pipeline.

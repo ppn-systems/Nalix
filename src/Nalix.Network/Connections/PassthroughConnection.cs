@@ -3,21 +3,23 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
+using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Network.Internal.Time;
 using Nalix.Network.Internal.Transport;
-
-[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Hosting")]
 
 #pragma warning disable IDE0060 // Parameters required by IConnection interface
 #pragma warning disable CA1822 // Interface members cannot be static
@@ -41,7 +43,7 @@ namespace Nalix.Network.Connections;
 /// implement their own session/auth layer (e.g., RakNet for Minecraft Bedrock).
 /// </para>
 /// </remarks>
-public sealed class PassthroughConnection : IConnection
+public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTrackedConnection
 {
     #region Constants
 
@@ -55,8 +57,14 @@ public sealed class PassthroughConnection : IConnection
 
     #region Fields
 
+    private readonly ILogger? _logger;
+    private readonly long _createdAtMs;
+    private readonly EndPoint _endPointKey;
+
     private SocketUdpTransport? _udpTransport;
     private IObjectMap<string, object>? _attributes;
+    private EventHandler<IConnectEventArgs>? _onCloseEvent;
+    private long _lastPingTime;
     private int _pendingPackets;
     private int _isDisposed;
 
@@ -67,12 +75,17 @@ public sealed class PassthroughConnection : IConnection
     /// <summary>
     /// Initializes a new instance of <see cref="PassthroughConnection"/>.
     /// </summary>
-    /// <param name="remoteEndPoint">The remote UDP endpoint.</param>
+    /// <param name="remoteEndPoint">The remote UDP endpoint (must be an <see cref="IPEndPoint"/>).</param>
     public PassthroughConnection(EndPoint remoteEndPoint)
     {
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+        _endPointKey = remoteEndPoint ?? throw new ArgumentNullException(nameof(remoteEndPoint));
+        _createdAtMs = Clock.UnixMillisecondsNow();
+        _lastPingTime = _createdAtMs;
+
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint as IPEndPoint);
-        this.IsIdleTimeoutEnabled = false;
+        this.IsIdleTimeoutEnabled = true;
     }
 
     #endregion Constructor
@@ -115,7 +128,7 @@ public sealed class PassthroughConnection : IConnection
     /// Attempts to reserve a pending-packet slot for this connection.
     /// Returns <c>false</c> if the connection is throttled.
     /// </summary>
-    internal bool TryAcquirePendingPacket()
+    public bool TryAcquirePendingPacket()
     {
         while (true)
         {
@@ -134,12 +147,12 @@ public sealed class PassthroughConnection : IConnection
     /// <summary>
     /// Releases a previously acquired pending-packet slot.
     /// </summary>
-    internal void ReleasePendingPacket() => _ = Interlocked.Decrement(ref _pendingPackets);
+    public void ReleasePendingPacket() => _ = Interlocked.Decrement(ref _pendingPackets);
 
     /// <summary>
     /// Gets the number of packets currently pending processing for this connection.
     /// </summary>
-    internal int PendingPackets => Volatile.Read(ref _pendingPackets);
+    public int PendingPackets => Volatile.Read(ref _pendingPackets);
 
     #endregion Pending Packet Throttle
 
@@ -158,10 +171,14 @@ public sealed class PassthroughConnection : IConnection
     public ISnowflake ID { get; }
 
     /// <inheritdoc />
-    public long UpTime => 0;
+    public long UpTime => Clock.UnixMillisecondsNow() - _createdAtMs;
 
     /// <inheritdoc />
-    public long LastPingTime => 0;
+    public long LastPingTime
+    {
+        get => Volatile.Read(ref _lastPingTime);
+        set => Volatile.Write(ref _lastPingTime, value);
+    }
 
     /// <inheritdoc />
     public INetworkEndpoint NetworkEndpoint { get; }
@@ -192,12 +209,25 @@ public sealed class PassthroughConnection : IConnection
 
     #endregion IConnection Properties
 
+    #region ITimeoutTrackedConnection
+
+    /// <inheritdoc />
+    public int TimeoutVersion { get; set; }
+
+    /// <inheritdoc />
+    public bool IsRegisteredInWheel { get; set; }
+
+    /// <inheritdoc />
+    TimingWheel.TimeoutTask? TimingWheel.ITimeoutTrackedConnection.TimeoutTask { get; set; }
+
+    #endregion ITimeoutTrackedConnection
+
     #region TCP — Not Supported
 
     /// <inheritdoc />
     public IConnection.ITransport TCP => throw new NotSupportedException("Passthrough connections have no TCP transport.");
 
-    #endregion TCP
+    #endregion TCP — Not Supported
 
     #region UDP
 
@@ -218,6 +248,12 @@ public sealed class PassthroughConnection : IConnection
 
     #region IConnection Methods
 
+    /// <summary>
+    /// Gets the original <see cref="EndPoint"/> used as the dictionary key in the listener.
+    /// Used by UdpPassthroughListener to remove the connection from its tracking map.
+    /// </summary>
+    public EndPoint EndPointKey => _endPointKey;
+
     /// <inheritdoc />
     public void IncrementErrorCount() => this.ErrorCount++;
 
@@ -232,10 +268,14 @@ public sealed class PassthroughConnection : IConnection
 
     #endregion IConnection Methods
 
-    #region Events — No-op
+    #region Events
 
     /// <inheritdoc />
-    public event EventHandler<IConnectEventArgs>? OnCloseEvent { add { } remove { } }
+    public event EventHandler<IConnectEventArgs>? OnCloseEvent
+    {
+        add => _onCloseEvent += value;
+        remove => _onCloseEvent -= value;
+    }
 
     /// <inheritdoc />
     public event EventHandler<IConnectEventArgs>? OnProcessEvent { add { } remove { } }
@@ -253,6 +293,59 @@ public sealed class PassthroughConnection : IConnection
         if (Interlocked.CompareExchange(ref _isDisposed, 1, 0) != 0)
         {
             return;
+        }
+
+        // Fire OnCloseEvent so TimingWheel and ConnectionGuard can clean up.
+        try
+        {
+            if (_onCloseEvent != null)
+            {
+                ConnectionEventArgs args = new();
+                args.Initialize(this);
+
+                try
+                {
+                    Delegate[] handlers = _onCloseEvent.GetInvocationList();
+                    foreach (EventHandler<IConnectEventArgs> handler in handlers.Cast<EventHandler<IConnectEventArgs>>())
+                    {
+                        try
+                        {
+                            handler(this, args);
+                        }
+                        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                        {
+                            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                            {
+                                _logger.LogError(ex,
+                                    $"[NW.{nameof(PassthroughConnection)}:{nameof(Dispose)}] close-handler-error");
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    args.Dispose();
+                }
+            }
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex,
+                    $"[NW.{nameof(PassthroughConnection)}:{nameof(Dispose)}] close-event-error");
+            }
+        }
+
+        // Break TimingWheel reference chain for instant GC.
+        if (this is TimingWheel.ITimeoutTrackedConnection tracked)
+        {
+            TimingWheel.TimeoutTask? task = tracked.TimeoutTask;
+            if (task is not null)
+            {
+                task.Conn = null;
+                tracked.TimeoutTask = null;
+            }
         }
 
         if (_udpTransport is not null)

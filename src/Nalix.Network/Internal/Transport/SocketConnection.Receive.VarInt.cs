@@ -41,12 +41,13 @@ internal sealed partial class SocketConnection
 
                     if (payloadLen < 0 || payloadLen > _maxVarIntPayloadSize)
                     {
-#if DEBUG
-                        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                         {
-                            _logger.LogDebug($"[NW.{nameof(SocketConnection)}] varint invalid-size={payloadLen} max={_maxVarIntPayloadSize} ep={_endpointString}");
+                            _logger.LogTrace(
+                                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_VARINT_ASYNC)}] " +
+                                $"varint-invalid-size-drop size={payloadLen} max={_maxVarIntPayloadSize} ep={_endpointString}");
                         }
-#endif
+
                         throw new InternalErrorException($"VarInt payload size {payloadLen} is invalid or exceeds the maximum allowed size of {_maxVarIntPayloadSize}.");
                     }
 
@@ -142,8 +143,8 @@ internal sealed partial class SocketConnection
         {
             if (Volatile.Read(ref _socketDetached) == 1 && _bufferDataLength > 0)
             {
-                StolenData = new byte[_bufferDataLength];
-                Buffer.BlockCopy(_buffer!, 0, StolenData, 0, _bufferDataLength);
+                this.StolenData = new byte[_bufferDataLength];
+                Buffer.BlockCopy(_buffer!, 0, this.StolenData, 0, _bufferDataLength);
             }
             this.CANCEL_RECEIVE_ONCE();
             this.INVOKE_CLOSE_ONCE();
@@ -161,23 +162,22 @@ internal sealed partial class SocketConnection
 
         if (!_sink.OnFrameReceived(_owner, lease, isReliable: true))
         {
-#if DEBUG
-            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogWarning($"[NW.{nameof(SocketConnection)}] varint frame-dropped " +
-                                  $"length={payloadLen} ep={_endpointString}");
+                _logger.LogTrace(
+                    $"[NW.{nameof(SocketConnection)}:{nameof(PROCESS_VARINT_FRAME_FROM_BUFFER)}] " +
+                    $"sink-rejected-frame-drop size={payloadLen} ep={_endpointString}");
             }
-#endif
+
             lease.Dispose();
+            return;
         }
 
-#if DEBUG
-        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogDebug(
-                $"[NW.{nameof(SocketConnection)}] varint handoff-to-sink " +
-                $"payload={payloadLen} ep={_endpointString}");
+            _logger.LogTrace(
+                $"[NW.{nameof(SocketConnection)}:{nameof(PROCESS_VARINT_FRAME_FROM_BUFFER)}] " +
+                $"accepted payload={payloadLen} ep={_endpointString}");
         }
-#endif
     }
 }

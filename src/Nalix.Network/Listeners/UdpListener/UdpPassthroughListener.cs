@@ -3,17 +3,22 @@
 
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Threading;
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Memory;
+using Nalix.Environment.Time;
+using Nalix.Framework.Injection;
 using Nalix.Network.Connections;
-using Nalix.Network.Listeners.Udp;
+using Nalix.Network.Internal.Time;
+using Nalix.Network.RateLimiting;
 
-namespace Nalix.Hosting.Internal;
+#pragma warning disable IDE0130 // Namespace does not match folder structure
+
+namespace Nalix.Network.Listeners.Udp;
 
 /// <summary>
 /// Provides a UDP listener that bypasses Nalix frame decoding, session-token
@@ -27,36 +32,33 @@ namespace Nalix.Hosting.Internal;
 /// </para>
 /// <para>
 /// Each unique remote UDP endpoint is tracked as a lightweight
-/// <see cref="PassthroughConnection"/>. These connections are not registered
-/// in the <see cref="IConnectionHub"/>.
+/// <see cref="PassthroughConnection"/>. These connections are registered
+/// into the shared <see cref="TimingWheel"/> for idle-timeout management,
+/// eliminating the need for a dedicated per-listener Timer.
 /// </para>
 /// <para>
-/// Idle connections are automatically evicted after a configurable timeout.
+/// Idle connections are automatically evicted by the <see cref="TimingWheel"/>
+/// when <see cref="IConnection.LastPingTime"/> exceeds the configured threshold.
 /// Per-connection backpressure prevents a single endpoint from monopolizing
 /// the ThreadPool.
 /// </para>
 /// <para>
 /// <b>Safety note:</b> Because Nalix session tokens, replay protection, and
 /// authentication hooks are all bypassed, the protocol layer is fully responsible
-/// for its own security model.
+/// for its own security model. An outer <see cref="ConnectionGuard"/> provides
+/// IP-level rate limiting to mitigate DDoS.
 /// </para>
 /// </remarks>
-internal sealed class UdpPassthroughListener : UdpListenerBase
+public sealed class UdpPassthroughListener : UdpListenerBase
 {
-    #region Constants
-
-    /// <summary>Default idle timeout before a virtual connection is evicted.</summary>
-    private static readonly TimeSpan s_idleTimeout = TimeSpan.FromMinutes(2);
-
-    /// <summary>How often the idle-eviction sweep runs.</summary>
-    private static readonly TimeSpan s_sweepInterval = TimeSpan.FromSeconds(30);
-
-    #endregion Constants
-
     #region Fields
 
-    private readonly ConcurrentDictionary<EndPoint, ConnectionEntry> _connections = new();
-    private Timer? _sweepTimer;
+    private readonly ConcurrentDictionary<EndPoint, PassthroughConnection> _connections = new();
+
+#pragma warning disable CA2213 // Singleton services — owned by InstanceManager, not by this listener.
+    private readonly TimingWheel? _timing;
+    private readonly ConnectionGuard? _connGuard;
+#pragma warning restore CA2213
 
     #endregion Fields
 
@@ -65,12 +67,20 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
     /// <summary>
     /// Initializes a new instance of the <see cref="UdpPassthroughListener"/> class.
     /// </summary>
-    public UdpPassthroughListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub) { }
+    public UdpPassthroughListener(IProtocol protocol, IConnectionHub hub) : base(protocol, hub)
+    {
+        _timing = InstanceManager.Instance.GetExistingInstance<TimingWheel>();
+        _connGuard = InstanceManager.Instance.GetExistingInstance<ConnectionGuard>();
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UdpPassthroughListener"/> class.
     /// </summary>
-    public UdpPassthroughListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub) { }
+    public UdpPassthroughListener(ushort port, IProtocol protocol, IConnectionHub hub) : base(port, protocol, hub)
+    {
+        _timing = InstanceManager.Instance.GetExistingInstance<TimingWheel>();
+        _connGuard = InstanceManager.Instance.GetExistingInstance<ConnectionGuard>();
+    }
 
     #endregion Constructors
 
@@ -81,12 +91,9 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
     {
         if (disposing)
         {
-            _sweepTimer?.Dispose();
-            _sweepTimer = null;
-
-            foreach (ConnectionEntry entry in _connections.Values)
+            foreach (PassthroughConnection connection in _connections.Values)
             {
-                entry.Connection.Dispose();
+                connection.Dispose();
             }
             _connections.Clear();
         }
@@ -100,7 +107,8 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
 
     /// <summary>
     /// Bypasses all Nalix datagram processing and forwards the raw payload
-    /// directly to the configured protocol.
+    /// directly to the configured protocol. Virtual connections are registered
+    /// into the shared <see cref="TimingWheel"/> for automatic idle cleanup.
     /// </summary>
     protected override void ProcessDatagram(BufferLease lease, EndPoint remoteEndPoint)
     {
@@ -116,47 +124,50 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
             return;
         }
 
-        // Normalize IPv4-mapped IPv6 to plain IPv4 for consistent keying.
         if (ipEndPoint.Address.IsIPv4MappedToIPv6)
         {
             ipEndPoint = new IPEndPoint(ipEndPoint.Address.MapToIPv4(), ipEndPoint.Port);
         }
 
-        // Lazily start the idle-eviction timer on first datagram.
-        if (_sweepTimer is null)
+        if (_connGuard is not null && !_connGuard.TryAccept(ipEndPoint))
         {
-            _ = Interlocked.CompareExchange(ref _sweepTimer,
-                new Timer(this.SweepIdleConnections, null, s_sweepInterval, s_sweepInterval),
-                null);
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(UdpPassthroughListener)}:{nameof(ProcessDatagram)}] " +
+                    $"rate-limit-drop remote={ipEndPoint}");
+            }
+
+            lease.Dispose();
+            return;
         }
 
-        ConnectionEntry entry = _connections.GetOrAdd(
+        PassthroughConnection connection = _connections.GetOrAdd(
             ipEndPoint,
-            static ep => new ConnectionEntry(ep));
-
-        // Touch last-active timestamp for idle eviction.
-        entry.Touch();
-
-        PassthroughConnection connection = entry.Connection;
+            static ep => new PassthroughConnection(ep));
 
         if (connection.IsDisposed)
         {
-            // Stale entry from a previous sweep race — replace it.
-            if (_connections.TryUpdate(ipEndPoint, new ConnectionEntry(ipEndPoint), entry))
+            if (_connections.TryUpdate(ipEndPoint, new PassthroughConnection(ipEndPoint), connection))
             {
-                entry = _connections[ipEndPoint];
-                connection = entry.Connection;
+                connection = _connections[ipEndPoint];
             }
             else
             {
-                // Another thread already replaced it; re-read.
-                connection = _connections[ipEndPoint].Connection;
+                connection = _connections[ipEndPoint];
             }
+        }
+
+        connection.LastPingTime = Clock.UnixMillisecondsNow();
+
+        if (_timing is not null && !connection.IsRegisteredInWheel)
+        {
+            connection.OnCloseEvent += this.OnConnectionClosed;
+            _timing.Register(connection);
         }
 
         connection.BindUdp(this.ListenerSocket!, ipEndPoint);
 
-        // Per-connection backpressure: drop if too many packets are pending.
         if (!connection.TryAcquirePendingPacket())
         {
             lease.Dispose();
@@ -165,8 +176,7 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
 
         lease.IsReliable = false;
 
-        // Offload to ThreadPool so the receive loop is not blocked by protocol processing.
-#pragma warning disable CA2000 // Disposal ownership transferred to ThreadPool callback
+#pragma warning disable CA2000
         PassthroughArgs args = new(lease, connection, this);
 #pragma warning restore CA2000
 
@@ -178,6 +188,22 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
     }
 
     #endregion ProcessDatagram
+
+    #region Connection Close Handler
+
+    private void OnConnectionClosed(object? sender, IConnectEventArgs args)
+    {
+        if (args?.Connection is not PassthroughConnection connection)
+        {
+            return;
+        }
+
+        connection.OnCloseEvent -= this.OnConnectionClosed;
+        _ = _connections.TryRemove(connection.EndPointKey, out _);
+        _connGuard?.OnConnectionClosed(sender, args);
+    }
+
+    #endregion Connection Close Handler
 
     #region Async Callback
 
@@ -226,58 +252,8 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
 
     #endregion ProcessFrame
 
-    #region Idle Eviction
-
-    private void SweepIdleConnections(object? state)
-    {
-        long cutoffMs = global::System.Environment.TickCount64 - (long)s_idleTimeout.TotalMilliseconds;
-
-        foreach (KeyValuePair<EndPoint, ConnectionEntry> kvp in _connections)
-        {
-            if (kvp.Value.LastActiveMs < cutoffMs)
-            {
-                if (_connections.TryRemove(kvp.Key, out ConnectionEntry? removed))
-                {
-                    removed?.Connection.Dispose();
-                }
-            }
-        }
-    }
-
-    #endregion Idle Eviction
-
-    #region ConnectionEntry
-
-    /// <summary>
-    /// Wraps a <see cref="PassthroughConnection"/> with a timestamp for idle eviction.
-    /// </summary>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.CodeAnalysis", "CA1001:TypesThatOwnDisposableFieldsShouldBeDisposable",
-        Justification = "Connection lifetime is managed by the listener's sweep timer.")]
-    private sealed class ConnectionEntry
-    {
-        public readonly PassthroughConnection Connection;
-        private long _lastActiveMs;
-
-        public ConnectionEntry(EndPoint remoteEndPoint)
-        {
-            Connection = new PassthroughConnection(remoteEndPoint);
-            _lastActiveMs = global::System.Environment.TickCount64;
-        }
-
-        /// <summary>Updates the last-active timestamp.</summary>
-        public void Touch() => Volatile.Write(ref _lastActiveMs, global::System.Environment.TickCount64);
-
-        /// <summary>Gets the last-active timestamp in milliseconds.</summary>
-        public long LastActiveMs => Volatile.Read(ref _lastActiveMs);
-    }
-
-    #endregion ConnectionEntry
-
     #region PassthroughArgs
 
-    /// <summary>
-    /// Minimal <see cref="IConnectEventArgs"/> for UDP passthrough mode.
-    /// </summary>
     private sealed class PassthroughArgs : IConnectEventArgs
     {
         private IBufferLease? _lease;
@@ -295,7 +271,6 @@ internal sealed class UdpPassthroughListener : UdpListenerBase
 
         public INetworkEndpoint? NetworkEndpoint => this.Connection.NetworkEndpoint;
 
-        /// <summary>Back-reference to the listener for async callback dispatch.</summary>
         internal UdpPassthroughListener Listener { get; }
 
         public void Dispose()
