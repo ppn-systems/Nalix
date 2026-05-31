@@ -31,7 +31,7 @@ public class SocketConnectionFramingTests
         using var conn = CreateConnection();
 
         // Arrange & Act - Should not throw
-        conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024);
+        conn.SetFraming(TransportFraming.VarIntLengthPrefixed);
     }
 
     [Fact]
@@ -39,10 +39,10 @@ public class SocketConnectionFramingTests
     {
         using var conn = CreateConnection();
 
-        conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024);
+        conn.SetFraming(TransportFraming.VarIntLengthPrefixed);
 
         // Calling it again should throw
-        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.UInt16LengthPrefixed, 1024));
+        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.UInt16LengthPrefixed));
         Assert.Contains("Framing can only be configured once before receive", ex.Message);
     }
 
@@ -55,7 +55,7 @@ public class SocketConnectionFramingTests
         conn.BeginReceive(CancellationToken.None);
 
         // Setting framing after started should throw
-        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.VarIntLengthPrefixed, 1024));
+        var ex = Assert.Throws<InvalidOperationException>(() => conn.SetFraming(TransportFraming.VarIntLengthPrefixed));
         Assert.Contains("Framing can only be configured once before receive", ex.Message);
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers.Binary;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
@@ -8,6 +9,7 @@ using FluentAssertions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Network.Connections;
 using Nalix.Runtime.Options;
 using Nalix.Runtime.Throttling;
@@ -18,6 +20,7 @@ namespace Nalix.Runtime.Tests;
 public sealed class PolicyRateLimiterTests : IDisposable
 {
     private readonly PolicyRateLimiter _limiter;
+    private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
     private static int s_opCodeCounter = 0x5000;
     private static int s_ipCounter = 1;
 
@@ -47,7 +50,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
     public async Task Evaluate_SeparatePolicies_ShouldUseSeparateBuckets()
     {
         using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
-        using var connection = new Connection(scope.ServerSocket);
+        using var connection = new Connection(scope.ServerSocket, s_testOpCodeExtractor);
 
         ushort opA = NextOpCode();
         ushort opB = NextOpCode();
@@ -69,7 +72,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
     public async Task Evaluate_SameIPDifferentOpCode_ShouldUseSeparateBuckets()
     {
         using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
-        using var connection = new Connection(scope.ServerSocket);
+        using var connection = new Connection(scope.ServerSocket, s_testOpCodeExtractor);
 
         ushort op1 = NextOpCode();
         ushort op2 = NextOpCode();
@@ -89,7 +92,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
     public async Task Evaluate_InvalidBurst_ShouldDenyRequest()
     {
         using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
-        using var connection = new Connection(scope.ServerSocket);
+        using var connection = new Connection(scope.ServerSocket, s_testOpCodeExtractor);
 
         ushort op = NextOpCode();
         var attr = new PacketRateLimitAttribute(10, 0); 
@@ -104,7 +107,7 @@ public sealed class PolicyRateLimiterTests : IDisposable
     public async Task Evaluate_NoRateLimitAttribute_ShouldAllowRequest()
     {
         using var scope = await ConnectedSocketScope.CreateAsync(NextIp());
-        using var connection = new Connection(scope.ServerSocket);
+        using var connection = new Connection(scope.ServerSocket, s_testOpCodeExtractor);
 
         ushort op = NextOpCode();
         var context = new TestPacketContext(connection, op, null);
@@ -153,6 +156,12 @@ public sealed class PolicyRateLimiterTests : IDisposable
         public PacketHeader Header { get; set; } = new PacketHeader { OpCode = opCode };
         public byte[] Serialize() => [];
         public int Serialize(Span<byte> buffer) => 0;
+    }
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
     }
 
     private sealed class ConnectedSocketScope : IDisposable

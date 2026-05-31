@@ -139,7 +139,7 @@ public sealed partial class Connection :
     public bool IsUdpCreated => this.UdpTransport is not null;
 
     /// <inheritdoc/>
-    public bool IsIdleTimeoutEnabled { get; set; } = true;
+    public bool ExcludeFromIdleTimeout { get; set; } = true;
 
     /// <inheritdoc />
     public ISnowflake ID { get; }

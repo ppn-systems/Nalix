@@ -113,6 +113,20 @@ public class IntegrationTestProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
 
+    private sealed class NoOpFrameProcessor : IFrameProcessor
+    {
+        public void ProcessFrame(object? sender, IConnectEventArgs args) { }
+    }
+
+    private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
+    {
+        public ushort Extract(ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
+
+    public override IFrameProcessor FrameProcessor { get; } = new NoOpFrameProcessor();
+    public override Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor OpCodeExtractor { get; } = new StubOpCodeExtractor();
+
     public IntegrationTestProtocol(IPacketDispatch dispatch)
     {
         _dispatch = dispatch;

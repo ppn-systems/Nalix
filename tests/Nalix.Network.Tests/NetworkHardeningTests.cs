@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Network.Connections;
 using Nalix.Network.RateLimiting;
 using Xunit;
@@ -14,11 +15,19 @@ namespace Nalix.Network.Tests;
 [SuppressMessage("Design", "CA1031:Do not catch general exception types", Justification = "Best-effort socket cleanup in test helper mirrors existing network tests.")]
 public sealed class NetworkHardeningTests
 {
+    private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(System.ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
+
     [Fact]
     public async Task ConnectionDispose_DirectCall_RaisesCloseEventOnce()
     {
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        Connection connection = new(scope.ServerSocket);
+        Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
         Int32 closeCount = 0;
 
         connection.OnCloseEvent += (_, _) => closeCount++;

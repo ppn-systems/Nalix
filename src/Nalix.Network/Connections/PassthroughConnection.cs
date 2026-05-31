@@ -91,7 +91,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
         _endPointKey = remoteEndPoint;
         _lastPingTime = _createdAtMs = Clock.UnixMillisecondsNow();
 
-        this.IsIdleTimeoutEnabled = true;
+        this.ExcludeFromIdleTimeout = true;
         this.PacketClassifier = packetClassifier;
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint as IPEndPoint);
@@ -172,7 +172,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     public bool IsUdpCreated => _udpTransport is not null;
 
     /// <inheritdoc />
-    public bool IsIdleTimeoutEnabled { get; set; }
+    public bool ExcludeFromIdleTimeout { get; set; }
 
     /// <inheritdoc />
     public ISnowflake ID { get; }

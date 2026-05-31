@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
@@ -46,6 +47,23 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     long LastPingTime { get; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether idle timeout enforcement is applied to this connection.
+    /// </summary>
+    /// <remarks>
+    /// Connections may initially be registered with the idle timeout scheduler regardless of this value.
+    /// When set to <see langword="false"/>, the connection is permanently excluded from automatic
+    /// idle timeout management.
+    ///
+    /// Once disabled, idle timeout enforcement cannot be re-enabled for the same connection.
+    /// The connection lifetime must then be managed externally.
+    ///
+    /// This property should only be disabled for specialized scenarios such as raw passthrough
+    /// transports.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    bool ExcludeFromIdleTimeout { get; set; }
+
+    /// <summary>
     /// Gets the OP code extractor responsible for parsing incoming messages and determining their types.
     /// </summary>
     IOpCodeExtractor PacketClassifier { get; }
@@ -75,12 +93,6 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     /// Gets or sets the encryption mode used.
     /// </summary>
     CipherSuiteType Algorithm { get; set; }
-
-    /// <summary>
-    /// Indicates the active idle timeout (TimingWheel) for this connection.
-    /// Set to false to ignore inactive timeouts when performing raw piping.
-    /// </summary>
-    bool IsIdleTimeoutEnabled { get; set; }
 
     /// <summary>
     /// Occurs when the connection is closed.

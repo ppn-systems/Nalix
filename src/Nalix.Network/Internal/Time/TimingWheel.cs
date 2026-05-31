@@ -658,7 +658,7 @@ internal sealed class TimingWheel : IActivatable
                         }
 
                         // ── Idle-time check ───────────────────────────────────────────────
-                        if (!connection.IsIdleTimeoutEnabled)
+                        if (!connection.ExcludeFromIdleTimeout)
                         {
                             connection.IsRegisteredInWheel = false;
                             connection.TimeoutVersion++;

@@ -18,11 +18,19 @@ namespace Nalix.Network.Tests;
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
 public sealed class PacketContextBridgeDispatchTests
 {
+    private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(System.ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
+
     [Fact]
     public async Task ExecuteResolvedHandlerAsync_BridgesTypedInterfaceContext_WhenDispatcherUsesIPacket()
     {
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         InterfaceContextController.Reset();
         PacketDispatchOptions<IPacket> options = new();
@@ -43,7 +51,7 @@ public sealed class PacketContextBridgeDispatchTests
     public async Task ExecuteResolvedHandlerAsync_BridgesTypedConcreteContext_WhenDispatcherUsesIPacket()
     {
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         ConcreteContextController controller = new();
         PacketDispatchOptions<IPacket> options = new();

@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
@@ -18,13 +19,21 @@ namespace Nalix.Network.Tests;
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
 public sealed class ConnectionHubSessionTests
 {
+    private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(System.ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
+
     [Fact]
     public async Task CreateSession_CapturesConnectionState()
     {
         ISessionFactory factory = new SessionFactory();
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         connection.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection.Algorithm = Abstractions.Security.CipherSuiteType.Chacha20Poly1305;
@@ -49,7 +58,7 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
-        using Connection connection1 = new(scope1.ServerSocket);
+        using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
 
         connection1.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection1.Attributes["test"] = "value";
@@ -63,7 +72,7 @@ public sealed class ConnectionHubSessionTests
 
         // Resume should fail while connection1 is still in Hub
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
-        using Connection connection2 = new(scope2.ServerSocket);
+        using Connection connection2 = new(scope2.ServerSocket, s_testOpCodeExtractor);
 
         // Simulator of TryResumeSession logic:
         // We use ConsumeAsync but since we want to check multiple times, we'll store it back or use the reference
@@ -99,7 +108,7 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
-        using Connection connection1 = new(scope1.ServerSocket);
+        using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
 
         connection1.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
         hub.RegisterConnection(connection1);
@@ -122,7 +131,7 @@ public sealed class ConnectionHubSessionTests
 
         // 5. Resume session with new connection
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
-        using Connection connection2 = new(scope2.ServerSocket);
+        using Connection connection2 = new(scope2.ServerSocket, s_testOpCodeExtractor);
         SessionEntry? s = await service.ConsumeAsync(sessionInfo.Snapshot.SessionToken);
         _ = s.Should().NotBeNull();
 
@@ -141,7 +150,7 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         hub.RegisterConnection(connection);
         ISessionFactory factory = new SessionFactory();
@@ -169,7 +178,7 @@ public sealed class ConnectionHubSessionTests
         using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, service);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         connection.Secret = new Abstractions.Primitives.Bytes32(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
         connection.Attributes["marker"] = "old";

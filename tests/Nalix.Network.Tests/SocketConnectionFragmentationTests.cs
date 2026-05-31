@@ -7,8 +7,10 @@ using System.Net.Sockets;
 using System.Reflection;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Environment.Fragments;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal.Transport;
 using Xunit;
 using TransportAsyncCallback = Nalix.Network.Internal.Transport.AsyncCallback;
 
@@ -18,15 +20,33 @@ namespace Nalix.Network.Tests;
 [Collection(AsyncCallbackSerialGroup.Name)]
 public sealed class SocketConnectionFragmentationTests
 {
+    private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
+
+    private static readonly FieldInfo s_socketConnectionField =
+        typeof(SocketTcpTransport).GetField("_socket", BindingFlags.Instance | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException("SocketTcpTransport._socket field was not found.");
+
     private static readonly FieldInfo s_fragmentAssemblerField =
         typeof(Nalix.Network.Internal.Transport.SocketConnection).GetField("_fragmentAssembler", BindingFlags.Instance | BindingFlags.NonPublic)
         ?? throw new InvalidOperationException("SocketConnection._fragmentAssembler field was not found.");
+
+    private static object? GetFragmentAssembler(Connection connection)
+    {
+        object? socketConnection = s_socketConnectionField.GetValue(connection.TCP);
+        return socketConnection is null ? null : s_fragmentAssemblerField.GetValue(socketConnection);
+    }
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(System.ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
 
     [Fact]
     public async Task BeginReceive_NonFragmentedFrame_DoesNotCreateFragmentAssembler()
     {
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
         TransportAsyncCallback.ResetStatistics();
 
         TaskCompletionSource<int> processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -42,20 +62,20 @@ public sealed class SocketConnectionFragmentationTests
             }
         };
 
-        connection.Socket.BeginReceive();
+        connection.TCP.BeginReceive();
         await scope.ClientSocket.SendAsync(CreateFrame([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]));
 
         int receivedLength = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         receivedLength.Should().Be(10);
-        s_fragmentAssemblerField.GetValue(connection.Socket).Should().BeNull();
+        GetFragmentAssembler(connection).Should().BeNull();
     }
 
     [Fact]
     public async Task BeginReceive_FragmentedFrame_CreatesFragmentAssemblerOnDemand()
     {
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
         TransportAsyncCallback.ResetStatistics();
 
         TaskCompletionSource<byte[]> processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -71,13 +91,13 @@ public sealed class SocketConnectionFragmentationTests
             }
         };
 
-        connection.Socket.BeginReceive();
+        connection.TCP.BeginReceive();
         await scope.ClientSocket.SendAsync(CreateFrame(CreateFragmentPayload([9, 8, 7])));
 
         byte[] receivedPayload = await processObserved.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         receivedPayload.Should().Equal([9, 8, 7]);
-        s_fragmentAssemblerField.GetValue(connection.Socket).Should().NotBeNull();
+        GetFragmentAssembler(connection).Should().NotBeNull();
     }
 
     private static byte[] CreateFrame(ReadOnlySpan<byte> payload)

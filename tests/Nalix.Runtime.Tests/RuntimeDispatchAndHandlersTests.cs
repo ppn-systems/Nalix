@@ -7,6 +7,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
@@ -132,12 +133,12 @@ public sealed class RuntimeDispatchAndHandlersTests
 #endif
 
     [Fact]
-    public async Task ConnectionExtensionsSendAsync_WhenConnectionIsNull_ThrowsArgumentNullException()
+    public async Task ConnectionExtensionsSendAsync_WhenSenderIsNull_ThrowsArgumentNullException()
     {
-        IConnection? connection = null;
+        IPacketSender? sender = null;
 
         await Assert.ThrowsAsync<ArgumentNullException>(async () =>
-            await connection!.SendAsync(
+            await sender!.SendAsync(
                 controlType: ControlType.PING,
                 reason: ProtocolReason.NONE,
                 action: ProtocolAdvice.NONE,
@@ -153,7 +154,8 @@ public sealed class RuntimeDispatchAndHandlersTests
     [Fact]
     public async Task SessionHandlersHandleAsync_WhenContextIsNull_ThrowsArgumentNullException()
     {
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await SessionHandlers.HandleAsync(null!).AsTask());
+        var handler = new SessionHandlers(new FakeSessionService());
+        await Assert.ThrowsAsync<ArgumentNullException>(async () => await handler.HandleAsync(null!).AsTask());
     }
 
     [Fact]
@@ -173,6 +175,17 @@ public sealed class RuntimeDispatchAndHandlersTests
         public void Populate(MethodInfo method, PacketMetadataBuilder builder)
         {
         }
+    }
+
+    private sealed class FakeSessionService : ISessionService
+    {
+        public System.Threading.Tasks.ValueTask SaveSessionAsync(IConnection connection, System.Threading.CancellationToken cancellationToken = default)
+            => System.Threading.Tasks.ValueTask.CompletedTask;
+
+        public System.Threading.Tasks.ValueTask<SessionEntry?> ConsumeAsync(ulong sessionToken, System.Threading.CancellationToken cancellationToken = default)
+            => new((SessionEntry?)null);
+
+        public void Dispose() { }
     }
 
     private sealed class TestPacket : IPacket
