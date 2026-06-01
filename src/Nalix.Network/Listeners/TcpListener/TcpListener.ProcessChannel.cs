@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -130,9 +130,9 @@ public abstract partial class TcpListenerBase
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
         if (processChannel is null)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                this.Logger.LogWarning("[NW.TcpListenerBase:DISPATCH_CONNECTION] process-channel-unavailable remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+                _logger.LogWarning("[NW.TcpListenerBase:DISPATCH_CONNECTION] process-channel-unavailable remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
             }
 
             ArgumentNullException.ThrowIfNull(connection);
@@ -142,9 +142,9 @@ public abstract partial class TcpListenerBase
 
         if (processChannel.Writer.TryWrite(connection))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace("[NW.TcpListenerBase:DISPATCH_CONNECTION] queued remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+                _logger.LogTrace("[NW.TcpListenerBase:DISPATCH_CONNECTION] queued remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
             }
 
             return;
@@ -158,9 +158,9 @@ public abstract partial class TcpListenerBase
         //   optimize ProcessConnection for faster execution.
         this.Metrics.RECORD_REJECTED();
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
         {
-            this.Logger.LogWarning("[NW.TcpListenerBase:DISPATCH_CONNECTION] channel-full remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+            _logger.LogWarning("[NW.TcpListenerBase:DISPATCH_CONNECTION] channel-full remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
         }
 
         ArgumentNullException.ThrowIfNull(connection);
@@ -173,9 +173,9 @@ public abstract partial class TcpListenerBase
 
     private async ValueTask PROCESS_CHANNEL_LOOP_ASYNC(IWorkerContext ctx, CancellationToken cancellationToken)
     {
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            this.Logger.LogTrace("[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] worker-started port={Port}", _port);
+            _logger.LogTrace("[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] worker-started port={Port}", _port);
         }
 
         System.Threading.Channels.Channel<IConnection>? processChannel = _processChannel;
@@ -218,9 +218,9 @@ public abstract partial class TcpListenerBase
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, "[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] unhandled-error port={Port}", _port);
+                _logger.LogError(ex, "[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] unhandled-error port={Port}", _port);
             }
         }
         finally
@@ -236,9 +236,9 @@ public abstract partial class TcpListenerBase
                 this.INVOKE_PROCESS(connection);
             }
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace("[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] worker-exited port={Port}", _port);
+                _logger.LogTrace("[NW.TcpListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] worker-exited port={Port}", _port);
             }
         }
     }
@@ -264,9 +264,9 @@ public abstract partial class TcpListenerBase
         {
             this.Metrics.RECORD_ERROR();
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, "[NW.TcpListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+                _logger.LogError(ex, "[NW.TcpListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
             }
 
             ArgumentNullException.ThrowIfNull(connection);

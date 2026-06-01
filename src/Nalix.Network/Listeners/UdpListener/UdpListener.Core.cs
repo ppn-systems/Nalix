@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -11,7 +11,6 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Network.Options;
 using Nalix.Network.RateLimiting;
@@ -72,13 +71,10 @@ public abstract partial class UdpListenerBase
     #region Properties
 
     /// <inheritdoc/>
-    protected ILogger? Logger { get; init; }
+    protected ILogger? Logger { get; }
 
     /// <inheritdoc/>
-    protected IProtocol Protocol { get; init; }
-
-    /// <inheritdoc/>
-    protected SequenceOptions SequenceOptions { get; init; }
+    protected IProtocol Protocol { get; }
 
     /// <summary>
     /// Gets the underlying listener socket used for UDP datagram operations.
@@ -120,9 +116,9 @@ public abstract partial class UdpListenerBase
         this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _options = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
-        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
         _datagramGuardOptions = ConfigurationManager.Instance.Get<DatagramGuardOptions>();
         _connectionGuardOptions = ConfigurationManager.Instance.Get<ConnectionGuardOptions>();
+
         _options.Validate();
         _datagramGuardOptions.Validate();
         _connectionGuardOptions.Validate();

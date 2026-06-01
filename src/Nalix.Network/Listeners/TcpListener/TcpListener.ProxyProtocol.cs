@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -198,9 +198,9 @@ public abstract partial class TcpListenerBase
                     this.DetachProxyContext(state);
                 }
 
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+                if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
-                    this.Logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] invalid-proxy-header-drop remote={StateSocketRemoteEndPoint}", state.Socket?.RemoteEndPoint);
+                    _logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] invalid-proxy-header-drop remote={StateSocketRemoteEndPoint}", state.Socket?.RemoteEndPoint);
                 }
 
                 this.ReleaseProxyContext(state, args, success: false);
@@ -237,9 +237,9 @@ public abstract partial class TcpListenerBase
 
         if (!_limiter.TryAccept(effectiveIp))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] proxy-rate-limit-drop remote={EffectiveIp}", effectiveIp);
+                _logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] proxy-rate-limit-drop remote={EffectiveIp}", effectiveIp);
             }
 
             this.ReleaseProxyContext(state, args, success: false);
@@ -256,9 +256,9 @@ public abstract partial class TcpListenerBase
         }
         catch (ObjectDisposedException)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] socket-disposed-during-init");
+                _logger.LogTrace("[NW.TcpListenerBase:OnProxyReadCompleted] socket-disposed-during-init");
             }
         }
         catch (SocketException ex) when (
@@ -267,16 +267,16 @@ public abstract partial class TcpListenerBase
             SocketError.ConnectionAborted or
             SocketError.OperationAborted)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(ex, "[NW.TcpListenerBase:OnProxyReadCompleted] socket-error-during-init: {SocketError}", ex.SocketErrorCode);
+                _logger.LogTrace(ex, "[NW.TcpListenerBase:OnProxyReadCompleted] socket-error-during-init: {SocketError}", ex.SocketErrorCode);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, "[NW.TcpListenerBase:OnProxyReadCompleted] init-error");
+                _logger.LogError(ex, "[NW.TcpListenerBase:OnProxyReadCompleted] init-error");
             }
         }
 
