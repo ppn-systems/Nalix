@@ -138,7 +138,6 @@ public sealed class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
-
     private static readonly ISessionService? s_sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>();
 
     #endregion Fields

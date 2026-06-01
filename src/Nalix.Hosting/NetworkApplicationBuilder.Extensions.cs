@@ -2,8 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Abstractions.Security;
+using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
 using Nalix.Runtime.Handlers;
+using Nalix.Runtime.Security;
 
 namespace Nalix.Hosting;
 
@@ -29,6 +32,13 @@ public static class NetworkApplicationBuilderExtensions
     public static INetworkApplicationBuilder UseSecureConnections(this INetworkApplicationBuilder builder, string? certificatePath = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
+
+        if (!InstanceManager.Instance.HasInstance<ICertificateStore>())
+        {
+            InstanceManager.Instance.Register<ICertificateStore>(
+                InstanceManager.Instance.GetOrCreateInstance<FileCertificateStore>()
+            );
+        }
 
         _ = builder.AddHandler<HandshakeHandlers>();
         _ = builder.AddHandler<KeyExchangeHandlers>();
