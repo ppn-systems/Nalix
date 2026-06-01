@@ -70,10 +70,11 @@ public sealed partial class BufferOptions : ConfigurationLoader, IValidatableCon
 
     /// <summary>
     /// Maximum depth for the per-thread buffer cache.
+    /// WARNING: Do not enable (keep at 0) in highly asynchronous environments (async/await) 
+    /// using the ThreadPool, as it will lead to memory hoarding on threads and inaccurate metrics.
     /// </summary>
-    [IniComment("Max buffers held in thread-local cache for O(1) access (1–64)")]
-    [Range(1, 64, ErrorMessage = "ThreadCacheDepth must be between 1 and 64.")]
-    public int ThreadCacheDepth { get; set; } = 8;
+    [IniComment("Max buffers held in thread-local cache. Keep at 0 (disabled) for async/await ThreadPool workloads to prevent memory hoarding.")]
+    public int ThreadCacheDepth { get; set; } = 0;
 
     /// <summary>
     /// Maximum size of the internal suitable pool size cache.

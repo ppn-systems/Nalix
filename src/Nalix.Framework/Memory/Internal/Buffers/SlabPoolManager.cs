@@ -56,7 +56,8 @@ internal sealed class SlabPoolManager : IDisposable
     /// </summary>
     /// <param name="segmentSize">The segment size in bytes.</param>
     /// <param name="initialCapacity">Number of segments to preallocate.</param>
-    public void CreateBucket(int segmentSize, int initialCapacity)
+    /// <param name="cacheDepth">The thread-local cache depth.</param>
+    public void CreateBucket(int segmentSize, int initialCapacity, int cacheDepth = 8)
     {
         lock (_lock)
         {
@@ -65,7 +66,7 @@ internal sealed class SlabPoolManager : IDisposable
                 return;
             }
 
-            SlabBucket bucket = new(segmentSize, initialCapacity);
+            SlabBucket bucket = new(segmentSize, initialCapacity, cacheDepth);
             bucket.ResizeOccurred += (b, d) => this.ResizeOccurred?.Invoke(b, d);
             _buckets[segmentSize] = bucket;
             this.RebuildSortedKeys();

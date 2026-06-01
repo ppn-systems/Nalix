@@ -61,3 +61,4 @@ scratch/
 compare_test/
 build_errors*.txt
 /LoadTesterBin
+*.trx
