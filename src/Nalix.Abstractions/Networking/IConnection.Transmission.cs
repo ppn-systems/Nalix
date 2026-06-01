@@ -4,19 +4,19 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Nalix.Abstractions.Networking.Packets;
 
 namespace Nalix.Abstractions.Networking;
 
 public partial interface IConnection
 {
     /// <summary>
-    /// Gets the Transmission CONTROL number (TCP) transmission interface
+    /// Gets the Transmission CONTROL number (TCP) transmission interface.
+    /// For socket-based connections, cast to <see cref="ISocketTransport"/> for direct socket access.
     /// </summary>
     ITransport TCP { get; }
 
     /// <summary>
-    /// Gets the USER Datagram number (UDP) transmission interface
+    /// Gets the USER Datagram number (UDP) transmission interface.
     /// </summary>
     ITransport UDP { get; }
 
@@ -26,27 +26,15 @@ public partial interface IConnection
     interface ITransport : ITransportSequencer
     {
         /// <summary>
-        /// Sends a packet synchronously over the connection.
+        /// Gets the framing strategy used by this protocol.
         /// </summary>
-        /// <param name="packet">The packet to send.</param>
-        void Send(IPacket packet);
+        TransportFraming Framing { get; }
 
         /// <summary>
         /// Sends a message synchronously over the connection.
         /// </summary>
         /// <param name="message">The message to send.</param>
         void Send(ReadOnlySpan<byte> message);
-
-        /// <summary>
-        /// Sends a message asynchronously over the connection.
-        /// </summary>
-        /// <param name="packet">The packet to send.</param>
-        /// <param name="cancellationToken">A token to cancel the sending operation.</param>
-        /// <returns>A task that represents the asynchronous sending operation.</returns>
-        /// <remarks>
-        /// If the connection has been authenticated, the data will be encrypted before sending.
-        /// </remarks>
-        ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Sends a message asynchronously over the connection.
@@ -69,6 +57,43 @@ public partial interface IConnection
         /// Call this method to initiate listening for incoming data on the connection.
         /// </remarks>
         void BeginReceive(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Sets the framing mode for this transport.
+        /// Must be called before <see cref="BeginReceive"/> is invoked.
+        /// </summary>
+        /// <param name="framing">The framing mode to use.</param>
+        void UseFraming(TransportFraming framing);
+    }
+
+    /// <summary>
+    /// Extends <see cref="ITransport"/> with direct access to the underlying OS socket.
+    /// Only applicable to socket-based transports (e.g., TCP).
+    /// </summary>
+    interface ISocketTransport : ITransport
+    {
+        /// <summary>
+        /// Gets the underlying <see cref="System.Net.Sockets.Socket"/> used by this transport.
+        /// </summary>
+        System.Net.Sockets.Socket Socket { get; }
+
+        /// <summary>
+        /// Gets the task representing the receive loop.
+        /// Used by unwrapped connections to await loop shutdown and recover stolen packets.
+        /// </summary>
+        Task? ReceiveLoopTask { get; }
+
+        /// <summary>
+        /// Contains bytes that were read from the kernel but not processed by the framework
+        /// due to <see cref="Unwrap"/> or cancellation.
+        /// </summary>
+        byte[]? StolenData { get; }
+
+        /// <summary>
+        /// Detaches the underlying OS socket from the transport engine.
+        /// This allows the caller to take ownership of the socket without it being disposed by the connection.
+        /// </summary>
+        /// <returns>The detached <see cref="System.Net.Sockets.Socket"/>.</returns>
+        System.Net.Sockets.Socket Unwrap();
     }
 }
-

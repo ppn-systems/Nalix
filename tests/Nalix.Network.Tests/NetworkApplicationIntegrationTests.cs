@@ -3,6 +3,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Hosting;
+using Nalix.Hosting.Protocols;
 using Nalix.Network.Protocols;
 using Nalix.Runtime.Dispatching;
 using Nalix.SDK.Options;
@@ -44,24 +45,17 @@ public sealed class NetworkApplicationIntegrationTests
         IntegrationTestController.ReceivedCount = 0;
         IntegrationTestProtocol.ProcessedCount = 0;
 
-        // 0. Setup Handshake Certificate (using the sample key provided in shared)
+        // 0. Resolve certificate path (using the sample key provided in shared)
         string certPath = Path.GetFullPath(@"..\..\..\shared\certificate.private");
         if (!File.Exists(certPath))
         {
-            // Fallback for different build environments
             certPath = Path.GetFullPath(@"shared\certificate.private");
         }
 
-        if (File.Exists(certPath))
+        if (!File.Exists(certPath))
         {
-            Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(certPath);
-        }
-        else
-        {
-            // Last resort: create dummy if shared is not found (should not happen based on user info)
             certPath = Path.GetFullPath("test_certificate.private");
             File.WriteAllText(certPath, new string('a', 64));
-            Nalix.Runtime.Handlers.HandshakeHandlers.SetCertificatePath(certPath);
         }
 
         // Find a random available port
@@ -75,6 +69,7 @@ public sealed class NetworkApplicationIntegrationTests
 
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigureLogging(logger);
+        builder.UseSecureConnections(certPath);
 
         // Listen on loopback with our test protocol
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
@@ -149,12 +144,24 @@ public sealed class NetworkApplicationIntegrationTests
 public sealed class IntegrationTestProtocol : Protocol
 {
     private readonly IPacketDispatch _dispatch;
+    private readonly DefaultFrameProcessor _frameProcessor;
 
     public static int ProcessedCount;
+
+    private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
+    {
+        public ushort Extract(ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
+
+    public override IFrameProcessor FrameProcessor => _frameProcessor;
+    public override Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor OpCodeExtractor { get; } = new StubOpCodeExtractor();
 
     public IntegrationTestProtocol(IPacketDispatch dispatch)
     {
         _dispatch = dispatch;
+        _frameProcessor = new DefaultFrameProcessor(this);
+        this.KeepConnectionOpen = true;
         this.SetConnectionAcceptance(true);
     }
 

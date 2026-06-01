@@ -12,7 +12,6 @@ using Nalix.Abstractions.Concurrency;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Network.Internal.Time;
 using Nalix.Network.Options;
@@ -34,6 +33,8 @@ public abstract partial class WebSocketListenerBase : IListener
 
     private readonly ushort _port;
     private readonly string _path;
+    private readonly ILogger? _logger;
+    private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
     private readonly NetworkWebSocketOptions _config;
@@ -50,19 +51,6 @@ public abstract partial class WebSocketListenerBase : IListener
     private readonly ConnectionGuard _limiter;
 
     #endregion Fields
-
-    #region Protected APIs
-
-    /// <inheritdoc/>
-    protected ILogger? Logger { get; init; }
-
-    /// <inheritdoc/>
-    protected IProtocol Protocol { get; init; }
-
-    /// <inheritdoc/>
-    protected SequenceOptions SequenceOptions { get; init; }
-
-    #endregion Protected APIs
 
     #region Properties
 
@@ -106,11 +94,11 @@ public abstract partial class WebSocketListenerBase : IListener
         _hub = hub;
         _port = port;
         _path = path;
-        this.Protocol = protocol;
+        _protocol = protocol;
+
         _state = (int)ListenerState.STOPPED;
 
-        this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
-        this.SequenceOptions = ConfigurationManager.Instance.Get<SequenceOptions>();
+        _logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
         _timing = InstanceManager.Instance.GetOrCreateInstance<TimingWheel>();
         _config = ConfigurationManager.Instance.Get<NetworkWebSocketOptions>();
@@ -195,9 +183,9 @@ public abstract partial class WebSocketListenerBase : IListener
 
                 _ = Interlocked.Exchange(ref self._state, (int)ListenerState.STOPPED);
 
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
+                if (_logger != null && _logger.IsEnabled(LogLevel.Information))
                 {
-                    this.Logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(SCHEDULE_STOP)}] stopped port={self._port}");
+                    _logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(SCHEDULE_STOP)}] stopped port={self._port}");
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
@@ -288,9 +276,9 @@ public abstract partial class WebSocketListenerBase : IListener
             _lock.Dispose();
         }
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            this.Logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Dispose)}] disposed");
+            _logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Dispose)}] disposed");
         }
     }
 

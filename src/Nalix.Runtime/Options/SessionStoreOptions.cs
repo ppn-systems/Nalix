@@ -15,6 +15,12 @@ namespace Nalix.Runtime.Options;
 public sealed partial class SessionStoreOptions : ConfigurationLoader, IValidatableConfiguration
 {
     /// <summary>
+    /// Enables or disables the session store. When enabled, sessions that meet the persistence criteria will be retained for the configured TTL after becoming inactive.
+    /// </summary>
+    [IniComment("Enable or disable the session store (default false)")]
+    public bool Enabled { get; set; } = false;
+
+    /// <summary>
     /// Gets or sets the time-to-live for resumable sessions.
     /// </summary>
     [IniComment("Duration after which an inactive session expires (default 5m)")]

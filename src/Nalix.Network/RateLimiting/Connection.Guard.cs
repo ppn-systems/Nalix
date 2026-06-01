@@ -147,10 +147,40 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     }
 
     /// <summary>
-    /// Checks if the provided endpoint belongs to a known trusted proxy.
+    /// Manually bans an IP address for a specified duration.
+    /// This bypasses progressive limits and applies the ban immediately.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool IsTrustedProxy(IPEndPoint? endPoint) => endPoint?.Address != null && _accessList.IsTrustedProxy(endPoint.Address);
+    public void BanEndpoint(IPAddress address, TimeSpan duration)
+    {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, nameof(ConnectionGuard));
+        ArgumentNullException.ThrowIfNull(address);
+
+        if (_accessList.IsTrustedProxy(address))
+        {
+            return;
+        }
+
+        SocketEndpoint key = SocketEndpoint.FromIpAddress(address);
+        long nowTicks = Clock.NowUtc().Ticks;
+        long banUntilTicks = nowTicks + duration.Ticks;
+
+        // Get the entry or create a new one if the IP address has never connected.
+        ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
+
+        // Update ban duration using Interlocked for thread-safe
+        _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntilTicks);
+        entry.LastBanTimeTicks = nowTicks;
+
+        // Mark as dirty so NetworkBanRepository saves it to a file in the next cycle
+        _banRepository.MarkDirty();
+
+        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+        {
+            DateTime banUntil = new(banUntilTicks, DateTimeKind.Utc);
+            _logger.LogWarning($"[NW.ConnectionGuard] manually-banned ip={address} until={banUntil:HH:mm:ss}");
+        }
+    }
 
     /// <summary>
     /// Attempts to acquire a connection slot for the given endpoint.
@@ -301,6 +331,12 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             }
         }
     }
+
+    /// <summary>
+    /// Checks if the provided endpoint belongs to a known trusted proxy.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsTrustedProxy(IPEndPoint? endPoint) => endPoint?.Address != null && _accessList.IsTrustedProxy(endPoint.Address);
 
     #endregion Public API
 

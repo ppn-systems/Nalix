@@ -6,7 +6,7 @@ namespace Nalix.Abstractions.Networking;
 /// <summary>
 /// Defines the available network transport protocols supported by the Nalix framework.
 /// </summary>
-public enum NetworkTransport
+public enum NetworkTransport : byte
 {
     /// <summary>
     /// Transmission Control Protocol (Reliable).

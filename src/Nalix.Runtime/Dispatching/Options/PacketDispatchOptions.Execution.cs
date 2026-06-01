@@ -248,7 +248,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             // Best-effort only: if the connection is already falling apart, the control message
             // is skipped and the original failure path is preserved.
-            await context.Connection.SendAsync(
+            await context.Sender.SendAsync(
                 controlType: controlType,
                 reason: reason,
                 action: action,

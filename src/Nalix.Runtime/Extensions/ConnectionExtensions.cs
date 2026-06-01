@@ -5,6 +5,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
@@ -32,20 +33,21 @@ public static class ConnectionExtensions
     /// <summary>
     /// Sends a control directive asynchronously over the connection.
     /// </summary>
-    /// <param name="connection">The connection to send the directive on.</param>
+    /// <param name="sender">The connection to send the directive on.</param>
     /// <param name="controlType">The type of control message to send.</param>
     /// <param name="reason">The reason code associated with the control message.</param>
     /// <param name="action">The suggested action for the recipient.</param>
     /// <param name="options">Optional directive metadata and payload arguments.</param>
     /// <returns>A task representing the asynchronous send operation.</returns>
     [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
-    public static async Task SendAsync(this IConnection connection,
+    public static async Task SendAsync(
+        this IPacketSender sender,
         ControlType controlType,
         ProtocolReason reason,
         ProtocolAdvice action,
         ControlDirectiveOptions options = default)
     {
-        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(sender);
 
         using PacketScope<Directive> lease = PacketFactory<Directive>.Acquire();
         Directive directive = lease.Value;
@@ -58,7 +60,7 @@ public static class ConnectionExtensions
             arg1: options.Arg1,
             arg2: options.Arg2);
 
-        await connection.TCP.SendAsync(directive).ConfigureAwait(false);
+        await sender.SendAsync(directive).ConfigureAwait(false);
     }
 }
 

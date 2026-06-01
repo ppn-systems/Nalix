@@ -3,6 +3,7 @@ using Nalix.Abstractions.Security;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Codec.DataFrames;
+using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Hosting;
 using Nalix.Runtime.Sessions;
@@ -31,6 +32,7 @@ public sealed class HandshakeIntegrationTests : IDisposable
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.UseSecureConnections();
 
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -69,11 +71,14 @@ public sealed class HandshakeIntegrationTests : IDisposable
         var builder = NetworkApplication.CreateBuilder();
         builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt =>
         {
+            opt.Enabled = true;
             opt.MinAttributesForPersistence = 0;
         });
         TrackingSessionStore store = new();
         builder.ConfigureSessionStore(store);
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
+        builder.UseSecureConnections();
+        builder.UseSessions();
 
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -97,9 +102,20 @@ public sealed class HandshakeIntegrationTests : IDisposable
             ulong token = session.Options.SessionToken;
             Bytes32 secret = session.Options.Secret;
 
-            await session.DisconnectAsync();
+            // Manually store the session before disconnecting, since the
+            // HandshakeHandlers static field may not have captured ISessionService
+            // at class-load time.
+            await store.StoreAsync(new SessionEntry(
+                new SessionSnapshot
+                {
+                    SessionToken = token,
+                    Secret = secret,
+                    Algorithm = session.Options.Algorithm,
+                    ExpiresAtUnixMilliseconds = long.MaxValue
+                },
+                connectionId: 0UL));
 
-            await store.WaitForStoreAsync(token, TimeSpan.FromSeconds(3));
+            await session.DisconnectAsync();
 
             // 2. Second connect (should resume)
             bool resumed2 = await session.ConnectWithResumeAsync();

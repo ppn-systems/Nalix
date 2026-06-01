@@ -13,6 +13,8 @@ internal sealed class ProtocolBindingBuilder : IProtocolBindingBuilder
     private readonly INetworkApplicationBuilder _parent;
 
     internal ushort? Port { get; private set; }
+    public OperatingMode Mode { get; private set; } = OperatingMode.Server;
+
     internal Func<IPacketDispatch, IProtocol>? Factory { get; private set; }
     internal Func<IConnection, EndPoint, ReadOnlySpan<byte>, bool>? Authen { get; private set; }
 
@@ -21,6 +23,12 @@ internal sealed class ProtocolBindingBuilder : IProtocolBindingBuilder
     public IProtocolBindingBuilder OnPort(ushort port)
     {
         this.Port = port;
+        return this;
+    }
+
+    public IProtocolBindingBuilder WithMode(OperatingMode mode)
+    {
+        this.Mode = mode;
         return this;
     }
 

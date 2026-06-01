@@ -40,6 +40,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 {
     #region Fields
 
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
     /// <summary>
     /// Caches attribute lookups per method for performance.
     /// </summary>
@@ -1049,8 +1051,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 $"Handler bridge expected packet type '{typeof(TConcretePacket).Name}' but received '{context.Packet?.GetType().Name ?? "null"}'.");
         }
 
-        ObjectPoolManager pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
-        PacketContext<TConcretePacket> bridgedContext = pool.Get<PacketContext<TConcretePacket>>();
+        PacketContext<TConcretePacket> bridgedContext = s_pool.Get<PacketContext<TConcretePacket>>();
 
         try
         {

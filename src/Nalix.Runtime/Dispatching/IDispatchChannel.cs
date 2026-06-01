@@ -10,6 +10,31 @@ using Nalix.Abstractions.Networking.Packets;
 namespace Nalix.Runtime.Dispatching;
 
 /// <summary>
+/// Defines an exclusive processing session for a single connection's mailbox.
+/// While active, the holder has sole ownership of the connection's packet queue,
+/// ensuring strict in-order delivery without cross-worker interference.
+/// </summary>
+public interface IDispatchSession : IDisposable
+{
+    /// <summary>
+    /// Gets the connection claimed by this session.
+    /// </summary>
+    IConnection Connection { get; }
+
+    /// <summary>
+    /// Attempts to dequeue the next highest-priority packet from the claimed connection.
+    /// </summary>
+    /// <param name="raw">
+    /// When this method returns <see langword="true"/>, contains the dequeued packet lease.
+    /// </param>
+    /// <returns>
+    /// <see langword="true"/> if a packet was dequeued; <see langword="false"/> if the
+    /// connection's mailbox is empty.
+    /// </returns>
+    bool TryDequeue([NotNullWhen(true)] out IBufferLease raw);
+}
+
+/// <summary>
 /// Defines the contract for a dispatch channel that manages the queuing, retrieval,
 /// and association of packets with connections.
 /// </summary>
@@ -39,19 +64,17 @@ public interface IDispatchChannel<TPacket> where TPacket : IPacket
     void Push(IConnection connection, IBufferLease raw);
 
     /// <summary>
-    /// Attempts to retrieve a packet and its associated connection from the dispatch queue.
+    /// Attempts to claim exclusive processing rights over a connection's mailbox.
+    /// Returns a session that allows the caller to dequeue packets sequentially.
+    /// Disposing the session releases the claim and re-enqueues the connection
+    /// if it still has pending packets.
     /// </summary>
-    /// <param name="connection">
-    /// When this method returns, contains the connection associated with the retrieved packet,
-    /// or <see langword="null"/> if the queue is empty.
-    /// </param>
-    /// <param name="raw">
-    /// When this method returns, contains the retrieved packet,
-    /// or the default value of <typeparamref name="TPacket"/> if the queue is empty.
+    /// <param name="session">
+    /// When this method returns <see langword="true"/>, contains the exclusive dispatch session.
     /// </param>
     /// <returns>
-    /// <see langword="true"/> if a packet was successfully retrieved; otherwise,
-    /// <see langword="false"/> if the queue is empty.
+    /// <see langword="true"/> if a connection was claimed; <see langword="false"/> if no
+    /// connection has pending packets.
     /// </returns>
-    bool Pull(out IConnection connection, [MaybeNull] out IBufferLease raw);
+    bool TryClaim([NotNullWhen(true)] out IDispatchSession session);
 }

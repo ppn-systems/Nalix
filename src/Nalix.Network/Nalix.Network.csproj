@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -26,18 +26,12 @@ Designed for latency-sensitive workloads, it emphasizes efficient socket I/O, pr
 
 	</PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Condition="'$(Configuration)' == 'Release'" Include="Microsoft.SourceLink.GitHub" Version="10.0.300">
-			<PrivateAssets>All</PrivateAssets>
-		</PackageReference>
-	</ItemGroup>
-
 	<Import Project="..\Nalix.Build.props" />
 	<Import Project="..\Package.Build.props" />
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
 		<ProjectReference Include="..\Nalix.Abstractions\Nalix.Abstractions.csproj" />
-		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />
 	</ItemGroup>
 </Project>

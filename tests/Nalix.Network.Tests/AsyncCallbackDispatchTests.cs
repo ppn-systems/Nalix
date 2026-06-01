@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Network.Connections;
 using Xunit;
 using TransportAsyncCallback = Nalix.Network.Internal.Transport.AsyncCallback;
@@ -20,6 +21,14 @@ namespace Nalix.Network.Tests;
 [Collection(AsyncCallbackSerialGroup.Name)]
 public sealed class AsyncCallbackDispatchTests
 {
+    private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(System.ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
+
     [Fact]
     public async Task InjectIncoming_QueuesProcessCallbackOnce_AndDoesNotUnderflowPendingPackets()
     {
@@ -37,7 +46,7 @@ public sealed class AsyncCallbackDispatchTests
         await clientSocket.ConnectAsync(IPAddress.Loopback, port);
 
         using Socket serverSocket = await acceptTask;
-        using Connection connection = new(serverSocket);
+        using Connection connection = new(serverSocket, s_testOpCodeExtractor);
 
         TaskCompletionSource processObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
         connection.OnProcessEvent += (_, e) =>
@@ -90,7 +99,7 @@ public sealed class AsyncCallbackDispatchTests
         await clientSocket.ConnectAsync(IPAddress.Loopback, port);
 
         using Socket serverSocket = await acceptTask;
-        using Connection connection = new(serverSocket);
+        using Connection connection = new(serverSocket, s_testOpCodeExtractor);
 
         TaskCompletionSource postObserved = new(TaskCreationOptions.RunContinuationsAsynchronously);
         connection.OnPostProcessEvent += (_, _) => postObserved.TrySetResult();

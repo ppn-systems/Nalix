@@ -8,10 +8,10 @@ using System.Net.WebSockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
 using Nalix.Environment.Memory;
@@ -56,6 +56,9 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     #region Properties
 
     /// <inheritdoc/>
+    public TransportFraming Framing => TransportFraming.None;
+
+    /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sequencer.SendSequence;
 
     /// <inheritdoc/>
@@ -66,23 +69,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     #region APIs
 
     [StackTraceHidden]
-    public void Send(IPacket packet) => Throw.WebSocketSyncSendNotSupported();
-
-    [StackTraceHidden]
     public void Send(ReadOnlySpan<byte> message) => Throw.WebSocketSyncSendNotSupported();
-
-    [StackTraceHidden]
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-    public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(packet);
-
-        using BufferLease lease = BufferLease.Rent(packet.Length);
-        int bytesWritten = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWritten);
-
-        await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
-    }
 
     [StackTraceHidden]
     [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
@@ -120,6 +107,12 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
         }
 
         _receiveLoopTask = this.RECEIVE_LOOP_ASYNC(cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public void UseFraming(TransportFraming framing)
+    {
+        // TODO: Review framing behavior. WebSocket currently relies on its built-in message framing.
     }
 
     #endregion APIs

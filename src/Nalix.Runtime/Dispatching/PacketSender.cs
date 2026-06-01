@@ -155,7 +155,13 @@ public sealed class PacketSender : IPacketSender
         // If no attribute is present, default to TCP as per requirements.
         NetworkTransport transport = attributes.Transport?.TransportType ?? NetworkTransport.TCP;
 
-        return transport == NetworkTransport.UDP ? connection.UDP : connection.TCP;
+        return transport switch
+        {
+            NetworkTransport.UDP => connection.UDP,
+            NetworkTransport.TCP => connection.TCP,
+            NetworkTransport.WEBSOCKET => connection.TCP,
+            _ => throw new InvalidOperationException($"Unsupported transport type: {transport}")
+        };
     }
 
     private IConnection GET_CONNECTION_OR_THROW()

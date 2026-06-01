@@ -8,6 +8,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Protocols;
 
 namespace Nalix.Network.Protocols;
 
@@ -21,6 +22,15 @@ namespace Nalix.Network.Protocols;
 [DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
+    /// <inheritdoc/>
+    public abstract IFrameProcessor FrameProcessor { get; }
+
+    /// <summary>
+    /// Represents the operation code extractor used by this protocol
+    /// to classify incoming messages and determine their packet types.
+    /// </summary>
+    public abstract IOpCodeExtractor OpCodeExtractor { get; }
+
     /// <summary>
     /// Processes a message received on the connection.
     /// Derived protocols decide how to interpret the event payload and route the message.

@@ -21,6 +21,21 @@ public interface IProtocolBindingBuilder
     IProtocolBindingBuilder OnPort(ushort port);
 
     /// <summary>
+    /// Configures how UDP traffic is handled by the listener.
+    /// </summary>
+    /// <param name="mode">
+    /// The UDP operating mode.
+    /// <see cref="OperatingMode.Server"/> enables session management,
+    /// authentication, and protocol processing.
+    /// <see cref="OperatingMode.Passthrough"/> forwards raw datagrams
+    /// without protocol-level handling.
+    /// </param>
+    /// <returns>
+    /// The current binding builder instance.
+    /// </returns>
+    IProtocolBindingBuilder WithMode(OperatingMode mode);
+
+    /// <summary>
     /// Uses a custom factory to create protocol instances instead of the default activator.
     /// </summary>
     /// <param name="factory">The factory delegate.</param>

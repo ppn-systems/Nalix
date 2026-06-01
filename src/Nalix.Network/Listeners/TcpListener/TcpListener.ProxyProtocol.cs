@@ -198,6 +198,13 @@ public abstract partial class TcpListenerBase
                     this.DetachProxyContext(state);
                 }
 
+                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+                {
+                    this.Logger.LogTrace(
+                        $"[NW.{nameof(TcpListenerBase)}:{nameof(OnProxyReadCompleted)}] " +
+                        $"invalid-proxy-header-drop remote={state.Socket?.RemoteEndPoint}");
+                }
+
                 this.ReleaseProxyContext(state, args, success: false);
                 return;
             }
@@ -232,6 +239,13 @@ public abstract partial class TcpListenerBase
 
         if (!_limiter.TryAccept(effectiveIp))
         {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace(
+                    $"[NW.{nameof(TcpListenerBase)}:{nameof(OnProxyReadCompleted)}] " +
+                    $"proxy-rate-limit-drop remote={effectiveIp}");
+            }
+
             this.ReleaseProxyContext(state, args, success: false);
             return;
         }

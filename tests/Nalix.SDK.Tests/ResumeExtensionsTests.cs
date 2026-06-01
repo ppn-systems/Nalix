@@ -19,7 +19,6 @@ using Nalix.Framework.Injection;
 using Nalix.Environment.Hashing;
 using Nalix.Hosting;
 using Nalix.Network.Protocols;
-using Nalix.Runtime.Handlers;
 using Nalix.SDK.Options;
 using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
@@ -58,12 +57,11 @@ TestUtils.SetupCertificate();
         builder.ConfigureConnectionHub(hub);
         builder.ConfigureSessionService(sessionService);
         builder.ConfigureSessionStore(store);
-        builder.ConfigureSessionService(sessionService);
-        builder.ConfigureSessionStore(store);
         builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
         builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
-        builder.AddHandler<SessionHandlers>();
-        
+        builder.UseSecureConnections();
+        builder.UseSessions();
+
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
 
@@ -72,7 +70,7 @@ TestUtils.SetupCertificate();
             // 2. Pre-populate SessionStore via the injected store
             // We can use 'store' directly since we have the reference
             hub.Count.Should().Be(0); // Sanity check
-            
+
             // Create a fake connection object to represent the "previous" connection
             SessionSnapshot snapshot = new()
             {
@@ -134,8 +132,9 @@ TestUtils.SetupCertificate();
         builder.ConfigureSessionStore(store);
         builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
         builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
-        builder.AddHandler<SessionHandlers>();
-        
+        builder.UseSecureConnections();
+        builder.UseSessions();
+
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
 
@@ -196,14 +195,15 @@ TestUtils.SetupCertificate();
         builder.ConfigureSessionStore(store);
         builder.Configure<Nalix.Runtime.Options.SessionStoreOptions>(opt => opt.MinAttributesForPersistence = 0);
         builder.BindTcp<RobustIntegrationTestProtocol>().WithFactory(dispatch => new RobustIntegrationTestProtocol(dispatch, hub)).OnPort((ushort)port);
-        builder.AddHandler<SessionHandlers>();
-        
+        builder.UseSecureConnections();
+        builder.UseSessions();
+
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
 
         try
         {
-            // Note: SessionHandlers doesn't handle SESSION_EXPIRED directly if token not found, 
+            // Note: SessionHandlers doesn't handle SESSION_EXPIRED directly if token not found,
             // it's handled by ConsumeAsync returning null.
             // But we don't store it at all to simulate "expired and scavenged" or "never existed".
 

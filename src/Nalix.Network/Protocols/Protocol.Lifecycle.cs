@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Networking;
 
 namespace Nalix.Network.Protocols;
 
@@ -19,6 +20,12 @@ public abstract partial class Protocol
     #endregion Fields
 
     #region Properties
+
+    /// <summary>
+    /// Gets or sets the framing mechanism used by this protocol.
+    /// Defaults to <see cref="TransportFraming.UInt16LengthPrefixed"/>.
+    /// </summary>
+    public virtual TransportFraming Framing { get; set; } = TransportFraming.UInt16LengthPrefixed;
 
     /// <summary>
     /// Gets or sets whether the protocol keeps the connection open after a message is processed.

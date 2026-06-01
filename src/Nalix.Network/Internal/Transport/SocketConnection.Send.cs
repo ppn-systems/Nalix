@@ -3,12 +3,14 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Fragments;
 using Nalix.Environment.Memory;
@@ -34,6 +36,12 @@ internal sealed partial class SocketConnection
             throw new ArgumentException("Data must not be empty.", nameof(data));
         }
 
+        if (_framing == TransportFraming.VarIntLengthPrefixed)
+        {
+            this.SEND_VARINT(data);
+            return;
+        }
+
         if (data.Length >= s_fragmentOptions.MaxChunkSize)
         {
             this.SEND_FRAGMENTED(data);
@@ -54,7 +62,7 @@ internal sealed partial class SocketConnection
 
         /*
          * [Fast Path: Stack Allocation]
-         * For small packets (determined by StackAllocLimit), we format the frame 
+         * For small packets (determined by StackAllocLimit), we format the frame
          * directly on the stack. This is zero-allocation and extremely fast.
          * The frame consists of: [2 bytes Length] + [Payload].
          */
@@ -137,8 +145,8 @@ internal sealed partial class SocketConnection
 
         /*
          * [Slow Path: Pooled Heap Buffer]
-         * For larger packets that don't fit on the stack, we rent a buffer from 
-         * the ArrayPool. This prevents GC pressure while still supporting large 
+         * For larger packets that don't fit on the stack, we rent a buffer from
+         * the ArrayPool. This prevents GC pressure while still supporting large
          * payloads.
          */
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
@@ -239,6 +247,11 @@ internal sealed partial class SocketConnection
         if (data.IsEmpty)
         {
             return ValueTask.FromException(new ArgumentException("Data must not be empty.", nameof(data)));
+        }
+
+        if (_framing == TransportFraming.VarIntLengthPrefixed)
+        {
+            return this.SEND_VARINT_ASYNC(data, cancellationToken);
         }
 
         if (data.Length >= s_fragmentOptions.MaxChunkSize)
@@ -387,6 +400,18 @@ internal sealed partial class SocketConnection
         }
     }
 
+    #region Helper Methods
+
+    [DebuggerStepThrough]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void WRITE_FRAME_HEADER(Span<byte> buffer, ushort totalLength, ReadOnlySpan<byte> payload)
+    {
+        BinaryPrimitives.WriteUInt16LittleEndian(buffer, totalLength);
+        payload.CopyTo(buffer[HeaderSize..]);
+    }
+
+    #endregion Helper Methods
+
     #region Fragmented Send Helpers
 
     /// <summary>
@@ -418,8 +443,8 @@ internal sealed partial class SocketConnection
 
         /*
          * [Fragmentation Logic]
-         * When a payload exceeds MaxChunkSize, we split it into multiple 
-         * fragments. Each fragment is wrapped in a FragmentHeader and sent 
+         * When a payload exceeds MaxChunkSize, we split it into multiple
+         * fragments. Each fragment is wrapped in a FragmentHeader and sent
          * as a separate wire frame. The receiver will reassemble these chunks.
          */
         for (int i = 0; i < totalChunks; i++)

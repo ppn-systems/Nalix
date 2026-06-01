@@ -81,6 +81,16 @@ public abstract partial class UdpListenerBase
     protected SequenceOptions SequenceOptions { get; init; }
 
     /// <summary>
+    /// Gets the underlying listener socket used for UDP datagram operations.
+    /// </summary>
+    /// <remarks>
+    /// This socket is shared between all connections served by this listener.
+    /// Derived classes may use it to send replies to remote endpoints.
+    /// Returns <c>null</c> if the socket has not been initialized or has been disposed.
+    /// </remarks>
+    protected Socket? ListenerSocket => _socket;
+
+    /// <summary>
     /// Gets a value indicating whether the UDP listener is currently running and listening for datagrams.
     /// </summary>
     public bool IsListening => this.State == ListenerState.RUNNING;

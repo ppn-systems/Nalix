@@ -20,7 +20,6 @@ using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Options;
 
-
 #if DEBUG
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("Nalix.Network.Benchmarks")]
@@ -655,6 +654,17 @@ internal sealed class TimingWheel : IActivatable
 
                             task = next;
 
+                            continue;
+                        }
+
+                        // ── Idle-time check ───────────────────────────────────────────────
+                        if (!connection.ExcludeFromIdleTimeout)
+                        {
+                            connection.IsRegisteredInWheel = false;
+                            connection.TimeoutVersion++;
+                            connection.TimeoutTask = null;
+                            _poolManager.Return(task);
+                            task = next;
                             continue;
                         }
 

@@ -10,6 +10,7 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Abstractions.Networking.Protocols;
 
 namespace Nalix.Framework.Tests.Extensions;
 
@@ -42,7 +43,8 @@ public sealed class ConnectionLoggingExtensionsTests
         Assert.NotNull(state);
 
         FieldInfo? lastLogTicksField = state!.GetType().GetField("LastLogTicks");
-        lastLogTicksField!.SetValue(state, DateTime.UtcNow.AddSeconds(-20).Ticks);
+        long twentySecondsInTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * System.Diagnostics.Stopwatch.Frequency);
+        lastLogTicksField!.SetValue(state, System.Diagnostics.Stopwatch.GetTimestamp() - twentySecondsInTicks);
 
         connection.ThrottledWarn(logger, "dup", "hello");
 
@@ -113,6 +115,9 @@ public sealed class ConnectionLoggingExtensionsTests
         public int TimeoutVersion { get; set; }
         public bool IsRegisteredInWheel { get; set; }
         public bool IsDisposed => false;
+        public bool IsIdleTimeoutEnabled { get; set; } = true;
+        public bool ExcludeFromIdleTimeout { get; set; }
+        public IOpCodeExtractor PacketClassifier { get; } = new TestOpCodeExtractor();
 
         public bool IsUdpCreated => throw new NotImplementedException();
 
@@ -131,21 +136,19 @@ public sealed class ConnectionLoggingExtensionsTests
 
     private sealed class TestTransport : IConnection.ITransport
     {
+        public TransportFraming Framing => TransportFraming.None;
         public ISequenceCounter SendSequence => throw new NotImplementedException();
 
         public ISequenceCounter ReceiveSequence => throw new NotImplementedException();
 
         public void BeginReceive(System.Threading.CancellationToken cancellationToken = default) { }
 
-        public void Send(IPacket packet) { }
-
         public void Send(ReadOnlySpan<byte> message) { }
-
-        public ValueTask SendAsync(IPacket packet, System.Threading.CancellationToken cancellationToken = default) =>
-            ValueTask.CompletedTask;
 
         public ValueTask SendAsync(ReadOnlyMemory<byte> message, System.Threading.CancellationToken cancellationToken = default) =>
             ValueTask.CompletedTask;
+
+        public void UseFraming(TransportFraming framing) { }
     }
 
     private sealed class TestEndpoint : INetworkEndpoint
@@ -209,19 +212,9 @@ public sealed class ConnectionLoggingExtensionsTests
         public static readonly NullScope Instance = new();
         public void Dispose() { }
     }
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(ReadOnlySpan<byte> payload) => 0;
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

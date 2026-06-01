@@ -48,8 +48,6 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader, IValid
     [System.ComponentModel.DataAnnotations.Range(1, 10_000_000, ErrorMessage = "MaxPacketPerSecond must be between 1 and 10,000,000.")]
     public int MaxPacketPerSecond { get; set; } = 128;
 
-
-
     /// <summary>
     /// Gets or sets a value indicating whether progressive banning is enabled.
     /// </summary>
@@ -65,6 +63,7 @@ public sealed partial class ConnectionGuardOptions : ConfigurationLoader, IValid
     public void Validate()
     {
         this.ValidateDataAnnotations();
+
         if (this.MaxConnections < -1 || this.MaxConnections == 0)
         {
             throw new System.ArgumentOutOfRangeException(nameof(this.MaxConnections), "MaxConnections must be -1 (unlimited) or positive.");

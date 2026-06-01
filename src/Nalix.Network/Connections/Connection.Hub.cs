@@ -376,8 +376,11 @@ public sealed class ConnectionHub : IConnectionHub
         {
             foreach (IConnection conn in shard.Values)
             {
-                sumBytesSent += conn.BytesSent;
-                sumBytesReceived += conn.BytesReceived;
+                if (conn is IConnectionTrafficMetrics metrics)
+                {
+                    sumBytesSent += metrics.BytesSent;
+                    sumBytesReceived += metrics.BytesReceived;
+                }
 
                 long up = conn.UpTime;
 
@@ -543,8 +546,11 @@ public sealed class ConnectionHub : IConnectionHub
 
         try
         {
-            _ = Interlocked.Add(ref _totalBytesSent, connection.BytesSent);
-            _ = Interlocked.Add(ref _totalBytesReceived, connection.BytesReceived);
+            if (connection is IConnectionTrafficMetrics metrics)
+            {
+                _ = Interlocked.Add(ref _totalBytesSent, metrics.BytesSent);
+                _ = Interlocked.Add(ref _totalBytesReceived, metrics.BytesReceived);
+            }
 
             removedConnection.Dispose();
         }
@@ -842,8 +848,16 @@ public sealed class ConnectionHub : IConnectionHub
         {
             foreach (IConnection conn in shard.Values)
             {
-                sumBytesSent += conn.BytesSent;
-                sumBytesReceived += conn.BytesReceived;
+                if (conn is not IConnectionTrafficMetrics metrics)
+                {
+                    continue;
+                }
+
+                long sent = metrics.BytesSent;
+                long received = metrics.BytesReceived;
+
+                sumBytesSent += sent;
+                sumBytesReceived += received;
             }
         }
 

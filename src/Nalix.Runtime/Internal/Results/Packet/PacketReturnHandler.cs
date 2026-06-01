@@ -23,16 +23,7 @@ internal sealed class PacketReturnHandler<TPacket> : IReturnHandler<TPacket> whe
 
         try
         {
-            if (packet.Header.Flags.HasFlag(PacketFlags.RELIABLE))
-            {
-                await context.Sender.SendAsync(packet).ConfigureAwait(false);
-                return;
-            }
-
-            if (packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE))
-            {
-                await context.Connection.UDP.SendAsync(packet).ConfigureAwait(false);
-            }
+            await context.Sender.SendAsync(packet).ConfigureAwait(false);
         }
         finally
         {

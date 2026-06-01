@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 
 namespace Microsoft.Extensions.Logging;
@@ -14,28 +16,24 @@ public static partial class Log
 {
     /// <inheritdoc/>
     [LoggerMessage(
-        EventId = 1001,
         Level = LogLevel.Warning,
         Message = "{Message}{Suffix}")]
     public static partial void DataProcessingWarning(ILogger logger, string message, string suffix);
 
     /// <inheritdoc/>
     [LoggerMessage(
-        EventId = 1002,
         Level = LogLevel.Trace,
         Message = "{Message}{Suffix}")]
     public static partial void DataProcessingTrace(ILogger logger, string message, string suffix);
 
     /// <inheritdoc/>
     [LoggerMessage(
-        EventId = 1003,
         Level = LogLevel.Error,
         Message = "{Message}{Suffix}")]
     public static partial void DataProcessingError(ILogger logger, string message, string suffix);
 
     /// <inheritdoc/>
     [LoggerMessage(
-        EventId = 1003,
         Level = LogLevel.Error,
         Message = "{Message}{Suffix}")]
     [SuppressMessage("LoggingGenerator",
@@ -49,7 +47,10 @@ public static partial class Log
 /// </summary>
 public static class ThrottleLogExtensions
 {
-    private static readonly TimeSpan s_defaultWindow = TimeSpan.FromSeconds(10);
+    private const string AttrKeyPrefix = "sys.log.";
+
+    private static readonly long s_defaultWindowTicks =
+        (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
 
     private sealed class LogThrottleState
     {
@@ -63,16 +64,17 @@ public static class ThrottleLogExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrottledWarn(this IConnection connection, ILogger? logger, string key, string message)
     {
-        if (!SHOULD_LOG(connection, key, out long suppressed))
+        if (logger == null || !logger.IsEnabled(LogLevel.Warning))
         {
             return;
         }
-        string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 
-        if (logger != null && logger.IsEnabled(LogLevel.Warning))
+        if (!ShouldLog(connection, key, out long suppressed))
         {
-            Log.DataProcessingWarning(logger, message, suffix);
+            return;
+
         }
+        Log.DataProcessingWarning(logger, message, FormatSuffix(suppressed));
     }
 
     /// <summary>
@@ -81,74 +83,73 @@ public static class ThrottleLogExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrottledError(this IConnection connection, ILogger? logger, string key, string message, Exception? ex = null)
     {
-        if (!SHOULD_LOG(connection, key, out long suppressed))
+        if (logger == null || !logger.IsEnabled(LogLevel.Warning))
         {
             return;
         }
 
-        if (logger == null || !logger.IsEnabled(LogLevel.Error))
+        if (!ShouldLog(connection, key, out long suppressed))
         {
             return;
         }
 
-        string suffix = suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
+        string suffix = FormatSuffix(suppressed);
 
-        if (ex != null)
-        {
-            Log.DataProcessingError(logger, ex, message, suffix);
-        }
-        else
+        if (ex == null)
         {
             Log.DataProcessingError(logger, message, suffix);
         }
+        else
+        {
+            Log.DataProcessingError(logger, ex, message, suffix);
+        }
     }
 
-    private static bool SHOULD_LOG(IConnection connection, string key, out long suppressed)
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool ShouldLog(IConnection connection, string key, out long suppressed)
     {
         suppressed = 0;
-        if (connection?.Attributes == null)
+
+        IObjectMap<string, object>? attrs = connection?.Attributes;
+        if (attrs == null)
         {
             return true;
         }
 
-        string attrKey = "sys.log." + key;
-        bool created = false;
-        if (!connection.Attributes.TryGetValue(attrKey, out object? val) || val is not LogThrottleState state)
-        {
-            state = new LogThrottleState { LastLogTicks = DateTime.UtcNow.Ticks };
-            // ObjectMap's Add implementation is safe (it uses TryAdd internally and ignores if exists)
-            connection.Attributes.Add(attrKey, state);
+        string attrKey = string.Concat(AttrKeyPrefix, key);
 
-            // Re-fetch to handle race conditions where another thread added it first
-            if (connection.Attributes.TryGetValue(attrKey, out val) && val is LogThrottleState existingState)
-            {
-                created = ReferenceEquals(existingState, state);
-                state = existingState;
-            }
-            else
-            {
-                return true; // First time logging this key
-            }
-        }
-
-        if (created)
+        if (!attrs.TryGetValue(attrKey, out object? val) || val is not LogThrottleState state)
         {
+            LogThrottleState newState = new()
+            {
+                LastLogTicks = Stopwatch.GetTimestamp()
+            };
+
+            attrs.Add(attrKey, newState);
+
             return true;
         }
 
-        long nowTicks = DateTime.UtcNow.Ticks;
+        long nowTicks = Stopwatch.GetTimestamp();
         long lastTicks = Interlocked.Read(ref state.LastLogTicks);
 
-        if (nowTicks - lastTicks >= s_defaultWindow.Ticks)
+        if (nowTicks - lastTicks < s_defaultWindowTicks)
         {
-            if (Interlocked.CompareExchange(ref state.LastLogTicks, nowTicks, lastTicks) == lastTicks)
-            {
-                suppressed = Interlocked.Exchange(ref state.SuppressedCount, 0);
-                return true;
-            }
+            _ = Interlocked.Increment(ref state.SuppressedCount);
+            return false;
         }
 
-        _ = Interlocked.Increment(ref state.SuppressedCount);
-        return false;
+        if (Interlocked.CompareExchange(ref state.LastLogTicks, nowTicks, lastTicks) != lastTicks)
+        {
+            _ = Interlocked.Increment(ref state.SuppressedCount);
+            return false;
+        }
+
+        suppressed = Interlocked.Exchange(ref state.SuppressedCount, 0);
+        return true;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string FormatSuffix(long suppressed) => suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
 }

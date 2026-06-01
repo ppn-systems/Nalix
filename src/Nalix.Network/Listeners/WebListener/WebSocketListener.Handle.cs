@@ -36,13 +36,6 @@ public abstract partial class WebSocketListenerBase
     #region APIs
 
     /// <summary>
-    /// Processes an incoming frame from the connection.
-    /// </summary>
-    /// <param name="sender">The sender.</param>
-    /// <param name="args">The event arguments.</param>
-    public abstract void ProcessFrame(object? sender, IConnectEventArgs args);
-
-    /// <summary>
     /// Handles the close event of a connection.
     /// </summary>
     /// <param name="sender">The sender.</param>
@@ -57,8 +50,8 @@ public abstract partial class WebSocketListenerBase
 
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
-        args.Connection.OnProcessEvent -= this.ProcessFrame;
-        args.Connection.OnPostProcessEvent -= this.Protocol.PostProcessMessage;
+        args.Connection.OnPostProcessEvent -= this._protocol.PostProcessMessage;
+        args.Connection.OnProcessEvent -= this._protocol.FrameProcessor.ProcessFrame;
 
         args.Connection.Dispose();
     }
@@ -74,7 +67,7 @@ public abstract partial class WebSocketListenerBase
 
         try
         {
-            this.Protocol.OnAccept(connection);
+            this._protocol.OnAccept(connection);
 
             if (connection != null && !connection.IsDisposed)
             {
@@ -83,16 +76,16 @@ public abstract partial class WebSocketListenerBase
                 _hub.RegisterConnection(connection);
             }
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace($"[NW.{nameof(WebSocketListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
+                _logger.LogTrace($"[NW.{nameof(WebSocketListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(ProcessConnection)}] process-error={connection?.NetworkEndpoint}");
+                _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(ProcessConnection)}] process-error={connection?.NetworkEndpoint}");
             }
             connection?.Dispose();
         }
@@ -126,9 +119,9 @@ public abstract partial class WebSocketListenerBase
                         context.Request.RemoteEndPoint is IPEndPoint remoteEp &&
                         !_limiter.IsTrustedProxy(remoteEp))
                     {
-                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                         {
-                            this.Logger.LogWarning($"[NW.{nameof(WebSocketListenerBase)}:{nameof(AcceptConnectionsAsync)}] untrusted-proxy-rejected remote={remoteEp}");
+                            _logger.LogWarning($"[NW.{nameof(WebSocketListenerBase)}:{nameof(AcceptConnectionsAsync)}] untrusted-proxy-rejected remote={remoteEp}");
                         }
 
                         context.Response.StatusCode = 403; // Forbidden
@@ -154,7 +147,7 @@ public abstract partial class WebSocketListenerBase
                     HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
 
 #pragma warning disable CA2000
-                    WebSocketConnection connection = new(wsContext.WebSocket, realEndpoint, this.Logger);
+                    WebSocketConnection connection = new(wsContext.WebSocket, this._protocol.OpCodeExtractor, realEndpoint, _logger);
 #pragma warning restore CA2000
 
                     try
@@ -175,9 +168,9 @@ public abstract partial class WebSocketListenerBase
                     }
                     catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
                     {
-                        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                         {
-                            this.Logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}] Failed to initialize connection");
+                            _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}] Failed to initialize connection");
                         }
                         connection.Dispose();
                     }
@@ -284,9 +277,9 @@ public abstract partial class WebSocketListenerBase
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] unhandled-error port={_port}");
+                _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] unhandled-error port={_port}");
             }
         }
         finally
@@ -312,9 +305,9 @@ public abstract partial class WebSocketListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+                _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
             }
             connection?.Disconnect();
         }
@@ -359,12 +352,12 @@ public abstract partial class WebSocketListenerBase
         // must be decremented so the client can connect again in the future.
         connection.OnCloseEvent += _limiter.OnConnectionClosed;
 
-        // Wire the internal listener method to handle the shared pipeline before routing.
-        connection.OnProcessEvent += this.ProcessFrame;
-
         // Keep post-process as you already have.
         // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK.
-        connection.OnPostProcessEvent += this.Protocol.PostProcessMessage;
+        connection.OnPostProcessEvent += this._protocol.PostProcessMessage;
+
+        // Wire the internal listener method to handle the shared pipeline before routing.
+        connection.OnProcessEvent += this._protocol.FrameProcessor.ProcessFrame;
 
         if (_config.EnableTimeout)
         {

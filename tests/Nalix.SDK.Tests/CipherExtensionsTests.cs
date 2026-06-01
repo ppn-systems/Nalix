@@ -11,7 +11,7 @@ using Nalix.SDK.Transport;
 using Nalix.SDK.Transport.Extensions;
 using Nalix.Framework.Injection;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Runtime.Pooling;
+using Nalix.Codec.Pooling;
 using Xunit;
 
 namespace Nalix.SDK.Tests;
@@ -32,8 +32,8 @@ public sealed class CipherExtensionsTests : IDisposable
         int port = TestUtils.GetFreePort();
         var builder = NetworkApplication.CreateBuilder();
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
-        // Server handles CIPHER_UPDATE by default in Handshake/Control logic?
-        // Actually, CIPHER_UPDATE needs to be handled by the server to switch its own cipher.
+        builder.UseSecureConnections();
+        builder.UseSystemControl();
 
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -74,19 +74,3 @@ public sealed class CipherExtensionsTests : IDisposable
     public void Dispose() => InstanceManager.Instance.Clear(dispose: false);
 }
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

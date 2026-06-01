@@ -3,7 +3,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.Logging;
@@ -18,11 +17,9 @@ using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Hosting.Internal;
-using Nalix.Network.Connections;
+using Nalix.Network.Listeners.Udp;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
-using Nalix.Runtime.Handlers;
-using Nalix.Runtime.Sessions;
 
 namespace Nalix.Hosting;
 
@@ -36,7 +33,7 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     private static readonly MethodInfo s_applyOptionsMethod;
     private static readonly MethodInfo s_registerHandlerMethod;
 
-    private readonly HostingBuilderContext _state;
+    internal readonly HostingBuilderContext _state;
 
     #endregion Fields
 
@@ -47,18 +44,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         s_applyOptionsMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(ApplyOptionsCore), BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(ApplyOptionsCore));
 
-        s_registerHandlerMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(RegisterHandlerCore), BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(RegisterHandlerCore));
+        s_registerHandlerMethod = typeof(ServiceRegistrar).GetMethod(nameof(ServiceRegistrar.RegisterHandler), BindingFlags.Public | BindingFlags.Static)
+            ?? throw new MissingMethodException(typeof(ServiceRegistrar).FullName, nameof(ServiceRegistrar.RegisterHandler));
     }
 
-    internal NetworkApplicationBuilder(HostingBuilderContext state)
-    {
-        _state = state ?? throw new ArgumentNullException(nameof(state));
-        _ = this.AddHandler<SessionHandlers>()
-                .AddHandler<HandshakeHandlers>()
-                .AddHandler<KeyExchangeHandlers>()
-                .AddHandler<SystemControlHandlers>();
-    }
+    internal NetworkApplicationBuilder(HostingBuilderContext state) => _state = state ?? throw new ArgumentNullException(nameof(state));
 
     #endregion Constructors
 
@@ -193,9 +183,11 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public INetworkApplicationBuilder AddHandler<THandler>() where THandler : class
     {
+#pragma warning disable CA2263 // Factory is Func<object>; generic overload not applicable
         _state.Handlers.Add(new HandlerDescriptor(
             typeof(THandler),
-            () => InstanceManager.Instance.CreateInstance(typeof(THandler))));
+            () => InstanceManager.Instance.CreateInstanceWithInjection(typeof(THandler))));
+#pragma warning restore CA2263
 
         return this;
     }
@@ -289,28 +281,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
     /// <inheritdoc />
     public NetworkApplication Build()
     {
-        RegisterPacketRegistry();
+        ServiceRegistrar.RegisterPacketRegistry();
 
-        void PrepareCallbacks()
-        {
-            ApplyOptions(_state);
-            RegisterLogger(_state);
-
-            this.EnsureConnectionHubRegistered();
-            this.EnsureSessionServiceRegistered();
-            this.EnsureBufferPoolManagerRegistered();
-
-            if (_state.IdentityCertificatePath is not null)
-            {
-                HandshakeHandlers.SetCertificatePath(_state.IdentityCertificatePath);
-            }
-            else
-            {
-                HandshakeHandlers.Initialize();
-            }
-
-            RegisterMetadataProviders(_state);
-        }
+        // Apply options eagerly so that EnsureSessionServiceRegistered
+        // can read SessionStoreOptions.Enabled before handler factories
+        // are captured in the dispatch closure.
+        ApplyOptions(_state);
 
         IPacketDispatch DispatchFactory() => CreatePacketDispatch(_state);
 
@@ -322,17 +298,21 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
             {
                 IConnectionHub hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>()
                     ?? throw new InvalidOperationException("IConnectionHub is not registered. Call ConfigureConnectionHub or ensure Build() is invoked.");
+
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
+
                 if (registration.BindingBuilder is ProtocolBindingBuilder tcpBuilder)
                 {
                     port = tcpBuilder.Port ?? port;
                 }
 
-                TcpServerListener listener = port.HasValue
-                    ? new(port.Value, protocol, hub)
-                    : new(protocol, hub);
+                IListener listener;
+
+                listener = port.HasValue
+                    ? new TcpServerListener(port.Value, protocol, hub)
+                    : new TcpServerListener(protocol, hub);
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.TCP);
             });
@@ -347,21 +327,42 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
                 IProtocol protocol = registration.Factory(dispatch);
 
                 ushort? port = registration.Port;
+                OperatingMode mode = OperatingMode.Server;
                 Func<IConnection, System.Net.EndPoint, ReadOnlySpan<byte>, bool>? authen = registration.Authentication;
 
                 if (registration.BindingBuilder is ProtocolBindingBuilder udpBuilder)
                 {
+                    mode = udpBuilder.Mode;
                     port = udpBuilder.Port ?? port;
                     authen = udpBuilder.Authen ?? authen;
                 }
 
-                UdpServerListener listener = authen != null
-                    ? (port.HasValue
-                        ? new(port.Value, protocol, hub, authen)
-                        : new(protocol, hub, authen))
-                    : (port.HasValue
-                        ? new(port.Value, protocol, hub)
-                        : new(protocol, hub));
+                IListener listener;
+
+                if (mode == OperatingMode.Passthrough)
+                {
+                    if (authen is not null)
+                    {
+                        throw new InvalidOperationException(
+                            "UDP passthrough framing (TransportFraming.None) does not support " +
+                            "Nalix authentication hooks. The protocol layer is responsible for " +
+                            "its own authentication when using passthrough mode.");
+                    }
+
+                    listener = port.HasValue
+                        ? new UdpPassthroughListener(port.Value, protocol, hub)
+                        : new UdpPassthroughListener(protocol, hub);
+                }
+                else
+                {
+                    listener = authen is not null
+                        ? (port.HasValue
+                            ? new UdpServerListener(port.Value, protocol, hub, authen)
+                            : new UdpServerListener(protocol, hub, authen))
+                        : (port.HasValue
+                            ? new UdpServerListener(port.Value, protocol, hub)
+                            : new UdpServerListener(protocol, hub));
+                }
 
                 return new ListenerBinding(listener, protocol, registration.ProtocolType, NetworkTransport.UDP);
             });
@@ -393,6 +394,17 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         }
 
         return new NetworkApplication(_state.Logger, PrepareCallbacks, DispatchFactory, serverFactories);
+
+        void PrepareCallbacks()
+        {
+            // Options already applied above; re-apply is idempotent.
+            ApplyOptions(_state);
+
+            ServiceRegistrar.RegisterLogger(_state);
+            ServiceRegistrar.RegistererConnectionHub(_state);
+            ServiceRegistrar.RegisterMetadataProviders(_state);
+            ServiceRegistrar.RegistererBufferPoolManager(_state);
+        }
     }
 
     #region Factory Methods
@@ -483,97 +495,12 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
                 _ = handlers.TryAdd(type, new HandlerDescriptor(
                     type,
-                    () => InstanceManager.Instance.CreateInstance(type)));
+                    () => InstanceManager.Instance.CreateInstanceWithInjection(type)));
             }
         }
 
         return handlers.Values;
     }
-
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
-        Justification = "On successful registration InstanceManager owns the ConnectionHub lifetime; registration failure disposes the local instance.")]
-    private void EnsureConnectionHubRegistered()
-    {
-        if (_state.HasCustomConnectionHub)
-        {
-            return;
-        }
-
-        ConnectionHub hub = new(logger: _state.Logger);
-        try
-        {
-            InstanceManager.Instance.Register<IConnectionHub>(hub);
-        }
-        catch
-        {
-            hub.Dispose();
-            throw;
-        }
-    }
-
-    private void EnsureSessionServiceRegistered()
-    {
-        ISessionService? service = InstanceManager.Instance.GetExistingInstance<ISessionService>();
-
-        if (service == null)
-        {
-            ISessionFactory? factory = InstanceManager.Instance.GetExistingInstance<ISessionFactory>();
-            ISessionStore? store = InstanceManager.Instance.GetExistingInstance<ISessionStore>();
-
-#pragma warning disable CA2000 // Dispose objects before losing scope
-            service = new SessionService(factory, store);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-            try
-            {
-                InstanceManager.Instance.Register<ISessionService>(service);
-            }
-            catch
-            {
-                if (service is IDisposable disposable)
-                {
-                    disposable.Dispose();
-                }
-                throw;
-            }
-        }
-
-        if (InstanceManager.Instance.GetExistingInstance<SessionPersistenceObserver>() == null)
-        {
-            IConnectionHub? hub = InstanceManager.Instance.GetExistingInstance<IConnectionHub>();
-            if (hub is not null)
-            {
-#pragma warning disable CA2000 // Dispose objects before losing scope
-                SessionPersistenceObserver observer = new(hub, service);
-#pragma warning restore CA2000 // Dispose objects before losing scope
-                InstanceManager.Instance.Register<SessionPersistenceObserver>(observer);
-            }
-        }
-    }
-
-    [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope",
-        Justification = "On successful registration InstanceManager and BufferLease.ByteArrayPool own the manager lifetime; failure disposes the local instance.")]
-    private void EnsureBufferPoolManagerRegistered()
-    {
-        if (_state.HasCustomBufferPoolManager)
-        {
-            return;
-        }
-
-        BufferPoolManager manager = new();
-        try
-        {
-            InstanceManager.Instance.Register<BufferPoolManager>(manager);
-            BufferLease.ByteArrayPool.Configure(manager);
-        }
-        catch
-        {
-            manager.Dispose();
-            throw;
-        }
-    }
-
-
-    private static void RegisterLogger(HostingBuilderContext state) => InstanceManager.Instance.Register<ILogger>(state.Logger);
 
     private static void ApplyOptions(HostingBuilderContext state)
     {
@@ -593,35 +520,6 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
 
         MethodInfo? validateMethod = typeof(TOptions).GetMethod("Validate", BindingFlags.Instance | BindingFlags.Public);
         _ = (validateMethod?.Invoke(options, parameters: null));
-    }
-
-    private static void RegisterPacketRegistry()
-    {
-        if (PacketRegistry.IsBuilt)
-        {
-            return;
-        }
-
-        PacketRegistry.Build();
-    }
-
-    private static void RegisterMetadataProviders(HostingBuilderContext state)
-    {
-        for (int i = 0; i < state.MetadataProviders.Count; i++)
-        {
-            PacketMetadataProviderDescriptor registration = state.MetadataProviders[i];
-            PacketMetadataProviders.Register(registration.Factory());
-        }
-    }
-
-
-    private static void RegisterHandlerCore<THandler>(PacketDispatchOptions<IPacket> dispatchOptions, Func<object> factory)
-        where THandler : class
-    {
-        ArgumentNullException.ThrowIfNull(dispatchOptions);
-        ArgumentNullException.ThrowIfNull(factory);
-
-        _ = dispatchOptions.WithHandler(() => (THandler)factory());
     }
 
     #endregion

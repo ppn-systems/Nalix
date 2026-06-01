@@ -2,7 +2,9 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.ComponentModel;
 using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 
@@ -39,21 +41,32 @@ public partial interface IConnection : IDisposable, IConnectionErrorTracked
     long UpTime { get; }
 
     /// <summary>
-    /// Gets the total number of bytes sent over the connection.
-    /// Useful for monitoring bandwidth usage and data transfer statistics.
-    /// </summary>
-    long BytesSent { get; }
-
-    /// <summary>
-    /// Gets the total number of bytes received over the life of the connection.
-    /// </summary>
-    long BytesReceived { get; }
-
-    /// <summary>
     /// Gets the ping time (round-trip time) for the connection, measured in milliseconds.
     /// This value can help determine the latency of the network connection.
     /// </summary>
     long LastPingTime { get; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether idle timeout enforcement is applied to this connection.
+    /// </summary>
+    /// <remarks>
+    /// Connections may initially be registered with the idle timeout scheduler regardless of this value.
+    /// When set to <see langword="false"/>, the connection is permanently excluded from automatic
+    /// idle timeout management.
+    ///
+    /// Once disabled, idle timeout enforcement cannot be re-enabled for the same connection.
+    /// The connection lifetime must then be managed externally.
+    ///
+    /// This property should only be disabled for specialized scenarios such as raw passthrough
+    /// transports.
+    /// </remarks>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    bool ExcludeFromIdleTimeout { get; set; }
+
+    /// <summary>
+    /// Gets the OP code extractor responsible for parsing incoming messages and determining their types.
+    /// </summary>
+    IOpCodeExtractor PacketClassifier { get; }
 
     /// <summary>
     /// Key identifying the endpoint associated with the connection.

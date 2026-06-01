@@ -1228,6 +1228,7 @@ public static class Setup
         const string source = """
 namespace Demo;
 using Nalix.Hosting;
+using Nalix.Hosting.Protocols;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 
@@ -1254,6 +1255,7 @@ public static class Setup
         const string source = """
 namespace Demo;
 using Nalix.Hosting;
+using Nalix.Hosting.Protocols;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Network.Connections;
 

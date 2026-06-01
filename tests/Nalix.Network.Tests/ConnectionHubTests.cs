@@ -5,6 +5,7 @@ using System.Security.Cryptography;
 using FluentAssertions;
 using Nalix.Abstractions.Identity;
 using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
 using Nalix.Hosting.Internal;
@@ -16,12 +17,20 @@ namespace Nalix.Network.Tests;
 [SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
 public sealed class ConnectionHubTests
 {
+    private static readonly IOpCodeExtractor s_testOpCodeExtractor = new TestOpCodeExtractor();
+
+    private sealed class TestOpCodeExtractor : IOpCodeExtractor
+    {
+        public ushort Extract(System.ReadOnlySpan<byte> payload) =>
+            payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
+    }
+
     [Fact]
     public async Task RegisterConnection_IncrementsCount_AndAllowsLookup()
     {
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         hub.RegisterConnection(connection);
 
@@ -34,7 +43,7 @@ public sealed class ConnectionHubTests
     {
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         IConnection? observed = null;
         hub.ConnectionUnregistered += c => observed = c;
@@ -54,8 +63,8 @@ public sealed class ConnectionHubTests
         using ConnectionHub hub = new();
         using ConnectedSocketScope scope1 = await ConnectedSocketScope.CreateAsync();
         using ConnectedSocketScope scope2 = await ConnectedSocketScope.CreateAsync();
-        using Connection connection1 = new(scope1.ServerSocket);
-        using Connection connection2 = new(scope2.ServerSocket);
+        using Connection connection1 = new(scope1.ServerSocket, s_testOpCodeExtractor);
+        using Connection connection2 = new(scope2.ServerSocket, s_testOpCodeExtractor);
 
         hub.RegisterConnection(connection1);
         hub.RegisterConnection(connection2);
@@ -83,7 +92,7 @@ public sealed class ConnectionHubTests
         using ConnectionHub hub = new();
         using SessionPersistenceObserver observer = new(hub, sessionService);
         using ConnectedSocketScope scope = await ConnectedSocketScope.CreateAsync();
-        using Connection connection = new(scope.ServerSocket);
+        using Connection connection = new(scope.ServerSocket, s_testOpCodeExtractor);
 
         connection.Secret = new Bytes32(RandomNumberGenerator.GetBytes(Bytes32.Size));
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;

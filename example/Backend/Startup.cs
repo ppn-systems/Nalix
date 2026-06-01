@@ -27,7 +27,7 @@ internal class Startup
 
     public static ILogger CreateBootstrapLogger() => new NLogix(
         cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-                  .SetMinimumLevel(LogLevel.Information)
+                  .SetMinimumLevel(LogLevel.Trace)
     );
 
     public static NetworkApplication Configure(ILogger logger)
@@ -183,7 +183,7 @@ internal class Startup
 
                 // For local/single-IP benchmark, keep this high.
                 // For production, use 64-512 instead.
-                o.MaxPendingPerIp = 50_000;
+                o.MaxPendingPerIp = 512;
 
                 o.MaxPooledCallbackStates = 100_000;
                 o.FairnessMapSize = 65_536;
@@ -336,6 +336,7 @@ internal class Startup
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .BindTcp<DefaultProtocol>()
+                .WithFraming(Nalix.Abstractions.Networking.TransportFraming.UInt16LengthPrefixed)
                 .Bind()
             .BindWebSocket<DefaultProtocol>()
                 .OnPort(57207)

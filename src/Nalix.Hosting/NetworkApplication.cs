@@ -14,6 +14,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Framework;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal;
+using Nalix.Hosting.Protocols;
 using Nalix.Runtime.Dispatching;
 
 #pragma warning disable NALIX040 // NetworkApplicationBuilder should configure BufferPoolManager

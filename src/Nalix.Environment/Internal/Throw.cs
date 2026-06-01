@@ -23,6 +23,9 @@ internal static class Throw
     private static readonly ArgumentOutOfRangeException s_advanceOutOfBound =
         new CachedArgumentOutOfRangeException("count", "Advance out of buffer bounds.");
 
+    private static readonly FormatException s_overlongLeb128 =
+        new("LEB128 sequence is overlong or corrupt (exceeds 5 bytes for a 32-bit value).");
+
     [DoesNotReturn]
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -37,6 +40,11 @@ internal static class Throw
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public static void AdvanceOutOfBound() => throw s_advanceOutOfBound;
+
+    [DoesNotReturn]
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    public static void OverlongLeb128() => throw s_overlongLeb128;
 
     [StackTraceHidden]
     private sealed class CachedSerializationException(string message) : SerializationFailureException(message)

@@ -24,6 +24,8 @@ namespace Nalix.Runtime.Handlers;
 [PacketController("Nalix.Control")]
 public sealed class SystemControlHandlers
 {
+    private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
     /// <summary>
     /// Handles incoming system control packets.
     /// </summary>
@@ -41,19 +43,19 @@ public sealed class SystemControlHandlers
         switch (packet.Type)
         {
             case ControlType.DISCONNECT:
-                HandleDisconnect(context.Connection, packet);
+                HandleDisconnect(context, packet);
                 break;
             case ControlType.PING:
-                await HandlePing(context.Connection, packet).ConfigureAwait(false);
+                await HandlePing(context, packet).ConfigureAwait(false);
                 break;
             case ControlType.CIPHER_UPDATE:
-                await HandleCipherUpdate(context.Connection, packet).ConfigureAwait(false);
+                await HandleCipherUpdate(context, packet).ConfigureAwait(false);
                 break;
             case ControlType.TIMESYNCREQUEST:
-                await HandleTimeSyncRequest(context.Connection, packet).ConfigureAwait(false);
+                await HandleTimeSyncRequest(context, packet).ConfigureAwait(false);
                 break;
             case ControlType.ERROR:
-                HandleError(context.Connection, packet);
+                HandleError(context, packet);
                 break;
             case ControlType.FAIL:
                 HandleFail(context.Connection, packet);
@@ -82,15 +84,9 @@ public sealed class SystemControlHandlers
         }
     }
 
-    #region Fields
-
-    private static ILogger? Logging => InstanceManager.Instance.GetExistingInstance<ILogger>();
-
-    #endregion Fields
-
     #region Private Methods
 
-    private static async ValueTask HandleCipherUpdate(IConnection connection, Control packet)
+    private static async ValueTask HandleCipherUpdate(IPacketContext<Control> context, Control packet)
     {
         // SEC-40: Validate the enum value to prevent protocol DoS via invalid algorithm state.
         byte rawValue = (byte)packet.Reason;
@@ -99,6 +95,7 @@ public sealed class SystemControlHandlers
             return;
         }
 
+        IConnection connection = context.Connection;
         CipherSuiteType requestedSuite = (CipherSuiteType)rawValue;
 
         // SEC-74: Prevent pre-auth crypto policy tampering.
@@ -114,10 +111,10 @@ public sealed class SystemControlHandlers
         Control ack = lease.Value;
         ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
 
-        await connection.TCP.SendAsync(ack).ConfigureAwait(false);
+        await context.Sender.SendAsync(ack).ConfigureAwait(false);
     }
 
-    private static async ValueTask HandlePing(IConnection connection, Control ping)
+    private static async ValueTask HandlePing(IPacketContext<Control> context, Control ping)
     {
         using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
 
@@ -131,10 +128,10 @@ public sealed class SystemControlHandlers
             ProtocolReason.NONE);
 
         // Send immediately to minimize RTT (no buffering / batching)
-        await connection.TCP.SendAsync(pong).ConfigureAwait(false);
+        await context.Sender.SendAsync(pong).ConfigureAwait(false);
     }
 
-    private static async ValueTask HandleTimeSyncRequest(IConnection connection, Control req)
+    private static async ValueTask HandleTimeSyncRequest(IPacketContext<Control> context, Control req)
     {
         using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control res = lease.Value;
@@ -143,18 +140,20 @@ public sealed class SystemControlHandlers
         res.Timestamp = Clock.UnixMillisecondsNow(); // t3
         res.MonoTicks = req.MonoTicks;               // echo t1'
 
-        await connection.TCP.SendAsync(res).ConfigureAwait(false);
+        await context.Sender.SendAsync(res).ConfigureAwait(false);
     }
 
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]
-    private static void HandleDisconnect(IConnection connection, Control packet)
+    private static void HandleDisconnect(IPacketContext<Control> context, Control packet)
     {
-        connection.Disconnect("Client requested disconnect via Control frame.");
+        context.Connection.Disconnect("Client requested disconnect via Control frame.");
     }
 
-    private static void HandleError(IConnection connection, Control packet)
+    private static void HandleError(IPacketContext<Control> context, Control packet)
     {
+        IConnection connection = context.Connection;
+
         connection.Disconnect($"Client reported ERROR: {packet.Reason}");
 
         if (connection.Level < PermissionLevel.USER)
@@ -167,10 +166,9 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (Logging != null &&
-            Logging.IsEnabled(LogLevel.Error))
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
         {
-            Logging.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            s_logger.LogError("[RT.SystemControl] error ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
     }
 
@@ -188,10 +186,9 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (Logging != null &&
-            Logging.IsEnabled(LogLevel.Warning))
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
         {
-            Logging.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            s_logger.LogWarning("[RT.SystemControl] fail ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
     }
 
@@ -207,10 +204,9 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        if (Logging != null &&
-            Logging.IsEnabled(LogLevel.Debug))
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
         {
-            Logging.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
+            s_logger.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
     }
 

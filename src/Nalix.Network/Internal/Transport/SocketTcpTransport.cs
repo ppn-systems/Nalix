@@ -4,14 +4,15 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
-using Nalix.Environment.Memory;
 using Nalix.Network.Connections;
+using Nalix.Network.Internal.Abstractions;
 using Nalix.Network.Internal.Security;
 
 #if DEBUG
@@ -24,16 +25,22 @@ namespace Nalix.Network.Internal.Transport;
 [SkipLocalsInit]
 [DebuggerNonUserCode]
 [EditorBrowsable(EditorBrowsableState.Never)]
-internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransport
+internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDisposable
 {
     #region Fields
 
-    private readonly Connection _outer = outer;
-    private TransportSequencer _sequencer = new();
+    private readonly Connection _outer;
+    private readonly SocketConnection _socket;
+    private readonly TransportSequencer _sequencer;
 
     #endregion Fields
 
     #region Properties
+
+    public TransportFraming Framing { get; private set; }
+
+    /// <inheritdoc/>
+    public System.Net.Sockets.Socket Socket => _socket.Socket;
 
     /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sequencer.SendSequence;
@@ -41,34 +48,73 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
     /// <inheritdoc/>
     public ISequenceCounter ReceiveSequence => _sequencer.ReceiveSequence;
 
+    /// <inheritdoc/>
+    public long BytesSent => _socket.BytesSent;
+
+    /// <inheritdoc/>
+    public long BytesReceived => _socket.BytesReceived;
+
+    /// <inheritdoc/>
+    public long Uptime => _socket.Uptime;
+
+    /// <inheritdoc/>
+    public long LastPingTime
+    {
+        get => _socket.LastPingTime;
+        set => _socket.LastPingTime = value;
+    }
+
     #endregion Properties
+
+    #region Constructor
+
+    /// <inheritdoc/>
+    public SocketTcpTransport(Socket socket, Connection connection, ITransportEventSink eventSink, ILogger? logger)
+    {
+        _sequencer = new();
+        _outer = connection;
+        _socket = new SocketConnection(socket, connection, eventSink, logger);
+    }
+
+    #endregion Constructor
 
     #region APIs
 
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public void BeginReceive(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_outer.IsDisposed, nameof(Connection));
-        _outer.Socket.BeginReceive(cancellationToken);
+        _socket.BeginReceive(cancellationToken);
     }
 
+    /// <inheritdoc/>
     [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void Send(IPacket packet)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void UseFraming(TransportFraming framing)
     {
-        int packetLength = packet.Length;
-        if (packetLength == 0)
-        {
-            throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
-        int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWrittenHeap);
-        this.Send(lease.Span);
+        this.Framing = framing;
+        _socket.SetFraming(framing);
     }
 
+    /// <inheritdoc/>
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void InjectPreReadBytes(ReadOnlySpan<byte> preReadData) => _socket.InjectPreReadBytes(preReadData);
+
+    /// <inheritdoc/>
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public System.Net.Sockets.Socket Unwrap() => _socket.Unwrap();
+
+    /// <inheritdoc/>
+    public Task? ReceiveLoopTask => _socket.ReceiveLoopTask;
+
+    /// <inheritdoc/>
+    public byte[]? StolenData => _socket.StolenData;
+
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public void Send(ReadOnlySpan<byte> message)
@@ -78,26 +124,10 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
             throw new ArgumentException("Message must not be empty.", nameof(message));
         }
 
-        _outer.Socket.Send(message);
+        _socket.Send(message);
     }
 
-    [StackTraceHidden]
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    [AsyncMethodBuilder(typeof(PoolingAsyncValueTaskMethodBuilder))]
-    public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-    {
-        int packetLength = packet.Length;
-        if (packetLength == 0)
-        {
-            throw new ArgumentException("Packet length must be greater than zero.", nameof(packet));
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength);
-        int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWrittenHeap);
-        await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
-    }
-
+    /// <inheritdoc/>
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]
     public async ValueTask SendAsync(ReadOnlyMemory<byte> message, CancellationToken cancellationToken = default)
@@ -107,8 +137,11 @@ internal sealed class SocketTcpTransport(Connection outer) : IConnection.ITransp
             throw new ArgumentException("Message must not be empty.", nameof(message));
         }
 
-        await _outer.Socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
+        await _socket.SendAsync(message, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc/>
+    public void Dispose() => _socket.Dispose();
 
     #endregion APIs
 }

@@ -23,6 +23,12 @@ namespace Nalix.Runtime.Dispatching;
 public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable, IDisposable
     where TPacket : IPacket
 {
+    #region Static
+
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
+
+    #endregion Static
+
     #region Fields
 
     private int _state;
@@ -109,11 +115,8 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
     {
         PoolingOptions options = ConfigurationManager.Instance.Get<PoolingOptions>();
 
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .Prealloc<PacketContext<TPacket>>(options.PacketContextPreallocate);
-
-        _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                    .SetMaxCapacity<PacketContext<TPacket>>(options.PacketContextCapacity);
+        _ = s_pool.Prealloc<PacketContext<TPacket>>(options.PacketContextPreallocate);
+        _ = s_pool.SetMaxCapacity<PacketContext<TPacket>>(options.PacketContextCapacity);
     }
 
 
@@ -188,8 +191,7 @@ public sealed class PacketContext<TPacket> : IPacketContext<TPacket>, IPoolable,
             return;
         }
 
-        InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
-                                .Return(this);
+        s_pool.Return(this);
     }
 
     /// <summary>

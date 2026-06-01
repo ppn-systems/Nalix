@@ -13,10 +13,8 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
-using Nalix.Environment.Memory;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Connections;
@@ -27,6 +25,7 @@ using Nalix.Network.Options;
 #if DEBUG
 [assembly: InternalsVisibleTo("Nalix.Network.Tests")]
 [assembly: InternalsVisibleTo("Nalix.Network.Benchmarks")]
+[assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]
 #endif
 
 namespace Nalix.Network.Internal.Transport;
@@ -50,6 +49,9 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #endregion Static Factory
 
     #region Properties
+
+    /// <inheritdoc/>
+    public TransportFraming Framing => TransportFraming.None;
 
     /// <inheritdoc/>
     public ISequenceCounter SendSequence => _sequencer.SendSequence;
@@ -124,7 +126,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Lifecycle
 
     /// <summary>
-    /// Sets an external socket to be used for transmission. 
+    /// Sets an external socket to be used for transmission.
     /// Used when the transport should share the listener's socket.
     /// </summary>
     internal void SetSocket(Socket socket)
@@ -141,7 +143,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     }
 
     /// <summary>
-    /// Initializes the transport with a target endpoint. 
+    /// Initializes the transport with a target endpoint.
     /// If no socket is currently set, a new one is created.
     /// </summary>
     public void Initialize(ref IPEndPoint iPEndPoint)
@@ -228,23 +230,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     #region Transmission
 
     /// <inheritdoc/>
-    public void Send(IPacket packet)
-    {
-        ArgumentNullException.ThrowIfNull(packet);
-        int packetLength = packet.Length;
-
-        if (packetLength == 0)
-        {
-            return;
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
-        int written = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(written);
-        this.Send(lease.Span);
-    }
-
-    /// <inheritdoc/>
     public void Send(ReadOnlySpan<byte> message)
     {
         if (message.IsEmpty || _endPoint == null || _socket == null)
@@ -270,23 +255,6 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
         {
             Throw.UdpSendFailedNow();
         }
-    }
-
-    /// <inheritdoc/>
-    public async ValueTask SendAsync(IPacket packet, CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(packet);
-        int packetLength = packet.Length;
-
-        if (packetLength == 0)
-        {
-            return;
-        }
-
-        using BufferLease lease = BufferLease.Rent(packetLength + (packetLength / 20));
-        int bytesWrittenHeap = packet.Serialize(lease.SpanFull);
-        lease.CommitLength(bytesWrittenHeap);
-        await this.SendAsync(lease.Memory, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
@@ -323,6 +291,12 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     {
         // Outbound transport does not handle incoming packets directly.
         // Reception is managed by UdpListenerBase or similar listener logic.
+    }
+
+    /// <inheritdoc/>
+    public void UseFraming(TransportFraming framing)
+    {
+        // TODO: Review framing behavior. WebSocket currently relies on its built-in message framing.
     }
 
     /// <summary>

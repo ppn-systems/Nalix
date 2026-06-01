@@ -61,6 +61,13 @@ public sealed partial class PacketDrainOptions : ConfigurationLoader, IValidatab
     public int MaxDispatchLoops { get; set; } = 64;
 
     /// <summary>
+    /// The offset added to the Minecraft Packet ID to map it to a unique Nalix OpCode.
+    /// Default is 0x1000 (4096).
+    /// </summary>
+    [System.ComponentModel.DataAnnotations.Range(0, ushort.MaxValue, ErrorMessage = "VirtualOpCodeOffset must be a valid ushort.")]
+    public ushort VirtualOpCodeOffset { get; set; } = 0x1000;
+
+    /// <summary>
     /// Validates the configuration options and throws if any values are invalid.
     /// </summary>
     public void Validate()

@@ -2,13 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using Microsoft.Extensions.Logging;
-using Nalix.Abstractions;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
-using Nalix.Codec.Transforms;
-using Nalix.Hosting.Internal.Exceptions;
-using Nalix.Network.Connections;
 using Nalix.Network.Listeners.Udp;
 
 namespace Nalix.Hosting.Internal;
@@ -42,70 +36,5 @@ internal sealed class UdpServerListener : UdpListenerBase
 
         // By default, hosting allows all datagrams that pass the session token check.
         return true;
-    }
-
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        ArgumentNullException.ThrowIfNull(args);
-
-        if (args is not ConnectionEventArgs replaceable)
-        {
-            return;
-        }
-
-        if (args.Lease is not { } lease)
-        {
-            Throw.EventArgsMustHaveLease();
-            return;
-        }
-        IBufferLease current = lease;
-        bool exchanged = false;
-
-        try
-        {
-            FramePipeline.ProcessInbound(ref current, args.Connection.Secret.AsSpan(), args.Connection.Algorithm, out uint? seq);
-
-            if (!args.Connection.UDP.ReceiveSequence.IsValid(seq, window: this.SequenceOptions.UdpWindow))
-            {
-                return;
-            }
-
-            if (!ReferenceEquals(current, lease))
-            {
-                replaceable.ExchangeLease(current)?.Dispose();
-                lease = current;
-                exchanged = true;
-            }
-
-            this.Protocol.ProcessMessage(sender, args);
-
-            if (seq.HasValue)
-            {
-                args.Connection.UDP.ReceiveSequence.UpdateTo(seq.Value);
-            }
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            if (ex is CipherException or InvalidCastException or InvalidOperationException or SerializationFailureException or ArgumentOutOfRangeException)
-            {
-#if DEBUG
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-                {
-                    this.Logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
-                }
-#endif
-            }
-            else
-            {
-                args.Connection.ThrottledError(this.Logger, "protocol.process_error", $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
-            }
-        }
-        finally
-        {
-            if (!exchanged && !ReferenceEquals(current, lease))
-            {
-                current.Dispose();
-            }
-        }
     }
 }

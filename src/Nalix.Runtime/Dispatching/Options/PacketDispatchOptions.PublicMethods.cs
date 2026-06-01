@@ -14,6 +14,7 @@ using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Framework.Injection;
 using Nalix.Runtime.Dispatching;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Results;
@@ -149,17 +150,18 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
     /// <summary>
     /// Registers a controller type and scans its public methods for packet handler attributes.
+    /// The controller is instantiated via <see cref="InstanceManager.CreateInstanceWithInjection{T}"/>,
+    /// which auto-resolves constructor parameters from the instance cache.
     /// </summary>
-    /// <typeparam name="TController">
-    /// The type of the controller to register. Must have a parameterless constructor.
-    /// </typeparam>
+    /// <typeparam name="TController">The type of the controller to register.</typeparam>
     /// <returns>The current <see cref="PacketDispatchOptions{TPacket}"/> instance for chaining.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     public PacketDispatchOptions<TPacket> WithHandler<[
         DynamicallyAccessedMembers(
             DynamicallyAccessedMemberTypes.PublicMethods |
-            DynamicallyAccessedMemberTypes.PublicParameterlessConstructor)] TController>()
-        where TController : class, new() => this.WithHandler(() => new TController());
+            DynamicallyAccessedMemberTypes.PublicConstructors)] TController>()
+        where TController : class
+        => this.WithHandler(InstanceManager.Instance.CreateInstanceWithInjection<TController>);
 
     /// <summary>
     /// Registers a handler using an existing controller instance.
