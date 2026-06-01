@@ -5,16 +5,16 @@ namespace Nalix.LoadTester.Running;
 
 internal sealed class WorkloadState
 {
-    private Int32 _phase = (Int32)WorkloadPhase.RampUp;
-    private Int32 _activeWorkers;
+    private int _phase = (int)WorkloadPhase.RampUp;
+    private int _activeWorkers;
 
     public WorkloadPhase Phase
     {
         get => (WorkloadPhase)Volatile.Read(ref _phase);
-        set => Volatile.Write(ref _phase, (Int32)value);
+        set => Volatile.Write(ref _phase, (int)value);
     }
 
-    public Int32 ActiveWorkers => Volatile.Read(ref _activeWorkers);
+    public int ActiveWorkers => Volatile.Read(ref _activeWorkers);
 
     public void WorkerStarted() => Interlocked.Increment(ref _activeWorkers);
 

@@ -17,9 +17,9 @@ internal static class Program
     {
         Console.OutputEncoding = System.Text.Encoding.UTF8;
 
-        if (!LoadTestOptions.TryParse(args, out LoadTestOptions options, out string? error, out Boolean showHelp))
+        if (!LoadTestOptions.TryParse(args, out LoadTestOptions options, out string? error, out bool showHelp))
         {
-            if (!String.IsNullOrWhiteSpace(error))
+            if (!string.IsNullOrWhiteSpace(error))
             {
                 Console.Error.WriteLine(error);
                 Console.Error.WriteLine();

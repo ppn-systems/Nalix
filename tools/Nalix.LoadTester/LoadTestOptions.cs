@@ -7,41 +7,41 @@ namespace Nalix.LoadTester;
 
 internal sealed class LoadTestOptions
 {
-    public Boolean UseProxyProtocol { get; private init; }
+    public bool UseProxyProtocol { get; private init; }
 
     public LoadTestScenarioKind Scenario { get; private init; } = LoadTestScenarioKind.Payload;
 
-    public String Host { get; private init; } = "127.0.0.1";
+    public string Host { get; private init; } = "127.0.0.1";
 
-    public UInt16 Port { get; private init; } = 57206;
+    public ushort Port { get; private init; } = 57206;
 
-    public Int32 Connections { get; private init; } = 500;
+    public int Connections { get; private init; } = 500;
 
-    public Int32 DurationSeconds { get; private init; } = 15;
+    public int DurationSeconds { get; private init; } = 15;
 
-    public Int32 TimeoutMs { get; private init; } = 5000;
+    public int TimeoutMs { get; private init; } = 5000;
 
-    public Int32 PayloadSize { get; private init; } = 1500;
+    public int PayloadSize { get; private init; } = 1500;
 
-    public Int32 ReportIntervalSeconds { get; private init; } = 1;
+    public int ReportIntervalSeconds { get; private init; } = 1;
 
-    public Int32 SampleCapacity { get; private init; } = 10_000_000;
+    public int SampleCapacity { get; private init; } = 10_000_000;
 
-    public Int32 StartConnections { get; private init; } = 1;
+    public int StartConnections { get; private init; } = 1;
 
-    public Int32 RampUpSeconds { get; private init; }
+    public int RampUpSeconds { get; private init; }
 
-    public Int32 WarmupSeconds { get; private init; }
+    public int WarmupSeconds { get; private init; }
 
-    public Int32 CooldownSeconds { get; private init; }
+    public int CooldownSeconds { get; private init; }
 
-    public String? OutputPath { get; private init; }
+    public string? OutputPath { get; private init; }
 
-    public static Boolean TryParse(
-        String[] args,
+    public static bool TryParse(
+        string[] args,
         out LoadTestOptions options,
-        out String? error,
-        out Boolean showHelp)
+        out string? error,
+        out bool showHelp)
     {
         ArgumentNullException.ThrowIfNull(args);
 
@@ -49,9 +49,9 @@ internal sealed class LoadTestOptions
         error = null;
         showHelp = false;
 
-        for (Int32 i = 0; i < args.Length; i++)
+        for (int i = 0; i < args.Length; i++)
         {
-            String arg = args[i];
+            string arg = args[i];
             if (StringComparer.Ordinal.Equals(arg, "--help") || StringComparer.Ordinal.Equals(arg, "-h"))
             {
                 showHelp = true;
@@ -66,9 +66,9 @@ internal sealed class LoadTestOptions
                 return false;
             }
 
-            String name;
-            String value;
-            Int32 equalsIndex = arg.IndexOf('=', StringComparison.Ordinal);
+            string name;
+            string value;
+            int equalsIndex = arg.IndexOf('=', StringComparison.Ordinal);
             if (equalsIndex >= 0)
             {
                 name = arg[..equalsIndex];
@@ -136,11 +136,11 @@ internal sealed class LoadTestOptions
         writer.WriteLine("  --proxy-protocol (Enable Proxy Protocol V2 injection)");
     }
 
-    private Boolean Validate(out String? error)
+    private bool Validate(out string? error)
     {
         error = null;
 
-        if (String.IsNullOrWhiteSpace(this.Host))
+        if (string.IsNullOrWhiteSpace(this.Host))
         {
             error = "--host cannot be empty.";
             return false;
@@ -212,9 +212,9 @@ internal sealed class LoadTestOptions
             return false;
         }
 
-        if (!String.IsNullOrWhiteSpace(this.OutputPath))
+        if (!string.IsNullOrWhiteSpace(this.OutputPath))
         {
-            String extension = Path.GetExtension(this.OutputPath);
+            string extension = Path.GetExtension(this.OutputPath);
             if (!StringComparer.OrdinalIgnoreCase.Equals(extension, ".json") &&
                 !StringComparer.OrdinalIgnoreCase.Equals(extension, ".csv") &&
                 !StringComparer.OrdinalIgnoreCase.Equals(extension, ".md"))
@@ -230,20 +230,20 @@ internal sealed class LoadTestOptions
     private sealed class Builder
     {
         private LoadTestScenarioKind _scenario = LoadTestScenarioKind.Payload;
-        private String _host = "127.0.0.1";
-        private UInt16 _port = 57206;
-        private Int32 _connections = 500;
-        private Int32 _durationSeconds = 15;
-        private Int32 _timeoutMs = 5000;
-        private Int32 _payloadSize = 1500;
-        private Int32 _reportIntervalSeconds = 1;
-        private Int32 _sampleCapacity = 10_000_000;
-        private Int32 _startConnections = 1;
-        private Int32 _rampUpSeconds;
-        private Int32 _warmupSeconds;
-        private Int32 _cooldownSeconds;
-        private String? _outputPath;
-        private Boolean _useProxyProtocol;
+        private string _host = "127.0.0.1";
+        private ushort _port = 57206;
+        private int _connections = 500;
+        private int _durationSeconds = 15;
+        private int _timeoutMs = 5000;
+        private int _payloadSize = 1500;
+        private int _reportIntervalSeconds = 1;
+        private int _sampleCapacity = 10_000_000;
+        private int _startConnections = 1;
+        private int _rampUpSeconds;
+        private int _warmupSeconds;
+        private int _cooldownSeconds;
+        private string? _outputPath;
+        private bool _useProxyProtocol;
 
         public LoadTestOptions Build() => new()
         {
@@ -264,7 +264,7 @@ internal sealed class LoadTestOptions
             OutputPath = _outputPath
         };
 
-        public Boolean TrySet(String name, String value, out String? error)
+        public bool TrySet(string name, string value, out string? error)
         {
             error = null;
 
@@ -343,9 +343,9 @@ internal sealed class LoadTestOptions
             }
         }
 
-        private static Boolean TryParseInt32(String value, String name, out Int32 result, out String? error)
+        private static bool TryParseInt32(string value, string name, out int result, out string? error)
         {
-            if (Int32.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result))
+            if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result))
             {
                 error = null;
                 return true;
@@ -355,9 +355,9 @@ internal sealed class LoadTestOptions
             return false;
         }
 
-        private static Boolean TryParseUInt16(String value, String name, out UInt16 result, out String? error)
+        private static bool TryParseUInt16(string value, string name, out ushort result, out string? error)
         {
-            if (UInt16.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result) && result > 0)
+            if (ushort.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out result) && result > 0)
             {
                 error = null;
                 return true;

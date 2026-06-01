@@ -5,19 +5,19 @@ namespace Nalix.LoadTester.Metrics;
 
 internal sealed class LatencySampleBuffer
 {
-    private readonly Double[] _samples;
-    private Int64 _sampleIndex;
+    private readonly double[] _samples;
+    private long _sampleIndex;
 
-    public LatencySampleBuffer(Int32 capacity)
+    public LatencySampleBuffer(int capacity)
     {
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
-        _samples = new Double[capacity];
+        _samples = new double[capacity];
     }
 
-    public void Add(Double latencyMs)
+    public void Add(double latencyMs)
     {
-        Int64 index = Interlocked.Increment(ref _sampleIndex) - 1;
-        _samples[(Int32)(index % _samples.Length)] = latencyMs;
+        long index = Interlocked.Increment(ref _sampleIndex) - 1;
+        _samples[(int)(index % _samples.Length)] = latencyMs;
     }
 
     public void Reset()
@@ -26,7 +26,7 @@ internal sealed class LatencySampleBuffer
         Array.Clear(_samples);
     }
 
-    public Double[] Snapshot(out Int64 count)
+    public double[] Snapshot(out long count)
     {
         count = Math.Min(Volatile.Read(ref _sampleIndex), _samples.Length);
         if (count == 0)
@@ -34,8 +34,8 @@ internal sealed class LatencySampleBuffer
             return [];
         }
 
-        Int32 length = (Int32)count;
-        Double[] activeSamples = new Double[length];
+        int length = (int)count;
+        double[] activeSamples = new double[length];
         Array.Copy(_samples, 0, activeSamples, 0, length);
         Array.Sort(activeSamples);
         return activeSamples;

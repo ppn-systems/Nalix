@@ -1,6 +1,6 @@
-﻿# Packet Pooling
+# Packet Pooling
 
-`Nalix.Runtime.Pooling` provides packet-specific pooling helpers for reusable packet instances.
+`Nalix.Codec.Pooling` provides packet-specific pooling helpers for reusable packet instances.
 
 ## Source mapping
 

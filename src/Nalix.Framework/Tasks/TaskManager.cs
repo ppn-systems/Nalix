@@ -51,12 +51,12 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     private int _peakRunningWorkerCount;
     private int _recurringErrorCount;
     private long _workerWaitTicks;
-    private long _workerExecutionTicks;
-    private long _workerExecutionCount;
+    private long _workerUptimeTicks;
+    private long _workerCompletionCount;
     private long _workerScheduleSequence;
     private long _recurringExecutionTicks;
     private long _recurringExecutionCount;
-    private readonly long[] _workerLatencyBuckets = new long[11];
+    private readonly long[] _workerUptimeBuckets = new long[11];
 
     private volatile bool _disposed;
     private volatile int _currentConcurrencyLimit;
@@ -94,8 +94,8 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     /// of completed executions, so it reflects the long-term average rather than
     /// the most recent run.
     /// </remarks>
-    public double AverageWorkerExecutionTime =>
-        _workerExecutionCount == 0 ? 0 : _workerExecutionTicks / (double)_workerExecutionCount / Stopwatch.Frequency * 1000;
+    public double AverageWorkerUptime =>
+        _workerCompletionCount == 0 ? 0 : _workerUptimeTicks / (double)_workerCompletionCount / Stopwatch.Frequency * 1000;
 
     /// <summary>
     /// Gets the average execution time for recurring tasks in milliseconds.
@@ -134,17 +134,17 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
     /// Gets the average time workers spent in the queue before starting, in milliseconds.
     /// </summary>
     public double AverageWorkerWaitTime =>
-        _workerExecutionCount == 0 ? 0 : (double)_workerWaitTicks / _workerExecutionCount / 10000.0;
+        _workerCompletionCount == 0 ? 0 : (double)_workerWaitTicks / _workerCompletionCount / 10000.0;
 
     /// <summary>
-    /// Gets the 95th percentile worker execution time in milliseconds (approximation).
+    /// Gets the 95th percentile worker uptime in milliseconds (approximation).
     /// </summary>
-    public double P95WorkerExecutionTime => this.GET_WORKER_PERCENTILE(0.95);
+    public double P95WorkerUptime => this.GET_WORKER_UPTIME_PERCENTILE(0.95);
 
     /// <summary>
-    /// Gets the 99th percentile worker execution time in milliseconds (approximation).
+    /// Gets the 99th percentile worker uptime in milliseconds (approximation).
     /// </summary>
-    public double P99WorkerExecutionTime => this.GET_WORKER_PERCENTILE(0.99);
+    public double P99WorkerUptime => this.GET_WORKER_UPTIME_PERCENTILE(0.99);
 
     #endregion Properties
 
@@ -325,7 +325,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
         ObjectDisposedException.ThrowIf(_disposed, nameof(TaskManager));
 
-        _ = Interlocked.Increment(ref _workerExecutionCount);
+        _ = Interlocked.Increment(ref _workerCompletionCount);
 
         _ = ThreadPool.UnsafeQueueUserWorkItem(static tuple =>
         {

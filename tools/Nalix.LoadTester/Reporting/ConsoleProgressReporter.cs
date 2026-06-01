@@ -36,8 +36,8 @@ internal sealed class ConsoleProgressReporter
         Stopwatch stopwatch,
         MetricsCollector metrics,
         WorkloadState state,
-        Int32 peakWorkers,
-        Int32 intervalSeconds,
+        int peakWorkers,
+        int intervalSeconds,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(stopwatch);
@@ -54,11 +54,11 @@ internal sealed class ConsoleProgressReporter
                     break;
                 }
 
-                Double elapsed = stopwatch.Elapsed.TotalSeconds;
-                Double measuredElapsed = metrics.MeasuredElapsed.TotalSeconds;
-                Int64 successful = metrics.SuccessfulRequests;
-                Int64 failed = metrics.FailedRequests;
-                Double currentRps = measuredElapsed > 0 ? successful / measuredElapsed : 0;
+                double elapsed = stopwatch.Elapsed.TotalSeconds;
+                double measuredElapsed = metrics.MeasuredElapsed.TotalSeconds;
+                long successful = metrics.SuccessfulRequests;
+                long failed = metrics.FailedRequests;
+                double currentRps = measuredElapsed > 0 ? successful / measuredElapsed : 0;
 
                 Console.WriteLine($"[{elapsed:F0}s] Phase: {state.Phase} | Workers: {state.ActiveWorkers}/{peakWorkers} | Successful: {successful} | Failed: {failed} | Measured RPS: {currentRps:F1}");
             }
@@ -97,7 +97,7 @@ internal sealed class ConsoleProgressReporter
         Console.WriteLine("=========================================================");
     }
 
-    public void WriteExported(String outputPath)
+    public void WriteExported(string outputPath)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 

@@ -29,13 +29,13 @@ internal sealed class WorkerPool : IDisposable
         _parentToken = parentToken;
     }
 
-    public Int32 Count => _workers.Count;
+    public int Count => _workers.Count;
 
-    public void StartWorkers(Int32 count)
+    public void StartWorkers(int count)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(count);
 
-        for (Int32 i = 0; i < count; i++)
+        for (int i = 0; i < count; i++)
         {
             CancellationTokenSource cancellation = CancellationTokenSource.CreateLinkedTokenSource(_parentToken);
             ConnectionWorker worker = new(_options, _scenario, _metrics, _state);
@@ -53,12 +53,12 @@ internal sealed class WorkerPool : IDisposable
 
         if (duration <= TimeSpan.Zero)
         {
-            StopAll();
+            this.StopAll();
             return;
         }
 
         TimeSpan delay = TimeSpan.FromTicks(Math.Max(1, duration.Ticks / _workers.Count));
-        for (Int32 i = _workers.Count - 1; i >= 0; i--)
+        for (int i = _workers.Count - 1; i >= 0; i--)
         {
             _workers[i].Stop();
             if (i > 0)
@@ -70,7 +70,7 @@ internal sealed class WorkerPool : IDisposable
 
     public void StopAll()
     {
-        for (Int32 i = 0; i < _workers.Count; i++)
+        for (int i = 0; i < _workers.Count; i++)
         {
             _workers[i].Stop();
         }
@@ -89,7 +89,7 @@ internal sealed class WorkerPool : IDisposable
 
     public void Dispose()
     {
-        for (Int32 i = 0; i < _workers.Count; i++)
+        for (int i = 0; i < _workers.Count; i++)
         {
             _workers[i].Dispose();
         }

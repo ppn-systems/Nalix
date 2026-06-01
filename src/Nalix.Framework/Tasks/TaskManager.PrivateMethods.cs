@@ -170,9 +170,17 @@ public partial class TaskManager
     /// <param name="percentile">The percentile to calculate (e.g., 0.95 for P95).</param>
     /// <returns>The approximate latency in milliseconds.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private double GET_WORKER_PERCENTILE(double percentile)
+    private double GET_WORKER_UPTIME_PERCENTILE(double percentile)
     {
-        long total = _workerExecutionCount;
+        long[] snapshot = new long[_workerUptimeBuckets.Length];
+        long total = 0;
+        
+        for (int i = 0; i < snapshot.Length; i++)
+        {
+            snapshot[i] = Volatile.Read(ref _workerUptimeBuckets[i]);
+            total += snapshot[i];
+        }
+
         if (total == 0)
         {
             return 0;
@@ -183,9 +191,9 @@ public partial class TaskManager
 
         double[] thresholds = [1.0, 5.0, 10.0, 25.0, 50.0, 100.0, 250.0, 500.0, 1000.0, 2500.0, 5000.0];
 
-        for (int i = 0; i < _workerLatencyBuckets.Length; i++)
+        for (int i = 0; i < snapshot.Length; i++)
         {
-            accumulated += Volatile.Read(ref _workerLatencyBuckets[i]);
+            accumulated += snapshot[i];
             if (accumulated >= target)
             {
                 return thresholds[i];
@@ -557,8 +565,8 @@ public partial class TaskManager
                 if (_options.IsEnableLatency && executionStartTicks != 0)
                 {
                     long elapsedTicks = Stopwatch.GetTimestamp() - executionStartTicks;
-                    _ = Interlocked.Increment(ref _workerExecutionCount);
-                    _ = Interlocked.Add(ref _workerExecutionTicks, elapsedTicks);
+                    _ = Interlocked.Increment(ref _workerCompletionCount);
+                    _ = Interlocked.Add(ref _workerUptimeTicks, elapsedTicks);
 
                     double ms = (double)elapsedTicks / Stopwatch.Frequency * 1000.0;
                     int bucketIndex = ms switch
@@ -575,7 +583,7 @@ public partial class TaskManager
                         < 2500.0 => 9,
                         _ => 10
                     };
-                    _ = Interlocked.Increment(ref _workerLatencyBuckets[bucketIndex]);
+                    _ = Interlocked.Increment(ref _workerUptimeBuckets[bucketIndex]);
                 }
             }
 

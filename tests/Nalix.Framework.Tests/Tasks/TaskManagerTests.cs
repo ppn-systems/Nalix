@@ -33,7 +33,7 @@ public sealed class TaskManagerTests : IDisposable
         Assert.Equal("Workers: 0 running / 0 total | Recurring: 0", manager.Title);
         Assert.Equal(0, manager.WorkerErrorCount);
         Assert.Equal(0, manager.RecurringErrorCount);
-        Assert.True(manager.AverageWorkerExecutionTime >= 0);
+        Assert.True(manager.AverageWorkerUptime >= 0);
         Assert.True(manager.AverageRecurringExecutionTime >= 0);
     }
 
@@ -340,7 +340,7 @@ public sealed class TaskManagerTests : IDisposable
     }
 
     [Fact]
-    public async Task ScheduleWorkerAverageExecutionTimeTracksRuntimeInsteadOfEnqueueTime()
+    public async Task ScheduleWorkerAverageUptimeTracksRuntimeInsteadOfEnqueueTime()
     {
         using TaskManager manager = this.CreateManager(new TaskManagerOptions
         {
@@ -368,10 +368,10 @@ public sealed class TaskManagerTests : IDisposable
         _ = await completion.Task.WaitAsync(TimeSpan.FromSeconds(15));
 
         await TaskManagerTestHost.WaitUntilAsync(
-            () => manager.GetWorkers(runningOnly: false).Count == 1 && manager.AverageWorkerExecutionTime >= 100,
+            () => manager.GetWorkers(runningOnly: false).Count == 1 && manager.AverageWorkerUptime >= 100,
             TimeSpan.FromSeconds(15));
 
-        Assert.InRange(manager.AverageWorkerExecutionTime, 100, 3000);
+        Assert.InRange(manager.AverageWorkerUptime, 100, 3000);
     }
 
     [Fact]
@@ -694,7 +694,7 @@ public sealed class TaskManagerTests : IDisposable
         Assert.Contains("Recurring:", report);
         Assert.Contains("group-report", report);
         Assert.Contains("worker.report", manager.GetWorkers(runningOnly: false).Select(static workerHandle => workerHandle.Name));
-        Assert.True(manager.AverageWorkerExecutionTime >= 0);
+        Assert.True(manager.AverageWorkerUptime >= 0);
         Assert.True(manager.AverageRecurringExecutionTime >= 0);
 
         manager.CancelRecurring(recurring.Name);

@@ -7,7 +7,7 @@ namespace Nalix.LoadTester.Scenarios;
 
 internal interface ILoadScenario
 {
-    String Name { get; }
+    string Name { get; }
 
-    ValueTask<Double> ExecuteAsync(TcpSession session, CancellationToken cancellationToken);
+    ValueTask<double> ExecuteAsync(TcpSession session, CancellationToken cancellationToken);
 }

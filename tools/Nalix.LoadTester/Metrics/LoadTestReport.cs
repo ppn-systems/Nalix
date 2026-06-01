@@ -8,16 +8,16 @@ internal sealed class LoadTestReport
     public LoadTestReport(
         TimeSpan elapsed,
         TimeSpan measuredDuration,
-        Int64 successfulRequests,
-        Int64 failedRequests,
-        Int64 timeoutErrors,
-        Int64 socketErrors,
-        Int64 otherErrors,
-        Double averageLatencyMs,
-        Double p50LatencyMs,
-        Double p95LatencyMs,
-        Double p99LatencyMs,
-        Double p999LatencyMs)
+        long successfulRequests,
+        long failedRequests,
+        long timeoutErrors,
+        long socketErrors,
+        long otherErrors,
+        double averageLatencyMs,
+        double p50LatencyMs,
+        double p95LatencyMs,
+        double p99LatencyMs,
+        double p999LatencyMs)
     {
         this.Elapsed = elapsed;
         this.MeasuredDuration = measuredDuration;
@@ -37,27 +37,27 @@ internal sealed class LoadTestReport
 
     public TimeSpan MeasuredDuration { get; }
 
-    public Int64 SuccessfulRequests { get; }
+    public long SuccessfulRequests { get; }
 
-    public Int64 FailedRequests { get; }
+    public long FailedRequests { get; }
 
-    public Int64 TimeoutErrors { get; }
+    public long TimeoutErrors { get; }
 
-    public Int64 SocketErrors { get; }
+    public long SocketErrors { get; }
 
-    public Int64 OtherErrors { get; }
+    public long OtherErrors { get; }
 
-    public Double AverageLatencyMs { get; }
+    public double AverageLatencyMs { get; }
 
-    public Double P50LatencyMs { get; }
+    public double P50LatencyMs { get; }
 
-    public Double P95LatencyMs { get; }
+    public double P95LatencyMs { get; }
 
-    public Double P99LatencyMs { get; }
+    public double P99LatencyMs { get; }
 
-    public Double P999LatencyMs { get; }
+    public double P999LatencyMs { get; }
 
-    public Double RequestsPerSecond => this.MeasuredDuration.TotalSeconds > 0
+    public double RequestsPerSecond => this.MeasuredDuration.TotalSeconds > 0
         ? this.SuccessfulRequests / this.MeasuredDuration.TotalSeconds
         : 0;
 }

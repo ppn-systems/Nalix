@@ -8,26 +8,23 @@ namespace Nalix.LoadTester.Metrics;
 internal sealed class MetricsCollector
 {
     private readonly LatencySampleBuffer _latencySamples;
-    private Int64 _successfulRequests;
-    private Int64 _failedRequests;
-    private Int64 _timeoutErrors;
-    private Int64 _socketErrors;
-    private Int64 _otherErrors;
-    private Int64 _totalLatencyMs;
-    private Int64 _measurementStartTimestamp;
-    private Int64 _measuredTicks;
-    private Int32 _isMeasuring;
+    private long _successfulRequests;
+    private long _failedRequests;
+    private long _timeoutErrors;
+    private long _socketErrors;
+    private long _otherErrors;
+    private long _totalLatencyMs;
+    private long _measurementStartTimestamp;
+    private long _measuredTicks;
+    private int _isMeasuring;
 
-    public MetricsCollector(LatencySampleBuffer latencySamples)
-    {
-        _latencySamples = latencySamples ?? throw new ArgumentNullException(nameof(latencySamples));
-    }
+    public MetricsCollector(LatencySampleBuffer latencySamples) => _latencySamples = latencySamples ?? throw new ArgumentNullException(nameof(latencySamples));
 
-    public Int64 SuccessfulRequests => Volatile.Read(ref _successfulRequests);
+    public long SuccessfulRequests => Volatile.Read(ref _successfulRequests);
 
-    public Int64 FailedRequests => Volatile.Read(ref _failedRequests);
+    public long FailedRequests => Volatile.Read(ref _failedRequests);
 
-    public Boolean IsMeasuring => Volatile.Read(ref _isMeasuring) != 0;
+    public bool IsMeasuring => Volatile.Read(ref _isMeasuring) != 0;
 
     public TimeSpan MeasuredElapsed
     {
@@ -35,7 +32,7 @@ internal sealed class MetricsCollector
         {
             if (this.IsMeasuring)
             {
-                Int64 started = Volatile.Read(ref _measurementStartTimestamp);
+                long started = Volatile.Read(ref _measurementStartTimestamp);
                 return started > 0 ? Stopwatch.GetElapsedTime(started) : TimeSpan.Zero;
             }
 
@@ -45,7 +42,7 @@ internal sealed class MetricsCollector
 
     public void StartMeasurement()
     {
-        Reset();
+        this.Reset();
         Volatile.Write(ref _measurementStartTimestamp, Stopwatch.GetTimestamp());
         Volatile.Write(ref _isMeasuring, 1);
     }
@@ -57,14 +54,14 @@ internal sealed class MetricsCollector
             return;
         }
 
-        Int64 started = Volatile.Read(ref _measurementStartTimestamp);
+        long started = Volatile.Read(ref _measurementStartTimestamp);
         if (started > 0)
         {
             Volatile.Write(ref _measuredTicks, Stopwatch.GetElapsedTime(started).Ticks);
         }
     }
 
-    public void RecordSuccess(Double latencyMs)
+    public void RecordSuccess(double latencyMs)
     {
         if (!this.IsMeasuring)
         {
@@ -72,11 +69,11 @@ internal sealed class MetricsCollector
         }
 
         _ = Interlocked.Increment(ref _successfulRequests);
-        _ = Interlocked.Add(ref _totalLatencyMs, (Int64)Math.Round(latencyMs));
+        _ = Interlocked.Add(ref _totalLatencyMs, (long)Math.Round(latencyMs));
         _latencySamples.Add(latencyMs);
     }
 
-    public Int64 RecordFailure(ErrorKind kind)
+    public long RecordFailure(ErrorKind kind)
     {
         if (!this.IsMeasuring)
         {
@@ -88,6 +85,7 @@ internal sealed class MetricsCollector
         {
             ErrorKind.Timeout => Interlocked.Increment(ref _timeoutErrors),
             ErrorKind.Socket => Interlocked.Increment(ref _socketErrors),
+            ErrorKind.Other => throw new NotImplementedException(),
             _ => Interlocked.Increment(ref _otherErrors)
         };
     }
@@ -106,13 +104,13 @@ internal sealed class MetricsCollector
 
     public LoadTestReport CreateReport(TimeSpan elapsed, TimeSpan measuredDuration)
     {
-        Int64 successful = Volatile.Read(ref _successfulRequests);
-        Int64 failed = Volatile.Read(ref _failedRequests);
-        Double averageLatency = successful > 0
-            ? Volatile.Read(ref _totalLatencyMs) / (Double)successful
+        long successful = Volatile.Read(ref _successfulRequests);
+        long failed = Volatile.Read(ref _failedRequests);
+        double averageLatency = successful > 0
+            ? Volatile.Read(ref _totalLatencyMs) / (double)successful
             : 0;
 
-        Double[] samples = _latencySamples.Snapshot(out Int64 sampleCount);
+        double[] samples = _latencySamples.Snapshot(out long sampleCount);
         return new LoadTestReport(
             elapsed,
             measuredDuration,
@@ -128,15 +126,15 @@ internal sealed class MetricsCollector
             Percentile(samples, sampleCount, 0.999));
     }
 
-    private static Double Percentile(Double[] samples, Int64 sampleCount, Double percentile)
+    private static double Percentile(double[] samples, long sampleCount, double percentile)
     {
         if (sampleCount <= 0)
         {
             return 0;
         }
 
-        Int32 index = (Int32)Math.Ceiling(sampleCount * percentile) - 1;
-        index = Math.Clamp(index, 0, (Int32)sampleCount - 1);
+        int index = (int)Math.Ceiling(sampleCount * percentile) - 1;
+        index = Math.Clamp(index, 0, (int)sampleCount - 1);
         return samples[index];
     }
 }

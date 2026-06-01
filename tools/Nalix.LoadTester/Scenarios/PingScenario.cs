@@ -8,13 +8,13 @@ namespace Nalix.LoadTester.Scenarios;
 
 internal sealed class PingScenario : ILoadScenario
 {
-    private readonly Int32 _timeoutMs;
+    private readonly int _timeoutMs;
 
-    public PingScenario(Int32 timeoutMs) => _timeoutMs = timeoutMs;
+    public PingScenario(int timeoutMs) => _timeoutMs = timeoutMs;
 
-    public String Name => "ping";
+    public string Name => "ping";
 
-    public async ValueTask<Double> ExecuteAsync(TcpSession session, CancellationToken cancellationToken)
+    public async ValueTask<double> ExecuteAsync(TcpSession session, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
 

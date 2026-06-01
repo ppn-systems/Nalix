@@ -35,7 +35,7 @@ internal sealed class LocalPool<T> where T : class, IPoolable, new()
     /// <summary>
     /// The fixed number of slots in the local pool.
     /// </summary>
-    private const int Size = 8;
+    private const int Size = 2;
 
     /// <summary>
     /// Bit 63 represents whether the pool is destroyed.

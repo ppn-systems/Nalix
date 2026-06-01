@@ -6,7 +6,7 @@ namespace Nalix.LoadTester.Running;
 internal sealed class WorkerHandle : IDisposable
 {
     private readonly CancellationTokenSource _cancellation;
-    private Int32 _disposed;
+    private int _disposed;
 
     public WorkerHandle(Task task, CancellationTokenSource cancellation)
     {

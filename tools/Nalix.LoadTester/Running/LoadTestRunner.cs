@@ -46,7 +46,7 @@ internal sealed class LoadTestRunner
 
         try
         {
-            await RunRampUpAsync(workers, state, cancellationToken).ConfigureAwait(false);
+            await this.RunRampUpAsync(workers, state, cancellationToken).ConfigureAwait(false);
             await RunDelayPhaseAsync(state, WorkloadPhase.Warmup, _options.WarmupSeconds, cancellationToken).ConfigureAwait(false);
 
             state.Phase = WorkloadPhase.Steady;
@@ -84,7 +84,7 @@ internal sealed class LoadTestRunner
             _metrics.MeasuredElapsed);
         _reporter.WriteFinal(report);
 
-        if (!String.IsNullOrWhiteSpace(_options.OutputPath))
+        if (!string.IsNullOrWhiteSpace(_options.OutputPath))
         {
             await ReportExporter.ExportAsync(
                 _options.OutputPath,
@@ -109,7 +109,7 @@ internal sealed class LoadTestRunner
 
         workers.StartWorkers(_options.StartConnections);
 
-        Int32 remaining = _options.Connections - _options.StartConnections;
+        int remaining = _options.Connections - _options.StartConnections;
         if (remaining <= 0)
         {
             await Task.Delay(TimeSpan.FromSeconds(_options.RampUpSeconds), cancellationToken).ConfigureAwait(false);
@@ -117,7 +117,7 @@ internal sealed class LoadTestRunner
         }
 
         TimeSpan delay = TimeSpan.FromTicks(Math.Max(1, TimeSpan.FromSeconds(_options.RampUpSeconds).Ticks / remaining));
-        for (Int32 i = 0; i < remaining; i++)
+        for (int i = 0; i < remaining; i++)
         {
             await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             workers.StartWorkers(1);
@@ -127,7 +127,7 @@ internal sealed class LoadTestRunner
     private static async Task RunDelayPhaseAsync(
         WorkloadState state,
         WorkloadPhase phase,
-        Int32 seconds,
+        int seconds,
         CancellationToken cancellationToken)
     {
         state.Phase = phase;

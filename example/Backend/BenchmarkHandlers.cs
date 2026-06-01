@@ -35,8 +35,5 @@ public sealed class BenchmarkHandlers
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
     [PacketRateLimit(10, 1.0)] // 10 req/s, no burst
-    public static ValueTask HandleDdosControlAsync(IPacketContext<Control> context)
-    {
-        return ValueTask.CompletedTask;
-    }
+    public static ValueTask HandleDdosControlAsync(IPacketContext<Control> context) => ValueTask.CompletedTask;
 }

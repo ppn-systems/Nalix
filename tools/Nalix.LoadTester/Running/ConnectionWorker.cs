@@ -62,7 +62,7 @@ internal sealed class ConnectionWorker
                         // Dst IP
                         if (System.Net.IPAddress.TryParse(_options.Host, out System.Net.IPAddress? hostIp) && hostIp.AddressFamily == AddressFamily.InterNetwork)
                         {
-                            hostIp.TryWriteBytes(proxyHeader.AsSpan(20, 4), out _);
+                            _ = hostIp.TryWriteBytes(proxyHeader.AsSpan(20, 4), out _);
                         }
 
                         // Ports
@@ -82,14 +82,14 @@ internal sealed class ConnectionWorker
                     }
 
                     // Perform cryptographic handshake so the session gets key agreement established
-                    await Nalix.SDK.Transport.Extensions.HandshakeExtensions.HandshakeAsync(session, cancellationToken).ConfigureAwait(false);
+                    await SDK.Transport.Extensions.HandshakeExtensions.HandshakeAsync(session, cancellationToken).ConfigureAwait(false);
 
                     // Send exactly ONE warmup packet to warm up JIT & pools on server/client side
                     try
                     {
                         using CancellationTokenSource warmupCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                         warmupCts.CancelAfter(TimeSpan.FromSeconds(15)); // Extended timeout for JIT overhead
-                        await _scenario.ExecuteAsync(session, warmupCts.Token).ConfigureAwait(false);
+                        _ = await _scenario.ExecuteAsync(session, warmupCts.Token).ConfigureAwait(false);
                     }
                     catch (Exception) when (!cancellationToken.IsCancellationRequested)
                     {
@@ -98,7 +98,7 @@ internal sealed class ConnectionWorker
 
                     while (!cancellationToken.IsCancellationRequested && session.IsConnected)
                     {
-                        await ExecuteRequestAsync(session, cancellationToken).ConfigureAwait(false);
+                        await this.ExecuteRequestAsync(session, cancellationToken).ConfigureAwait(false);
                         await Task.Yield();
                     }
                 }
@@ -112,7 +112,7 @@ internal sealed class ConnectionWorker
                 }
                 catch (Exception ex)
                 {
-                    RecordFailure(ex);
+                    this.RecordFailure(ex);
                     await DelayBeforeReconnectAsync(cancellationToken).ConfigureAwait(false);
                 }
             }
@@ -127,7 +127,7 @@ internal sealed class ConnectionWorker
     {
         try
         {
-            Double latencyMs = await _scenario.ExecuteAsync(session, cancellationToken).ConfigureAwait(false);
+            double latencyMs = await _scenario.ExecuteAsync(session, cancellationToken).ConfigureAwait(false);
             _metrics.RecordSuccess(latencyMs);
         }
         catch (OperationCanceledException)
@@ -140,19 +140,19 @@ internal sealed class ConnectionWorker
         }
         catch (TimeoutException ex)
         {
-            RecordFailure(ex);
+            this.RecordFailure(ex);
         }
         catch (SocketException ex)
         {
-            RecordFailure(ex);
+            this.RecordFailure(ex);
         }
         catch (IOException ex)
         {
-            RecordFailure(ex);
+            this.RecordFailure(ex);
         }
         catch (Exception ex)
         {
-            RecordFailure(ex);
+            this.RecordFailure(ex);
         }
     }
 
@@ -166,7 +166,7 @@ internal sealed class ConnectionWorker
             _ => ErrorKind.Other
         };
 
-        Int64 count = _metrics.RecordFailure(kind);
+        long count = _metrics.RecordFailure(kind);
         if (kind == ErrorKind.Other && count is > 0 and <= 5)
         {
             Console.Error.WriteLine($"[ERROR] Unexpected client exception: {exception.GetType().Name}: {exception.Message}");

@@ -12,22 +12,22 @@ namespace Nalix.LoadTester.Scenarios;
 internal sealed class PayloadEchoScenario : ILoadScenario
 {
     private readonly RequestOptions _requestOptions;
-    private readonly Byte[]? _payload;
-    private Int32 _sequence;
+    private readonly byte[]? _payload;
+    private int _sequence;
 
-    public PayloadEchoScenario(Int32 timeoutMs, Int32 payloadSize)
+    public PayloadEchoScenario(int timeoutMs, int payloadSize)
     {
         _requestOptions = RequestOptions.Default.WithTimeout(timeoutMs);
         _payload = payloadSize > 0 ? CreatePayload(payloadSize) : null;
     }
 
-    public String Name => "payload";
+    public string Name => "payload";
 
-    public async ValueTask<Double> ExecuteAsync(TcpSession session, CancellationToken cancellationToken)
+    public async ValueTask<double> ExecuteAsync(TcpSession session, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(session);
 
-        UInt16 sequence = unchecked((UInt16)Interlocked.Increment(ref _sequence));
+        ushort sequence = unchecked((ushort)Interlocked.Increment(ref _sequence));
         Stopwatch stopwatch = Stopwatch.StartNew();
         BenchmarkPacket packet = BenchmarkPacket.Create();
         packet.SequenceId = sequence;
@@ -50,9 +50,9 @@ internal sealed class PayloadEchoScenario : ILoadScenario
         }
     }
 
-    private static Byte[] CreatePayload(Int32 payloadSize)
+    private static byte[] CreatePayload(int payloadSize)
     {
-        Byte[] payload = new Byte[payloadSize];
+        byte[] payload = new byte[payloadSize];
         Random.Shared.NextBytes(payload);
         return payload;
     }

@@ -85,14 +85,14 @@ Workers with higher `WorkerPriority` values are automatically moved to the front
 | Property | Type | Description |
 | :--- | :--- | :--- |
 | `Title` | `string` | Compact status line for consoles and diagnostics. |
-| `AverageWorkerExecutionTime` | `double` | Average execution time for workers in milliseconds. |
+| `AverageWorkerUptime` | `double` | Average uptime (lifecycle duration) for workers in milliseconds. |
 | `AverageRecurringExecutionTime` | `double` | Average execution time for recurring tasks in milliseconds. |
 | `WorkerErrorCount` | `int` | Total worker errors observed. |
 | `RecurringErrorCount` | `int` | Total recurring task errors observed. |
 | `PeakRunningWorkerCount` | `int` | Peak number of concurrently running workers observed. |
 | `AverageWorkerWaitTime` | `double` | Average time workers spent in the queue before starting, in milliseconds. |
-| `P95WorkerExecutionTime` | `double` | 95th percentile worker execution time in milliseconds (approximation). |
-| `P99WorkerExecutionTime` | `double` | 99th percentile worker execution time in milliseconds (approximation). |
+| `P95WorkerUptime` | `double` | 95th percentile worker uptime in milliseconds (approximation). |
+| `P99WorkerUptime` | `double` | 99th percentile worker uptime in milliseconds (approximation). |
 
 ### Diagnostics & Lifecycle
 
@@ -107,7 +107,7 @@ Workers with higher `WorkerPriority` values are automatically moved to the front
 Produces a comprehensive diagnostic report (text-based) detailing:
 
 - **Throughput**: Workers and recurring tasks processed per second (TPS).
-- **Latency**: Approximate P95 and P99 execution percentiles based on internal histogram buckets.
+- **Latency / Uptime**: Approximate P95 and P99 worker uptimes based on internal histogram buckets.
 - **Congestion**: `AverageWorkerWaitTime` and `PeakRunningWorkerCount` to identify queue pressure and resource saturation.
 - **Errors**: Real-time error counts and consecutive failure tracking.
 - **Top Activity**: Breakdown of the top-50 most active or aged workers.
@@ -116,7 +116,7 @@ Produces a comprehensive diagnostic report (text-based) detailing:
 
 - **Always use Groups**: Grouping workers allows for fine-grained monitoring and group-level cancellation.
 - **Set Timeouts**: Use `WorkerOptions.ExecutionTimeout` to prevent "zombie" workers from holding onto concurrency slots indefinitely.
-- **Monitor Reports**: Regularly check `AverageWorkerExecutionTime` to detect performance regressions in your background logic.
+- **Monitor Reports**: Regularly check `AverageWorkerUptime` to detect lifecycle regressions in your background logic.
 
 ## Related APIs
 

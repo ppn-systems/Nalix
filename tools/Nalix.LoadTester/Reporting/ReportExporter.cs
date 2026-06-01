@@ -14,7 +14,7 @@ internal static class ReportExporter
     private static readonly JsonSerializerOptions s_jsonOptions = new() { WriteIndented = true };
 
     public static async Task ExportAsync(
-        String outputPath,
+        string outputPath,
         LoadTestOptions options,
         ILoadScenario scenario,
         LoadTestReport report,
@@ -25,15 +25,15 @@ internal static class ReportExporter
         ArgumentNullException.ThrowIfNull(scenario);
         ArgumentNullException.ThrowIfNull(report);
 
-        String fullPath = Path.GetFullPath(outputPath);
-        String? directory = Path.GetDirectoryName(fullPath);
-        if (!String.IsNullOrEmpty(directory))
+        string fullPath = Path.GetFullPath(outputPath);
+        string? directory = Path.GetDirectoryName(fullPath);
+        if (!string.IsNullOrEmpty(directory))
         {
             _ = Directory.CreateDirectory(directory);
         }
 
-        String extension = Path.GetExtension(fullPath);
-        String content = extension.ToUpperInvariant() switch
+        string extension = Path.GetExtension(fullPath);
+        string content = extension.ToUpperInvariant() switch
         {
             ".JSON" => WriteJson(options, scenario, report),
             ".CSV" => WriteCsv(options, scenario, report),
@@ -44,7 +44,7 @@ internal static class ReportExporter
         await File.WriteAllTextAsync(fullPath, content, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
     }
 
-    private static String WriteJson(LoadTestOptions options, ILoadScenario scenario, LoadTestReport report)
+    private static string WriteJson(LoadTestOptions options, ILoadScenario scenario, LoadTestReport report)
     {
         var payload = new
         {
@@ -87,9 +87,9 @@ internal static class ReportExporter
         return JsonSerializer.Serialize(payload, s_jsonOptions);
     }
 
-    private static String WriteCsv(LoadTestOptions options, ILoadScenario scenario, LoadTestReport report)
+    private static string WriteCsv(LoadTestOptions options, ILoadScenario scenario, LoadTestReport report)
     {
-        String[] headers =
+        string[] headers =
         [
             "generated_at_utc",
             "scenario",
@@ -117,7 +117,7 @@ internal static class ReportExporter
             "p999_latency_ms"
         ];
 
-        String[] values =
+        string[] values =
         [
             DateTimeOffset.UtcNow.ToString("O", CultureInfo.InvariantCulture),
             scenario.Name,
@@ -145,11 +145,11 @@ internal static class ReportExporter
             report.P999LatencyMs.ToString("F2", CultureInfo.InvariantCulture)
         ];
 
-        return String.Join(',', headers) + global::System.Environment.NewLine +
-               String.Join(',', values.Select(EscapeCsv)) + global::System.Environment.NewLine;
+        return string.Join(',', headers) + global::System.Environment.NewLine +
+               string.Join(',', values.Select(EscapeCsv)) + global::System.Environment.NewLine;
     }
 
-    private static String WriteMarkdown(LoadTestOptions options, ILoadScenario scenario, LoadTestReport report)
+    private static string WriteMarkdown(LoadTestOptions options, ILoadScenario scenario, LoadTestReport report)
     {
         StringBuilder sb = new();
         _ = sb.AppendLine("# Nalix.LoadTester Report");
@@ -185,7 +185,7 @@ internal static class ReportExporter
     private static void AppendInvariant(StringBuilder builder, FormattableString value) =>
         builder.AppendLine(FormattableString.Invariant(value));
 
-    private static String EscapeCsv(String value)
+    private static string EscapeCsv(string value)
     {
         if (value.IndexOfAny([',', '"', '\r', '\n']) < 0)
         {

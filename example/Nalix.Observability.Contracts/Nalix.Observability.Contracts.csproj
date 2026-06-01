@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<Nullable>enable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<TargetFramework>net10.0</TargetFramework>
+		<RootNamespace>Nalix.Observability.Contracts</RootNamespace>
+		<OutputType>Library</OutputType>
+		<AssemblyName>Nalix.Observability.Contracts</AssemblyName>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\..\src\Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible" />
+		<ProjectReference Include="..\..\src\Nalix.Codec\Nalix.Codec.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Environment\Nalix.Environment.csproj" />
+		<ProjectReference Include="..\..\src\Nalix.Abstractions\Nalix.Abstractions.csproj" />
+	</ItemGroup>
+
+</Project>
