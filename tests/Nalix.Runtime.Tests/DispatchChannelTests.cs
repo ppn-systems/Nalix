@@ -71,7 +71,7 @@ public sealed class DispatchChannelTests
                 {
                     if (!channel.TryClaim(out IDispatchSession? session))
                     {
-                        Thread.SpinWait(4);
+                        Thread.Sleep(1);
                         continue;
                     }
 
