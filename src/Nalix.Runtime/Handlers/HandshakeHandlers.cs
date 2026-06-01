@@ -205,7 +205,16 @@ public sealed class HandshakeHandlers
         }
 
         X25519.X25519KeyPair serverKey = X25519.GenerateKeyPair();
-        Bytes32 sharedSecretEE = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
+        Bytes32 sharedSecretEE;
+        try
+        {
+            sharedSecretEE = X25519.Agreement(serverKey.PrivateKey, packet.PublicKey);
+        }
+        catch (InvalidOperationException)
+        {
+            await RejectHandshakeAsync(context, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
+        }
 
         if (sharedSecretEE.IsZero)
         {
@@ -213,7 +222,16 @@ public sealed class HandshakeHandlers
             return;
         }
 
-        Bytes32 sharedSecretSE = X25519.Agreement(s_certificate, packet.PublicKey);
+        Bytes32 sharedSecretSE;
+        try
+        {
+            sharedSecretSE = X25519.Agreement(s_certificate, packet.PublicKey);
+        }
+        catch (InvalidOperationException)
+        {
+            await RejectHandshakeAsync(context, ProtocolReason.DECRYPTION_FAILED).ConfigureAwait(false);
+            return;
+        }
 
         if (sharedSecretSE.IsZero)
         {
