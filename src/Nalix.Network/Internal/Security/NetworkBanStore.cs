@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Network.Internal.Transport;
@@ -22,7 +23,7 @@ internal static class NetworkBanStore
     /// <summary>
     /// Loads banned IPs from disk, filtering expired entries and applying BanCount decay.
     /// </summary>
-    public static List<NetworkBanRecord> Load(string filePath, int maxRecords, TimeSpan decayWindow, long nowTicks)
+    public static List<NetworkBanRecord> Load(string filePath, int maxRecords, TimeSpan decayWindow, long nowTicks, ILogger? logger = null)
     {
         List<NetworkBanRecord> records = new();
         if (!File.Exists(filePath))
@@ -30,78 +31,84 @@ internal static class NetworkBanStore
             return records;
         }
 
-        try
+        int[] backoffDelays = [100, 250, 500, 1000];
+        int retryCount = 0;
+
+        while (true)
         {
-            using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
-            using BinaryReader reader = new(fs);
-
-            if (fs.Length < 9)
+            try
             {
-                return records; // Too short for header
-            }
+                using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
+                using BinaryReader reader = new(fs);
 
-            int magic = reader.ReadInt32();
-            if (magic != MagicNumber)
-            {
-                return records; // Invalid magic
-            }
+                if (fs.Length < 9)
+                {
+                    throw new InvalidDataException("File too short for header");
+                }
 
-            byte version = reader.ReadByte();
-            if (version != Version)
-            {
-                return records; // Unsupported version
-            }
+                int magic = reader.ReadInt32();
+                if (magic != MagicNumber)
+                {
+                    throw new InvalidDataException($"Invalid magic number: {magic}");
+                }
 
-            int recordCount = reader.ReadInt32();
-            if (recordCount < 0 || recordCount > maxRecords)
-            {
-                // Reject entire file if record count is out of bounds (corrupted)
+                byte version = reader.ReadByte();
+                if (version != Version)
+                {
+                    throw new InvalidDataException($"Unsupported version: {version}");
+                }
+
+                int recordCount = reader.ReadInt32();
+                if (recordCount < 0 || recordCount > maxRecords)
+                {
+                    throw new InvalidDataException($"Invalid record count: {recordCount}");
+                }
+
+                records.Capacity = Math.Min(recordCount, maxRecords);
+
+                for (int i = 0; i < recordCount; i++)
+                {
+                    byte addrLen = reader.ReadByte();
+                    byte[] addressBytes = reader.ReadBytes(addrLen);
+                    long bannedUntil = reader.ReadInt64();
+                    int banCount = reader.ReadInt32();
+                    long lastBanTime = reader.ReadInt64();
+                    long lastSeenAt = reader.ReadInt64();
+
+                    if (banCount > 0 && lastBanTime > 0)
+                    {
+                        long elapsedSinceBan = nowTicks - lastBanTime;
+                        if (elapsedSinceBan > decayWindow.Ticks)
+                        {
+                            int decayAmount = (int)(elapsedSinceBan / decayWindow.Ticks);
+                            banCount = Math.Max(0, banCount - decayAmount);
+                        }
+                    }
+
+                    if (bannedUntil <= nowTicks && banCount <= 0)
+                    {
+                        continue;
+                    }
+
+                    IPAddress ipAddress = new(addressBytes);
+                    INetworkEndpoint endpoint = SocketEndpoint.FromIpAddress(ipAddress);
+
+                    records.Add(new NetworkBanRecord(endpoint, bannedUntil, banCount, lastBanTime, lastSeenAt));
+                }
+
                 return records;
             }
-
-            // Pre-allocate capacity
-            records.Capacity = Math.Min(recordCount, maxRecords);
-
-            for (int i = 0; i < recordCount; i++)
+            catch (IOException ex) when (retryCount < backoffDelays.Length)
             {
-                byte addrLen = reader.ReadByte();
-                byte[] addressBytes = reader.ReadBytes(addrLen);
-                long bannedUntil = reader.ReadInt64();
-                int banCount = reader.ReadInt32();
-                long lastBanTime = reader.ReadInt64();
-                long lastSeenAt = reader.ReadInt64();
-
-                // Calculate decay
-                if (banCount > 0 && lastBanTime > 0)
+                if (logger != null && logger.IsEnabled(LogLevel.Debug))
                 {
-                    long elapsedSinceBan = nowTicks - lastBanTime;
-                    if (elapsedSinceBan > decayWindow.Ticks)
-                    {
-                        // Decay the ban count based on how many windows have passed
-                        int decayAmount = (int)(elapsedSinceBan / decayWindow.Ticks);
-                        banCount = Math.Max(0, banCount - decayAmount);
-                    }
+                    int delay = backoffDelays[retryCount];
+                    logger.LogDebug(ex, "[NW.NetworkBanStore] file locked, retrying in {Delay}ms file={FilePath}", delay, filePath);
                 }
-
-                // If fully expired and ban count decayed to 0, we can skip loading it
-                if (bannedUntil <= nowTicks && banCount <= 0)
-                {
-                    continue;
-                }
-
-                IPAddress ipAddress = new(addressBytes);
-                INetworkEndpoint endpoint = SocketEndpoint.FromIpAddress(ipAddress);
-
-                records.Add(new NetworkBanRecord(endpoint, bannedUntil, banCount, lastBanTime, lastSeenAt));
+                System.Threading.Thread.Sleep(backoffDelays[retryCount]);
+                retryCount++;
             }
         }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            // Corrupted file or IO error, reject all to start fresh
-            records.Clear();
-        }
-
-        return records;
     }
 
     /// <summary>

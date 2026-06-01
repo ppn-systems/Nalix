@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -37,6 +37,8 @@ public abstract partial class WebSocketListenerBase : IListener
     private readonly IProtocol _protocol;
     private readonly SemaphoreSlim _lock;
     private readonly IConnectionHub _hub;
+    private readonly TimingWheel _timing;
+    private readonly ConnectionGuard _limiter;
     private readonly NetworkWebSocketOptions _config;
     private readonly ForwardedHeadersOptions _forwardedConfig;
 
@@ -47,8 +49,6 @@ public abstract partial class WebSocketListenerBase : IListener
     private CancellationTokenSource? _cts;
     private CancellationTokenRegistration _cancelReg;
     private IWorkerHandle[]? _acceptWorkers;
-    private readonly TimingWheel _timing;
-    private readonly ConnectionGuard _limiter;
 
     #endregion Fields
 

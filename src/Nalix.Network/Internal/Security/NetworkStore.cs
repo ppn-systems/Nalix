@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 
 namespace Nalix.Network.Internal.Security;
@@ -17,7 +18,7 @@ internal static class NetworkStore
     /// <summary>
     /// Loads IP networks from a line-separated plain-text file.
     /// </summary>
-    public static List<IPNetwork> Load(string filePath, int maxRecords)
+    public static List<IPNetwork> Load(string filePath, int maxRecords, ILogger? logger = null)
     {
         List<IPNetwork> records = new();
         if (!File.Exists(filePath))
@@ -25,41 +26,70 @@ internal static class NetworkStore
             return records;
         }
 
-        try
+        int[] backoffDelays = [100, 250, 500, 1000];
+        int retryCount = 0;
+
+        while (true)
         {
-            using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan);
-            using StreamReader reader = new(fs);
-
-            string? line;
-            while ((line = reader.ReadLine()) != null)
+            try
             {
-                if (records.Count >= maxRecords)
+                using FileStream fs = new(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, 4096, FileOptions.SequentialScan);
+                using StreamReader reader = new(fs);
+
+                string? line;
+                int lineNumber = 0;
+                while ((line = reader.ReadLine()) != null)
                 {
-                    break;
+                    lineNumber++;
+                    if (records.Count >= maxRecords)
+                    {
+                        break;
+                    }
+
+                    line = line.Trim();
+                    if (string.IsNullOrEmpty(line) || line.StartsWith('#'))
+                    {
+                        continue;
+                    }
+
+                    if (IPNetwork.TryParse(line, out IPNetwork network))
+                    {
+                        records.Add(network);
+                    }
+                    else if (IPAddress.TryParse(line, out IPAddress? ip))
+                    {
+                        records.Add(new IPNetwork(ip, ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
+                    }
+                    else
+                    {
+                        if (logger != null && logger.IsEnabled(LogLevel.Warning))
+                        {
+                            logger.LogWarning("[NW.NetworkStore] invalid line in file={FilePath} line={LineNumber} content={Content}", filePath, lineNumber, line);
+                        }
+                    }
                 }
 
-                line = line.Trim();
-                if (string.IsNullOrEmpty(line) || line.StartsWith('#'))
+                return records;
+            }
+            catch (IOException ex) when (retryCount < backoffDelays.Length)
+            {
+                if (logger != null && logger.IsEnabled(LogLevel.Debug))
                 {
-                    continue;
+                    int delay = backoffDelays[retryCount];
+                    logger.LogDebug(ex, "[NW.NetworkStore] file locked, retrying in {Delay}ms file={FilePath}", delay, filePath);
                 }
-
-                if (IPNetwork.TryParse(line, out IPNetwork network))
+                System.Threading.Thread.Sleep(backoffDelays[retryCount]);
+                retryCount++;
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                if (logger != null && logger.IsEnabled(LogLevel.Error))
                 {
-                    records.Add(network);
+                    logger.LogError(ex, "[NW.NetworkStore] error loading file={FilePath}", filePath);
                 }
-                else if (IPAddress.TryParse(line, out IPAddress? ip))
-                {
-                    records.Add(new IPNetwork(ip, ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork ? 32 : 128));
-                }
+                throw;
             }
         }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            records.Clear();
-        }
-
-        return records;
     }
 
     /// <summary>

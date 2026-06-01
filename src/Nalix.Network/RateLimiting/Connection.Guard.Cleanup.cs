@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -8,11 +8,14 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Nalix.Abstractions.Exceptions;
+using Nalix.Environment.Configuration;
 using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Options;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Transport;
+using Nalix.Network.Options;
 
 namespace Nalix.Network.RateLimiting;
 
@@ -195,4 +198,125 @@ public sealed partial class ConnectionGuard
     }
 
     #endregion Cleanup
+
+    #region Hot Reload
+
+    private DateTime _lastConfigReload = DateTime.MinValue;
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void INITIALIZE_HOT_RELOAD()
+    {
+        TaskManager taskManager = InstanceManager.Instance.GetOrCreateInstance<TaskManager>();
+
+        _hotReloadJob = taskManager.ScheduleRecurring(
+            name: TaskNaming.Recurring.CleanupJobId(RecurringName + ".reload", this.GetHashCode()),
+            interval: TimeSpan.FromSeconds(60),
+            work: _ =>
+            {
+                this.CHECK_FILE_CHANGES();
+                return ValueTask.CompletedTask;
+            },
+            options: new RecurringOptions
+            {
+                NonReentrant = true,
+                Tag = TaskNaming.Tags.Service,
+                Jitter = TimeSpan.FromSeconds(5)
+            }
+        );
+
+        try
+        {
+            _configWatcher = new System.IO.FileSystemWatcher(Environment.IO.Directories.ConfigurationDirectory)
+            {
+                NotifyFilter = System.IO.NotifyFilters.LastWrite,
+                Filter = "*.txt",
+                EnableRaisingEvents = true
+            };
+            _configWatcher.Changed += this.OnFileChanged;
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex, "[NW.ConnectionGuard] failed to initialize FileSystemWatcher, relying on 60s periodic polling.");
+            }
+        }
+    }
+
+    private void OnFileChanged(object sender, System.IO.FileSystemEventArgs e)
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        if (e.Name != null && (
+            e.Name.Equals(ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>().StoreFileName, StringComparison.OrdinalIgnoreCase) ||
+            e.Name.Equals(ConfigurationManager.Instance.Get<TrustedProxyOptions>().StoreFileName, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (Interlocked.CompareExchange(ref _reloadPending, 1, 0) == 0)
+            {
+                _ = Task.Run(async () =>
+                {
+                    await Task.Delay(300).ConfigureAwait(false);
+                    try
+                    {
+                        this.CHECK_FILE_CHANGES();
+                    }
+                    finally
+                    {
+                        _ = Interlocked.Exchange(ref _reloadPending, 0);
+                    }
+                });
+            }
+        }
+    }
+
+    private void CHECK_FILE_CHANGES()
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        try
+        {
+            string blacklistPath = System.IO.Path.Combine(Environment.IO.Directories.ConfigurationDirectory, ConfigurationManager.Instance.Get<ConnectionBlacklistStoreOptions>().StoreFileName);
+            string proxiesPath = System.IO.Path.Combine(Environment.IO.Directories.ConfigurationDirectory, ConfigurationManager.Instance.Get<TrustedProxyOptions>().StoreFileName);
+
+            DateTime maxConfigWrite = DateTime.MinValue;
+
+            if (System.IO.File.Exists(blacklistPath))
+            {
+                DateTime lw = System.IO.File.GetLastWriteTimeUtc(blacklistPath);
+                if (lw > maxConfigWrite)
+                {
+                    maxConfigWrite = lw;
+                }
+            }
+            if (System.IO.File.Exists(proxiesPath))
+            {
+                DateTime lw = System.IO.File.GetLastWriteTimeUtc(proxiesPath);
+                if (lw > maxConfigWrite)
+                {
+                    maxConfigWrite = lw;
+                }
+            }
+
+            if (maxConfigWrite > _lastConfigReload)
+            {
+                _lastConfigReload = maxConfigWrite;
+                _accessList.Reload();
+            }
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+            {
+                _logger.LogError(ex, "[NW.ConnectionGuard] error checking file changes for hot reload.");
+            }
+        }
+    }
+
+    #endregion Hot Reload
 }

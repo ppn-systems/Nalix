@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -54,7 +54,40 @@ internal sealed class NetworkBanRepository
         }
 
         DateTime now = Clock.NowUtc();
-        List<NetworkBanRecord> records = NetworkBanStore.Load(_filePath, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks);
+        List<NetworkBanRecord> records;
+
+        try
+        {
+            records = NetworkBanStore.Load(_filePath, _storeConfig.MaxPersistedBans, _storeConfig.BanCountDecayWindow, now.Ticks, _logger);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning(ex, "[NW.NetworkBanRepository] ban file corrupted or unreadable, renaming to .corrupt file={FilePath}", _filePath);
+            }
+
+            try
+            {
+                if (File.Exists(_filePath))
+                {
+                    string corruptPath = _filePath + $".corrupt.{now:yyyyMMddHHmmss}";
+                    File.Move(_filePath, corruptPath, overwrite: true);
+                }
+            }
+            catch (Exception renameEx) when (ExceptionClassifier.IsNonFatal(renameEx))
+            {
+                if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.LogDebug(renameEx, "[NW.NetworkBanRepository] failed to rename corrupt file");
+                }
+            }
+
+            // Force save current memory state to a fresh file
+            this.Save(map, force: true);
+
+            return;
+        }
 
         foreach (NetworkBanRecord record in records)
         {

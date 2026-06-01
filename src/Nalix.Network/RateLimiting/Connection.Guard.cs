@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -60,8 +60,11 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private ILogger? _logger;
 
     private int _disposed;
-    private IRecurringHandle? _cleanupJob;
+    private int _reloadPending;
     private IRecurringHandle? _saveJob;
+    private IRecurringHandle? _cleanupJob;
+    private IRecurringHandle? _hotReloadJob;
+    private System.IO.FileSystemWatcher? _configWatcher;
 
     /// <summary>
     /// Metrics for monitoring
@@ -116,6 +119,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         this.INITIALIZE_METRICS();
         this.SCHEDULE_CLEANUP_JOB();
+        this.INITIALIZE_HOT_RELOAD();
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
@@ -599,6 +603,13 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             _cleanupJob?.Dispose();
             _saveJob?.Dispose();
+            _hotReloadJob?.Dispose();
+
+            if (_configWatcher != null)
+            {
+                _configWatcher.EnableRaisingEvents = false;
+                _configWatcher.Dispose();
+            }
 
             if (_banRepository.IsEnabled)
             {
