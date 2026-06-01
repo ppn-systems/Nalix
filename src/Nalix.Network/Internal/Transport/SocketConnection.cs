@@ -485,7 +485,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
                 _owner.ThrottledError(
                     _logger, s_keyReceiveFaulted,
-                    $"faulted ep={_owner.NetworkEndpoint.Address}", e);
+                    "[NW.SocketConnection:Receive] faulted ep=" + _owner.NetworkEndpoint.Address, e);
             }
 
         }
@@ -691,7 +691,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _owner?.ThrottledError(_logger, s_keyFragmentError, $"fragment-error ep={_owner.NetworkEndpoint.Address}", ex);
+            _owner?.ThrottledError(_logger, s_keyFragmentError, "[NW.SocketConnection:Fragment] fragment-error ep=" + _owner.NetworkEndpoint.Address, ex);
         }
     }
 
@@ -740,7 +740,8 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                     {
-                        _logger.LogTrace(ex, "[NW.SocketConnection:DISPOSE] socket-shutdown-benign ep={Endpoint} code={SocketError}", _endpointString, ex.SocketErrorCode);
+                        System.Net.Sockets.SocketError socketError = ex.SocketErrorCode;
+                        _logger.LogTrace(ex, "[NW.SocketConnection:DISPOSE] socket-shutdown-benign ep={Endpoint} code={SocketError}", _endpointString, socketError);
                     }
 #endif
                 }

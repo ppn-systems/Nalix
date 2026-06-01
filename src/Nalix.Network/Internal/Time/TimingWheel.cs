@@ -364,7 +364,8 @@ internal sealed class TimingWheel : IActivatable
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-cancel-ignored reason={ExceptionType}", ex.GetType().Name);
+                string exceptionType = ex.GetType().Name;
+                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-cancel-ignored reason={ExceptionType}", exceptionType);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -383,7 +384,8 @@ internal sealed class TimingWheel : IActivatable
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-dispose-ignored reason={ExceptionType}", ex.GetType().Name);
+                string exceptionType = ex.GetType().Name;
+                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-dispose-ignored reason={ExceptionType}", exceptionType);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

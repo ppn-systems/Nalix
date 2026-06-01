@@ -83,7 +83,8 @@ internal sealed partial class SocketConnection
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
                     Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
-                    _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={FORMATFRAMEFORLOGpayloadSpan} ep={RemoteEndpoint}", totalLength, FORMAT_FRAME_FOR_LOG(payloadSpan), _socket.RemoteEndPoint);
+                    string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
+                    _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={Payload} ep={RemoteEndpoint}", totalLength, payload, _socket.RemoteEndPoint);
                 }
 #endif
 
@@ -121,7 +122,8 @@ internal sealed partial class SocketConnection
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug(ex, "[NW.SocketConnection:Send] stackalloc-benign-disconnect ep={Endpoint} ex={ExceptionType}", _endpointString, ex.GetType().Name);
+                        string exceptionType = ex.GetType().Name;
+                        _logger.LogDebug(ex, "[NW.SocketConnection:Send] stackalloc-benign-disconnect ep={Endpoint} ex={ExceptionType}", _endpointString, exceptionType);
                     }
 #endif
                 }
@@ -130,7 +132,7 @@ internal sealed partial class SocketConnection
                     _owner.ThrottledError(
                         _logger,
                         s_keySendStackallocError,
-                        $"stackalloc-error ep={_endpointString}", ex);
+                        "[NW.SocketConnection:Send] stackalloc-error ep=" + _endpointString, ex);
                 }
                 throw;
             }
@@ -158,7 +160,8 @@ internal sealed partial class SocketConnection
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
                 Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
-                _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={FORMATFRAMEFORLOGpayloadSpan} ep={RemoteEndpoint}", totalLength, FORMAT_FRAME_FOR_LOG(payloadSpan), _socket.RemoteEndPoint);
+                string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
+                _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={Payload} ep={RemoteEndpoint}", totalLength, payload, _socket.RemoteEndPoint);
             }
 #endif
 
@@ -174,9 +177,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
                         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                         {
-                            _logger.LogDebug(
-                                "[NW.{Class}:{Method}] pooled peer-closed ep={Ep}",
-                                nameof(SocketConnection), nameof(Send), _socket.RemoteEndPoint);
+                            _logger.LogDebug("[NW.SocketConnection:Send] pooled peer-closed ep={Ep}", _socket.RemoteEndPoint);
                         }
 #endif
                         this.CANCEL_RECEIVE_ONCE();
@@ -199,9 +200,8 @@ internal sealed partial class SocketConnection
 #if DEBUG
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug(
-                        "[NW.{Class}:{Method}] pooled-benign-disconnect ep={Ep} ex={ExType}",
-                        nameof(SocketConnection), nameof(Send), _endpointString, ex.GetType().Name);
+                    string exceptionType = ex.GetType().Name;
+                    _logger.LogDebug(ex, "[NW.SocketConnection:Send] pooled-benign-disconnect ep={Ep} ex={ExType}", _endpointString, exceptionType);
                 }
 #endif
             }
@@ -210,7 +210,7 @@ internal sealed partial class SocketConnection
                 _owner.ThrottledError(
                     _logger,
                     s_keySendPooledError,
-                    $"pooled-error ep={_endpointString}", ex);
+                    "[NW.SocketConnection:Send] pooled-error ep=" + _endpointString, ex);
             }
             throw;
         }
@@ -265,9 +265,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(
-                    "[NW.{Class}:{Method}] len={Len} ep={Ep}",
-                    nameof(SocketConnection), nameof(SendAsync), data.Length, _socket.RemoteEndPoint);
+                _logger.LogDebug("[NW.SocketConnection:SendAsync] len={Len} ep={Ep}", data.Length, _socket.RemoteEndPoint);
             }
 #endif
             WRITE_FRAME_HEADER(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength, data.Span);
@@ -276,10 +274,8 @@ internal sealed partial class SocketConnection
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
                 ReadOnlySpan<byte> payloadSpan = data.Span;
-
-                _logger.LogDebug(
-                    "[NW.{Class}:{Method}] sending frame totalLen={Total} payload={Payload} ep={Ep}",
-                    nameof(SocketConnection), nameof(SendAsync), totalLength, FORMAT_FRAME_FOR_LOG(payloadSpan), _socket.RemoteEndPoint);
+                string payload = FORMAT_FRAME_FOR_LOG(payloadSpan);
+                _logger.LogDebug("[NW.SocketConnection:SendAsync] sending frame totalLen={Total} payload={Payload} ep={Ep}", totalLength, payload, _socket.RemoteEndPoint);
             }
 #endif
 
@@ -373,7 +369,7 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._owner.ThrottledError(self._logger, s_keySendError, $"error ep={self._endpointString}", ex);
+                self._owner.ThrottledError(self._logger, s_keySendError, "[NW.SocketConnection:Send] error ep=" + self._endpointString, ex);
             }
             return ValueTask.FromException(ex);
         }
@@ -382,7 +378,7 @@ internal sealed partial class SocketConnection
         {
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                self._owner.ThrottledError(self._logger, s_keySendError, $"error ep={self._endpointString}", ex);
+                self._owner.ThrottledError(self._logger, s_keySendError, "[NW.SocketConnection:Send] error ep=" + self._endpointString, ex);
             }
             return ex;
         }

@@ -601,7 +601,7 @@ public sealed class PacketDispatchChannel
                 connection.ThrottledError(
                     this.Logging,
                     s_keyExecutePrep,
-                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] prepare-error ep={connection.NetworkEndpoint}", ex);
+                    "[RT.PacketDispatchChannel:ExecutePacketAsync] prepare-error ep=" + connection.NetworkEndpoint, ex);
             }
             lease.Dispose();
             return ValueTask.CompletedTask;
@@ -645,7 +645,7 @@ public sealed class PacketDispatchChannel
                 connection.ThrottledError(
                     this.Logging,
                     s_keyExecute,
-                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                    "[RT.PacketDispatchChannel:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
             }
         }
 

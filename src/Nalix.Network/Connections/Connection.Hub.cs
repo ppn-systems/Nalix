@@ -489,7 +489,8 @@ public sealed class ConnectionHub : IConnectionHub
 
             if (measureLatency && _logger != null)
             {
-                _logger.LogInformation("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, scope.GetElapsedMilliseconds());
+                double latencyMs = scope.GetElapsedMilliseconds();
+                _logger.LogInformation("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, latencyMs);
             }
 
             return RegisterResult.Success;
@@ -565,7 +566,8 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (measureLatency && _logger != null)
         {
-            _logger.LogInformation("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, scope.GetElapsedMilliseconds());
+            double latencyMs = scope.GetElapsedMilliseconds();
+            _logger.LogInformation("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, latencyMs);
         }
 
         return true;
@@ -596,8 +598,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(
-                        $"[NW.{nameof(ConnectionHub)}:{nameof(DisposeAllConnections)}] dispose-error id={connection.ID}", ex);
+                    _logger.LogError(ex, "[NW.ConnectionHub:DisposeAllConnections] dispose-error id={ConnectionId}", connection.ID);
                 }
             }
         });

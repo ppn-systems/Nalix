@@ -160,7 +160,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             {
                 args.Connection.ThrottledError(
                     _logger, s_keyProcessError,
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
+                    "[NW.TcpListenerBase:ProcessFrame] Unhandled exception during message processing.", ex);
             }
         }
         finally

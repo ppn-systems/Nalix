@@ -186,7 +186,7 @@ public sealed class InlinePacketDispatcher
                 connection.ThrottledError(
                     this.Logging,
                     s_keyExecute,
-                    $"[RT.{nameof(InlinePacketDispatcher)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                    "[RT.InlinePacketDispatcher:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
             }
         }
 
@@ -220,7 +220,7 @@ public sealed class InlinePacketDispatcher
                 connection.ThrottledError(
                     owner.Logging,
                     s_keyExecute,
-                    $"[RT.{nameof(InlinePacketDispatcher)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                    "[RT.InlinePacketDispatcher:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
             }
         }
         finally

@@ -84,7 +84,7 @@ public abstract partial class Protocol : IProtocol
 
             if (args.Connection != null)
             {
-                args.Connection.ThrottledError(s_logger, s_keyPostFail, $"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+                args.Connection.ThrottledError(s_logger, s_keyPostFail, "[NW.Protocol:PostProcessMessage] post-fail id=" + args.Connection.ID, ex);
 
                 // Give the derived protocol a chance to observe the failure before the socket closes.
                 this.OnConnectionError(args.Connection, ex);

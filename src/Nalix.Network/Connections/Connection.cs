@@ -324,9 +324,7 @@ public sealed partial class Connection :
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
             _logger.LogTrace(
-                "[NW.{Type}:{Method}] disconnect request id={ConnectionId} remote={Remote} reason={Reason}",
-                nameof(Connection),
-                nameof(Disconnect),
+                "[NW.Connection:Disconnect] disconnect request id={ConnectionId} remote={Remote} reason={Reason}",
                 this.ID,
                 this.NetworkEndpoint,
                 reason);
@@ -392,7 +390,7 @@ public sealed partial class Connection :
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(ex, "[NW.Connection:this.Dispose] close-event-error msg=");
+                    _logger.LogError(ex, "[NW.Connection:this.Dispose] close-event-error");
                 }
             }
             finally
@@ -491,7 +489,7 @@ public sealed partial class Connection :
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, "[NW.Connection:this.Dispose] {Component}-dispose-error msg=", component);
+                _logger.LogError(ex, "[NW.Connection:this.Dispose] {Component}-dispose-error", component);
             }
         }
     }

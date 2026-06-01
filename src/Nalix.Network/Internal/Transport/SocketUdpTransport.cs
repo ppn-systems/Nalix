@@ -166,7 +166,8 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 {
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
                     {
-                        s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dualmode-not-applied reason={ExceptionType}", ex.GetType().Name);
+                        string exceptionType = ex.GetType().Name;
+                        s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dualmode-not-applied reason={ExceptionType}", exceptionType);
                     }
                 }
             }
@@ -182,28 +183,32 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
             {
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
                 {
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-not-applied reason={SocketError}", ex.SocketErrorCode);
+                    System.Net.Sockets.SocketError socketError = ex.SocketErrorCode;
+                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-not-applied reason={SocketError}", socketError);
                 }
             }
             catch (NotSupportedException ex)
             {
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
                 {
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-not-supported reason={ExceptionType}", ex.GetType().Name);
+                    string exceptionType = ex.GetType().Name;
+                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-not-supported reason={ExceptionType}", exceptionType);
                 }
             }
             catch (ObjectDisposedException ex)
             {
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
                 {
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-object-disposed reason={ExceptionType}", ex.GetType().Name);
+                    string exceptionType = ex.GetType().Name;
+                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-object-disposed reason={ExceptionType}", exceptionType);
                 }
             }
             catch (InvalidOperationException ex)
             {
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
                 {
-                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-invalid-op reason={ExceptionType}", ex.GetType().Name);
+                    string exceptionType = ex.GetType().Name;
+                    s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] dontfragment-invalid-op reason={ExceptionType}", exceptionType);
                 }
             }
 
@@ -218,7 +223,8 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
                 {
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
                     {
-                        s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] udp-connreset-ioctl-not-applied reason={ExceptionType}", ex.GetType().Name);
+                        string exceptionType = ex.GetType().Name;
+                        s_logger.LogDebug(ex, "[NW.SocketUdpTransport:Initialize] udp-connreset-ioctl-not-applied reason={ExceptionType}", exceptionType);
                     }
                 }
             }

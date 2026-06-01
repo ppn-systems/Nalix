@@ -130,7 +130,7 @@ internal sealed partial class SocketConnection
 
                 _owner.ThrottledError(
                     _logger, s_keyReceiveVarIntFaulted,
-                    $"faulted ep={_owner.NetworkEndpoint.Address}", e);
+                    "[NW.SocketConnection:ReceiveVarInt] faulted ep=" + _owner.NetworkEndpoint.Address, e);
             }
         }
         finally

@@ -63,6 +63,72 @@ Without the guard, string interpolation allocates on every call even when Debug 
 - Cipher suite negotiation parameters
 - Passwords, auth tokens, or correlation IDs that could identify a user
 
+### Structured Logging Rules (ILogger)
+
+All `_logger.Log*` / `s_logger.Log*` calls must follow these rules:
+
+1. **No `$""` in any Log call** — Use message templates with placeholders:
+   ```csharp
+   // Bad
+   _logger.LogDebug($"id={id}");
+   // Good
+   _logger.LogDebug("id={ConnectionId}", id);
+   ```
+
+2. **Exception is always the first parameter** — All exception properties must be passed as structured template properties:
+   ```csharp
+   // Bad
+   _logger.LogWarning($"failed: {ex.Message}");
+   // Good
+   _logger.LogWarning(ex, "failed");
+   _logger.LogWarning(ex, "accept-failed socketError={SocketError}", ex.SocketErrorCode);
+   ```
+
+3. **Method calls must be extracted before logging** — Use local variables:
+   ```csharp
+   // Bad
+   _logger.LogDebug("packet={Packet}", packet.GetType().Name);
+   // Good
+   string packetType = packet.GetType().Name;
+   _logger.LogDebug("packet={PacketType}", packetType);
+   ```
+
+4. **Ternary must be extracted before logging** — Use local variables:
+   ```csharp
+   // Bad
+   _logger.LogInformation("accepting={State}", isEnabled ? "enabled" : "disabled");
+   // Good
+   string state = isEnabled ? "enabled" : "disabled";
+   _logger.LogInformation("accepting={State}", state);
+   ```
+
+5. **Format specifiers must be extracted** — Compute values before logging:
+   ```csharp
+   // Bad
+   _logger.LogInformation("latency={Latency}", $"{scope.GetElapsedMilliseconds():F3}");
+   // Good
+   double latency = Math.Round(scope.GetElapsedMilliseconds(), 3);
+   _logger.LogInformation("latency={LatencyMs}", latency);
+   ```
+
+6. **No multi-line concat in log templates** — Merge into a single template:
+   ```csharp
+   // Bad
+   $"a={a}" + $" b={b}"
+   // Good
+   _logger.LogDebug("a={A} b={B}", a, b);
+   ```
+
+7. **No `nameof()` in log templates** — Use hardcoded bracket prefixes:
+   ```csharp
+   // Bad
+   _logger.LogTrace("[NW.{Type}:{Method}] ...", nameof(Connection), nameof(Disconnect));
+   // Good
+   _logger.LogTrace("[NW.Connection:Disconnect] ...");
+   ```
+
+These rules also apply to `ThrottledError` calls: remove `$""` and `nameof()`, use string concatenation for dynamic parts.
+
 ---
 
 ## Checklists

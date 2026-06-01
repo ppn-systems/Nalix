@@ -86,7 +86,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            context.Connection.ThrottledError(_logger, s_keySendError, $"[RT.{nameof(PermissionMiddleware)}] send-error-failed", ex);
+            context.Connection.ThrottledError(_logger, s_keySendError, "[RT.PermissionMiddleware] send-error-failed", ex);
         }
     }
 }
