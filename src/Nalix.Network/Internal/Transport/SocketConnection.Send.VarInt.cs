@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -68,7 +68,7 @@ internal sealed partial class SocketConnection
                 if (IS_BENIGN_DISCONNECT(ex)) { /* benign */ }
                 else
                 {
-                    _owner.ThrottledError(_logger, "socket.send.varint.error", $"varint send error ep={_endpointString}", ex);
+                    _owner.ThrottledError(_logger, s_keySendVarIntError, $"varint send error ep={_endpointString}", ex);
                 }
                 throw;
             }
@@ -104,7 +104,7 @@ internal sealed partial class SocketConnection
             if (IS_BENIGN_DISCONNECT(ex)) { /* benign */ }
             else
             {
-                _owner.ThrottledError(_logger, "socket.send.varint.error", $"varint send error ep={_endpointString}", ex);
+                _owner.ThrottledError(_logger, s_keySendVarIntError, $"varint send error ep={_endpointString}", ex);
             }
             throw;
         }
@@ -166,7 +166,7 @@ internal sealed partial class SocketConnection
             BufferLease.ByteArrayPool.Return(heapBuf);
             if (!IS_BENIGN_DISCONNECT(ex))
             {
-                _owner.ThrottledError(_logger, "socket.send.varint.error", $"varint send error ep={_endpointString}", ex);
+                _owner.ThrottledError(_logger, s_keySendVarIntError, $"varint send error ep={_endpointString}", ex);
             }
             return ValueTask.FromException(ex);
         }
@@ -202,7 +202,7 @@ internal sealed partial class SocketConnection
             {
                 if (!IS_BENIGN_DISCONNECT(ex))
                 {
-                    self._owner.ThrottledError(self._logger, "socket.send.varint.error", $"varint send error ep={self._endpointString}", ex);
+                    self._owner.ThrottledError(self._logger, s_keySendVarIntError, $"varint send error ep={self._endpointString}", ex);
                 }
                 throw;
             }

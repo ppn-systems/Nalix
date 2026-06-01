@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -30,6 +30,8 @@ namespace Nalix.Hosting.Protocols;
 public sealed class DefaultFrameProcessor : IFrameProcessor
 {
     #region Fields
+
+    private static readonly ThrottleKey s_keyProcessError = new("protocol.process_error");
 
     private readonly ILogger? _logger;
     private readonly IProtocol _protocol;
@@ -157,7 +159,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             else
             {
                 args.Connection.ThrottledError(
-                    _logger, "protocol.process_error",
+                    _logger, s_keyProcessError,
                     $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] Unhandled exception during message processing.", ex);
             }
         }

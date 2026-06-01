@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -22,6 +22,8 @@ namespace Nalix.Network.Protocols;
 [DebuggerDisplay("Disposed={_isDisposed != 0}, KeepConnectionOpen={KeepConnectionOpen}")]
 public abstract partial class Protocol : IProtocol
 {
+    private static readonly ThrottleKey s_keyPostFail = new("protocol.post_fail");
+
     /// <inheritdoc/>
     public abstract IFrameProcessor FrameProcessor { get; }
 
@@ -82,7 +84,7 @@ public abstract partial class Protocol : IProtocol
 
             if (args.Connection != null)
             {
-                args.Connection.ThrottledError(s_logger, "protocol.post_fail", $"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
+                args.Connection.ThrottledError(s_logger, s_keyPostFail, $"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] post-fail id={args.Connection.ID}", ex);
 
                 // Give the derived protocol a chance to observe the failure before the socket closes.
                 this.OnConnectionError(args.Connection, ex);

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -594,11 +594,11 @@ public sealed class ConnectionHub : IConnectionHub
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                connection.ThrottledError(
-                    _logger,
-                    "hub.dispose_all_error",
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(DisposeAllConnections)}] dispose-error id={connection.ID}",
-                    ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(
+                        $"[NW.{nameof(ConnectionHub)}:{nameof(DisposeAllConnections)}] dispose-error id={connection.ID}", ex);
+                }
             }
         });
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -65,6 +65,15 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     #region Const
 
     private const byte HeaderSize = sizeof(ushort);
+
+    private static readonly ThrottleKey s_keyEvictedFragments = new("socket.receive.evicted_fragments");
+    private static readonly ThrottleKey s_keyReceiveFaulted = new("socket.receive.faulted");
+    private static readonly ThrottleKey s_keyFragmentError = new("socket.receive.fragment_error");
+    private static readonly ThrottleKey s_keyReceiveVarIntFaulted = new("socket.receive.varint.faulted");
+    private static readonly ThrottleKey s_keySendStackallocError = new("socket.send.stackalloc_error");
+    private static readonly ThrottleKey s_keySendPooledError = new("socket.send.pooled_error");
+    private static readonly ThrottleKey s_keySendError = new("socket.send.error");
+    private static readonly ThrottleKey s_keySendVarIntError = new("socket.send.varint.error");
 
     #endregion Const
 
@@ -387,7 +396,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                             Interlocked.Add(ref _openFragmentStreams, -evicted);
 
                             _owner?.ThrottledWarn(
-                                _logger, "socket.receive.evicted_fragments",
+                                _logger, s_keyEvictedFragments,
                                 $"evicted {evicted} stale fragment stream(s) ep={_owner.NetworkEndpoint.Address}");
                         }
                     }
@@ -475,7 +484,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 Exception e = (ex as AggregateException)?.Flatten() ?? ex;
 
                 _owner.ThrottledError(
-                    _logger, "socket.receive.faulted",
+                    _logger, s_keyReceiveFaulted,
                     $"faulted ep={_owner.NetworkEndpoint.Address}", e);
             }
 
@@ -682,7 +691,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _owner?.ThrottledError(_logger, "socket.receive.fragment_error", $"fragment-error ep={_owner.NetworkEndpoint.Address}", ex);
+            _owner?.ThrottledError(_logger, s_keyFragmentError, $"fragment-error ep={_owner.NetworkEndpoint.Address}", ex);
         }
     }
 

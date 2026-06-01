@@ -2,7 +2,6 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -11,6 +10,34 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 
 namespace Microsoft.Extensions.Logging;
+
+/// <summary>
+/// Represents a pre-computed throttle key that eliminates per-call string allocation.
+/// Construct once (typically as a <c>static readonly</c> field), reuse forever.
+/// </summary>
+public sealed class ThrottleKey
+{
+    /// <summary>
+    /// The fully-qualified attribute key (<c>"sys.log." + name</c>).
+    /// </summary>
+    public string AttributeKey { get; }
+
+    /// <summary>
+    /// Creates a new <see cref="ThrottleKey"/>.
+    /// </summary>
+    /// <param name="name">
+    /// A short, dot-separated name that uniquely identifies the throttle bucket
+    /// (e.g. <c>"socket.send.error"</c>).
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="name"/> is <see langword="null"/> or empty.
+    /// </exception>
+    public ThrottleKey(string name)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        this.AttributeKey = string.Concat("sys.log.", name);
+    }
+}
 
 /// <inheritdoc/>
 public static partial class Log
@@ -66,16 +93,8 @@ public static partial class Log
 /// </summary>
 public static class ThrottleLogExtensions
 {
-    private const string AttrKeyPrefix = "sys.log.";
-
-    private static readonly long s_defaultWindowTicks;
-    private static readonly ConcurrentDictionary<string, string> s_attrKeyCache;
-
-    static ThrottleLogExtensions()
-    {
-        s_attrKeyCache = new();
-        s_defaultWindowTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
-    }
+    private static readonly long s_defaultWindowTicks =
+        (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
 
     private sealed class LogThrottleState
     {
@@ -87,8 +106,10 @@ public static class ThrottleLogExtensions
     /// Logs a warning message if the throttle window has passed for the given key.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrottledWarn(this IConnection connection, ILogger? logger, string key, string message)
+    public static void ThrottledWarn(this IConnection connection, ILogger? logger, ThrottleKey key, string message)
     {
+        ArgumentNullException.ThrowIfNull(key);
+
         if (logger == null || !logger.IsEnabled(LogLevel.Warning))
         {
             return;
@@ -106,8 +127,10 @@ public static class ThrottleLogExtensions
     /// Logs an error message if the throttle window has passed for the given key.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrottledError(this IConnection connection, ILogger? logger, string key, string message, Exception? ex = null)
+    public static void ThrottledError(this IConnection connection, ILogger? logger, ThrottleKey key, string message, Exception? ex = null)
     {
+        ArgumentNullException.ThrowIfNull(key);
+
         if (logger == null || !logger.IsEnabled(LogLevel.Error))
         {
             return;
@@ -122,7 +145,7 @@ public static class ThrottleLogExtensions
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool ShouldLog(IConnection connection, string key, out long suppressed)
+    private static bool ShouldLog(IConnection connection, ThrottleKey key, out long suppressed)
     {
         suppressed = 0;
 
@@ -132,16 +155,14 @@ public static class ThrottleLogExtensions
             return true;
         }
 
-        string attrKey = GetCachedAttrKey(key);
-
-        if (!attrs.TryGetValue(attrKey, out object? val) || val is not LogThrottleState state)
+        if (!attrs.TryGetValue(key.AttributeKey, out object? val) || val is not LogThrottleState state)
         {
             LogThrottleState newState = new()
             {
                 LastLogTicks = Stopwatch.GetTimestamp()
             };
 
-            attrs.Add(attrKey, newState);
+            attrs.Add(key.AttributeKey, newState);
 
             return true;
         }
@@ -204,7 +225,4 @@ public static class ThrottleLogExtensions
             }
         }
     }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string GetCachedAttrKey(string key) => s_attrKeyCache.GetOrAdd(key, static k => string.Concat(AttrKeyPrefix, k));
 }

@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -129,7 +129,7 @@ internal sealed partial class SocketConnection
                 Exception e = (ex as AggregateException)?.Flatten() ?? ex;
 
                 _owner.ThrottledError(
-                    _logger, "socket.receive.varint.faulted",
+                    _logger, s_keyReceiveVarIntFaulted,
                     $"faulted ep={_owner.NetworkEndpoint.Address}", e);
             }
         }

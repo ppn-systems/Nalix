@@ -16,14 +16,19 @@ namespace Nalix.Framework.Tests.Extensions;
 
 public sealed class ConnectionLoggingExtensionsTests
 {
+    private static readonly ThrottleKey s_keyDup = new("dup");
+    private static readonly ThrottleKey s_keyErr = new("err");
+    private static readonly ThrottleKey s_keyTrace = new("trace");
+    private static readonly ThrottleKey s_keyX = new("x");
+
     [Fact]
     public void ThrottledWarnWhenCalledTwiceInWindowSuppressesSecondMessage()
     {
         TestConnection connection = new();
         TestLogger logger = new();
 
-        connection.ThrottledWarn(logger, "dup", "first");
-        connection.ThrottledWarn(logger, "dup", "first");
+        connection.ThrottledWarn(logger, s_keyDup, "first");
+        connection.ThrottledWarn(logger, s_keyDup, "first");
 
         _ = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
@@ -36,17 +41,17 @@ public sealed class ConnectionLoggingExtensionsTests
         TestConnection connection = new();
         TestLogger logger = new();
 
-        connection.ThrottledWarn(logger, "dup", "hello");
-        connection.ThrottledWarn(logger, "dup", "hello");
+        connection.ThrottledWarn(logger, s_keyDup, "hello");
+        connection.ThrottledWarn(logger, s_keyDup, "hello");
 
-        Assert.True(connection.Attributes.TryGetValue("sys.log.dup", out object? state));
+        Assert.True(connection.Attributes.TryGetValue(s_keyDup.AttributeKey, out object? state));
         Assert.NotNull(state);
 
         FieldInfo? lastLogTicksField = state!.GetType().GetField("LastLogTicks");
         long twentySecondsInTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * System.Diagnostics.Stopwatch.Frequency);
         lastLogTicksField!.SetValue(state, System.Diagnostics.Stopwatch.GetTimestamp() - twentySecondsInTicks);
 
-        connection.ThrottledWarn(logger, "dup", "hello");
+        connection.ThrottledWarn(logger, s_keyDup, "hello");
 
         Assert.Equal(2, logger.Entries.Count);
         Assert.Contains("(+1 suppressed)", logger.Entries[1].Message, StringComparison.Ordinal);
@@ -59,7 +64,7 @@ public sealed class ConnectionLoggingExtensionsTests
         TestLogger logger = new();
         InvalidOperationException error = new("boom");
 
-        connection.ThrottledError(logger, "err", "failed", error);
+        connection.ThrottledError(logger, s_keyErr, "failed", error);
 
         _ = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Error, logger.Entries[0].Level);
@@ -72,7 +77,7 @@ public sealed class ConnectionLoggingExtensionsTests
     {
         TestLogger logger = new();
 
-        ThrottleLogExtensions.ThrottledWarn(null!, logger, "trace", "ping");
+        ThrottleLogExtensions.ThrottledWarn(null!, logger, s_keyTrace, "ping");
 
         _ = Assert.Single(logger.Entries);
         Assert.Equal(LogLevel.Warning, logger.Entries[0].Level);
@@ -86,8 +91,8 @@ public sealed class ConnectionLoggingExtensionsTests
 
         Exception? exception = Record.Exception(() =>
         {
-            connection.ThrottledWarn(null, "x", "w");
-            connection.ThrottledError(null, "x", "e");
+            connection.ThrottledWarn(null, s_keyX, "w");
+            connection.ThrottledError(null, s_keyX, "e");
         });
 
         Assert.Null(exception);
