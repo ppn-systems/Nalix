@@ -107,7 +107,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     /// </summary>
     /// <param name="listenerSocket">The shared UDP listener socket.</param>
     /// <param name="remoteEndPoint">The remote endpoint to send replies to.</param>
-    public void BindUdp(Socket listenerSocket, IPEndPoint remoteEndPoint)
+    internal void BindUdp(Socket listenerSocket, IPEndPoint remoteEndPoint)
     {
         ArgumentNullException.ThrowIfNull(listenerSocket);
         ArgumentNullException.ThrowIfNull(remoteEndPoint);
@@ -135,7 +135,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     /// Attempts to reserve a pending-packet slot for this connection.
     /// Returns <c>false</c> if the connection is throttled.
     /// </summary>
-    public bool TryAcquirePendingPacket()
+    internal bool TryAcquirePendingPacket()
     {
         while (true)
         {
@@ -154,12 +154,12 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     /// <summary>
     /// Releases a previously acquired pending-packet slot.
     /// </summary>
-    public void ReleasePendingPacket() => _ = Interlocked.Decrement(ref _pendingPackets);
+    internal void ReleasePendingPacket() => _ = Interlocked.Decrement(ref _pendingPackets);
 
     /// <summary>
     /// Gets the number of packets currently pending processing for this connection.
     /// </summary>
-    public int PendingPackets => Volatile.Read(ref _pendingPackets);
+    internal int PendingPackets => Volatile.Read(ref _pendingPackets);
 
     #endregion Pending Packet Throttle
 
@@ -262,7 +262,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
     /// Gets the original <see cref="EndPoint"/> used as the dictionary key in the listener.
     /// Used by UdpPassthroughListener to remove the connection from its tracking map.
     /// </summary>
-    public EndPoint EndPointKey => _endPointKey;
+    internal EndPoint EndPointKey => _endPointKey;
 
     /// <inheritdoc />
     public void IncrementErrorCount() => this.ErrorCount++;

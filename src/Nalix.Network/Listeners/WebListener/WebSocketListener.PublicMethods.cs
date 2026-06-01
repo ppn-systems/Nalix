@@ -30,16 +30,16 @@ public abstract partial class WebSocketListenerBase
     {
         ObjectDisposedException.ThrowIf(Volatile.Read(ref _isDisposed) != 0, this);
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            this.Logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
+            _logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] activate-request port={_port}");
         }
 
         if (!_lock.Wait(0, CancellationToken.None))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                this.Logger.LogWarning(
+                _logger.LogWarning(
                     $"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] " +
                     $"activate-skipped lock-busy port={_port}");
             }
@@ -52,9 +52,9 @@ public abstract partial class WebSocketListenerBase
         {
             if ((ListenerState)Volatile.Read(ref _state) != ListenerState.STOPPED)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
+                if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
+                    _logger.LogWarning($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] ignored-activate state={this.State}");
                 }
                 return;
             }
@@ -82,9 +82,9 @@ public abstract partial class WebSocketListenerBase
 
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.RUNNING);
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
             {
-                this.Logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] start protocol={this.Protocol} port={_port} path={_path}");
+                _logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] start protocol={_protocol} port={_port} path={_path}");
             }
 
             if (_config.EnableTimeout)
@@ -121,17 +121,17 @@ public abstract partial class WebSocketListenerBase
         }
         catch (OperationCanceledException)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
             {
-                this.Logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] cancel port={_port}");
+                _logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] cancel port={_port}");
             }
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Critical))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Critical))
             {
-                this.Logger.LogCritical(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] critical-error port={_port}");
+                _logger.LogCritical(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(Activate)}] critical-error port={_port}");
             }
             _ = Interlocked.Exchange(ref _state, (int)ListenerState.STOPPED);
         }
@@ -152,9 +152,9 @@ public abstract partial class WebSocketListenerBase
             return;
         }
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            this.Logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
+            _logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Deactivate)}] deactivate-request port={_port}");
         }
 
         int prev = Interlocked.CompareExchange(ref _state, (int)ListenerState.STOPPING, (int)ListenerState.RUNNING);
@@ -200,9 +200,9 @@ public abstract partial class WebSocketListenerBase
                 InstanceManager.Instance.GetOrCreateInstance<TimingWheel>().Deactivate(CancellationToken.None);
             }
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
+            if (_logger != null && _logger.IsEnabled(LogLevel.Information))
             {
-                this.Logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Deactivate)}] stop protocol={this.Protocol} port={_port}");
+                _logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Deactivate)}] stop protocol={_protocol} port={_port}");
             }
         }
         finally
@@ -238,9 +238,9 @@ public abstract partial class WebSocketListenerBase
         _listener.Prefixes.Add(prefix);
         _listener.Start();
 
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            this.Logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Initialize)}] bound to {prefix}");
+            _logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Initialize)}] bound to {prefix}");
         }
     }
 

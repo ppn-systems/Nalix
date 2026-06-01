@@ -296,10 +296,7 @@ internal sealed class SocketUdpTransport : IConnection.ITransport, IPoolable, ID
     /// <inheritdoc/>
     public void UseFraming(TransportFraming framing)
     {
-        if (framing != TransportFraming.None)
-        {
-            throw new NotSupportedException("UDP transport does not support framing mechanisms. Use TransportFraming.None.");
-        }
+        // TODO: Review framing behavior. WebSocket currently relies on its built-in message framing.
     }
 
     /// <summary>

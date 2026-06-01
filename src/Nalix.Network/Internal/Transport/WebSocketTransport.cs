@@ -112,10 +112,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     /// <inheritdoc/>
     public void UseFraming(TransportFraming framing)
     {
-        if (framing != TransportFraming.None)
-        {
-            throw new NotSupportedException("WebSocket transport does not support framing mechanisms natively as it provides its own message framing. Use TransportFraming.None.");
-        }
+        // TODO: Review framing behavior. WebSocket currently relies on its built-in message framing.
     }
 
     #endregion APIs
