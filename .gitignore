@@ -62,3 +62,5 @@ compare_test/
 build_errors*.txt
 /LoadTesterBin
 *.trx
+settings.local.json
+.claude/settings.local.json
