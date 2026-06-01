@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -19,7 +19,7 @@ using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Internal.Pooling;
 
-namespace Nalix.Network.Routing;
+namespace Nalix.Runtime.Routing;
 
 public sealed partial class PacketDispatchOptions<TPacket>
 {

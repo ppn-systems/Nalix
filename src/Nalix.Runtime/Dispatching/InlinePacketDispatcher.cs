@@ -16,9 +16,9 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
 using Nalix.Environment.Extensions;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Middleware;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Runtime.Dispatching;
 

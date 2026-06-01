@@ -9,8 +9,8 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Environment.Configuration.Binding;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Hosting;
 

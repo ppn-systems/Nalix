@@ -5,7 +5,7 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Network.Routing;
+using Nalix.Runtime.Routing;
 
 namespace Nalix.Runtime.Dispatching;
 

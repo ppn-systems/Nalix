@@ -15,7 +15,7 @@ using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Middleware;
 using Nalix.Runtime.Options;
 
-namespace Nalix.Network.Routing;
+namespace Nalix.Runtime.Routing;
 
 /// <summary>
 /// Configures how packet handlers are stored, how middleware is applied, and
