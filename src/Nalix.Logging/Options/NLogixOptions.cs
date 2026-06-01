@@ -1,32 +1,23 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Exceptions;
 using Nalix.Environment.Configuration.Binding;
 
 namespace Nalix.Logging.Options;
 
 /// <summary>
-/// Provides configuration options for the logging system with a fluent interface.
+/// Provides configuration options for the logging system.
+/// This is a pure POCO — it holds data only and contains no behavior or service references.
 /// </summary>
 [ExcludeFromCodeCoverage]
-[DebuggerDisplay("Min={MinLevel}, Utc={UseUtcTimestamp}")]
+[DebuggerDisplay("Min={MinLevel}")]
 [IniComment("Logging system configuration — controls log level, timestamp format, and entry metadata")]
-public sealed partial class NLogixOptions : ConfigurationLoader, IValidatableConfiguration, IDisposable
+public sealed partial class NLogixOptions : ConfigurationLoader, IValidatableConfiguration
 {
-    #region Fields
-
-    private int _disposed;
-
-    #endregion Fields
-
     #region Properties
 
     /// <summary>
@@ -34,12 +25,6 @@ public sealed partial class NLogixOptions : ConfigurationLoader, IValidatableCon
     /// </summary>
     [IniComment("Minimum log level to process (e.g. Trace, Debug, Info, Warn, Error, Critical)")]
     public LogLevel MinLevel { get; set; }
-
-    /// <summary>
-    /// Gets or sets the log distributor responsible for publishing log messages to targets.
-    /// </summary>
-    [ConfiguredIgnore]
-    private INLogixDistributor? Publisher { get; set; }
 
     /// <summary>
     /// Gets the file logger configuration options.
@@ -92,7 +77,6 @@ public sealed partial class NLogixOptions : ConfigurationLoader, IValidatableCon
     /// </summary>
     public NLogixOptions()
     {
-        this.Publisher = null;
         this.MinLevel = LogLevel.Information;
         this.FileOptions = new FileLogOptions();
 
@@ -107,95 +91,6 @@ public sealed partial class NLogixOptions : ConfigurationLoader, IValidatableCon
     #endregion Constructors
 
     #region APIs
-
-    /// <summary>
-    /// Sets the log distributor for publishing log messages.
-    /// </summary>
-    public NLogixOptions SetPublisher(INLogixDistributor publisher)
-    {
-        ArgumentNullException.ThrowIfNull(publisher);
-        ObjectDisposedException.ThrowIf(Interlocked
-                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        this.Publisher = publisher;
-        return this;
-    }
-
-    /// <summary>
-    /// Applies default configuration settings to the logging configuration.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions ConfigureDefaults(Func<NLogixOptions, NLogixOptions> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-        return configure(this);
-    }
-
-    /// <summary>
-    /// Sets the configuration options for file logging.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions ConfigureFileOptions(Action<FileLogOptions> configure)
-    {
-        ArgumentNullException.ThrowIfNull(configure);
-        ObjectDisposedException.ThrowIf(Interlocked
-                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        configure(this.FileOptions);
-        return this;
-    }
-
-    /// <summary>
-    /// Adds a logging target to receive log entries.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions RegisterTarget(INLogixTarget target)
-    {
-        ArgumentNullException.ThrowIfNull(target);
-        ObjectDisposedException.ThrowIf(Interlocked
-                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        _ = this.Publisher?.RegisterTarget(target);
-        return this;
-    }
-
-    /// <summary>
-    /// Sets the minimum logging level for filtering log entries.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public NLogixOptions SetMinimumLevel(LogLevel level)
-    {
-        ObjectDisposedException.ThrowIf(Interlocked
-                                      .CompareExchange(ref _disposed, 0, 0) != 0, nameof(NLogixOptions));
-        this.MinLevel = level;
-        return this;
-    }
-
-    /// <summary>
-    /// Releases resources used by this instance.
-    /// </summary>
-    [SuppressMessage("Design", "CA1063:Implement IDisposable Correctly", Justification = "Pattern is intentional")]
-    [SuppressMessage("CodeQuality", "IDE0079:Remove unnecessary suppression", Justification = "<Pending>")]
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void Dispose()
-    {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
-        {
-            return;
-        }
-
-        try
-        {
-            this.Publisher?.Dispose();
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-#if DEBUG
-            Debug.WriteLine($"ERROR disposing NLogixOptions: {ex.Message}");
-#else
-            GC.KeepAlive(ex);
-#endif
-        }
-
-        GC.SuppressFinalize(this);
-    }
 
     /// <summary>
     /// Validates the configuration options.

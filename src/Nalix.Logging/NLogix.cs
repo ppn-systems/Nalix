@@ -7,9 +7,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
-using Nalix.Environment.Configuration;
+using Nalix.Abstractions.Exceptions;
 using Nalix.Logging.Options;
-using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging;
 
@@ -24,20 +23,18 @@ namespace Nalix.Logging;
 /// </para>
 /// </summary>
 /// <remarks>
-/// The <see cref="NLogix"/> logger supports dependency injection or can be accessed via <see cref="Host"/>.
-/// Logging targets and behavior can be customized during initialization using <see cref="NLogixOptions"/>.
+/// Use the <see cref="Extensions.NLogixFx.Configure"/> method or <see cref="INLogixBuilder"/> to create instances.
 /// </remarks>
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
-[DebuggerDisplay("Logger=NLogix, {GetType().Name,nq}")]
+[DebuggerDisplay("Logger=NLogix, Targets={_targets.Length}, Min={_minLevel}")]
 public sealed partial class NLogix : ILogger, IDisposable
 {
     #region Fields
 
-    private readonly NLogixOptions _logOptions;
-    private readonly NLogixDistributor _distributor;
+    private readonly INLogixTarget[] _targets;
 
-    private LogLevel _minLevel;
+    private readonly LogLevel _minLevel;
     private int _isDisposed;
 
     #endregion Fields
@@ -47,56 +44,23 @@ public sealed partial class NLogix : ILogger, IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="NLogix"/> class.
     /// </summary>
-    /// <param name="configureOptions">
-    /// An action that allows configuring the logging options.
-    /// This action is used to set up logging options such as the minimum logging level and file options.
-    /// </param>
-    public NLogix(Action<NLogixOptions>? configureOptions = null)
+    /// <param name="targets">The logging targets that will receive log entries.</param>
+    /// <param name="options">The logging configuration options.</param>
+    /// <exception cref="ArgumentNullException">
+    /// Thrown when <paramref name="targets"/> or <paramref name="options"/> is null.
+    /// </exception>
+    public NLogix(INLogixTarget[] targets, NLogixOptions options)
     {
-        _distributor = new NLogixDistributor();
-        _logOptions = ConfigurationManager.Instance.Get<NLogixOptions>();
+        ArgumentNullException.ThrowIfNull(targets);
+        ArgumentNullException.ThrowIfNull(options);
 
-        _ = _logOptions.SetPublisher(_distributor);
-
-        // Apply configuration if provided
-        if (configureOptions != null)
-        {
-            configureOptions.Invoke(_logOptions);
-        }
-        else
-        {
-            // Apply default configuration
-            _ = _logOptions.ConfigureDefaults(cfg =>
-            {
-                _ = cfg.RegisterTarget(new BatchFileLogTarget());
-                _ = cfg.RegisterTarget(new BatchConsoleLogTarget());
-                return cfg;
-            });
-        }
-
-        // Cache min level for faster checks
-        _minLevel = _logOptions.MinLevel;
+        _targets = targets;
+        _minLevel = options.MinLevel;
     }
 
     #endregion Constructors
 
     #region Logging Methods
-
-    /// <summary>
-    /// Reconfigure logging options after initialization.
-    /// </summary>
-    /// <param name="configureOptions">
-    /// An action that allows configuring the logging options.
-    /// This action is used to set up logging options such as the minimum logging level and file options.
-    /// </param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    public void ConfigureOptions(Action<NLogixOptions> configureOptions)
-    {
-        configureOptions?.Invoke(_logOptions);
-
-        LogLevel newLevel = _logOptions.MinLevel;
-        _ = Interlocked.Exchange(ref Unsafe.As<LogLevel, int>(ref _minLevel), (int)newLevel);
-    }
 
     /// <summary>
     /// Checks if the log level meets the minimum required level for logging.
@@ -150,7 +114,52 @@ public sealed partial class NLogix : ILogger, IDisposable
             return;
         }
 
-        _distributor.Publish(DateTime.UtcNow, level, eventId ?? default, message, error);
+        DateTime timestamp = DateTime.UtcNow;
+        EventId id = eventId ?? default;
+
+        for (int i = 0; i < _targets.Length; i++)
+        {
+            try
+            {
+                _targets[i].Publish(timestamp, level, id, message, error);
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                HandleTargetError(_targets[i], ex, timestamp, level, id, message, error);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handles an error that occurred when publishing to a specific target.
+    /// If the target implements <see cref="INLogixErrorHandler"/>, the error is delegated to it.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    private static void HandleTargetError(
+        INLogixTarget target,
+        Exception exception,
+        DateTime timestampUtc,
+        LogLevel logLevel,
+        EventId eventId,
+        string message,
+        Exception? originalException)
+    {
+        try
+        {
+#if DEBUG
+            Debug.WriteLine(
+                $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR publishing to {target.GetType().Name}: {exception.Message}");
+#endif
+
+            if (target is INLogixErrorHandler errorHandler)
+            {
+                errorHandler.HandleError(exception, timestampUtc, logLevel, eventId, message, originalException);
+            }
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            // Ignore errors in the error handler to prevent cascading failures
+        }
     }
 
     /// <summary>
@@ -158,14 +167,30 @@ public sealed partial class NLogix : ILogger, IDisposable
     /// </summary>
     public void Dispose()
     {
-        // Thread-safe disposal check using Interlocked
         if (Interlocked.Exchange(ref _isDisposed, 1) != 0)
         {
             return;
         }
 
-        _distributor.Dispose();
-        _logOptions.Dispose();
+        for (int i = 0; i < _targets.Length; i++)
+        {
+            if (_targets[i] is IDisposable disposable)
+            {
+                try
+                {
+                    disposable.Dispose();
+                }
+                catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                {
+#if DEBUG
+                    Debug.WriteLine($"ERROR disposing logging target: {ex.Message}");
+#else
+                    GC.KeepAlive(ex);
+#endif
+                }
+            }
+        }
+
         GC.SuppressFinalize(this);
     }
 
