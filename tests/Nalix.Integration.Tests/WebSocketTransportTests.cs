@@ -35,9 +35,11 @@ public class WebSocketTransportTests : IDisposable
     {
         public int ProcessedCount;
 
-        private sealed class NoOpFrameProcessor : IFrameProcessor
+        private sealed class WebTestFrameProcessor : IFrameProcessor
         {
-            public void ProcessFrame(object? sender, IConnectEventArgs args) { }
+            private readonly IntegrationTestProtocol _protocol;
+            public WebTestFrameProcessor(IntegrationTestProtocol protocol) => _protocol = protocol;
+            public void ProcessFrame(object? sender, IConnectEventArgs args) => _protocol.ProcessMessage(sender, args);
         }
 
         private sealed class StubOpCodeExtractor : Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor
@@ -46,11 +48,12 @@ public class WebSocketTransportTests : IDisposable
                 payload.Length >= 6 ? System.Buffers.Binary.BinaryPrimitives.ReadUInt16LittleEndian(payload[4..]) : (ushort)0;
         }
 
-        public override IFrameProcessor FrameProcessor { get; } = new NoOpFrameProcessor();
+        public override IFrameProcessor FrameProcessor { get; }
         public override Nalix.Abstractions.Networking.Protocols.IOpCodeExtractor OpCodeExtractor { get; } = new StubOpCodeExtractor();
 
         public IntegrationTestProtocol()
         {
+            FrameProcessor = new WebTestFrameProcessor(this);
             this.SetConnectionAcceptance(true);
         }
 
@@ -72,11 +75,6 @@ public class WebSocketTransportTests : IDisposable
     {
         public TestWebSocketListener(ushort port, string path, IProtocol protocol, IConnectionHub hub)
             : base(port, path, protocol, hub) { }
-
-        public override void ProcessFrame(object? sender, IConnectEventArgs args)
-        {
-            this.Protocol.ProcessMessage(sender, args);
-        }
     }
 
     private static ushort GetFreePort()
