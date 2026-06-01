@@ -16,8 +16,13 @@ public partial interface IConnection
     ITransport TCP { get; }
 
     /// <summary>
-    /// Gets the USER Datagram number (UDP) transmission interface.
+    /// Gets the UDP companion transport associated with this TCP-backed connection.
     /// </summary>
+    /// <remarks>
+    /// UDP transport cannot be created as a standalone connection in this model.
+    /// It is initialized from the accepted TCP connection endpoint and is intended
+    /// only for datagram replies or mixed TCP/UDP protocols.
+    /// </remarks>
     ITransport UDP { get; }
 
     /// <summary>

@@ -23,6 +23,7 @@ using Nalix.Codec.Security.Primitives;
 using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
+using Nalix.Runtime.Security;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -165,96 +166,21 @@ public sealed class HandshakeHandlers
 
     #endregion Nested Types
 
+    private static ICertificateStore GetCertificateStore() =>
+        InstanceManager.Instance.GetExistingInstance<ICertificateStore>() ??
+        InstanceManager.Instance.GetOrCreateInstance<FileCertificateStore>();
+
     private static void LOAD_CERTIFICATE(string certPath)
     {
-        if (!File.Exists(certPath))
-        {
-            CREATE_CERTIFICATE(certPath);
-        }
-
+        ICertificateStore store = GetCertificateStore();
         try
         {
-            string? hex = null;
-            string[] lines = File.ReadAllLines(certPath);
-
-            for (int i = lines.Length - 1; i >= 0; i--)
-            {
-                string line = lines[i];
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    continue;
-                }
-
-                string trimmed = line.Trim();
-                if (trimmed.StartsWith('#'))
-                {
-                    continue;
-                }
-
-                hex = trimmed;
-                break;
-            }
-
-            if (string.IsNullOrWhiteSpace(hex))
-            {
-                throw new InternalErrorException(
-                    $"Handshake failed: No valid certificate data found in '{certPath}'. Please check file format and content.");
-            }
-
-            s_certificate = Bytes32.Parse(hex);
+            s_certificate = store.Load(certPath);
             s_serverPublicKey = X25519.GenerateKeyFromPrivateKey(s_certificate).PublicKey;
         }
-        catch (UnauthorizedAccessException ex)
+        catch (Exception ex) when (ex is not InternalErrorException)
         {
-            throw new InternalErrorException(
-                $"Handshake failed: Access denied while reading server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
-        }
-        catch (IOException ex)
-        {
-            throw new InternalErrorException(
-                $"Handshake failed: Unable to read server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
-        }
-        catch (FormatException ex)
-        {
-            throw new InternalErrorException(
-                $"Handshake failed: Invalid server identity format in '{certPath}'. Exception detail: " + ex.Message, ex);
-        }
-    }
-
-    private static void CREATE_CERTIFICATE(string certPath)
-    {
-        string? directory = Path.GetDirectoryName(certPath);
-
-        if (!string.IsNullOrWhiteSpace(directory))
-        {
-            _ = Directory.CreateDirectory(directory);
-        }
-
-        X25519.X25519KeyPair key = X25519.GenerateKeyPair();
-        if (!TRY_WRITE_NEW_FILE(certPath, key.PrivateKey.ToString()))
-        {
-            return;
-        }
-
-        string publicPath = Path.Combine(
-            directory ?? string.Empty,
-            Path.GetFileNameWithoutExtension(certPath) + ".public");
-
-        _ = TRY_WRITE_NEW_FILE(publicPath, key.PublicKey.ToString());
-    }
-
-    private static bool TRY_WRITE_NEW_FILE(string path, string content)
-    {
-        try
-        {
-            using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
-            using StreamWriter writer = new(stream);
-            writer.WriteLine(content);
-            return true;
-        }
-        catch (IOException) when (File.Exists(path))
-        {
-            return false;
+            throw new InternalErrorException($"Handshake failed: Unable to load server identity from '{certPath}'. Exception detail: " + ex.Message, ex);
         }
     }
 
