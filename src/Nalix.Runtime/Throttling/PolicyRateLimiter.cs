@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -194,7 +194,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(PolicyRateLimiter)}] invalid-burst burst={rl.Burst}");
+                _logger.LogWarning("[RT.PolicyRateLimiter] invalid-burst burst={RlBurst}", rl.Burst);
             }
             return CREATE_DENIED_DECISION(isHard: true);
         }
@@ -250,7 +250,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation($"[RT.{nameof(PolicyRateLimiter)}:{nameof(Dispose)}] disposed");
+            _logger.LogInformation("[RT.PolicyRateLimiter:Dispose] disposed");
         }
 
         GC.SuppressFinalize(this);
@@ -309,7 +309,7 @@ public sealed class PolicyRateLimiter : IReportable, IDisposable, IWithLogging<P
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(PolicyRateLimiter)}] missing-endpoint opCode={context.Packet.Header.OpCode}");
+                _logger.LogWarning("[RT.PolicyRateLimiter] missing-endpoint opCode={OpCode}", context.Packet.Header.OpCode);
             }
 
             return CREATE_DENIED_DECISION(isHard: false);

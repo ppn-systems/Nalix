@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -151,7 +151,7 @@ public sealed class DefaultFrameProcessor : IFrameProcessor
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
-                    _logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessFrame)}] {ex.Message}");
+                    _logger.LogTrace(ex, "[NW.TcpListenerBase:ProcessFrame]");
                 }
             }
             else

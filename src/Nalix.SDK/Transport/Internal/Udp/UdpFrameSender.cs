@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -65,8 +65,7 @@ internal sealed class UdpFrameSender : IDisposable
             if (current.Length + ISnowflake.Size > _options.MaxUdpDatagramSize)
             {
                 throw new NetworkException(
-                    $"UDP datagram too large after transformation: {current.Length + ISnowflake.Size} bytes. " +
-                    $"Max = {_options.MaxUdpDatagramSize}");
+                    $"UDP datagram too large after transformation: {current.Length + ISnowflake.Size} bytes. Max = {_options.MaxUdpDatagramSize}");
             }
 
             // Envelope: [SessionToken (8 bytes) | Transformed Payload]

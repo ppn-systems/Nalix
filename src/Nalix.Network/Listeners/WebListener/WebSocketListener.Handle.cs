@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -78,14 +78,14 @@ public abstract partial class WebSocketListenerBase
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace($"[NW.{nameof(WebSocketListenerBase)}:{nameof(ProcessConnection)}] new={connection?.NetworkEndpoint}");
+                _logger.LogTrace("[NW.WebSocketListenerBase:ProcessConnection] new={RemoteEndpoint}", connection?.NetworkEndpoint);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(ProcessConnection)}] process-error={connection?.NetworkEndpoint}");
+                _logger.LogError(ex, "[NW.WebSocketListenerBase:ProcessConnection] process-error={RemoteEndpoint}", connection?.NetworkEndpoint);
             }
             connection?.Dispose();
         }
@@ -121,7 +121,7 @@ public abstract partial class WebSocketListenerBase
                     {
                         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                         {
-                            _logger.LogWarning($"[NW.{nameof(WebSocketListenerBase)}:{nameof(AcceptConnectionsAsync)}] untrusted-proxy-rejected remote={remoteEp}");
+                            _logger.LogWarning("[NW.WebSocketListenerBase:AcceptConnectionsAsync] untrusted-proxy-rejected remote={RemoteEndpoint}", remoteEp);
                         }
 
                         context.Response.StatusCode = 403; // Forbidden
@@ -170,7 +170,7 @@ public abstract partial class WebSocketListenerBase
                     {
                         if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                         {
-                            _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}] Failed to initialize connection");
+                            _logger.LogError(ex, "[NW.WebSocketListenerBase] Failed to initialize connection");
                         }
                         connection.Dispose();
                     }
@@ -279,7 +279,7 @@ public abstract partial class WebSocketListenerBase
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(PROCESS_CHANNEL_LOOP_ASYNC)}] unhandled-error port={_port}");
+                _logger.LogError(ex, "[NW.WebSocketListenerBase:PROCESS_CHANNEL_LOOP_ASYNC] unhandled-error port={Port}", _port);
             }
         }
         finally
@@ -307,7 +307,7 @@ public abstract partial class WebSocketListenerBase
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(WebSocketListenerBase)}:{nameof(INVOKE_PROCESS)}] error remote={connection?.NetworkEndpoint.ToString() ?? "<null>"} port={_port}");
+                _logger.LogError(ex, "[NW.WebSocketListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
             }
             connection?.Disconnect();
         }

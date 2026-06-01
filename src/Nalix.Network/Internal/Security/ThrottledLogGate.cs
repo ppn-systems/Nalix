@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -73,12 +73,11 @@ internal static class ThrottledLogGate
         {
             if (suppressed > 0)
             {
-                logger.LogWarning(
-                    $"[NW.ConnectionGuard] DDoS-detected ip={address} (+{suppressed} suppressed-in-last={TimeSpan.FromTicks(windowTicks).TotalSeconds:F0}s)");
+                logger.LogWarning("[NW.ConnectionGuard] DDoS-detected ip={Address} (+{Suppressed} suppressed-in-last={TimeSpanFromTickswindowTicksTotalSeconds}s)", address, suppressed, TimeSpan.FromTicks(windowTicks).TotalSeconds);
             }
             else
             {
-                logger.LogWarning($"[NW.ConnectionGuard] DDoS-detected ip={address}");
+                logger.LogWarning("[NW.ConnectionGuard] DDoS-detected ip={Address}", address);
             }
         }
     }
@@ -98,7 +97,8 @@ internal static class ThrottledLogGate
 
             if (logger != null && logger.IsEnabled(LogLevel.Trace))
             {
-                logger.LogTrace($"[NW.ConnectionGuard] banned-reject ip={address} until={bannedUntil:HH:mm:ss}{suffix}");
+                string bannedTime = bannedUntil.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+                logger.LogTrace("[NW.ConnectionGuard] banned-reject ip={Address} until={BannedUntil}{Suffix}", address, bannedTime, suffix);
             }
         }
     }

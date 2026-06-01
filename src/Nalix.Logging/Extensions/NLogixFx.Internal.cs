@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -43,12 +43,7 @@ public static partial class NLogixFx
         string callerFilePath, int callerLineNumber)
     {
         return
-            $"{Sep}\n" +
-            $"Source     : {sourceName ?? "None"}\n" +
-            $"Caller     : {callerMemberName} ({callerFilePath}:{callerLineNumber})\n" +
-            $"Data       : {FORMAT_EXTENDED_DATA(extendedData)}\n" +
-            $"Message    : {message}\n" +
-            $"{Sep}\n";
+            $"{Sep}\nSource     : {sourceName ?? "None"}\nCaller     : {callerMemberName} ({callerFilePath}:{callerLineNumber})\nData       : {FORMAT_EXTENDED_DATA(extendedData)}\nMessage    : {message}\n{Sep}\n";
     }
 
     private static string FORMAT_EXTENDED_DATA(object? extendedData)

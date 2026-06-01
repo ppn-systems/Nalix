@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -156,7 +156,7 @@ internal static class AsyncCallback
 #if DEBUG
             if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
             {
-                s_logger.LogTrace($"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-null skipping");
+                s_logger.LogTrace("[NW.AsyncCallback:Invoke] callback-null skipping");
             }
 #endif
             return false;

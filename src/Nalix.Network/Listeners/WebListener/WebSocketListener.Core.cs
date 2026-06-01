@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -185,7 +185,7 @@ public abstract partial class WebSocketListenerBase : IListener
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Information))
                 {
-                    _logger.LogInformation($"[NW.{nameof(WebSocketListenerBase)}:{nameof(SCHEDULE_STOP)}] stopped port={self._port}");
+                    _logger.LogInformation("[NW.WebSocketListenerBase:SCHEDULE_STOP] stopped port={Port}", self._port);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { }
@@ -278,7 +278,7 @@ public abstract partial class WebSocketListenerBase : IListener
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(WebSocketListenerBase)}:{nameof(Dispose)}] disposed");
+            _logger.LogDebug("[NW.WebSocketListenerBase:Dispose] disposed");
         }
     }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -61,7 +61,7 @@ public abstract partial class Protocol
         {
             if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
             {
-                s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=not-accepting");
+                s_logger.LogTrace("[NW.Protocol:OnAccept] reject id={ConnectionId} reason=not-accepting", connection.ID);
             }
             connection.Disconnect();
             return;
@@ -79,7 +79,7 @@ public abstract partial class Protocol
             {
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
                 {
-                    s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accepted id={connection.ID}");
+                    s_logger.LogTrace("[NW.Protocol:OnAccept] accepted id={ConnectionId}", connection.ID);
                 }
 
                 connection.TCP.UseFraming(this.Framing);
@@ -92,7 +92,7 @@ public abstract partial class Protocol
 
             if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
             {
-                s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] reject id={connection.ID} reason=validation-failed");
+                s_logger.LogTrace("[NW.Protocol:OnAccept] reject id={ConnectionId} reason=validation-failed", connection.ID);
             }
 
             // Connections failed validation, close immediately
@@ -102,7 +102,7 @@ public abstract partial class Protocol
         {
             if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
             {
-                s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-canceled id={connection.ID}");
+                s_logger.LogTrace("[NW.Protocol:OnAccept] accept-canceled id={ConnectionId}", connection.ID);
             }
             connection.Disconnect();
         }
@@ -113,7 +113,7 @@ public abstract partial class Protocol
             {
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
                 {
-                    s_logger.LogWarning($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-disposed id={connection.ID} target={ex.ObjectName}");
+                    s_logger.LogWarning(ex, "[NW.Protocol:OnAccept] accept-disposed id={ConnectionId} target={Target}", connection.ID, ex.ObjectName);
                 }
             }
 
@@ -127,7 +127,7 @@ public abstract partial class Protocol
 
             if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
             {
-                s_logger.LogDebug($"[NW.{nameof(Protocol)}:{nameof(OnAccept)}] accept-error id={connection.ID} ex={ex.Message}");
+                s_logger.LogDebug(ex, "[NW.Protocol:OnAccept] accept-error id={ConnectionId}", connection.ID);
             }
         }
     }

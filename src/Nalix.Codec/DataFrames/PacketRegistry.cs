@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -269,8 +269,7 @@ public static class PacketRegistry
         if ((uint)raw.Length < PacketConstants.HeaderSize)
         {
             throw new ArgumentException(
-                $"Raw packet data is too short to contain a valid header. " +
-                $"Expected at least {PacketConstants.HeaderSize} bytes, but got {raw.Length}.", nameof(raw));
+                $"Raw packet data is too short to contain a valid header. Expected at least {PacketConstants.HeaderSize} bytes, but got {raw.Length}.", nameof(raw));
         }
 
         ref readonly PacketHeader header = ref raw.AsHeaderRef();

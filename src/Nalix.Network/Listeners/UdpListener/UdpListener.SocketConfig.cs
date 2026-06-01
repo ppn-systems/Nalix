@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -40,9 +40,7 @@ public abstract partial class UdpListenerBase
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
-                        $"dualmode-not-applied port={_port} reason={ex.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Initialize] dualmode-not-applied port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
                 }
             }
         }
@@ -58,9 +56,7 @@ public abstract partial class UdpListenerBase
 
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            this.Logger.LogDebug(
-                $"[NW.{nameof(UdpListenerBase)}:{nameof(Initialize)}] " +
-                $"init-ok port={_port} af={af} reuse={_options.ReuseAddress} buf={_options.BufferSize}");
+            this.Logger.LogDebug("[NW.UdpListenerBase:Initialize] init-ok port={Port} af={Af} reuse={OptionsReuseAddress} buf={OptionsBufferSize}", _port, af, _options.ReuseAddress, _options.BufferSize);
         }
     }
 

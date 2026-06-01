@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -41,10 +41,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
             {
-                this.Logging.LogDebug(
-                    $"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
-                    $"type-mismatch opcode=0x{descriptor.OpCode:X4} " +
-                    $"expected={expectedType.Name} actual={actualType?.Name ?? "null"} — skipping handler");
+                string actualName = actualType?.Name ?? "null";
+                this.Logging.LogDebug("[RT.PacketDispatchOptions:ExecuteHandlerAsync] type-mismatch opcode=0x{OpCode:X4} expected={ExpectedType} actual={ActualType}", descriptor.OpCode, expectedType.Name, actualName);
             }
 
             await this.TrySendControlAsync(
@@ -67,10 +65,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
             {
-                this.Logging.LogWarning(
-                    $"[{nameof(PacketDispatchOptions<>)}:{nameof(ExecuteHandlerAsync)}] " +
-                    $"validation-failed opcode=0x{descriptor.OpCode:X4} " +
-                    $"reason={failureReason} — skipping handler");
+                this.Logging.LogWarning("[PacketDispatchOptions:ExecuteHandlerAsync] validation-failed opcode=0x{OpCode} reason={FailureReason} — skipping handler", descriptor.OpCode, failureReason);
             }
 
             await this.TrySendControlAsync(
@@ -187,17 +182,15 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
             {
-                this.Logging.LogDebug(
-                    $"[{nameof(PacketDispatchOptions<>)}:{nameof(HandleDispatchExceptionAsync)}] " +
-                    $"teardown-suppressed opcode={descriptor.OpCode} ex={exception.GetType().Name}");
+                string exceptionType = exception.GetType().Name;
+                this.Logging.LogDebug(exception, "[PacketDispatchOptions:HandleDispatchExceptionAsync] teardown-suppressed opcode={OpCode} ex={ExceptionType}", descriptor.OpCode, exceptionType);
             }
         }
         else
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Error))
             {
-                this.Logging.LogError(exception, $"[{nameof(PacketDispatchOptions<>)}:{nameof(HandleDispatchExceptionAsync)}] " +
-                                    $"handler-failed opcode={descriptor.OpCode}");
+                this.Logging.LogError(exception, "[PacketDispatchOptions:HandleDispatchExceptionAsync] handler-failed opcode={OpCode}", descriptor.OpCode);
             }
         }
 
@@ -258,9 +251,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
             {
-                this.Logging.LogDebug(
-                    $"[{nameof(PacketDispatchOptions<>)}:{nameof(TrySendControlAsync)}] " +
-                    $"control-send-skipped opcode={opCode} reason={reason} ex={ex.GetType().Name}");
+                this.Logging.LogDebug(ex, "[PacketDispatchOptions:TrySendControlAsync] control-send-skipped opcode={OpCode} reason={Reason} ex={ExceptionType}", opCode, reason, ex.GetType().Name);
             }
         }
     }

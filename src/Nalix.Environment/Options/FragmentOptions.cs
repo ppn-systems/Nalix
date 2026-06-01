@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -88,16 +88,14 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
         if (maxChunkCount > ushort.MaxValue)
         {
             throw new ValidationException(
-                $"MaxChunkSize={this.MaxChunkSize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, " +
-                $"which exceeds the {ushort.MaxValue}-chunk wire header limit.");
+                $"MaxChunkSize={this.MaxChunkSize} can produce {maxChunkCount} chunks for MaxPayloadSize={this.MaxPayloadSize}, which exceeds the {ushort.MaxValue}-chunk wire header limit.");
         }
 
         int maxChunkFrameSize = PacketConstants.HeaderSize + FragmentHeader.WireSize + this.MaxChunkSize;
         if (maxChunkFrameSize > ushort.MaxValue)
         {
             throw new ValidationException(
-                $"MaxChunkSize={this.MaxChunkSize} produces a fragment frame of {maxChunkFrameSize} bytes, " +
-                $"which exceeds the {ushort.MaxValue}-byte wire header limit.");
+                $"MaxChunkSize={this.MaxChunkSize} produces a fragment frame of {maxChunkFrameSize} bytes, which exceeds the {ushort.MaxValue}-byte wire header limit.");
         }
     }
 }

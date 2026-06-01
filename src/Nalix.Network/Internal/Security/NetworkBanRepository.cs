@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -71,7 +71,7 @@ internal sealed class NetworkBanRepository
 
         if (records.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation($"[NW.NetworkBanRepository] Loaded {records.Count} persisted bans.");
+            _logger.LogInformation("[NW.NetworkBanRepository] Loaded {RecordsCount} persisted bans.", records.Count);
         }
     }
 
@@ -124,7 +124,7 @@ internal sealed class NetworkBanRepository
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.NetworkBanRepository] Persisted {snapshot.Count} bans to disk.");
+                    _logger.LogDebug("[NW.NetworkBanRepository] Persisted {SnapshotCount} bans to disk.", snapshot.Count);
                 }
             }
         }
@@ -134,7 +134,7 @@ internal sealed class NetworkBanRepository
             _ = Interlocked.Exchange(ref _persistenceDirty, 1);
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.NetworkBanRepository] failed to save banned ips.");
+                _logger.LogError(ex, "[NW.NetworkBanRepository] failed to save banned ips.");
             }
         }
     }

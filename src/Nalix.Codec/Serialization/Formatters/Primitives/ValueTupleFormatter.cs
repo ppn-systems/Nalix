@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Environment.Memory;
@@ -110,8 +110,7 @@ internal sealed class ValueTupleFormatter<
     [System.Diagnostics.CodeAnalysis.DynamicallyAccessedMembers(System.Diagnostics.CodeAnalysis.DynamicallyAccessedMemberTypes.All)] T4> : IFormatter<(T1, T2, T3, T4)>
 {
     private static string DebuggerDisplay =>
-        $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, " +
-        $"{typeof(T3).Name}, {typeof(T4).Name}>";
+        $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}, {typeof(T4).Name}>";
 
     private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
     private readonly IFormatter<T2> _f2 = FormatterProvider.Get<T2>();
@@ -172,8 +171,7 @@ internal sealed class ValueTupleFormatter<
     : IFormatter<(T1, T2, T3, T4, T5)>
 {
     private static string DebuggerDisplay =>
-        $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}, " +
-        $"{typeof(T4).Name}, {typeof(T5).Name}>";
+        $"ValueTupleFormatter<{typeof(T1).Name}, {typeof(T2).Name}, {typeof(T3).Name}, {typeof(T4).Name}, {typeof(T5).Name}>";
 
     private readonly IFormatter<T1> _f1 = FormatterProvider.Get<T1>();
     private readonly IFormatter<T2> _f2 = FormatterProvider.Get<T2>();

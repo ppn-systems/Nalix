@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -676,8 +676,7 @@ public static class FormatterProvider
         if (!TypeMetadata.IsUnmanaged(elem))
         {
             throw new SerializationFailureException(
-                $"MemoryFormatter only supports unmanaged element types. " +
-                $"'{elem.Name}' is not unmanaged.");
+                $"MemoryFormatter only supports unmanaged element types. '{elem.Name}' is not unmanaged.");
         }
 
         return def == typeof(Memory<>)

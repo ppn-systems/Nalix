@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -124,7 +124,7 @@ public sealed partial class Connection :
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace($"[NW.{nameof(Connection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+            _logger.LogTrace("[NW.Connection] created remote={RemoteEndpoint} id={ConnectionId}", this.NetworkEndpoint, this.ID);
         }
     }
 
@@ -376,7 +376,7 @@ public sealed partial class Connection :
                                 {
                                     if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                                     {
-                                        _logger.LogError(handlerEx, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] close-handler-error");
+                                        _logger.LogError(handlerEx, "[NW.Connection:this.Dispose] close-handler-error");
                                     }
                                 }
                             }
@@ -392,7 +392,7 @@ public sealed partial class Connection :
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] close-event-error msg={ex.Message}");
+                    _logger.LogError(ex, "[NW.Connection:this.Dispose] close-event-error msg=");
                 }
             }
             finally
@@ -491,7 +491,7 @@ public sealed partial class Connection :
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(Connection)}:{nameof(this.Dispose)}] {component}-dispose-error msg={ex.Message}");
+                _logger.LogError(ex, "[NW.Connection:this.Dispose] {Component}-dispose-error msg=", component);
             }
         }
     }
@@ -636,7 +636,7 @@ public sealed partial class Connection :
                     {
                         if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
                         {
-                            self._logger.LogError(handlerEx, $"[NW.{nameof(Connection)}:{nameof(OnCloseEventDispatchBridge)}] close-handler-error");
+                            self._logger.LogError(handlerEx, "[NW.Connection:OnCloseEventDispatchBridge] close-handler-error");
                         }
                     }
                 }

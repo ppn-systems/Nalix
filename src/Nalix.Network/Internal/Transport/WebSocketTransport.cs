@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -189,7 +189,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
         {
             if (_owner.Logger != null && _owner.Logger.IsEnabled(LogLevel.Error))
             {
-                _owner.Logger.LogError(ex, $"[NW.{nameof(WebSocketConnection)}] Receive loop error");
+                _owner.Logger.LogError(ex, "[NW.WebSocketConnection] Receive loop error");
             }
         }
         finally
@@ -291,7 +291,7 @@ internal sealed class WebSocketTransport : IConnection.ITransport, IDisposable
     {
         if (owner.Logger != null && owner.Logger.IsEnabled(LogLevel.Debug))
         {
-            owner.Logger.LogDebug(ex, $"[NW.{nameof(WebSocketTransport)}:{nameof(Dispose)}] receive-loop-faulted-{phase}");
+            owner.Logger.LogDebug(ex, "[NW.WebSocketTransport:Dispose] receive-loop-faulted-{Phase}", phase);
         }
     }
 

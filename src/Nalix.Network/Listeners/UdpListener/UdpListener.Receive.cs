@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -105,9 +105,7 @@ public abstract partial class UdpListenerBase
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
             {
-                this.Logger.LogDebug(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] " +
-                    $"disposed-or-cancelled port={_port} reason={ex.GetType().Name}");
+                this.Logger.LogDebug(ex, "[NW.UdpListenerBase:StartReceive] disposed-or-cancelled port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
             }
         }
         catch (ObjectDisposedException ex)
@@ -116,7 +114,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-object-disposed port={_port}");
+                this.Logger.LogError(ex, "[NW.UdpListenerBase:StartReceive] recv-object-disposed port={Port}", _port);
             }
         }
         catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
@@ -125,7 +123,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(StartReceive)}] recv-error port={_port}");
+                this.Logger.LogError(ex, "[NW.UdpListenerBase:StartReceive] recv-error port={Port}", _port);
             }
 
             // Brief delay to prevent tight error loops on synchronous failure.
@@ -155,9 +153,7 @@ public abstract partial class UdpListenerBase
                 _ = Interlocked.Increment(ref self._recvErrors);
                 if (self.Logger != null && self.Logger.IsEnabled(LogLevel.Error))
                 {
-                    self.Logger.LogError(
-                        error,
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(RetryStartReceiveAsync)}] retry-failed port={self._port}");
+                    self.Logger.LogError(error, "[NW.UdpListenerBase:RetryStartReceiveAsync] retry-failed port={Port}", self._port);
                 }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -202,21 +198,21 @@ public abstract partial class UdpListenerBase
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}");
+                this.Logger.LogError(ex, "[NW.UdpListenerBase:OnReceiveCompleted] handle-error port={Port}", _port);
             }
         }
         catch (ObjectDisposedException ex)
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}");
+                this.Logger.LogError(ex, "[NW.UdpListenerBase:OnReceiveCompleted] handle-error port={Port}", _port);
             }
         }
         catch (OperationCanceledException ex) when (cancellationToken.IsCancellationRequested)
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex, $"[NW.{nameof(UdpListenerBase)}:{nameof(OnReceiveCompleted)}] handle-error port={_port}");
+                this.Logger.LogError(ex, "[NW.UdpListenerBase:OnReceiveCompleted] handle-error port={Port}", _port);
             }
         }
         finally
@@ -248,9 +244,7 @@ public abstract partial class UdpListenerBase
 
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
                 {
-                    this.Logger.LogTrace(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(HandleReceive)}] " +
-                        $"rate-limit-drop remote={ip}");
+                    this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] rate-limit-drop remote={Ip}", ip);
                 }
 
                 return;
@@ -262,9 +256,7 @@ public abstract partial class UdpListenerBase
 
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
                 {
-                    this.Logger.LogTrace(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(HandleReceive)}] " +
-                        $"oversize-drop remote={args.RemoteEndPoint} size={args.BytesTransferred}");
+                    this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] oversize-drop remote={ArgsRemoteEndPoint} size={ArgsBytesTransferred}", args.RemoteEndPoint, args.BytesTransferred);
                 }
 
                 return;
@@ -286,7 +278,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
             {
-                this.Logger?.LogDebug(ex, $"[NW.UdpListenerBase:{nameof(HandleReceive)}] non-fatal");
+                this.Logger?.LogDebug(ex, "[NW.UdpListenerBase:HandleReceive] non-fatal");
             }
         }
     }
@@ -319,9 +311,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"short-packet-drop remote={remoteEndPoint} len={lease?.Length}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} len={LeaseLength}", remoteEndPoint, lease?.Length);
             }
 
             lease?.Dispose();
@@ -341,9 +331,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"short-packet-drop remote={remoteEndPoint} payloadLen={payload.Length}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} payloadLen={PayloadLength}", remoteEndPoint, payload.Length);
             }
 
             lease.Dispose();
@@ -358,9 +346,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"invalid-flags-drop remote={remoteEndPoint} flags={header.Flags}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] invalid-flags-drop remote={RemoteEndPoint} flags={HeaderFlags}", remoteEndPoint, header.Flags);
             }
 
             lease.Dispose();
@@ -379,9 +365,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"unknown-token-drop remote={remoteEndPoint}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unknown-token-drop remote={RemoteEndPoint}", remoteEndPoint);
             }
 
             lease.Dispose();
@@ -397,9 +381,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"endpoint-mismatch-drop expected={connection.NetworkEndpoint} actual={remoteEndPoint} connId={connection.ID}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] endpoint-mismatch-drop expected={ConnectionNetworkEndpoint} actual={RemoteEndPoint} connId={ConnectionId}", connection.NetworkEndpoint, remoteEndPoint, connection.ID);
             }
 
             lease.Dispose();
@@ -414,9 +396,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"replay-window-drop seq={header.SequenceId} connId={connection.ID}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] replay-window-drop seq={HeaderSequenceId} connId={ConnectionId}", header.SequenceId, connection.ID);
             }
 
             lease.Dispose();
@@ -430,9 +410,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"unauth-drop remote={remoteEndPoint} connId={connection.ID}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unauth-drop remote={RemoteEndPoint} connId={ConnectionId}", remoteEndPoint, connection.ID);
             }
 
             lease.Dispose();
@@ -475,9 +453,7 @@ public abstract partial class UdpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(ProcessDatagram)}] " +
-                    $"accepted connId={connection.ID} ep={remoteEndPoint} payloadSize={incomingLease.Length}");
+                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] accepted connId={ConnectionId} ep={RemoteEndPoint} payloadSize={IncomingLeaseLength}", connection.ID, remoteEndPoint, incomingLease.Length);
             }
         }
         finally

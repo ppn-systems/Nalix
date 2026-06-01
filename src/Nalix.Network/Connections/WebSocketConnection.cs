@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -94,7 +94,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace($"[NW.{nameof(WebSocketConnection)}] created remote={this.NetworkEndpoint} id={this.ID}");
+            _logger.LogTrace("[NW.WebSocketConnection] created remote={RemoteEndpoint} id={ConnectionId}", this.NetworkEndpoint, this.ID);
         }
     }
 
@@ -239,7 +239,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(WebSocketConnection)}] receive throttle triggered remote={this.NetworkEndpoint}");
+                _logger.LogWarning("[NW.WebSocketConnection] receive throttle triggered remote={RemoteEndpoint}", this.NetworkEndpoint);
             }
             return;
         }
@@ -311,7 +311,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
     {
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(WebSocketConnection)}] disconnect request id={this.ID} remote={this.NetworkEndpoint} reason={reason}");
+            _logger.LogDebug("[NW.WebSocketConnection] disconnect request id={ConnectionId} remote={RemoteEndpoint} reason={Reason}", this.ID, this.NetworkEndpoint, reason);
         }
         this.Dispose();
     }
@@ -353,7 +353,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                     {
-                        _logger.LogError(ex, $"[NW.{nameof(WebSocketConnection)}] Close event error");
+                        _logger.LogError(ex, "[NW.WebSocketConnection] Close event error");
                     }
                 }
                 finally

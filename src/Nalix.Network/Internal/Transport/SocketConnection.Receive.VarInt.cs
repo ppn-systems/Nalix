@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -43,9 +43,7 @@ internal sealed partial class SocketConnection
                     {
                         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                         {
-                            _logger.LogTrace(
-                                $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_VARINT_ASYNC)}] " +
-                                $"varint-invalid-size-drop size={payloadLen} max={_maxVarIntPayloadSize} ep={_endpointString}");
+                            _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_VARINT_ASYNC] varint-invalid-size-drop size={PayloadLength} max={MaxVarIntPayloadSize} ep={Endpoint}", payloadLen, _maxVarIntPayloadSize, _endpointString);
                         }
 
                         throw new InternalErrorException($"VarInt payload size {payloadLen} is invalid or exceeds the maximum allowed size of {_maxVarIntPayloadSize}.");
@@ -114,18 +112,14 @@ internal sealed partial class SocketConnection
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_VARINT_ASYNC)}] " +
-                    $"ended (peer closed/shutdown) ep={_owner?.NetworkEndpoint.Address}");
+                _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_VARINT_ASYNC] ended (peer closed/shutdown) ep={OwnerNetworkEndpointAddress}", _owner?.NetworkEndpoint.Address);
             }
         }
         catch (OperationCanceledException)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_VARINT_ASYNC)}] " +
-                    $"cancelled ep={_owner?.NetworkEndpoint.Address}");
+                _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_VARINT_ASYNC] cancelled ep={OwnerNetworkEndpointAddress}", _owner?.NetworkEndpoint.Address);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -164,9 +158,7 @@ internal sealed partial class SocketConnection
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(PROCESS_VARINT_FRAME_FROM_BUFFER)}] " +
-                    $"sink-rejected-frame-drop size={payloadLen} ep={_endpointString}");
+                _logger.LogTrace("[NW.SocketConnection:PROCESS_VARINT_FRAME_FROM_BUFFER] sink-rejected-frame-drop size={PayloadLength} ep={Endpoint}", payloadLen, _endpointString);
             }
 
             lease.Dispose();
@@ -175,9 +167,7 @@ internal sealed partial class SocketConnection
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace(
-                $"[NW.{nameof(SocketConnection)}:{nameof(PROCESS_VARINT_FRAME_FROM_BUFFER)}] " +
-                $"accepted payload={payloadLen} ep={_endpointString}");
+            _logger.LogTrace("[NW.SocketConnection:PROCESS_VARINT_FRAME_FROM_BUFFER] accepted payload={PayloadLength} ep={Endpoint}", payloadLen, _endpointString);
         }
     }
 }

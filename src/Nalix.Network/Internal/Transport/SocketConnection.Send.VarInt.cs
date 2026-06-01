@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -38,7 +38,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] stackalloc varint len={data.Length} ep={_socket.RemoteEndPoint}");
+                    _logger.LogDebug("[NW.SocketConnection:Send] stackalloc varint len={Length} ep={RemoteEndpoint}", data.Length, _socket.RemoteEndPoint);
                 }
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];

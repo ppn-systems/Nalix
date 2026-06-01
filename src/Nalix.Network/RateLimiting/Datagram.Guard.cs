@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -117,7 +117,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             {
                 if (self._logger != null && self._logger.IsEnabled(LogLevel.Error))
                 {
-                    self._logger.LogError(ex, $"[NW.{nameof(DatagramGuard)}] cleanup-loop-faulted");
+                    self._logger.LogError(ex, "[NW.DatagramGuard] cleanup-loop-faulted");
                 }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
@@ -253,14 +253,14 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {
-                    _logger.LogWarning(ex, $"[NW.{nameof(DatagramGuard)}] Cleanup error.");
+                    _logger.LogWarning(ex, "[NW.DatagramGuard] Cleanup error.");
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(ex, $"[NW.{nameof(DatagramGuard)}] Unexpected error in CleanupLoopAsync.");
+                    _logger.LogError(ex, "[NW.DatagramGuard] Unexpected error in CleanupLoopAsync.");
                 }
             }
         }
@@ -297,7 +297,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug($"[NW.{nameof(DatagramGuard)}] Evicted {removed} idle windows. IPv4={_ipv4Map.Count}, IPv6={_ipv6Map.Count}");
+                _logger.LogDebug("[NW.DatagramGuard] Evicted {Removed} idle windows. IPv4={Ipv4MapCount}, IPv6={Ipv6MapCount}", removed, _ipv4Map.Count, _ipv6Map.Count);
             }
         }
     }
@@ -322,7 +322,7 @@ public sealed class DatagramGuard : IDisposable, IWithLogging<DatagramGuard>
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug(ex, $"[NW.{nameof(DatagramGuard)}] cleanup-task-completed-with-error during dispose");
+                    _logger.LogDebug(ex, "[NW.DatagramGuard] cleanup-task-completed-with-error during dispose");
                 }
             }
         }

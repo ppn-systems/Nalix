@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -73,9 +73,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                        $"stackalloc len={data.Length} ep={_socket.RemoteEndPoint}");
+                    _logger.LogDebug("[NW.SocketConnection:Send] stackalloc len={Length} ep={RemoteEndpoint}", data.Length, _socket.RemoteEndPoint);
                 }
 #endif
                 Span<byte> frameS = stackalloc byte[totalLength];
@@ -85,9 +83,7 @@ internal sealed partial class SocketConnection
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
                     Span<byte> payloadSpan = frameS.Slice(HeaderSize, data.Length);
-                    _logger.LogDebug(
-                        $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                        $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} ep={_socket.RemoteEndPoint}");
+                    _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={FORMATFRAMEFORLOGpayloadSpan} ep={RemoteEndpoint}", totalLength, FORMAT_FRAME_FOR_LOG(payloadSpan), _socket.RemoteEndPoint);
                 }
 #endif
 
@@ -102,9 +98,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
                             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                             {
-                                _logger.LogDebug(
-                                    $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                    $"stackalloc peer-closed ep={_socket.RemoteEndPoint}");
+                                _logger.LogDebug("[NW.SocketConnection:Send] stackalloc peer-closed ep={RemoteEndpoint}", _socket.RemoteEndPoint);
                             }
 #endif
                             this.CANCEL_RECEIVE_ONCE();
@@ -127,8 +121,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                                      $"stackalloc-benign-disconnect ep={_endpointString} ex={ex.GetType().Name}");
+                        _logger.LogDebug(ex, "[NW.SocketConnection:Send] stackalloc-benign-disconnect ep={Endpoint} ex={ExceptionType}", _endpointString, ex.GetType().Name);
                     }
 #endif
                 }
@@ -155,9 +148,7 @@ internal sealed partial class SocketConnection
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                    $"pooled len={data.Length} ep={_socket.RemoteEndPoint}");
+                _logger.LogDebug("[NW.SocketConnection:Send] pooled len={Length} ep={RemoteEndpoint}", data.Length, _socket.RemoteEndPoint);
             }
 #endif
             BinaryPrimitives.WriteUInt16LittleEndian(MemoryExtensions.AsSpan(heapBuf), (ushort)totalLength);
@@ -167,10 +158,7 @@ internal sealed partial class SocketConnection
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
                 Span<byte> payloadSpan = MemoryExtensions.AsSpan(heapBuf, HeaderSize, data.Length);
-                _logger.LogDebug(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(Send)}] " +
-                    $"sending frame totalLen={totalLength} payload={FORMAT_FRAME_FOR_LOG(payloadSpan)} " +
-                    $"ep={_socket.RemoteEndPoint}");
+                _logger.LogDebug("[NW.SocketConnection:Send] sending frame totalLen={TotalLength} payload={FORMATFRAMEFORLOGpayloadSpan} ep={RemoteEndpoint}", totalLength, FORMAT_FRAME_FOR_LOG(payloadSpan), _socket.RemoteEndPoint);
             }
 #endif
 
