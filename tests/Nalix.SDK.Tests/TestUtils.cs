@@ -154,10 +154,13 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
     public override bool IsConnected { get; } = isConnected;
     public int SendPacketCallCount { get; private set; }
 
+    // Required overrides; test code subscribes via SubscribeTemp / On<T> extension methods.
+#pragma warning disable CS0067 // Event is never used
     public override event EventHandler? OnConnected;
     public override event EventHandler<Exception>? OnDisconnected;
     public override event EventHandler<IBufferLease>? OnMessageReceived;
     public override event EventHandler<Exception>? OnError;
+#pragma warning restore CS0067
 
     public override Task ConnectAsync(string? host = null, ushort? port = null, CancellationToken ct = default) => Task.CompletedTask;
     public override Task DisconnectAsync() => Task.CompletedTask;

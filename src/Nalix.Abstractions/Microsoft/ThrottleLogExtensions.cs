@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -14,31 +15,49 @@ namespace Microsoft.Extensions.Logging;
 /// <inheritdoc/>
 public static partial class Log
 {
-    /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "{Message}{Suffix}")]
-    public static partial void DataProcessingWarning(ILogger logger, string message, string suffix);
+    // ── Warning ──────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Trace,
-        Message = "{Message}{Suffix}")]
-    public static partial void DataProcessingTrace(ILogger logger, string message, string suffix);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Message}")]
+    public static partial void DataProcessingWarning(ILogger logger, string message);
 
     /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Error,
-        Message = "{Message}{Suffix}")]
-    public static partial void DataProcessingError(ILogger logger, string message, string suffix);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Message} (+{SuppressedCount} suppressed)")]
+    public static partial void DataProcessingWarningSuppressed(ILogger logger, string message, long suppressedCount);
+
+    // ── Trace ────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Error,
-        Message = "{Message}{Suffix}")]
+    [LoggerMessage(Level = LogLevel.Trace, Message = "{Message}")]
+    public static partial void DataProcessingTrace(ILogger logger, string message);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Trace, Message = "{Message} (+{SuppressedCount} suppressed)")]
+    public static partial void DataProcessingTraceSuppressed(ILogger logger, string message, long suppressedCount);
+
+    // ── Error ────────────────────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message}")]
+    public static partial void DataProcessingError(ILogger logger, string message);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message} (+{SuppressedCount} suppressed)")]
     [SuppressMessage("LoggingGenerator",
         "SYSLIB1006:Multiple logging methods cannot use the same event id within a class", Justification = "<Pending>")]
-    public static partial void DataProcessingError(ILogger logger, Exception ex, string message, string suffix);
+    public static partial void DataProcessingErrorSuppressed(ILogger logger, string message, long suppressedCount);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message}")]
+    [SuppressMessage("LoggingGenerator",
+        "SYSLIB1006:Multiple logging methods cannot use the same event id within a class", Justification = "<Pending>")]
+    public static partial void DataProcessingError(ILogger logger, Exception ex, string message);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message} (+{SuppressedCount} suppressed)")]
+    [SuppressMessage("LoggingGenerator",
+        "SYSLIB1006:Multiple logging methods cannot use the same event id within a class", Justification = "<Pending>")]
+    public static partial void DataProcessingErrorSuppressed(ILogger logger, Exception ex, string message, long suppressedCount);
 }
 
 /// <summary>
@@ -49,8 +68,14 @@ public static class ThrottleLogExtensions
 {
     private const string AttrKeyPrefix = "sys.log.";
 
-    private static readonly long s_defaultWindowTicks =
-        (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
+    private static readonly long s_defaultWindowTicks;
+    private static readonly ConcurrentDictionary<string, string> s_attrKeyCache;
+
+    static ThrottleLogExtensions()
+    {
+        s_attrKeyCache = new();
+        s_defaultWindowTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
+    }
 
     private sealed class LogThrottleState
     {
@@ -72,9 +97,9 @@ public static class ThrottleLogExtensions
         if (!ShouldLog(connection, key, out long suppressed))
         {
             return;
-
         }
-        Log.DataProcessingWarning(logger, message, FormatSuffix(suppressed));
+
+        EmitWarning(logger, message, suppressed);
     }
 
     /// <summary>
@@ -83,7 +108,7 @@ public static class ThrottleLogExtensions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void ThrottledError(this IConnection connection, ILogger? logger, string key, string message, Exception? ex = null)
     {
-        if (logger == null || !logger.IsEnabled(LogLevel.Warning))
+        if (logger == null || !logger.IsEnabled(LogLevel.Error))
         {
             return;
         }
@@ -93,18 +118,8 @@ public static class ThrottleLogExtensions
             return;
         }
 
-        string suffix = FormatSuffix(suppressed);
-
-        if (ex == null)
-        {
-            Log.DataProcessingError(logger, message, suffix);
-        }
-        else
-        {
-            Log.DataProcessingError(logger, ex, message, suffix);
-        }
+        EmitError(logger, message, suppressed, ex);
     }
-
 
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool ShouldLog(IConnection connection, string key, out long suppressed)
@@ -117,7 +132,7 @@ public static class ThrottleLogExtensions
             return true;
         }
 
-        string attrKey = string.Concat(AttrKeyPrefix, key);
+        string attrKey = GetCachedAttrKey(key);
 
         if (!attrs.TryGetValue(attrKey, out object? val) || val is not LogThrottleState state)
         {
@@ -151,5 +166,45 @@ public static class ThrottleLogExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string FormatSuffix(long suppressed) => suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
+    private static void EmitWarning(ILogger logger, string message, long suppressed)
+    {
+        if (suppressed > 0)
+        {
+            Log.DataProcessingWarningSuppressed(logger, message, suppressed);
+        }
+        else
+        {
+            Log.DataProcessingWarning(logger, message);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void EmitError(ILogger logger, string message, long suppressed, Exception? ex)
+    {
+        if (ex == null)
+        {
+            if (suppressed > 0)
+            {
+                Log.DataProcessingErrorSuppressed(logger, message, suppressed);
+            }
+            else
+            {
+                Log.DataProcessingError(logger, message);
+            }
+        }
+        else
+        {
+            if (suppressed > 0)
+            {
+                Log.DataProcessingErrorSuppressed(logger, ex, message, suppressed);
+            }
+            else
+            {
+                Log.DataProcessingError(logger, ex, message);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string GetCachedAttrKey(string key) => s_attrKeyCache.GetOrAdd(key, static k => string.Concat(AttrKeyPrefix, k));
 }
