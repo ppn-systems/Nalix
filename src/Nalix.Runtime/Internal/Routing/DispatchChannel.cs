@@ -257,11 +257,6 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
 
             DecrementNonNegative(ref _readyEntriesByPrio[p]);
 
-            if (state.TryReleaseReady())
-            {
-                DecrementNonNegative(ref _readyConnections);
-            }
-
             if (!state.IsActive)
             {
                 // Connection died. Try another one at THIS priority since we still have budget.
@@ -287,9 +282,34 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private void Release(ConnectionState state)
     {
+        if (!state.IsActive)
+        {
+            if (state.TryReleaseReady())
+            {
+                DecrementNonNegative(ref _readyConnections);
+            }
+            return;
+        }
+
         if (state.TotalCount > 0)
         {
-            this.RequeueReady(state);
+            int highest = state.GetHighestPriority();
+            if (highest >= LowestPriorityIndex)
+            {
+                this.EnqueueReady(state, highest);
+                return;
+            }
+        }
+
+        if (state.TryReleaseReady())
+        {
+            DecrementNonNegative(ref _readyConnections);
+        }
+
+        if (state.TotalCount > 0 && state.TryMarkReady())
+        {
+            _ = Interlocked.Increment(ref _readyConnections);
+            this.EnqueueReady(state, state.GetHighestPriority());
         }
     }
 
@@ -543,31 +563,7 @@ public sealed class DispatchChannel<TPacket> : IDispatchChannel<TPacket>, IDispo
         return false;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    private void RequeueReady(ConnectionState state)
-    {
-        if (!state.IsActive)
-        {
-            return;
-        }
 
-        int highest = state.GetHighestPriority();
-        if (highest < LowestPriorityIndex)
-        {
-            return;
-        }
-
-        // Requeue only when the connection still has packets left. The ready queue
-        // is a wake-up list, not the packet store itself, so we only enqueue the
-        // connection when it transitions back to "has more work to do".
-        if (!state.TryMarkReady())
-        {
-            return;
-        }
-
-        _ = Interlocked.Increment(ref _readyConnections);
-        this.EnqueueReady(state, highest);
-    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
     private void EnqueueReady(ConnectionState state, int priority)

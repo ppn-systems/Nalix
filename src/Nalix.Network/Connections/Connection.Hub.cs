@@ -487,10 +487,10 @@ public sealed class ConnectionHub : IConnectionHub
                 _logger.LogTrace("[NW.ConnectionHub:RegisterConnection] register id={ConnectionId} total={RegistryCount}", connection.ID, _registry.Count);
             }
 
-            if (measureLatency && _logger != null)
+            if (measureLatency && _logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
                 double latencyMs = scope.GetElapsedMilliseconds();
-                _logger.LogInformation("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, latencyMs);
+                _logger.LogDebug("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, latencyMs);
             }
 
             return RegisterResult.Success;
@@ -564,10 +564,10 @@ public sealed class ConnectionHub : IConnectionHub
             _logger.LogTrace("[NW.ConnectionHub:UnregisterConnection] unregister id={RemovedConnectionID} total={RegistryCount}", removedConnection.ID, _registry.Count);
         }
 
-        if (measureLatency && _logger != null)
+        if (measureLatency && _logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
             double latencyMs = scope.GetElapsedMilliseconds();
-            _logger.LogInformation("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, latencyMs);
+            _logger.LogDebug("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, latencyMs);
         }
 
         return true;
