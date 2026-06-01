@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -147,7 +147,8 @@ public abstract partial class UdpListenerBase
 
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            this.Logger.LogDebug($"[NW.{nameof(UdpListenerBase)}] created port={_port} protocol={protocol.GetType().Name}");
+            string protocolType = protocol.GetType().Name;
+            this.Logger.LogDebug("[NW.UdpListenerBase] created port={Port} protocol={ProtocolType}", _port, protocolType);
         }
     }
 
@@ -205,18 +206,14 @@ public abstract partial class UdpListenerBase
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                        $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Dispose] cts-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(ex,
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                        $"cts-dispose-failed port={_port}");
+                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Dispose] cts-dispose-failed port={Port}", _port);
                 }
             }
 
@@ -232,18 +229,14 @@ public abstract partial class UdpListenerBase
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                        $"socket-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Dispose] socket-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(ex,
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] " +
-                        $"socket-dispose-failed port={_port}");
+                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Dispose] socket-dispose-failed port={Port}", _port);
                 }
             }
 
@@ -255,7 +248,7 @@ public abstract partial class UdpListenerBase
 
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
         {
-            this.Logger.LogDebug($"[NW.{nameof(UdpListenerBase)}:{nameof(Dispose)}] disposed port={_port}");
+            this.Logger.LogDebug("[NW.UdpListenerBase:Dispose] disposed port={Port}", _port);
         }
     }
 

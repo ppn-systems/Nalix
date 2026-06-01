@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -36,7 +36,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
         this.Logging = logger;
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithLogging)}] logger-attached");
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithLogging] logger-attached");
         }
 
         return this;
@@ -59,7 +59,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithErrorHandling)}] error-handler-set");
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithErrorHandling] error-handler-set");
         }
         _errorHandler = errorHandler;
 
@@ -82,7 +82,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
 
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithMiddleware)}] middleware-added type={middleware.GetType().Name}");
+            string middlewareType = middleware.GetType().Name;
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithMiddleware] middleware-added type={MiddlewareType}", middlewareType);
         }
 
         _pipeline.Use(middleware);
@@ -110,7 +111,8 @@ public sealed partial class PacketDispatchOptions<TPacket>
         this.Drain.Count = loopCount ?? 0;
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
         {
-            this.Logging.LogDebug($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithDispatchLoopCount)}] loops={(loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto")}");
+            string loops = loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto";
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithDispatchLoopCount] loops={Loops}", loops);
         }
         return this;
     }
@@ -248,17 +250,14 @@ public sealed partial class PacketDispatchOptions<TPacket>
             {
                 if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logging.LogDebug(
-                        $"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                        $"type-map opcode=0x{descriptor.OpCode:X4} -> {concretePacketType.Name}");
+                    this.Logging.LogDebug("[RT.PacketDispatchOptions:WithHandler] type-map opcode=0x{OpCode} -> {ConcretePacketTypeName}", descriptor.OpCode, concretePacketType.Name);
                 }
             }
         }
 
         if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Information))
         {
-            this.Logging.LogInformation($"[RT.{nameof(PacketDispatchOptions<>)}:{nameof(WithHandler)}] " +
-                               $"reg-handlers count={compiledHandlers.Length} controller={controllerType.Name}");
+            this.Logging.LogInformation("[RT.PacketDispatchOptions:WithHandler] reg-handlers count={CompiledHandlersLength} controller={ControllerTypeName}", compiledHandlers.Length, controllerType.Name);
         }
 
         return this;

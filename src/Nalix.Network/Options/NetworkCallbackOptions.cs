@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
@@ -127,16 +127,14 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader, IValid
         if (this.CallbackWarningThreshold > 0 && this.CallbackWarningThreshold >= this.MaxPendingNormalCallbacks)
         {
             throw new System.ArgumentException(
-                $"{nameof(this.CallbackWarningThreshold)} ({this.CallbackWarningThreshold}) " +
-                $"must be less than {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
+                $"{nameof(this.CallbackWarningThreshold)} ({this.CallbackWarningThreshold}) must be less than {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
         }
 
         // Cross-field guard: per-IP cap should not exceed global cap
         if (this.MaxPendingPerIp > this.MaxPendingNormalCallbacks)
         {
             throw new System.ArgumentException(
-                $"{nameof(this.MaxPendingPerIp)} ({this.MaxPendingPerIp}) " +
-                $"must not exceed {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
+                $"{nameof(this.MaxPendingPerIp)} ({this.MaxPendingPerIp}) must not exceed {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
         }
     }
 }

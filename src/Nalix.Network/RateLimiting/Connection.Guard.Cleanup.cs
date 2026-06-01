@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -167,7 +167,7 @@ public sealed partial class ConnectionGuard
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleanup scanned={scanned} removed={removed} remaining={_map.Count}");
+                    _logger.LogDebug("[NW.ConnectionGuard] cleanup scanned={Scanned} removed={Removed} remaining={MapCount}", scanned, removed, _map.Count);
                 }
             }
         }
@@ -175,7 +175,7 @@ public sealed partial class ConnectionGuard
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}] cleanup-error");
+                _logger.LogError(ex, "[NW.ConnectionGuard] cleanup-error");
             }
         }
     }

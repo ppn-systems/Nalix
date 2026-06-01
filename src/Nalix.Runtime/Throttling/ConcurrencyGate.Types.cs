@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -151,7 +151,7 @@ public sealed partial class ConcurrencyGate
                 _ = Interlocked.Decrement(ref _activeUsers);
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                 {
-                    this.Logger.LogError($"[RT.{nameof(ConcurrencyGate)}:Entry] activeUsers overflow detected");
+                    this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers overflow detected");
                 }
                 return false;
             }
@@ -171,7 +171,7 @@ public sealed partial class ConcurrencyGate
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                 {
-                    this.Logger.LogError($"[RT.{nameof(ConcurrencyGate)}:Entry] activeUsers underflow detected");
+                    this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers underflow detected");
                 }
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
             }
@@ -216,7 +216,7 @@ public sealed partial class ConcurrencyGate
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                 {
-                    this.Logger.LogError($"[RT.{nameof(ConcurrencyGate)}:Entry] queueCount underflow detected");
+                    this.Logger.LogError("[RT.ConcurrencyGate:Entry] queueCount underflow detected");
                 }
                 _ = Interlocked.Exchange(ref _queueCount, 0);
             }
@@ -253,8 +253,7 @@ public sealed partial class ConcurrencyGate
                 {
                     if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                     {
-                        this.Logger.LogWarning(
-                            $"[RT.{nameof(ConcurrencyGate)}:Entry] disposing with {remainingUsers} active users");
+                        this.Logger.LogWarning("[RT.ConcurrencyGate:Entry] disposing with {ActiveUsers} active users", remainingUsers);
                     }
                 }
 
@@ -271,7 +270,7 @@ public sealed partial class ConcurrencyGate
                 {
                     if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                     {
-                        this.Logger.LogError(ex, $"[RT.{nameof(ConcurrencyGate)}:Entry] disposal-error");
+                        this.Logger.LogError(ex, "[RT.ConcurrencyGate:Entry] disposal-error");
                     }
                 }
             }
@@ -316,7 +315,7 @@ public sealed partial class ConcurrencyGate
             {
                 if (_entry.Logger != null && _entry.Logger.IsEnabled(LogLevel.Error))
                 {
-                    _entry.Logger.LogError(ex, $"[RT.{nameof(ConcurrencyGate)}:Lease] release-error");
+                    _entry.Logger.LogError(ex, "[RT.ConcurrencyGate:Lease] release-error");
                 }
             }
             finally

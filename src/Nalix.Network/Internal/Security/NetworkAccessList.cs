@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Collections.Generic;
@@ -99,7 +99,7 @@ internal sealed class NetworkAccessList
 
         if (networks.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation($"[NW.NetworkAccessList] Loaded {networks.Count} trusted proxies from disk.");
+            _logger.LogInformation("[NW.NetworkAccessList] Loaded {NetworksCount} trusted proxies from disk.", networks.Count);
         }
     }
 
@@ -132,7 +132,7 @@ internal sealed class NetworkAccessList
 
         if (networks.Count > 0 && _logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation($"[NW.NetworkAccessList] Loaded {networks.Count} blacklisted IP/networks from disk (single IPs: {_blacklistedIps.Count}, CIDR networks: {_blacklistedNetworks.Count}).");
+            _logger.LogInformation("[NW.NetworkAccessList] Loaded {NetworksCount} blacklisted IP/networks from disk (single IPs: {BlacklistedIpsCount}, CIDR networks: {BlacklistedNetworksCount}).", networks.Count, _blacklistedIps.Count, _blacklistedNetworks.Count);
         }
     }
 

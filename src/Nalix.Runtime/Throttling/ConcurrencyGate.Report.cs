@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -173,14 +173,7 @@ public sealed partial class ConcurrencyGate
 
             _ = sb.AppendLine(
                 CultureInfo.InvariantCulture,
-                $"0x{opcode:X4} | " +
-                $"{entry.Capacity,8} | " +
-                $"{inUse,5} | " +
-                $"{available,5} | " +
-                $"{queueCount,5} | " +
-                $"{queueMaxStr,8} | " +
-                $"{queueEnabled,7} | " +
-                $"{lastUsed:HH:mm:ss}");
+                $"0x{opcode:X4} | {entry.Capacity,8} | {inUse,5} | {available,5} | {queueCount,5} | {queueMaxStr,8} | {queueEnabled,7} | {lastUsed:HH:mm:ss}");
         }
     }
 

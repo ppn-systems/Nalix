@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -158,7 +158,7 @@ public sealed partial class ConcurrencyGate : IReportable, IWithLogging<Concurre
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[RT.{nameof(ConcurrencyGate)}:{nameof(TryEnter)}] unexpected error opcode={opcode:X4}");
+                _logger.LogError(ex, "[RT.ConcurrencyGate:TryEnter] unexpected error opcode={OpCode}", opcode);
             }
             lease = default;
             return false;

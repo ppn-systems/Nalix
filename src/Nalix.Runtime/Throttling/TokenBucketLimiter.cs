@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -234,7 +234,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
+                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] endpoint-limit-reached-precheck count={TotalEndpoints} limit={MaxEndpoints}", _totalEndpointCount, _options.MaxTrackedEndpoints);
             }
 
             return new EndpointStateResult
@@ -270,7 +270,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[RT.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
+            _logger.LogDebug("[RT.TokenBucketLimiter:Internal] new-endpoint total={TotalEndpoints}", _totalEndpointCount);
         }
 
         return new EndpointStateResult { State = newState, IsNew = true };
@@ -282,7 +282,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(TokenBucketLimiter)}:Internal] endpoint-limit-reached-precheck count={_totalEndpointCount} limit={_options.MaxTrackedEndpoints}");
+                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] endpoint-limit-reached-precheck count={TotalEndpoints} limit={MaxEndpoints}", _totalEndpointCount, _options.MaxTrackedEndpoints);
             }
             return new EndpointStateResult { EarlyDecision = this.CREATE_LIMIT_REACHED_DECISION() };
         }
@@ -304,7 +304,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[RT.{nameof(TokenBucketLimiter)}:Internal] new-endpoint total={_totalEndpointCount}");
+            _logger.LogDebug("[RT.TokenBucketLimiter:Internal] new-endpoint total={TotalEndpoints}", _totalEndpointCount);
         }
 
         return new EndpointStateResult { State = newState, IsNew = true };
@@ -461,7 +461,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
             int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace($"[RT.{nameof(TokenBucketLimiter)}:Internal] hard-blocked retry_ms={retryMs}");
+                _logger.LogTrace("[RT.TokenBucketLimiter:Internal] hard-blocked retry_ms={RetryMs}", retryMs);
             }
 
             decision = new RateLimitDecision
@@ -514,7 +514,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (credit <= 1 && _logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace($"[RT.{nameof(TokenBucketLimiter)}:Internal] allow credit={credit}");
+            _logger.LogTrace("[RT.TokenBucketLimiter:Internal] allow credit={Credit}", credit);
         }
 
         return new RateLimitDecision
@@ -938,7 +938,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[RT.{nameof(TokenBucketLimiter)}:{nameof(Dispose)}] disposed");
+            _logger.LogDebug("[RT.TokenBucketLimiter:Dispose] disposed");
         }
     }
 

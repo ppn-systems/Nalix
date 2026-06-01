@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -101,7 +101,8 @@ public sealed class PacketSender : IPacketSender
 #if DEBUG
         if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
         {
-            s_logger.LogDebug($"[RT.PacketSender] Start SEND_CORE_ASYNC | Packet={packet.GetType().Name}, Length={packetLength}, NeedEncrypt={needEncrypt}");
+            string packetType = packet.GetType().Name;
+            s_logger.LogDebug("[RT.PacketSender] Start SEND_CORE_ASYNC | Packet={PacketType}, Length={Length}, NeedEncrypt={NeedEncrypt}", packetType, packetLength, needEncrypt);
         }
 #endif
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -81,7 +81,7 @@ public class RateLimitMiddleware : IPacketMiddleware<IPacket>
             // If the limiter has been disposed (e.g., during shutdown), deny the packet (fail-closed)
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(RateLimitMiddleware)}:Invoke] rate-limiter-disposed request-denied");
+                _logger.LogWarning("[RT.RateLimitMiddleware:Invoke] rate-limiter-disposed request-denied");
             }
             return;
         }

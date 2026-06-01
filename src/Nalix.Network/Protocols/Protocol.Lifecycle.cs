@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -69,7 +69,7 @@ public abstract partial class Protocol
 
         if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
         {
-            s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(Dispose)}] disposed");
+            s_logger.LogTrace("[NW.Protocol:Dispose] disposed");
         }
 
         // Derived protocols can release managed resources when disposing == true.

@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions.Exceptions;
@@ -89,9 +89,7 @@ public static class AeadEngine
         if (ciphertext.Length < total)
         {
             throw new System.ArgumentException(
-                $"The destination ciphertext buffer is too small for the generated envelope. " +
-                $"Required: {total} bytes, Provided: {ciphertext.Length} bytes, " +
-                $"Missing: {total - ciphertext.Length} bytes.",
+                $"The destination ciphertext buffer is too small for the generated envelope. Required: {total} bytes, Provided: {ciphertext.Length} bytes, Missing: {total - ciphertext.Length} bytes.",
                 nameof(ciphertext));
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
@@ -102,6 +102,5 @@ public sealed partial class Control : PacketBase<Control>, IPacketTimestamped, I
 
     /// <inheritdoc/>
     public override string ToString() =>
-        $"Control(Op={this.OpCode}, Len={this.Length}, Flg={this.Flags}, Pri={this.Priority}, " +
-        $"SEQ={this.SequenceId}, Rsn={this.Reason}, Typ={this.Type}, Ts={this.Timestamp}, Mono={this.MonoTicks})";
+        $"Control(Op={this.OpCode}, Len={this.Length}, Flg={this.Flags}, Pri={this.Priority}, SEQ={this.SequenceId}, Rsn={this.Reason}, Typ={this.Type}, Ts={this.Timestamp}, Mono={this.MonoTicks})";
 }

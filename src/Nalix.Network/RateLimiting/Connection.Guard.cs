@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -119,10 +119,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] init " +
-                             $"maxPerEndpoint={_maxPerEndpoint} " +
-                             $"inactivity={_inactivityThreshold.TotalSeconds:F0}s " +
-                             $"cleanup={_cleanupInterval.TotalSeconds:F0}s");
+            _logger.LogDebug("[NW.ConnectionGuard] init maxPerEndpoint={Limit} inactivity={InactivityThresholdTotalSeconds}s cleanup={CleanupIntervalTotalSeconds}s", _maxPerEndpoint, _inactivityThreshold.TotalSeconds, _cleanupInterval.TotalSeconds);
         }
     }
 
@@ -178,7 +175,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
         {
             DateTime banUntil = new(banUntilTicks, DateTimeKind.Utc);
-            _logger.LogWarning($"[NW.ConnectionGuard] manually-banned ip={address} until={banUntil:HH:mm:ss}");
+            string banTime = banUntil.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+            _logger.LogWarning("[NW.ConnectionGuard] manually-banned ip={Address} until={BanUntil}", address, banTime);
         }
     }
 
@@ -252,9 +250,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
                     if (_logger != null && _logger.IsEnabled(LogLevel.Information))
                     {
-                        _logger.LogInformation(
-                            $"[NW.{nameof(ConnectionGuard)}] reject endpoint={endPoint} " +
-                            $"current={result.CurrentConnections} limit={_maxPerEndpoint}{suffix}");
+                        _logger.LogInformation("[NW.ConnectionGuard] reject endpoint={Endpoint} current={Current} limit={Limit}{Suffix}", endPoint, result.CurrentConnections, _maxPerEndpoint, suffix);
                     }
                 }
             }
@@ -263,7 +259,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] allow endpoint={endPoint} current={result.CurrentConnections} limit={_maxPerEndpoint}");
+                _logger.LogTrace("[NW.ConnectionGuard] allow endpoint={Endpoint} current={Current} limit={Limit}", endPoint, result.CurrentConnections, _maxPerEndpoint);
             }
         }
 
@@ -288,7 +284,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}:Internal] received-null args/connection/endpoint");
+                _logger.LogWarning("[NW.ConnectionGuard:Internal] received-null args/connection/endpoint");
             }
             return;
         }
@@ -297,7 +293,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}:Internal] received-empty-address");
+                _logger.LogWarning("[NW.ConnectionGuard:Internal] received-empty-address");
             }
             return;
         }
@@ -326,7 +322,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                 {
-                    _logger.LogTrace($"[NW.{nameof(ConnectionGuard)}] closed endpoint={key.Address}{suffix}");
+                    _logger.LogTrace("[NW.ConnectionGuard] closed endpoint={Address}{Suffix}", key.Address, suffix);
                 }
             }
         }
@@ -430,7 +426,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                         if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                         {
                             DateTime banUntil = new(banUntilTicks, DateTimeKind.Utc);
-                            _logger.LogWarning($"[NW.{nameof(ConnectionGuard)}] banned ip={key.Address} count={entry.BanCount} until={banUntil:HH:mm:ss}");
+                            string banTime = banUntil.ToString("HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+                            _logger.LogWarning("[NW.ConnectionGuard] banned ip={Address} count={BanCount} until={BanUntil}", key.Address, entry.BanCount, banTime);
                         }
                     }
 
@@ -569,7 +566,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}] cleared-queue ip={key.Address} reason=oversized");
+                    _logger.LogDebug("[NW.ConnectionGuard] cleared-queue ip={Address} reason=oversized", key.Address);
                 }
             }
 
@@ -612,14 +609,14 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug($"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] disposed");
+                _logger.LogDebug("[NW.ConnectionGuard:Dispose] disposed");
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(ConnectionGuard)}:{nameof(Dispose)}] dispose-error");
+                _logger.LogError(ex, "[NW.ConnectionGuard:Dispose] dispose-error");
             }
         }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -44,7 +44,7 @@ public sealed partial class ConcurrencyGate
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Information))
                 {
-                    _logger.LogInformation($"[RT.{nameof(ConcurrencyGate)}] circuit breaker closed");
+                    _logger.LogInformation("[RT.ConcurrencyGate] circuit breaker closed");
                 }
             }
 
@@ -71,9 +71,7 @@ public sealed partial class ConcurrencyGate
 
                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                 {
-                    _logger.LogError(
-                        $"[RT.{nameof(ConcurrencyGate)}] circuit breaker opened " +
-                        $"(rejection_rate={rejectionRate:P2}, attempts={totalAttempts})");
+                    _logger.LogError("[RT.ConcurrencyGate] circuit breaker opened (rejection_rate={RejectionRate}, attempts={TotalAttempts})", rejectionRate, totalAttempts);
                 }
             }
 
@@ -128,8 +126,7 @@ public sealed partial class ConcurrencyGate
         {
             _ = Interlocked.Increment(ref _totalRejected);
             throw new ConcurrencyFailureException(
-                $"Concurrency queue is full for opcode {opcode:X4} " +
-                $"(limit={entry.QueueMax}, current={entry.QueueCount})");
+                $"Concurrency queue is full for opcode {opcode:X4} (limit={entry.QueueMax}, current={entry.QueueCount})");
         }
 
         _ = Interlocked.Increment(ref _totalQueued);
@@ -202,7 +199,7 @@ public sealed partial class ConcurrencyGate
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[RT.{nameof(ConcurrencyGate)}] cleanup removed={removed} remaining={_table.Count}");
+                    _logger.LogDebug("[RT.ConcurrencyGate] cleanup removed={Removed} remaining={TableCount}", removed, _table.Count);
                 }
             }
         }
@@ -210,7 +207,7 @@ public sealed partial class ConcurrencyGate
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[RT.{nameof(ConcurrencyGate)}] cleanup-error");
+                _logger.LogError(ex, "[RT.ConcurrencyGate] cleanup-error");
             }
         }
     }

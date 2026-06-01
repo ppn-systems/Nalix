@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
@@ -169,8 +169,7 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
     /// Returns a compact debug representation of this handshake packet.
     /// </summary>
     public override string ToString()
-        => $"HANDSHAKE(Stage={this.Stage}, OpCode={this.OpCode}, Length={this.Length}, " +
-           $"Flags={this.Flags}, Priority={this.Priority}, SessionToken={this.SessionToken})";
+        => $"HANDSHAKE(Stage={this.Stage}, OpCode={this.OpCode}, Length={this.Length}, Flags={this.Flags}, Priority={this.Priority}, SessionToken={this.SessionToken})";
 
     /// <summary>
     /// Resets this instance for safe pool reuse.

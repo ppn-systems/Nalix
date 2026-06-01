@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -55,19 +55,14 @@ public abstract partial class TcpListenerBase
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
-                    $"new={connection.NetworkEndpoint}");
+                this.Logger.LogTrace("[NW.TcpListenerBase:ProcessConnection] new={ConnectionNetworkEndpoint}", connection.NetworkEndpoint);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(
-                    ex,
-                    $"[NW.{nameof(TcpListenerBase)}:{nameof(ProcessConnection)}] " +
-                    $"process-error={connection.NetworkEndpoint}");
+                this.Logger.LogError(ex, "[NW.TcpListenerBase:ProcessConnection] process-error={ConnectionNetworkEndpoint}", connection.NetworkEndpoint);
             }
 
             // Disconnect the connection immediately if an error occurs -> prevent resource leaks.
@@ -116,9 +111,7 @@ public abstract partial class TcpListenerBase
 
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
         {
-            this.Logger.LogTrace(
-                $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleConnectionClose)}] " +
-                $"close={args.Connection.NetworkEndpoint}");
+            this.Logger.LogTrace("[NW.TcpListenerBase:HandleConnectionClose] close={ArgsConnectionNetworkEndpoint}", args.Connection.NetworkEndpoint);
         }
 
         args.Connection.Dispose();
@@ -270,7 +263,7 @@ public abstract partial class TcpListenerBase
             {
                 // Log in Trace (not Error) because this is expected failure in error-recovery path.
                 // WHY not rethrow: Currently in cleanup path -> the second exception will obscure the original exception.
-                this.Logger.LogTrace($"[NW.{nameof(TcpListenerBase)}:Internal] accept-error ex={ex.Message}");
+                this.Logger.LogTrace(ex, "[NW.TcpListenerBase:Internal] accept-error ex=");
             }
         }
     }
@@ -328,7 +321,7 @@ public abstract partial class TcpListenerBase
                 // This is an early exit for all OS-level errors (Interrupted, OperationAborted, etc.)
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-failed={args.SocketError}");
+                    this.Logger.LogWarning("[NW.TcpListenerBase:HandleAccept] accept-failed={SocketError}", args.SocketError);
                 }
 
                 this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -342,7 +335,7 @@ public abstract partial class TcpListenerBase
                 // No socket to log endpoint, logging warning is sufficient.
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-socket-null port={_port}");
+                    this.Logger.LogWarning("[NW.TcpListenerBase:HandleAccept] accept-socket-null port={Port}", _port);
                 }
 
                 this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -364,7 +357,7 @@ public abstract partial class TcpListenerBase
                     this.Metrics.RECORD_REJECTED();
                     if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                     {
-                        this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] channel-full port={_port} - dropped socket directly");
+                        this.Logger.LogWarning("[NW.TcpListenerBase:HandleAccept] channel-full port={Port} - dropped socket directly", _port);
                     }
                     this.SafeCloseSocket(socket);
                     this.RebindAcceptContext((PooledSocketAsyncEventArgs)args);
@@ -377,7 +370,7 @@ public abstract partial class TcpListenerBase
                     {
                         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                         {
-                            this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] untrusted-proxy-rejected remote={remoteEp}");
+                            this.Logger.LogWarning("[NW.TcpListenerBase:HandleAccept] untrusted-proxy-rejected remote={RemoteEndpoint}", remoteEp);
                         }
 
                         this.Metrics.RECORD_REJECTED();
@@ -413,7 +406,7 @@ public abstract partial class TcpListenerBase
                 // Listener is disposed of while accept is running -> this is expected shutdown case.
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] disposed-during-accept remote={socket.RemoteEndPoint?.ToString() ?? "<null>"}");
+                    this.Logger.LogWarning("[NW.TcpListenerBase:HandleAccept] disposed-during-accept remote={RemoteEndpoint}", socket.RemoteEndPoint?.ToString() ?? "<null>");
                 }
 
                 if (connection != null)
@@ -432,7 +425,7 @@ public abstract partial class TcpListenerBase
                 this.Metrics.RECORD_ERROR();
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                 {
-                    this.Logger.LogError(ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(HandleAccept)}] accept-error port={_port}");
+                    this.Logger.LogError(ex, "[NW.TcpListenerBase:HandleAccept] accept-error port={Port}", _port);
                 }
 
                 if (connection != null)
@@ -608,7 +601,7 @@ public abstract partial class TcpListenerBase
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                 {
-                    this.Logger.LogError(ex, $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptNext)}] accept-error port={_port}");
+                    this.Logger.LogError(ex, "[NW.TcpListenerBase:AcceptNext] accept-error port={Port}", _port);
                 }
 
                 // Delay 50ms to avoid CPU spinning during persistent errors (eg, file descriptor explosion).
@@ -692,9 +685,7 @@ public abstract partial class TcpListenerBase
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
                 {
                     // Token cancelled -> shutdown graceful -> exit loop.
-                    this.Logger.LogTrace(
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
-                        $"shutdown-requested port={_port}");
+                    this.Logger.LogTrace("[NW.TcpListenerBase:AcceptConnectionsAsync] shutdown-requested port={Port}", _port);
                 }
 
                 break;
@@ -722,7 +713,7 @@ public abstract partial class TcpListenerBase
                 this.Metrics.RECORD_ERROR();
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning($"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] transient-socket-error={ex.SocketErrorCode} port={_port}");
+                    this.Logger.LogWarning(ex, "[NW.TcpListenerBase:AcceptConnectionsAsync] transient-socket-error={SocketError} port={Port}", ex.SocketErrorCode, _port);
                 }
 
                 // Transient OS-level error -> record metric + delay + retry.
@@ -736,10 +727,7 @@ public abstract partial class TcpListenerBase
                 this.Metrics.RECORD_ERROR();
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
                 {
-                    this.Logger.LogError(
-                        ex,
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
-                        $"accept-error port={_port}");
+                    this.Logger.LogError(ex, "[NW.TcpListenerBase:AcceptConnectionsAsync] accept-error port={Port}", _port);
                 }
 
                 // Unexpected error -> record + log + delay 50ms to avoid CPU spin.
@@ -751,9 +739,7 @@ public abstract partial class TcpListenerBase
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
                 {
-                    this.Logger.LogTrace(
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
-                        $"accepted remote={connection.NetworkEndpoint} port={_port}");
+                    this.Logger.LogTrace("[NW.TcpListenerBase:AcceptConnectionsAsync] accepted remote={ConnectionNetworkEndpoint} port={Port}", connection.NetworkEndpoint, _port);
                 }
 
                 // Send the connection to process channel -> consumer thread for processing.
@@ -764,9 +750,7 @@ public abstract partial class TcpListenerBase
 
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
         {
-            this.Logger.LogTrace(
-                $"[NW.{nameof(TcpListenerBase)}:{nameof(AcceptConnectionsAsync)}] " +
-                $"loop-exited port={_port}");
+            this.Logger.LogTrace("[NW.TcpListenerBase:AcceptConnectionsAsync] loop-exited port={Port}", _port);
         }
     }
 
@@ -907,18 +891,14 @@ public abstract partial class TcpListenerBase
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
-                        $"listener-endpoint-disposed port={_port} reason={ode.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.TcpListenerBase:CreateConnectionAsync] listener-endpoint-disposed port={Port} reason={Type}", _port, ode.GetType().Name);
                 }
             }
             catch (Exception lookupEx) when (ExceptionClassifier.IsNonFatal(lookupEx))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(lookupEx,
-                        $"[NW.{nameof(TcpListenerBase)}:{nameof(CreateConnectionAsync)}] " +
-                        $"listener-endpoint-lookup-failed port={_port}");
+                    this.Logger.LogWarning(lookupEx, "[NW.TcpListenerBase:CreateConnectionAsync] listener-endpoint-lookup-failed port={Port}", _port);
                 }
             }
             throw new NetworkException($"TryAccept failed. Listener={remote}", ex);

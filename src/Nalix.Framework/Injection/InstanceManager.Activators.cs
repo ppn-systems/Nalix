@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -494,9 +494,7 @@ public sealed partial class InstanceManager
 
         // 3. No match → detailed error
         throw new InternalErrorException(
-            $"Cannot auto-inject '{type.Name}': no public constructor found " +
-            $"where all parameters are resolvable from InstanceManager cache. " +
-            $"Registered types: [{string.Join(", ", this.GetRegisteredTypeNames())}].");
+            $"Cannot auto-inject '{type.Name}': no public constructor found where all parameters are resolvable from InstanceManager cache. Registered types: [{string.Join(", ", this.GetRegisteredTypeNames())}].");
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -769,8 +769,7 @@ public sealed class ConfigurationManager : IDisposable
             if (!string.Equals(normalizedPath, Path.GetFullPath(_baseConfigDirectory), StringComparison.OrdinalIgnoreCase))
             {
                 throw new InternalErrorException(
-                    $"Configuration file path '{pathToValidate}' is outside the allowed " +
-                    $"configuration directory '{_baseConfigDirectory}'.");
+                    $"Configuration file path '{pathToValidate}' is outside the allowed configuration directory '{_baseConfigDirectory}'.");
             }
         }
     }

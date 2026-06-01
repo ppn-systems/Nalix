@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -73,10 +73,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         if (buffer.Length < required)
         {
             throw new ArgumentException(
-                $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. " +
-                $"If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: " +
-                $"the packet size was mutated by another thread. This is typically caused by an orphaned I/O task " +
-                $"missing a CancellationToken.");
+                $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.");
         }
 
         try
@@ -91,10 +88,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
             if (buffer.Length < required)
             {
                 throw new ArgumentException(
-                    $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. " +
-                    $"If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: " +
-                    $"the packet size was mutated by another thread. This is typically caused by an orphaned I/O task " +
-                    $"missing a CancellationToken.", ex);
+                    $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.", ex);
             }
 
             throw;

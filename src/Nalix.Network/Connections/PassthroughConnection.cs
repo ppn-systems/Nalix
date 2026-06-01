@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -326,8 +326,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
                         {
                             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                             {
-                                _logger.LogError(ex,
-                                    $"[NW.{nameof(PassthroughConnection)}:{nameof(Dispose)}] close-handler-error");
+                                _logger.LogError(ex, "[NW.PassthroughConnection:Dispose] close-handler-error");
                             }
                         }
                     }
@@ -342,8 +341,7 @@ public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTra
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex,
-                    $"[NW.{nameof(PassthroughConnection)}:{nameof(Dispose)}] close-event-error");
+                _logger.LogError(ex, "[NW.PassthroughConnection:Dispose] close-event-error");
             }
         }
 

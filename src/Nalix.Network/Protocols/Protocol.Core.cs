@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -72,7 +72,7 @@ public abstract partial class Protocol : IProtocol
 
                 if (s_logger != null && s_logger.IsEnabled(LogLevel.Trace))
                 {
-                    s_logger.LogTrace($"[NW.{nameof(Protocol)}:{nameof(PostProcessMessage)}] disconnect id={args.Connection?.ID}");
+                    s_logger.LogTrace("[NW.Protocol:PostProcessMessage] disconnect id={ArgsConnectionID}", args.Connection?.ID);
                 }
             }
         }
@@ -104,7 +104,8 @@ public abstract partial class Protocol : IProtocol
 
         if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
         {
-            s_logger.LogInformation($"[NW.{nameof(Protocol)}:{nameof(SetConnectionAcceptance)}] accepting={(isEnabled ? "enabled" : "disabled")}");
+            string state = isEnabled ? "enabled" : "disabled";
+            s_logger.LogInformation("[NW.Protocol:SetConnectionAcceptance] accepting={State}", state);
         }
     }
 }

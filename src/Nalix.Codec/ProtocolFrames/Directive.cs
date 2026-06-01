@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
@@ -149,6 +149,5 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
     /// </summary>
     /// <returns>String describing the Directive packet.</returns>
     public override string ToString()
-        => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, " +
-           $"Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}]";
+        => $"Directive [SequenceId={this.SequenceId}, Type={this.Type}, Reason={this.Reason}, Action={this.Action}, Control={this.Control}, Arg0={this.Arg0}, Arg1={this.Arg1}, Arg2={this.Arg2}, OpCode={this.OpCode}, Priority={this.Priority}]";
 }

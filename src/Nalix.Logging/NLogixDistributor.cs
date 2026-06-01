@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -182,8 +182,7 @@ public sealed class NLogixDistributor : INLogixDistributor
             // Log to debug output at minimum
 #if DEBUG
             Debug.WriteLine(
-                $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR publishing to " +
-                $"{target.GetType().Name}: {exception.Message}");
+                $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] ERROR publishing to {target.GetType().Name}: {exception.Message}");
 #endif
 
             // Check if target implements error handling

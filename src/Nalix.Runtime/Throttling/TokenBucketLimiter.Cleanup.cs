@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -45,8 +45,7 @@ public sealed partial class TokenBucketLimiter
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug($"[RT.{nameof(TokenBucketLimiter)}:Internal] " +
-                                  $"Cleanup removed={removed}");
+                    _logger.LogDebug("[RT.TokenBucketLimiter:Internal] Cleanup removed={Removed}", removed);
                 }
             }
         }
@@ -54,14 +53,14 @@ public sealed partial class TokenBucketLimiter
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(TokenBucketLimiter)}:Internal] Cleanup was cancelled due to timeout");
+                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] Cleanup was cancelled due to timeout");
             }
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[RT.{nameof(TokenBucketLimiter)}:Internal] cleanup-error");
+                _logger.LogError(ex, "[RT.TokenBucketLimiter:Internal] cleanup-error");
             }
         }
     }
@@ -184,8 +183,7 @@ public sealed partial class TokenBucketLimiter
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[RT.{nameof(TokenBucketLimiter)}:Internal] " +
-                            $"Evicted {removed} endpoints to enforce MaxTrackedEndpoints limit");
+                _logger.LogWarning("[RT.TokenBucketLimiter:Internal] Evicted {Removed} endpoints to enforce MaxTrackedEndpoints limit", removed);
             }
         }
 

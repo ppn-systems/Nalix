@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -133,7 +133,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
     {
         if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
         {
-            s_logger.LogDebug($"[RT.{nameof(TimeSynchronizer)}] initialized");
+            s_logger.LogDebug("[RT.TimeSynchronizer] initialized");
         }
     }
 
@@ -205,7 +205,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
                     {
-                        s_logger.LogWarning($"[RT.{nameof(TimeSynchronizer)}] restart-timeout waiting for previous loop to stop");
+                        s_logger.LogWarning("[RT.TimeSynchronizer] restart-timeout waiting for previous loop to stop");
                     }
                 }
             }
@@ -255,7 +255,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                     {
                         if (s_logger != null && s_logger.IsEnabled(LogLevel.Warning))
                         {
-                            s_logger.LogWarning($"[RT.{nameof(TimeSynchronizer)}] dispose-timeout waiting for loop shutdown");
+                            s_logger.LogWarning("[RT.TimeSynchronizer] dispose-timeout waiting for loop shutdown");
                         }
                     }
                 }
@@ -270,7 +270,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
         if (s_logger != null && s_logger.IsEnabled(LogLevel.Debug))
         {
-            s_logger.LogDebug($"[RT.{nameof(TimeSynchronizer)}] disposed");
+            s_logger.LogDebug("[RT.TimeSynchronizer] disposed");
         }
     }
 
@@ -312,7 +312,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
 
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
                     {
-                        s_logger.LogInformation($"[RT.{nameof(TimeSynchronizer)}] started period={this.Period.TotalMilliseconds:0.#}ms");
+                        s_logger.LogInformation("[RT.TimeSynchronizer] started period={PeriodTotalMilliseconds}ms", this.Period.TotalMilliseconds);
                     }
 
                     while (!ct.IsCancellationRequested)
@@ -345,7 +345,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                     {
                                         if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                                         {
-                                            s_logger.LogError(ex, $"[RT.{nameof(TimeSynchronizer)}] handler-error");
+                                            s_logger.LogError(ex, "[RT.TimeSynchronizer] handler-error");
                                         }
                                     }
                                 }, (handler, timestamp), preferLocal: false);
@@ -360,7 +360,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                                 {
                                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                                     {
-                                        s_logger.LogError(ex, $"[RT.{nameof(TimeSynchronizer)}] handler-error");
+                                        s_logger.LogError(ex, "[RT.TimeSynchronizer] handler-error");
                                     }
                                 }
                             }
@@ -371,9 +371,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                             long elapsed = Clock.UnixMillisecondsNow() - timestamp;
                             if (elapsed > this.Period.TotalMilliseconds * 1.5)
                             {
-                                s_logger.LogWarning(
-                                    $"[RT.{nameof(TimeSynchronizer)}] tick overrun " +
-                                    $"elapsed={elapsed}ms period={this.Period.TotalMilliseconds:0.#}ms");
+                                s_logger.LogWarning("[RT.TimeSynchronizer] tick overrun elapsed={ElapsedMs}ms period={PeriodTotalMilliseconds}ms", elapsed, this.Period.TotalMilliseconds);
                             }
                         }
 
@@ -388,7 +386,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                 {
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
                     {
-                        s_logger.LogError(ex, $"[RT.{nameof(TimeSynchronizer)}] loop-error");
+                        s_logger.LogError(ex, "[RT.TimeSynchronizer] loop-error");
                     }
                 }
                 finally
@@ -397,7 +395,7 @@ public sealed class TimeSynchronizer : IDisposable, IActivatable
                     _stoppedSignal.Set();
                     if (s_logger != null && s_logger.IsEnabled(LogLevel.Information))
                     {
-                        s_logger.LogInformation($"[RT.{nameof(TimeSynchronizer)}] stopped");
+                        s_logger.LogInformation("[RT.TimeSynchronizer] stopped");
                     }
                 }
             },

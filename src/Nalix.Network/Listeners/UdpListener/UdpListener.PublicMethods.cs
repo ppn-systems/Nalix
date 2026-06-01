@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -60,9 +60,7 @@ public abstract partial class UdpListenerBase : IListener
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
             {
-                this.Logger.LogWarning(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
-                    $"activate-skipped lock-busy port={_port}");
+                this.Logger.LogWarning("[NW.UdpListenerBase:Activate] activate-skipped lock-busy port={Port}", _port);
             }
             return;
         }
@@ -74,9 +72,7 @@ public abstract partial class UdpListenerBase : IListener
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
-                        $"ignored-activate state={this.State}");
+                    this.Logger.LogWarning("[NW.UdpListenerBase:Activate] ignored-activate state={State}", this.State);
                 }
                 return;
             }
@@ -101,9 +97,8 @@ public abstract partial class UdpListenerBase : IListener
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
             {
-                this.Logger.LogInformation(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
-                    $"listening port={_port} protocol={this.Protocol.GetType().Name}");
+                string protocolType = this.Protocol.GetType().Name;
+                this.Logger.LogInformation("[NW.UdpListenerBase:Activate] listening port={Port} protocol={ProtocolType}", _port, protocolType);
             }
 
             // Dispatch parallel SAEA receive workers via TaskManager
@@ -133,9 +128,7 @@ public abstract partial class UdpListenerBase : IListener
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
             {
-                this.Logger.LogInformation(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
-                    $"cancel port={_port}");
+                this.Logger.LogInformation("[NW.UdpListenerBase:Activate] cancel port={Port}", _port);
             }
         }
         catch (SocketException ex)
@@ -144,9 +137,7 @@ public abstract partial class UdpListenerBase : IListener
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Critical))
             {
-                this.Logger.LogCritical(ex,
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
-                    $"bind-fail port={_port}");
+                this.Logger.LogCritical(ex, "[NW.UdpListenerBase:Activate] bind-fail port={Port}", _port);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -155,9 +146,7 @@ public abstract partial class UdpListenerBase : IListener
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Critical))
             {
-                this.Logger.LogCritical(ex,
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Activate)}] " +
-                    $"critical port={_port}");
+                this.Logger.LogCritical(ex, "[NW.UdpListenerBase:Activate] critical port={Port}", _port);
             }
         }
         finally
@@ -198,9 +187,7 @@ public abstract partial class UdpListenerBase : IListener
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"ignored-deactivate state={this.State}");
+                    this.Logger.LogWarning("[NW.UdpListenerBase:Deactivate] ignored-deactivate state={State}", this.State);
                 }
                 return;
             }
@@ -218,18 +205,14 @@ public abstract partial class UdpListenerBase : IListener
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"cts-cancel-ignored port={_port} reason={ex.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Deactivate] cts-cancel-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(ex,
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"cts-cancel-failed port={_port}");
+                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Deactivate] cts-cancel-failed port={Port}", _port);
                 }
             }
 
@@ -242,18 +225,14 @@ public abstract partial class UdpListenerBase : IListener
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"socket-close-ignored port={_port} reason={ex.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Deactivate] socket-close-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(ex,
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"socket-close-failed port={_port}");
+                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Deactivate] socket-close-failed port={Port}", _port);
                 }
             }
 
@@ -270,18 +249,14 @@ public abstract partial class UdpListenerBase : IListener
 
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Information))
             {
-                this.Logger.LogInformation(
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                    $"stopped port={_port}");
+                this.Logger.LogInformation("[NW.UdpListenerBase:Deactivate] stopped port={Port}", _port);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
             {
-                this.Logger.LogError(ex,
-                    $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                    $"stop-error port={_port}");
+                this.Logger.LogError(ex, "[NW.UdpListenerBase:Deactivate] stop-error port={Port}", _port);
             }
         }
         finally
@@ -294,18 +269,14 @@ public abstract partial class UdpListenerBase : IListener
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"cts-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Deactivate] cts-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(ex,
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"cts-dispose-failed port={_port}");
+                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Deactivate] cts-dispose-failed port={Port}", _port);
                 }
             }
 
@@ -317,18 +288,14 @@ public abstract partial class UdpListenerBase : IListener
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
                 {
-                    this.Logger.LogDebug(
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"rate-limiter-dispose-ignored port={_port} reason={ex.GetType().Name}");
+                    this.Logger.LogDebug(ex, "[NW.UdpListenerBase:Deactivate] rate-limiter-dispose-ignored port={Port} reason={ExceptionType}", _port, ex.GetType().Name);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
                 if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Warning))
                 {
-                    this.Logger.LogWarning(ex,
-                        $"[NW.{nameof(UdpListenerBase)}:{nameof(Deactivate)}] " +
-                        $"rate-limiter-dispose-failed port={_port}");
+                    this.Logger.LogWarning(ex, "[NW.UdpListenerBase:Deactivate] rate-limiter-dispose-failed port={Port}", _port);
                 }
             }
 

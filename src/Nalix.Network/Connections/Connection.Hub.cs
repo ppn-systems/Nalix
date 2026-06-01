@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -270,7 +270,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace($"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastAsync)}] broadcast-skip total=0");
+                _logger.LogTrace("[NW.ConnectionHub:BroadcastAsync] broadcast-skip total=0");
             }
 
             return;
@@ -295,7 +295,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (measureLatency && logger != null)
         {
-            logger.LogInformation($"[PERF.NW.BroadcastAsync] total={connections.Length}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            logger.LogInformation("[PERF.NW.BroadcastAsync] total={Total}, latency={LatencyMs} ms", connections.Length, scope.GetElapsedMilliseconds());
         }
     }
 
@@ -344,7 +344,7 @@ public sealed class ConnectionHub : IConnectionHub
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{nameof(Dispose)}] disposed");
+            _logger.LogInformation("[NW.ConnectionHub:Dispose] disposed");
         }
     }
 
@@ -474,8 +474,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug(
-                        $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register-dup id={connection.ID}");
+                    _logger.LogDebug("[NW.ConnectionHub:RegisterConnection] register-dup id={ConnectionId}", connection.ID);
                 }
 
                 return RegisterResult.Duplicate;
@@ -485,14 +484,12 @@ public sealed class ConnectionHub : IConnectionHub
 
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(RegisterConnection)}] register id={connection.ID} total={_registry.Count}");
+                _logger.LogTrace("[NW.ConnectionHub:RegisterConnection] register id={ConnectionId} total={RegistryCount}", connection.ID, _registry.Count);
             }
 
             if (measureLatency && _logger != null)
             {
-                _logger.LogInformation(
-                    $"[PERF.NW.RegisterConnection] id={connection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+                _logger.LogInformation("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, scope.GetElapsedMilliseconds());
             }
 
             return RegisterResult.Success;
@@ -519,8 +516,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister-miss id={connection.ID}");
+                _logger.LogDebug("[NW.ConnectionHub:UnregisterConnection] unregister-miss id={ConnectionId}", connection.ID);
             }
 
             return false;
@@ -540,7 +536,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] event-error id={removedConnection.ID}");
+                _logger.LogError(ex, "[NW.ConnectionHub:UnregisterConnection] event-error id={RemovedConnectionID}", removedConnection.ID);
             }
         }
 
@@ -558,20 +554,18 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] dispose-error id={removedConnection.ID}");
+                _logger.LogError(ex, "[NW.ConnectionHub:UnregisterConnection] dispose-error id={RemovedConnectionID}", removedConnection.ID);
             }
         }
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace(
-                $"[NW.{nameof(ConnectionHub)}:{nameof(UnregisterConnection)}] unregister id={removedConnection.ID} total={_registry.Count}");
+            _logger.LogTrace("[NW.ConnectionHub:UnregisterConnection] unregister id={RemovedConnectionID} total={RegistryCount}", removedConnection.ID, _registry.Count);
         }
 
         if (measureLatency && _logger != null)
         {
-            _logger.LogInformation(
-                $"[PERF.NW.UnregisterConnection] id={removedConnection.ID}, latency={scope.GetElapsedMilliseconds():F3} ms");
+            _logger.LogInformation("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, scope.GetElapsedMilliseconds());
         }
 
         return true;
@@ -653,8 +647,7 @@ public sealed class ConnectionHub : IConnectionHub
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                     {
-                        _logger.LogError(ex,
-                            $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={connection.ID}");
+                        _logger.LogError(ex, "[NW.ConnectionHub:{Operation}] send-failure id={ConnectionId}", operationName, connection.ID);
                     }
                 }
             }
@@ -672,7 +665,7 @@ public sealed class ConnectionHub : IConnectionHub
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Information))
                 {
-                    _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
+                    _logger.LogInformation("[NW.ConnectionHub:{Operation}] broadcast-cancel", operationName);
                 }
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -713,8 +706,7 @@ public sealed class ConnectionHub : IConnectionHub
             IConnection owner = owners[i];
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(exception,
-                    $"[NW.{nameof(ConnectionHub)}:{operationName}] send-failure id={owner.ID}");
+                _logger.LogError(exception, "[NW.ConnectionHub:{Operation}] send-failure id={OwnerID}", operationName, owner.ID);
             }
         }
     }
@@ -757,8 +749,7 @@ public sealed class ConnectionHub : IConnectionHub
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                     {
-                        _logger.LogError(ex,
-                            $"[NW.{nameof(ConnectionHub)}:{nameof(BroadcastBatchedAsync)}] send-failure id={connection.ID}");
+                        _logger.LogError(ex, "[NW.ConnectionHub:BroadcastBatchedAsync] send-failure id={ConnectionId}", connection.ID);
                     }
                 }
 
@@ -805,7 +796,7 @@ public sealed class ConnectionHub : IConnectionHub
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Information))
             {
-                _logger.LogInformation($"[NW.{nameof(ConnectionHub)}:{operationName}] broadcast-cancel");
+                _logger.LogInformation("[NW.ConnectionHub:{Operation}] broadcast-cancel", operationName);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))

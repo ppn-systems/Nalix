@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -312,9 +312,7 @@ internal sealed class TimingWheel : IActivatable
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation(
-                $"[NW.{nameof(TimingWheel)}:{nameof(Activate)}] activated (ref={_activeListeners}) " +
-                $"wheelsize={_wheelSize} tick={_tickMs}ms idle={_idleTimeoutMs}ms mask={_useMask}");
+            _logger.LogInformation("[NW.TimingWheel:Activate] activated (ref={ActiveListeners}) wheelsize={WheelSize} tick={TickMs}ms idle={IdleTimeoutMs}ms mask={UseMask}", _activeListeners, _wheelSize, _tickMs, _idleTimeoutMs, _useMask);
         }
     }
 
@@ -366,18 +364,14 @@ internal sealed class TimingWheel : IActivatable
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(
-                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                    $"cts-cancel-ignored reason={ex.GetType().Name}");
+                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-cancel-ignored reason={ExceptionType}", ex.GetType().Name);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning(ex,
-                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                    $"cts-cancel-failed");
+                _logger.LogWarning(ex, "[NW.TimingWheel:Deactivate] cts-cancel-failed");
             }
         }
 
@@ -389,18 +383,14 @@ internal sealed class TimingWheel : IActivatable
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(
-                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                    $"cts-dispose-ignored reason={ex.GetType().Name}");
+                _logger.LogDebug(ex, "[NW.TimingWheel:Deactivate] cts-dispose-ignored reason={ExceptionType}", ex.GetType().Name);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning(ex,
-                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                    $"cts-dispose-failed");
+                _logger.LogWarning(ex, "[NW.TimingWheel:Deactivate] cts-dispose-failed");
             }
         }
 
@@ -412,9 +402,7 @@ internal sealed class TimingWheel : IActivatable
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning(ex,
-                    $"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] " +
-                    $"worker-dispose-failed");
+                _logger.LogWarning(ex, "[NW.TimingWheel:Deactivate] worker-dispose-failed");
             }
         }
 
@@ -422,7 +410,7 @@ internal sealed class TimingWheel : IActivatable
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Information))
         {
-            _logger.LogInformation($"[NW.{nameof(TimingWheel)}:{nameof(Deactivate)}] deactivated");
+            _logger.LogInformation("[NW.TimingWheel:Deactivate] deactivated");
         }
     }
 
@@ -675,9 +663,7 @@ internal sealed class TimingWheel : IActivatable
                         {
                             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                             {
-                                _logger.LogDebug(
-                                $"[NW.{nameof(TimingWheel)}] timeout " +
-                                $"remote={connection.NetworkEndpoint?.Address} idle={idleMs}ms");
+                                _logger.LogDebug("[NW.TimingWheel] timeout remote={ConnectionNetworkEndpointAddress} idle={IdleMs}ms", connection.NetworkEndpoint?.Address, idleMs);
                             }
 
                             try
@@ -688,9 +674,7 @@ internal sealed class TimingWheel : IActivatable
                             {
                                 if (_logger != null && _logger.IsEnabled(LogLevel.Error))
                                 {
-                                    _logger.LogError(ex,
-                                        $"[NW.{nameof(TimingWheel)}] close-error " +
-                                        $"remote={connection.NetworkEndpoint?.Address}");
+                                    _logger.LogError(ex, "[NW.TimingWheel] close-error remote={ConnectionNetworkEndpointAddress}", connection.NetworkEndpoint?.Address);
                                 }
                             }
 
@@ -733,7 +717,7 @@ internal sealed class TimingWheel : IActivatable
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, $"[NW.{nameof(TimingWheel)}] loop-error");
+                _logger.LogError(ex, "[NW.TimingWheel] loop-error");
             }
         }
     }

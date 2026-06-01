@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -202,7 +202,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] skip \u2014 already disposed ep={_endpointString}");
+                _logger.LogDebug("[NW.SocketConnection:BeginReceive] skip \u2014 already disposed ep={Endpoint}", _endpointString);
             }
 #endif
             return;
@@ -214,7 +214,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] skip \u2014 already started ep={_endpointString}");
+                _logger.LogDebug("[NW.SocketConnection:BeginReceive] skip \u2014 already started ep={Endpoint}", _endpointString);
             }
 #endif
             return;
@@ -231,7 +231,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug($"[NW.{nameof(SocketConnection)}:{nameof(BeginReceive)}] saea-receive-loop started ep={_endpointString} framing={_framing}");
+            _logger.LogDebug("[NW.SocketConnection:BeginReceive] saea-receive-loop started ep={Endpoint} framing={Framing}", _endpointString, _framing);
         }
 #endif
 
@@ -289,11 +289,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
-        => $"FramedSocketConnection (Client={_endpointString}, " +
-           $"Disposed={Volatile.Read(ref _disposed) != 0}, " +
-           $"UpTime={this.Uptime}ms, LastPing={this.LastPingTime}ms, " +
-           $"PendingPackets={(_sink as SocketEventBridge)?.PendingPackets ?? 0}, " +
-           $"OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
+        => $"FramedSocketConnection (Client={_endpointString}, Disposed={Volatile.Read(ref _disposed) != 0}, UpTime={this.Uptime}ms, LastPing={this.LastPingTime}ms, PendingPackets={(_sink as SocketEventBridge)?.PendingPackets ?? 0}, OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
 
     #endregion Dispose Pattern
 
@@ -304,8 +300,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         if (s_fragmentOptions.MaxChunkSize <= 0)
         {
             throw new InvalidOperationException(
-                $"[{nameof(SocketConnection)}] Invalid configuration: " +
-                $"MaxChunkSize must be > 0, got {s_fragmentOptions.MaxChunkSize}.");
+                $"[{nameof(SocketConnection)}] Invalid configuration: MaxChunkSize must be > 0, got {s_fragmentOptions.MaxChunkSize}.");
         }
 
         // 5 bytes is the max size of a VarInt header. We use this to ensure the buffer is
@@ -355,7 +350,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                         {
-                            _logger.LogDebug($"[NW.{nameof(SocketConnection)}] invalid-size={size} ep={_endpointString}");
+                            _logger.LogDebug("[NW.SocketConnection] invalid-size={Size} ep={Endpoint}", size, _endpointString);
                         }
 #endif
                         Throw.ProtocolNotSupportedNow();
@@ -463,18 +458,14 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"ended (peer closed/shutdown) ep={_owner?.NetworkEndpoint.Address}");
+                _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] ended (peer closed/shutdown) ep={OwnerNetworkEndpointAddress}", _owner?.NetworkEndpoint.Address);
             }
         }
         catch (OperationCanceledException)
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
             {
-                _logger.LogTrace(
-                    $"[NW.{nameof(SocketConnection)}:{nameof(SAEA_RECEIVE_LOOP_ASYNC)}] " +
-                    $"cancelled ep={_owner?.NetworkEndpoint.Address}");
+                _logger.LogTrace("[NW.SocketConnection:SAEA_RECEIVE_LOOP_ASYNC] cancelled ep={OwnerNetworkEndpointAddress}", _owner?.NetworkEndpoint.Address);
             }
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -589,8 +580,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(SocketConnection)}] malformed-payload " +
-                                 $"length={payloadLen} (too small for protocol header) ep={_endpointString}");
+                _logger.LogWarning("[NW.SocketConnection] malformed-payload length={PayloadLength} (too small for protocol header) ep={Endpoint}", payloadLen, _endpointString);
             }
 #endif
             lease.Dispose();
@@ -609,8 +599,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
             {
-                _logger.LogWarning($"[NW.{nameof(SocketConnection)}] frame-dropped " +
-                                  $"length={payloadLen} ep={_endpointString}");
+                _logger.LogWarning("[NW.SocketConnection] frame-dropped length={PayloadLength} ep={Endpoint}", payloadLen, _endpointString);
             }
 #endif
             lease.Dispose();
@@ -619,9 +608,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
         if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogDebug(
-                $"[NW.{nameof(SocketConnection)}] handoff-to-sink " +
-                $"payload={payloadLen} ep={_endpointString}");
+            _logger.LogDebug("[NW.SocketConnection] handoff-to-sink payload={PayloadLength} ep={Endpoint}", payloadLen, _endpointString);
         }
 #endif
     }
@@ -647,7 +634,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug($"[NW.{nameof(SocketConnection)}] fragment-limit open={openStreams} ep={_endpointString}");
+                        _logger.LogDebug("[NW.SocketConnection] fragment-limit open={OpenStreams} ep={Endpoint}", openStreams, _endpointString);
                     }
 #endif
                     return;
@@ -657,9 +644,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
             if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogDebug(
-                    $"[NW.{nameof(SocketConnection)}] recv-frag stream={header.StreamId} chunk={header.ChunkIndex}/{header.TotalChunks} " +
-                    $"last={header.IsLast} ep={_endpointString}");
+                _logger.LogDebug("[NW.SocketConnection] recv-frag stream={StreamId} chunk={HeaderChunkIndex}/{HeaderTotalChunks} last={HeaderIsLast} ep={Endpoint}", header.StreamId, header.ChunkIndex, header.TotalChunks, header.IsLast, _endpointString);
             }
 #endif
 
@@ -683,7 +668,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.LogDebug($"[NW.{nameof(SocketConnection)}] assembled stream={header.StreamId} ep={_endpointString}");
+                        _logger.LogDebug("[NW.SocketConnection] assembled stream={StreamId} ep={Endpoint}", header.StreamId, _endpointString);
                     }
 #endif
                     Interlocked.Decrement(ref _openFragmentStreams);
@@ -737,9 +722,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                     {
-                        _logger.LogTrace(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
-                            $"socket-shutdown-ignored disposed ep={_endpointString} ex={ex.Message}");
+                        _logger.LogTrace(ex, "[NW.SocketConnection:DISPOSE] socket-shutdown-ignored disposed ep={Endpoint} ex=", _endpointString);
                     }
 #endif
                 }
@@ -748,9 +731,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                     {
-                        _logger.LogTrace(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
-                            $"socket-shutdown-benign ep={_endpointString} code={ex.SocketErrorCode}");
+                        _logger.LogTrace(ex, "[NW.SocketConnection:DISPOSE] socket-shutdown-benign ep={Endpoint} code={SocketError}", _endpointString, ex.SocketErrorCode);
                     }
 #endif
                 }
@@ -758,7 +739,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
-                        _logger.LogWarning(ex, $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] socket-shutdown-failed ep={_endpointString}");
+                        _logger.LogWarning(ex, "[NW.SocketConnection:DISPOSE] socket-shutdown-failed ep={Endpoint}", _endpointString);
                     }
                 }
 
@@ -772,9 +753,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
                     if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
                     {
-                        _logger.LogTrace(
-                            $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
-                            $"socket-close-ignored disposed ep={_endpointString} ex={ex.Message}");
+                        _logger.LogTrace(ex, "[NW.SocketConnection:DISPOSE] socket-close-ignored disposed ep={Endpoint} ex=", _endpointString);
                     }
 #endif
                 }
@@ -782,7 +761,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
                 {
                     if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                     {
-                        _logger.LogWarning(ex, $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] socket-close-failed ep={_endpointString}");
+                        _logger.LogWarning(ex, "[NW.SocketConnection:DISPOSE] socket-close-failed ep={Endpoint}", _endpointString);
                     }
                 }
             }
@@ -832,9 +811,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 #if DEBUG
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace(
-                $"[NW.{nameof(SocketConnection)}:{nameof(Dispose)}] " +
-                $"disposed ep={_endpointString}");
+            _logger.LogTrace("[NW.SocketConnection:Dispose] disposed ep={Endpoint}", _endpointString);
         }
 #endif
     }
@@ -853,7 +830,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
                 {
-                    _logger.LogWarning(ex, $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] receive-loop-faulted-during-dispose ep={_endpointString}");
+                    _logger.LogWarning(ex, "[NW.SocketConnection:DISPOSE] receive-loop-faulted-during-dispose ep={Endpoint}", _endpointString);
                 }
             }
             return;
@@ -871,9 +848,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             {
                 if (self._logger != null && self._logger.IsEnabled(LogLevel.Warning))
                 {
-                    self._logger.LogWarning(ex,
-                        $"[NW.{nameof(SocketConnection)}:{nameof(DISPOSE)}] " +
-                        $"receive-loop-faulted-after-dispose ep={self._endpointString}");
+                    self._logger.LogWarning(ex, "[NW.SocketConnection:DISPOSE] receive-loop-faulted-after-dispose ep={SelfEndpointString}", self._endpointString);
                 }
             }
         }, this, CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);

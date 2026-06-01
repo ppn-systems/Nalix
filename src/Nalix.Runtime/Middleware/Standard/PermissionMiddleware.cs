@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -55,9 +55,8 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
 
         if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
         {
-            _logger.LogTrace(
-                $"[RT.{nameof(PermissionMiddleware)}] deny op=0x{context.Attributes.PacketOpcode.OpCode:X4} " +
-                $"need={context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)"} have={context.Connection.Level}");
+            string needLevel = context.Attributes.Permission?.Level.ToString() ?? "N/A (no attribute)";
+            _logger.LogTrace("[RT.PermissionMiddleware] deny op=0x{OpCode:X4} need={NeedLevel} have={HaveLevel}", context.Attributes.PacketOpcode.OpCode, needLevel, context.Connection.Level);
         }
 
         if (!DirectiveGuard.TryAcquire(

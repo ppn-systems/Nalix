@@ -1,4 +1,4 @@
-// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -74,7 +74,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
         if (logger != null && logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug($"[RT.{nameof(PacketHandlerCompiler<,>)}:{nameof(CompileHandlers)}] scan controller={controllerType.Name}");
+            logger.LogDebug("[RT.PacketHandlerCompiler:CompileHandlers] scan controller={ControllerTypeName}", controllerType.Name);
         }
 
         // Reuse cached method metadata when possible; otherwise compile once and
@@ -109,8 +109,8 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
         if (logger != null && logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug($"[RT.{nameof(PacketHandlerCompiler<,>)}:{nameof(CompileHandlers)}] " +
-                                   $"found count={compiledMethods.Count} controller={controllerType.FullName} ops=[{firstOps}{(compiledMethods.Count > 6 ? ",..." : string.Empty)}]");
+            string opsSuffix = compiledMethods.Count > 6 ? ",..." : string.Empty;
+            logger.LogDebug("[RT.PacketHandlerCompiler:CompileHandlers] found count={Count} controller={Controller} ops=[{Ops}{Suffix}]", compiledMethods.Count, controllerType.FullName, firstOps, opsSuffix);
         }
 
         return descriptors;
@@ -190,13 +190,13 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
         {
             if (logger != null && logger.IsEnabled(LogLevel.Debug))
             {
-                logger.LogDebug($"[RT.{nameof(PacketHandlerCompiler<,>)}:Internal] no-method controller={x03.Name}");
+                logger.LogDebug("[RT.PacketHandlerCompiler:Internal] no-method controller={X03Name}", x03.Name);
             }
         }
 
         if (logger != null && logger.IsEnabled(LogLevel.Debug))
         {
-            logger.LogDebug($"[RT.{nameof(PacketHandlerCompiler<,>)}:Internal] compile count={methodInfos.Length} controller={x03.Name}");
+            logger.LogDebug("[RT.PacketHandlerCompiler:Internal] compile count={MethodInfosLength} controller={X03Name}", methodInfos.Length, x03.Name);
         }
 
         return s_compiledMethodCache.GetOrAdd(x03, static (_, methods) =>
@@ -220,7 +220,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
                     if (logger != null && logger.IsEnabled(LogLevel.Warning))
                     {
-                        logger.LogWarning($"[RT.{nameof(PacketHandlerCompiler<,>)}:Internal] dup-opcode {x01}");
+                        logger.LogWarning("[RT.PacketHandlerCompiler:Internal] dup-opcode {X01}", x01);
                     }
 
                     continue;
@@ -235,7 +235,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
                     if (logger != null && logger.IsEnabled(LogLevel.Trace))
                     {
-                        logger.LogTrace($"[RT.{nameof(PacketHandlerCompiler<,>)}:Internal] compiled {x01}");
+                        logger.LogTrace("[RT.PacketHandlerCompiler:Internal] compiled {X01}", x01);
                     }
                 }
                 catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
@@ -245,7 +245,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                     ILogger? logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
                     if (logger != null && logger.IsEnabled(LogLevel.Error))
                     {
-                        logger.LogError(ex, $"[RT.{nameof(PacketHandlerCompiler<,>)}:Internal] failed-compile {x01}");
+                        logger.LogError(ex, "[RT.PacketHandlerCompiler:Internal] failed-compile {X01}", x01);
                     }
 
                     throw; // BUG-78: Fail-fast instead of continuing with incomplete handlers
@@ -388,8 +388,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
                 : throw new InternalErrorException(
                         $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
                         "when the first parameter is PacketContext<T>, " +
-                        "the only valid second parameter is CancellationToken. " +
-                        $"Found {parms.Length} parameter(s).");
+                        "the only valid second parameter is CancellationToken. Found {parms.Length} parameter(s).");
         }
 
         // ---- new-style: raw memory payload ----
@@ -415,8 +414,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
             throw new InternalErrorException(
                 $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                "raw memory signature only supports 2 or 3 parameters " +
-                $"(ReadOnlyMemory<byte>, IConnection[, CancellationToken]). Found {parms.Length}.");
+                "raw memory signature only supports 2 or 3 parameters (ReadOnlyMemory<byte>, IConnection[, CancellationToken]). Found {parms.Length}.");
         }
 
         // ---- legacy-style: first param must implement IPacket ----
@@ -453,8 +451,7 @@ internal sealed class PacketHandlerCompiler<[DynamicallyAccessedMembers(Dynamica
 
             throw new InternalErrorException(
                 $"Handler '{method.DeclaringType?.Name}.{method.Name}': " +
-                "legacy signature only supports 2 or 3 parameters " +
-                $"(TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
+                "legacy signature only supports 2 or 3 parameters (TPacket, IConnection[, CancellationToken]). Found {parms.Length}.");
         }
 
         throw new InternalErrorException(

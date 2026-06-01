@@ -1,4 +1,4 @@
-// Copyright (c) 2026 PPN Corporation. All rights reserved.
+﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -133,9 +133,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         {
             if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
             {
-                this.Logger.LogTrace(
-                    $"[NW.{nameof(UdpPassthroughListener)}:{nameof(ProcessDatagram)}] " +
-                    $"rate-limit-drop remote={ipEndPoint}");
+                this.Logger.LogTrace("[NW.UdpPassthroughListener:ProcessDatagram] rate-limit-drop remote={IpEndPoint}", ipEndPoint);
             }
 
             lease.Dispose();
