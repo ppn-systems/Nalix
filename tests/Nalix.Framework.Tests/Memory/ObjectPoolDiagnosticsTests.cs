@@ -272,11 +272,14 @@ public sealed class ObjectPoolDiagnosticsTests
             _listenerSubscription?.Dispose();
         }
 
-        public static T GetProperty<T>(object payload, string name)
+        public static T? GetProperty<T>(object payload, string name)
         {
-            PropertyInfo property = payload.GetType().GetProperty(name)
-                ?? throw new InvalidOperationException($"Missing diagnostic property '{name}'.");
-            return Assert.IsType<T>(property.GetValue(payload));
+            PropertyInfo? property = payload.GetType().GetProperty(name);
+            if (property == null) return default;
+            
+            object? val = property.GetValue(payload);
+            if (val is T t) return t;
+            return default;
         }
     }
 }

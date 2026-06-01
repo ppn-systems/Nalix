@@ -107,6 +107,12 @@ public abstract partial class WebSocketListenerBase : IListener
         _port = port;
         _path = path;
         this.Protocol = protocol;
+        
+        if (this.Protocol is Nalix.Network.Protocols.Protocol p)
+        {
+            p.Framing = Nalix.Abstractions.Networking.TransportFraming.None;
+        }
+
         _state = (int)ListenerState.STOPPED;
 
         this.Logger = InstanceManager.Instance.GetExistingInstance<ILogger>();

@@ -44,8 +44,8 @@ public sealed class NetworkApplicationBuilder : INetworkApplicationBuilder
         s_applyOptionsMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(ApplyOptionsCore), BindingFlags.NonPublic | BindingFlags.Static)
             ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(ApplyOptionsCore));
 
-        s_registerHandlerMethod = typeof(NetworkApplicationBuilder).GetMethod(nameof(ServiceRegistrar.RegisterHandler), BindingFlags.NonPublic | BindingFlags.Static)
-            ?? throw new MissingMethodException(typeof(NetworkApplicationBuilder).FullName, nameof(ServiceRegistrar.RegisterHandler));
+        s_registerHandlerMethod = typeof(ServiceRegistrar).GetMethod(nameof(ServiceRegistrar.RegisterHandler), BindingFlags.Public | BindingFlags.Static)
+            ?? throw new MissingMethodException(typeof(ServiceRegistrar).FullName, nameof(ServiceRegistrar.RegisterHandler));
     }
 
     internal NetworkApplicationBuilder(HostingBuilderContext state) => _state = state ?? throw new ArgumentNullException(nameof(state));
