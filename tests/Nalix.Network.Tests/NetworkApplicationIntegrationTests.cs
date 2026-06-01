@@ -62,10 +62,10 @@ public sealed class NetworkApplicationIntegrationTests
         int port = GetFreePort();
 
         // 1. Setup Server
-        using var logger = new Nalix.Logging.NLogix(opt =>
-        {
-            opt.MinLevel = Microsoft.Extensions.Logging.LogLevel.Trace;
-        });
+        using var logger = new Nalix.Logging.NLogixBuilder()
+            .SetMinimumLevel(Microsoft.Extensions.Logging.LogLevel.Trace)
+            .AddTarget(new Nalix.Logging.Sinks.BatchConsoleLogTarget())
+            .Build();
 
         NetworkApplicationBuilder builder = NetworkApplication.CreateBuilder();
         builder.ConfigureLogging(logger);

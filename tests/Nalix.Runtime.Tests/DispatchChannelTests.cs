@@ -1,0 +1,281 @@
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
+using Nalix.Abstractions;
+using Nalix.Abstractions.Identity;
+using Nalix.Abstractions.Networking;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Security;
+using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Internal.Routing;
+using Xunit;
+
+namespace Nalix.Runtime.Tests;
+
+[SuppressMessage("Reliability", "CA2007:Consider calling ConfigureAwait on the awaited task", Justification = "xUnit tests intentionally follow the test synchronization context.")]
+public sealed class DispatchChannelTests
+{
+    #region Test Case 1: Strict In-Order Delivery
+
+    /// <summary>
+    /// Chứng minh lỗi race condition: khi nhiều consumer cùng TryClaim trên cùng 1 connection,
+    /// packet bị dequeue ra không đúng thứ tự (out-of-order).
+    /// </summary>
+    [Fact]
+    public void Should_Process_Packets_Strictly_In_Order_Under_High_Concurrency()
+    {
+        // Arrange
+        const int packetCount = 2000;
+        const int consumerCount = 4;
+
+        using DispatchChannel<FakePacket> channel = new();
+        FakeConnection connection = new();
+
+        List<int> dequeuedSequences = [];
+        object lockObj = new();
+        int consumedCount = 0;
+
+        // Act: Producer push tuần tự, Consumers chạy đa luồng
+        // Kịch bản: push 1 packet -> yield -> consumer khác có cơ hội claim cùng lúc
+        Task producer = Task.Run(() =>
+        {
+            for (int seq = 1; seq <= packetCount; seq++)
+            {
+                FakeBufferLease lease = CreatePacketLease(seq, PacketPriority.NONE);
+                channel.Push(connection, lease);
+
+                // Nhường CPU định kỳ để tăng window cho race condition
+                if (seq % 50 == 0)
+                {
+                    Thread.Yield();
+                }
+            }
+        });
+
+        Task[] consumers = new Task[consumerCount];
+        for (int c = 0; c < consumerCount; c++)
+        {
+            consumers[c] = Task.Run(() =>
+            {
+                while (Volatile.Read(ref consumedCount) < packetCount)
+                {
+                    if (!channel.TryClaim(out IDispatchSession? session))
+                    {
+                        Thread.Sleep(1);
+                        continue;
+                    }
+
+                    using (session)
+                    {
+                        while (session.TryDequeue(out IBufferLease? raw))
+                        {
+                            int seq = ReadSequenceId(raw);
+                            lock (lockObj)
+                            {
+                                dequeuedSequences.Add(seq);
+                            }
+                            raw.Dispose();
+                            _ = Interlocked.Increment(ref consumedCount);
+                        }
+                    }
+                }
+            });
+        }
+
+        Task.WaitAll([producer, .. consumers]);
+
+        // Assert: Thứ tự PHẢI tăng dần đều (1, 2, 3, ...)
+        // Nếu bug tồn tại, test sẽ FAIL tại đây vì packet bị out-of-order.
+        Assert.Equal(packetCount, dequeuedSequences.Count);
+
+        for (int i = 0; i < dequeuedSequences.Count; i++)
+        {
+            int expected = i + 1;
+            if (dequeuedSequences[i] != expected)
+            {
+                Assert.Fail(
+                    $"Out-of-order delivery detected at index {i}: " +
+                    $"expected {expected}, got {dequeuedSequences[i]}. " +
+                    $"Exclusivity violated: multiple consumers dequeued from the same connection.");
+            }
+        }
+    }
+
+    #endregion
+
+    #region Test Case 2: WDRR Load Balance
+
+    /// <summary>
+    /// Kiểm tra DispatchChannel phân phối load công bằng giữa nhiều connection (WDRR).
+    /// </summary>
+    [Fact]
+    public void Should_Distribute_Load_Fairly_Between_Connections()
+    {
+        // Arrange
+        const int connectionCount = 4;
+        const int packetsPerConnection = 500;
+
+        using DispatchChannel<FakePacket> channel = new();
+
+        FakeConnection[] connections = new FakeConnection[connectionCount];
+        for (int i = 0; i < connectionCount; i++)
+        {
+            connections[i] = new FakeConnection();
+        }
+
+        // Push packets cho từng connection
+        for (int c = 0; c < connectionCount; c++)
+        {
+            for (int seq = 1; seq <= packetsPerConnection; seq++)
+            {
+                FakeBufferLease lease = CreatePacketLease(seq, PacketPriority.NONE);
+                channel.Push(connections[c], lease);
+            }
+        }
+
+        int totalExpected = connectionCount * packetsPerConnection;
+        int consumedTotal = 0;
+        ConcurrentDictionary<IConnection, int> perConnection = new();
+
+        // Act: Claim và dequeue tất cả
+        while (Volatile.Read(ref consumedTotal) < totalExpected)
+        {
+            if (!channel.TryClaim(out IDispatchSession? session))
+            {
+                Thread.SpinWait(4);
+                continue;
+            }
+
+            IConnection claimedConn = session.Connection;
+            _ = perConnection.TryAdd(claimedConn, 0);
+
+            using (session)
+            {
+                while (session.TryDequeue(out IBufferLease? raw))
+                {
+                    _ = perConnection.AddOrUpdate(claimedConn, 1, (_, v) => v + 1);
+                    raw.Dispose();
+                    _ = Interlocked.Increment(ref consumedTotal);
+                }
+            }
+        }
+
+        // Assert: Mỗi connection phải nhận đúng số packet đã push
+        Assert.Equal(totalExpected, consumedTotal);
+        Assert.Equal(connectionCount, perConnection.Count);
+
+        foreach (KeyValuePair<IConnection, int> kvp in perConnection)
+        {
+            Assert.True(
+                kvp.Value == packetsPerConnection,
+                $"Connection unfairness: expected {packetsPerConnection} packets, got {kvp.Value}");
+        }
+    }
+
+    #endregion
+
+    #region Helpers
+
+    private static FakeBufferLease CreatePacketLease(int sequence, PacketPriority priority)
+    {
+        byte[] buffer = new byte[PacketHeader.Size];
+        PacketHeader header = default;
+        header.MagicNumber = 0x4E_4C_58_00; // "NLX\0"
+        header.OpCode = 0x0001;
+        header.Priority = priority;
+        header.SequenceId = (ushort)sequence;
+
+        MemoryMarshal.Write(buffer, in header);
+        return new FakeBufferLease(buffer);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int ReadSequenceId(IBufferLease raw)
+    {
+        ReadOnlySpan<byte> span = raw.Span;
+        ref readonly PacketHeader header = ref MemoryMarshal.AsRef<PacketHeader>(span);
+        return header.SequenceId;
+    }
+
+    #endregion
+
+    #region Fakes
+
+    private sealed class FakePacket : IPacket
+    {
+        public int Length => PacketHeader.Size;
+        public PacketHeader Header { get; set; }
+        public byte[] Serialize() => [];
+        public int Serialize(Span<byte> buffer) => 0;
+    }
+
+    private sealed class FakeBufferLease : IBufferLease
+    {
+        private readonly byte[] _buffer;
+        private int _disposed;
+
+        public FakeBufferLease(byte[] buffer) => _buffer = buffer;
+
+        public int Length => _buffer.Length;
+        public bool IsReliable { get; set; }
+        public int Capacity => _buffer.Length;
+        public Span<byte> Span => _disposed != 0 ? throw new ObjectDisposedException(nameof(FakeBufferLease)) : _buffer;
+        public Span<byte> SpanFull => Span;
+        public ReadOnlyMemory<byte> Memory => _buffer;
+
+        public void Retain() { }
+        public void CommitLength(int length) { }
+        public bool ReleaseOwnership(out byte[]? buffer, out int start, out int length)
+        {
+            buffer = _buffer; start = 0; length = _buffer.Length; return true;
+        }
+
+        public void Dispose()
+        {
+            _ = Interlocked.Exchange(ref _disposed, 1);
+        }
+    }
+
+    private sealed class FakeConnection : IConnection
+    {
+        public bool IsDisposed => false;
+        public bool IsUdpCreated => false;
+        public ISnowflake ID => null!;
+        public long UpTime => 0;
+        public long LastPingTime => 0;
+        public bool ExcludeFromIdleTimeout { get; set; }
+        public IOpCodeExtractor PacketClassifier => null!;
+        public INetworkEndpoint NetworkEndpoint => null!;
+        public IObjectMap<string, object> Attributes => null!;
+        public ConcurrentDictionary<ushort, object> RateLimitCache { get; } = new();
+        public Bytes32 Secret { get; set; }
+        public PermissionLevel Level { get; set; }
+        public CipherSuiteType Algorithm { get; set; }
+
+        public IConnection.ITransport TCP => null!;
+        public IConnection.ITransport UDP => null!;
+
+#pragma warning disable CS0067
+        public event EventHandler<IConnectEventArgs>? OnCloseEvent;
+        public event EventHandler<IConnectEventArgs>? OnProcessEvent;
+        public event EventHandler<IConnectEventArgs>? OnPostProcessEvent;
+#pragma warning restore CS0067
+
+        public void Disconnect(string? reason = null) { }
+        public void Dispose() { }
+        public int ErrorCount => 0;
+        public void IncrementErrorCount() { }
+    }
+
+    #endregion
+}

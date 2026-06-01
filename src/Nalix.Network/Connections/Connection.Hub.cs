@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -487,9 +487,10 @@ public sealed class ConnectionHub : IConnectionHub
                 _logger.LogTrace("[NW.ConnectionHub:RegisterConnection] register id={ConnectionId} total={RegistryCount}", connection.ID, _registry.Count);
             }
 
-            if (measureLatency && _logger != null)
+            if (measureLatency && _logger != null && _logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.LogInformation("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, scope.GetElapsedMilliseconds());
+                double latencyMs = scope.GetElapsedMilliseconds();
+                _logger.LogDebug("[PERF.NW.RegisterConnection] id={ConnectionId}, latency={LatencyMs} ms", connection.ID, latencyMs);
             }
 
             return RegisterResult.Success;
@@ -563,9 +564,10 @@ public sealed class ConnectionHub : IConnectionHub
             _logger.LogTrace("[NW.ConnectionHub:UnregisterConnection] unregister id={RemovedConnectionID} total={RegistryCount}", removedConnection.ID, _registry.Count);
         }
 
-        if (measureLatency && _logger != null)
+        if (measureLatency && _logger != null && _logger.IsEnabled(LogLevel.Debug))
         {
-            _logger.LogInformation("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, scope.GetElapsedMilliseconds());
+            double latencyMs = scope.GetElapsedMilliseconds();
+            _logger.LogDebug("[PERF.NW.UnregisterConnection] id={RemovedConnectionID}, latency={LatencyMs} ms", removedConnection.ID, latencyMs);
         }
 
         return true;
@@ -594,11 +596,10 @@ public sealed class ConnectionHub : IConnectionHub
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                connection.ThrottledError(
-                    _logger,
-                    "hub.dispose_all_error",
-                    $"[NW.{nameof(ConnectionHub)}:{nameof(DisposeAllConnections)}] dispose-error id={connection.ID}",
-                    ex);
+                if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.LogError(ex, "[NW.ConnectionHub:DisposeAllConnections] dispose-error id={ConnectionId}", connection.ID);
+                }
             }
         });
 

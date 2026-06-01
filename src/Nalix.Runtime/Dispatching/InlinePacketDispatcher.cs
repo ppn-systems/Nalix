@@ -5,7 +5,6 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,6 +15,7 @@ using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Primitives;
 using Nalix.Codec.DataFrames;
+using Nalix.Environment.Extensions;
 using Nalix.Network.Routing;
 using Nalix.Runtime.Internal.Compilation;
 using Nalix.Runtime.Middleware;
@@ -31,6 +31,8 @@ namespace Nalix.Runtime.Dispatching;
 public sealed class InlinePacketDispatcher
     : PacketDispatcherBase<IPacket>, IPacketDispatch, IActivatable
 {
+    private static readonly ThrottleKey s_keyExecute = new("dispatch.execute");
+
     private int _running;
     private long _deserializationErrors;
 
@@ -91,17 +93,17 @@ public sealed class InlinePacketDispatcher
     private ValueTask ExecutePacketAsync(IConnection connection, IBufferLease lease, CancellationToken ct)
     {
         // 1. Read the packet header directly from the raw span to determine routing
-        PacketHeader header = MemoryMarshal.Read<PacketHeader>(lease.Span);
+        ushort opcode = connection.PacketClassifier.Extract(lease.Span);
 
         // 2. Resolve the handler using the parsed opcode
-        if (!this.Options.TryResolveHandler(header.OpCode, out PacketHandler<IPacket> handler))
+        if (!this.Options.TryResolveHandler(opcode, out PacketHandler<IPacket> handler))
         {
             if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Warning))
             {
                 connection.ThrottledWarn(
                     this.Logging,
-                    "dispatch.execute",
-                    $"[RT.{nameof(InlinePacketDispatcher)}:{nameof(ExecutePacketAsync)}] no-handler opcode={header.OpCode}");
+                    s_keyExecute,
+                    $"[RT.{nameof(InlinePacketDispatcher)}:{nameof(ExecutePacketAsync)}] no-handler opcode={opcode}");
             }
 
             lease.Dispose();
@@ -114,7 +116,23 @@ public sealed class InlinePacketDispatcher
         // 3. Bypass deserialization if the handler expects raw memory
         if (handler.ExpectedPacketType == typeof(MemoryPacket))
         {
-            packet = new MemoryPacket(lease.Memory, header);
+            // HACK: [Technical Debt] Initialize a "dummy" PacketHeader containing only OpCode
+            // to satisfy the MemoryPacket constructor for routing.
+            // WARNING: Other attributes such as SequenceId and Flags in this Header will have default values ​​(0).
+            // Middleware (RateLimit, Timeout, Concurrency, etc.) must be cautious when reading data from Packet.Header.
+            // TODO: In the future, if the system requires stricter QoS control, IOpCodeExtractor should be upgraded to IHeaderParser.
+
+            if (lease.Length >= PacketConstants.HeaderSize)
+            {
+                PacketHeader header = HeaderExtensions.AsHeaderRef(lease.Span);
+
+                header.OpCode = opcode;
+                packet = new MemoryPacket(lease.Memory, header);
+            }
+            else
+            {
+                packet = new MemoryPacket(lease.Memory, new PacketHeader { OpCode = opcode });
+            }
         }
         else
         {
@@ -167,8 +185,8 @@ public sealed class InlinePacketDispatcher
             {
                 connection.ThrottledError(
                     this.Logging,
-                    "dispatch.execute",
-                    $"[RT.{nameof(InlinePacketDispatcher)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                    s_keyExecute,
+                    "[RT.InlinePacketDispatcher:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
             }
         }
 
@@ -201,8 +219,8 @@ public sealed class InlinePacketDispatcher
             {
                 connection.ThrottledError(
                     owner.Logging,
-                    "dispatch.execute",
-                    $"[RT.{nameof(InlinePacketDispatcher)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                    s_keyExecute,
+                    "[RT.InlinePacketDispatcher:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
             }
         }
         finally

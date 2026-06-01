@@ -1,12 +1,14 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System.Runtime.CompilerServices;
 using Backend.Attributes;
 using Microsoft.Extensions.Logging;
 using Nalix.Framework.Memory.Buffers;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Framework.Options;
 using Nalix.Hosting;
+using Nalix.Hosting.Protocols;
 using Nalix.LoadTester.Contracts;
 using Nalix.Logging;
 using Nalix.Logging.Sinks;
@@ -25,14 +27,14 @@ internal class Startup
     public const ushort ListenPort = 57206;
     public const string ListenAddress = "0.0.0.0";
 
-    public static ILogger CreateBootstrapLogger() => new NLogix(
-        cfg => cfg.RegisterTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
-                  .SetMinimumLevel(LogLevel.Trace)
-    );
+    public static ILogger CreateBootstrapLogger() => new NLogixBuilder()
+        .AddTarget(new BatchConsoleLogTarget(t => t.EnableColors = false))
+        .SetMinimumLevel(LogLevel.Trace)
+        .Build();
 
     public static NetworkApplication Configure(ILogger logger)
     {
-        System.Runtime.CompilerServices.RuntimeHelpers.RunModuleConstructor(typeof(BenchmarkPacket).Module.ModuleHandle);
+        RuntimeHelpers.RunModuleConstructor(typeof(BenchmarkPacket).Module.ModuleHandle);
 
         ConnectionHub hub = new();
         BufferPoolManager bufferPool = new();
@@ -191,8 +193,8 @@ internal class Startup
             .Configure<NetworkWebSocketOptions>(o =>
             {
                 o.Host = "+";
-                o.Port = 57207;
                 o.Path = "/ws/";
+                o.Port = ListenPort + 1;
 
                 o.EnableTimeout = true;
                 o.ProcessChannelCapacity = 4_096;
@@ -250,12 +252,12 @@ internal class Startup
                 o.MaxConnectionsPerIpAddress = 10_000;
 
                 // Connection attempts per IP within ConnectionRateWindow.
-                o.MaxConnectionsPerWindow = 100_000;
-                o.ConnectionRateWindow = TimeSpan.FromSeconds(5);
-
-                o.InactivityThreshold = TimeSpan.FromMinutes(2);
-                o.CleanupInterval = TimeSpan.FromSeconds(30);
                 o.MaxCleanupKeysPerRun = 50_000;
+                o.MaxConnectionsPerWindow = 100_000;
+
+                o.CleanupInterval = TimeSpan.FromSeconds(30);
+                o.InactivityThreshold = TimeSpan.FromMinutes(2);
+                o.ConnectionRateWindow = TimeSpan.FromSeconds(5);
 
                 // Vietnam timezone daily reset offset.
                 o.DailyResetTimeOffset = TimeSpan.FromHours(7);
@@ -336,10 +338,11 @@ internal class Startup
                 _ = o.WithErrorHandling((ex, cmd) => logger.LogError(ex, "Dispatch error: {Cmd}", cmd));
             })
             .BindTcp<DefaultProtocol>()
-                .WithFraming(Nalix.Abstractions.Networking.TransportFraming.UInt16LengthPrefixed)
+                .OnPort(ListenPort)
                 .Bind()
+
             .BindWebSocket<DefaultProtocol>()
-                .OnPort(57207)
+                .OnPort(ListenPort + 1)
                 .WithPath("/ws/")
                 .Bind()
             .Build();

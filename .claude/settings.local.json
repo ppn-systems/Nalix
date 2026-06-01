@@ -22,7 +22,12 @@
       "Bash(Get-ChildItem -Path docs -Recurse -Filter \"*.md\")",
       "Bash(Select-Object -ExpandProperty FullName)",
       "Bash(Sort-Object)",
-      "Bash(mkdocs build *)"
+      "Bash(mkdocs build *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git restore *)",
+      "Bash(git commit -m 'refactor\\(logging\\): split throttle log methods & fix test stability *)",
+      "Bash(git commit *)"
     ]
   }
 }

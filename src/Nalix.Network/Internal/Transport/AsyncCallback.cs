@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -73,6 +73,13 @@ internal static class AsyncCallback
     private static long s_droppedCallbacks;
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
+
+    private static readonly ThrottleKey s_keyGlobalBackpressure = new("async.global_backpressure");
+    private static readonly ThrottleKey s_keyPerIpBackpressure = new("async.per_ip_backpressure");
+    private static readonly ThrottleKey s_keyHighBackpressure = new("async.high_backpressure");
+    private static readonly ThrottleKey s_keyQueueException = new("async.queue_exception");
+    private static readonly ThrottleKey s_keyQueueFailed = new("async.queue_failed");
+    private static readonly ThrottleKey s_keyCallbackError = new("async.callback_error");
 
     static AsyncCallback()
     {
@@ -167,7 +174,7 @@ internal static class AsyncCallback
             // Drop the callback before queuing work so one overloaded server path
             // cannot keep piling up work items and consuming the entire normal lane.
             Interlocked.Increment(ref s_droppedCallbacks);
-            LOG_THROTTLED_ERROR_SAFE(args, "async.global_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={GET_ENDPOINT_SAFE(args)}");
+            LOG_THROTTLED_ERROR_SAFE(args, s_keyGlobalBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={GET_ENDPOINT_SAFE(args)}");
             return false;
         }
 
@@ -182,7 +189,7 @@ internal static class AsyncCallback
             // monopolize the queue even if there is still global headroom.
             RELEASE_GLOBAL_SLOT();
             Interlocked.Increment(ref s_droppedCallbacks);
-            LOG_THROTTLED_WARN_SAFE(args, "async.per_ip_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint?.ToString() ?? "unknown"} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+            LOG_THROTTLED_WARN_SAFE(args, s_keyPerIpBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint?.ToString() ?? "unknown"} pending={ipPending} max={s_opts.MaxPendingPerIp}");
             return false;
         }
 
@@ -190,7 +197,7 @@ internal static class AsyncCallback
         int warnThreshold = s_opts.CallbackWarningThreshold;
         if (warnThreshold > 0 && globalPending >= warnThreshold && globalPending % 1_000 == 0)
         {
-            LOG_THROTTLED_WARN_SAFE(args, "async.high_backpressure", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
+            LOG_THROTTLED_WARN_SAFE(args, s_keyHighBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
         }
 
         Interlocked.Increment(ref s_totalInvoked);
@@ -271,7 +278,7 @@ internal static class AsyncCallback
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            LOG_THROTTLED_ERROR_SAFE(args, "async.queue_exception", $"[NW.{nameof(AsyncCallback)}] exception-queue-work-item", ex);
+            LOG_THROTTLED_ERROR_SAFE(args, s_keyQueueException, $"[NW.{nameof(AsyncCallback)}] exception-queue-work-item", ex);
             queued = false;
         }
 
@@ -288,7 +295,7 @@ internal static class AsyncCallback
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
-            LOG_THROTTLED_ERROR_SAFE(args, "async.queue_failed", $"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={endpoint}");
+            LOG_THROTTLED_ERROR_SAFE(args, s_keyQueueFailed, $"[NW.{nameof(AsyncCallback)}] failed-queue-work-item ip={endpoint}");
 
             wrapper.Dispose();
 
@@ -434,7 +441,7 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void LOG_THROTTLED_WARN_SAFE(IConnectEventArgs? args, string key, string message)
+    private static void LOG_THROTTLED_WARN_SAFE(IConnectEventArgs? args, ThrottleKey key, string message)
     {
         IConnection? connection = GET_CONNECTION_SAFE(args);
         if (connection is not null)
@@ -450,7 +457,7 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void LOG_THROTTLED_ERROR_SAFE(IConnectEventArgs? args, string key, string message, Exception? ex = null)
+    private static void LOG_THROTTLED_ERROR_SAFE(IConnectEventArgs? args, ThrottleKey key, string message, Exception? ex = null)
     {
         IConnection? connection = GET_CONNECTION_SAFE(args);
         if (connection is not null)
@@ -494,7 +501,7 @@ internal static class AsyncCallback
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            LOG_THROTTLED_ERROR_SAFE(args, "async.callback_error", $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
+            LOG_THROTTLED_ERROR_SAFE(args, s_keyCallbackError, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] callback-error", ex);
         }
         finally
         {

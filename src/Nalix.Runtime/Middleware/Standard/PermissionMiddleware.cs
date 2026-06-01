@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -25,6 +25,8 @@ namespace Nalix.Runtime.Middleware.Standard;
 [MiddlewareStage(MiddlewareStage.Inbound)]
 public class PermissionMiddleware : IPacketMiddleware<IPacket>
 {
+    private static readonly ThrottleKey s_keySendError = new("middleware.permission.send_error");
+
     private readonly ILogger? _logger;
 
     /// <inheritdoc/>
@@ -84,7 +86,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            context.Connection.ThrottledError(_logger, "middleware.permission.send_error", $"[RT.{nameof(PermissionMiddleware)}] send-error-failed", ex);
+            context.Connection.ThrottledError(_logger, s_keySendError, "[RT.PermissionMiddleware] send-error-failed", ex);
         }
     }
 }

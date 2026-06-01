@@ -22,7 +22,7 @@ public static partial class NLogixFx
         string callerFilePath,
         int callerLineNumber)
     {
-        if (!(level > MinimumLevel))
+        if (!Logger.IsEnabled(level))
         {
             return;
         }
@@ -31,7 +31,7 @@ public static partial class NLogixFx
             message, sourceName, extendedData,
             callerMemberName, callerFilePath, callerLineNumber);
 
-        Publisher.Publish(DateTime.UtcNow, level, default, fullMessage, null);
+        Logger.Publish(level, default, fullMessage, null);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -41,10 +41,7 @@ public static partial class NLogixFx
         object? extendedData,
         string callerMemberName,
         string callerFilePath, int callerLineNumber)
-    {
-        return
-            $"{Sep}\nSource     : {sourceName ?? "None"}\nCaller     : {callerMemberName} ({callerFilePath}:{callerLineNumber})\nData       : {FORMAT_EXTENDED_DATA(extendedData)}\nMessage    : {message}\n{Sep}\n";
-    }
+        => $"{Sep}\nSource     : {sourceName ?? "None"}\nCaller     : {callerMemberName} ({callerFilePath}:{callerLineNumber})\nData       : {FORMAT_EXTENDED_DATA(extendedData)}\nMessage    : {message}\n{Sep}\n";
 
     private static string FORMAT_EXTENDED_DATA(object? extendedData)
     {

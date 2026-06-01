@@ -11,34 +11,80 @@ using Nalix.Abstractions.Networking;
 
 namespace Microsoft.Extensions.Logging;
 
+/// <summary>
+/// Represents a pre-computed throttle key that eliminates per-call string allocation.
+/// Construct once (typically as a <c>static readonly</c> field), reuse forever.
+/// </summary>
+public sealed class ThrottleKey
+{
+    /// <summary>
+    /// The fully-qualified attribute key (<c>"sys.log." + name</c>).
+    /// </summary>
+    public string AttributeKey { get; }
+
+    /// <summary>
+    /// Creates a new <see cref="ThrottleKey"/>.
+    /// </summary>
+    /// <param name="name">
+    /// A short, dot-separated name that uniquely identifies the throttle bucket
+    /// (e.g. <c>"socket.send.error"</c>).
+    /// </param>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="name"/> is <see langword="null"/> or empty.
+    /// </exception>
+    public ThrottleKey(string name)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        this.AttributeKey = string.Concat("sys.log.", name);
+    }
+}
+
 /// <inheritdoc/>
 public static partial class Log
 {
-    /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Warning,
-        Message = "{Message}{Suffix}")]
-    public static partial void DataProcessingWarning(ILogger logger, string message, string suffix);
+    // ── Warning ──────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Trace,
-        Message = "{Message}{Suffix}")]
-    public static partial void DataProcessingTrace(ILogger logger, string message, string suffix);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Message}")]
+    public static partial void DataProcessingWarning(ILogger logger, string message);
 
     /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Error,
-        Message = "{Message}{Suffix}")]
-    public static partial void DataProcessingError(ILogger logger, string message, string suffix);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "{Message} (+{SuppressedCount} suppressed)")]
+    public static partial void DataProcessingWarningSuppressed(ILogger logger, string message, long suppressedCount);
+
+    // ── Trace ────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    [LoggerMessage(
-        Level = LogLevel.Error,
-        Message = "{Message}{Suffix}")]
+    [LoggerMessage(Level = LogLevel.Trace, Message = "{Message}")]
+    public static partial void DataProcessingTrace(ILogger logger, string message);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Trace, Message = "{Message} (+{SuppressedCount} suppressed)")]
+    public static partial void DataProcessingTraceSuppressed(ILogger logger, string message, long suppressedCount);
+
+    // ── Error ────────────────────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message}")]
+    public static partial void DataProcessingError(ILogger logger, string message);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message} (+{SuppressedCount} suppressed)")]
     [SuppressMessage("LoggingGenerator",
         "SYSLIB1006:Multiple logging methods cannot use the same event id within a class", Justification = "<Pending>")]
-    public static partial void DataProcessingError(ILogger logger, Exception ex, string message, string suffix);
+    public static partial void DataProcessingErrorSuppressed(ILogger logger, string message, long suppressedCount);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message}")]
+    [SuppressMessage("LoggingGenerator",
+        "SYSLIB1006:Multiple logging methods cannot use the same event id within a class", Justification = "<Pending>")]
+    public static partial void DataProcessingError(ILogger logger, Exception ex, string message);
+
+    /// <inheritdoc/>
+    [LoggerMessage(Level = LogLevel.Error, Message = "{Message} (+{SuppressedCount} suppressed)")]
+    [SuppressMessage("LoggingGenerator",
+        "SYSLIB1006:Multiple logging methods cannot use the same event id within a class", Justification = "<Pending>")]
+    public static partial void DataProcessingErrorSuppressed(ILogger logger, Exception ex, string message, long suppressedCount);
 }
 
 /// <summary>
@@ -47,8 +93,6 @@ public static partial class Log
 /// </summary>
 public static class ThrottleLogExtensions
 {
-    private const string AttrKeyPrefix = "sys.log.";
-
     private static readonly long s_defaultWindowTicks =
         (long)(TimeSpan.FromSeconds(20).TotalSeconds * Stopwatch.Frequency);
 
@@ -62,8 +106,10 @@ public static class ThrottleLogExtensions
     /// Logs a warning message if the throttle window has passed for the given key.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrottledWarn(this IConnection connection, ILogger? logger, string key, string message)
+    public static void ThrottledWarn(this IConnection connection, ILogger? logger, ThrottleKey key, string message)
     {
+        ArgumentNullException.ThrowIfNull(key);
+
         if (logger == null || !logger.IsEnabled(LogLevel.Warning))
         {
             return;
@@ -72,18 +118,20 @@ public static class ThrottleLogExtensions
         if (!ShouldLog(connection, key, out long suppressed))
         {
             return;
-
         }
-        Log.DataProcessingWarning(logger, message, FormatSuffix(suppressed));
+
+        EmitWarning(logger, message, suppressed);
     }
 
     /// <summary>
     /// Logs an error message if the throttle window has passed for the given key.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void ThrottledError(this IConnection connection, ILogger? logger, string key, string message, Exception? ex = null)
+    public static void ThrottledError(this IConnection connection, ILogger? logger, ThrottleKey key, string message, Exception? ex = null)
     {
-        if (logger == null || !logger.IsEnabled(LogLevel.Warning))
+        ArgumentNullException.ThrowIfNull(key);
+
+        if (logger == null || !logger.IsEnabled(LogLevel.Error))
         {
             return;
         }
@@ -93,21 +141,11 @@ public static class ThrottleLogExtensions
             return;
         }
 
-        string suffix = FormatSuffix(suppressed);
-
-        if (ex == null)
-        {
-            Log.DataProcessingError(logger, message, suffix);
-        }
-        else
-        {
-            Log.DataProcessingError(logger, ex, message, suffix);
-        }
+        EmitError(logger, message, suppressed, ex);
     }
 
-
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool ShouldLog(IConnection connection, string key, out long suppressed)
+    private static bool ShouldLog(IConnection connection, ThrottleKey key, out long suppressed)
     {
         suppressed = 0;
 
@@ -117,16 +155,14 @@ public static class ThrottleLogExtensions
             return true;
         }
 
-        string attrKey = string.Concat(AttrKeyPrefix, key);
-
-        if (!attrs.TryGetValue(attrKey, out object? val) || val is not LogThrottleState state)
+        if (!attrs.TryGetValue(key.AttributeKey, out object? val) || val is not LogThrottleState state)
         {
             LogThrottleState newState = new()
             {
                 LastLogTicks = Stopwatch.GetTimestamp()
             };
 
-            attrs.Add(attrKey, newState);
+            attrs.Add(key.AttributeKey, newState);
 
             return true;
         }
@@ -151,5 +187,42 @@ public static class ThrottleLogExtensions
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string FormatSuffix(long suppressed) => suppressed > 0 ? $" (+{suppressed} suppressed)" : string.Empty;
+    private static void EmitWarning(ILogger logger, string message, long suppressed)
+    {
+        if (suppressed > 0)
+        {
+            Log.DataProcessingWarningSuppressed(logger, message, suppressed);
+        }
+        else
+        {
+            Log.DataProcessingWarning(logger, message);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void EmitError(ILogger logger, string message, long suppressed, Exception? ex)
+    {
+        if (ex == null)
+        {
+            if (suppressed > 0)
+            {
+                Log.DataProcessingErrorSuppressed(logger, message, suppressed);
+            }
+            else
+            {
+                Log.DataProcessingError(logger, message);
+            }
+        }
+        else
+        {
+            if (suppressed > 0)
+            {
+                Log.DataProcessingErrorSuppressed(logger, ex, message, suppressed);
+            }
+            else
+            {
+                Log.DataProcessingError(logger, ex, message);
+            }
+        }
+    }
 }

@@ -307,7 +307,8 @@ public abstract partial class WebSocketListenerBase
         {
             if (_logger != null && _logger.IsEnabled(LogLevel.Error))
             {
-                _logger.LogError(ex, "[NW.WebSocketListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", connection?.NetworkEndpoint.ToString() ?? "<null>");
+                string remoteEndpoint = connection?.NetworkEndpoint?.ToString() ?? "<null>";
+                _logger.LogError(ex, "[NW.WebSocketListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", remoteEndpoint);
             }
             connection?.Disconnect();
         }

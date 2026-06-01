@@ -1,9 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System.Threading;
 using System.Diagnostics;
 using System.Reflection;
+using System.Threading;
 using Nalix.Framework;
 using Nalix.Environment.Configuration;
 using Nalix.Framework.Memory.Objects;
@@ -48,26 +48,23 @@ public sealed class ObjectPoolDiagnosticsTests
         using ObjectPoolManager manager = new(config);
         
         TestPoolable item = manager.Get<TestPoolable>();
-        Thread.Sleep(50); 
+
+        // Wait just long enough for the lifetime metric to register a non-zero value
+        SpinWait.SpinUntil(() => false, 50);
+
         manager.Return(item);
 
-            string report = "";
-            bool found = false;
-            for (int i = 0; i < 20; i++)
-            {
-                report = manager.GenerateReport();
-                if (report.Contains("Lifetime (ms)"))
-                {
-                    found = true;
-                    break;
-                }
-                Thread.Sleep(50);
-            }
+        string report = "";
+        bool found = SpinWait.SpinUntil(() =>
+        {
+            report = manager.GenerateReport();
+            return report.Contains("Lifetime (ms)");
+        }, 1000);
 
-            Assert.True(found, $"Report should contain Lifetime metrics. Full report:\n{report}");
-            Assert.Contains("Avg=", report);
-            Assert.Contains("p95=", report);
-            Assert.Contains("Max=", report);
+        Assert.True(found, $"Report should contain Lifetime metrics. Full report:\n{report}");
+        Assert.Contains("Avg=", report);
+        Assert.Contains("p95=", report);
+        Assert.Contains("Max=", report);
     }
 
     [Fact]
@@ -83,11 +80,15 @@ public sealed class ObjectPoolDiagnosticsTests
 
             TestPoolable item = manager.Get<TestPoolable>();
 
-            // Allow ConcurrentBag's eventual consistency to catch up for the iterator
-            Thread.Sleep(10); 
+            // Spin until ConcurrentBag's iterator can observe the item
+            string report = "";
+            bool found = SpinWait.SpinUntil(() =>
+            {
+                report = manager.GenerateReport();
+                return report.Contains("Suspicious Objects") && report.Contains(nameof(TestPoolable));
+            }, 1000);
 
-            string report = manager.GenerateReport();
-
+            Assert.True(found, $"Report should contain suspicious objects. Full report:\n{report}");
             Assert.Contains("Suspicious Objects", report);
             Assert.Contains(nameof(TestPoolable), report);
         }

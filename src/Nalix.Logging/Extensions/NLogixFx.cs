@@ -2,11 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
-using System.IO;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
-using Nalix.Logging.Options;
-using Nalix.Logging.Sinks;
 
 namespace Nalix.Logging.Extensions;
 
@@ -18,14 +15,11 @@ public static partial class NLogixFx
     #region Properties
 
     /// <summary>
-    /// Gets or sets the minimum logging level. Messages below this level will not be logged.
+    /// Gets the global <see cref="NLogix"/> logger instance.
+    /// Initialized with default targets during static construction.
+    /// Can be reconfigured via <see cref="Configure"/>.
     /// </summary>
-    public static LogLevel MinimumLevel { get; set; }
-
-    /// <summary>
-    /// The global logging publisher used for distributing log messages to various targets.
-    /// </summary>
-    public static readonly NLogixDistributor Publisher;
+    public static NLogix Logger { get; private set; }
 
     #endregion Properties
 
@@ -35,24 +29,33 @@ public static partial class NLogixFx
     /// Initializes static members of the <see cref="NLogixFx"/> class.
     /// Configures the logging system with default targets and settings.
     /// </summary>
-    static NLogixFx()
-    {
-        MinimumLevel = LogLevel.Trace;
-        Publisher = new NLogixDistributor();
-
-        FileLogOptions fileLoggerOpts = new()
-        {
-            FormatLogFileName = (fname) =>
-            {
-                return Path.GetFileNameWithoutExtension(fname) +
-                       "_{0:yyyy}-{0:MM}-{0:dd}" + Path.GetExtension(fname);
-            }
-        };
-
-        _ = Publisher.RegisterTarget(new BatchConsoleLogTarget());
-    }
+    static NLogixFx() => Logger = new NLogixBuilder().Build();
 
     #endregion Constructors
+
+    #region Configuration
+
+    /// <summary>
+    /// Configures the global <see cref="NLogix"/> logger using a builder.
+    /// Disposes the previous logger (if any) before creating a new one.
+    /// </summary>
+    /// <param name="configure">
+    /// A delegate to configure the <see cref="INLogixBuilder"/> with targets and options.
+    /// </param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="configure"/> is null.</exception>
+    public static void Configure(Action<INLogixBuilder> configure)
+    {
+        ArgumentNullException.ThrowIfNull(configure);
+
+        NLogixBuilder builder = new();
+        configure(builder);
+
+        NLogix? oldLogger = Logger;
+        Logger = builder.Build();
+        oldLogger?.Dispose();
+    }
+
+    #endregion Configuration
 
     #region Log Methods
 

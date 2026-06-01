@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -39,6 +39,9 @@ public sealed class PacketDispatchChannel
     : PacketDispatcherBase<IPacket>, IPacketDispatch, IDisposable, IActivatable
 {
     #region Fields
+
+    private static readonly ThrottleKey s_keyExecute = new("dispatch.execute");
+    private static readonly ThrottleKey s_keyExecutePrep = new("dispatch.execute_prep");
 
     private readonly DispatchChannel<IPacket> _dispatch;
 
@@ -546,7 +549,7 @@ public sealed class PacketDispatchChannel
                 {
                     connection.ThrottledWarn(
                         this.Logging,
-                        "dispatch.execute",
+                        s_keyExecute,
                         $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] no-handler opcode={opcode}");
                 }
 
@@ -597,8 +600,8 @@ public sealed class PacketDispatchChannel
             {
                 connection.ThrottledError(
                     this.Logging,
-                    "dispatch.execute_prep",
-                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] prepare-error ep={connection.NetworkEndpoint}", ex);
+                    s_keyExecutePrep,
+                    "[RT.PacketDispatchChannel:ExecutePacketAsync] prepare-error ep=" + connection.NetworkEndpoint, ex);
             }
             lease.Dispose();
             return ValueTask.CompletedTask;
@@ -641,8 +644,8 @@ public sealed class PacketDispatchChannel
             {
                 connection.ThrottledError(
                     this.Logging,
-                    "dispatch.execute",
-                    $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
+                    s_keyExecute,
+                    "[RT.PacketDispatchChannel:ExecutePacketAsync] handler-error ep=" + connection.NetworkEndpoint);
             }
         }
 
@@ -675,7 +678,7 @@ public sealed class PacketDispatchChannel
             {
                 connection.ThrottledError(
                     owner.Logging,
-                    "dispatch.execute",
+                    s_keyExecute,
                     $"[RT.{nameof(PacketDispatchChannel)}:{nameof(ExecutePacketAsync)}] handler-error ep={connection.NetworkEndpoint}");
             }
         }
