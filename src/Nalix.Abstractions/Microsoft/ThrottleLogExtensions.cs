@@ -105,6 +105,7 @@ public static class ThrottleLogExtensions
         }
     }
 
+
     [MethodImpl(MethodImplOptions.NoInlining)]
     private static bool ShouldLog(IConnection connection, string key, out long suppressed)
     {
@@ -122,14 +123,10 @@ public static class ThrottleLogExtensions
         {
             LogThrottleState newState = new()
             {
-                LastLogTicks = Stopwatch.GetTimestamp() - s_defaultWindowTicks
+                LastLogTicks = Stopwatch.GetTimestamp()
             };
 
             attrs.Add(attrKey, newState);
-
-            _ = attrs.TryGetValue(attrKey, out val) && val is LogThrottleState existing
-                ? existing
-                : newState;
 
             return true;
         }

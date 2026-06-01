@@ -43,7 +43,8 @@ public sealed class ConnectionLoggingExtensionsTests
         Assert.NotNull(state);
 
         FieldInfo? lastLogTicksField = state!.GetType().GetField("LastLogTicks");
-        lastLogTicksField!.SetValue(state, DateTime.UtcNow.AddSeconds(-20).Ticks);
+        long twentySecondsInTicks = (long)(TimeSpan.FromSeconds(20).TotalSeconds * System.Diagnostics.Stopwatch.Frequency);
+        lastLogTicksField!.SetValue(state, System.Diagnostics.Stopwatch.GetTimestamp() - twentySecondsInTicks);
 
         connection.ThrottledWarn(logger, "dup", "hello");
 
