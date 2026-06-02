@@ -54,7 +54,7 @@ public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSiz
     /// <summary>
     /// Initializes the packet with the specified stage and metadata.
     /// </summary>
-    public void Initialize(SessionResumeStage stage, ulong sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
+    public void Initialize(SessionResumeStage stage, ulong sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM)
     {
         this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
         this.Priority = PacketPriority.URGENT;
@@ -76,7 +76,7 @@ public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSiz
         this.Stage = SessionResumeStage.NONE;
         this.Priority = PacketPriority.URGENT;
         this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <inheritdoc/>

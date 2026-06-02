@@ -45,7 +45,7 @@ public sealed partial class KeyExchange : PacketBase<KeyExchange>, IFixedSizeSer
     {
         this.OpCode = (ushort)ProtocolOpCode.KEY_EXCHANGE;
         this.Priority = PacketPriority.URGENT;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
         this.Stage = stage;
         this.PublicKey = publicKey;
     }
@@ -59,7 +59,7 @@ public sealed partial class KeyExchange : PacketBase<KeyExchange>, IFixedSizeSer
         this.PublicKey = Bytes32.Zero;
         this.Priority = PacketPriority.URGENT;
         this.OpCode = (ushort)ProtocolOpCode.KEY_EXCHANGE;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <inheritdoc/>

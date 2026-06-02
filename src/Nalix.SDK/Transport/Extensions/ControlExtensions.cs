@@ -68,18 +68,7 @@ public static class ControlExtensions
             return this;
         }
 
-        /// <summary>
-        /// Stamps the control with the current Unix timestamp (milliseconds) and the sender's monotonic ticks.
-        /// Note: <see cref="Control.Initialize(ushort, ControlType, ushort, PacketFlags, ProtocolReason)"/> already stamps on construction; call this only to refresh.
-        /// </summary>
-        /// <returns>The current builder.</returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ControlBuilder StampNow()
-        {
-            c.MonoTicks = Clock.MonoTicksNow();
-            c.Timestamp = Clock.UnixMillisecondsNow();
-            return this;
-        }
+
 
         /// <summary>Builds and returns the configured <see cref="Control"/> instance.</summary>
         /// <returns>The configured <see cref="Control"/>.</returns>

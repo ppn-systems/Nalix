@@ -46,13 +46,13 @@ public sealed class SystemControlHandlers
                 HandleDisconnect(context, packet);
                 break;
             case ControlType.PING:
-                await HandlePing(context, packet).ConfigureAwait(false);
+                // Handled by SystemTimeSyncHandlers
                 break;
             case ControlType.CIPHER_UPDATE:
                 await HandleCipherUpdate(context, packet).ConfigureAwait(false);
                 break;
             case ControlType.TIMESYNCREQUEST:
-                await HandleTimeSyncRequest(context, packet).ConfigureAwait(false);
+                // Handled by SystemTimeSyncHandlers
                 break;
             case ControlType.ERROR:
                 HandleError(context, packet);
@@ -114,34 +114,7 @@ public sealed class SystemControlHandlers
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
     }
 
-    private static async ValueTask HandlePing(IPacketContext<Control> context, Control ping)
-    {
-        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
 
-        // Prepare PONG response using pooled instance (zero allocation pattern)
-        Control pong = lease.Value;
-        pong.Initialize(
-            (ushort)ProtocolOpCode.SYSTEM_CONTROL,
-            ControlType.PONG,
-            ping.SequenceId,   // Echo back for latency tracking
-            ping.Flags,        // Preserve flags (protocol-specific behavior)
-            ProtocolReason.NONE);
-
-        // Send immediately to minimize RTT (no buffering / batching)
-        await context.Sender.SendAsync(pong).ConfigureAwait(false);
-    }
-
-    private static async ValueTask HandleTimeSyncRequest(IPacketContext<Control> context, Control req)
-    {
-        using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
-        Control res = lease.Value;
-        res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags, ProtocolReason.NONE);
-
-        res.Timestamp = Clock.UnixMillisecondsNow(); // t3
-        res.MonoTicks = req.MonoTicks;               // echo t1'
-
-        await context.Sender.SendAsync(res).ConfigureAwait(false);
-    }
 
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]

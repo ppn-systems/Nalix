@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
@@ -84,7 +84,7 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
         Bytes32 publicKey,
         Bytes32 nonce,
         Bytes32? proof = null,
-        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE) : this()
+        PacketFlags flags = PacketFlags.SYSTEM) : this()
         => this.Initialize(stage, publicKey, nonce, proof, flags);
 
     /// <summary>
@@ -100,7 +100,7 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
         Bytes32 publicKey,
         Bytes32 nonce,
         Bytes32? proof = null,
-        PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
+        PacketFlags flags = PacketFlags.SYSTEM)
     {
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
         this.Stage = stage;
@@ -118,7 +118,7 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
     /// <summary>
     /// Initializes the handshake packet with an error state and reason.
     /// </summary>
-    public void InitializeError(ProtocolReason reason, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
+    public void InitializeError(ProtocolReason reason, PacketFlags flags = PacketFlags.SYSTEM)
     {
         this.Flags = flags;
         this.Reason = reason;
@@ -187,7 +187,7 @@ public sealed partial class Handshake : PacketBase<Handshake>, IFixedSizeSeriali
         this.TranscriptHash = Bytes32.Zero;
         this.Priority = PacketPriority.URGENT;
         this.OpCode = (ushort)ProtocolOpCode.HANDSHAKE;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 }
 

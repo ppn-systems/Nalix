@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Time;
@@ -18,6 +19,37 @@ namespace Nalix.SDK.Transport.Extensions;
 public static class TimeSyncExtensions
 {
     private static int s_syncSequence;
+
+    /// <summary>
+    /// A fluent builder for <see cref="TimeSync"/> frames.
+    /// </summary>
+    public readonly ref struct TimeSyncBuilder(TimeSync t)
+    {
+        public TimeSyncBuilder WithSeq(ushort seq) { t.SequenceId = seq; return this; }
+        public TimeSyncBuilder StampNow()
+        {
+            t.MonoTicks = Clock.MonoTicksNow();
+            t.Timestamp = Clock.UnixMillisecondsNow();
+            return this;
+        }
+        public TimeSync Build() => t;
+    }
+
+    /// <summary>
+    /// Creates a new TimeSync frame.
+    /// </summary>
+    public static TimeSyncBuilder NewTimeSync(
+        this TransportSession _,
+        ushort opCode,
+        ControlType type,
+        bool reliable = true)
+    {
+#pragma warning disable CA2000
+        TimeSync t = TimeSync.Create();
+#pragma warning restore CA2000
+        t.Initialize(opCode, type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
+        return new TimeSyncBuilder(t);
+    }
 
     /// <summary>
     /// Sends a time synchronization request to the server and adjusts the client's internal <see cref="Clock"/> based on the response.
@@ -41,14 +73,14 @@ public static class TimeSyncExtensions
 
         ushort seq = unchecked((ushort)Interlocked.Increment(ref s_syncSequence));
 
-        Control req = session
-            .NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCREQUEST)
+        TimeSync req = session
+            .NewTimeSync((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCREQUEST)
             .WithSeq(seq)
             .Build();
 
         long t1Mono = req.MonoTicks;
 
-        Control res = await session.RequestAsync<Control>(
+        TimeSync res = await session.RequestAsync<TimeSync>(
             req,
             options: RequestOptions.Default.WithTimeout(timeoutMs),
             predicate: p => p.Type == ControlType.TIMESYNCRESPONSE && p.SequenceId == seq,

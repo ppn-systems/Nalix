@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System.Diagnostics;
@@ -84,7 +84,7 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
     /// <param name="controlFlags">The system-level control flags.</param>
     public void Initialize(
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        ushort sequenceId, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+        ushort sequenceId, PacketFlags flags = PacketFlags.SYSTEM,
         ControlFlags controlFlags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
@@ -116,7 +116,7 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
     public void Initialize(
         ushort opCode,
         ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        ushort sequenceId, PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE,
+        ushort sequenceId, PacketFlags flags = PacketFlags.SYSTEM,
         ControlFlags controlFlags = ControlFlags.NONE,
         uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
     {
@@ -141,7 +141,7 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
 
         this.Priority = PacketPriority.HIGH;
         this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
-        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+        this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <summary>
