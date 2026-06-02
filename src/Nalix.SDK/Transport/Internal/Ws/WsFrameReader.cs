@@ -22,6 +22,7 @@ internal sealed class WsFrameReader : IDisposable
     private readonly Action<IBufferLease> _onMessage;
     private readonly Func<ClientWebSocket> _getSocket;
 
+    private readonly SessionState _state;
     private readonly TransportOptions _options;
     private readonly WebSocketTransportOptions _webSocketOptions;
 
@@ -30,12 +31,14 @@ internal sealed class WsFrameReader : IDisposable
     public WsFrameReader(
         Func<ClientWebSocket> getSocket,
         TransportOptions options,
+        SessionState state,
         WebSocketTransportOptions webSocketOptions,
         Action<IBufferLease> onMessage,
         Action<Exception> onError)
     {
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _state = state ?? throw new ArgumentNullException(nameof(state));
         _webSocketOptions = webSocketOptions ?? throw new ArgumentNullException(nameof(webSocketOptions));
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
@@ -160,7 +163,7 @@ internal sealed class WsFrameReader : IDisposable
         {
             FramePipeline.ProcessInbound(
                 ref lease,
-                _options.Secret.AsSpan(),
+                _state.Secret.AsSpan(),
                 _options.Algorithm,
                 out uint? seq);
 

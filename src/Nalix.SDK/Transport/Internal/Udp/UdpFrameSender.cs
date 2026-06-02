@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -22,6 +22,7 @@ namespace Nalix.SDK.Transport.Internal.Udp;
 /// </summary>
 internal sealed class UdpFrameSender : IDisposable
 {
+    private readonly SessionState _state;
     private readonly Func<Socket> _getSocket;
     private readonly SequenceCounter _sequence;
     private readonly TransportOptions _options;
@@ -30,11 +31,12 @@ internal sealed class UdpFrameSender : IDisposable
 
     private int _disposed;
 
-    public UdpFrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
+    public UdpFrameSender(Func<Socket> getSocket, TransportOptions options, SessionState state, Action<Exception> onError)
     {
         _sequence = new SequenceCounter();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _state = state ?? throw new ArgumentNullException(nameof(state));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
     }
 
@@ -50,15 +52,15 @@ internal sealed class UdpFrameSender : IDisposable
 
         try
         {
-            uint? seqToUse = (encryptOverride ?? _options.EncryptionEnabled) ? _sequence.Next() : null;
+            uint? seqToUse = (encryptOverride ?? _state.EncryptionEnabled) ? _sequence.Next() : null;
 
             // Transform outbound: Compress -> Encrypt + Sequence
             FramePipeline.ProcessOutbound(
                 ref current,
                 _options.CompressionEnabled,
                 _options.CompressionThreshold,
-                encryptOverride ?? _options.EncryptionEnabled,
-                _options.Secret.AsSpan(),
+                encryptOverride ?? _state.EncryptionEnabled,
+                _state.Secret.AsSpan(),
                 seqToUse,
                 _options.Algorithm);
 
@@ -70,7 +72,7 @@ internal sealed class UdpFrameSender : IDisposable
 
             // Envelope: [SessionToken (8 bytes) | Transformed Payload]
             using BufferLease finalLease = BufferLease.Rent(ISnowflake.Size + current.Length);
-            BinaryPrimitives.WriteUInt64LittleEndian(finalLease.SpanFull[..ISnowflake.Size], _options.SessionToken);
+            BinaryPrimitives.WriteUInt64LittleEndian(finalLease.SpanFull[..ISnowflake.Size], _state.SessionToken);
             current.Span.CopyTo(finalLease.SpanFull[ISnowflake.Size..]);
             finalLease.CommitLength(ISnowflake.Size + current.Length);
 

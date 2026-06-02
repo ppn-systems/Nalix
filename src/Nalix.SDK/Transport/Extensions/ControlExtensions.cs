@@ -132,8 +132,9 @@ public static class ControlExtensions
     /// <exception cref="NetworkException">Thrown when the client is not connected.</exception>
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
+    [Obsolete]
     public static ValueTask<TPkt> AwaitPacketAsync<TPkt>(
-        this TcpSession client,
+        this TransportSession client,
         Func<TPkt, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -167,8 +168,9 @@ public static class ControlExtensions
     /// <exception cref="TimeoutException">Thrown when no matching CONTROL is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Obsolete]
     public static ValueTask<Control> AwaitControlAsync(
-        this TcpSession client,
+        this TransportSession client,
         Func<Control, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
@@ -199,7 +201,7 @@ public static class ControlExtensions
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static async ValueTask SendControlAsync(this TcpSession client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
+    public static async ValueTask SendControlAsync(this TransportSession client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 

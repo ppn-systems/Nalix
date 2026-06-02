@@ -27,6 +27,7 @@ internal sealed class TcpFrameReader : IDisposable
     private static readonly FragmentOptions s_fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
     private static readonly SocketException s_frameSizeExceeded = new((int)SocketError.MessageSize);
 
+    private readonly SessionState _state;
     private readonly Func<Socket> _getSocket;
     private readonly SequenceCounter _sequence;
     private readonly TransportOptions _options;
@@ -42,18 +43,16 @@ internal sealed class TcpFrameReader : IDisposable
     /// <summary>
     /// Initializes a new instance of the <see cref="TcpFrameReader"/> class.
     /// </summary>
-    /// <param name="getSocket">A delegate that returns the active socket used for receiving data.</param>
-    /// <param name="options">The transport options used to validate inbound frame sizes.</param>
-    /// <param name="onMessage">The callback invoked when a fully processed frame is ready.</param>
-    /// <param name="onError">The callback invoked when receive processing fails.</param>
     public TcpFrameReader(
         Func<Socket> getSocket,
         TransportOptions options,
+        SessionState state,
         Action<IBufferLease> onMessage,
         Action<Exception> onError)
     {
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _state = state ?? throw new ArgumentNullException(nameof(state));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onMessage = onMessage ?? throw new ArgumentNullException(nameof(onMessage));
@@ -164,7 +163,8 @@ internal sealed class TcpFrameReader : IDisposable
         IBufferLease original = lease;
         try
         {
-            FramePipeline.ProcessInbound(ref lease, _options.Secret.AsSpan(), _options.Algorithm, out uint? seq);
+            // SEC-07: Verify signature/decrypt and decompress inbound packet.
+            FramePipeline.ProcessInbound(ref lease, _state.Secret.AsSpan(), _options.Algorithm, out uint? seq);
 
             if (!_sequence.IsValid(seq))
             {

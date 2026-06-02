@@ -34,6 +34,7 @@ internal static class PacketAwaiter
     /// <exception cref="ArgumentOutOfRangeException"></exception>
     /// <exception cref="TimeoutException"></exception>
     /// <exception cref="OperationCanceledException"></exception>
+    [Obsolete]
     public static async Task<TPkt> AwaitAsync<TPkt>(
         TransportSession client, Func<TPkt, bool> predicate,
         int timeoutMs, Func<CancellationToken, Task> sendAsync, CancellationToken ct)

@@ -72,14 +72,15 @@ public class WebSocketSession : TransportSession
     /// <summary>Initializes a new instance of the <see cref="WebSocketSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
     /// <param name="webSocketOptions">The WebSocket-specific transport options for this session.</param>
-    public WebSocketSession(TransportOptions options, WebSocketTransportOptions? webSocketOptions = null)
+    /// <param name="state">An optional shared runtime state instance.</param>
+    public WebSocketSession(TransportOptions options, WebSocketTransportOptions? webSocketOptions = null, SessionState? state = null) : base(state)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
         this.WebSocketOptions = webSocketOptions ?? new WebSocketTransportOptions();
         this.WebSocketOptions.Validate();
 
-        _sender = new WsFrameSender(() => _socket!, options, this.HandleError);
-        _reader = new WsFrameReader(() => _socket!, options, this.WebSocketOptions, this.HandleReceiveMessage, this.HandleError);
+        _sender = new WsFrameSender(() => _socket!, options, this.State, this.HandleError);
+        _reader = new WsFrameReader(() => _socket!, options, this.State, this.WebSocketOptions, this.HandleReceiveMessage, this.HandleError);
     }
 
     #endregion Constructor
@@ -217,7 +218,7 @@ public class WebSocketSession : TransportSession
 
     /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, CancellationToken ct = default)
-        => await this.SendAsync(packet, this.Options.EncryptionEnabled, ct).ConfigureAwait(false);
+        => await this.SendAsync(packet, this.State.EncryptionEnabled, ct).ConfigureAwait(false);
 
     /// <inheritdoc/>
     public override async Task SendAsync(IPacket packet, bool? encrypt = null, CancellationToken ct = default)

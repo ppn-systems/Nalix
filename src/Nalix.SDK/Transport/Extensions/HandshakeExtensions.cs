@@ -32,9 +32,9 @@ public static class HandshakeExtensions
     /// Anonymous handshakes are forbidden for security reasons. The client MUST provide the expected 
     /// server public key in the session options to prevent Man-in-the-Middle (MitM) attacks.
     /// </para>
-    /// Upon a successful handshake, the session's encryption settings (<see cref="TransportOptions.Secret"/>, 
-    /// <see cref="TransportOptions.Algorithm"/>, and <see cref="TransportOptions.EncryptionEnabled"/>) 
-    /// are automatically updated to enable secure communication using ChaCha20Poly1305.
+    /// Upon a successful handshake, the session's encryption settings (<see cref="SessionState.Secret"/>, 
+    /// <see cref="SessionState.EncryptionEnabled"/>, etc.) are permanently updated to enforce AEAD 
+    /// encryption for all subsequent outbound and inbound packets.
     /// </remarks>
     /// <param name="session">The connected transport session to perform the handshake on.</param>
     /// <param name="ct">A cancellation token that can be used to abort the handshake process.</param>
@@ -133,7 +133,7 @@ public static class HandshakeExtensions
         // The server applies encryption immediately after receiving CLIENT_FINISH, 
         // meaning SERVER_FINISH will be ENCRYPTED. 
         // If we don't set the secret/algorithm here, the background reader will fail to decrypt it.
-        session.Options.Secret = sessionKey;
+        session.State.Secret = sessionKey;
         session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
 
         using Handshake clientFinish = new(HandshakeStage.CLIENT_FINISH, Bytes32.Zero, Bytes32.Zero, HandshakeX25519.ComputeClientProof(masterSecret, transcriptHash))
@@ -168,13 +168,13 @@ public static class HandshakeExtensions
             }
 
             // Finalize state
-            session.Options.EncryptionEnabled = true;
-            session.Options.SessionToken = serverFinish.SessionToken;
+            session.State.EncryptionEnabled = true;
+            session.State.SessionToken = serverFinish.SessionToken;
         }
         catch
         {
-            session.Options.Secret = Bytes32.Zero;
-            session.Options.EncryptionEnabled = false;
+            session.State.Secret = Bytes32.Zero;
+            session.State.EncryptionEnabled = false;
             session.Options.Algorithm = CipherSuiteType.Chacha20Poly1305;
             throw;
         }

@@ -55,8 +55,8 @@ public class UdpSession : TransportSession
     /// </summary>
     public ulong SessionToken
     {
-        get => this.Options.SessionToken;
-        set => this.Options.SessionToken = value;
+        get => this.State.SessionToken;
+        set => this.State.SessionToken = value;
     }
 
     /// <inheritdoc/>
@@ -90,15 +90,17 @@ public class UdpSession : TransportSession
 
     /// <summary>Initializes a new instance of the <see cref="UdpSession"/> class.</summary>
     /// <param name="options">The transport options for this session.</param>
-    public UdpSession(TransportOptions options)
+    /// <param name="state">An optional shared runtime state instance.</param>
+    public UdpSession(TransportOptions options, SessionState? state = null) : base(state)
     {
         this.Options = options ?? throw new ArgumentNullException(nameof(options));
 
         // Initialize frame helpers with a factory to get the latest socket instance
-        _sender = new UdpFrameSender(() => _socket!, options, this.HandleError);
+        _sender = new UdpFrameSender(() => _socket!, options, this.State, this.HandleError);
         _reader = new UdpFrameReader(
             () => _socket!,
             options,
+            this.State,
             this.HandleReceiveMessage,
             this.OnMessageAsync,           // pass async handler (can be changed at runtime)
             this.HandleError);

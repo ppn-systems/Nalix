@@ -26,6 +26,16 @@ public abstract class TransportSession : IDisposable
     /// </summary>
     public abstract TransportOptions Options { get; }
 
+    /// <summary>
+    /// Gets the runtime state of the session (e.g. encryption keys, session tokens).
+    /// </summary>
+    public SessionState State { get; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TransportSession"/> class.
+    /// </summary>
+    /// <param name="state">An optional shared state instance. If null, a new instance is created.</param>
+    protected TransportSession(SessionState? state = null) => this.State = state ?? new SessionState();
 
     /// <summary>
     /// Gets a value indicating whether the session is currently connected.

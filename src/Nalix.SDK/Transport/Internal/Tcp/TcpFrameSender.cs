@@ -28,16 +28,22 @@ internal sealed class TcpFrameSender : IDisposable
     private readonly SequenceCounter _sequence;
     private readonly Action<Exception> _onError;
 
+    private readonly SessionState _state;
     private readonly TransportOptions _options;
     private readonly FragmentOptions _fragmentOptions;
 
     private int _disposed;
 
-    public TcpFrameSender(Func<Socket> getSocket, TransportOptions options, Action<Exception> onError)
+    public TcpFrameSender(
+        Func<Socket> getSocket,
+        TransportOptions options,
+        SessionState state,
+        Action<Exception> onError)
     {
         _sendLock = new(1, 1);
         _sequence = new SequenceCounter();
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _state = state ?? throw new ArgumentNullException(nameof(state));
         _fragmentOptions = ConfigurationManager.Instance.Get<FragmentOptions>();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
@@ -55,7 +61,7 @@ internal sealed class TcpFrameSender : IDisposable
         => this.SendAsync(BufferLease.CopyFrom(payload.Span), encrypt, ct);
 
     public Task<bool> SendAsync(IBufferLease lease, bool? encrypt = null, CancellationToken ct = default)
-        => this.SEND_CORE(lease, encrypt ?? _options.EncryptionEnabled, sync: false, ct);
+        => this.SEND_CORE(lease, encrypt ?? _state.EncryptionEnabled, sync: false, ct);
 
     #endregion
 
@@ -66,15 +72,13 @@ internal sealed class TcpFrameSender : IDisposable
         IBufferLease current = lease;
         try
         {
-            uint? seqToUse = encrypt ? _sequence.Next() : null;
-
             FramePipeline.ProcessOutbound(
                 ref current,
                 _options.CompressionEnabled,
                 _options.CompressionThreshold,
                 encrypt,
-                _options.Secret.AsSpan(),
-                seqToUse,
+                _state.Secret.AsSpan(),
+                encrypt ? _sequence.Next() : null,
                 _options.Algorithm);
 
             return current.Length >= _fragmentOptions.MaxChunkSize
@@ -132,8 +136,6 @@ internal sealed class TcpFrameSender : IDisposable
         int chunkSize = _fragmentOptions.MaxChunkSize;
         int totalChunks = (payload.Length + chunkSize - 1) / chunkSize;
 
-        byte[] headerBytes = new byte[FragmentHeader.WireSize];
-
         for (int i = 0; i < totalChunks; i++)
         {
             int offset = i * chunkSize;
@@ -141,7 +143,6 @@ internal sealed class TcpFrameSender : IDisposable
             bool isLast = i == totalChunks - 1;
 
             FragmentHeader fragHeader = new(streamId, (ushort)i, (ushort)totalChunks, isLast);
-            fragHeader.WriteTo(headerBytes);
 
             int frameLen = HeaderSize + FragmentHeader.WireSize + chunkLen;
 
@@ -149,7 +150,7 @@ internal sealed class TcpFrameSender : IDisposable
             try
             {
                 BinaryPrimitives.WriteUInt16LittleEndian(frame, (ushort)frameLen);
-                headerBytes.CopyTo(frame.AsSpan(HeaderSize));
+                fragHeader.WriteTo(frame.AsSpan(HeaderSize));
                 payload.Span.Slice(offset, chunkLen).CopyTo(frame.AsSpan(HeaderSize + FragmentHeader.WireSize));
 
                 bool sent = sync

@@ -30,6 +30,7 @@ public static class CipherExtensions
     /// <returns>A task representing the async operation.</returns>
     /// <exception cref="ArgumentNullException">Thrown if <paramref name="session"/> is null.</exception>
     /// <exception cref="NetworkException">Thrown if the session is not connected.</exception>
+    [Obsolete]
     public static async ValueTask UpdateCipherAsync(
         this TransportSession session,
         CipherSuiteType cipherSuite,

@@ -5,7 +5,7 @@
 
 		<Nullable>enable</Nullable>
 		<IsPackable>true</IsPackable>
-		<IsTrimmable>false</IsTrimmable>
+		<IsTrimmable>true</IsTrimmable>
 		<OutputType>Library</OutputType>
 
 		<!-- NativeAOT: export UnmanagedCallersOnly symbols as a real DLL/.so/.dylib -->

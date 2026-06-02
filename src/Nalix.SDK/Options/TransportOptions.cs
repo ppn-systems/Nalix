@@ -4,7 +4,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration.Binding;
 
@@ -162,22 +161,4 @@ public sealed partial class TransportOptions : ConfigurationLoader
     /// </summary>
     [IniComment("Current time offset in milliseconds applied by the time synchronization process")]
     public double TimeOffsetMs { get; set; }
-
-    /// <summary>
-    /// Gets the encryption key used for secure communication.
-    /// </summary>
-    [ConfiguredIgnore]
-    public Bytes32 Secret { get; set; }
-
-    /// <summary>
-    /// Gets the unique session token assigned by the server for UDP communication.
-    /// </summary>
-    [ConfiguredIgnore]
-    public ulong SessionToken { get; set; } = 0;
-
-    /// <summary>
-    /// When true, AEAD encryption is applied to all outbound packets.
-    /// </summary>
-    [ConfiguredIgnore]
-    public bool EncryptionEnabled { get; set; } = false;
 }

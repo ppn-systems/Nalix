@@ -29,7 +29,7 @@ namespace Nalix.SDK.Transport.Extensions;
 /// </para>
 /// </remarks>
 [SkipLocalsInit]
-public static class TcpSessionSubscriptions
+public static class TransportSessionSubscriptions
 {
     // ── On<TPacket> ──────────────────────────────────────────────────────────
 
@@ -88,7 +88,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On<{0}> failed: {1}", typeof(TPacket).Name, ex);
+                Trace.TraceError("Nalix.SDK.TransportSessionSubscriptions.On<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
         }
 
@@ -121,7 +121,7 @@ public static class TcpSessionSubscriptions
                     if (p is not TPacket t)
                     {
                         Trace.TraceError(
-                            "Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> received unexpected packet {1}.",
+                            "Nalix.SDK.TransportSessionSubscriptions.OnExact<{0}> received unexpected packet {1}.",
                             typeof(TPacket).Name,
                             p?.GetType().Name ?? "null");
                         return;
@@ -139,7 +139,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnExact<{0}> failed: {1}", typeof(TPacket).Name, ex);
+                Trace.TraceError("Nalix.SDK.TransportSessionSubscriptions.OnExact<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
         }
 
@@ -176,7 +176,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.On(predicate) failed: {0}", ex);
+                Trace.TraceError("Nalix.SDK.TransportSessionSubscriptions.On(predicate) failed: {0}", ex);
             }
         }
 
@@ -196,6 +196,7 @@ public static class TcpSessionSubscriptions
     /// <param name="handler">The callback invoked for the first matching packet.</param>
     /// <param name="disposeAfter">Whether to dispose the packet after the handler returns (default: true).</param>
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
+    [Obsolete("Callback-based one-shot subscriptions are deprecated and will be removed in a future version. Use async/await Request-Response APIs instead.")]
     public static IDisposable OnOnce<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> handler, bool disposeAfter = true)
         where TPacket : class, IPacket
     {
@@ -251,7 +252,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
             {
-                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.OnOnce<{0}> failed: {1}", typeof(TPacket).Name, ex);
+                Trace.TraceError("Nalix.SDK.TransportSessionSubscriptions.OnOnce<{0}> failed: {1}", typeof(TPacket).Name, ex);
             }
         }
 
@@ -284,6 +285,7 @@ public static class TcpSessionSubscriptions
     /// </code>
     /// </example>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Obsolete("Callback-based temporary subscriptions are deprecated. Use async/await Request-Response APIs instead.")]
     public static IDisposable SubscribeTemp<TPacket>(this TransportSession client, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket
     {
@@ -305,7 +307,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception callbackEx) when (ExceptionClassifier.IsNonFatal(callbackEx))
             {
-                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
+                Trace.TraceError("Nalix.SDK.TransportSessionSubscriptions.SubscribeTemp<{0}> disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
             }
         }
 
@@ -324,6 +326,7 @@ public static class TcpSessionSubscriptions
     /// <param name="onDisconnected">Optional handler invoked when the session disconnects while the subscription is active.</param>
     /// <returns>An <see cref="IDisposable"/> that unsubscribes when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [Obsolete("Callback-based temporary subscriptions are deprecated. Use async/await Request-Response APIs instead.")]
     public static IDisposable SubscribeTemp<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
         where TPacket : class, IPacket
     {
@@ -352,7 +355,7 @@ public static class TcpSessionSubscriptions
             }
             catch (Exception callbackEx) when (ExceptionClassifier.IsNonFatal(callbackEx))
             {
-                Trace.TraceError("Nalix.SDK.TcpSessionSubscriptions.SubscribeTemp<{0}> predicate disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
+                Trace.TraceError("Nalix.SDK.TransportSessionSubscriptions.SubscribeTemp<{0}> predicate disconnect handler failed: {1}", typeof(TPacket).Name, callbackEx);
             }
         }
 

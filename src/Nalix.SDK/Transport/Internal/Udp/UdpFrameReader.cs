@@ -21,6 +21,7 @@ namespace Nalix.SDK.Transport.Internal.Udp;
 /// </summary>
 internal sealed class UdpFrameReader : IDisposable
 {
+    private readonly SessionState _state;
     private readonly Func<Socket> _getSocket;
     private readonly SequenceCounter _sequence;
     private readonly TransportOptions _options;
@@ -35,12 +36,14 @@ internal sealed class UdpFrameReader : IDisposable
     /// </summary>
     /// <param name="getSocket">Delegate to get current socket.</param>
     /// <param name="options">Transport options.</param>
+    /// <param name="state">Session state.</param>
     /// <param name="onMessageReceived">Sync callback for <see cref="UdpSession.OnMessageReceived"/>.</param>
     /// <param name="onMessageAsync">Async callback for <see cref="UdpSession.OnMessageAsync"/>.</param>
     /// <param name="onError">Error callback.</param>
     public UdpFrameReader(
         Func<Socket> getSocket,
         TransportOptions options,
+        SessionState state,
         Action<IBufferLease> onMessageReceived,
         Func<ReadOnlyMemory<byte>, Task>? onMessageAsync,
         Action<Exception> onError)
@@ -48,6 +51,7 @@ internal sealed class UdpFrameReader : IDisposable
         _sequence = new SequenceCounter();
         _getSocket = getSocket ?? throw new ArgumentNullException(nameof(getSocket));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _state = state ?? throw new ArgumentNullException(nameof(state));
         _onMessageReceived = onMessageReceived ?? throw new ArgumentNullException(nameof(onMessageReceived));
         _onMessageAsync = onMessageAsync;
         _onError = onError ?? throw new ArgumentNullException(nameof(onError));
@@ -83,8 +87,11 @@ internal sealed class UdpFrameReader : IDisposable
                         continue;
                     }
 
-                    await this.ProcessDatagramAsync(rawBuffer, received, cancellationToken)
-                        .ConfigureAwait(false);
+                    IBufferLease lease = BufferLease.TakeOwnership(rawBuffer, 0, received);
+                    rawBuffer = null;
+
+                    await this.ProcessDatagramAsync(lease, cancellationToken)
+                              .ConfigureAwait(false);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -114,15 +121,26 @@ internal sealed class UdpFrameReader : IDisposable
         }
     }
 
-    private async Task ProcessDatagramAsync(byte[] rawBuffer, int received, CancellationToken ct)
+    private async Task ProcessDatagramAsync(IBufferLease datagram, CancellationToken ct)
     {
-        IBufferLease datagram = BufferLease.TakeOwnership(rawBuffer, 0, received);
         IBufferLease original = datagram;
 
         try
         {
-            // Inbound pipeline: Decrypt -> Decompress
-            FramePipeline.ProcessInbound(ref datagram, _options.Secret.AsSpan(), _options.Algorithm, out uint? seq);
+            ulong token = System.Buffers.Binary.BinaryPrimitives.ReadUInt64LittleEndian(datagram.Span[..Abstractions.Identity.ISnowflake.Size]);
+            if (token != _state.SessionToken)
+            {
+                // Drop datagram quietly
+                return;
+            }
+
+            // Shift data left to remove token
+            int payloadLength = datagram.Length - Abstractions.Identity.ISnowflake.Size;
+            datagram.Span[Abstractions.Identity.ISnowflake.Size..].CopyTo(datagram.SpanFull);
+            datagram.CommitLength(payloadLength);
+
+            // 2) Decompress / Decrypt
+            FramePipeline.ProcessInbound(ref datagram, _state.Secret.AsSpan(), _options.Algorithm, out uint? seq);
 
             if (!_sequence.IsValid(seq, window: 64))
             {
