@@ -74,7 +74,7 @@ public static class TimeSyncExtensions
         ushort seq = unchecked((ushort)Interlocked.Increment(ref s_syncSequence));
 
         TimeSync req = session
-            .NewTimeSync((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCREQUEST)
+            .NewTimeSync((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.TIMESYNCREQUEST)
             .WithSeq(seq)
             .Build();
 

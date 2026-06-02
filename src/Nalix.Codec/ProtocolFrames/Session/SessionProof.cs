@@ -12,54 +12,53 @@ using Nalix.Codec.DataFrames;
 namespace Nalix.Codec.ProtocolFrames;
 
 /// <summary>
-/// Represents a one-way packet sent from the Server to the Client containing the Server's static public key.
+/// Represents the client's confirmation of the derived transcript and proof of possession.
 /// </summary>
 [Packet]
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-[DebuggerDisplay("PUBLIC_KEY_EXCHANGE")]
-public sealed partial class PublicKeyExchange : PacketBase<PublicKeyExchange>, IFixedSizeSerializable, IPacketValidatable
+[DebuggerDisplay("SESSION_PROOF")]
+public sealed partial class SessionProof : PacketBase<SessionProof>, IFixedSizeSerializable, IPacketValidatable
 {
     /// <summary>
-    /// Gets or sets the server's public key.
+    /// Gets or sets the client's proof.
     /// </summary>
     [SerializeOrder(0)]
-    public Bytes32 PublicKey { get; set; }
+    public Bytes32 Proof { get; set; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PublicKeyExchange"/> packet.
+    /// Initializes a new instance of <see cref="SessionProof"/>.
     /// </summary>
-    public PublicKeyExchange() => this.ResetForPool();
+    public SessionProof() => this.ResetForPool();
 
     /// <summary>
-    /// Initializes the packet with the specified public key.
+    /// Initializes the packet with the specified proof.
     /// </summary>
-    public void Initialize(Bytes32 publicKey)
+    public void Initialize(Bytes32 proof, PacketFlags flags = PacketFlags.SYSTEM)
     {
-        this.OpCode = (ushort)ProtocolOpCode.KEY_EXCHANGE;
+        this.OpCode = (ushort)ProtocolOpCode.SESSION_PROOF;
         this.Priority = PacketPriority.URGENT;
-        this.Flags = PacketFlags.SYSTEM;
-        this.PublicKey = publicKey;
+        this.Flags = flags;
+        this.Proof = proof;
     }
 
     /// <inheritdoc/>
     public override void ResetForPool()
     {
         base.ResetForPool();
-
-        this.PublicKey = Bytes32.Zero;
+        this.Proof = Bytes32.Zero;
         this.Priority = PacketPriority.URGENT;
-        this.OpCode = (ushort)ProtocolOpCode.KEY_EXCHANGE;
+        this.OpCode = (ushort)ProtocolOpCode.SESSION_PROOF;
         this.Flags = PacketFlags.SYSTEM;
     }
 
     /// <inheritdoc/>
     public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
-        if (this.PublicKey.IsZero)
+        if (this.Proof.IsZero)
         {
-            failureReason = "Public key cannot be zero.";
+            failureReason = "Proof cannot be zero.";
             return false;
         }
 

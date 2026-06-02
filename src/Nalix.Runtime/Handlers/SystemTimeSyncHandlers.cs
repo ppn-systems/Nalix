@@ -29,7 +29,7 @@ public sealed class SystemTimeSyncHandlers
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.SYSTEM_CONTROL)]
+    [PacketOpcode((ushort)ProtocolOpCode.SYSTEM_TIMESYNC)]
     public static async ValueTask HandleAsync(IPacketContext<TimeSync> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -57,7 +57,7 @@ public sealed class SystemTimeSyncHandlers
 
         TimeSync pong = lease.Value;
         pong.Initialize(
-            (ushort)ProtocolOpCode.SYSTEM_CONTROL,
+            (ushort)ProtocolOpCode.SYSTEM_TIMESYNC,
             ControlType.PONG,
             ping.SequenceId,
             ping.Flags);
@@ -73,7 +73,7 @@ public sealed class SystemTimeSyncHandlers
         using PacketScope<TimeSync> lease = PacketFactory<TimeSync>.Acquire();
         
         TimeSync res = lease.Value;
-        res.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags);
+        res.Initialize((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags);
 
         res.Timestamp = Clock.UnixMillisecondsNow(); // t3
         res.MonoTicks = req.MonoTicks;               // echo t1'

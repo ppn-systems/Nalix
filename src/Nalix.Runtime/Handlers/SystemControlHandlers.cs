@@ -197,8 +197,8 @@ public sealed class SystemControlHandlers
             return;
         }
 
-        using PacketScope<PublicKeyExchange> lease = PacketFactory<PublicKeyExchange>.Acquire();
-        PublicKeyExchange reply = lease.Value;
+        using PacketScope<SessionTofu> lease = PacketFactory<SessionTofu>.Acquire();
+        SessionTofu reply = lease.Value;
         reply.Initialize(HandshakeHandlers.ServerPublicKey);
         
         // Preserve reliability flag from the request

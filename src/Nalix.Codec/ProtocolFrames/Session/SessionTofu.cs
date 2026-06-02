@@ -1,0 +1,69 @@
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Licensed under the Apache License, Version 2.0.
+
+using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
+using Nalix.Abstractions.Serialization;
+using Nalix.Codec.DataFrames;
+
+namespace Nalix.Codec.ProtocolFrames;
+
+/// <summary>
+/// Represents a session TOFU (Trust On First Use) packet, returning the server's identity.
+/// </summary>
+[Packet]
+[GenerateFormatter]
+[ExcludeFromCodeCoverage]
+[SerializePackable(SerializeLayout.Explicit)]
+[DebuggerDisplay("SESSION_TOFU")]
+public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSerializable, IPacketValidatable
+{
+    /// <summary>
+    /// Gets or sets the public key of the server.
+    /// </summary>
+    [SerializeOrder(0)]
+    public Bytes32 PublicKey { get; set; }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="SessionTofu"/> packet.
+    /// </summary>
+    public SessionTofu() => this.ResetForPool();
+
+    /// <summary>
+    /// Initializes the packet with a public key.
+    /// </summary>
+    /// <param name="publicKey">The public key to send.</param>
+    public void Initialize(Bytes32 publicKey)
+    {
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+        this.PublicKey = publicKey;
+        this.Priority = PacketPriority.HIGH;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+    }
+
+    /// <inheritdoc/>
+    public override void ResetForPool()
+    {
+        base.ResetForPool();
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+        this.PublicKey = Bytes32.Zero;
+        this.Priority = PacketPriority.HIGH;
+        this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
+    }
+
+    /// <inheritdoc/>
+    public bool Validate([NotNullWhen(false)] out string? reason)
+    {
+        if (this.PublicKey.IsZero)
+        {
+            reason = "PublicKey cannot be zero.";
+            return false;
+        }
+
+        reason = null;
+        return true;
+    }
+}
