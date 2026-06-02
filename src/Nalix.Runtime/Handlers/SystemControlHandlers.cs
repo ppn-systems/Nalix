@@ -63,6 +63,9 @@ public sealed class SystemControlHandlers
             case ControlType.NOTICE:
                 HandleNotice(context.Connection, packet);
                 break;
+            case ControlType.PUBLIC_KEY_REQUEST:
+                await HandlePublicKeyRequest(context, packet).ConfigureAwait(false);
+                break;
             // Server generally does not need to send back automatic replies for these
             case ControlType.PONG:              // PONG received if Server pings Client
             case ControlType.CIPHER_UPDATE_ACK: // Client ACK (if Server inititated)
@@ -181,6 +184,27 @@ public sealed class SystemControlHandlers
         {
             s_logger.LogDebug("[RT.SystemControl] notice ep={Endpoint} reason={Reason}", connection.NetworkEndpoint, packet.Reason);
         }
+    }
+
+    private static async ValueTask HandlePublicKeyRequest(IPacketContext<Control> context, Control packet)
+    {
+        IConnection connection = context.Connection;
+
+        // Key exchange must happen BEFORE handshake.
+        if (connection.Attributes.ContainsKey(ConnectionAttributes.HandshakeEstablished))
+        {
+            connection.Disconnect("Key exchange requested after handshake was established (State Violation).");
+            return;
+        }
+
+        using PacketScope<PublicKeyExchange> lease = PacketFactory<PublicKeyExchange>.Acquire();
+        PublicKeyExchange reply = lease.Value;
+        reply.Initialize(HandshakeHandlers.ServerPublicKey);
+        
+        // Preserve reliability flag from the request
+        reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
+
+        await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }
 
     #endregion Private Methods

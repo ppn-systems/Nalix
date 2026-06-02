@@ -41,7 +41,6 @@ public static class NetworkApplicationBuilderExtensions
         }
 
         _ = builder.AddHandler<HandshakeHandlers>();
-        _ = builder.AddHandler<KeyExchangeHandlers>();
 
         // Resolve certificate path: explicit parameter wins,
         // then ConfigureCertificate() state, then default.

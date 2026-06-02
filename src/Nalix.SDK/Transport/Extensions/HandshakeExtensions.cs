@@ -5,6 +5,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Exceptions;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.ProtocolFrames;
@@ -83,18 +84,18 @@ public static class HandshakeExtensions
 
         if (string.IsNullOrEmpty(session.Options.ServerPublicKey))
         {
-            using KeyExchange keyRequest = new();
-            keyRequest.Initialize(KeyExchangeStage.REQUEST);
+            // Send lightweight control signal instead of full 32-byte empty KeyExchange packet
+            using Control keyRequest = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PUBLIC_KEY_REQUEST).Build();
 
-            using KeyExchange keyResponse = await session.RequestAsync<KeyExchange>(
+            using PublicKeyExchange keyResponse = await session.RequestAsync<PublicKeyExchange>(
                 keyRequest,
                 options: RequestOptions.Default.WithTimeout(5000),
-                predicate: p => p.Stage == KeyExchangeStage.RESPONSE,
+                predicate: p => !p.PublicKey.IsZero,
                 ct: ct).ConfigureAwait(false);
 
             if (!keyResponse.Validate(out string? keyReason))
             {
-                throw new NetworkException($"Malformed KeyExchange response: {keyReason}");
+                throw new NetworkException($"Malformed PublicKeyExchange response: {keyReason}");
             }
 
             string fetchedKeyHex = keyResponse.PublicKey.ToString();
