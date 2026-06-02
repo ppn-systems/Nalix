@@ -23,6 +23,7 @@ using Nalix.Codec.Security.Primitives;
 using Nalix.Environment.IO;
 using Nalix.Environment.Random;
 using Nalix.Framework.Injection;
+using Nalix.Framework.Memory.Objects;
 using Nalix.Runtime.Security;
 
 namespace Nalix.Runtime.Handlers;
@@ -104,20 +105,10 @@ public sealed class HandshakeHandlers
             serverKey.PublicKey,
             serverNonce);
 
-#pragma warning disable CA2000 // Dispose objects before losing scope
-#pragma warning disable NALIX037 // Potential allocation in hot path
-        HandshakeContext state = new()
-        {
-            ClientPublicKey = packet.PublicKey,
-            ClientNonce = packet.Nonce,
-            SharedSecret = masterSecret,
-            ServerNonce = serverNonce,
-            ServerPublicKey = serverKey.PublicKey,
-            TranscriptHash = transcriptHash,
-            SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash)
-        };
-#pragma warning restore NALIX037 // Potential allocation in hot path
-#pragma warning restore CA2000 // Dispose objects before losing scope
+        HandshakeContext state = s_pool.Get<HandshakeContext>();
+        state.SharedSecret = masterSecret;
+        state.TranscriptHash = transcriptHash;
+        state.SessionKey = HandshakeX25519.DeriveSessionKey(masterSecret, packet.Nonce, serverNonce, transcriptHash);
 
         if (!TryPublishHandshakeState(connection, claimToken, state))
         {
@@ -170,9 +161,9 @@ public sealed class HandshakeHandlers
         Bytes32 expectedFinish = HandshakeX25519.ComputeServerFinishProof(state.SharedSecret, state.TranscriptHash);
 
         connection.Attributes[ConnectionAttributes.HandshakeEstablished] = true;
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is IDisposable disposable)
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
         {
-            disposable.Dispose();
+            s_pool.Return(contextState);
         }
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
@@ -209,7 +200,7 @@ public sealed class HandshakeHandlers
                 return;
             }
 
-            LOAD_CERTIFICATE(Path.Combine(Directories.ConfigurationDirectory, "certificate.private"));
+            LoadCertificate(Path.Combine(Directories.ConfigurationDirectory, "certificate.private"));
             Volatile.Write(ref s_isInitialized, 1);
         }
     }
@@ -223,8 +214,23 @@ public sealed class HandshakeHandlers
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         lock (s_initLock)
         {
-            LOAD_CERTIFICATE(path);
+            LoadCertificate(path);
             Volatile.Write(ref s_isInitialized, 1);
+        }
+    }
+
+    /// <summary>
+    /// Configures the internal object pool limits for handshake contexts.
+    /// </summary>
+    /// <param name="maxCapacity">The maximum number of contexts to retain in the pool.</param>
+    /// <param name="preallocCount">The number of contexts to preallocate immediately.</param>
+    public static void ConfigureContextPool(int maxCapacity, int preallocCount = 0)
+    {
+        _ = s_pool.SetMaxCapacity<HandshakeContext>(maxCapacity);
+
+        if (preallocCount > 0)
+        {
+            _ = s_pool.Prealloc<HandshakeContext>(preallocCount);
         }
     }
 
@@ -242,6 +248,7 @@ public sealed class HandshakeHandlers
     /// </summary>
     public static Bytes32 ServerPublicKey => s_serverPublicKey;
 
+    private static readonly ObjectPoolManager s_pool = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>();
     private static readonly ISessionService? s_sessionService = InstanceManager.Instance.GetExistingInstance<ISessionService>();
 
     #endregion Fields
@@ -250,20 +257,17 @@ public sealed class HandshakeHandlers
 
     #region Nested Types
 
-    private sealed class HandshakeContext : IDisposable
+    private sealed class HandshakeContext : IPoolable
     {
-        public Bytes32 ClientPublicKey { get; init; }
-        public Bytes32 ClientNonce { get; init; }
-        public Bytes32 ServerPublicKey { get; init; }
-        public Bytes32 ServerNonce { get; init; }
-        public Bytes32 SharedSecret;
-        public Bytes32 TranscriptHash { get; init; }
         public Bytes32 SessionKey;
+        public Bytes32 SharedSecret;
+        public Bytes32 TranscriptHash;
 
-        public void Dispose()
+        public void ResetForPool()
         {
             MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref SessionKey, 1)));
             MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref SharedSecret, 1)));
+            MemorySecurity.ZeroMemory(MemoryMarshal.AsBytes(MemoryMarshal.CreateSpan(ref TranscriptHash, 1)));
         }
     }
 
@@ -273,7 +277,7 @@ public sealed class HandshakeHandlers
         InstanceManager.Instance.GetExistingInstance<ICertificateStore>() ??
         InstanceManager.Instance.GetOrCreateInstance<FileCertificateStore>();
 
-    private static void LOAD_CERTIFICATE(string certPath)
+    private static void LoadCertificate(string certPath)
     {
         ICertificateStore store = GetCertificateStore();
         try
@@ -289,10 +293,11 @@ public sealed class HandshakeHandlers
 
     private static async ValueTask RejectHandshakeAsync(IConnection connection, IPacketSender sender, ProtocolReason reason)
     {
-        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is IDisposable disposable)
+        if (connection.Attributes.TryGetValue(ConnectionAttributes.HandshakeState, out object? removedState) && removedState is HandshakeContext contextState)
         {
-            disposable.Dispose();
+            s_pool.Return(contextState);
         }
+
         _ = connection.Attributes.Remove(ConnectionAttributes.HandshakeState);
 
         try
