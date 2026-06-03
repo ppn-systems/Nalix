@@ -1,19 +1,20 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Nalix.Runtime.Middleware.Standard;
 
@@ -49,7 +50,7 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         // SEC-37: Fail-closed by default. If no permission attribute is defined on the handler,
         // deny the request to prevent accidental privilege escalation from missing annotations.
         if (context.Attributes.Permission is not null &&
-            context.Attributes.Permission.Level <= context.Connection.Level)
+            IsAuthorized(context.Connection.Level, context.Attributes.Permission))
         {
             await next(context.CancellationToken).ConfigureAwait(false);
             return;
@@ -88,5 +89,15 @@ public class PermissionMiddleware : IPacketMiddleware<IPacket>
         {
             context.Connection.ThrottledError(_logger, s_keySendError, "[RT.PermissionMiddleware] send-error-failed", ex);
         }
+    }
+
+    private static bool IsAuthorized(PermissionLevel actorLevel, PacketPermissionAttribute policy)
+    {
+        return policy.Evaluation switch
+        {
+            PermissionEvaluation.StrictMatch => actorLevel == policy.Level,
+            PermissionEvaluation.MinimumLevel => actorLevel >= policy.Level,
+            _ => false
+        };
     }
 }

@@ -94,7 +94,7 @@ public sealed class PassthroughConnection :
         _endPointKey = remoteEndPoint;
         _lastPingTime = _createdAtMs = Clock.UnixMillisecondsNow();
 
-        this.ExcludeFromIdleTimeout = true;
+        this.ExcludeFromIdleTimeout = false;
         this.PacketClassifier = packetClassifier;
         this.ID = Snowflake.NewId(SnowflakeType.Session);
         this.NetworkEndpoint = SocketEndpoint.FromEndPoint(remoteEndPoint as IPEndPoint);
