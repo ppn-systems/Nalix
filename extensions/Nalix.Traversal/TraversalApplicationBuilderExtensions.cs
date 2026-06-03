@@ -2,9 +2,11 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using Nalix.Environment.Configuration;
+using Nalix.Framework.Injection;
 using Nalix.Hosting;
-using Nalix.Network.Options;
 using Nalix.Traversal.Handlers;
+using Nalix.Traversal.Options;
 using Nalix.Traversal.Reflector;
 
 namespace Nalix.Traversal;
@@ -24,6 +26,10 @@ public static class TraversalApplicationBuilderExtensions
     {
         ArgumentNullException.ThrowIfNull(builder);
 
+        // Initialize Reflector manager
+        ReflectorManager manager = new();
+        InstanceManager.Instance.Register(manager);
+
         // Register the Traversal handlers into the Dispatch Options
         _ = builder.ConfigureDispatchOptions(options =>
         {
@@ -31,20 +37,12 @@ public static class TraversalApplicationBuilderExtensions
             _ = options.WithHandler<ReflectorInitHandler>();
         });
 
-        // Initialize Reflector manager
-        ReflectorManager manager = new();
-        Framework.Injection.InstanceManager.Instance.Register(manager);
-
-        // We use NetworkSocketOptions to determine the port (Main Port + 1)
-        NetworkSocketOptions netOptions = Environment.Configuration.ConfigurationManager.Instance.Get<Nalix.Network.Options.NetworkSocketOptions>();
-        ushort ReflectorPort = (ushort)(netOptions.Port + 1);
-
         // Bind UdpPassthroughListener for Reflector using the native builder API
         _ = builder.BindUdp<Nalix.Traversal.Reflector.ReflectorProtocol>()
-            .WithMode(Abstractions.Networking.OperatingMode.Passthrough)
-            .WithFactory(_ => new Nalix.Traversal.Reflector.ReflectorProtocol(manager))
-            .OnPort(ReflectorPort)
-            .Bind();
+                   .WithMode(Abstractions.Networking.OperatingMode.Passthrough)
+                   .WithFactory(_ => new Nalix.Traversal.Reflector.ReflectorProtocol(manager))
+                   .OnPort(ConfigurationManager.Instance.Get<ReflectorOptions>().Port)
+                   .Bind();
 
         return builder;
     }

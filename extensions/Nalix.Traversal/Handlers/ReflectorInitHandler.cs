@@ -3,7 +3,7 @@
 
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking.Packets;
-using Nalix.Framework.Injection;
+using Nalix.Codec.Pooling;
 using Nalix.Traversal.Packets;
 using Nalix.Traversal.Protocols;
 using Nalix.Traversal.Reflector;
@@ -18,7 +18,7 @@ public sealed class ReflectorInitHandler
 {
     private readonly ReflectorManager _manager;
 
-    public ReflectorInitHandler() => _manager = InstanceManager.Instance.GetExistingInstance<ReflectorManager>();
+    public ReflectorInitHandler(ReflectorManager reflectorManager) => _manager = reflectorManager;
 
     /// <summary>
     /// Handles the Reflector request.
@@ -35,8 +35,10 @@ public sealed class ReflectorInitHandler
         ulong token = _manager.CreateSession(peerAId, peerBId, context.Connection);
 
         // 3. Send Response
-        using Nalix.Codec.Pooling.PacketScope<ReflectorAllocated> scope = Codec.Pooling.PacketFactory<ReflectorAllocated>.Acquire();
+        using PacketScope<ReflectorAllocated> scope = PacketFactory<ReflectorAllocated>.Acquire();
+
         ReflectorAllocated response = scope.Value;
+
         response.ReflectorToken = token;
         response.Success = true;
 

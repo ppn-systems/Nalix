@@ -3,13 +3,10 @@
 
 using System;
 using System.Threading.Tasks;
-using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
-using Nalix.Codec.Transforms;
-using Nalix.Environment.Memory;
 using Nalix.Runtime.Extensions;
 using Nalix.Traversal.Packets;
 using Nalix.Traversal.Protocols;
@@ -58,7 +55,7 @@ public sealed class PeerSignalHandler
             forwardedPacket.AddressHigh = context.Packet.AddressHigh;
             forwardedPacket.AddressLow = context.Packet.AddressLow;
 
-            await ForwardPacketAsync(targetConnection, forwardedPacket, context.CancellationToken).ConfigureAwait(false);
+            await targetConnection.SendAsync(forwardedPacket, NetworkTransport.TCP, enableEncrypt: true, context.CancellationToken).ConfigureAwait(false);
         }
         else
         {
@@ -72,43 +69,4 @@ public sealed class PeerSignalHandler
         }
     }
 
-    private static async ValueTask ForwardPacketAsync(IConnection targetConnection, PeerSignal packet, System.Threading.CancellationToken ct)
-    {
-        int packetLength = packet.Length;
-        BufferLease rawLease = BufferLease.Rent(packetLength);
-
-        try
-        {
-            int written = packet.Serialize(rawLease.SpanFull);
-            rawLease.CommitLength(written);
-            IBufferLease current = rawLease;
-            uint sequence = targetConnection.TCP.SendSequence.Next();
-
-            // Apply encryption (no compression for signaling)
-            FramePipeline.ProcessOutbound(
-                ref current,
-                enableCompress: false,
-                minSizeToCompress: 0,
-                enableEncrypt: true,
-                targetConnection.Secret.AsSpan(),
-                sequence,
-                targetConnection.Algorithm);
-
-            try
-            {
-                await targetConnection.TCP.SendAsync(current.Memory, ct).ConfigureAwait(false);
-            }
-            finally
-            {
-                if (current != rawLease)
-                {
-                    current.Dispose();
-                }
-            }
-        }
-        finally
-        {
-            rawLease.Dispose();
-        }
-    }
 }

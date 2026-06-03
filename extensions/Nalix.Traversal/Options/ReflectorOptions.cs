@@ -13,6 +13,13 @@ namespace Nalix.Traversal.Options;
 public sealed class ReflectorOptions : ConfigurationLoader
 {
     /// <summary>
+    /// Gets or sets the UDP port used by the Reflector service.
+    /// Default is 28001.
+    /// </summary>
+    [IniComment("UDP Port for the Reflector service (default: 28001)")]
+    public ushort Port { get; set; } = 28001;
+
+    /// <summary>
     /// Gets or sets the maximum burst bandwidth for a single Reflector session (in bytes).
     /// Default is 512,000 bytes (~500 KB).
     /// </summary>
