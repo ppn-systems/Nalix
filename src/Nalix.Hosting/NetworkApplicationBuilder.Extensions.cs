@@ -84,8 +84,7 @@ public static class NetworkApplicationBuilderExtensions
     }
 
     /// <summary>
-    /// Enables system-level control packet handling (PING, PONG,
-    /// DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
+    /// Enables system-level control packet handling (DISCONNECT, CIPHER_UPDATE, TIME_SYNC, etc.).
     /// </summary>
     /// <param name="builder">The application builder.</param>
     /// <returns>The current builder instance.</returns>
@@ -94,6 +93,20 @@ public static class NetworkApplicationBuilderExtensions
         ArgumentNullException.ThrowIfNull(builder);
 
         _ = builder.AddHandler<SystemControlHandlers>();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Enables time synchronization packet handling, allowing clients to synchronize
+    /// </summary>
+    /// <param name="builder">The application builder.</param>
+    /// <returns>The current builder instance.</returns>
+    public static INetworkApplicationBuilder UseTimeSync(this INetworkApplicationBuilder builder)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+
+        _ = builder.AddHandler<SystemTimeSyncHandlers>();
 
         return builder;
     }
