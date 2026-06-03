@@ -35,7 +35,27 @@ public static class FramePipeline
         IBufferLease original = current;
         PacketFlags flags = current.Span.AsHeaderRef().Flags;
 
-        if ((flags & PacketFlags.ENCRYPTED) != 0)
+        bool isEncrypted = (flags & PacketFlags.ENCRYPTED) != 0;
+        bool isCompressed = (flags & PacketFlags.COMPRESSED) != 0;
+
+        if (isEncrypted && isCompressed)
+        {
+            if (algorithm == CipherSuiteType.None)
+            {
+                Throw.EncryptedButNoCipher();
+            }
+
+            if (secret.IsEmpty)
+            {
+                Throw.EncryptedButNoKey();
+            }
+
+            ProcessInboundFused(ref current, secret, algorithm, out uint _seq);
+            seq = _seq;
+            return;
+        }
+
+        if (isEncrypted)
         {
             if (algorithm == CipherSuiteType.None)
             {
@@ -72,6 +92,61 @@ public static class FramePipeline
             {
                 prev.Dispose();
             }
+        }
+    }
+
+    private static void ProcessInboundFused(
+        [Borrowed] ref IBufferLease current,
+        ReadOnlySpan<byte> secret, CipherSuiteType algorithm, out uint seq)
+    {
+        ReadOnlySpan<byte> srcSpan = current.Span;
+        int decryptedSize = FrameTransformer.GetPlaintextLength(srcSpan);
+
+        byte[] tempArr = BufferLease.ByteArrayPool.Rent(decryptedSize);
+        try
+        {
+            Span<byte> tempRegion = tempArr.AsSpan(0, decryptedSize);
+
+            // 1. Decrypt directly into tempRegion
+            EnvelopeCipher.Decrypt(secret, srcSpan[FrameTransformer.Offset..], tempRegion, null, algorithm, out int decLen, out seq);
+
+            // 2. Read the uncompressed length from the LZ4 block header
+            int decompressedSize = FrameTransformer.GetDecompressedLength(tempRegion[..decLen]);
+
+            // 3. Rent final lease for the fully decompressed packet
+            BufferLease finalLease = BufferLease.Rent(FrameTransformer.Offset + decompressedSize);
+            try
+            {
+                Span<byte> destFull = finalLease.SpanFull;
+
+                // 4. Decompress from tempRegion into the final lease's payload section
+                int finalLen = LZ4.LZ4Codec.Decode(tempRegion[..decLen], destFull[FrameTransformer.Offset..]);
+
+                // 5. Copy the header once
+                srcSpan[..FrameTransformer.Offset].CopyTo(destFull[..FrameTransformer.Offset]);
+
+                // 6. Clear both ENCRYPTED and COMPRESSED flags from the final header
+                ref PacketHeader header = ref destFull.AsHeaderRef();
+                header.Flags &= ~(PacketFlags.COMPRESSED | PacketFlags.ENCRYPTED);
+
+                // 7. Finalize the lease length
+                finalLease.CommitLength(FrameTransformer.Offset + finalLen);
+
+                // IMPORTANT: Only swap the reference.
+                // DO NOT call current.Dispose() here to preserve the original lease ownership rule.
+                current = finalLease;
+            }
+            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+            {
+                finalLease.Dispose();
+                throw;
+            }
+        }
+        finally
+        {
+            // [SECURITY] Clear intermediate decrypted data (plaintext) from the pool array
+            Array.Clear(tempArr, 0, decryptedSize);
+            BufferLease.ByteArrayPool.Return(tempArr);
         }
     }
 

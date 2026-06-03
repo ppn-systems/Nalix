@@ -44,7 +44,10 @@ namespace Nalix.Network.Connections;
 /// implement their own session/auth layer (e.g., RakNet for Minecraft Bedrock).
 /// </para>
 /// </remarks>
-public sealed class PassthroughConnection : IConnection, TimingWheel.ITimeoutTrackedConnection
+public sealed class PassthroughConnection :
+    IConnection,
+    IConnectionTrafficMetrics,
+    TimingWheel.ITimeoutTrackedConnection
 {
     #region Constants
 
