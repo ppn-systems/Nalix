@@ -5,7 +5,6 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
-using Nalix.Traversal.Protocols;
 
 namespace Nalix.Traversal.Packets;
 
@@ -34,9 +33,9 @@ public sealed partial class NatProbeAck : PacketBase<NatProbeAck>, IFixedSizeSer
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)TraversalOpcode.NatProbeAck;
+
+        this.PeerId = 0;
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.UNRELIABLE;
-        this.PeerId = 0;
     }
 }

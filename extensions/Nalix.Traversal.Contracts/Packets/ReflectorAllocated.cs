@@ -39,7 +39,7 @@ public sealed partial class ReflectorAllocated : PacketBase<ReflectorAllocated>,
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)TraversalOpcode.ReflectorAllocated;
+        this.OpCode = 0x00FD; // Handled by SequenceId on client, no opcode mapping needed
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.RELIABLE;
         this.ReflectorToken = 0;

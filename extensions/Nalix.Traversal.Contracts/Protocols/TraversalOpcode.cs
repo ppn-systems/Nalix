@@ -1,7 +1,9 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+#pragma warning disable IDE0130 // Namespace does not match folder structure
 namespace Nalix.Traversal.Protocols;
+#pragma warning restore IDE0130 // Namespace does not match folder structure
 
 /// <summary>
 /// Defines the Opcodes used by the Nalix.Traversal module.
@@ -16,22 +18,7 @@ public enum TraversalOpcode : ushort
     PeerSignal = 0x00FF,
 
     /// <summary>
-    /// Packet for NAT probing (Phase 2).
-    /// </summary>
-    NatProbe = 0x00FE,
-
-    /// <summary>
-    /// Acknowledgment for NAT probing (Phase 2).
-    /// </summary>
-    NatProbeAck = 0x00FD,
-
-    /// <summary>
     /// Client requests Server to allocate a Reflector Session.
     /// </summary>
-    ReflectorInit = 0x00FC,
-
-    /// <summary>
-    /// Server responds with Reflector Session Token and Endpoint.
-    /// </summary>
-    ReflectorAllocated = 0x00FB,
+    ReflectorInit = 0x00FE,
 }

@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
+using Nalix.Traversal.Protocols;
 
 namespace Nalix.Traversal.Packets;
 
@@ -52,13 +53,14 @@ public sealed partial class PeerSignal : PacketBase<PeerSignal>, IFixedSizeSeria
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)Protocols.TraversalOpcode.PeerSignal;
-        this.Priority = PacketPriority.NONE;
-        this.Flags = PacketFlags.RELIABLE;
-        this.Type = SignalType.Request;
+
         this.Port = 0;
-        this.TargetPeerId = 0;
-        this.AddressHigh = 0;
         this.AddressLow = 0;
+        this.AddressHigh = 0;
+        this.TargetPeerId = 0;
+        this.Type = SignalType.Request;
+        this.Flags = PacketFlags.RELIABLE;
+        this.Priority = PacketPriority.NONE;
+        this.OpCode = (ushort)TraversalOpcode.PeerSignal;
     }
 }

@@ -25,7 +25,7 @@ public sealed class PeerSignalHandler
     /// </summary>
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.USER)]
-    [PacketOpcode((ushort)TraversalOpcode.PeerSignal)]
+    [PacketOpcode(TraversalOpcode.PeerSignal)]
     public static async ValueTask HandleAsync(IPacketContext<PeerSignal> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -49,11 +49,13 @@ public sealed class PeerSignalHandler
             using PacketScope<PeerSignal> lease = PacketFactory<PeerSignal>.Acquire();
             PeerSignal forwardedPacket = lease.Value;
 
-            forwardedPacket.Type = SignalType.CandidateOffer;
             forwardedPacket.TargetPeerId = senderId;
+            forwardedPacket.Type = SignalType.CandidateOffer;
+
+            forwardedPacket.SequenceId = 0;
             forwardedPacket.Port = context.Packet.Port;
-            forwardedPacket.AddressHigh = context.Packet.AddressHigh;
             forwardedPacket.AddressLow = context.Packet.AddressLow;
+            forwardedPacket.AddressHigh = context.Packet.AddressHigh;
 
             await targetConnection.SendAsync(forwardedPacket, NetworkTransport.TCP, enableEncrypt: true, context.CancellationToken).ConfigureAwait(false);
         }
@@ -64,6 +66,7 @@ public sealed class PeerSignalHandler
 
             errorPacket.Type = SignalType.Result;
             errorPacket.TargetPeerId = targetId;
+            errorPacket.SequenceId = context.Packet.SequenceId;
 
             await context.Sender.SendAsync(errorPacket, context.CancellationToken).ConfigureAwait(false);
         }

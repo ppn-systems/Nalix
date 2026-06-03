@@ -1,8 +1,10 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using Nalix.Abstractions.Networking;
 using Nalix.Traversal.Internal;
 
 namespace Nalix.Traversal.Reflector;
@@ -15,8 +17,9 @@ public sealed class ReflectorSession
     public ulong Token { get; }
     public ulong PeerAId { get; }
     public ulong PeerBId { get; }
-    public Nalix.Abstractions.Networking.IConnection? PeerAConnection { get; set; }
-    public Nalix.Abstractions.Networking.IConnection? PeerBConnection { get; set; }
+
+    public IConnection? PeerAConnection { get; set; }
+    public IConnection? PeerBConnection { get; set; }
 
     /// <summary>
     /// Byte-level bandwidth limiter for this Reflector session.
@@ -24,10 +27,10 @@ public sealed class ReflectorSession
     /// </summary>
     internal TokenBucket Bucket { get; }
 
-    private readonly Nalix.Abstractions.Networking.IConnection _requester;
+    private readonly IConnection _requester;
     private readonly ReflectorManager _manager;
 
-    public ReflectorSession(ulong token, ulong peerAId, ulong peerBId, ReflectorManager manager, Nalix.Abstractions.Networking.IConnection requester, long capacity, long fillRate)
+    public ReflectorSession(ulong token, ulong peerAId, ulong peerBId, ReflectorManager manager, IConnection requester, long capacity, long fillRate)
     {
         this.Token = token;
         this.PeerAId = peerAId;
@@ -83,6 +86,8 @@ public sealed class ReflectorManager
     /// </summary>
     public void UpdateConnection(ulong token, ulong peerId, Nalix.Abstractions.Networking.IConnection connection)
     {
+        ArgumentNullException.ThrowIfNull(connection);
+
         if (_sessions.TryGetValue(token, out ReflectorSession? session))
         {
             if (session.PeerAId == peerId && session.PeerAConnection != connection)

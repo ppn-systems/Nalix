@@ -2,8 +2,10 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Threading.Tasks;
+using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Codec.Pooling;
+using Nalix.Runtime.Extensions;
 using Nalix.Traversal.Packets;
 using Nalix.Traversal.Protocols;
 using Nalix.Traversal.Reflector;
@@ -23,7 +25,7 @@ public sealed class ReflectorInitHandler
     /// <summary>
     /// Handles the Reflector request.
     /// </summary>
-    [PacketOpcode((ushort)TraversalOpcode.ReflectorInit)]
+    [PacketOpcode(TraversalOpcode.ReflectorInit)]
     public async ValueTask HandleAsync(IPacketContext<ReflectorInit> context)
     {
         System.ArgumentNullException.ThrowIfNull(context);
@@ -41,10 +43,30 @@ public sealed class ReflectorInitHandler
 
         response.ReflectorToken = token;
         response.Success = true;
+        response.SequenceId = context.Packet.SequenceId;
 
         await context.Sender.SendAsync(response).ConfigureAwait(false);
 
-        // Note: In a real environment, we would also notify PeerB (TargetPeerId)
-        // using IConnectionHub, so PeerB knows the ReflectorToken and starts sending UDP to the server.
+        // 4. Notify PeerB (TargetPeerId) so they also know the ReflectorToken
+        IConnectionHub? hub = context.Connection.GetHub();
+        if (hub != null)
+        {
+            IConnection? targetConnection = hub.GetConnection(peerBId);
+            if (targetConnection != null)
+            {
+                using PacketScope<ReflectorAllocated> peerBScope = PacketFactory<ReflectorAllocated>.Acquire();
+                ReflectorAllocated peerBNotification = peerBScope.Value;
+
+                peerBNotification.ReflectorToken = token;
+                peerBNotification.Success = true;
+                peerBNotification.SequenceId = 0; // Server-initiated message, no request sequence to match
+
+                await targetConnection.SendAsync(
+                    peerBNotification,
+                    NetworkTransport.TCP,
+                    enableEncrypt: true,
+                    context.CancellationToken).ConfigureAwait(false);
+            }
+        }
     }
 }
