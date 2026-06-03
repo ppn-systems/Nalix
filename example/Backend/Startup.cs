@@ -14,7 +14,7 @@ using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
-using Nalix.Observability.Handlers;
+using Nalix.Observability;
 using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 

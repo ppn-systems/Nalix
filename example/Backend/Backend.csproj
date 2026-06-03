@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Nullable>enable</Nullable>
@@ -23,7 +23,7 @@
 		<ProjectReference Include="..\..\src\Nalix.Runtime\Nalix.Runtime.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
-		<ProjectReference Include="..\Nalix.Observability.Handlers\Nalix.Observability.Handlers.csproj" />
+		<ProjectReference Include="..\..\extensions\Nalix.Observability\Nalix.Observability.csproj" />
 		<ProjectReference Include="..\..\tools\Nalix.LoadTester.Contracts\Nalix.LoadTester.Contracts.csproj" />
 		
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.8" />

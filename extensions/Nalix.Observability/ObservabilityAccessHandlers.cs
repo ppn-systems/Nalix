@@ -11,7 +11,7 @@ using Nalix.Environment.IO;
 using Nalix.Observability.Contracts;
 using Nalix.Codec.Pooling;
 
-namespace Nalix.Observability.Handlers;
+namespace Nalix.Observability;
 
 /// <summary>
 /// Handles authentication and administrative access requests for observability.

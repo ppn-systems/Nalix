@@ -4,7 +4,7 @@
 using System.Buffers;
 using Nalix.Environment.Memory;
 
-namespace Nalix.Observability.Handlers.Internal;
+namespace Nalix.Observability.Internal;
 
 /// <summary>
 /// A lightweight class-allocated buffer writer that rents from <see cref="BufferLease.ByteArrayPool"/>

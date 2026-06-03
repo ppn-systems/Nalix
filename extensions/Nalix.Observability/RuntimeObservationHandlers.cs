@@ -12,10 +12,10 @@ using Nalix.Environment.Memory;
 using Nalix.Framework;
 using Nalix.Framework.Injection;
 using Nalix.Observability.Contracts;
-using Nalix.Observability.Handlers.Internal;
+using Nalix.Observability.Internal;
 using Nalix.Codec.Pooling;
 
-namespace Nalix.Observability.Handlers;
+namespace Nalix.Observability;
 
 /// <summary>
 /// Handles telemetry observation packets and returns serialized diagnostic reports.
