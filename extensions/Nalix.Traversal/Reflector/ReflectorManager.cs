@@ -48,10 +48,8 @@ public sealed class ReflectorSession
 
     public void Dispose()
     {
-        // Prevent event leaks by explicitly unhooking from all tracked connections
-        _requester?.OnCloseEvent -= this.OnConnectionClosed;
-        this.PeerAConnection?.OnCloseEvent -= this.OnConnectionClosed;
-        this.PeerBConnection?.OnCloseEvent -= this.OnConnectionClosed;
+        // Prevent event leaks by explicitly unhooking from the requester connection
+        _requester.OnCloseEvent -= this.OnConnectionClosed;
     }
 }
 
@@ -90,19 +88,13 @@ public sealed class ReflectorManager
 
         if (_sessions.TryGetValue(token, out ReflectorSession? session))
         {
-            if (session.PeerAId == peerId && session.PeerAConnection != connection)
+            if (session.PeerAId == peerId)
             {
-                session.PeerAConnection?.OnCloseEvent -= session.OnConnectionClosed;
                 session.PeerAConnection = connection;
-                // Bind lifecycle to the UDP Passthrough connection idle timeout (TimingWheel)
-                connection.OnCloseEvent += session.OnConnectionClosed;
             }
-            else if (session.PeerBId == peerId && session.PeerBConnection != connection)
+            else if (session.PeerBId == peerId)
             {
-                session.PeerBConnection?.OnCloseEvent -= session.OnConnectionClosed;
                 session.PeerBConnection = connection;
-                // Bind lifecycle to the UDP Passthrough connection idle timeout (TimingWheel)
-                connection.OnCloseEvent += session.OnConnectionClosed;
             }
         }
     }
