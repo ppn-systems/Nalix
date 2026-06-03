@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -77,7 +77,7 @@ public sealed class PacketSender : IPacketSender
 
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, needEncrypt, safeToken);
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes), packet, needEncrypt, safeToken);
     }
 
     /// <inheritdoc/>
@@ -87,14 +87,14 @@ public sealed class PacketSender : IPacketSender
 
         CancellationToken safeToken = ct == default ? _token : ct;
 
-        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), _attributes, packet, forceEncrypt, safeToken);
+        return SEND_CORE_ASYNC(this.GET_CONNECTION_OR_THROW(), GetTransport(this.GET_CONNECTION_OR_THROW(), _attributes), packet, forceEncrypt, safeToken);
     }
 
     #endregion APIs
 
     #region Private Methods
 
-    private static async ValueTask SEND_CORE_ASYNC(IConnection connection, PacketMetadata attributes, IPacket packet, bool needEncrypt, CancellationToken ct)
+    internal static async ValueTask SEND_CORE_ASYNC(IConnection connection, IConnection.ITransport transport, IPacket packet, bool needEncrypt, CancellationToken ct)
     {
         int packetLength = packet.Length;
 
@@ -109,7 +109,6 @@ public sealed class PacketSender : IPacketSender
         // Serialize into a pooled buffer first so the subsequent compression/encryption
         // branches can reuse the same payload without reserializing the packet.
         BufferLease rawLease = BufferLease.Rent(packetLength);
-        IConnection.ITransport transport = GetTransport(connection, attributes);
 
         try
         {
