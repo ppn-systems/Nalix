@@ -51,11 +51,12 @@ public sealed class SdkSubscriptionTests
     {
         FakeSession session = new();
 
-        _ = Assert.Throws<ArgumentNullException>(() => TcpSessionSubscriptions.On<Control>(null!, _ => { }));
+        _ = Assert.Throws<ArgumentNullException>(() => TransportSessionSubscriptions.On<Control>(null!, _ => { }));
         _ = Assert.Throws<ArgumentNullException>(() => session.On<Control>(null!));
     }
 
     [Fact]
+#pragma warning disable CS0618
     public void TcpSessionSubscriptionsOnOnce_FiresOnlyOnceEvenWhenMultipleMessagesArrive()
     {
         FakeSession session = new();
@@ -72,6 +73,7 @@ public sealed class SdkSubscriptionTests
 
         Assert.Equal(1, count);
     }
+#pragma warning restore CS0618
 
     [Fact]
     public void TcpSessionSubscriptionsOn_WhenPredicateThrows_DoesNotPropagateToCaller()

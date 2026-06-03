@@ -76,6 +76,7 @@ public sealed partial class Control : PacketBase<Control>, IPacketReasoned, IFix
     public override void ResetForPool()
     {
         base.ResetForPool();
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
         this.Reason = 0;
         this.SequenceId = 0;
         this.Type = ControlType.NONE;

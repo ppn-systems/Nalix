@@ -50,9 +50,10 @@ public sealed class CipherExtensionsTests : IDisposable
 
             using var session = new TcpSession(options);
             await session.ConnectAsync();
+#pragma warning disable CS0612
             await session.HandshakeAsync();
-
             await session.UpdateCipherAsync(CipherSuiteType.Salsa20Poly1305, timeoutMs: 20_000);
+#pragma warning restore CS0612
 
             Assert.Equal(CipherSuiteType.Salsa20Poly1305, session.Options.Algorithm);
 

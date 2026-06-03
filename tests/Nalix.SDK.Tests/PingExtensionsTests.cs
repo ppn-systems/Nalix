@@ -29,6 +29,7 @@ public sealed class PingExtensionsTests : IDisposable
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();
+        builder.UseTimeSync();
         
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -42,6 +43,9 @@ public sealed class PingExtensionsTests : IDisposable
             });
 
             await session.ConnectAsync();
+#pragma warning disable CS0612
+            await session.HandshakeAsync();
+#pragma warning restore CS0612
 
             double rtt = await session.PingAsync(timeoutMs: 2000);
             

@@ -202,6 +202,10 @@ public sealed class SystemControlHandlers
 
         // Preserve reliability flag from the request
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
+        
+        var header = reply.Header;
+        header.SequenceId = packet.SequenceId;
+        reply.Header = header;
 
         await context.Sender.SendAsync(reply).ConfigureAwait(false);
     }

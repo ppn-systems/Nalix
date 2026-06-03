@@ -80,6 +80,7 @@ public sealed partial class TimeSync : PacketBase<TimeSync>, IPacketTimestamped,
     public override void ResetForPool()
     {
         base.ResetForPool();
+        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_TIMESYNC;
         this.Timestamp = 0;
         this.MonoTicks = 0;
         this.SequenceId = 0;

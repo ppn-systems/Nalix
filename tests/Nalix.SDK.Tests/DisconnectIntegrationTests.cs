@@ -38,8 +38,7 @@ public sealed class DisconnectIntegrationTests : IDisposable
             var options = new TransportOptions
             {
                 Address = "127.0.0.1",
-                Port = (ushort)port,
-                EncryptionEnabled = false
+                Port = (ushort)port
             };
 
             using var session = new TcpSession(options);

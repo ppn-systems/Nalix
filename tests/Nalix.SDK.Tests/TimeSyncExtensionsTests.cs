@@ -32,6 +32,7 @@ public sealed class TimeSyncExtensionsTests : IDisposable
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();
+        builder.UseTimeSync();
 
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -47,6 +48,9 @@ public sealed class TimeSyncExtensionsTests : IDisposable
 
             using var session = new TcpSession(options);
             await session.ConnectAsync();
+#pragma warning disable CS0612
+            await session.HandshakeAsync();
+#pragma warning restore CS0612
 
             (double rtt, double adjusted) = await session.SyncTimeAsync(timeoutMs: 10000);
             

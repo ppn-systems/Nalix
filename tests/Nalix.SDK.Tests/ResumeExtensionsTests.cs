@@ -86,20 +86,22 @@ TestUtils.SetupCertificate();
             // 3. Setup Client
             using TcpSession session = new(new TransportOptions 
             { 
-                Secret = secret,
-                SessionToken = token,
-                EncryptionEnabled = false 
             });
+            session.State.Secret = secret;
+            session.State.SessionToken = token;
+            session.State.EncryptionEnabled = false;
 
             await session.ConnectAsync("127.0.0.1", (ushort)port);
 
             // 4. Perform Resume
+#pragma warning disable CS0612
             ProtocolReason result = await session.ResumeSessionAsync();
+#pragma warning restore CS0612
 
             // 5. Verify Result
             Assert.Equal(ProtocolReason.NONE, result);
-            Assert.NotEqual(token, session.Options.SessionToken); // Token should be rotated
-            Assert.True(session.Options.EncryptionEnabled);
+            Assert.NotEqual(token, session.State.SessionToken); // Token should be rotated
+            Assert.True(session.State.EncryptionEnabled);
         }
         finally
         {
@@ -153,16 +155,18 @@ TestUtils.SetupCertificate();
             // 2. Setup Client with WRONG secret
             using TcpSession session = new(new TransportOptions 
             { 
-                Secret = clientSecret,
-                SessionToken = token,
-                EncryptionEnabled = false,
                 ResumeTimeoutMillis = 10000
             });
+            session.State.Secret = clientSecret;
+            session.State.SessionToken = token;
+            session.State.EncryptionEnabled = false;
 
             await session.ConnectAsync("127.0.0.1", (ushort)port);
 
             // 3. Perform Resume
+#pragma warning disable CS0612
             ProtocolReason result = await session.ResumeSessionAsync();
+#pragma warning restore CS0612
 
 
             // 4. Verify Result
@@ -212,20 +216,22 @@ TestUtils.SetupCertificate();
             { 
                 Address = "127.0.0.1",
                 Port = (ushort)port,
-                Secret = secret,
-                SessionToken = token,
-                EncryptionEnabled = false 
             });
+            session.State.Secret = secret;
+            session.State.SessionToken = token;
+            session.State.EncryptionEnabled = false;
 
             Console.WriteLine($"[TEST] Token: {token}");
             Console.WriteLine($"[TEST] Secret Zero: {secret.IsZero}");
-            Console.WriteLine($"[TEST] Options Token Empty: {session.Options.SessionToken == 0}");
-            Console.WriteLine($"[TEST] Options Secret Zero: {session.Options.Secret.IsZero}");
+            Console.WriteLine($"[TEST] Options Token Empty: {session.State.SessionToken == 0}");
+            Console.WriteLine($"[TEST] Options Secret Zero: {session.State.Secret.IsZero}");
 
             await session.ConnectAsync("127.0.0.1", (ushort)port);
 
             // 3. Perform Resume
+#pragma warning disable CS0612
             ProtocolReason result = await session.ResumeSessionAsync();
+#pragma warning restore CS0612
 
             // 4. Verify Result
             Assert.Equal(ProtocolReason.SESSION_EXPIRED, result);
