@@ -12,7 +12,6 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
-using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
 
@@ -34,7 +33,7 @@ public sealed class SystemControlHandlers
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.SYSTEM_CONTROL)]
+    [PacketOpcode(ProtocolOpCode.SYSTEM_CONTROL)]
     public static async ValueTask HandleAsync(IPacketContext<Control> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -200,7 +199,7 @@ public sealed class SystemControlHandlers
         using PacketScope<SessionTofu> lease = PacketFactory<SessionTofu>.Acquire();
         SessionTofu reply = lease.Value;
         reply.Initialize(HandshakeHandlers.ServerPublicKey);
-        
+
         // Preserve reliability flag from the request
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 

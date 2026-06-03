@@ -40,7 +40,7 @@ public sealed class HandshakeHandlers
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.SESSION_INIT)]
+    [PacketOpcode(ProtocolOpCode.SESSION_INIT)]
     public static async ValueTask HandleSessionInitAsync(IPacketContext<SessionInit> context)
     {
         ArgumentNullException.ThrowIfNull(context);

@@ -10,7 +10,6 @@ using System.Runtime.InteropServices;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.Internal;
-using Nalix.Codec.Serialization.Formatters.Primitives;
 using Nalix.Codec.Serialization.Internal;
 using Nalix.Codec.Serialization.Internal.Types;
 using Nalix.Environment.Memory;
@@ -23,22 +22,6 @@ namespace Nalix.Codec.Serialization;
 [DebuggerStepThrough]
 public static class LiteSerializer
 {
-    #region Constructors
-
-    static LiteSerializer()
-    {
-        /*
-         * [Initialization]
-         * The static constructor ensures that the FormatterProvider is initialized
-         * before any serialization operations are performed. This is crucial for
-         * the formatter resolution mechanism to work correctly.
-         */
-        Register(new Bytes32Formatter());
-        Register(new PacketHeaderFormatter());
-    }
-
-    #endregion Constructors
-
     #region APIs
 
     /// <summary>

@@ -4,14 +4,12 @@
 using System;
 using System.Threading.Tasks;
 using Nalix.Abstractions;
-using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Environment.Time;
-using Nalix.Framework.Injection;
 
 namespace Nalix.Runtime.Handlers;
 
@@ -29,7 +27,7 @@ public sealed class SystemTimeSyncHandlers
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.SYSTEM_TIMESYNC)]
+    [PacketOpcode(ProtocolOpCode.SYSTEM_TIMESYNC)]
     public static async ValueTask HandleAsync(IPacketContext<TimeSync> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -43,7 +41,20 @@ public sealed class SystemTimeSyncHandlers
             case ControlType.TIMESYNCREQUEST:
                 await HandleTimeSyncRequest(context, packet).ConfigureAwait(false);
                 break;
-            
+            case ControlType.NONE:
+            case ControlType.DISCONNECT:
+            case ControlType.ERROR:
+            case ControlType.RESUME:
+            case ControlType.SHUTDOWN:
+            case ControlType.REDIRECT:
+            case ControlType.NOTICE:
+            case ControlType.TIMEOUT:
+            case ControlType.FAIL:
+            case ControlType.CIPHER_UPDATE:
+            case ControlType.CIPHER_UPDATE_ACK:
+            case ControlType.PUBLIC_KEY_REQUEST:
+            case ControlType.RESERVED1:
+            case ControlType.RESERVED2:
             case ControlType.PONG:
             case ControlType.TIMESYNCRESPONSE:
             default:
@@ -71,7 +82,7 @@ public sealed class SystemTimeSyncHandlers
     private static async ValueTask HandleTimeSyncRequest(IPacketContext<TimeSync> context, TimeSync req)
     {
         using PacketScope<TimeSync> lease = PacketFactory<TimeSync>.Acquire();
-        
+
         TimeSync res = lease.Value;
         res.Initialize((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags);
 

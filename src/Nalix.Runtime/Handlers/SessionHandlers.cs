@@ -45,7 +45,7 @@ public sealed class SessionHandlers
     [ReservedOpcodePermitted]
     [PacketEncryption(false)]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode((ushort)ProtocolOpCode.SESSION_SIGNAL)]
+    [PacketOpcode(ProtocolOpCode.SESSION_SIGNAL)]
     public async ValueTask HandleAsync(IPacketContext<SessionResume> context)
     {
         ArgumentNullException.ThrowIfNull(context);
