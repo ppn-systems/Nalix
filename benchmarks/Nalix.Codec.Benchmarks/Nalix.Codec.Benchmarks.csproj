@@ -7,7 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Nalix.Benchmarks.Shared\Nalix.Benchmarks.Shared.csproj" />
     <ProjectReference Include="..\..\src\Nalix.Codec\Nalix.Codec.csproj" />
-    <ProjectReference Include="..\..\src\Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible" />
+    <ProjectReference Include="..\..\analyzers\Nalix.Analyzers.Generators\Nalix.Analyzers.Generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" GlobalPropertiesToRemove="PublishAot;PublishTrimmed;IsTrimmable;IsAotCompatible" />
   </ItemGroup>
 
   <ItemGroup>
