@@ -1,11 +1,14 @@
 // Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-using System;
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using Nalix.Abstractions.Networking;
+using Nalix.Environment.Configuration;
 using Nalix.Traversal.Internal;
+using Nalix.Traversal.Options;
 
 namespace Nalix.Traversal.Reflector;
 
@@ -44,13 +47,9 @@ public sealed class ReflectorSession
         _requester.OnCloseEvent += this.OnConnectionClosed;
     }
 
-    public void OnConnectionClosed(object? sender, Nalix.Abstractions.Networking.IConnectEventArgs args) => _manager.RemoveSession(this.Token);
+    public void OnConnectionClosed(object? sender, IConnectEventArgs args) => _manager.RemoveSession(this.Token);
 
-    public void Dispose()
-    {
-        // Prevent event leaks by explicitly unhooking from the requester connection
-        _requester.OnCloseEvent -= this.OnConnectionClosed;
-    }
+    public void Dispose() => _requester.OnCloseEvent -= this.OnConnectionClosed;
 }
 
 /// <summary>
@@ -58,19 +57,19 @@ public sealed class ReflectorSession
 /// </summary>
 public sealed class ReflectorManager
 {
-    private readonly ConcurrentDictionary<ulong, ReflectorSession> _sessions = new();
-    private readonly Nalix.Traversal.Options.ReflectorOptions _options;
-    private ulong _nextToken = 1;
+    private static readonly ReflectorOptions s_options = ConfigurationManager.Instance.Get<ReflectorOptions>();
 
-    public ReflectorManager() => _options = Environment.Configuration.ConfigurationManager.Instance.Get<Nalix.Traversal.Options.ReflectorOptions>();
+    private readonly ConcurrentDictionary<ulong, ReflectorSession> _sessions = new();
+
+    private ulong _nextToken = 1;
 
     /// <summary>
     /// Creates a new Reflector Session between two peers.
     /// </summary>
-    public ulong CreateSession(ulong peerA, ulong peerB, Nalix.Abstractions.Networking.IConnection requester)
+    public ulong CreateSession(ulong peerA, ulong peerB, IConnection requester)
     {
-        ulong token = (ulong)System.Threading.Interlocked.Increment(ref System.Runtime.CompilerServices.Unsafe.As<ulong, long>(ref _nextToken));
-        _sessions[token] = new ReflectorSession(token, peerA, peerB, this, requester, _options.BandwidthBurstCapacity, _options.BandwidthFillRate);
+        ulong token = (ulong)Interlocked.Increment(ref Unsafe.As<ulong, long>(ref _nextToken));
+        _sessions[token] = new ReflectorSession(token, peerA, peerB, this, requester, s_options.BandwidthBurstCapacity, s_options.BandwidthFillRate);
         return token;
     }
 
@@ -78,26 +77,6 @@ public sealed class ReflectorManager
     /// Tries to get the active Reflector Session by its token.
     /// </summary>
     public bool TryGetSession(ulong token, [MaybeNullWhen(false)] out ReflectorSession session) => _sessions.TryGetValue(token, out session);
-
-    /// <summary>
-    /// Updates the connection for a peer in the Reflector session.
-    /// </summary>
-    public void UpdateConnection(ulong token, ulong peerId, Nalix.Abstractions.Networking.IConnection connection)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-
-        if (_sessions.TryGetValue(token, out ReflectorSession? session))
-        {
-            if (session.PeerAId == peerId)
-            {
-                session.PeerAConnection = connection;
-            }
-            else if (session.PeerBId == peerId)
-            {
-                session.PeerBConnection = connection;
-            }
-        }
-    }
 
     /// <summary>
     /// Removes a Reflector Session.
