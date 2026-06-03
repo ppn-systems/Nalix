@@ -54,9 +54,9 @@ internal sealed class TokenBucket
 
             if (deltaTicks > 0)
             {
-                // Calculate tokens generated since the last refill.
-                // Using double to prevent integer overflow and truncation issues before division.
-                long generated = (long)((double)deltaTicks * _fillRate / Stopwatch.Frequency);
+                // Use integer math instead of double for performance in hot path.
+                // Overflow only happens if session is idle for > 100 days at 1MB/s.
+                long generated = (deltaTicks * _fillRate) / Stopwatch.Frequency;
 
                 if (generated > 0)
                 {

@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System;
+using System.Buffers.Binary;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Protocols;
 
@@ -60,7 +61,7 @@ public sealed class ReflectorProtocol : IProtocol, IFrameProcessor, IOpCodeExtra
             }
 
             // Offset 0: ReflectorToken (ulong)
-            ulong token = BitConverter.ToUInt64(buffer[..8]);
+            ulong token = BinaryPrimitives.ReadUInt64LittleEndian(buffer);
 
             if (!_manager.TryGetSession(token, out ReflectorSession? session))
             {
