@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.6.11819.183
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Traversal", "Nalix.Traversal\Nalix.Traversal.csproj", "{5A4E6067-7C32-EB83-D97B-55527B86ABDA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nalix.Traversal.Contracts", "Nalix.Traversal.Contracts\Nalix.Traversal.Contracts.csproj", "{67FD1F8C-A7FD-FBBC-04A8-18DB4E890F31}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5A4E6067-7C32-EB83-D97B-55527B86ABDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A4E6067-7C32-EB83-D97B-55527B86ABDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A4E6067-7C32-EB83-D97B-55527B86ABDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A4E6067-7C32-EB83-D97B-55527B86ABDA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67FD1F8C-A7FD-FBBC-04A8-18DB4E890F31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67FD1F8C-A7FD-FBBC-04A8-18DB4E890F31}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67FD1F8C-A7FD-FBBC-04A8-18DB4E890F31}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67FD1F8C-A7FD-FBBC-04A8-18DB4E890F31}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {7AD55B1D-13AD-452C-8AC5-D17520CEDE80}
+	EndGlobalSection
+EndGlobal
