@@ -201,6 +201,19 @@ public class IdentifierTests
         Assert.False(id.Equals(other));
     }
 
+    [Fact]
+    public void NewIdExceedingSequenceCapacityBlocksUntilNextSecondAndProducesUniqueIds()
+    {
+        int count = 16384 + 5;
+        HashSet<ulong> ids = new(count);
+
+        for (int i = 0; i < count; i++)
+        {
+            Snowflake id = Snowflake.NewId(SnowflakeType.System);
+            Assert.True(ids.Add(id.ToUInt64()), $"Duplicate ID generated at index {i}: {id}");
+        }
+    }
+
     private sealed class StubSnowflake : ISnowflake
     {
         public bool IsEmpty => false;

@@ -86,7 +86,7 @@ public sealed class FileCertificateStore : ICertificateStore
             _ = Directory.CreateDirectory(directory);
         }
 
-        if (!TRY_WRITE_NEW_FILE(path, privateKey.ToString()))
+        if (!TRY_WRITE_NEW_FILE(path, privateKey.ToString(), isPrivate: true))
         {
             return;
         }
@@ -95,14 +95,26 @@ public sealed class FileCertificateStore : ICertificateStore
             directory ?? string.Empty,
             Path.GetFileNameWithoutExtension(path) + ".public");
 
-        _ = TRY_WRITE_NEW_FILE(publicPath, publicKey.ToString());
+        _ = TRY_WRITE_NEW_FILE(publicPath, publicKey.ToString(), isPrivate: false);
     }
 
-    private static bool TRY_WRITE_NEW_FILE(string path, string content)
+    private static bool TRY_WRITE_NEW_FILE(string path, string content, bool isPrivate)
     {
         try
         {
-            using FileStream stream = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.Read);
+            FileStreamOptions options = new()
+            {
+                Mode = FileMode.CreateNew,
+                Access = FileAccess.Write,
+                Share = FileShare.Read
+            };
+
+            if (isPrivate && !OperatingSystem.IsWindows())
+            {
+                options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            }
+
+            using FileStream stream = new(path, options);
             using StreamWriter writer = new(stream);
             writer.WriteLine(content);
             return true;
