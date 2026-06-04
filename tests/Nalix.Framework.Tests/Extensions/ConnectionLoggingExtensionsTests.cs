@@ -2,6 +2,8 @@
 // Licensed under the Apache License, Version 2.0.
 
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
 using Nalix.Abstractions.Identity;
@@ -96,6 +98,53 @@ public sealed class ConnectionLoggingExtensionsTests
         });
 
         Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task ThrottledWarnConcurrentCallsOnSameKeyDoNotThrow()
+    {
+        // Reproduce WARN-001: multiple threads calling ShouldLog for the same
+        // new key should not throw ArgumentException from duplicate Add.
+        const int threadCount = 16;
+        const int iterationsPerThread = 100;
+
+        for (int iteration = 0; iteration < iterationsPerThread; iteration++)
+        {
+            TestConnection connection = new();
+            TestLogger logger = new();
+            ThrottleKey sharedKey = new($"concurrent-{iteration}");
+
+            using Barrier barrier = new(threadCount);
+            Exception?[] errors = new Exception?[threadCount];
+
+            Task[] tasks = new Task[threadCount];
+            for (int t = 0; t < threadCount; t++)
+            {
+                int index = t;
+                tasks[t] = Task.Run(() =>
+                {
+                    barrier.SignalAndWait();
+                    try
+                    {
+                        connection.ThrottledWarn(logger, sharedKey, "msg");
+                    }
+                    catch (Exception ex)
+                    {
+                        errors[index] = ex;
+                    }
+                });
+            }
+
+            await Task.WhenAll(tasks);
+
+            for (int t = 0; t < threadCount; t++)
+            {
+                Assert.Null(errors[t]);
+            }
+
+            // At least one log entry should have been recorded.
+            Assert.True(logger.Entries.Count >= 1);
+        }
     }
 
     private sealed class TestConnection : IConnection

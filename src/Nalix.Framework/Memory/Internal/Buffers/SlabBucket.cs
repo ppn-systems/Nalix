@@ -208,7 +208,8 @@ internal sealed class SlabBucket : IDisposable
             return array;
         }
 
-        throw new InvalidOperationException("SlabBucket: failed to allocate standalone buffer.");
+        this.THROW_ALLOCATION_FAILED();
+        return null;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -384,6 +385,10 @@ internal sealed class SlabBucket : IDisposable
     #endregion Public API
 
     #region Private Helpers
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void THROW_ALLOCATION_FAILED() => throw new InvalidOperationException("SlabBucket: failed to allocate standalone buffer.");
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private ThreadLocalCache GetThreadLocalCache()

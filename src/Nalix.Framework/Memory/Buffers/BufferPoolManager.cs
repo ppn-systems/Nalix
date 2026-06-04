@@ -174,20 +174,7 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
 
         _ = Interlocked.Increment(ref _suitablePoolSizeCacheMisses);
 
-        try
-        {
-            if (this.TRY_RENT_ARRAY_WITH_CACHING(minimumLength, out array))
-            {
-                goto ReturnArray;
-            }
-
-            // Should not happen if bucket exists, but fallback if TryRentArray returned false.
-            throw new ArgumentException("No suitable bucket found.");
-        }
-        catch (ArgumentException ex)
-        {
-            return this.HANDLE_RENT_FAILURE(minimumLength, ex);
-        }
+        array = this.RENT_SAFE(minimumLength);
 
     ReturnArray:
         if (_config.EnableBufferLeakDetection)
@@ -282,6 +269,25 @@ public sealed partial class BufferPoolManager : IBufferPoolManager, IDisposable
     #endregion Public API
 
     #region Private: Rent / Return helpers
+
+    [StackTraceHidden]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private byte[] RENT_SAFE(int minimumLength)
+    {
+        try
+        {
+            if (this.TRY_RENT_ARRAY_WITH_CACHING(minimumLength, out byte[]? array))
+            {
+                return array;
+            }
+
+            throw new ArgumentException("No suitable bucket found.");
+        }
+        catch (ArgumentException ex)
+        {
+            return this.HANDLE_RENT_FAILURE(minimumLength, ex);
+        }
+    }
 
     [StackTraceHidden]
     [MethodImpl(MethodImplOptions.NoInlining)]

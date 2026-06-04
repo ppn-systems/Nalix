@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -314,7 +315,7 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
     {
         if (EqualityComparer<T>.Default.Equals(obj, default))
         {
-            throw new ArgumentNullException(nameof(obj), $"Object cannot be null.");
+            THROW_NULL_OBJECT();
         }
 
         _ = Interlocked.Increment(ref _totalReturnOperations);
@@ -723,6 +724,16 @@ public sealed partial class ObjectPoolManager : IObjectPoolManager, IDisposable
             return existing;
         }
 
+        return this.CREATE_POOL_SLOW<T>(type);
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_NULL_OBJECT() => throw new ArgumentNullException("obj", "Object cannot be null.");
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ObjectPool CREATE_POOL_SLOW<T>(Type type) where T : IPoolable
+    {
         ObjectPool pool = new(_defaultMaxPoolSize);
         if (_poolDict.TryAdd(type, pool))
         {

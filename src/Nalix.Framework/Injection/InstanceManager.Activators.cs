@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -269,6 +269,13 @@ public sealed partial class InstanceManager
             return;
         }
 
+        this.THROW_CACHE_LIMIT_REACHED(currentCount, maxCount, cacheName);
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void THROW_CACHE_LIMIT_REACHED(int currentCount, int maxCount, string cacheName)
+    {
         this.Emit(
             "CacheLimit",
             "Exceeded",

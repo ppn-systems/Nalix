@@ -330,31 +330,7 @@ public sealed partial class TaskManager : ITaskManager, IDisposable
         _ = ThreadPool.UnsafeQueueUserWorkItem(static tuple =>
         {
             (Action<TState>? w, TState? s, string? n, TaskManager? m) = tuple;
-            try
-            {
-                _ = Interlocked.Increment(ref m._runningWorkerCount);
-                int currentRunning = Volatile.Read(ref m._runningWorkerCount);
-                int peak = Volatile.Read(ref m._peakRunningWorkerCount);
-                while (currentRunning > peak)
-                {
-                    _ = Interlocked.CompareExchange(ref m._peakRunningWorkerCount, currentRunning, peak);
-                    peak = Volatile.Read(ref m._peakRunningWorkerCount);
-                }
-
-                w(s);
-            }
-            catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-            {
-                _ = Interlocked.Increment(ref m._workerErrorCount);
-                if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
-                {
-                    DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new { Name = n, Exception = ex.Message });
-                }
-            }
-            finally
-            {
-                _ = Interlocked.Decrement(ref m._runningWorkerCount);
-            }
+            m.EXECUTE_WORKER_SAFE(w, s, n);
         }, (work, state, name, this), preferLocal: false);
     }
 

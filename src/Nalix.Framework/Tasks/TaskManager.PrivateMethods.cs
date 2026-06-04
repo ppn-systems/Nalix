@@ -163,6 +163,36 @@ public partial class TaskManager
 
     #endregion Internal Cleanup
 
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void EXECUTE_WORKER_SAFE<TState>(Action<TState>? w, TState? s, string? n)
+    {
+        try
+        {
+            _ = Interlocked.Increment(ref _runningWorkerCount);
+            int currentRunning = Volatile.Read(ref _runningWorkerCount);
+            int peak = Volatile.Read(ref _peakRunningWorkerCount);
+
+            while (currentRunning > peak)
+            {
+                _ = Interlocked.CompareExchange(ref _peakRunningWorkerCount, currentRunning, peak);
+                peak = Volatile.Read(ref _peakRunningWorkerCount);
+            }
+
+            w!(s!);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            _ = Interlocked.Increment(ref _workerErrorCount);
+            if (DiagnosticsEvents.Source.IsEnabled(DiagnosticsEvents.Tasks.Failed))
+            {
+                DiagnosticsEvents.Source.Write(DiagnosticsEvents.Tasks.Failed, new { Name = n, Exception = ex.Message });
+            }
+        }
+        finally
+        {
+            _ = Interlocked.Decrement(ref _runningWorkerCount);
+        }
+    }
 
     /// <summary>
     /// Calculates an approximate percentile for worker execution time based on histogram buckets.

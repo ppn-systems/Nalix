@@ -67,7 +67,7 @@ public static class Singleton
     /// <param name="allowOverwrite">If true, allows overwriting an existing registration of the same type. Environment to false.</param>
     /// <exception cref="ArgumentNullException">Thrown when the instance is null.</exception>
     /// <exception cref="InvalidOperationException">Thrown when the type is already registered and overwrite is not allowed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void Register<TClass>(
         TClass instance,
         bool allowOverwrite = false)
@@ -109,7 +109,7 @@ public static class Singleton
     /// <typeparam name="TImplementation">The implementation type of the interface.</typeparam>
     /// <param name="factory">An optional factory function to create instances of the implementation.</param>
     /// <exception cref="InvalidOperationException">Thrown if the interface has already been registered.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void Register<TInterface, TImplementation>(
         [MaybeNull] Func<TImplementation>? factory = null)
         where TImplementation : class, TInterface
@@ -147,7 +147,7 @@ public static class Singleton
     /// <param name="createIfNotExists">If true, creates the instance if not already registered. Environment to true.</param>
     /// <returns>The resolved or newly created instance of the requested type.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the type cannot be resolved or created.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     [return: MaybeNull]
     public static TClass? Resolve<TClass>(
         bool createIfNotExists = true) where TClass : class
@@ -204,7 +204,7 @@ public static class Singleton
     /// Removes the registration of a specific type.
     /// </summary>
     /// <typeparam name="TClass">The type to remove from registration.</typeparam>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public static void Remove<TClass>() where TClass : class
     {
         Type type = typeof(TClass);
@@ -276,7 +276,7 @@ public static class Singleton
     /// <summary>
     /// Internal implementation of Resolve without caching
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [return: MaybeNull]
     private static TClass? RESOLVE_INTERNAL<TClass>(bool createIfNotExists) where TClass : class
     {

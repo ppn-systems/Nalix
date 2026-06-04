@@ -209,7 +209,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// <param name="instance">The instance to register.</param>
     /// <param name="registerInterfaces">If <c>true</c>, also registers the instance for all its interfaces.</param>
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Register<T>(T instance, bool registerInterfaces = true) where T : class
     {
         if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
@@ -424,7 +424,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
     /// <exception cref="InternalErrorException">Thrown when instance creation fails after constructor resolution.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public object GetOrCreateInstance(Type type, [MaybeNull] params object?[] args)
     {
         if (Interlocked.CompareExchange(ref _isLocked, 0, 0) != 0)
@@ -496,7 +496,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// <returns><c>true</c> if the instance was successfully removed; otherwise, <c>false</c>.</returns>
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="type"/> is null.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool RemoveInstance(Type type)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));
@@ -654,7 +654,7 @@ public sealed partial class InstanceManager : SingletonBase<InstanceManager>, IR
     /// </summary>
     /// <param name="dispose">If <c>true</c>, disposes any instances that implement <see cref="IDisposable"/>.</param>
     /// <exception cref="ObjectDisposedException">Thrown when the manager has already been disposed.</exception>
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void Clear(bool dispose = true)
     {
         ObjectDisposedException.ThrowIf(Interlocked.CompareExchange(ref _isDisposed, 0, 0) != 0, nameof(InstanceManager));

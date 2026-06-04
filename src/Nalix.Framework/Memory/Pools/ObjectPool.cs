@@ -254,7 +254,7 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
          */
         if (EqualityComparer<T>.Default.Equals(obj, default))
         {
-            throw new ArgumentNullException(nameof(obj));
+            THROW_NULL_OBJECT();
         }
 
         int id = PoolType<T>.Id;
@@ -558,4 +558,9 @@ public sealed class ObjectPool(int defaultMaxItemsPerType)
             ["IsActive"] = isActive
         };
     }
+
+    [System.Diagnostics.CodeAnalysis.DoesNotReturn]
+    [System.Runtime.CompilerServices.MethodImpl(
+        System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void THROW_NULL_OBJECT() => throw new ArgumentNullException("obj");
 }

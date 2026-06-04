@@ -83,23 +83,7 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
             return _parentPool.GetMultiple<T>(count);
         }
 
-        // ObjectPoolManager doesn't have GetMultiple, so we simulate it
-        List<T> result = new(count);
-        try
-        {
-            for (int i = 0; i < count; i++)
-            {
-                result.Add(_manager.Get<T>());
-            }
-            return result;
-        }
-        catch
-        {
-            // SEC-88: Return already acquired objects to the pool if an exception occurs
-            // to prevent resource leaks.
-            _ = this.ReturnMultiple(result);
-            throw;
-        }
+        return this.GET_MULTIPLE_SAFE(count);
     }
 
     /// <summary>
@@ -174,6 +158,29 @@ public sealed class TypedObjectPool<T> where T : IPoolable, new()
     public int Trim(int percentage = 50) => _parentPool.Trim(percentage);
 
     #endregion Public Methods
+
+    #region Private Methods
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private List<T> GET_MULTIPLE_SAFE(int count)
+    {
+        List<T> result = new(count);
+        try
+        {
+            for (int i = 0; i < count; i++)
+            {
+                result.Add(_manager!.Get<T>());
+            }
+            return result;
+        }
+        catch
+        {
+            // SEC-88: Return already acquired objects to the pool if an exception occurs
+            // to prevent resource leaks.
+            _ = this.ReturnMultiple(result);
+            throw;
+        }
+    }
+
+    #endregion Private Methods
 }
-
-
