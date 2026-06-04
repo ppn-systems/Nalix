@@ -440,7 +440,7 @@ internal static class AsyncCallback
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LOG_THROTTLED_WARN_SAFE(IConnectEventArgs? args, ThrottleKey key, string message)
     {
         IConnection? connection = GET_CONNECTION_SAFE(args);
@@ -456,7 +456,7 @@ internal static class AsyncCallback
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void LOG_THROTTLED_ERROR_SAFE(IConnectEventArgs? args, ThrottleKey key, string message, Exception? ex = null)
     {
         IConnection? connection = GET_CONNECTION_SAFE(args);

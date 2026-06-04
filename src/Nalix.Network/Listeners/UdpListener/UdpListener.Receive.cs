@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -240,25 +240,13 @@ public abstract partial class UdpListenerBase
         {
             if (args.RemoteEndPoint is IPEndPoint ip && !_rateLimiter.TryAccept(ip))
             {
-                _ = Interlocked.Increment(ref _dropRateLimited);
-
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-                {
-                    this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] rate-limit-drop remote={Ip}", ip);
-                }
-
+                this.LogRateLimitDrop(ip);
                 return;
             }
 
             if (args.BytesTransferred > _options.MaxUdpDatagramSize)
             {
-                _ = Interlocked.Increment(ref _dropOversize);
-
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-                {
-                    this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] oversize-drop remote={ArgsRemoteEndPoint} size={ArgsBytesTransferred}", args.RemoteEndPoint, args.BytesTransferred);
-                }
-
+                this.LogOversizeDrop(args.RemoteEndPoint, args.BytesTransferred);
                 return;
             }
 
@@ -274,12 +262,37 @@ public abstract partial class UdpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _ = Interlocked.Increment(ref _recvErrors);
+            this.HandleReceiveError(ex);
+        }
+    }
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-            {
-                this.Logger?.LogDebug(ex, "[NW.UdpListenerBase:HandleReceive] non-fatal");
-            }
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void LogRateLimitDrop(IPEndPoint ip)
+    {
+        _ = Interlocked.Increment(ref _dropRateLimited);
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] rate-limit-drop remote={Ip}", ip);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void LogOversizeDrop(EndPoint remoteEndPoint, int size)
+    {
+        _ = Interlocked.Increment(ref _dropOversize);
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] oversize-drop remote={ArgsRemoteEndPoint} size={ArgsBytesTransferred}", remoteEndPoint, size);
+        }
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private void HandleReceiveError(Exception ex)
+    {
+        _ = Interlocked.Increment(ref _recvErrors);
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        {
+            this.Logger.LogDebug(ex, "[NW.UdpListenerBase:HandleReceive] non-fatal");
         }
     }
 

@@ -64,25 +64,6 @@ public sealed partial class ConnectionGuard
             writer.WriteNumber("TotalCleaned", metrics.TotalCleaned);
             writer.WriteNumber("RejectionRate", metrics.TotalAttempts > 0 ? (metrics.TotalRejections * 100.0 / metrics.TotalAttempts) : 0.0);
 
-            writer.WriteStartArray("TopEndpoints");
-            int count = 0;
-            foreach (KeyValuePair<INetworkEndpoint, ConnectionLimitInfo> kvp in snapshot)
-            {
-                if (count++ >= 50)
-                {
-                    break;
-                }
-
-                ConnectionLimitInfo info = kvp.Value;
-                writer.WriteStartObject();
-                writer.WriteString("Address", kvp.Key.Address ?? "unknown");
-                writer.WriteNumber("CurrentConnections", info.CurrentConnections);
-                writer.WriteNumber("TotalConnectionsToday", info.TotalConnectionsToday);
-                writer.WriteString("LastConnectionUtc", info.LastConnectionTime);
-                writer.WriteEndObject();
-            }
-            writer.WriteEndArray();
-
             writer.WriteEndObject();
         }
         finally

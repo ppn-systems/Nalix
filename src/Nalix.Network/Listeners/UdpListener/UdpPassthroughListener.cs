@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions;
@@ -129,33 +130,12 @@ public sealed class UdpPassthroughListener : UdpListenerBase
             ipEndPoint = new IPEndPoint(ipEndPoint.Address.MapToIPv4(), ipEndPoint.Port);
         }
 
-        if (_connGuard is not null && !_connGuard.TryAccept(ipEndPoint))
+        if (!_connections.TryGetValue(ipEndPoint, out PassthroughConnection? connection) || connection.IsDisposed)
         {
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            connection = this.GetOrCreateConnection(ipEndPoint, lease);
+            if (connection is null)
             {
-                this.Logger.LogTrace("[NW.UdpPassthroughListener:ProcessDatagram] rate-limit-drop remote={IpEndPoint}", ipEndPoint);
-            }
-
-            lease.Dispose();
-            return;
-        }
-
-        PassthroughConnection connection = _connections.GetOrAdd(
-            ipEndPoint,
-            static (ep, state) => new PassthroughConnection(state.extractor, ep, state.logger),
-            (extractor: this.Protocol.OpCodeExtractor, logger: this.Logger)
-        );
-
-
-        if (connection.IsDisposed)
-        {
-            if (_connections.TryUpdate(ipEndPoint, new PassthroughConnection(this.Protocol.OpCodeExtractor, ipEndPoint, this.Logger), connection))
-            {
-                connection = _connections[ipEndPoint];
-            }
-            else
-            {
-                connection = _connections[ipEndPoint];
+                return;
             }
         }
 
@@ -203,6 +183,48 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         _ = _connections.TryRemove(connection.EndPointKey, out _);
         _connGuard?.OnConnectionClosed(sender, args);
     }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private PassthroughConnection? GetOrCreateConnection(IPEndPoint ipEndPoint, BufferLease lease)
+    {
+        if (_connGuard is not null && !_connGuard.TryAccept(ipEndPoint))
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+            {
+                this.Logger.LogTrace("[NW.UdpPassthroughListener:GetOrCreateConnection] rate-limit-drop remote={IpEndPoint}", ipEndPoint);
+            }
+
+            lease.Dispose();
+            return null;
+        }
+
+        PassthroughConnection newConnection = new(this.Protocol.OpCodeExtractor, ipEndPoint, this.Logger);
+
+        PassthroughConnection connection = _connections.AddOrUpdate(
+            ipEndPoint,
+            static (_, arg) => arg,
+            static (_, existing, arg) => existing.IsDisposed ? arg : existing,
+            newConnection
+        );
+
+        if (connection != newConnection)
+        {
+#pragma warning disable CA2000 // Dummy args used only for closing event
+            PassthroughArgs dummyArgs = new(null!, newConnection, this);
+#pragma warning restore CA2000
+            _connGuard?.OnConnectionClosed(this, dummyArgs);
+            newConnection.Dispose();
+
+            if (connection.IsDisposed)
+            {
+                lease.Dispose();
+                return null;
+            }
+        }
+
+        return connection;
+    }
+
 
     #endregion Connection Close Handler
 

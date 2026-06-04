@@ -437,8 +437,8 @@ public sealed class ConnectionHub : IConnectionHub
         writer.WriteString("UtcNow", DateTime.UtcNow);
         writer.WriteNumber("TotalConnections", total);
         writer.WriteNumber("ShardCount", _shardCount);
-        writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _totalBytesSent));
-        writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _totalBytesReceived));
+        writer.WriteNumber("TotalBytesSent", Volatile.Read(ref _lastTotalBytesSentSnapshot));
+        writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _lastTotalBytesReceivedSnapshot));
         writer.WriteNumber("IngressBytesPerSecond", Volatile.Read(ref _ingressBytesPerSecond));
         writer.WriteNumber("EgressBytesPerSecond", Volatile.Read(ref _egressBytesPerSecond));
         writer.WriteEndObject();

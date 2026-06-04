@@ -80,16 +80,22 @@ public abstract partial class Protocol : IProtocol
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _ = Interlocked.Increment(ref _totalErrors);
+            this.HandlePostProcessError(args, ex);
+        }
+    }
 
-            if (args.Connection != null)
-            {
-                args.Connection.ThrottledError(s_logger, s_keyPostFail, "[NW.Protocol:PostProcessMessage] post-fail id=" + args.Connection.ID, ex);
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void HandlePostProcessError(IConnectEventArgs args, Exception ex)
+    {
+        _ = Interlocked.Increment(ref _totalErrors);
 
-                // Give the derived protocol a chance to observe the failure before the socket closes.
-                this.OnConnectionError(args.Connection, ex);
-                args.Connection.Disconnect();
-            }
+        if (args.Connection != null)
+        {
+            args.Connection.ThrottledError(s_logger, s_keyPostFail, "[NW.Protocol:PostProcessMessage] post-fail id=" + args.Connection.ID, ex);
+
+            // Give the derived protocol a chance to observe the failure before the socket closes.
+            this.OnConnectionError(args.Connection, ex);
+            args.Connection.Disconnect();
         }
     }
 

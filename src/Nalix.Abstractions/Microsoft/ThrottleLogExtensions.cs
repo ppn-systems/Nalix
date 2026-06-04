@@ -162,7 +162,9 @@ public static class ThrottleLogExtensions
                 LastLogTicks = Stopwatch.GetTimestamp()
             };
 
-            attrs.Add(key.AttributeKey, newState);
+            // Use indexer (upsert) instead of Add to avoid ArgumentException
+            // when two threads race to insert the same throttle key concurrently.
+            attrs[key.AttributeKey] = newState;
 
             return true;
         }
