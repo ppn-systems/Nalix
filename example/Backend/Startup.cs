@@ -50,8 +50,7 @@ internal class Startup
             .ConfigureBufferPoolManager(bufferPool)
             .ConfigureObjectPoolManager(objectPool)
             .AddHandler<BenchmarkHandlers>()
-            .AddHandler<RuntimeObservationHandlers>()
-            .AddHandler<ObservabilityAccessHandlers>()
+            .UseObservability()
             .AddMetadataProvider<PacketTagMetadataProvider>()
             .Configure<BufferOptions>(o =>
             {

@@ -28,7 +28,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
     /// <summary>
     /// Gets the protocol opcode assigned to runtime observation packets.
     /// </summary>
-    public const ushort OpCodeValue = 0x0C;
+    public const ushort OpCodeValue = 0x00FC;
 
     /// <summary>
     /// Gets or sets the observation packet lifecycle stage.

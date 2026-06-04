@@ -11,6 +11,7 @@
 	</ItemGroup>
 	
 	<ItemGroup>
+		<ProjectReference Include="..\..\src\Nalix.Hosting\Nalix.Hosting.csproj" />
 		<ProjectReference Include="..\..\src\Nalix.Framework\Nalix.Framework.csproj" />
 	</ItemGroup>
 

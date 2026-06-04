@@ -1,0 +1,61 @@
+name: Release Extensions
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    name: Build & Upload Extensions
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build Observability Contracts
+        run: dotnet build extensions/Nalix.Observability.Contracts/Nalix.Observability.Contracts.csproj --configuration Release -o ./output/observability_contracts
+
+      - name: Build Observability
+        run: dotnet build extensions/Nalix.Observability/Nalix.Observability.csproj --configuration Release -o ./output/observability
+
+      - name: Build Traversal Contracts
+        run: dotnet build extensions/Nalix.Traversal.Contracts/Nalix.Traversal.Contracts.csproj --configuration Release -o ./output/traversal_contracts
+
+      - name: Build Traversal
+        run: dotnet build extensions/Nalix.Traversal/Nalix.Traversal.csproj --configuration Release -o ./output/traversal
+
+      - name: Prepare Observability Zip
+        run: |
+          mkdir -p release_assets/observability
+          cp output/observability_contracts/Nalix.Observability.Contracts.* release_assets/observability/ 2>/dev/null || true
+          cp output/observability/Nalix.Observability.* release_assets/observability/ 2>/dev/null || true
+          
+          cd release_assets/observability
+          sudo apt-get update && sudo apt-get install -y zip
+          zip -r ../Nalix.Observability.zip ./*
+
+      - name: Prepare Traversal Zip
+        run: |
+          mkdir -p release_assets/traversal
+          cp output/traversal_contracts/Nalix.Traversal.Contracts.* release_assets/traversal/ 2>/dev/null || true
+          cp output/traversal/Nalix.Traversal.* release_assets/traversal/ 2>/dev/null || true
+          
+          cd release_assets/traversal
+          zip -r ../Nalix.Traversal.zip ./*
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            release_assets/Nalix.Observability.zip
+            release_assets/Nalix.Traversal.zip

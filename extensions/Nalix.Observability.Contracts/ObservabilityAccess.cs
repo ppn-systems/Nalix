@@ -29,7 +29,7 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
     /// <summary>
     /// Gets the protocol opcode assigned to observability access packets.
     /// </summary>
-    public const ushort OpCodeValue = 0x0B;
+    public const ushort OpCodeValue = 0x00FD;
 
     /// <summary>
     /// Gets or sets the access packet lifecycle stage.
