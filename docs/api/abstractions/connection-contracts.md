@@ -10,11 +10,13 @@
 - `src/Nalix.Abstractions/Networking/IConnection.cs`
 - `src/Nalix.Abstractions/Networking/IConnection.Hub.cs`
 - `src/Nalix.Abstractions/Networking/IConnection.Transmission.cs`
+- `src/Nalix.Abstractions/Networking/IConnection.TrafficMetrics.cs`
 - `src/Nalix.Abstractions/Networking/IProtocol.cs`
 
 ## Main types
 
 - `IConnection`
+- `IConnectionTrafficMetrics`
 - `IConnectionHub`
 - `IProtocol`
 
@@ -22,7 +24,8 @@
 
 | Type | Public members |
 |---|---|
-| `IConnection` | `IsDisposed`, `ID`, `UpTime`, `BytesSent`, `BytesReceived`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `IsUdpCreated`, `TCP`, `UDP`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
+| `IConnection` | `IsDisposed`, `ID`, `UpTime`, `LastPingTime`, `NetworkEndpoint`, `Attributes`, `Secret`, `Level`, `Algorithm`, `IsUdpCreated`, `TCP`, `UDP`, `OnCloseEvent`, `OnProcessEvent`, `OnPostProcessEvent`, `Disconnect(...)` |
+| `IConnectionTrafficMetrics` | `BytesSent`, `BytesReceived`, `IncrementBytesSent(...)`, `IncrementBytesReceived(...)` |
 | `IConnectionHub` | `Count`, `ConnectionUnregistered`, `GetConnection(...)`, `RegisterConnection(...)`, `UnregisterConnection(...)`, `ListConnections(...)` |
 | `IProtocol` | `KeepConnectionOpen`, `OnAccept(...)`, `ProcessMessage(...)`, `PostProcessMessage(...)` |
 
@@ -34,16 +37,28 @@ It exposes:
 
 - connection identity
 - endpoint information
-- connection metrics such as uptime and bytes sent
+- connection uptime and ping metrics
 - crypto state such as `Secret` and `Algorithm`
 - lifecycle events
 - close and disconnect operations
+
+Traffic byte counters (`BytesSent`, `BytesReceived`) are defined on the separate `IConnectionTrafficMetrics` interface.
 
 ### Common pitfalls
 
 - treating `Secret` like a nullable optional when the current transport flow depends on it
 - updating `Attributes` from multiple paths without coordinating ownership
 - assuming `Disconnect(...)` is interchangeable in every lifecycle path
+
+## IConnectionTrafficMetrics
+
+`IConnectionTrafficMetrics` provides byte-level traffic counters for a connection.
+
+It exposes:
+
+- `BytesSent` — total bytes transmitted
+- `BytesReceived` — total bytes received
+- `IncrementBytesSent(...)` / `IncrementBytesReceived(...)` — atomic increment helpers
 
 ## IConnectionHub
 
@@ -84,7 +99,7 @@ It supports:
 IConnection connection = hub.GetConnection(connectionId);
 IProtocol protocol = new SampleProtocol();
 
-protocol.OnAccept(connection, ct);
+protocol.OnAccept(connection);
 protocol.ProcessMessage(sender, args);
 ```
 

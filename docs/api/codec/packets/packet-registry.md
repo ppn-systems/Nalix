@@ -26,7 +26,7 @@ The registry must be "built" before it can be used for deserialization. Calling 
 
 | Type | Public members |
 | --- | --- |
-| `PacketRegistry` | `Configure(IObjectPoolManager)`, `RegisterGenerated(PacketDispatch)`, `RegisterGenerated(uint, string, PacketDeserializer)`, `Build()`, `IsKnownMagic`, `TryDeserialize`, `Manager` |
+| `PacketRegistry` | `Configure(IObjectPoolManager)`, `RegisterGenerated(PacketDispatch)`, `RegisterGenerated(uint, string, PacketDeserializer)`, `Build()`, `IsKnownMagic`, `TryDeserialize`, `IsBuilt`, `DeserializerCount` |
 
 ## Usage
 
@@ -60,7 +60,7 @@ if (PacketRegistry.TryDeserialize(bufferLease.Span, out IPacket? packet))
 ## Practical notes
 
 - **Magic Numbers**: Magic numbers are 4-byte hashes derived from the packet's full type name. They provide collision-resistant identification without the overhead of strings.
-- **Built-in Packets**: Built-in frames like `Handshake`, `Control`, and `SessionResume` are automatically registered by the framework.
+- **Built-in Packets**: Built-in frames like `SessionInit`, `Control`, and `SessionResume` are automatically registered by the framework.
 - **Threading**: `PacketRegistry` is thread-safe after `Build()` is called.
 
 ## Related APIs

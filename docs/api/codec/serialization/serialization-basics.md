@@ -11,7 +11,7 @@ Use this page when you want the lower-level model behind `LiteSerializer` and `F
 - `src/Nalix.Codec/Serialization/LiteSerializer.cs`
 - `src/Nalix.Abstractions/Primitives`
 - `src/Nalix.Codec/Serialization/Formatters/Collections`
-- `src/Nalix.Analyzers.Generators/SerializeFormatterGenerator.cs`
+- `analyzers/Nalix.Analyzers.Generators/SerializeFormatterGenerator.cs`
 
 ## Main types
 

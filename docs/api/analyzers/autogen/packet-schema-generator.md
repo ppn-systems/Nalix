@@ -4,7 +4,7 @@ The Packet Schema Generator produces binary schema metadata for all packet types
  
 ## Source Mapping
  
-- `src/Nalix.Analyzers.Generators/PacketSchemaGenerator.cs`
+- `analyzers/Nalix.Analyzers.Generators/PacketSchemaGenerator.cs`
  
 ## Overview
  

@@ -1,7 +1,5 @@
 # Serialization Attributes
 
-# Serialization Attributes
-
 `Nalix.Abstractions.Serialization` contains the low-level attributes and helpers that shape how packets and models are serialized.
 
 Use this page when you need to understand the attribute layer before you work with `PacketBase<TSelf>` or `LiteSerializer`.

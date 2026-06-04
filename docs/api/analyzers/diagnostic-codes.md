@@ -1,7 +1,7 @@
 # NALIX Diagnostic Codes
 
 This page lists the diagnostic descriptors emitted by `Nalix.Analyzers`.
-The source of truth is `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`.
+The source of truth is `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`.
 
 ## Usage and Dispatch Codes
 
@@ -68,7 +68,6 @@ The source of truth is `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs
 | `NALIX024` | Configuration property is not bindable | Info | Configuration | Non-bindable config properties should expose a public setter or use `[ConfiguredIgnore]`. |
 | `NALIX027` | RequestOptions RetryCount should not be negative | Warning | SDK | `RequestOptions.RetryCount` must be `>= 0`. |
 | `NALIX028` | RequestOptions TimeoutMs should not be negative | Warning | SDK | `RequestOptions.TimeoutMs` must be `>= 0`; `0` waits indefinitely. |
-| `NALIX029` | Encrypted RequestAsync requires TcpSession | Warning | SDK | `RequestOptions.Encrypt=true` requires the client to be `TcpSession`. |
 | `NALIX037` | Potential allocation in hot path | Info | Performance | High-frequency Nalix hot paths should avoid allocations where practical. |
 | `NALIX039` | Potential IBufferLease leak | Warning | Usage | `IBufferLease` must be disposed exactly once on all code paths. |
 | `NALIX040` | NetworkApplicationBuilder should configure BufferPoolManager | Info | Performance | Explicit buffer pool configuration can reduce allocation pressure. |
@@ -77,12 +76,11 @@ The source of truth is `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs
 | `NALIX043` | NetworkApplicationBuilder metadata provider type is not constructible | Warning | Usage | Metadata provider types should be concrete constructible classes. |
 | `NALIX044` | NetworkApplicationBuilder should configure a TCP binding | Info | Usage | Hosts usually need at least one TCP binding. |
 | `NALIX045` | NetworkApplicationBuilder should configure TCP before UDP | Info | Usage | UDP bindings are expected to be paired with TCP bindings in this host setup. |
-| `NALIX053` | Encrypted RequestAsync requires TcpSession (options variable path) | Warning | SDK | The encrypted-request TCP requirement also applies when options are built through variables. |
 | `NALIX057` | RequestOptions uses infinite timeout with retries | Info | SDK | `TimeoutMs=0` can make retries ineffective because each attempt may wait indefinitely. |
 
 ## Source Mapping
 
-- `src/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`
-- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.cs`
-- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.InvocationAnalysis.cs`
-- `src/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.SymbolSet.cs`
+- `analyzers/Nalix.Analyzers/Diagnostics/DiagnosticDescriptors.cs`
+- `analyzers/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.cs`
+- `analyzers/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.InvocationAnalysis.cs`
+- `analyzers/Nalix.Analyzers/Analyzers/NalixUsageAnalyzer.SymbolSet.cs`
