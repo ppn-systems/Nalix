@@ -28,9 +28,4 @@ public static class PacketConstants
     /// The minimum payload size, in bytes, required to enable compression.
     /// </summary>
     public const short CompressionThreshold = 0x0100;
-
-    /// <summary>
-    /// The maximum allowed total packet size, in bytes.
-    /// </summary>
-    public const int PacketSizeLimit = int.MaxValue - HeaderSize;
 }

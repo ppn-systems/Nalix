@@ -133,6 +133,40 @@ public sealed class Bytes32Tests
     }
 
     [Fact]
+    public void Parse_ValidLowercaseHex_Succeeds()
+    {
+        string hex = "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20";
+        Bytes32 b = Bytes32.Parse(hex);
+        Assert.Equal(hex.ToUpperInvariant(), b.ToString());
+    }
+
+    [Fact]
+    public void Parse_ValidUppercaseHex_Succeeds()
+    {
+        string hex = "0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F20";
+        Bytes32 b = Bytes32.Parse(hex);
+        Assert.Equal(hex, b.ToString());
+    }
+
+    [Theory]
+    [InlineData("0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1Fzz")] // invalid characters zz
+    [InlineData("0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F--")] // invalid symbols
+    [InlineData("0102030405060708090A0B0C0D0E0F10111213 415161718191A1B1C1D1E1F20")] // whitespace inside body
+    [InlineData(" 0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F2")] // odd length (63 chars) with leading space
+    [InlineData("0102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1F200")] // too long (65 chars)
+    [InlineData("01020304050607")] // too short
+    public void Parse_InvalidHex_ThrowsFormatException(string invalidHex)
+    {
+        Assert.Throws<FormatException>(() => Bytes32.Parse(invalidHex));
+    }
+
+    [Fact]
+    public void Parse_NullHex_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => Bytes32.Parse(null!));
+    }
+
+    [Fact]
     public void GetHashCode_SameData_SameHashCode()
     {
         byte[] data = new byte[32];

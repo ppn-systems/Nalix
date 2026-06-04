@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -19,10 +19,6 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// <summary>
     /// Maximum allowed size (in bytes) of the raw payload the caller can pass to <c>SendAsync</c>.
     /// Exceeding this limit will cause <see cref="ArgumentOutOfRangeException"/> to be thrown.
-    /// <para>
-    /// This is different from <see cref="PacketConstants.PacketSizeLimit"/>: the payload can be larger than a single framed packet,
-    /// as it will be automatically chunked.
-    /// </para>
     /// Default: 16 MB.
     /// </summary>
     [IniComment("Max allowed payload size in bytes before sending (default 16MB)")]
@@ -32,9 +28,6 @@ public sealed partial class FragmentOptions : ConfigurationLoader, IValidatableC
     /// <summary>
     /// Threshold (in bytes) to activate automatic chunking.
     /// When <c>payload.Length &gt; ChunkThreshold</c>, <c>SendAsync</c> will split the data into multiple chunks.
-    /// <para>
-    /// This value must be less than <see cref="PacketConstants.PacketSizeLimit"/> minus 9 bytes (header overhead).
-    /// </para>
     /// Default: 32KB (fits a single Ethernet MTU after TCP/IP overhead).
     /// </summary>
     [IniComment("Max chunk size in bytes (default 32KB)")]

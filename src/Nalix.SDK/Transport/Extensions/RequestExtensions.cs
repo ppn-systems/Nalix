@@ -30,6 +30,10 @@ namespace Nalix.SDK.Transport.Extensions;
 /// <para>
 /// <b>Retry:</b> only <see cref="TimeoutException"/> triggers a retry.
 /// Fatal errors (send failure, disconnect) propagate immediately.
+/// <br/>
+/// <b>WARNING:</b> Retrying requests is only safe for idempotent requests. Since a timeout
+/// does not prove the server did not receive/process the request, retrying non-idempotent
+/// requests can result in duplicate side effects.
 /// </para>
 /// <para>
 /// <see cref="RequestAsync{TResponse}"/> is the safe, race-condition-free way to

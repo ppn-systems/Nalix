@@ -107,7 +107,7 @@ public class TcpSession : TransportSession
             }
 
             // Initialize socket with NoDelay to reduce latency
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = this.Options.NoDelay };
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (this.Options.ConnectTimeoutMillis > 0)
@@ -166,7 +166,7 @@ public class TcpSession : TransportSession
             }
 
             // Initialize socket with NoDelay to reduce latency
-            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = this.Options.NoDelay };
 
             using CancellationTokenSource connectCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             if (this.Options.ConnectTimeoutMillis > 0)

@@ -392,7 +392,7 @@ public abstract partial class UdpListenerBase
             ConnectionEventArgs args = connection.AcquireEventArgs();
             args.Initialize(incomingLease, connection);
 
-            if (!Internal.Transport.AsyncCallback.Invoke(s_onProcessFrameBridge, this, args))
+            if (!Internal.Transport.AsyncCallback.Invoke(s_onProcessFrameBridge, this, args, CallbackLane.Process))
             {
                 args.Dispose();
             }

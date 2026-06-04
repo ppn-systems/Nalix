@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
 using Nalix.Network.Internal.Pooling;
@@ -25,27 +26,57 @@ using Nalix.Network.Options;
 namespace Nalix.Network.Internal.Transport;
 
 /// <summary>
+/// Specifies the processing lane for a network callback to ensure fairness and prevent starvation.
+/// </summary>
+internal enum CallbackLane
+{
+    /// <summary>
+    /// Lane for incoming data processing (OnFrameReceived).
+    /// </summary>
+    Process,
+    /// <summary>
+    /// Lane for post-send processing (OnFrameSent).
+    /// </summary>
+    Post
+}
+
+/// <summary>
+/// Contains metrics about the AsyncCallback dispatcher.
+/// </summary>
+internal readonly struct AsyncCallbackMetrics
+{
+    public readonly int PendingProcess;
+    public readonly int PendingPost;
+    public readonly long Dropped;
+    public readonly long Total;
+    public readonly long SlowCallbacks;
+    public readonly long FairnessCollisions;
+    public readonly long FairnessEvictions;
+
+    public AsyncCallbackMetrics(int pendingProcess, int pendingPost, long dropped, long total, long slowCallbacks, long fairnessCollisions, long fairnessEvictions)
+    {
+        PendingProcess = pendingProcess;
+        PendingPost = pendingPost;
+        Dropped = dropped;
+        Total = total;
+        SlowCallbacks = slowCallbacks;
+        FairnessCollisions = fairnessCollisions;
+        FairnessEvictions = fairnessEvictions;
+    }
+}
+
+/// <summary>
 /// Fire-and-forget dispatcher that offloads callbacks to the ThreadPool.
 ///
 /// <para><b>Layer 2 — Two-priority dispatch:</b><br/>
 /// Callbacks are split into two lanes:
 /// <list type="bullet">
 ///   <item><b>High priority</b> — close/disconnect events. Always dispatched immediately,
-///         not subject to backpressure limits. This ensures connections are cleaned up even
-///         when the server is under heavy load.</item>
+///         not subject to backpressure limits.</item>
 ///   <item><b>Normal priority</b> — process/post-process packet events. Subject to the
-///         global <see cref="NetworkCallbackOptions.MaxPendingNormalCallbacks"/> cap. When the cap is reached, new normal
-///         callbacks are dropped and a warning is logged. Callers (e.g.
-///         <see cref="SocketConnection"/>) enforce per-connection limits (Layer 1)
-///         so legitimate connections are not affected by a single flooding IP.</item>
+///         global caps. Separated into Process and Post lanes.</item>
 /// </list>
 /// </para>
-///
-/// <para><b>Per-IP fairness tracking:</b><br/>
-/// The dispatcher counts how many normal callbacks are currently pending per remote-IP string.
-/// If a single IP exceeds <see cref="NetworkCallbackOptions.MaxPendingPerIp"/>, its callbacks are dropped
-/// individually — regardless of how much global headroom remains. This prevents one
-/// attacker IP from monopolising the global callback quota and starving other IPs.</para>
 /// </summary>
 [DebuggerNonUserCode]
 [ExcludeFromCodeCoverage]
@@ -54,11 +85,7 @@ internal static class AsyncCallback
 {
     #region Options
 
-    /// <summary>
-    /// Loaded once at startup from NetworkCallbackOptions via ConfigurationManager.
-    /// All throttle values are read from config so they can be tuned without recompile.
-    /// </summary>
-    private static readonly NetworkCallbackOptions s_opts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+    private static readonly NetworkCallbackOptions s_netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
     private static readonly PoolingOptions s_pooling = ConfigurationManager.Instance.Get<PoolingOptions>();
 
     #endregion Options
@@ -68,9 +95,15 @@ internal static class AsyncCallback
     /// <summary>
     /// ── Global counters ────────────────────────────────────────────────────────
     /// </summary>
-    private static int s_pendingNormal;
+    private static int s_pendingProcess;
+    private static int s_pendingPost;
     private static long s_totalInvoked;
     private static long s_droppedCallbacks;
+
+    // Metrics
+    private static long s_slowCallbacks;
+    private static long s_fairnessCollisions;
+    private static long s_fairnessEvictions;
 
     private static readonly ILogger? s_logger = InstanceManager.Instance.GetExistingInstance<ILogger>();
 
@@ -78,8 +111,9 @@ internal static class AsyncCallback
     private static readonly ThrottleKey s_keyPerIpBackpressure = new("async.per_ip_backpressure");
     private static readonly ThrottleKey s_keyHighBackpressure = new("async.high_backpressure");
     private static readonly ThrottleKey s_keyQueueException = new("async.queue_exception");
-    private static readonly ThrottleKey s_keyQueueFailed = new("async.queue_failed");
     private static readonly ThrottleKey s_keyCallbackError = new("async.callback_error");
+    private static readonly ThrottleKey s_keySlowCallback = new("async.slow_callback");
+    private static readonly ThrottleKey s_keyQueueFailed = new("async.queue_failed");
 
     static AsyncCallback()
     {
@@ -91,36 +125,44 @@ internal static class AsyncCallback
         _ = InstanceManager.Instance.GetOrCreateInstance<ObjectPoolManager>()
                                     .Prealloc<PooledConnectEventContext>(s_pooling.ConnectEventContextPreallocate);
 
-        s_perIpFairnessMap = new long[s_opts.FairnessMapSize];
+        s_perIpPostMap = new long[s_netOpts.FairnessMapSize];
+        s_perIpProcessMap = new long[s_netOpts.FairnessMapSize];
     }
 
     /// <summary>
     /// ── Per-IP pending counter ─────────────────────────────────────────────────
-    /// Uses a fixed-size hash map with linear probing (up to 8 probes) to avoid 
-    /// Node allocations in ConcurrentDictionary. The long packs (HashCode | Count).
-    /// Capacity is configurable via <see cref="NetworkCallbackOptions.FairnessMapSize"/>.
     /// </summary>
-    private static readonly long[] s_perIpFairnessMap;
+    private static readonly long[] s_perIpPostMap;
+    private static readonly long[] s_perIpProcessMap;
 
     /// <summary>
     /// ── Static delegates — no closures, no per-invocation allocations ──────────
     /// </summary>
-    private static readonly Action<object> s_invokeNormal = static stateObj =>
+    private static readonly Action<object> s_invokeProcess = static stateObj =>
     {
         if (stateObj is not PooledConnectEventContext w)
         {
             return;
         }
 
-        // Decrement global counter first.
-        _ = Interlocked.Decrement(ref s_pendingNormal);
+        _ = Interlocked.Decrement(ref s_pendingProcess);
 
-        // Decrement the per-IP counter only after the callback actually runs.
-        // Once the count reaches zero, remove the key so the fairness map stays
-        // bounded and a short-lived remote endpoint does not leave stale entries.
         INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(w.Args);
-        RELEASE_ENDPOINT_SLOT(endpoint);
+        RELEASE_ENDPOINT_SLOT(endpoint, CallbackLane.Process);
+        EXECUTE_AND_RETURN(w);
+    };
 
+    private static readonly Action<object> s_invokePost = static stateObj =>
+    {
+        if (stateObj is not PooledConnectEventContext w)
+        {
+            return;
+        }
+
+        _ = Interlocked.Decrement(ref s_pendingPost);
+
+        INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(w.Args);
+        RELEASE_ENDPOINT_SLOT(endpoint, CallbackLane.Post);
         EXECUTE_AND_RETURN(w);
     };
 
@@ -142,20 +184,13 @@ internal static class AsyncCallback
     /// Schedules a <b>normal-priority</b> (process / post-process) callback on the ThreadPool.
     /// Subject to global and per-IP backpressure limits.
     /// </summary>
-    /// <param name="callback">The event handler to invoke.</param>
-    /// <param name="sender">The sender object (typically an <see cref="IConnection"/>).</param>
-    /// <param name="args">The event arguments.</param>
-    /// <param name="releasePendingPacketOnCompletion">
-    /// <see langword="true"/> when the callback corresponds to a receive-path
-    /// packet that already reserved one per-connection pending slot.
-    /// </param>
-    /// <returns><see langword="true"/> if the callback was queued; <see langword="false"/> if dropped.</returns>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool Invoke(
         EventHandler<IConnectEventArgs>? callback,
         object? sender,
         IConnectEventArgs args,
+        CallbackLane lane,
         bool releasePendingPacketOnCompletion = false)
     {
         if (callback is null)
@@ -169,53 +204,39 @@ internal static class AsyncCallback
             return false;
         }
 
-        if (!TRY_RESERVE_GLOBAL_SLOT(out int globalPending))
+        if (!TRY_RESERVE_GLOBAL_SLOT(lane, out int globalPending))
         {
-            // Drop the callback before queuing work so one overloaded server path
-            // cannot keep piling up work items and consuming the entire normal lane.
             Interlocked.Increment(ref s_droppedCallbacks);
-            LOG_THROTTLED_ERROR_SAFE(args, s_keyGlobalBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure pending={globalPending} dropped={s_droppedCallbacks} ip={GET_ENDPOINT_SAFE(args)}");
+            LOG_THROTTLED_ERROR_SAFE(args, s_keyGlobalBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] global-backpressure lane={lane} pending={globalPending} dropped={s_droppedCallbacks} ip={GET_ENDPOINT_SAFE(args)}");
             return false;
         }
 
-        // Per-IP fairness is checked before the work item is queued so one remote
-        // endpoint cannot reserve the global pool faster than others and starve
-        // healthy peers.
-        // Unknown/null endpoints are grouped into a single bucket (hash 0) to prevent limit bypass.
         INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
-        if (!TRY_RESERVE_ENDPOINT_SLOT(endpoint, out int ipPending))
+        if (!TRY_RESERVE_ENDPOINT_SLOT(endpoint, lane, out int ipPending))
         {
-            // Apply per-IP fairness first so a single remote endpoint cannot
-            // monopolize the queue even if there is still global headroom.
-            RELEASE_GLOBAL_SLOT();
+            RELEASE_GLOBAL_SLOT(lane);
             Interlocked.Increment(ref s_droppedCallbacks);
-            LOG_THROTTLED_WARN_SAFE(args, s_keyPerIpBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure ip={endpoint?.ToString() ?? "unknown"} pending={ipPending} max={s_opts.MaxPendingPerIp}");
+            int maxPerIp = lane == CallbackLane.Process ? s_netOpts.MaxPendingPerIp : s_netOpts.MaxPendingPostPerIp;
+            LOG_THROTTLED_WARN_SAFE(args, s_keyPerIpBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] per-ip-backpressure lane={lane} ip={endpoint?.ToString() ?? "unknown"} pending={ipPending} max={maxPerIp}");
             return false;
         }
 
-        // ── Warn when approaching global limit ────────────────────────────────
-        int warnThreshold = s_opts.CallbackWarningThreshold;
+        int warnThreshold = s_netOpts.CallbackWarningThreshold;
         if (warnThreshold > 0 && globalPending >= warnThreshold && globalPending % 1_000 == 0)
         {
-            LOG_THROTTLED_WARN_SAFE(args, s_keyHighBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure pending={globalPending} max={s_opts.MaxPendingNormalCallbacks}");
+            int maxLane = lane == CallbackLane.Process ? s_netOpts.MaxPendingNormalCallbacks : s_netOpts.MaxPendingPostCallbacks;
+            LOG_THROTTLED_WARN_SAFE(args, s_keyHighBackpressure, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] high-backpressure lane={lane} pending={globalPending} max={maxLane}");
         }
 
         Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeNormal, callback, sender, args, isHigh: false, releasePendingPacketOnCompletion);
+        Action<object> invoker = lane == CallbackLane.Process ? s_invokeProcess : s_invokePost;
+        return QUEUE(invoker, callback, sender, args, isHigh: false, releasePendingPacketOnCompletion, lane);
     }
 
     /// <summary>
     /// Schedules a <b>high-priority</b> (close / disconnect) callback on the ThreadPool.
-    /// <para>
-    /// High-priority callbacks bypass all backpressure limits so that connection cleanup
-    /// is never delayed by a flood of normal-priority callbacks. The counter
-    /// <see cref="s_pendingNormal"/> is <b>not</b> incremented for these callbacks.
-    /// </para>
     /// </summary>
-    /// <param name="callback">The event handler to invoke.</param>
-    /// <param name="sender">The sender object.</param>
-    /// <param name="args">The event arguments.</param>
     [DebuggerStepThrough]
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool InvokeHighPriority(
@@ -230,21 +251,28 @@ internal static class AsyncCallback
 
         _ = Interlocked.Increment(ref s_totalInvoked);
 
-        return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true, releasePendingPacketOnCompletion: false);
+        return QUEUE(s_invokeHigh, callback, sender, args, isHigh: true, releasePendingPacketOnCompletion: false, CallbackLane.Process);
     }
 
     /// <summary>Gets diagnostic statistics about callback processing.</summary>
-    public static (int PendingNormal, long Dropped, long Total) GetStatistics()
-        => (Volatile.Read(ref s_pendingNormal),
+    public static AsyncCallbackMetrics GetStatistics()
+        => new(
+            Volatile.Read(ref s_pendingProcess),
+            Volatile.Read(ref s_pendingPost),
             Volatile.Read(ref s_droppedCallbacks),
-            Volatile.Read(ref s_totalInvoked));
+            Volatile.Read(ref s_totalInvoked),
+            Volatile.Read(ref s_slowCallbacks),
+            Volatile.Read(ref s_fairnessCollisions),
+            Volatile.Read(ref s_fairnessEvictions));
 
     /// <summary>Resets dropped/total counters. Used for testing or periodic reporting.</summary>
     internal static void ResetStatistics()
     {
         _ = Interlocked.Exchange(ref s_droppedCallbacks, 0);
         _ = Interlocked.Exchange(ref s_totalInvoked, 0);
-        // Do NOT reset s_pendingNormal — it tracks live work.
+        _ = Interlocked.Exchange(ref s_slowCallbacks, 0);
+        _ = Interlocked.Exchange(ref s_fairnessCollisions, 0);
+        _ = Interlocked.Exchange(ref s_fairnessEvictions, 0);
     }
 
     #endregion Public Methods
@@ -258,7 +286,8 @@ internal static class AsyncCallback
         object? sender,
         IConnectEventArgs args,
         bool isHigh,
-        bool releasePendingPacketOnCompletion)
+        bool releasePendingPacketOnCompletion,
+        CallbackLane lane)
     {
         if (sender is not IPooledConnectContextPool owner)
         {
@@ -270,18 +299,15 @@ internal static class AsyncCallback
 
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
-        bool queued = QUEUE_SAFE(invoker, wrapper, args);
+        bool queued = QUEUE_SAFE(invoker, wrapper, args, preferLocal: isHigh);
 
         if (!queued)
         {
             INetworkEndpoint? endpoint = GET_ENDPOINT_SAFE(args);
-            // Queue failure — extremely rare. Undo the increments we already applied.
             if (!isHigh)
             {
-                // Roll back the reservation so counters stay consistent if the queue
-                // rejects the work item after we already reserved capacity.
-                RELEASE_GLOBAL_SLOT();
-                RELEASE_ENDPOINT_SLOT(endpoint);
+                RELEASE_GLOBAL_SLOT(lane);
+                RELEASE_ENDPOINT_SLOT(endpoint, lane);
             }
 
             _ = Interlocked.Increment(ref s_droppedCallbacks);
@@ -296,11 +322,11 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static bool QUEUE_SAFE(Action<object> invoker, PooledConnectEventContext wrapper, IConnectEventArgs args)
+    private static bool QUEUE_SAFE(Action<object> invoker, PooledConnectEventContext wrapper, IConnectEventArgs args, bool preferLocal)
     {
         try
         {
-            return ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false);
+            return ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal);
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
@@ -310,19 +336,22 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TRY_RESERVE_GLOBAL_SLOT(out int pendingAfter)
+    private static bool TRY_RESERVE_GLOBAL_SLOT(CallbackLane lane, out int pendingAfter)
     {
+        ref int pending = ref (lane == CallbackLane.Process ? ref s_pendingProcess : ref s_pendingPost);
+        int max = lane == CallbackLane.Process ? s_netOpts.MaxPendingNormalCallbacks : s_netOpts.MaxPendingPostCallbacks;
+
         while (true)
         {
-            int observed = Volatile.Read(ref s_pendingNormal);
-            if (observed >= s_opts.MaxPendingNormalCallbacks)
+            int observed = Volatile.Read(ref pending);
+            if (observed >= max)
             {
                 pendingAfter = observed;
                 return false;
             }
 
             pendingAfter = observed + 1;
-            if (Interlocked.CompareExchange(ref s_pendingNormal, pendingAfter, observed) == observed)
+            if (Interlocked.CompareExchange(ref pending, pendingAfter, observed) == observed)
             {
                 return true;
             }
@@ -330,18 +359,35 @@ internal static class AsyncCallback
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RELEASE_GLOBAL_SLOT() => _ = Interlocked.Decrement(ref s_pendingNormal);
+    private static void RELEASE_GLOBAL_SLOT(CallbackLane lane)
+    {
+        if (lane == CallbackLane.Process)
+        {
+            _ = Interlocked.Decrement(ref s_pendingProcess);
+        }
+        else
+        {
+            _ = Interlocked.Decrement(ref s_pendingPost);
+        }
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint? endpoint, out int pendingAfter)
+    private static bool TRY_RESERVE_ENDPOINT_SLOT(INetworkEndpoint? endpoint, CallbackLane lane, out int pendingAfter)
     {
         int hash = endpoint?.GetHashCode() ?? 0;
-        long[] map = s_perIpFairnessMap;
+        long[] map = lane == CallbackLane.Process ? s_perIpProcessMap : s_perIpPostMap;
+        int max = lane == CallbackLane.Process ? s_netOpts.MaxPendingPerIp : s_netOpts.MaxPendingPostPerIp;
+
         int startIndex = (hash & 0x7FFFFFFF) % map.Length;
 
-        for (int probe = 0; probe < 8; probe++)
+        for (int probe = 0; probe < 12; probe++) // Increased probe depth
         {
             int index = (startIndex + probe) % map.Length;
+            if (probe > 0)
+            {
+                _ = Interlocked.Increment(ref s_fairnessCollisions);
+            }
+
             while (true)
             {
                 long current = Volatile.Read(ref map[index]);
@@ -353,7 +399,7 @@ internal static class AsyncCallback
                     break; // Collision, try next slot
                 }
 
-                if (currentCount >= s_opts.MaxPendingPerIp)
+                if (currentCount >= max)
                 {
                     pendingAfter = currentCount;
                     return false; // Rate limited
@@ -368,19 +414,19 @@ internal static class AsyncCallback
             }
         }
 
-        // If we probed 8 slots and they are all full of OTHER IPs, act as if rate limited
-        pendingAfter = s_opts.MaxPendingPerIp;
+        _ = Interlocked.Increment(ref s_fairnessEvictions);
+        pendingAfter = max;
         return false;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint? endpoint)
+    private static void RELEASE_ENDPOINT_SLOT(INetworkEndpoint? endpoint, CallbackLane lane)
     {
         int hash = endpoint?.GetHashCode() ?? 0;
-        long[] map = s_perIpFairnessMap;
+        long[] map = lane == CallbackLane.Process ? s_perIpProcessMap : s_perIpPostMap;
         int startIndex = (hash & 0x7FFFFFFF) % map.Length;
 
-        for (int probe = 0; probe < 8; probe++)
+        for (int probe = 0; probe < 12; probe++) // Match new probe depth
         {
             int index = (startIndex + probe) % map.Length;
             while (true)
@@ -391,7 +437,7 @@ internal static class AsyncCallback
 
                 if (currentCount == 0)
                 {
-                    break; // Empty slot, but our hash might be further down the probe chain due to a previous collision that was freed!
+                    break; // Empty slot, continue probing because it might have been freed!
                 }
 
                 if (currentHash != hash)
@@ -416,14 +462,8 @@ internal static class AsyncCallback
             return null;
         }
 
-        try
-        {
-            return args.Connection;
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            return null;
-        }
+        try { return args.Connection; }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { return null; }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -434,14 +474,8 @@ internal static class AsyncCallback
             return null;
         }
 
-        try
-        {
-            return args.NetworkEndpoint;
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            return null;
-        }
+        try { return args.NetworkEndpoint; }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex)) { return null; }
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -478,16 +512,13 @@ internal static class AsyncCallback
             return;
         }
 
-        if (ex is null)
+        if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
         {
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+            if (ex is null)
             {
                 s_logger.LogError(message);
             }
-        }
-        else
-        {
-            if (s_logger != null && s_logger.IsEnabled(LogLevel.Error))
+            else
             {
                 s_logger.LogError(ex, message);
             }
@@ -499,6 +530,7 @@ internal static class AsyncCallback
     {
         IConnectEventArgs? args = w.Args;
 
+        long startMonoTicks = Clock.MonoTicksNow();
         try
         {
             w.Callback?.Invoke(w.Sender, args);
@@ -509,6 +541,13 @@ internal static class AsyncCallback
         }
         finally
         {
+            double elapsedMs = Clock.MonoTicksToMilliseconds(Clock.MonoTicksNow() - startMonoTicks);
+            if (elapsedMs > s_netOpts.MaxCallbackExecutionMs)
+            {
+                _ = Interlocked.Increment(ref s_slowCallbacks);
+                LOG_THROTTLED_WARN_SAFE(args, s_keySlowCallback, $"[NW.{nameof(AsyncCallback)}:{nameof(Invoke)}] slow-callback execution_ms={elapsedMs:F2} limit_ms={s_netOpts.MaxCallbackExecutionMs} ip={GET_ENDPOINT_SAFE(args)}");
+            }
+
             if (w.ReleasePendingPacketOnCompletion && w.Sender is IPooledConnectContextPool owner)
             {
                 owner.ReleasePendingPacket();

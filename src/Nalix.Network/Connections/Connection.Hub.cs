@@ -22,6 +22,7 @@ using Nalix.Environment.Time;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Tasks;
 using Nalix.Network.Internal.Connections;
+using Nalix.Network.Internal.Transport;
 using Nalix.Network.Options;
 
 namespace Nalix.Network.Connections;
@@ -423,6 +424,20 @@ public sealed class ConnectionHub : IConnectionHub
             _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{kvp.Key,-15} | {kvp.Value,5}");
         }
 
+        // Include AsyncCallback dispatcher metrics
+        Internal.Transport.AsyncCallbackMetrics callbackStats = Internal.Transport.AsyncCallback.GetStatistics();
+        NetworkCallbackOptions netOpts = ConfigurationManager.Instance.Get<NetworkCallbackOptions>();
+        _ = sb.AppendLine();
+        _ = sb.AppendLine("AsyncCallback Queue Dispatcher Stats:");
+        _ = sb.AppendLine("----------------------------------------");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pending Process Callbacks : {callbackStats.PendingProcess:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Pending Post Callbacks    : {callbackStats.PendingPost:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Total Callbacks Invoked   : {callbackStats.Total:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Dropped Callbacks         : {callbackStats.Dropped:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Slow Callbacks (> {netOpts.MaxCallbackExecutionMs}ms) : {callbackStats.SlowCallbacks:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fairness Map Collisions   : {callbackStats.FairnessCollisions:N0}");
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"Fairness Map Evictions    : {callbackStats.FairnessEvictions:N0}");
+
         return sb.ToString();
     }
 
@@ -441,6 +456,19 @@ public sealed class ConnectionHub : IConnectionHub
         writer.WriteNumber("TotalBytesReceived", Volatile.Read(ref _lastTotalBytesReceivedSnapshot));
         writer.WriteNumber("IngressBytesPerSecond", Volatile.Read(ref _ingressBytesPerSecond));
         writer.WriteNumber("EgressBytesPerSecond", Volatile.Read(ref _egressBytesPerSecond));
+
+        // Write AsyncCallback metrics
+        AsyncCallbackMetrics callbackStats = Internal.Transport.AsyncCallback.GetStatistics();
+        writer.WriteStartObject("AsyncCallback");
+        writer.WriteNumber("PendingProcess", callbackStats.PendingProcess);
+        writer.WriteNumber("PendingPost", callbackStats.PendingPost);
+        writer.WriteNumber("TotalInvoked", callbackStats.Total);
+        writer.WriteNumber("Dropped", callbackStats.Dropped);
+        writer.WriteNumber("SlowCallbacks", callbackStats.SlowCallbacks);
+        writer.WriteNumber("FairnessCollisions", callbackStats.FairnessCollisions);
+        writer.WriteNumber("FairnessEvictions", callbackStats.FairnessEvictions);
+        writer.WriteEndObject();
+
         writer.WriteEndObject();
     }
 

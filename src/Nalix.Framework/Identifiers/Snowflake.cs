@@ -233,7 +233,7 @@ public readonly partial struct Snowflake : ISnowflake
             if (now == s_lastTimestamp)
             {
                 s_sequence++;
-                
+
                 if (s_sequence > 0x3FFF)
                 {
                     SpinWait spinWait = new();

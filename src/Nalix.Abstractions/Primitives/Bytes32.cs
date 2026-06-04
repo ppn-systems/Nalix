@@ -152,23 +152,35 @@ public readonly struct Bytes32 : IEquatable<Bytes32>, IFixedSizeSerializable
     /// </summary>
     public static Bytes32 Parse(string hex)
     {
-        if (string.IsNullOrEmpty(hex))
+        ArgumentNullException.ThrowIfNull(hex);
+
+        if (hex.Length != 64)
         {
-            return Zero;
+            throw new FormatException("The hex string must be exactly 64 characters long.");
         }
 
 #if NET10_0_OR_GREATER
-        return new Bytes32(Convert.FromHexString(hex));
-#else
-        if (hex.Length != 64)
+        try
         {
-            throw new FormatException("The hex string must be 64 characters long.");
+            return new Bytes32(Convert.FromHexString(hex));
+        }
+        catch (FormatException ex)
+        {
+            throw new FormatException("Invalid hex character or format.", ex);
+        }
+#else
+        for (int i = 0; i < 64; i++)
+        {
+            char c = hex[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+            {
+                throw new FormatException("Invalid hex character.");
+            }
         }
 
         Span<byte> bytes = stackalloc byte[32];
         for (int i = 0; i < 32; i++)
         {
-            // Chuyển đổi từng cặp ký tự Hex thành 1 byte
             bytes[i] = (byte)((GET_HEX_VAL_STANDARD_21(hex[i << 1]) << 4) + GET_HEX_VAL_STANDARD_21(hex[(i << 1) + 1]));
         }
         return new Bytes32(bytes);

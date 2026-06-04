@@ -105,7 +105,7 @@ internal sealed class SocketEventBridge : ITransportEventSink
 
         args.Initialize(lease, connection);
 
-        if (!AsyncCallback.Invoke(_callbackProcess, connection, args, releasePendingPacketOnCompletion: true))
+        if (!AsyncCallback.Invoke(_callbackProcess, connection, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
         {
             _ = Interlocked.Decrement(ref _pendingProcessCallbacks);
             _ = args.ExchangeLease(null);
@@ -124,7 +124,7 @@ internal sealed class SocketEventBridge : ITransportEventSink
                                     ?? s_pool.Get<ConnectionEventArgs>();
         args.Initialize(connection);
 
-        if (!AsyncCallback.Invoke(_callbackPost, connection, args))
+        if (!AsyncCallback.Invoke(_callbackPost, connection, args, CallbackLane.Post))
         {
             args.Dispose();
         }

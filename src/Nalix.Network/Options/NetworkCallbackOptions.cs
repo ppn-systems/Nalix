@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using Nalix.Abstractions;
@@ -111,9 +111,30 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader, IValid
     /// Size of the fixed-size array used for Layer 2 per-IP fairness tracking.
     /// Larger values reduce hash collisions (false backpressure) but consume more memory.
     /// </summary>
-    [IniComment("Size of the fixed-size fairness map array (default 4096) (min=1024, max=65536)")]
+    [IniComment("Size of the fixed-size fairness map array (default 16384) (min=1024, max=65536)")]
     [System.ComponentModel.DataAnnotations.Range(1024, 65536, ErrorMessage = "FairnessMapSize must be between 1024 and 65536.")]
-    public int FairnessMapSize { get; set; } = 4096;
+    public int FairnessMapSize { get; set; } = 16384;
+
+    /// <summary>
+    /// Maximum total <b>post-process</b> (send) callbacks that may be pending globally.
+    /// </summary>
+    [IniComment("Max total send callbacks pending globally (Layer 2, default 5000) (min=100, max=1000000)")]
+    [System.ComponentModel.DataAnnotations.Range(100, 1_000_000, ErrorMessage = "MaxPendingPostCallbacks must be between 100 and 1,000,000.")]
+    public int MaxPendingPostCallbacks { get; set; } = 5_000;
+
+    /// <summary>
+    /// Maximum send callbacks pending for a <b>single remote IP</b>.
+    /// </summary>
+    [IniComment("Max send callbacks per remote IP (Layer 2, default 32)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 10_000, ErrorMessage = "MaxPendingPostPerIp must be between 1 and 10,000.")]
+    public int MaxPendingPostPerIp { get; set; } = 32;
+
+    /// <summary>
+    /// Maximum execution time for a single callback before it is considered slow and logged.
+    /// </summary>
+    [IniComment("Max execution time for a single callback before logging a warning (default 50) (min=1, max=60000)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 60_000, ErrorMessage = "MaxCallbackExecutionMs must be between 1 and 60,000.")]
+    public int MaxCallbackExecutionMs { get; set; } = 50;
 
     #endregion Layer 2 — Global and per-IP callback caps
 
@@ -121,7 +142,6 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader, IValid
     public void Validate()
     {
         this.ValidateDataAnnotations();
-
 
         // Cross-field guard: warning threshold should be below global cap
         if (this.CallbackWarningThreshold > 0 && this.CallbackWarningThreshold >= this.MaxPendingNormalCallbacks)
@@ -135,6 +155,13 @@ public sealed partial class NetworkCallbackOptions : ConfigurationLoader, IValid
         {
             throw new System.ArgumentException(
                 $"{nameof(this.MaxPendingPerIp)} ({this.MaxPendingPerIp}) must not exceed {nameof(this.MaxPendingNormalCallbacks)} ({this.MaxPendingNormalCallbacks}).");
+        }
+
+        // Cross-field guard: post-process per-IP cap should not exceed post-process global cap
+        if (this.MaxPendingPostPerIp > this.MaxPendingPostCallbacks)
+        {
+            throw new System.ArgumentException(
+                $"{nameof(this.MaxPendingPostPerIp)} ({this.MaxPendingPostPerIp}) must not exceed {nameof(this.MaxPendingPostCallbacks)} ({this.MaxPendingPostCallbacks}).");
         }
     }
 }

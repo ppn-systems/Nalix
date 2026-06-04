@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -223,7 +223,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(this);
 
-        if (!Internal.Transport.AsyncCallback.Invoke(OnPostProcessEventBridge, this, args))
+        if (!Internal.Transport.AsyncCallback.Invoke(OnPostProcessEventBridge, this, args, CallbackLane.Post))
         {
             args.Dispose();
         }
@@ -247,7 +247,7 @@ public sealed class WebSocketConnection : IConnection, IConnectionErrorTracked, 
         ConnectionEventArgs args = this.AcquireEventArgs();
         args.Initialize(lease, this);
 
-        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, releasePendingPacketOnCompletion: true))
+        if (!Internal.Transport.AsyncCallback.Invoke(OnProcessEventBridge, this, args, CallbackLane.Process, releasePendingPacketOnCompletion: true))
         {
             ((IPooledConnectContextPool)this).ReleasePendingPacket();
             _ = args.ExchangeLease(null);
