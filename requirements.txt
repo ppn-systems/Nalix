@@ -1,5 +1,5 @@
 mkdocs==1.6.1
 mkdocs-material[imaging]==9.7.6
 mkdocs-mermaid2-plugin==1.2.3
-mkdocs-git-revision-date-localized-plugin==1.5.2
-codespell==2.4.2
+mkdocs-git-revision-date-localized-plugin==1.5.3
+codespell==2.3.0
