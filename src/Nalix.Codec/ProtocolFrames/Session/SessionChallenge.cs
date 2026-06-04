@@ -19,8 +19,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_CHALLENGE")]
-public sealed partial class SessionChallenge : PacketBase<SessionChallenge>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class SessionChallenge : PacketBase<SessionChallenge>, IFixedSizeSerializable, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SESSION_CHALLENGE;
+
     /// <summary>
     /// Gets or sets the server's ephemeral public key.
     /// </summary>
@@ -49,7 +52,7 @@ public sealed partial class SessionChallenge : PacketBase<SessionChallenge>, IFi
     /// </summary>
     public void Initialize(Bytes32 publicKey, Bytes32 nonce, Bytes32 proof, PacketFlags flags = PacketFlags.SYSTEM)
     {
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.PublicKey = publicKey;
@@ -65,7 +68,7 @@ public sealed partial class SessionChallenge : PacketBase<SessionChallenge>, IFi
         this.Nonce = Bytes32.Zero;
         this.Proof = Bytes32.Zero;
         this.Priority = PacketPriority.URGENT;
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.Flags = PacketFlags.SYSTEM;
     }
 

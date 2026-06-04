@@ -24,12 +24,10 @@ namespace Nalix.Observability.Contracts;
 [GenerateFormatterAttribute]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("OBSERVABILITY_ACCESS Stage={Stage}, Granted={AccessLevel}, Reason={Reason}")]
-public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess>, IPacketValidatable
+public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess>, IPacketValidatable, IPacketStaticOpcode
 {
-    /// <summary>
-    /// Gets the protocol opcode assigned to observability access packets.
-    /// </summary>
-    public const ushort OpCodeValue = 0x00FD;
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.OBSERVABILITY_ACCESS;
+
 
     /// <summary>
     /// Gets or sets the access packet lifecycle stage.
@@ -75,7 +73,7 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         Bytes32 accessKey = default,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = OpCodeValue;
+
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.Stage = stage;
@@ -90,7 +88,7 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = OpCodeValue;
+
         this.Priority = PacketPriority.URGENT;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = ObservabilityAccessStage.NONE;
@@ -117,3 +115,4 @@ public sealed partial class ObservabilityAccess : PacketBase<ObservabilityAccess
         return isValid;
     }
 }
+

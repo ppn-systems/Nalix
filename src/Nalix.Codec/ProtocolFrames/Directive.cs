@@ -16,8 +16,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("Directive Seq={SequenceId}, Type={Type}, Reason={Reason}, Action={Action}")]
-public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable
+public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SYSTEM_DIRECTIVE;
+
     /// <summary>
     /// Gets or sets the directive type.
     /// </summary>
@@ -66,11 +69,7 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
     /// <summary>
     /// Initializes a new instance with default values.
     /// </summary>
-    public Directive()
-    {
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
-        this.Priority = PacketPriority.HIGH;
-    }
+    public Directive() => this.Priority = PacketPriority.HIGH;
 
     /// <summary>Initializes the directive payload.</summary>
     /// <param name="type">The directive type.</param>
@@ -97,42 +96,12 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
         this.Action = action;
         this.Control = controlFlags;
         this.SequenceId = sequenceId;
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
 
         this.Priority = PacketPriority.HIGH;
     }
 
-    /// <summary>Initializes the directive payload with a custom opcode.</summary>
-    /// <param name="opCode">The opcode to assign.</param>
-    /// <param name="type">The directive type.</param>
-    /// <param name="reason">The reason code.</param>
-    /// <param name="action">The suggested client action.</param>
-    /// <param name="sequenceId">The sequence identifier.</param>
-    /// <param name="flags">The directive flags.</param>
-    /// <param name="arg0">The first directive argument.</param>
-    /// <param name="arg1">The second directive argument.</param>
-    /// <param name="arg2">The third directive argument.</param>
-    /// <param name="controlFlags">The system-level control flags.</param>
-    public void Initialize(
-        ushort opCode,
-        ControlType type, ProtocolReason reason, ProtocolAdvice action,
-        ushort sequenceId, PacketFlags flags = PacketFlags.SYSTEM,
-        ControlFlags controlFlags = ControlFlags.NONE,
-        uint arg0 = 0, uint arg1 = 0, ushort arg2 = 0)
-    {
-        this.Arg0 = arg0;
-        this.Arg1 = arg1;
-        this.Arg2 = arg2;
-        this.Type = type;
-        this.Flags = flags;
-        this.Reason = reason;
-        this.Action = action;
-        this.OpCode = opCode;
-        this.Control = controlFlags;
-        this.SequenceId = sequenceId;
 
-        this.Priority = PacketPriority.HIGH;
-    }
 
     /// <inheritdoc/>
     public override void ResetForPool()
@@ -140,7 +109,7 @@ public sealed partial class Directive : PacketBase<Directive>, IPacketReasoned, 
         base.ResetForPool();
 
         this.Priority = PacketPriority.HIGH;
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.Flags = PacketFlags.SYSTEM;
     }
 

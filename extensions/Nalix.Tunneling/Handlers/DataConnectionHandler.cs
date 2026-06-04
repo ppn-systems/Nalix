@@ -24,7 +24,7 @@ public sealed class DataConnectionHandler
         _registry = registry;
     }
 
-    [PacketOpcode(TunnelOpCode.TunnelReady)]
+    [PacketOpcode(ProtocolOpCode.TUNNEL_READY)]
     public ValueTask HandleReadyAsync(IPacketContext<TunnelReady> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -55,3 +55,4 @@ public sealed class DataConnectionHandler
         return ValueTask.CompletedTask;
     }
 }
+

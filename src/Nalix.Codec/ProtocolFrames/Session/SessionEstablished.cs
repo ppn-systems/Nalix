@@ -19,8 +19,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_ESTABLISHED Token={SessionToken}")]
-public sealed partial class SessionEstablished : PacketBase<SessionEstablished>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class SessionEstablished : PacketBase<SessionEstablished>, IFixedSizeSerializable, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SESSION_ESTABLISHED;
+
     /// <summary>
     /// Gets or sets the server's final finish proof.
     /// </summary>
@@ -43,7 +46,7 @@ public sealed partial class SessionEstablished : PacketBase<SessionEstablished>,
     /// </summary>
     public void Initialize(Bytes32 proof, ulong sessionToken, PacketFlags flags = PacketFlags.SYSTEM)
     {
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.Proof = proof;
@@ -57,7 +60,7 @@ public sealed partial class SessionEstablished : PacketBase<SessionEstablished>,
         this.Proof = Bytes32.Zero;
         this.SessionToken = 0;
         this.Priority = PacketPriority.URGENT;
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.Flags = PacketFlags.SYSTEM;
     }
 

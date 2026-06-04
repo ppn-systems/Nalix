@@ -19,8 +19,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_PROOF")]
-public sealed partial class SessionProof : PacketBase<SessionProof>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class SessionProof : PacketBase<SessionProof>, IFixedSizeSerializable, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SESSION_PROOF;
+
     /// <summary>
     /// Gets or sets the client's proof.
     /// </summary>
@@ -37,7 +40,7 @@ public sealed partial class SessionProof : PacketBase<SessionProof>, IFixedSizeS
     /// </summary>
     public void Initialize(Bytes32 proof, PacketFlags flags = PacketFlags.SYSTEM)
     {
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_PROOF;
+
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.Proof = proof;
@@ -49,7 +52,7 @@ public sealed partial class SessionProof : PacketBase<SessionProof>, IFixedSizeS
         base.ResetForPool();
         this.Proof = Bytes32.Zero;
         this.Priority = PacketPriority.URGENT;
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_PROOF;
+
         this.Flags = PacketFlags.SYSTEM;
     }
 

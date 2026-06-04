@@ -19,8 +19,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("TIMESYNC OpCode={OpCode}, Type={Type}, Timestamp={Timestamp}, MonoTicks={MonoTicks}")]
-public sealed partial class TimeSync : PacketBase<TimeSync>, IPacketTimestamped, IFixedSizeSerializable
+public sealed partial class TimeSync : PacketBase<TimeSync>, IPacketTimestamped, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SYSTEM_TIMESYNC;
+
     /// <summary>
     /// Gets or sets the control message type (e.g., PING, PONG, TIMESYNCREQUEST, TIMESYNCRESPONSE).
     /// </summary>
@@ -61,26 +64,11 @@ public sealed partial class TimeSync : PacketBase<TimeSync>, IPacketTimestamped,
         this.Timestamp = Clock.UnixMillisecondsNow();
     }
 
-    /// <summary>
-    /// Initializes the TimeSync packet with full metadata.
-    /// </summary>
-    /// <param name="opCode">The operation code.</param>
-    /// <param name="type">The control message type.</param>
-    /// <param name="sequenceId">The sequence identifier (optional, default = 0).</param>
-    /// <param name="flags">The packet flags (transport reliability).</param>
-    public void Initialize(
-        ushort opCode, ControlType type, ushort sequenceId = 0,
-        PacketFlags flags = PacketFlags.SYSTEM)
-    {
-        this.OpCode = opCode;
-        this.Initialize(type, sequenceId, flags);
-    }
-
     /// <inheritdoc/>
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_TIMESYNC;
+
         this.Timestamp = 0;
         this.MonoTicks = 0;
         this.SequenceId = 0;

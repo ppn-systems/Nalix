@@ -12,7 +12,7 @@ namespace Nalix.Codec.DataFrames;
 
 /// <summary>
 /// Provides a base implementation for all frames within the Nalix system.
-/// This class handles the standard 10-byte header and exposes it for manipulation.
+/// This class handles the standard 6-byte header and exposes it for manipulation.
 /// </summary>
 public abstract class FrameBase : IPacket, IPacketHeader
 {
@@ -37,23 +37,10 @@ public abstract class FrameBase : IPacket, IPacketHeader
     /// <inheritdoc/>
     [SkipClean]
     [SerializeIgnore]
-    public uint MagicNumber
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _header.MagicNumber;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => _header.MagicNumber = value;
-    }
-
-    /// <inheritdoc/>
-    [SkipClean]
-    [SerializeIgnore]
     public ushort OpCode
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _header.OpCode;
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        set => _header.OpCode = value;
     }
 
     /// <inheritdoc/>

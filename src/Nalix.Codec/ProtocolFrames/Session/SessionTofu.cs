@@ -19,8 +19,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_TOFU")]
-public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSerializable, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SESSION_TOFU;
+
     /// <summary>
     /// Gets or sets the public key of the server.
     /// </summary>
@@ -38,7 +41,7 @@ public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSer
     /// <param name="publicKey">The public key to send.</param>
     public void Initialize(Bytes32 publicKey)
     {
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.PublicKey = publicKey;
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
@@ -48,7 +51,7 @@ public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSer
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.PublicKey = Bytes32.Zero;
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;

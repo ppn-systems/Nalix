@@ -20,8 +20,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_SIGNAL Stage={Stage}, Token={SessionToken}, Reason={Reason}")]
-public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSizeSerializable, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SESSION_SIGNAL;
+
     /// <summary>
     /// Gets or sets the current stage of the session operation.
     /// </summary>
@@ -56,7 +59,7 @@ public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSiz
     /// </summary>
     public void Initialize(SessionResumeStage stage, ulong sessionToken, ProtocolReason reason = ProtocolReason.NONE, Bytes32 proof = default, PacketFlags flags = PacketFlags.SYSTEM)
     {
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
+
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.Stage = stage;
@@ -75,7 +78,7 @@ public sealed partial class SessionResume : PacketBase<SessionResume>, IFixedSiz
         this.Reason = ProtocolReason.NONE;
         this.Stage = SessionResumeStage.NONE;
         this.Priority = PacketPriority.URGENT;
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_SIGNAL;
+
         this.Flags = PacketFlags.SYSTEM;
     }
 

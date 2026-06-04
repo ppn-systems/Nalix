@@ -18,8 +18,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("CONTROL OpCode={OpCode}, Length={Length}, Flags={Flags}")]
-public sealed partial class Control : PacketBase<Control>, IPacketReasoned, IFixedSizeSerializable
+public sealed partial class Control : PacketBase<Control>, IFixedSizeSerializable, IPacketStaticOpcode, IPacketReasoned
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
     /// <summary>
     /// Gets or sets the reason code associated with this control packet.
     /// </summary>
@@ -55,28 +58,13 @@ public sealed partial class Control : PacketBase<Control>, IPacketReasoned, IFix
         this.SequenceId = sequenceId;
     }
 
-    /// <summary>
-    /// Initializes the control packet with full metadata.
-    /// </summary>
-    /// <param name="opCode">The operation code.</param>
-    /// <param name="type">The control message type.</param>
-    /// <param name="sequenceId">The sequence identifier (optional, default = 0).</param>
-    /// <param name="reasonCode">The reason code (optional, default = 0).</param>
-    /// <param name="flags">The packet flags (transport reliability).</param>
-    public void Initialize(
-        ushort opCode, ControlType type, ushort sequenceId = 0,
-        PacketFlags flags = PacketFlags.SYSTEM,
-        ProtocolReason reasonCode = ProtocolReason.NONE)
-    {
-        this.OpCode = opCode;
-        this.Initialize(type, sequenceId, flags, reasonCode);
-    }
+
 
     /// <inheritdoc/>
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)ProtocolOpCode.SYSTEM_CONTROL;
+
         this.Reason = 0;
         this.SequenceId = 0;
         this.Type = ControlType.NONE;

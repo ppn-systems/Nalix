@@ -16,8 +16,10 @@ namespace Nalix.Tunneling;
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed partial class TunnelProvideAck : PacketBase<TunnelProvideAck>, IFixedSizeSerializable
+public sealed partial class TunnelProvideAck : PacketBase<TunnelProvideAck>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.TUNNEL_PROVIDE_ACK;
+    
     [SerializeOrder(0)]
     public bool Success { get; set; }
 
@@ -35,3 +37,4 @@ public sealed partial class TunnelProvideAck : PacketBase<TunnelProvideAck>, IFi
         this.Reason = 0;
     }
 }
+

@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 using Nalix.Traversal.Protocols;
@@ -16,8 +17,11 @@ namespace Nalix.Traversal.Packets;
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed partial class ReflectorAllocated : PacketBase<ReflectorAllocated>, IFixedSizeSerializable
+public sealed partial class ReflectorAllocated : PacketBase<ReflectorAllocated>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.TRAVERSAL_REFLECTOR_ALLOCATED;
+    
     /// <summary>
     /// The generated Reflector Token that both peers must use to wrap their UDP datagrams.
     /// </summary>
@@ -39,10 +43,11 @@ public sealed partial class ReflectorAllocated : PacketBase<ReflectorAllocated>,
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = 0x00FD; // Handled by SequenceId on client, no opcode mapping needed
+
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.RELIABLE;
         this.ReflectorToken = 0;
         this.Success = false;
     }
 }
+

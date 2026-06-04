@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
@@ -16,8 +17,9 @@ namespace Nalix.Traversal.Packets;
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed partial class NatProbe : PacketBase<NatProbe>, IFixedSizeSerializable
+public sealed partial class NatProbe : PacketBase<NatProbe>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.TRAVERSAL_NAT_PROBE;
     /// <summary>
     /// The ID of the peer sending the probe, used for validation.
     /// </summary>
@@ -39,3 +41,4 @@ public sealed partial class NatProbe : PacketBase<NatProbe>, IFixedSizeSerializa
         this.Flags = PacketFlags.UNRELIABLE;
     }
 }
+

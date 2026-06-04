@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 
@@ -16,8 +17,9 @@ namespace Nalix.Traversal.Packets;
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed partial class NatProbeAck : PacketBase<NatProbeAck>, IFixedSizeSerializable
+public sealed partial class NatProbeAck : PacketBase<NatProbeAck>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.TRAVERSAL_NAT_PROBE_ACK;
     /// <summary>
     /// The ID of the peer acknowledging the probe.
     /// </summary>

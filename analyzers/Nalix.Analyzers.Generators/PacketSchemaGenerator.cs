@@ -122,9 +122,8 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
                 continue;
             }
 
-            this.GENERATE_PACKET_PARTIAL(context, type, out uint magic, out int staticSize);
+            this.GENERATE_PACKET_PARTIAL(context, type, out int staticSize);
 
-            _ = initBuilder.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketSchemaName}<{fullTypeName}>.AutoMagic = 0x{magic:X8}u;");
             _ = initBuilder.AppendLine($"        global::{KnownNames.PacketBaseNamespace}.{KnownNames.PacketSchemaName}<{fullTypeName}>.StaticSize = {staticSize};");
         }
 
@@ -138,14 +137,13 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
     // Partial class generation
     // -------------------------------------------------------------------------
 
-    private void GENERATE_PACKET_PARTIAL(SourceProductionContext context, ITypeSymbol type, out uint magic, out int staticSize)
+    private void GENERATE_PACKET_PARTIAL(SourceProductionContext context, ITypeSymbol type, out int staticSize)
     {
         string ns = type.ContainingNamespace.IsGlobalNamespace
                             ? ""
                             : $"namespace {type.ContainingNamespace.ToDisplayString()};";
         string typeName = type.Name;
 
-        magic = Fnv1a.Compute(type.ToDisplayString());
         staticSize = 0;
 
         List<ISymbol> members = SerializationMember.Resolve(type);
@@ -254,7 +252,6 @@ public sealed class PacketSchemaGenerator : IIncrementalGenerator
             _ = sb.AppendLine("    {");
             _ = sb.AppendLine("        base.ResetForPool();");
             _ = sb.AppendLine();
-            _ = sb.AppendLine($"        this.MagicNumber = 0x{magic:X8}u;");
 
             foreach (ISymbol member in members)
             {

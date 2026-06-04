@@ -16,8 +16,10 @@ namespace Nalix.Tunneling;
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed partial class TunnelConnect : PacketBase<TunnelConnect>, IFixedSizeSerializable
+public sealed partial class TunnelConnect : PacketBase<TunnelConnect>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.TUNNEL_CONNECT;
+    
     [SerializeOrder(0)]
     public ushort ChannelId { get; set; }
 
@@ -26,9 +28,10 @@ public sealed partial class TunnelConnect : PacketBase<TunnelConnect>, IFixedSiz
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)TunnelOpCode.TunnelConnect;
+
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.RELIABLE;
         this.ChannelId = 0;
     }
 }
+

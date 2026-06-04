@@ -18,14 +18,9 @@ namespace Nalix.Abstractions.Networking.Packets;
 public interface IPacketHeader
 {
     /// <summary>
-    /// Gets or sets the protocol magic number used to identify valid packets.
+    /// Gets the operation code that identifies the packet type.
     /// </summary>
-    uint MagicNumber { get; set; }
-
-    /// <summary>
-    /// Gets or sets the operation code that defines the packet type or action.
-    /// </summary>
-    ushort OpCode { get; set; }
+    ushort OpCode { get; }
 
     /// <summary>
     /// Gets or sets the flags that modify packet behavior.

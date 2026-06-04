@@ -32,7 +32,7 @@ public sealed class ConsumerHandler
         _providerRegistry = providerRegistry;
     }
 
-    [PacketOpcode(TunnelOpCode.TunnelConnect)]
+    [PacketOpcode(ProtocolOpCode.TUNNEL_CONNECT)]
     public async ValueTask HandleConnectAsync(IPacketContext<TunnelConnect> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -121,3 +121,4 @@ public sealed class ConsumerHandler
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
     }
 }
+

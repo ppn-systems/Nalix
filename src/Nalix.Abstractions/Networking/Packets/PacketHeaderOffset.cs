@@ -11,26 +11,20 @@ namespace Nalix.Abstractions.Networking.Packets;
 public enum PacketHeaderOffset
 {
     /// <summary>
-    /// Represents the magic number field, which uniquely identifies the packet format or protocol.
+    /// Represents the operation code (OpCode) field, specifying the command or type of the packet.
     /// This field comes first in the serialized data.
     /// </summary>
-    MagicNumber = 0,
-
-    /// <summary>
-    /// Represents the operation code (OpCode) field, specifying the command or type of the packet.
-    /// This field comes second in the serialized data.
-    /// </summary>
-    OpCode = MagicNumber + sizeof(uint),
+    OpCode = 0,
 
     /// <summary>
     /// Represents the flags field, which contains state or processing options for the packet.
-    /// This field comes third in the serialized data.
+    /// This field comes second in the serialized data.
     /// </summary>
     Flags = OpCode + sizeof(ushort),
 
     /// <summary>
     /// Represents the priority field, indicating the processing priority of the packet.
-    /// This field comes fourth in the serialized data.
+    /// This field comes third in the serialized data.
     /// </summary>
     Priority = Flags + sizeof(byte),
 

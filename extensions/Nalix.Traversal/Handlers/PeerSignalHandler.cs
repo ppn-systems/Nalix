@@ -5,6 +5,7 @@ using System;
 using System.Threading.Tasks;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Runtime.Extensions;
@@ -25,7 +26,7 @@ public sealed class PeerSignalHandler
     /// </summary>
     [PacketEncryption(true)]
     [PacketPermission(PermissionLevel.USER)]
-    [PacketOpcode(TraversalOpcode.PeerSignal)]
+    [PacketOpcode(ProtocolOpCode.TRAVERSAL_PEER_SIGNAL)]
     public static async ValueTask HandleAsync(IPacketContext<PeerSignal> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -73,3 +74,4 @@ public sealed class PeerSignalHandler
     }
 
 }
+

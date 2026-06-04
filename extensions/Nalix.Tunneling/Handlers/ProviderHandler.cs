@@ -23,7 +23,7 @@ public sealed class ProviderHandler
         _registry = registry;
     }
 
-    [PacketOpcode(TunnelOpCode.TunnelProvide)]
+    [PacketOpcode(ProtocolOpCode.TUNNEL_PROVIDE)]
     public async ValueTask HandleProvideAsync(IPacketContext<TunnelProvide> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -54,3 +54,4 @@ public sealed class ProviderHandler
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
     }
 }
+

@@ -3,6 +3,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 using Nalix.Abstractions.Networking.Packets;
+using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Serialization;
 using Nalix.Codec.DataFrames;
 using Nalix.Traversal.Protocols;
@@ -16,8 +17,11 @@ namespace Nalix.Traversal.Packets;
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed partial class ReflectorInit : PacketBase<ReflectorInit>, IFixedSizeSerializable
+public sealed partial class ReflectorInit : PacketBase<ReflectorInit>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.TRAVERSAL_REFLECTOR_INIT;
+
     /// <summary>
     /// The ID of the peer we want to Reflector data to.
     /// </summary>
@@ -33,9 +37,10 @@ public sealed partial class ReflectorInit : PacketBase<ReflectorInit>, IFixedSiz
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = (ushort)TraversalOpcode.ReflectorInit;
+
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.RELIABLE;
         this.TargetPeerId = 0;
     }
 }
+

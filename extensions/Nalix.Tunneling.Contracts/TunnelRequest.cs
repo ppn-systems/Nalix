@@ -17,8 +17,10 @@ namespace Nalix.Tunneling;
 [GenerateFormatter]
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
-public sealed partial class TunnelRequest : PacketBase<TunnelRequest>, IFixedSizeSerializable
+public sealed partial class TunnelRequest : PacketBase<TunnelRequest>, IFixedSizeSerializable, IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.TUNNEL_REQUEST;
+    
     [SerializeOrder(0)]
     public Bytes32 Token { get; set; }
 
@@ -32,3 +34,4 @@ public sealed partial class TunnelRequest : PacketBase<TunnelRequest>, IFixedSiz
         this.Token = default;
     }
 }
+

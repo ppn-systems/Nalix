@@ -27,7 +27,7 @@ public sealed class ObservabilityAccessHandlers
     [PacketEncryption(true)]
     [ReservedOpcodePermitted]
     [PacketPermission(PermissionLevel.NONE)]
-    [PacketOpcode(ObservabilityAccess.OpCodeValue)]
+    [PacketOpcode(ProtocolOpCode.OBSERVABILITY_ACCESS)]
     public static ValueTask<ObservabilityAccess> HandleAsync(IPacketContext<ObservabilityAccess> context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -228,3 +228,4 @@ public sealed class ObservabilityAccessHandlers
 
     #endregion Fields
 }
+

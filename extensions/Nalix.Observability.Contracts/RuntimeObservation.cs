@@ -23,12 +23,10 @@ namespace Nalix.Observability.Contracts;
 [GenerateFormatterAttribute]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("RUNTIME_OBSERVATION Stage={Stage}, Target={Target}, Reason={Reason}")]
-public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>, IPacketValidatable
+public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>, IPacketValidatable, IPacketStaticOpcode
 {
-    /// <summary>
-    /// Gets the protocol opcode assigned to runtime observation packets.
-    /// </summary>
-    public const ushort OpCodeValue = 0x00FC;
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.RUNTIME_OBSERVATION;
+
 
     /// <summary>
     /// Gets or sets the observation packet lifecycle stage.
@@ -92,7 +90,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         ReadOnlyMemory<byte> ObservationData = default,
         PacketFlags flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE)
     {
-        this.OpCode = OpCodeValue;
+
         this.Priority = PacketPriority.HIGH;
         this.Flags = flags;
         this.Stage = stage;
@@ -107,7 +105,7 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
     public override void ResetForPool()
     {
         base.ResetForPool();
-        this.OpCode = OpCodeValue;
+
         this.Priority = PacketPriority.HIGH;
         this.Flags = PacketFlags.SYSTEM | PacketFlags.RELIABLE;
         this.Stage = RuntimeObservationStage.NONE;
@@ -137,3 +135,4 @@ public sealed partial class RuntimeObservation : PacketBase<RuntimeObservation>,
         return isValid;
     }
 }
+

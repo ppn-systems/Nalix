@@ -30,7 +30,7 @@ public sealed class RuntimeObservationHandlers
     /// <returns>A value task representing the response packet.</returns>
     [PacketEncryption(true)]
     [ReservedOpcodePermitted]
-    [PacketOpcode(RuntimeObservation.OpCodeValue)]
+    [PacketOpcode(ProtocolOpCode.RUNTIME_OBSERVATION)]
     [PacketPermission(PermissionLevel.SUPERVISOR)]
     public static ValueTask<RuntimeObservation> HandleAsync(IPacketContext<RuntimeObservation> context)
     {
@@ -204,3 +204,4 @@ public sealed class RuntimeObservationHandlers
 
     #endregion Nested Types
 }
+

@@ -19,8 +19,11 @@ namespace Nalix.Codec.ProtocolFrames;
 [ExcludeFromCodeCoverage]
 [SerializePackable(SerializeLayout.Explicit)]
 [DebuggerDisplay("SESSION_INIT")]
-public sealed partial class SessionInit : PacketBase<SessionInit>, IFixedSizeSerializable, IPacketValidatable
+public sealed partial class SessionInit : PacketBase<SessionInit>, IFixedSizeSerializable, IPacketValidatable, IPacketStaticOpcode
 {
+    /// <inheritdoc/>
+    public static ushort StaticOpCode => (ushort)ProtocolOpCode.SESSION_INIT;
+
     /// <summary>
     /// Gets or sets the client's ephemeral public key.
     /// </summary>
@@ -43,7 +46,7 @@ public sealed partial class SessionInit : PacketBase<SessionInit>, IFixedSizeSer
     /// </summary>
     public void Initialize(Bytes32 publicKey, Bytes32 nonce, PacketFlags flags = PacketFlags.SYSTEM)
     {
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_INIT;
+
         this.Priority = PacketPriority.URGENT;
         this.Flags = flags;
         this.PublicKey = publicKey;
@@ -57,7 +60,7 @@ public sealed partial class SessionInit : PacketBase<SessionInit>, IFixedSizeSer
         this.PublicKey = Bytes32.Zero;
         this.Nonce = Bytes32.Zero;
         this.Priority = PacketPriority.URGENT;
-        this.OpCode = (ushort)ProtocolOpCode.SESSION_INIT;
+
         this.Flags = PacketFlags.SYSTEM;
     }
 
