@@ -20,8 +20,8 @@ namespace Nalix.Codec.DataFrames;
 /// Base class for all packets with automatic serialization and pooling.
 /// Eliminates boilerplate code for Length, Serialize, Deserialize, and ResetForPool.
 /// <para>
-/// <b>MagicNumber</b> is derived automatically from <typeparamref name="TSelf"/>'s
-/// full type name via FNV-1a hash — no <c>[MagicNumber]</c> attribute needed.
+/// <b>OpCode</b> is extracted automatically from <typeparamref name="TSelf"/>'s
+/// <c>[PacketOpcode]</c> attribute.
 /// </para>
 /// </summary>
 /// <typeparam name="TSelf">The concrete packet type.</typeparam>
@@ -31,7 +31,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
     IPoolable,
     IDisposable,
     IPoolRentable,
-    IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>, new()
+    IPacketDeserializer<TSelf> where TSelf : PacketBase<TSelf>, IPacketStaticOpcode, new()
 {
     #region Fields
 
@@ -47,10 +47,15 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
     #region Constructor
 
     /// <summary>
-    /// Assigns the automatically derived <see cref="FrameBase.Header"/>.MagicNumber
-    /// so that every packet is self-identifying on the wire without any attribute.
+    /// Assigns the automatically derived <see cref="FrameBase.Header"/>.OpCode
+    /// so that every packet is self-identifying on the wire.
     /// </summary>
-    protected PacketBase() => this.MagicNumber = PacketSchema<TSelf>.AutoMagic;
+    protected PacketBase()
+    {
+        PacketHeader header = this.Header;
+        header.OpCode = TSelf.StaticOpCode;
+        this.Header = header;
+    }
 
     #endregion Constructor
 
@@ -167,7 +172,9 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         this.Priority = PacketPriority.NONE;
 
         // Restore type identity.
-        this.MagicNumber = PacketSchema<TSelf>.AutoMagic;
+        PacketHeader header = this.Header;
+        header.OpCode = TSelf.StaticOpCode;
+        this.Header = header;
     }
 
     /// <inheritdoc/>
@@ -210,7 +217,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     /// <inheritdoc/>
     public override string ToString() =>
-        $"{typeof(TSelf).Name}(Magic=0x{this.Header.MagicNumber:X8}, OpCode={this.Header.OpCode}, Flags={this.Header.Flags}, Priority={this.Header.Priority}, SequenceId={this.Header.SequenceId})";
+        $"{typeof(TSelf).Name}(OpCode={this.Header.OpCode}, Flags={this.Header.Flags}, Priority={this.Header.Priority}, SequenceId={this.Header.SequenceId})";
 
     #endregion Diagnostics
 
@@ -242,9 +249,9 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         }
 
         ref readonly PacketHeader header = ref buffer.AsHeaderRef();
-        if (header.MagicNumber != PacketSchema<TSelf>.AutoMagic)
+        if (header.OpCode != TSelf.StaticOpCode)
         {
-            THROW_MAGIC_MISMATCH(header.MagicNumber);
+            THROW_OPCODE_MISMATCH(header.OpCode);
         }
     }
 
@@ -261,9 +268,9 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void THROW_MAGIC_MISMATCH(uint magic)
+    private static void THROW_OPCODE_MISMATCH(ushort opcode)
         => throw new SerializationFailureException(
-            $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{magic:X8}, expected=0x{PacketSchema<TSelf>.AutoMagic:X8}. " +
+            $"OpCode mismatch: type={typeof(TSelf).Name}, buffer={opcode}, expected={TSelf.StaticOpCode}. " +
             "The received packet type does not match the target deserialization type.");
 
     #endregion Private Methods

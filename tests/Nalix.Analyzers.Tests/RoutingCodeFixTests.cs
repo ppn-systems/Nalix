@@ -140,8 +140,10 @@ public sealed class Example
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class RegistryPacket : PacketBase<RegistryPacket>
+public sealed class RegistryPacket : PacketBase<RegistryPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
 }
 
 public sealed class Example
@@ -157,8 +159,10 @@ public sealed class Example
 namespace Demo;
 using Nalix.Codec.DataFrames;
 
-public sealed class RegistryPacket : PacketBase<RegistryPacket>
+public sealed class RegistryPacket : PacketBase<RegistryPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public static new RegistryPacket Deserialize(ReadOnlySpan<byte> buffer) => PacketBase<RegistryPacket>.Deserialize(buffer);
 }
 
@@ -182,6 +186,7 @@ public sealed class Example
             expectedEquivalenceKey: "Nalix.PacketRegistry.Deserialize.Add");
     }
 }
+
 
 
 

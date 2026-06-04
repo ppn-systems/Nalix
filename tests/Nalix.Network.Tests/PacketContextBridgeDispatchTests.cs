@@ -73,7 +73,10 @@ public sealed class PacketContextBridgeDispatchTests
     private static Control CreateControlPacket(ushort opCode)
     {
         Control packet = new();
-        packet.Initialize(opCode, ControlType.NONE, sequenceId: 1);
+        packet.Initialize(ControlType.NONE, sequenceId: 1);
+        var h = packet.Header;
+        h.OpCode = opCode;
+        packet.Header = h;
         return packet;
     }
 

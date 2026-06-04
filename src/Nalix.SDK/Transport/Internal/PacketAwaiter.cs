@@ -37,7 +37,7 @@ internal static class PacketAwaiter
     public static async Task<TPkt> AwaitAsync<TPkt>(
         TransportSession client, Func<TPkt, bool> predicate,
         int timeoutMs, Func<CancellationToken, Task> sendAsync, CancellationToken ct)
-        where TPkt : class, IPacket
+        where TPkt : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);

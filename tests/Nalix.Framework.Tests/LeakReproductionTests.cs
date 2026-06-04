@@ -29,7 +29,7 @@ public class LeakReproductionTests
         // We need a valid header for Control
         // Magic for Control is computed from its name.
         // But we can just use LiteSerializer to serialize one first.
-        initialInstance.Initialize(14, ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
+        initialInstance.Initialize(ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
         int length = LiteSerializer.Serialize(initialInstance, buffer);
         
         // 2. The Test

@@ -380,8 +380,10 @@ public struct NodeMeta
 [Packet]
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>
+public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollectionPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     [SerializeOrder(0)]
     public List<Int32>? IntList { get; set; }
 
@@ -403,8 +405,10 @@ public sealed partial class ComplexCollectionPacket : PacketBase<ComplexCollecti
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class GraphPacket : PacketBase<GraphPacket>
+public sealed partial class GraphPacket : PacketBase<GraphPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public String Name { get; set; } = String.Empty;
     public List<GraphPacket>? Nodes { get; set; }
     public NodeMeta Meta { get; set; }
@@ -415,8 +419,10 @@ public sealed partial class GraphPacket : PacketBase<GraphPacket>
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
+public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public List<String>? Payload { get; set; }
 
     public static new LargeDataPacket Deserialize(ReadOnlySpan<Byte> buffer)
@@ -425,8 +431,10 @@ public sealed partial class LargeDataPacket : PacketBase<LargeDataPacket>
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
+public sealed partial class NullStressPacket : PacketBase<NullStressPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public List<String>? Items { get; set; }
 
     public static new NullStressPacket Deserialize(ReadOnlySpan<Byte> buffer)
@@ -435,10 +443,13 @@ public sealed partial class NullStressPacket : PacketBase<NullStressPacket>
 
 [GenerateFormatter]
 [SerializePackable(SerializeLayout.Sequential)]
-public sealed partial class EnumListPacket : PacketBase<EnumListPacket>
+public sealed partial class EnumListPacket : PacketBase<EnumListPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
+
     public List<PacketPriority>? Priorities { get; set; }
 
     public static new EnumListPacket Deserialize(ReadOnlySpan<Byte> buffer)
         => PacketBase<EnumListPacket>.Deserialize(buffer);
 }
+

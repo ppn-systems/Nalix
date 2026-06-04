@@ -53,7 +53,7 @@ public sealed class RequestIntegrationTests : IDisposable
 
             // PING expects PONG (which is a TimeSync packet with same Seq)
             var ping = new TimeSync();
-            ping.Initialize((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.PING, 1234, PacketFlags.NONE);
+            ping.Initialize(ControlType.PING, 1234, PacketFlags.NONE);
 
             TimeSync response = await session.RequestAsync<TimeSync>(
                 ping,
@@ -93,7 +93,7 @@ public sealed class RequestIntegrationTests : IDisposable
             await session.ConnectAsync();
 
             var ping = new TimeSync();
-            ping.Initialize((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.PING, 1234, PacketFlags.NONE);
+            ping.Initialize(ControlType.PING, 1234, PacketFlags.NONE);
 
             await Assert.ThrowsAsync<TimeoutException>(async () =>
                 await session.RequestAsync<TimeSync>(

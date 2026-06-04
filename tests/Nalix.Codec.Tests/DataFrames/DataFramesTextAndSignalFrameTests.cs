@@ -17,7 +17,10 @@ public sealed partial class DataFramesPublicApiTests
     {
         Control packet = new();
 
-        packet.Initialize(123, ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
+        var h = packet.Header;
+        h.OpCode = 123;
+        packet.Header = h;
 
         Assert.Equal((ushort)123, packet.Header.OpCode);
         Assert.Equal(ControlType.PING, packet.Type);
@@ -31,7 +34,10 @@ public sealed partial class DataFramesPublicApiTests
     public void ResetForPoolWhenControlPacketWasInitializedRestoresControlDefaults()
     {
         Control packet = new();
-        packet.Initialize(555, ControlType.ERROR, sequenceId: 7, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.INTERNAL_ERROR);
+        packet.Initialize(ControlType.ERROR, 7, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.INTERNAL_ERROR);
+        var h2 = packet.Header;
+        h2.OpCode = 555;
+        packet.Header = h2;
         packet.Header = new PacketHeader { Flags = PacketFlags.SYSTEM };
 
         packet.ResetForPool();
@@ -66,7 +72,6 @@ public sealed partial class DataFramesPublicApiTests
         Directive packet = new();
 
         packet.Initialize(
-            opCode: 77,
             type: ControlType.REDIRECT,
             reason: ProtocolReason.REDIRECT,
             action: ProtocolAdvice.RECONNECT,
@@ -76,6 +81,9 @@ public sealed partial class DataFramesPublicApiTests
             arg0: 1000,
             arg1: 2000,
             arg2: 33);
+        var h3 = packet.Header;
+        h3.OpCode = 77;
+        packet.Header = h3;
 
         Assert.Equal((ushort)77, packet.Header.OpCode);
         Assert.Equal(ControlType.REDIRECT, packet.Type);
@@ -96,7 +104,10 @@ public sealed partial class DataFramesPublicApiTests
     public void ControlFixedSizeMatchesComputedLengthAndSerializedBytes()
     {
         Control packet = new();
-        packet.Initialize(123, ControlType.PING, sequenceId: 42, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.TIMEOUT);
+        packet.Initialize(ControlType.PING, 42, PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, ProtocolReason.TIMEOUT);
+        var h4 = packet.Header;
+        h4.OpCode = 123;
+        packet.Header = h4;
 
         byte[] bytes = packet.Serialize();
 
@@ -109,7 +120,6 @@ public sealed partial class DataFramesPublicApiTests
     {
         Directive packet = new();
         packet.Initialize(
-            opCode: 77,
             type: ControlType.REDIRECT,
             reason: ProtocolReason.REDIRECT,
             action: ProtocolAdvice.RECONNECT,
@@ -119,6 +129,9 @@ public sealed partial class DataFramesPublicApiTests
             arg0: 1000,
             arg1: 2000,
             arg2: 33);
+        var h5 = packet.Header;
+        h5.OpCode = 77;
+        packet.Header = h5;
 
         byte[] bytes = packet.Serialize();
 
@@ -225,6 +238,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(SessionResume.Size, bytes.Length);
     }
 }
+
 
 
 

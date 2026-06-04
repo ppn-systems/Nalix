@@ -36,7 +36,7 @@ public static class PingExtensions
         ushort seq = unchecked((ushort)Interlocked.Increment(ref s_pingSequence));
 
         // Use NewTimeSync fluent builder which also handles Timestamp/MonoTicks setup
-        TimeSync ping = session.NewTimeSync((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.PING).WithSeq(seq).Build();
+        TimeSync ping = session.NewTimeSync(ControlType.PING).WithSeq(seq).Build();
         try
         {
             long startTicks = ping.MonoTicks;

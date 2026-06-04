@@ -42,16 +42,16 @@ public static class TransportSessionSubscriptions
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable On<TPacket>(this TransportSession client, Action<TPacket> handler)
-        where TPacket : class, IPacket
+        where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(handler);
 
-        uint targetMagic = PacketRegistry.Compute(typeof(TPacket));
+        ushort targetOpCode = TPacket.StaticOpCode;
 
         void Wrapper(object? _, IBufferLease buffer)
         {
-            // Cheap check: if the magic doesn't match, don't even try to deserialize.
+            // Cheap check: if the opcode doesn't match, don't even try to deserialize.
             // This prevents O(N*M) deserialization costs when multiple subscribers are active.
             if (buffer.Length < PacketConstants.HeaderSize)
             {
@@ -59,7 +59,7 @@ public static class TransportSessionSubscriptions
             }
 
             ref readonly PacketHeader header = ref buffer.Span.AsHeaderRef();
-            if (header.MagicNumber != targetMagic)
+            if (header.OpCode != targetOpCode)
             {
                 return;
             }
@@ -106,7 +106,7 @@ public static class TransportSessionSubscriptions
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static IDisposable OnExact<TPacket>(this TransportSession client, Action<TPacket> handler)
-        where TPacket : class, IPacket
+        where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(handler);
@@ -198,13 +198,13 @@ public static class TransportSessionSubscriptions
     /// <returns>An <see cref="IDisposable"/> that removes the subscription when disposed.</returns>
     [Obsolete("Callback-based one-shot subscriptions are deprecated and will be removed in a future version. Use async/await Request-Response APIs instead.")]
     public static IDisposable OnOnce<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> handler, bool disposeAfter = true)
-        where TPacket : class, IPacket
+        where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);
         ArgumentNullException.ThrowIfNull(handler);
 
-        uint targetMagic = PacketRegistry.Compute(typeof(TPacket));
+        ushort targetOpCode = TPacket.StaticOpCode;
         int fired = 0;
 
         void Wrapper(object? _, IBufferLease buffer)
@@ -215,7 +215,7 @@ public static class TransportSessionSubscriptions
             }
 
             ref readonly PacketHeader header = ref buffer.Span.AsHeaderRef();
-            if (header.MagicNumber != targetMagic)
+            if (header.OpCode != targetOpCode)
             {
                 return;
             }
@@ -287,7 +287,7 @@ public static class TransportSessionSubscriptions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Obsolete("Callback-based temporary subscriptions are deprecated. Use async/await Request-Response APIs instead.")]
     public static IDisposable SubscribeTemp<TPacket>(this TransportSession client, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
-        where TPacket : class, IPacket
+        where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(onMessage);
@@ -328,7 +328,7 @@ public static class TransportSessionSubscriptions
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Obsolete("Callback-based temporary subscriptions are deprecated. Use async/await Request-Response APIs instead.")]
     public static IDisposable SubscribeTemp<TPacket>(this TransportSession client, Func<TPacket, bool> predicate, Action<TPacket> onMessage, Action<Exception>? onDisconnected = null)
-        where TPacket : class, IPacket
+        where TPacket : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);

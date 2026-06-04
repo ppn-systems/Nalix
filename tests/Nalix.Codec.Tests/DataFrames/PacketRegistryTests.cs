@@ -34,10 +34,12 @@ public sealed class PacketRegistryTests : IDisposable
     {
         Control original = new();
         original.Initialize(
-            opCode: 0x0001,
             type: ControlType.PING,
             sequenceId: 42,
             reasonCode: ProtocolReason.NONE);
+        var h = original.Header;
+        h.OpCode = 0x0001;
+        original.Header = h;
 
         byte[] bytes = original.Serialize();
         IPacket packet = PacketRegistry.Deserialize(bytes);
@@ -46,7 +48,7 @@ public sealed class PacketRegistryTests : IDisposable
 
         Control result = Assert.IsType<Control>(packet);
         Assert.Equal(original.Header.OpCode, result.Header.OpCode);
-        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
+
         Assert.Equal(original.Header.SequenceId, result.Header.SequenceId);
         Assert.Equal(original.Type, result.Type);
         Assert.Equal(original.Reason, result.Reason);
@@ -54,33 +56,22 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.Equal(original.Header.Priority, result.Header.Priority);
     }
 
-    [Fact]
-    public void ControlMagicNumberIsConsistentAcrossInstances()
-    {
-        Control a = new();
-        Control b = new();
-        Assert.Equal(a.Header.MagicNumber, b.Header.MagicNumber);
-    }
 
-    [Fact]
-    public void ControlAfterResetForPoolMagicNumberPreserved()
-    {
-        Control packet = new();
-        uint magicBefore = packet.Header.MagicNumber;
-
-        packet.ResetForPool();
-
-        Assert.Equal(magicBefore, packet.Header.MagicNumber);
-    }
 
     [Fact]
     public void ControlAfterResetForPoolCanBeReinitializedAndRoundTripped()
     {
         Control packet = new();
-        packet.Initialize(0x0002, ControlType.PONG, sequenceId: 99);
+        packet.Initialize(ControlType.PONG, sequenceId: 99);
+        var h2 = packet.Header;
+        h2.OpCode = 0x0002;
+        packet.Header = h2;
         packet.ResetForPool();
 
-        packet.Initialize(0x0003, ControlType.PING, sequenceId: 7);
+        packet.Initialize(ControlType.PING, sequenceId: 7);
+        var h3 = packet.Header;
+        h3.OpCode = 0x0003;
+        packet.Header = h3;
         byte[] bytes = packet.Serialize();
 
         IPacket result = PacketRegistry.Deserialize(bytes);
@@ -93,21 +84,23 @@ public sealed class PacketRegistryTests : IDisposable
 
 
     [Fact]
-    public void ComputedMagicMatchesInstanceMagicAndSerializedHeader()
+    public void ComputedOpCodeMatchesSerializedHeader()
     {
         Control control = new();
+        control.Initialize(ControlType.PING, 0, PacketFlags.SYSTEM, ProtocolReason.NONE);
         Directive directive = new();
+        directive.Initialize(ControlType.NOTICE, ProtocolReason.NONE, ProtocolAdvice.NONE, 0, PacketFlags.NONE, ControlFlags.NONE, 0, 0, 0);
 
-        uint regControl = PacketRegistry.Compute(typeof(Control));
-        uint regDirective = PacketRegistry.Compute(typeof(Directive));
+        ushort regControl = Control.StaticOpCode;
+        ushort regDirective = Directive.StaticOpCode;
 
-        Assert.Equal(regControl, control.Header.MagicNumber);
-        Assert.Equal(regDirective, directive.Header.MagicNumber);
+        Assert.Equal(regControl, control.Header.OpCode);
+        Assert.Equal(regDirective, directive.Header.OpCode);
 
         byte[] bytes = control.Serialize();
-        uint magicInBytes = System.Buffers.Binary.BinaryPrimitives
-                                           .ReadUInt32LittleEndian(bytes);
-        Assert.Equal(regControl, magicInBytes);
+        ushort opCodeInBytes = System.Buffers.Binary.BinaryPrimitives
+                                           .ReadUInt16LittleEndian(bytes.AsSpan((int)PacketHeaderOffset.OpCode));
+        Assert.Equal(regControl, opCodeInBytes);
     }
 
 
@@ -116,7 +109,6 @@ public sealed class PacketRegistryTests : IDisposable
     {
         Directive original = new();
         original.Initialize(
-            opCode: 0x0020,
             type: ControlType.NOTICE,
             reason: ProtocolReason.NONE,
             action: ProtocolAdvice.RETRY,
@@ -133,7 +125,7 @@ public sealed class PacketRegistryTests : IDisposable
         Directive result = Assert.IsType<Directive>(packet);
 
         Assert.Equal(original.Header.OpCode, result.Header.OpCode);
-        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
+
         Assert.Equal(original.Header.SequenceId, result.Header.SequenceId);
         Assert.Equal(original.Type, result.Type);
         Assert.Equal(original.Reason, result.Reason);
@@ -155,14 +147,13 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.StartsWith("Raw packet data is too short to contain a valid header", ex.Message);
     }
 
-    [Fact]
-    public void DeserializeWhenMagicNumberIsUnknownThrowsInvalidOperationException()
+    public void DeserializeWhenOpCodeIsUnknownThrowsInvalidOperationException()
     {
         byte[] buf = new byte[PacketConstants.HeaderSize];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buf.AsSpan(4), 0xFFFF);
 
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => PacketRegistry.Deserialize(buf));
-        Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
+        Assert.StartsWith("Cannot deserialize packet: OpCode", ex.Message);
     }
 
     [Fact]
@@ -176,7 +167,7 @@ public sealed class PacketRegistryTests : IDisposable
     public void DeserializeIntoExistingReferenceReturnsResolvedPacket()
     {
         Control original = new();
-        original.Initialize(0x0020, ControlType.PING, sequenceId: 7);
+        original.Initialize(ControlType.PING, 7, PacketFlags.SYSTEM, ProtocolReason.NONE);
 
         byte[] bytes = original.Serialize();
         Control destination = new();
@@ -185,16 +176,16 @@ public sealed class PacketRegistryTests : IDisposable
         Control result = Assert.IsType<Control>(packet);
 
         Assert.Equal(original.Header.OpCode, result.Header.OpCode);
-        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
+
         Assert.Equal(original.Header.SequenceId, result.Header.SequenceId);
         Assert.Equal(original.Type, result.Type);
     }
 
     [Fact]
-    public void TryDeserializeIntoExistingReferenceReturnsFalseForUnknownMagic()
+    public void TryDeserializeIntoExistingReferenceReturnsFalseForUnknownOpCode()
     {
         byte[] buf = new byte[PacketConstants.HeaderSize];
-        System.Buffers.Binary.BinaryPrimitives.WriteUInt32LittleEndian(buf, 0xDEADBEEF);
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt16LittleEndian(buf.AsSpan(4), 0xFFFF);
 
         Control destination = new();
         bool ok = PacketRegistry.TryDeserialize(buf, out IPacket? packet);
@@ -203,37 +194,40 @@ public sealed class PacketRegistryTests : IDisposable
     }
 
     [Fact]
-    public void AllRegisteredPacketsHaveUniqueMagicNumbers()
+    public void AllRegisteredPacketsHaveUniqueOpCodes()
     {
-        uint controlMagic = new Control().Header.MagicNumber;
-        uint directiveMagic = new Directive().Header.MagicNumber;
+        Control c = new();
+        c.Initialize(ControlType.PING, 0, PacketFlags.SYSTEM, ProtocolReason.NONE);
+        Directive d = new();
+        d.Initialize(ControlType.NOTICE, ProtocolReason.NONE, ProtocolAdvice.NONE, 0, PacketFlags.NONE, ControlFlags.NONE, 0, 0, 0);
+
+        ushort controlMagic = c.Header.OpCode;
+        ushort directiveMagic = d.Header.OpCode;
 
         Assert.NotEqual(controlMagic, directiveMagic);
     }
 
     [Fact]
-    public void DifferentPacketTypesProduceDifferentMagicNumbers()
+    public void DifferentPacketTypesProduceDifferentOpCodes()
     {
-        uint a = PacketRegistry.Compute(typeof(Control));
-        uint c = PacketRegistry.Compute(typeof(Directive));
+        ushort a = Control.StaticOpCode;
+        ushort c = Directive.StaticOpCode;
 
         Assert.NotEqual(a, c);
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 

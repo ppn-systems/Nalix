@@ -45,7 +45,7 @@ public static class CipherExtensions
         // We reuse the existing 'Control' packet to avoid creating a dedicated cipher packet.
         // Since CIPHER_UPDATE does not use the 'Reason' field, we safely cast our 1-byte 
         // CipherSuiteType into the 2-bytes ProtocolReason to carry it over the wire.
-        Control req = session.NewControl((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE)
+        Control req = session.NewControl(ControlType.CIPHER_UPDATE)
             .WithSeq(seq)
             .WithReason((ProtocolReason)cipherSuite)
             .Build();

@@ -5,11 +5,14 @@ using Nalix.Codec.DataFrames;
 namespace Nalix.Network.Tests.HostingScan.Child;
 
 [GenerateFormatter]
-public sealed partial class HostingScanChildPacket : PacketBase<HostingScanChildPacket>
+public sealed partial class HostingScanChildPacket : PacketBase<HostingScanChildPacket>, Nalix.Abstractions.Networking.Packets.IPacketStaticOpcode
 {
+    public static ushort StaticOpCode => 9999;
     [SerializeOrder(PacketHeaderOffset.Region)]
     public ushort Value { get; set; }
 }
+
+
 
 
 

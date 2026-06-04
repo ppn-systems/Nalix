@@ -15,17 +15,18 @@ public sealed partial class DataFramesPublicApiTests
     public void DeserializeWhenRegisteredPacketBytesAreProvidedReturnsExpectedPacket()
     {
         Control packet = new();
-        packet.Initialize(33, ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
+        packet.Initialize(ControlType.PONG, 88, PacketFlags.RELIABLE, ProtocolReason.NONE);
+        var h = packet.Header;
+        h.OpCode = 33;
+        packet.Header = h;
         byte[] bytes = packet.Serialize();
 
         IPacket deserialized = PacketRegistry.Deserialize(bytes);
 
         Control control = Assert.IsType<Control>(deserialized);
-        Assert.Equal(packet.Header.MagicNumber, control.Header.MagicNumber);
         Assert.Equal(packet.Type, control.Type);
         Assert.Equal(packet.Header.SequenceId, control.Header.SequenceId);
         Assert.True(PacketRegistry.DeserializerCount >= 1);
-        Assert.True(PacketRegistry.IsKnownMagic(packet.Header.MagicNumber));
         Assert.True(PacketRegistry.IsRegistered<Control>());
     }
 
@@ -56,26 +57,7 @@ public sealed partial class DataFramesPublicApiTests
         InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => PacketRegistry.Deserialize(raw));
         Assert.StartsWith("Cannot deserialize packet: Magic", ex.Message);
     }
-    [Fact]
-    public void ComputeWhenCalledForSameTypeReturnsSameMagicNumber()
-    {
-        Type type = typeof(Control);
 
-        uint first = PacketRegistry.Compute(type);
-        uint second = PacketRegistry.Compute(type);
-
-        Assert.Equal(first, second);
-    }
-
-    [Fact]
-    public void ComputeWhenTypeIsNullThrowsArgumentNullException()
-    {
-        Type? type = null;
-
-        ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => PacketRegistry.Compute(type!));
-
-        Assert.Equal("type", exception.ParamName);
-    }
 
     [Theory]
     [InlineData(CipherSuiteType.Chacha20, 10)]
@@ -202,6 +184,7 @@ public sealed partial class DataFramesPublicApiTests
         _ = Assert.ThrowsAny<CipherException>(() => FrameCipher.DecryptFrame(source, key, CipherSuiteType.Chacha20, out _));
     }
 }
+
 
 
 

@@ -44,16 +44,12 @@ public static class TimeSyncExtensions
     /// <summary>
     /// Creates a new TimeSync frame.
     /// </summary>
-    public static TimeSyncBuilder NewTimeSync(
-        this TransportSession _,
-        ushort opCode,
-        ControlType type,
-        bool reliable = true)
+    public static TimeSyncBuilder NewTimeSync(this TransportSession _, ControlType type, bool reliable = true)
     {
 #pragma warning disable CA2000
         TimeSync t = TimeSync.Create();
 #pragma warning restore CA2000
-        t.Initialize(opCode, type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
+        t.Initialize(type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
         return new TimeSyncBuilder(t);
     }
 
@@ -80,7 +76,7 @@ public static class TimeSyncExtensions
         ushort seq = unchecked((ushort)Interlocked.Increment(ref s_syncSequence));
 
         TimeSync req = session
-            .NewTimeSync((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.TIMESYNCREQUEST)
+            .NewTimeSync(ControlType.TIMESYNCREQUEST)
             .WithSeq(seq)
             .Build();
 

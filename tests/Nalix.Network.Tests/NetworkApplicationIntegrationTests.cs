@@ -35,8 +35,7 @@ public sealed class NetworkApplicationIntegrationTests
 
         Assert.Equal(pkt.Header.OpCode, readOpCode);
 
-        uint magic = BitConverter.ToUInt32(bytes, 0);
-        Assert.Equal(pkt.Header.MagicNumber, magic);
+
     }
 
     [Fact]
@@ -103,7 +102,7 @@ public sealed class NetworkApplicationIntegrationTests
             pkt.Header = h2;
 
 #if DEBUG
-            Console.WriteLine($"[TEST] Sending packet: OpCode={pkt.Header.OpCode}, MagicNumber={pkt.Header.MagicNumber}");
+            Console.WriteLine($"[TEST] Sending packet: OpCode={pkt.Header.OpCode}");
 #endif
             // Disambiguate SendAsync by specifying CancellationToken
             await client.SendAsync(pkt, ct: default);

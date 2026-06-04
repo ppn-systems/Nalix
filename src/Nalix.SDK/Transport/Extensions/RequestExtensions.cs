@@ -103,7 +103,7 @@ public static class RequestExtensions
         RequestOptions? options = null,
         Func<TResponse, bool>? predicate = null,
         CancellationToken ct = default)
-        where TResponse : class, IPacket
+        where TResponse : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(request);

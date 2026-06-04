@@ -190,7 +190,6 @@ public sealed class DispatchChannelTests
     {
         byte[] buffer = new byte[PacketHeader.Size];
         PacketHeader header = default;
-        header.MagicNumber = 0x4E_4C_58_00; // "NLX\0"
         header.OpCode = 0x0001;
         header.Priority = priority;
         header.SequenceId = (ushort)sequence;

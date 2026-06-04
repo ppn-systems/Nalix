@@ -89,8 +89,9 @@ public sealed class PacketAwaiterTests
                 CancellationToken.None));
     }
 
-    private sealed class TestPacket : IPacket
+    private sealed class TestPacket : IPacket, IPacketStaticOpcode
     {
+        public static ushort StaticOpCode => 999;
         public int Length => 0;
         public PacketHeader Header { get; set; }
         public byte[] Serialize() => [];

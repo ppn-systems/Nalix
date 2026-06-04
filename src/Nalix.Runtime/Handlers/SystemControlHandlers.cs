@@ -112,12 +112,10 @@ public sealed class SystemControlHandlers
 
         using PacketScope<Control> lease = PacketFactory<Control>.Acquire();
         Control ack = lease.Value;
-        ack.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
+        ack.Initialize(ControlType.CIPHER_UPDATE_ACK, packet.SequenceId, packet.Flags, packet.Reason);
 
         await context.Sender.SendAsync(ack).ConfigureAwait(false);
     }
-
-
 
     [SuppressMessage("Style", "IDE0060:Remove unused parameter", Justification = "<Pending>")]
     [SuppressMessage("Style", "IDE0022:Use expression body for method", Justification = "<Pending>")]

@@ -62,14 +62,20 @@ public sealed partial class DataFramesPublicApiTests
     private static Control CreateControlPacket()
     {
         Control packet = new();
-        packet.Initialize(14, ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
+        packet.Initialize(ControlType.PING, 55, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ProtocolReason.NONE);
+        var h = packet.Header;
+        h.OpCode = 14;
+        packet.Header = h;
         return packet;
     }
 
     private static Directive CreateDirectivePacket()
     {
         Directive packet = new();
-        packet.Initialize(91, ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
+        packet.Initialize(ControlType.REDIRECT, ProtocolReason.THROTTLED, ProtocolAdvice.SLOW_DOWN, 12, PacketFlags.SYSTEM | PacketFlags.RELIABLE, ControlFlags.SLOW_DOWN, 9, 8, 7);
+        var h = packet.Header;
+        h.OpCode = 91;
+        packet.Header = h;
         return packet;
     }
 
@@ -82,7 +88,6 @@ public sealed partial class DataFramesPublicApiTests
                 {
                     Control expectedControl = Assert.IsType<Control>(expected);
                     Control actualControl = Assert.IsType<Control>(actual);
-                    Assert.Equal(expectedControl.Header.MagicNumber, actualControl.Header.MagicNumber);
                     Assert.Equal(expectedControl.Header.OpCode, actualControl.Header.OpCode);
                     Assert.Equal(expectedControl.Type, actualControl.Type);
                     Assert.Equal(expectedControl.Reason, actualControl.Reason);
@@ -118,6 +123,7 @@ public sealed partial class DataFramesPublicApiTests
         return payload;
     }
 }
+
 
 
 

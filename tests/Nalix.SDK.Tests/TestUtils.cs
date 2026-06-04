@@ -175,8 +175,8 @@ internal sealed class FakeSession(bool isConnected) : TransportSession
             pong.Header = h;
 
             byte[] data = new byte[PacketConstants.HeaderSize];
-            uint magic = PacketRegistry.Compute(response.GetType());
-            BinaryPrimitives.WriteUInt32LittleEndian(data, magic);
+            ushort opCode = Control.StaticOpCode;
+            BinaryPrimitives.WriteUInt16LittleEndian(data.AsSpan((int)PacketHeaderOffset.OpCode), opCode);
 
             using BufferLease lease = BufferLease.CopyFrom(data);
             OnMessageReceived?.Invoke(this, lease);

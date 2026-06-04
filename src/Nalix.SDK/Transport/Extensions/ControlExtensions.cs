@@ -77,11 +77,10 @@ public static class ControlExtensions
     }
 
     /// <summary>
-    /// Creates a new CONTROL frame with the specified operation code and type.
-    /// The frame is pre-stamped with the current time via <see cref="Control.Initialize(ushort, ControlType, ushort, PacketFlags, ProtocolReason)"/>.
+    /// Creates a new CONTROL frame with the specified type.
+    /// The frame is pre-stamped with the current time via <see cref="Control.Initialize(ControlType, ushort, PacketFlags, ProtocolReason)"/>.
     /// </summary>
     /// <param name="_">The client connection (unused; provided for fluent extension syntax).</param>
-    /// <param name="opCode">The operation code.</param>
     /// <param name="type">The control type.</param>
     /// <param name="reliable">The transport reliability. Default is <see langword="true"/> (TCP).</param>
     /// <returns>A <see cref="ControlBuilder"/> initialized with the requested type.</returns>
@@ -90,18 +89,13 @@ public static class ControlExtensions
     /// Control ping = client.NewControl(opCode, ControlType.PING).WithSeq(123).Build();
     /// </code>
     /// </example>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static ControlBuilder NewControl(
-        this TransportSession _,
-        ushort opCode,
-        ControlType type,
-        bool reliable = true)
+    public static ControlBuilder NewControl(this TransportSession _, ControlType type, bool reliable = true)
     {
 #pragma warning disable CA2000 // Ownership is transferred to ControlBuilder; callers own/dispose the materialized Control returned by Build().
         Control c = Control.Create();
 #pragma warning restore CA2000
         // Initialize already stamps MonoTicks + Timestamp internally.
-        c.Initialize(opCode, type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.NONE);
+        c.Initialize(type, sequenceId: 0, flags: reliable ? PacketFlags.SYSTEM | PacketFlags.RELIABLE : PacketFlags.SYSTEM | PacketFlags.UNRELIABLE, reasonCode: ProtocolReason.NONE);
         return new ControlBuilder(c);
     }
 
@@ -126,7 +120,7 @@ public static class ControlExtensions
         Func<TPkt, bool> predicate,
         int timeoutMs,
         CancellationToken ct = default)
-        where TPkt : class, IPacket
+        where TPkt : class, IPacket, IPacketStaticOpcode
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(predicate);
@@ -167,7 +161,6 @@ public static class ControlExtensions
     /// Sends a CONTROL frame using a fluent configuration callback.
     /// </summary>
     /// <param name="client">The connected reliable client.</param>
-    /// <param name="opCode">The operation code.</param>
     /// <param name="type">The control type to send.</param>
     /// <param name="configure">
     /// An optional callback to customize the built <see cref="Control"/> before sending.
@@ -187,8 +180,7 @@ public static class ControlExtensions
     ///     ct: ct);
     /// </code>
     /// </example>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static async ValueTask SendControlAsync(this TransportSession client, ushort opCode, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
+    public static async ValueTask SendControlAsync(this TransportSession client, ControlType type, Action<Control>? configure = null, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(client);
 
@@ -198,7 +190,7 @@ public static class ControlExtensions
         }
 
         // Materialize the Control from the builder first; ref structs cannot be lambda-captured.
-        using Control ctrl = client.NewControl(opCode, type).Build();
+        using Control ctrl = client.NewControl(type).Build();
         configure?.Invoke(ctrl);
         await client.SendAsync(ctrl, encrypt: false, ct).ConfigureAwait(false);
     }

@@ -68,7 +68,6 @@ public sealed class SystemTimeSyncHandlers
 
         TimeSync pong = lease.Value;
         pong.Initialize(
-            (ushort)ProtocolOpCode.SYSTEM_TIMESYNC,
             ControlType.PONG,
             ping.SequenceId,
             ping.Flags);
@@ -84,7 +83,7 @@ public sealed class SystemTimeSyncHandlers
         using PacketScope<TimeSync> lease = PacketFactory<TimeSync>.Acquire();
 
         TimeSync res = lease.Value;
-        res.Initialize((ushort)ProtocolOpCode.SYSTEM_TIMESYNC, ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags);
+        res.Initialize(ControlType.TIMESYNCRESPONSE, req.SequenceId, req.Flags);
 
         res.Timestamp = Clock.UnixMillisecondsNow(); // t3
         res.MonoTicks = req.MonoTicks;               // echo t1'
