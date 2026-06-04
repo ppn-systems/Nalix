@@ -1,9 +1,10 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -88,16 +89,12 @@ public sealed partial class ConcurrencyGate
 
         if (attr.Max <= 0)
         {
-            throw new ArgumentException(
-                $"Concurrency max must be > 0, got {attr.Max}",
-                nameof(attr));
+            THROW_MAX_OUT_OF_RANGE(attr.Max);
         }
 
         if (attr.QueueMax < 0)
         {
-            throw new ArgumentException(
-                $"Queue max cannot be negative, got {attr.QueueMax}",
-                nameof(attr));
+            THROW_QUEUE_MAX_NEGATIVE(attr.QueueMax);
         }
     }
 
@@ -211,6 +208,14 @@ public sealed partial class ConcurrencyGate
             }
         }
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_MAX_OUT_OF_RANGE(int max) => throw new ArgumentException($"Concurrency max must be > 0, got {max}", "attr");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_QUEUE_MAX_NEGATIVE(int queueMax) => throw new ArgumentException($"Queue max cannot be negative, got {queueMax}", "attr");
 
     #endregion Private Methods
 }

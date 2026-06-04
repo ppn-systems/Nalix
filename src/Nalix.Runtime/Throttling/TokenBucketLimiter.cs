@@ -1,8 +1,9 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -111,7 +112,8 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TokenBucketLimiter WithLogging(ILogger logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
         return this;
     }
 
@@ -192,14 +194,11 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void VALIDATE_ENDPOINT(INetworkEndpoint key)
     {
-        if (key is null)
-        {
-            throw new ArgumentNullException(nameof(key), "Endpoint cannot be null");
-        }
+        ArgumentNullException.ThrowIfNull(key);
 
         if (string.IsNullOrEmpty(key.Address))
         {
-            throw new ArgumentException("Endpoint address cannot be null or empty", nameof(key));
+            THROW_KEY_ADDRESS_EMPTY();
         }
     }
 
@@ -459,10 +458,7 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
         if (state.HardBlockedUntilSw > now)
         {
             int retryMs = this.CALCULATE_DELAY_MS(now, state.HardBlockedUntilSw);
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-            {
-                _logger.LogTrace("[RT.TokenBucketLimiter:Internal] hard-blocked retry_ms={RetryMs}", retryMs);
-            }
+            this.LOG_HARD_BLOCKED(retryMs);
 
             decision = new RateLimitDecision
             {
@@ -512,9 +508,9 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
 
         ushort credit = CALCULATE_REMAINING_CREDIT(state.MicroBalance, _options.TokenScale);
 
-        if (credit <= 1 && _logger != null && _logger.IsEnabled(LogLevel.Trace))
+        if (credit <= 1)
         {
-            _logger.LogTrace("[RT.TokenBucketLimiter:Internal] allow credit={Credit}", credit);
+            this.LOG_ALLOW(credit);
         }
 
         return new RateLimitDecision
@@ -953,4 +949,30 @@ public sealed partial class TokenBucketLimiter : IDisposable, IAsyncDisposable, 
     }
 
     #endregion IDisposable & IAsyncDisposable
+
+    #region Private
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_KEY_ADDRESS_EMPTY() => throw new ArgumentException("Endpoint address cannot be null or empty", "key");
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_HARD_BLOCKED(int retryMs)
+    {
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace("[RT.TokenBucketLimiter:Internal] hard-blocked retry_ms={RetryMs}", retryMs);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_ALLOW(ushort credit)
+    {
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            _logger.LogTrace("[RT.TokenBucketLimiter:Internal] allow credit={Credit}", credit);
+        }
+    }
+
+    #endregion Private
 }

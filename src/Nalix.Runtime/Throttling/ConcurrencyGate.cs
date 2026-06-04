@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -92,7 +92,9 @@ public sealed partial class ConcurrencyGate : IReportable, IWithLogging<Concurre
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ConcurrencyGate WithLogging(ILogger logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
+
         return this;
     }
 

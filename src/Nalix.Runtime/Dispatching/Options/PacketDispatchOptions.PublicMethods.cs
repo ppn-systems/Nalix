@@ -34,10 +34,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithLogging(ILogger logger)
     {
         this.Logging = logger;
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
-        {
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithLogging] logger-attached");
-        }
+        this.LOG_LOGGER_ATTACHED();
 
         return this;
     }
@@ -57,10 +54,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithErrorHandling(
         Action<Exception, ushort> errorHandler)
     {
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
-        {
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithErrorHandling] error-handler-set");
-        }
+        this.LOG_ERROR_HANDLER_SET();
         _errorHandler = errorHandler;
 
         return this;
@@ -79,13 +73,7 @@ public sealed partial class PacketDispatchOptions<TPacket>
     public PacketDispatchOptions<TPacket> WithMiddleware(IPacketMiddleware<TPacket> middleware)
     {
         ArgumentNullException.ThrowIfNull(middleware);
-
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
-        {
-            string middlewareType = middleware.GetType().Name;
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithMiddleware] middleware-added type={MiddlewareType}", middlewareType);
-        }
-
+        this.LOG_MIDDLEWARE_ADDED(middleware);
         _pipeline.Use(middleware);
 
         return this;
@@ -105,15 +93,11 @@ public sealed partial class PacketDispatchOptions<TPacket>
     {
         if (loopCount.HasValue && (loopCount.Value <= 0 || loopCount.Value > 64))
         {
-            throw new ArgumentOutOfRangeException(nameof(loopCount), "Dispatch loop count must be between 1 and 64.");
+            THROW_LOOP_COUNT_OUT_OF_RANGE();
         }
 
         this.Drain.Count = loopCount ?? 0;
-        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
-        {
-            string loops = loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto";
-            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithDispatchLoopCount] loops={Loops}", loops);
-        }
+        this.LOG_DISPATCH_LOOP_COUNT(loopCount);
         return this;
     }
 
@@ -336,4 +320,50 @@ public sealed partial class PacketDispatchOptions<TPacket>
             }
         }
     }
+
+    #region Private
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_LOGGER_ATTACHED()
+    {
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithLogging] logger-attached");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_ERROR_HANDLER_SET()
+    {
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithErrorHandling] error-handler-set");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_MIDDLEWARE_ADDED(IPacketMiddleware<TPacket> middleware)
+    {
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            string middlewareType = middleware.GetType().Name;
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithMiddleware] middleware-added type={MiddlewareType}", middlewareType);
+        }
+    }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_LOOP_COUNT_OUT_OF_RANGE() => throw new ArgumentOutOfRangeException("loopCount", "Dispatch loop count must be between 1 and 64.");
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_DISPATCH_LOOP_COUNT(int? loopCount)
+    {
+        if (this.Logging != null && this.Logging.IsEnabled(LogLevel.Debug))
+        {
+            string loops = loopCount.HasValue ? loopCount.Value.ToString(CultureInfo.InvariantCulture) : "auto";
+            this.Logging.LogDebug("[RT.PacketDispatchOptions:WithDispatchLoopCount] loops={Loops}", loops);
+        }
+    }
+
+    #endregion Private
 }

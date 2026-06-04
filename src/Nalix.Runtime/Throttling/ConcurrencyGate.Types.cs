@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -149,10 +149,7 @@ public sealed partial class ConcurrencyGate
             if (newCount <= 0) // Overflow detection
             {
                 _ = Interlocked.Decrement(ref _activeUsers);
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
-                {
-                    this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers overflow detected");
-                }
+                this.LOG_OVERFLOW();
                 return false;
             }
 
@@ -169,10 +166,7 @@ public sealed partial class ConcurrencyGate
 
             if (remaining < 0)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
-                {
-                    this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers underflow detected");
-                }
+                this.LOG_UNDERFLOW();
                 _ = Interlocked.Exchange(ref _activeUsers, 0);
             }
         }
@@ -214,10 +208,7 @@ public sealed partial class ConcurrencyGate
 
             if (remaining < 0)
             {
-                if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
-                {
-                    this.Logger.LogError("[RT.ConcurrencyGate:Entry] queueCount underflow detected");
-                }
+                this.LOG_QUEUE_UNDERFLOW();
                 _ = Interlocked.Exchange(ref _queueCount, 0);
             }
         }
@@ -275,6 +266,33 @@ public sealed partial class ConcurrencyGate
                 }
             }
         }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void LOG_OVERFLOW()
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            {
+                this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers overflow detected");
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void LOG_UNDERFLOW()
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            {
+                this.Logger.LogError("[RT.ConcurrencyGate:Entry] activeUsers underflow detected");
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void LOG_QUEUE_UNDERFLOW()
+        {
+            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Error))
+            {
+                this.Logger.LogError("[RT.ConcurrencyGate:Entry] queueCount underflow detected");
+            }
+        }
     }
 
     #endregion Entry Class
@@ -285,12 +303,23 @@ public sealed partial class ConcurrencyGate
     /// Represents a lease on a concurrency slot.
     /// Disposing this struct releases the slot back to the semaphore.
     /// </summary>
-    /// <param name="sem"></param>
-    /// <param name="entry"></param>
-    public readonly struct Lease(SemaphoreSlim sem, Entry entry) : IDisposable
+    public readonly struct Lease : IDisposable
     {
-        private readonly Entry _entry = entry ?? throw new ArgumentNullException(nameof(entry));
-        private readonly SemaphoreSlim _sem = sem ?? throw new ArgumentNullException(nameof(sem));
+        private readonly Entry _entry;
+        private readonly SemaphoreSlim _sem;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Lease"/> struct.
+        /// </summary>
+        /// <param name="sem">The semaphore associated with the lease.</param>
+        /// <param name="entry">The concurrency gate entry.</param>
+        public Lease(SemaphoreSlim sem, Entry entry)
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            ArgumentNullException.ThrowIfNull(sem);
+            _entry = entry;
+            _sem = sem;
+        }
 
         /// <summary>
         /// Releases the concurrency slot.
@@ -303,6 +332,12 @@ public sealed partial class ConcurrencyGate
                 return;
             }
 
+            this.DISPOSE_INTERNAL();
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        private void DISPOSE_INTERNAL()
+        {
             try
             {
                 _ = _sem.Release();
