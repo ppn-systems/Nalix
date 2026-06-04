@@ -151,7 +151,7 @@ internal sealed class ControlCommands
                 options: opts,
                 predicate: c => c.Type == expectType).ConfigureAwait(false);
 
-            _log.Recv("RESPONSE", $"type={response.Type} seq={response.SequenceId} reason={response.Reason} ts={response.Timestamp}");
+            _log.Recv("RESPONSE", $"type={response.Type} seq={response.SequenceId} reason={response.Reason}");
         }
         catch (TimeoutException)
         {

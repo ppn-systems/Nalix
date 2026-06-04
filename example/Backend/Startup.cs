@@ -14,7 +14,6 @@ using Nalix.Logging;
 using Nalix.Logging.Sinks;
 using Nalix.Network.Connections;
 using Nalix.Network.Options;
-using Nalix.Observability;
 using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Options;
 
@@ -42,6 +41,7 @@ internal class Startup
         ObjectPoolManager objectPool = new();
 
         NetworkApplication host = NetworkApplication.CreateBuilder()
+            .UseTimeSync()
             .UseSessions()
             .UseSystemControl()
             .UseSecureConnections()
@@ -304,7 +304,7 @@ internal class Startup
             {
                 // Enable only if your TCP proxy actually sends PROXY protocol V1/V2.
                 // For direct TCP benchmark, keep this false.
-                o.Enabled = true;
+                o.Enabled = false;
                 o.RequireTrustedProxy = true;
                 o.HeaderTimeoutMs = 1000;
             })

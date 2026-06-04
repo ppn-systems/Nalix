@@ -205,7 +205,7 @@ public sealed class SystemControlHandlers
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
         PacketHeader header = reply.Header;
-        header.SequenceId = packet.SequenceId;
+        reply.SequenceId = packet.SequenceId;
         reply.Header = header;
 
         await context.Sender.SendAsync(reply).ConfigureAwait(false);

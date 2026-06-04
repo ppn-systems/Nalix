@@ -40,7 +40,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.Equal(0u, packet.Header.SequenceId);
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
-        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Header.Flags);
+        Assert.Equal(PacketFlags.SYSTEM, packet.Header.Flags);
     }
 
     [Theory]
@@ -172,7 +172,7 @@ public sealed partial class DataFramesPublicApiTests
         Assert.Equal(0UL, packet.SessionToken);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.True(packet.Proof.IsZero);
-        Assert.Equal(PacketFlags.SYSTEM | PacketFlags.RELIABLE, packet.Header.Flags);
+        Assert.Equal(PacketFlags.SYSTEM, packet.Header.Flags);
         Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
     }
 

@@ -53,7 +53,7 @@ internal sealed class ViewCommands
         _ = tbl.AddRow("[steelblue1]Address[/]", $"[white]{opts.Address}[/]");
         _ = tbl.AddRow("[steelblue1]Port[/]", $"[white]{opts.Port}[/]");
         _ = tbl.AddRow("[steelblue1]Connected[/]", _client.IsConnected ? "[green]Yes[/]" : "[red]No[/]");
-        _ = tbl.AddRow("[steelblue1]Encryption[/]", opts.EncryptionEnabled ? "[green]Enabled[/]" : "[yellow]Disabled[/]");
+        _ = tbl.AddRow("[steelblue1]Encryption[/]", _client.Session.State.EncryptionEnabled ? "[green]Enabled[/]" : "[yellow]Disabled[/]");
         _ = tbl.AddRow("[steelblue1]Algorithm[/]", $"[mediumpurple1]{opts.Algorithm}[/]");
         _ = tbl.AddRow("[steelblue1]Server PublicKey[/]", string.IsNullOrEmpty(opts.ServerPublicKey)
             ? "[grey]not set[/]"
@@ -65,7 +65,7 @@ internal sealed class ViewCommands
         _ = tbl.AddRow("[steelblue1]Connect Timeout[/]", $"[white]{opts.ConnectTimeoutMillis}ms[/]");
         _ = tbl.AddRow("[steelblue1]Resume Enabled[/]", opts.ResumeEnabled ? "[green]Yes[/]" : "[grey]No[/]");
         _ = tbl.AddRow("[steelblue1]Resume Timeout[/]", $"[white]{opts.ResumeTimeoutMillis}ms[/]");
-        _ = tbl.AddRow("[steelblue1]Session Token[/]", $"[white]{opts.SessionToken}[/]");
+        _ = tbl.AddRow("[steelblue1]Session Token[/]", $"[white]{_client.Session.State.SessionToken}[/]");
         _ = tbl.AddRow("[steelblue1]Control Sub[/]", _subs.IsControlSubActive ? "[green]Active[/]" : "[grey]Inactive[/]");
 
         AnsiConsole.Write(tbl);

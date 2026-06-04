@@ -118,7 +118,9 @@ public sealed class HandshakeHandlers
 
         using PacketScope<SessionChallenge> lease = PacketFactory<SessionChallenge>.Acquire();
         SessionChallenge reply = lease.Value;
+
         reply.Initialize(serverKey.PublicKey, serverNonce, HandshakeX25519.ComputeServerProof(masterSecret, transcriptHash));
+        reply.SequenceId = packet.SequenceId;
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
         await context.Sender.SendAsync(reply).ConfigureAwait(false);
@@ -174,7 +176,9 @@ public sealed class HandshakeHandlers
 
         using PacketScope<SessionEstablished> lease = PacketFactory<SessionEstablished>.Acquire();
         SessionEstablished reply = lease.Value;
+
         reply.Initialize(expectedFinish, connection.ID.ToUInt64());
+        reply.SequenceId = packet.SequenceId;
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
 
         await context.Sender.SendAsync(reply).ConfigureAwait(false);

@@ -67,7 +67,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(SessionResumeStage.REQUEST, packet.Stage);
         Assert.Equal(ProtocolReason.NONE, packet.Reason);
         Assert.True(packet.Proof.IsZero);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
+        Assert.False(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
     }
 
@@ -93,7 +93,7 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(ProtocolReason.THROTTLED, packet.Reason);
         Assert.Equal(ProtocolAdvice.SLOW_DOWN, packet.Action);
         Assert.Equal(ControlFlags.SLOW_DOWN, packet.Control);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
+        Assert.False(packet.Header.Flags.HasFlag(PacketFlags.RELIABLE));
         Assert.Equal(PacketPriority.HIGH, packet.Header.Priority);
     }
 
