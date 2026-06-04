@@ -240,13 +240,13 @@ public abstract partial class UdpListenerBase
         {
             if (args.RemoteEndPoint is IPEndPoint ip && !_rateLimiter.TryAccept(ip))
             {
-                this.LogRateLimitDrop(ip);
+                this.LOG_RATE_LIMIT_DROP(ip);
                 return;
             }
 
             if (args.BytesTransferred > _options.MaxUdpDatagramSize)
             {
-                this.LogOversizeDrop(args.RemoteEndPoint, args.BytesTransferred);
+                this.LOG_OVERSIZE_DROP(args.RemoteEndPoint, args.BytesTransferred);
                 return;
             }
 
@@ -262,37 +262,7 @@ public abstract partial class UdpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            this.HandleReceiveError(ex);
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void LogRateLimitDrop(IPEndPoint ip)
-    {
-        _ = Interlocked.Increment(ref _dropRateLimited);
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-        {
-            this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] rate-limit-drop remote={Ip}", ip);
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void LogOversizeDrop(EndPoint remoteEndPoint, int size)
-    {
-        _ = Interlocked.Increment(ref _dropOversize);
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-        {
-            this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] oversize-drop remote={ArgsRemoteEndPoint} size={ArgsBytesTransferred}", remoteEndPoint, size);
-        }
-    }
-
-    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
-    private void HandleReceiveError(Exception ex)
-    {
-        _ = Interlocked.Increment(ref _recvErrors);
-        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
-        {
-            this.Logger.LogDebug(ex, "[NW.UdpListenerBase:HandleReceive] non-fatal");
+            this.LOG_HANDL_ERECEIVE_ERROR(ex);
         }
     }
 
@@ -321,12 +291,7 @@ public abstract partial class UdpListenerBase
         if (lease == null || remoteEndPoint == null || lease.Length < SessionTokenSize)
         {
             _ = Interlocked.Increment(ref _dropShort);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} len={LeaseLength}", remoteEndPoint, lease?.Length);
-            }
-
+            this.LOG_SHORT_PACKET_DROP_SESSION_TOKEN(remoteEndPoint, lease?.Length);
             lease?.Dispose();
             return;
         }
@@ -341,12 +306,7 @@ public abstract partial class UdpListenerBase
         if (payload.Length < PacketHeader.Size)
         {
             _ = Interlocked.Increment(ref _dropShort);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} payloadLen={PayloadLength}", remoteEndPoint, payload.Length);
-            }
-
+            this.LOG_SHORT_PACKET_DROP_HEADER(remoteEndPoint, payload.Length);
             lease.Dispose();
             return;
         }
@@ -356,12 +316,7 @@ public abstract partial class UdpListenerBase
         if ((header.Flags & PacketFlags.UNRELIABLE) == 0)
         {
             _ = Interlocked.Increment(ref _dropShort);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] invalid-flags-drop remote={RemoteEndPoint} flags={HeaderFlags}", remoteEndPoint, header.Flags);
-            }
-
+            this.LOG_INVALID_FLAGS_DROP(remoteEndPoint, header.Flags);
             lease.Dispose();
             return;
         }
@@ -375,12 +330,7 @@ public abstract partial class UdpListenerBase
 #pragma warning restore CA2000
         {
             _ = Interlocked.Increment(ref _dropUnknown);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unknown-token-drop remote={RemoteEndPoint}", remoteEndPoint);
-            }
-
+            this.LOG_UNKNOWN_TOKEN_DROP(remoteEndPoint);
             lease.Dispose();
             return;
         }
@@ -391,27 +341,16 @@ public abstract partial class UdpListenerBase
             !this.IsPinnedEndpointMatch(connection.NetworkEndpoint, remoteIpEndPoint))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] endpoint-mismatch-drop expected={ConnectionNetworkEndpoint} actual={RemoteEndPoint} connId={ConnectionId}", connection.NetworkEndpoint, remoteEndPoint, connection.ID);
-            }
-
+            this.LOG_ENDPOINT_MISMATCH_DROP(connection.NetworkEndpoint, remoteEndPoint, connection.ID);
             lease.Dispose();
             return;
         }
 
         // --- 4. Replay protection (SEC-27, SEC-71) ---
-        // Extract sequence ID cleanly from the packet header (offset 8 for the new 16-bit sequence)
         if (!connection.UdpReplayWindow.TryCheck(header.SequenceId))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] replay-window-drop seq={HeaderSequenceId} connId={ConnectionId}", header.SequenceId, connection.ID);
-            }
-
+            this.LOG_REPLAY_WINDOW_DROP(header.SequenceId, connection.ID);
             lease.Dispose();
             return;
         }
@@ -420,12 +359,7 @@ public abstract partial class UdpListenerBase
         if (!this.IsAuthenticated(connection, remoteEndPoint, payload))
         {
             _ = Interlocked.Increment(ref _dropUnauth);
-
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unauth-drop remote={RemoteEndPoint} connId={ConnectionId}", remoteEndPoint, connection.ID);
-            }
-
+            this.LOG_UNAUTH_DROP(remoteEndPoint, connection.ID);
             lease.Dispose();
             return;
         }
@@ -438,8 +372,6 @@ public abstract partial class UdpListenerBase
 
         connection.UdpTransport?.RecordBytesReceived(lease.Length);
 
-        // Strip the 8-byte Session Token and wrap the remaining payload into a new lease.
-        // We take ownership of the underlying buffer from the original lease but only for the payload slice.
         if (!lease.ReleaseOwnership(out byte[]? rawBuffer, out int start, out int length) || rawBuffer is null)
         {
             lease.Dispose();
@@ -448,30 +380,21 @@ public abstract partial class UdpListenerBase
 
         try
         {
-            // Create a new lease for the payload (8 bytes offset)
             BufferLease incomingLease = BufferLease.TakeOwnership(rawBuffer, start + Snowflake.Size, length - Snowflake.Size);
             incomingLease.IsReliable = false;
 
-            // Try the connection-local pool first, then fall back to the shared pool.
             ConnectionEventArgs args = connection.AcquireEventArgs();
-
             args.Initialize(incomingLease, connection);
 
-            // Align with TCP: Offload to ThreadPool via AsyncCallback.
-            // Disposal is handled by s_onProcessFrameBridge.
             if (!Internal.Transport.AsyncCallback.Invoke(s_onProcessFrameBridge, this, args))
             {
                 args.Dispose();
             }
 
-            if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] accepted connId={ConnectionId} ep={RemoteEndPoint} payloadSize={IncomingLeaseLength}", connection.ID, remoteEndPoint, incomingLease.Length);
-            }
+            this.LOG_ACCEPTED(connection.ID, remoteEndPoint, incomingLease.Length);
         }
         finally
         {
-            // Dispose the original wrapping lease; the inner buffer was either transferred or rejected.
             lease.Dispose();
         }
     }
@@ -539,4 +462,110 @@ public abstract partial class UdpListenerBase
     }
 
     #endregion Event Bridge
+
+    #region Logging Helpers
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_RATE_LIMIT_DROP(IPEndPoint ip)
+    {
+        _ = Interlocked.Increment(ref _dropRateLimited);
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] rate-limit-drop remote={Ip}", ip);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_OVERSIZE_DROP(EndPoint remoteEndPoint, int size)
+    {
+        _ = Interlocked.Increment(ref _dropOversize);
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:HandleReceive] oversize-drop remote={ArgsRemoteEndPoint} size={ArgsBytesTransferred}", remoteEndPoint, size);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_HANDL_ERECEIVE_ERROR(Exception ex)
+    {
+        _ = Interlocked.Increment(ref _recvErrors);
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))
+        {
+            this.Logger.LogDebug(ex, "[NW.UdpListenerBase:HandleReceive] non-fatal");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_SHORT_PACKET_DROP_SESSION_TOKEN(EndPoint? remoteEndPoint, int? leaseLength)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} len={LeaseLength}", remoteEndPoint, leaseLength);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_SHORT_PACKET_DROP_HEADER(EndPoint remoteEndPoint, int payloadLength)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] short-packet-drop remote={RemoteEndPoint} payloadLen={PayloadLength}", remoteEndPoint, payloadLength);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_INVALID_FLAGS_DROP(EndPoint remoteEndPoint, PacketFlags flags)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] invalid-flags-drop remote={RemoteEndPoint} flags={HeaderFlags}", remoteEndPoint, flags);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_UNKNOWN_TOKEN_DROP(EndPoint remoteEndPoint)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unknown-token-drop remote={RemoteEndPoint}", remoteEndPoint);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_ENDPOINT_MISMATCH_DROP(INetworkEndpoint? expected, EndPoint remoteEndPoint, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] endpoint-mismatch-drop expected={ConnectionNetworkEndpoint} actual={RemoteEndPoint} connId={ConnectionId}", expected, remoteEndPoint, connectionId);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_REPLAY_WINDOW_DROP(ushort sequenceId, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] replay-window-drop seq={HeaderSequenceId} connId={ConnectionId}", sequenceId, connectionId);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_UNAUTH_DROP(EndPoint remoteEndPoint, Nalix.Abstractions.Identity.ISnowflake connectionId)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] unauth-drop remote={RemoteEndPoint} connId={ConnectionId}", remoteEndPoint, connectionId);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void LOG_ACCEPTED(Nalix.Abstractions.Identity.ISnowflake connectionId, EndPoint remoteEndPoint, int payloadSize)
+    {
+        if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))
+        {
+            this.Logger.LogTrace("[NW.UdpListenerBase:ProcessDatagram] accepted connId={ConnectionId} ep={RemoteEndPoint} payloadSize={IncomingLeaseLength}", connectionId, remoteEndPoint, payloadSize);
+        }
+    }
+
+    #endregion Logging Helpers
 }

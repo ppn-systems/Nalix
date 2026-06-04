@@ -479,15 +479,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
-            {
-                Exception e = (ex as AggregateException)?.Flatten() ?? ex;
-
-                _owner.ThrottledError(
-                    _logger, s_keyReceiveFaulted,
-                    "[NW.SocketConnection:Receive] faulted ep=" + _owner.NetworkEndpoint.Address, e);
-            }
-
+            this.HANDLE_RECEIVE_LOOP_ERROR(ex);
         }
         finally
         {
@@ -498,6 +490,19 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
             }
             this.CANCEL_RECEIVE_ONCE();
             this.INVOKE_CLOSE_ONCE();
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void HANDLE_RECEIVE_LOOP_ERROR(Exception ex)
+    {
+        if (_logger != null && _logger.IsEnabled(LogLevel.Trace))
+        {
+            Exception e = (ex as AggregateException)?.Flatten() ?? ex;
+
+            _owner.ThrottledError(
+                _logger, s_keyReceiveFaulted,
+                "[NW.SocketConnection:Receive] faulted ep=" + _owner.NetworkEndpoint.Address, e);
         }
     }
 
@@ -825,8 +830,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         }
 #endif
     }
-
-
 
     private static bool IS_VALID_PACKET_SIZE(uint size)
         => size is >= HeaderSize and <= PacketConstants.PacketSizeLimit;
