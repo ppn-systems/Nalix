@@ -97,8 +97,6 @@ public interface IPoolRentable
 | `ResetMetrics()` | Resets all global and per-pool metrics to baseline (zero). |
 | `ClearPool<T>()` | Clears all objects from a specific type's pool. |
 | `ClearAllPools()` | Clears all objects from all pools. |
-| `TrimAllPools(percentage = 50)` | Trims all pools to their target sizes. |
-| `ScheduleRegularTrimming(interval, percentage = 50, ct)` | Schedules a background trimming loop. |
 | `PerformHealthCheck()` | Identifies "unhealthy" pools (those with consistently high miss rates). |
 | `ResetStatistics()` | Resets all statistics for the pool manager and all pools. |
 | `GetTypeInfo<T>()` | Gets detailed information about a specific type's pool. |
@@ -109,7 +107,6 @@ public interface IPoolRentable
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `DefaultMaxPoolSize` | `int` | Default maximum size for new pools (default 1024). |
 | `PoolCount` | `int` | Total number of pools currently managed. |
 | `PeakPoolCount` | `int` | Peak number of pools at any time. |
 | `TotalGetOperations` | `long` | Total number of get operations performed. |
@@ -129,16 +126,11 @@ To enable global object pooling for packets and internal components, register th
 ```csharp
 using Nalix.Hosting;
 using Nalix.Framework.Memory.Objects;
+using Nalix.Framework.Options;
 
 var app = NetworkApplication.CreateBuilder()
     // 1. Initialize the global object pool manager
-    .ConfigureObjectPoolManager(new ObjectPoolManager(logger))
-    
-    // 2. Optional: Pre-configure pool sizes for specific hot types
-    .Configure<ObjectPoolOptions>(opt => 
-    {
-        opt.DefaultMaxPoolSize = 2048;
-    })
+    .ConfigureObjectPoolManager(new ObjectPoolManager())
     .Build();
 ```
 
@@ -148,8 +140,10 @@ For performance-critical code, it is recommended to cache a `TypedObjectPool<T>`
 
 ```csharp
 // Recommended performance pattern
+// Resolve ObjectPoolManager from InstanceManager after registration
 private readonly TypedObjectPool<MyPacket> _pool = 
-    ObjectPoolManager.Instance.GetTypedPool<MyPacket>();
+    InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>()!
+        .GetTypedPool<MyPacket>();
 
 public void Process()
 {
@@ -202,7 +196,7 @@ TrimIntervalMinutes = 5
     While `EnableDiagnostics` provides invaluable insight during development and load testing, it is recommended to disable `CaptureStackTraces` in extreme production environments to save CPU cycles on every `Get<T>()` call.
 
 !!! tip "Diagnostic Insight"
-    Use `ScheduleRegularTrimming` to keep memory usage balanced. Trimming runs `PerformHealthCheck` automatically to log warnings about unhealthy pools.
+    Use `PerformHealthCheck()` to identify pools with consistently high miss rates, and configure `EnableObjectTrimming` in `ObjectPoolOptions` to keep memory usage balanced.
 
 ## Related APIs
 

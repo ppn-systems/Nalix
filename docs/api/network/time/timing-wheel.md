@@ -85,8 +85,8 @@ Total system load can sometimes delay the background loop. `TimingWheel` uses `P
 
 - `Activate()`: Starts the background worker.
 - `Deactivate()`: Stops the worker and drains all remaining tasks back to the pool.
-- `Register(IConnection)`: Enrolls a connection into the timing cycle.
-- `Unregister(IConnection)`: Markedly removes a connection from monitoring (lazy).
+- `Register(ITimeoutTrackedConnection)`: Enrolls a connection into the timing cycle.
+- `Unregister(ITimeoutTrackedConnection)`: Markedly removes a connection from monitoring (lazy).
 
 ## Configuration
 

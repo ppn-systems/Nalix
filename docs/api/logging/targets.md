@@ -37,7 +37,7 @@ var fileTarget = new BatchFileLogTarget(options =>
     options.MaxFileSizeBytes = 10 * 1024 * 1024;
 });
 
-fileTarget.Publish(entry);
+fileTarget.Publish(timestampUtc, logLevel, eventId, message, exception);
 fileTarget.Dispose();
 ```
 

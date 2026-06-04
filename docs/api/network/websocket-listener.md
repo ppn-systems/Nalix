@@ -115,9 +115,6 @@ public sealed class CustomWebSocketListener : WebSocketListenerBase
         // Decode inbound data lease, perform protocol parsing, etc.
         var lease = args.Lease;
         Console.WriteLine($"Received {lease.Length} bytes via WebSocket");
-        
-        // Pass to standard protocol dispatcher
-        this.Protocol.ProcessMessage(sender, args);
     }
 }
 ```

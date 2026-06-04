@@ -48,7 +48,8 @@ For maximum throughput, store the pool in a `static readonly` or `private readon
 
 ```csharp
 private static readonly TypedObjectPool<DataPacket> _packetPool = 
-    ObjectPoolManager.Instance.GetTypedPool<DataPacket>();
+    InstanceManager.Instance.GetExistingInstance<ObjectPoolManager>()!
+        .GetTypedPool<DataPacket>();
 
 public void SendData()
 {

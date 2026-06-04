@@ -1,13 +1,16 @@
 # DataWriter
 
+**Namespace:** `Nalix.Environment.Memory`
+**Assembly:** `Nalix.Environment`
+
 `Nalix.Environment.Memory.DataWriter` is a mutable, growable, high-performance write buffer implemented as a `ref struct`. It is specifically designed to handle high-throughput serialization with minimal overhead.
 
 ## Buffer Modes
 
 `DataWriter` can operate in two distinct modes depending on how it is constructed:
 
-1. **Rented Mode**: Constructed via `new DataWriter(int size)`. The writer internally rents a `byte[]` from `BufferLease.ByteArrayPool`. In this mode, the writer can dynamically `Expand()` if it runs out of space, automatically renting a larger array and copying data over. Calling `Dispose()` returns the rented array to the pool.
-2. **Fixed Mode**: Constructed via `new DataWriter(byte[] buffer)` or `new DataWriter(Span<byte> span)`. The writer wraps an external, fixed-size buffer. In this mode, calling `Expand()` when there is insufficient space will throw a `SerializationFailureException`, and `Dispose()` performs no pooling actions.
+1. **Rented Mode**: Constructed via `new DataWriter(int size)`. The writer internally rents a `byte[]` from `BufferLease.ByteArrayPool`. In this mode, the writer can dynamically `Expand()` if it runs out of space, automatically renting a larger array (typically doubling) and copying data over. Calling `Dispose()` returns the rented array to the pool.
+2. **Fixed Mode**: Constructed via `new DataWriter(byte[] buffer)` or `new DataWriter(Span<byte> span)`. The writer wraps an external, fixed-size buffer. In this mode, calling `Expand()` when there is insufficient space throws an `InternalErrorException`, and `Dispose()` performs no pooling actions.
 
 ## Key Properties
 
@@ -38,11 +41,21 @@ Returns a reference to the first byte of the free space. Always call `Expand()` 
 public void Advance(int count)
 ```
 
-Advances the write cursor by `count` bytes, effectively committing them to the `WrittenCount`.
+Advances the write cursor by `count` bytes, effectively committing them to the `WrittenCount`. Throws `ArgumentOutOfRangeException` if `count` is non-positive or exceeds `FreeBuffer`.
+
+### 4. Write
+
+`DataWriter` provides direct write helpers that automatically expand when needed (in Rented Mode):
+
+- `Write<T>(T value) where T : unmanaged`: Writes any unmanaged value directly, expanding if necessary.
+- `Write(ReadOnlySpan<byte> value)`: Writes a span of bytes, expanding if necessary.
+- `Write(byte[] value)`: Writes a byte array, expanding if necessary.
+
+These are convenience wrappers around `Expand` + `GetFreeBufferReference` + `Advance`.
 
 ## Finalizing
 
-- `ToArray()`: Copies the committed data into a brand new, tightly-sized `byte[]`.
+- `ToArray()`: Copies the committed data into a brand new, tightly-sized `byte[]`. Allocates a new array.
 - `Dispose()`: Clears the state and, if in Rented Mode, returns the underlying array to the pool.
 
 ## Example Usage
