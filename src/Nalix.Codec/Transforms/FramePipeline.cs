@@ -67,18 +67,11 @@ public static class FramePipeline
                 Throw.EncryptedButNoKey();
             }
 
-            try
-            {
-                current = FrameCipher.DecryptFrame(current, secret, algorithm, out uint _seq);
-                seq = _seq;
+            current = FrameCipher.DecryptFrame(current, secret, algorithm, out uint _seq);
+            seq = _seq;
 
-                // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
-                flags = current.Span.AsHeaderRef().Flags;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            // Re-read flags after decryption since the inner payload might have other flags (e.g., COMPRESSED).
+            flags = current.Span.AsHeaderRef().Flags;
         }
 
         if ((flags & PacketFlags.COMPRESSED) != 0)

@@ -4,6 +4,7 @@
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 #if DEBUG
@@ -34,7 +35,7 @@ internal static unsafe class SpanOps
         // Negative values are invalid input and indicate a caller bug.
         if (value < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(value), "WriteVarInt does not support negative values.");
+            THROW_OUT_OF_RANGE();
         }
 
         // Split the value into as many 0xFF markers as needed, then a final remainder byte.
@@ -89,6 +90,11 @@ internal static unsafe class SpanOps
 
         return (int)(p - dest);
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_OUT_OF_RANGE()
+        => throw new ArgumentOutOfRangeException("value", "WriteVarInt does not support negative values.");
 
     /// <summary>
     /// Reads a variable-length integer that was encoded with 0xFF continuation bytes.

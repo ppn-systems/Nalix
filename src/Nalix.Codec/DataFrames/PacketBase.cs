@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -72,10 +72,15 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         int required = this.Length;
         if (buffer.Length < required)
         {
-            throw new ArgumentException(
-                $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.");
+            THROW_BUFFER_TOO_SMALL(buffer.Length, required);
         }
 
+        return this.SERIALIZE_INTERNAL(buffer, required);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private int SERIALIZE_INTERNAL(Span<byte> buffer, int required)
+    {
         try
         {
             return LiteSerializer.Serialize((TSelf)this, buffer);
@@ -87,8 +92,7 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
         {
             if (buffer.Length < required)
             {
-                throw new ArgumentException(
-                    $"Buffer too small: length={buffer.Length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.", ex);
+                THROW_BUFFER_TOO_SMALL_INNER(buffer.Length, required, ex);
             }
 
             throw;
@@ -129,19 +133,29 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
 
         if (bytesRead == 0)
         {
-            throw new InvalidOperationException(
-                $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={buffer.Length}.");
+            THROW_DESERIALIZE_FAILED(buffer.Length);
         }
 
         if (bytesRead < buffer.Length)
         {
-            throw new SerializationFailureException(
-                $"Deserialize incomplete: type={typeof(TSelf).Name}, bytesRead={bytesRead}, expected={buffer.Length}. " +
-                "Potential payload corruption or trailing unconsumed data.");
+            THROW_DESERIALIZE_INCOMPLETE(bytesRead, buffer.Length);
         }
 
         return packet;
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_DESERIALIZE_FAILED(int length)
+        => throw new InvalidOperationException(
+            $"Deserialize failed: type={typeof(TSelf).Name}, bytesRead=0, length={length}.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_DESERIALIZE_INCOMPLETE(int bytesRead, int length)
+        => throw new SerializationFailureException(
+            $"Deserialize incomplete: type={typeof(TSelf).Name}, bytesRead={bytesRead}, expected={length}. " +
+            "Potential payload corruption or trailing unconsumed data.");
 
     /// <inheritdoc/>
     [EditorBrowsable(EditorBrowsableState.Never)]
@@ -202,28 +216,55 @@ public abstract class PacketBase<[DynamicallyAccessedMembers(DynamicallyAccessed
 
     #region Private Methods
 
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_BUFFER_TOO_SMALL(int length, int required)
+        => throw new ArgumentException(
+            $"Buffer too small: length={length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_BUFFER_TOO_SMALL_INNER(int length, int required, Exception ex)
+        => throw new ArgumentException(
+            $"Buffer too small: length={length}, required>={required}, type={typeof(TSelf).FullName}. If you did not manually pass a small buffer, this indicates a Use-After-Free concurrency failure: the packet size was mutated by another thread. This is typically caused by an orphaned I/O task missing a CancellationToken.", ex);
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void VALIDATE_BUFFER_HEADER(ReadOnlySpan<byte> buffer)
     {
         if (buffer.IsEmpty)
         {
-            throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
+            THROW_EMPTY_BUFFER();
         }
 
         if (buffer.Length < PacketSchema<TSelf>.StaticSize)
         {
-            throw new SerializationFailureException(
-                $"Insufficient buffer for {typeof(TSelf).Name}: length={buffer.Length}, required={PacketSchema<TSelf>.StaticSize}.");
+            THROW_INSUFFICIENT_BUFFER(buffer.Length);
         }
 
         ref readonly PacketHeader header = ref buffer.AsHeaderRef();
         if (header.MagicNumber != PacketSchema<TSelf>.AutoMagic)
         {
-            throw new SerializationFailureException(
-                $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{header.MagicNumber:X8}, expected=0x{PacketSchema<TSelf>.AutoMagic:X8}. " +
-                "The received packet type does not match the target deserialization type.");
+            THROW_MAGIC_MISMATCH(header.MagicNumber);
         }
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_EMPTY_BUFFER()
+        => throw new ArgumentException($"Cannot deserialize {typeof(TSelf).Name}: buffer is empty.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_INSUFFICIENT_BUFFER(int length)
+        => throw new SerializationFailureException(
+            $"Insufficient buffer for {typeof(TSelf).Name}: length={length}, required={PacketSchema<TSelf>.StaticSize}.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_MAGIC_MISMATCH(uint magic)
+        => throw new SerializationFailureException(
+            $"Magic number mismatch: type={typeof(TSelf).Name}, buffer=0x{magic:X8}, expected=0x{PacketSchema<TSelf>.AutoMagic:X8}. " +
+            "The received packet type does not match the target deserialization type.");
 
     #endregion Private Methods
 }
