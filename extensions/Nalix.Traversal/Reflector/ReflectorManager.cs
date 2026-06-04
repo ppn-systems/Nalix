@@ -3,12 +3,12 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using Nalix.Abstractions.Networking;
 using Nalix.Environment.Configuration;
 using Nalix.Traversal.Internal;
 using Nalix.Traversal.Options;
+using Nalix.Environment.Random;
 
 namespace Nalix.Traversal.Reflector;
 
@@ -61,14 +61,14 @@ public sealed class ReflectorManager
 
     private readonly ConcurrentDictionary<ulong, ReflectorSession> _sessions = new();
 
-    private ulong _nextToken = 1;
-
-    /// <summary>
-    /// Creates a new Reflector Session between two peers.
-    /// </summary>
     public ulong CreateSession(ulong peerA, ulong peerB, IConnection requester)
     {
-        ulong token = (ulong)Interlocked.Increment(ref Unsafe.As<ulong, long>(ref _nextToken));
+        ulong token;
+        do
+        {
+            token = Csprng.NextUInt64();
+        } while (token == 0 || _sessions.ContainsKey(token)); // Ensure token is not 0 and not colliding
+
         _sessions[token] = new ReflectorSession(token, peerA, peerB, this, requester, s_options.BandwidthBurstCapacity, s_options.BandwidthFillRate);
         return token;
     }
