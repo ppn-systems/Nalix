@@ -361,6 +361,7 @@ public abstract partial class TcpListenerBase
         }
 
         state.RemovedFromList = true;
+        _ = Interlocked.Decrement(ref _pendingProxyConnections);
 
         if (state.Prev != null)
         {

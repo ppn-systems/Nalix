@@ -339,6 +339,28 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool IsTrustedProxy(IPEndPoint? endPoint) => endPoint?.Address != null && _accessList.IsTrustedProxy(endPoint.Address);
 
+    /// <summary>
+    /// Safely decrements the connection counter without requiring an IConnection.
+    /// Used for rollback when connection initialization fails after TryAccept succeeded.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
+    public void Release(IPEndPoint endPoint)
+    {
+        if (Volatile.Read(ref _disposed) != 0 || endPoint?.Address is null)
+        {
+            return;
+        }
+
+        if (_maxGlobalConnections > -1)
+        {
+            _ = Interlocked.Decrement(ref _globalConnections);
+        }
+
+        DateTime now = Clock.NowUtc();
+        SocketEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
+        _ = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
+    }
+
     #endregion Public API
 
     #region Connection Slot Management

@@ -148,30 +148,35 @@ public abstract partial class TcpListenerBase
     [DebuggerStepThrough]
     private IConnection InitializeConnection(Socket socket, PooledAcceptContext context)
     {
-        // Order of importance:
-        // 1. Configure socket OPTIONS first (it may throw if the socket is invalid).
-        // 2. Return the context to the pool (only after step 1 is successful).
-        // 3. Create a connection wrapper and subscribe events.
-        //
-        // WHY doesn't try/finally be used to return the context?
-        // If InitializeOptions throw -> caller (ProcessAcceptedSocket/CreateConnectionAsync)
-        // It still holds the reference socket and will close it itself in its catch block.
-        // If the return context is here when throw -> caller doesn't know the context has been returned ->
-        // double-return bug: context returned twice -> pool corrupted.
-        this.InitializeOptions(socket);
+        Connection? connection = null;
+        bool eventsHooked = false;
 
-        // Context only needs to return immediately during the accept — phase after the socket has been claimed.
-        // This pool slot will be reused for the next accept without waiting.
-        _pool.Return(context);
-
-        Connection connection = new(socket, _protocol.OpCodeExtractor, _logger);
         try
         {
+            // Order of importance:
+            // 1. Configure socket OPTIONS first (it may throw if the socket is invalid).
+            // 2. Return the context to the pool (only after step 1 is successful).
+            // 3. Create a connection wrapper and subscribe events.
+            //
+            // WHY doesn't try/finally be used to return the context?
+            // If InitializeOptions throw -> caller (ProcessAcceptedSocket/CreateConnectionAsync)
+            // It still holds the reference socket and will close it itself in its catch block.
+            // If the return context is here when throw -> caller doesn't know the context has been returned ->
+            // double-return bug: context returned twice -> pool corrupted.
+            this.InitializeOptions(socket);
+
+            // Context only needs to return immediately during the accept — phase after the socket has been claimed.
+            // This pool slot will be reused for the next accept without waiting.
+            _pool.Return(context);
+
+            connection = new(socket, _protocol.OpCodeExtractor, _logger);
+
             // Subscribe lifecycle events.
             // WHY subscribe to _limiter.OnConnectionClosed:
             //      When connection close -> limit, the counter must be reduced -> allow a new connection.
             connection.OnCloseEvent += this.HandleConnectionClose;
             connection.OnCloseEvent += _limiter.OnConnectionClosed;
+            eventsHooked = true;
 
             // Keep post-process as you already have (optional).
             // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK
@@ -194,7 +199,14 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            connection.Dispose();
+            if (connection != null)
+            {
+                connection.Dispose();
+            }
+            else if (!eventsHooked && socket.RemoteEndPoint is IPEndPoint ip)
+            {
+                _limiter.Release(ip);
+            }
             throw;
         }
     }
@@ -203,15 +215,18 @@ public abstract partial class TcpListenerBase
     [DebuggerStepThrough]
     private IConnection InitializeConnection(Socket socket, EndPoint? realEndPoint, int headerBytesConsumed, byte[]? receiveBuffer, int bytesReceived)
     {
-        this.InitializeOptions(socket);
-
+        Connection? connection = null;
+        bool eventsHooked = false;
         EndPoint endpoint = realEndPoint ?? socket.RemoteEndPoint!;
-        Connection connection = new(socket, _protocol.OpCodeExtractor, endpoint, _logger);
 
         try
         {
+            this.InitializeOptions(socket);
+            connection = new(socket, _protocol.OpCodeExtractor, endpoint, _logger);
+
             connection.OnCloseEvent += this.HandleConnectionClose;
             connection.OnCloseEvent += _limiter.OnConnectionClosed;
+            eventsHooked = true;
 
             connection.OnPostProcessEvent += _protocol.PostProcessMessage;
             connection.OnProcessEvent += _protocol.FrameProcessor.ProcessFrame;
@@ -231,7 +246,14 @@ public abstract partial class TcpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            connection.Dispose();
+            if (connection != null)
+            {
+                connection.Dispose();
+            }
+            else if (!eventsHooked && endpoint is IPEndPoint ip)
+            {
+                _limiter.Release(ip);
+            }
             throw;
         }
     }
@@ -844,6 +866,13 @@ public abstract partial class TcpListenerBase
             {
                 if (_proxyConfig.RequireTrustedProxy && socket.RemoteEndPoint is IPEndPoint remoteEp && !_limiter.IsTrustedProxy(remoteEp))
                 {
+                    this.SafeCloseSocket(socket);
+                    Throw.ConnectionRejectedByLimiter();
+                }
+
+                if (Interlocked.Increment(ref _pendingProxyConnections) > _proxyConfig.MaxPendingProxyConnections)
+                {
+                    _ = Interlocked.Decrement(ref _pendingProxyConnections);
                     this.SafeCloseSocket(socket);
                     Throw.ConnectionRejectedByLimiter();
                 }

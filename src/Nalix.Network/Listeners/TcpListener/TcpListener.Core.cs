@@ -44,6 +44,7 @@ public abstract partial class TcpListenerBase : IListener
     private int _state;
     private int _isDisposed;
     private int _stopInitiated;
+    private int _pendingProxyConnections;
 
     private Socket? _listener;
     private CancellationTokenSource? _cts;

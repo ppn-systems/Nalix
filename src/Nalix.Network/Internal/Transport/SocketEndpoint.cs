@@ -43,7 +43,7 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
     {
         if (endpoint is not IPEndPoint ipEndPoint)
         {
-            ThrowInvalidEndpointType();
+            throw ThrowInvalidEndpointType();
         }
 
         NormalizeAddress(ipEndPoint.Address, out ulong hi, out ulong lo, out bool isV6);
@@ -224,8 +224,5 @@ internal readonly struct SocketEndpoint : INetworkEndpoint, IEquatable<SocketEnd
 
     [DoesNotReturn]
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void ThrowInvalidEndpointType()
-    {
-        throw new ArgumentException("Endpoint must be of type IPEndPoint.", "endpoint");
-    }
+    private static Exception ThrowInvalidEndpointType() => throw new ArgumentException("Endpoint must be of type IPEndPoint.", "endpoint");
 }

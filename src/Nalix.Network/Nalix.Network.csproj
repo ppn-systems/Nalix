@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net10.0</TargetFramework>
@@ -28,6 +28,11 @@ Designed for latency-sensitive workloads, it emphasizes efficient socket I/O, pr
 
 	<Import Project="..\Nalix.Build.props" />
 	<Import Project="..\Package.Build.props" />
+
+	<ItemGroup>
+		<Compile Remove="ScanTool\**" />
+		<None Remove="ScanTool\**" />
+	</ItemGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\Nalix.Framework\Nalix.Framework.csproj" />
