@@ -75,12 +75,6 @@ public sealed class SampleUdpListener : UdpListenerBase
         // - region / shard ownership
         return connection.Secret.IsAllZeros == false;
     }
-
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        // Custom frame logic or forward to protocol
-        this.Protocol.ProcessMessage(sender, args);
-    }
 }
 ```
 

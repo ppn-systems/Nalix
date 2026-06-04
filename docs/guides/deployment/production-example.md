@@ -97,13 +97,13 @@ public sealed class DataHandlers
 ```csharp
 using Nalix.Abstractions.Networking;
 using Nalix.Hosting;
-using Nalix.Logging;
+using Nalix.Logging.Extensions;
 using Nalix.Network.Protocols;
 using Nalix.Network.Options;
 using Nalix.Runtime.Middleware.Standard;
 using Nalix.Runtime.Dispatching;
 
-var logger = NLogix.Host.Instance;
+var logger = NLogixFx.Logger;
 
 using var app = NetworkApplication.CreateBuilder()
     .ConfigureLogging(logger)

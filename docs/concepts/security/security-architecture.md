@@ -115,9 +115,9 @@ Low-level transport rules (decryption validation, frame integrity) are enforced 
 
 Nalix includes a built-in X25519 key-agreement handshake flow:
 
-1. Client generates an ephemeral X25519 key pair and sends `CLIENT_HELLO` with the public key and a nonce
-2. Server generates its own ephemeral key pair, computes the shared secret, and sends `SERVER_HELLO`
-3. Both sides derive session keys from the shared secret
+1. Client generates an ephemeral X25519 key pair and sends a `SessionInit` frame with the public key and a nonce
+2. Server generates its own ephemeral key pair, computes the shared secret, and sends a `SessionChallenge` frame
+3. Client verifies the proof and sends a `SessionProof` frame; server responds with `SessionEstablished`
 4. Subsequent traffic is encrypted using the active session cipher state
 
 Handshake state is carried on the `Connection` object. After handshake completion, the connection's `Secret` and cipher state are set, enabling transparent transport encryption/decryption.

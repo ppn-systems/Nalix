@@ -15,7 +15,7 @@ For 99% of applications, the **Hosting Builder** is the standard way to bootstra
 
 ```csharp
 using Microsoft.Extensions.Logging;
-using Nalix.Logging;
+using Nalix.Logging.Extensions;
 using Nalix.Hosting;
 using Nalix.Network.Options;
 using Nalix.Environment.Configuration;
@@ -25,7 +25,7 @@ var socketOpts = ConfigurationManager.Instance.Get<NetworkSocketOptions>();
 
 // 2. Build the application
 using var app = NetworkApplication.CreateBuilder()
-    .ConfigureLogging(NLogix.Host.Instance)
+    .ConfigureLogging(NLogixFx.Logger)
     .Configure<NetworkSocketOptions>(opt => 
     {
         opt.Port = socketOpts.Port;
@@ -92,7 +92,7 @@ Add these to your `CreateBuilder()` chain to harden your server for production t
 ```csharp
 builder.ConfigureDispatchOptions(options =>
 {
-    options.WithLogging(NLogix.Host.Instance)
+    options.WithLogging(NLogixFx.Logger)
            // Add security layers
            .WithMiddleware(new ConcurrencyMiddleware())
            .WithMiddleware(new RateLimitMiddleware())
@@ -112,18 +112,6 @@ builder.ConfigureDispatchOptions(options =>
     Use this path only if you are building specialized transport libraries or need to bypass the Hosting layer for extreme performance tuning.
 
 ```csharp
-public sealed class SampleTcpListener : TcpListenerBase
-{
-    public SampleTcpListener(ushort port, IProtocol protocol, IConnectionHub hub)
-        : base(port, protocol, hub) { }
-
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        // Custom frame logic or forward to protocol
-        this.Protocol.ProcessMessage(sender, args);
-    }
-}
-
 // Manual setup of all components without the Hosting builder.
 PacketDispatchChannel dispatch = new(options =>
 {
@@ -132,7 +120,11 @@ PacketDispatchChannel dispatch = new(options =>
 
 IConnectionHub hub = InstanceManager.Instance.GetOrCreateInstance<ConnectionHub>();
 DefaultProtocol protocol = new(dispatch);
-SampleTcpListener listener = new(5000, protocol, hub);
+
+// Use a custom listener subclass or the hosting builder's internal listener.
+// For manual composition, extend TcpListenerBase:
+// public sealed class MyListener : TcpListenerBase { ... }
+var listener = new MyListener(5000, protocol, hub);
 
 dispatch.Activate();
 listener.Activate();

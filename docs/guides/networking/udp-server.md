@@ -25,12 +25,6 @@ public sealed class SampleUdpListener : UdpListenerBase
 
     public override bool IsAuthenticated(IConnection connection, EndPoint remoteEndPoint, ReadOnlySpan<byte> payload)
         => true;
-
-    public override void ProcessFrame(object? sender, IConnectEventArgs args)
-    {
-        // Custom UDP frame logic or forward to protocol
-        this.Protocol.ProcessMessage(sender, args);
-    }
 }
 ```
 

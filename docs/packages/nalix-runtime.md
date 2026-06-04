@@ -149,7 +149,7 @@ public sealed class AccountHandlers
 
 - **Decoupled session persistence** via `SessionPersistenceObserver` subscribing to `IConnectionHub` events.
 - **High-performance connection state snapshots** and restoration.
-- **TTL-based session retention** with active scavenging via `IHostedWorker` in `InMemorySessionStore`.
+- **TTL-based session retention** with active scavenging via `IWorker` in `InMemorySessionStore`.
 - **Atomic consumption** (`ConsumeAsync`) to prevent resumption replay attacks.
 
 ## Handler Return Types

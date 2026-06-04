@@ -105,7 +105,7 @@ TcpSession session = myTcpSession;
 
 // Example: force this one packet to travel in plaintext even if the
 // session would normally encrypt payloads.
-await session.SendAsync(new Handshake(), encrypt: false);
+await session.SendAsync(SessionInit.Create(), encrypt: false);
 ```
 
 !!! danger

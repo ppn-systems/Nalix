@@ -133,7 +133,7 @@ builder.BindTcp<GameProtocol>().WithFactory(dispatch =>
 }).Bind();
 
 var app = builder.Build();
-app.Run();
+await app.RunAsync();
 ```
 
 ## Configuration Parameters

@@ -249,7 +249,7 @@ PacketRegistry.Configure(poolManager);
 PacketRegistry.Build();
 ```
 
-Built-in signal packets (`Control`, `Handshake`, `SessionResume`, `Directive`) are registered automatically by the framework.
+Built-in signal packets (`Control`, `SessionInit`, `SessionChallenge`, `SessionProof`, `SessionEstablished`, `SessionTofu`, `SessionResume`, `Directive`, `TimeSync`) are registered automatically by the framework.
 
 ---
 
