@@ -296,7 +296,7 @@ public abstract partial class WebSocketListenerBase
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void INVOKE_PROCESS(IConnection connection)
     {
         try
@@ -305,13 +305,19 @@ public abstract partial class WebSocketListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            if (_logger != null && _logger.IsEnabled(LogLevel.Error))
-            {
-                string remoteEndpoint = connection?.NetworkEndpoint?.ToString() ?? "<null>";
-                _logger.LogError(ex, "[NW.WebSocketListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", remoteEndpoint);
-            }
-            connection?.Disconnect();
+            this.HANDLE_PROCESS_ERROR(connection, ex);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void HANDLE_PROCESS_ERROR(IConnection connection, Exception ex)
+    {
+        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+        {
+            string remoteEndpoint = connection?.NetworkEndpoint?.ToString() ?? "<null>";
+            _logger.LogError(ex, "[NW.WebSocketListenerBase:INVOKE_PROCESS] error remote={RemoteEndpoint}", remoteEndpoint);
+        }
+        connection?.Disconnect();
     }
 
     /// <summary>

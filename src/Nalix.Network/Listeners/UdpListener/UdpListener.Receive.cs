@@ -236,6 +236,12 @@ public abstract partial class UdpListenerBase
             return;
         }
 
+        HANDLE_RECEIVE_SAFE(args, ctx);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void HANDLE_RECEIVE_SAFE(PooledUdpReceiveEventArgs args, IWorkerContext ctx)
+    {
         try
         {
             if (args.RemoteEndPoint is IPEndPoint ip && !_rateLimiter.TryAccept(ip))
@@ -262,7 +268,7 @@ public abstract partial class UdpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            this.LOG_HANDL_ERECEIVE_ERROR(ex);
+            this.LOG_HANDLE_RECEIVE_ERROR(ex);
         }
     }
 
@@ -486,7 +492,7 @@ public abstract partial class UdpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_HANDL_ERECEIVE_ERROR(Exception ex)
+    private void LOG_HANDLE_RECEIVE_ERROR(Exception ex)
     {
         _ = Interlocked.Increment(ref _recvErrors);
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Debug))

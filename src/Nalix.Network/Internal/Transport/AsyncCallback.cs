@@ -270,17 +270,7 @@ internal static class AsyncCallback
 
         wrapper.Initialize(callback, sender, args, releasePendingPacketOnCompletion);
 
-        bool queued = false;
-
-        try
-        {
-            queued = ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false);
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            LOG_THROTTLED_ERROR_SAFE(args, s_keyQueueException, $"[NW.{nameof(AsyncCallback)}] exception-queue-work-item", ex);
-            queued = false;
-        }
+        bool queued = QUEUE_SAFE(invoker, wrapper, args);
 
         if (!queued)
         {
@@ -302,7 +292,21 @@ internal static class AsyncCallback
             return false;
         }
 
-        return true;
+        return queued;
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static bool QUEUE_SAFE(Action<object> invoker, PooledConnectEventContext wrapper, IConnectEventArgs args)
+    {
+        try
+        {
+            return ThreadPool.UnsafeQueueUserWorkItem(invoker, wrapper, preferLocal: false);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            LOG_THROTTLED_ERROR_SAFE(args, s_keyQueueException, $"[NW.{nameof(AsyncCallback)}] exception-queue-work-item", ex);
+            return false;
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -404,7 +408,7 @@ internal static class AsyncCallback
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static IConnection? GET_CONNECTION_SAFE(IConnectEventArgs? args)
     {
         if (args is null)
@@ -422,7 +426,7 @@ internal static class AsyncCallback
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static INetworkEndpoint? GET_ENDPOINT_SAFE(IConnectEventArgs? args)
     {
         if (args is null)
@@ -490,7 +494,7 @@ internal static class AsyncCallback
         }
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private static void EXECUTE_AND_RETURN(PooledConnectEventContext w)
     {
         IConnectEventArgs? args = w.Args;

@@ -409,7 +409,7 @@ public sealed partial class Connection :
         // If we are already in state 1 (Closing) or 2 (Disposed), we just return.
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA1816:Dispose methods should call SuppressFinalize", Justification = "<Pending>")]
     private void PerformDestructiveCleanup()
     {
@@ -575,6 +575,12 @@ public sealed partial class Connection :
             return;
         }
 
+        SAFE_PROCESS_EVENT_BRIDGE(self, e);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void SAFE_PROCESS_EVENT_BRIDGE(Connection self, IConnectEventArgs e)
+    {
         try
         {
             self._onProcessEvent?.Invoke(self, e);
@@ -599,6 +605,12 @@ public sealed partial class Connection :
             return;
         }
 
+        SAFE_POST_PROCESS_EVENT_BRIDGE(self, e);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void SAFE_POST_PROCESS_EVENT_BRIDGE(Connection self, IConnectEventArgs e)
+    {
         try
         {
             self._onPostProcessEvent?.Invoke(self, e);
@@ -618,6 +630,12 @@ public sealed partial class Connection :
             return;
         }
 
+        SAFE_CLOSE_EVENT_DISPATCH_BRIDGE(self, e);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void SAFE_CLOSE_EVENT_DISPATCH_BRIDGE(Connection self, IConnectEventArgs e)
+    {
         try
         {
             _ = Interlocked.Exchange(ref self._isDispatchingClose, 1);

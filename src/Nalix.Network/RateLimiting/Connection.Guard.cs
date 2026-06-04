@@ -143,7 +143,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ConnectionGuard WithLogging(ILogger logger)
     {
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        ArgumentNullException.ThrowIfNull(logger);
+        _logger = logger;
         return this;
     }
 

@@ -97,8 +97,9 @@ internal sealed class PooledAcceptContext : IPoolable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgs(SocketAsyncEventArgs newArgs)
     {
+        ArgumentNullException.ThrowIfNull(newArgs);
         _args?.Completed -= AsyncAcceptCompleted;
-        _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
+        _args = newArgs;
         _args.Completed += AsyncAcceptCompleted;
     }
 
@@ -113,8 +114,9 @@ internal sealed class PooledAcceptContext : IPoolable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgsForSync(SocketAsyncEventArgs newArgs)
     {
+        ArgumentNullException.ThrowIfNull(newArgs);
         _args?.Completed -= AsyncAcceptCompleted;
-        _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
+        _args = newArgs;
     }
 
     /// <summary>

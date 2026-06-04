@@ -189,7 +189,8 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void BindArgs(SocketAsyncEventArgs newArgs)
     {
-        _args = newArgs ?? throw new ArgumentNullException(nameof(newArgs));
+        ArgumentNullException.ThrowIfNull(newArgs);
+        _args = newArgs;
         _args.UserToken = this;
 
         // One-time registration of the persistent completion handler to avoid
@@ -239,17 +240,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
         // Mark that a kernel operation is now in-flight before calling into the socket.
         this.BeginOperation();
 
-        bool pending;
-        try
-        {
-            pending = socket.ReceiveAsync(args);
-        }
-        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
-        {
-            // socket.ReceiveAsync threw synchronously (e.g. disposed socket).
-            this.EndOperation();
-            throw;
-        }
+        bool pending = RECEIVE_ASYNC_SAFE(socket, args);
 
         if (!pending)
         {
@@ -279,6 +270,21 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
         // Async path: the completion callback will fire later and call
         // EndOperation() via the shared owner reference stored in UserToken.
         return new ValueTask<int>(this, _receiveSource.Version);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private bool RECEIVE_ASYNC_SAFE(Socket socket, SocketAsyncEventArgs args)
+    {
+        try
+        {
+            return socket.ReceiveAsync(args);
+        }
+        catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+        {
+            // socket.ReceiveAsync threw synchronously (e.g. disposed socket).
+            this.EndOperation();
+            throw;
+        }
     }
 
     /// <summary>

@@ -60,6 +60,12 @@ internal sealed partial class SocketConnection
 
         int totalLength = (int)totalLengthLong;
 
+        SEND_SAFE(data, totalLength);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void SEND_SAFE(ReadOnlySpan<byte> data, int totalLength)
+    {
         /*
          * [Fast Path: Stack Allocation]
          * For small packets (determined by StackAllocLimit), we format the frame
@@ -258,6 +264,12 @@ internal sealed partial class SocketConnection
 
         int totalLength = (int)totalLengthLong;
 
+        return SEND_ASYNC_SAFE(data, totalLength, cancellationToken);
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private ValueTask SEND_ASYNC_SAFE(ReadOnlyMemory<byte> data, int totalLength, CancellationToken cancellationToken)
+    {
         byte[] heapBuf = BufferLease.ByteArrayPool.Rent(totalLength);
 
         try

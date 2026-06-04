@@ -248,7 +248,7 @@ public abstract partial class TcpListenerBase
     /// no additional ThreadPool hop needed.
     /// </summary>
     /// <param name="connection"></param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.NoInlining)]
     private void INVOKE_PROCESS(IConnection connection)
     {
         try

@@ -250,7 +250,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            connection?.IncrementErrorCount();
+            HANDLE_PASSTHROUGH_ERROR(connection, ex);
         }
         finally
         {
@@ -258,6 +258,12 @@ public sealed class UdpPassthroughListener : UdpListenerBase
             args.Dispose();
         }
     };
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void HANDLE_PASSTHROUGH_ERROR(PassthroughConnection? connection, Exception ex)
+    {
+        connection?.IncrementErrorCount();
+    }
 
     #endregion Async Callback
 

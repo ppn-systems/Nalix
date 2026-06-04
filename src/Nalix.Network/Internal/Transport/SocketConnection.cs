@@ -696,8 +696,14 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
         }
         catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
         {
-            _owner?.ThrottledError(_logger, s_keyFragmentError, "[NW.SocketConnection:Fragment] fragment-error ep=" + _owner.NetworkEndpoint.Address, ex);
+            this.HANDLE_FRAGMENT_ERROR(ex);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private void HANDLE_FRAGMENT_ERROR(Exception ex)
+    {
+        _owner?.ThrottledError(_logger, s_keyFragmentError, "[NW.SocketConnection:Fragment] fragment-error ep=" + _owner.NetworkEndpoint.Address, ex);
     }
 
     #endregion Private: SAEA Receive Loop
