@@ -24,7 +24,7 @@ Dispatch runtime needs a consistent contract for enqueue/dequeue behavior withou
 
 - `TotalPackets`
 - `Push(IConnection connection, IBufferLease raw)`
-- `Pull(out IConnection connection, out IBufferLease raw)`
+- `TryClaim(out IDispatchSession session)` — claims exclusive processing rights over a connection's mailbox
 
 ### When to use
 

@@ -4,7 +4,7 @@ Session resumption enables low-latency reconnection by bypassing the full X25519
 
 ## Source Mapping
 
-- `src/Nalix.Codec/ProtocolFrames/SessionResume.cs`
+- `src/Nalix.Codec/ProtocolFrames/Session/SessionResume.cs`
 - `src/Nalix.Runtime/Handlers/SessionHandlers.cs`
 - `src/Nalix.Runtime/Sessions/SessionService.cs`
 - `src/Nalix.Abstractions/Networking/Sessions/ISessionService.cs`
@@ -30,10 +30,10 @@ sequenceDiagram
     participant S as Server (Runtime)
     
     Note over C, S: Option A: Full Handshake (Standard)
-    C->>S: CLIENT_HELLO (X25519 PubKey)
-    S->>C: SERVER_HELLO
-    C->>S: CLIENT_FINISH
-    S->>C: SERVER_FINISH (New Token)
+    C->>S: SessionInit (PublicKey, Nonce)
+    S->>C: SessionChallenge (PublicKey, Nonce, Proof)
+    C->>S: SessionProof (Proof)
+    S->>C: SessionEstablished (Proof, SessionToken)
     
     Note over C, S: Option B: Session Resume (Fast)
     C->>S: SessionResume [Stage=REQUEST, Token=T1]

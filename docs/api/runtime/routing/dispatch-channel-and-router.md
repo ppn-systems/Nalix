@@ -20,7 +20,7 @@ Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection is
 - `TotalPackets`
 - `HasPacket`
 - `Push(IConnection connection, IBufferLease raw)`
-- `Pull(out IConnection connection, out IBufferLease raw)`
+- `TryClaim(out IDispatchSession session)` — claims exclusive processing rights over a connection's mailbox
 
 ### Internal diagnostics members (not part of `IDispatchChannel<TPacket>`)
 
@@ -33,7 +33,7 @@ Dispatch runtime needs efficient enqueue/dequeue behavior with per-connection is
 ## Architecture Notes
 
 - Maintains per-connection state with per-priority queues.
-- Pull path prefers higher priority first.
+- Claim/dequeue path prefers higher priority first.
 - Enqueue path uses `DispatchOptions` and drop policy behavior.
 - Integrates with `IConnectionHub.ConnectionUnregistered` for state cleanup.
 

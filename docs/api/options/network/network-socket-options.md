@@ -28,7 +28,7 @@ setup.
 | `EnableIPv6` | `false` | none | Chooses IPv6 listener sockets; otherwise IPv4 sockets are used. |
 | `NoDelay` | `true` | none | Applied to accepted TCP client sockets to disable Nagle's algorithm. |
 | `MaxParallel` | `5` | `1..1024` | Number of TCP accept-worker loops scheduled at activation. |
-| `MaxParallelUDP` | `2` | `1..1024` | Number of UDP receive loops scheduled at activation. |
+| `MaxParallelUDP` | `1` | `1..1024` | Number of UDP receive loops scheduled at activation. |
 | `BufferSize` | `65536` | `2048..10_485_760` | Applied to TCP listener receive buffer, TCP client send/receive buffers, UDP send/receive buffers, and UDP transport buffer usage. |
 | `KeepAlive` | `true` | none | Enables TCP keep-alive on accepted client sockets. |
 | `ReuseAddress` | `true` | none | Controls `ExclusiveAddressUse = !ReuseAddress` and socket-level `ReuseAddress`. |

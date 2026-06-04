@@ -28,11 +28,14 @@ Nalix.Logging exposes a small set of public option classes for logger configurat
 
 ```csharp
 using Microsoft.Extensions.Logging;
+using Nalix.Logging.Extensions;
 using Nalix.Logging.Options;
 
-var options = new NLogixOptions()
-    .SetMinimumLevel(LogLevel.Debug)
-    .ConfigureFileOptions(f => f.LogFileName = "server.log");
+NLogixFx.Configure(cfg =>
+{
+    cfg.SetMinimumLevel(LogLevel.Debug)
+       .ConfigureFileOptions(f => f.LogFileName = "server.log");
+});
 ```
 
 ## FileLogOptions

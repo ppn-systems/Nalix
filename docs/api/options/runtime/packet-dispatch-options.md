@@ -18,7 +18,7 @@
 | Property | Meaning | Default |
 | --- | --- | ---: |
 | `Logging` | Optional logger used by dispatch setup/execution logs. | `null` |
-| `DispatchLoopCount` | Explicit worker-loop count. `null` means auto-select during `Activate()`. | `null` |
+| `Drain` | Sub-options controlling dispatch loop drain behavior. | See below |
 | `Drain.MaxDrainPerWakeMultiplier` | Multiplier used to compute per-wake drain budget. | `5` |
 | `Drain.MinDrainPerWake` | Lower clamp for per-wake drain budget. | `64` |
 | `Drain.MaxDrainPerWake` | Upper clamp for per-wake drain budget. | `2048` |

@@ -78,7 +78,7 @@ int bucket = _useMask
 
 ## Connection Registration and Ownership
 
-`Register(IConnection)`:
+`Register(ITimeoutTrackedConnection)`:
 
 - no-ops when the connection is already registered;
 - marks `connection.IsRegisteredInWheel = true`;
@@ -87,7 +87,7 @@ int bucket = _useMask
 - subscribes to `connection.OnCloseEvent`;
 - enqueues the task into the computed bucket.
 
-`Unregister(IConnection)` deliberately does **not** return the `TimeoutTask` to the
+`Unregister(ITimeoutTrackedConnection)` deliberately does **not** return the `TimeoutTask` to the
 pool. It marks the connection as unregistered, increments `TimeoutVersion`, and
 unsubscribes from `OnCloseEvent`. The background loop owns returning queued tasks to
 the pool after it dequeues them and detects that they are stale.
