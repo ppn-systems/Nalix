@@ -24,7 +24,7 @@ public sealed partial class ConnectionGuard
         // Need to be careful with endianness. The address.Address is usually in network byte order.
         // It's just a grouping key, so any stable 24-bit extraction is fine.
         Span<byte> bytes = stackalloc byte[4];
-        address.TryWriteBytes(bytes, out _);
+        _ = address.TryWriteBytes(bytes, out _);
         return (uint)((bytes[0] << 16) | (bytes[1] << 8) | bytes[2]);
     }
 
@@ -33,7 +33,7 @@ public sealed partial class ConnectionGuard
     {
         // /48 -> top 48 bits
         Span<byte> bytes = stackalloc byte[16];
-        address.TryWriteBytes(bytes, out _);
+        _ = address.TryWriteBytes(bytes, out _);
         long key = 0;
         for (int i = 0; i < 6; i++)
         {
@@ -46,7 +46,7 @@ public sealed partial class ConnectionGuard
     {
         int maxConnections = _config.MaxConnectionsPerSubnet;
         int maxAttempts = _config.MaxSubnetConnectionsPerWindow;
-        
+
         bool isIpv4 = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
 
         while (true)
@@ -108,8 +108,7 @@ public sealed partial class ConnectionGuard
     private void TRY_RELEASE_SUBNET_SLOT(IPAddress address, DateTime now)
     {
         bool isIpv4 = address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork;
-        SubnetLimitEntry? entry = null;
-
+        SubnetLimitEntry? entry;
         if (isIpv4)
         {
             uint key = EXTRACT_IPV4_SUBNET_KEY(address);
@@ -136,7 +135,7 @@ public sealed partial class ConnectionGuard
             }
 
             entry.CurrentConnections = Math.Max(0, entry.CurrentConnections - 1);
-            
+
             if (entry.CurrentConnections == 0 && entry.RecentConnectionTimestamps.Count > _config.MaxSubnetConnectionsPerWindow * 2)
             {
                 entry.RecentConnectionTimestamps.Clear();

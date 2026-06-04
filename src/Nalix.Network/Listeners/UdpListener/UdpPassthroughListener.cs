@@ -111,7 +111,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     /// directly to the configured protocol. Virtual connections are registered
     /// into the shared <see cref="TimingWheel"/> for automatic idle cleanup.
     /// </summary>
-    protected override void ProcessDatagram(BufferLease lease, EndPoint remoteEndPoint)
+    protected override void ProcessDatagram(BufferLease lease, EndPoint? remoteEndPoint)
     {
         if (lease is null || remoteEndPoint is null)
         {
@@ -260,10 +260,7 @@ public sealed class UdpPassthroughListener : UdpListenerBase
     };
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private static void HANDLE_PASSTHROUGH_ERROR(PassthroughConnection? connection, Exception ex)
-    {
-        connection?.IncrementErrorCount();
-    }
+    private static void HANDLE_PASSTHROUGH_ERROR(PassthroughConnection? connection, Exception __) => connection?.IncrementErrorCount();
 
     #endregion Async Callback
 

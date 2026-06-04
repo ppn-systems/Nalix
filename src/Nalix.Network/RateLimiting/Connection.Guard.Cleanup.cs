@@ -165,10 +165,10 @@ public sealed partial class ConnectionGuard
                 }
             }
 
-            long subnetCutoffTicks = now.Ticks - _windowTicks;
+            long subnetCutoffTicks = Clock.NowUtc().Ticks - _windowTicks;
             int subnetRemoved = 0;
-            
-            foreach (var kvp in _subnetMapV4)
+
+            foreach (KeyValuePair<uint, SubnetLimitEntry> kvp in _subnetMapV4)
             {
                 if (SHOULD_REMOVE_SUBNET_ENTRY(kvp.Value, subnetCutoffTicks))
                 {
@@ -185,12 +185,15 @@ public sealed partial class ConnectionGuard
                     }
                     finally
                     {
-                        if (lockTaken) kvp.Value.SpinLock.Exit();
+                        if (lockTaken)
+                        {
+                            kvp.Value.SpinLock.Exit();
+                        }
                     }
                 }
             }
 
-            foreach (var kvp in _subnetMapV6)
+            foreach (KeyValuePair<long, SubnetLimitEntry> kvp in _subnetMapV6)
             {
                 if (SHOULD_REMOVE_SUBNET_ENTRY(kvp.Value, subnetCutoffTicks))
                 {
@@ -207,7 +210,10 @@ public sealed partial class ConnectionGuard
                     }
                     finally
                     {
-                        if (lockTaken) kvp.Value.SpinLock.Exit();
+                        if (lockTaken)
+                        {
+                            kvp.Value.SpinLock.Exit();
+                        }
                     }
                 }
             }
@@ -290,6 +296,9 @@ public sealed partial class ConnectionGuard
         ConnectionLimitInfo info = entry.Info;
         return info.CurrentConnections <= 0 && info.LastConnectionTime < cutoff;
     }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool SHOULD_REMOVE_SUBNET_ENTRY(SubnetLimitEntry entry, long cutoffTicks) => entry.CurrentConnections <= 0 && Volatile.Read(ref entry.LastSeenAtTicks) < cutoffTicks;
 
     #endregion Cleanup
 

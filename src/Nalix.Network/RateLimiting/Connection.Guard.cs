@@ -271,7 +271,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             SubnetAllowResult subnetResult = this.TRY_ACQUIRE_SUBNET_SLOT(endPoint.Address, now.Ticks);
             if (!subnetResult.Allowed)
             {
-                this.TRY_RELEASE_CONNECTION_SLOT(key, now);
+                _ = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
                 if (_maxGlobalConnections > -1)
                 {
                     _ = Interlocked.Decrement(ref _globalConnections);
@@ -363,7 +363,10 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         SocketEndpoint key = SocketEndpoint.FromNetworkEndpoint(args.Connection.NetworkEndpoint);
         bool released = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
 
-        this.TRY_RELEASE_SUBNET_SLOT(key.Address, now);
+        if (IPAddress.TryParse(key.Address, out System.Net.IPAddress? address1))
+        {
+            this.TRY_RELEASE_SUBNET_SLOT(address1, now);
+        }
 
         if (released && _map.TryGetValue(key, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
@@ -430,7 +433,10 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         DateTime now = Clock.NowUtc();
         SocketEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
         _ = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
-        this.TRY_RELEASE_SUBNET_SLOT(key.Address, now);
+        if (IPAddress.TryParse(key.Address, out System.Net.IPAddress? address2))
+        {
+            this.TRY_RELEASE_SUBNET_SLOT(address2, now);
+        }
     }
 
     #endregion Public API
@@ -444,7 +450,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         if (elapsed > 0)
         {
             double currentRate = Interlocked.Read(ref _totalConnectionAttempts) / elapsed;
-            _ewmaConnectionRate = EwmaAlpha * currentRate + (1 - EwmaAlpha) * _ewmaConnectionRate;
+            _ewmaConnectionRate = (EwmaAlpha * currentRate) + ((1 - EwmaAlpha) * _ewmaConnectionRate);
             _ewmaLastUpdateTicks = nowTicks;
         }
     }
@@ -453,18 +459,18 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     private int GET_EFFECTIVE_MAX_PER_ENDPOINT(bool isTrustedProxy)
     {
         int baseMax = isTrustedProxy ? _proxyConfig.MaxConnectionsPerTrustedProxy : _maxPerEndpoint;
-        
+
         if (!_config.EnableAdaptiveMode || _maxGlobalConnections <= -1)
         {
             return baseMax;
         }
-        
+
         double loadRatio = (double)Volatile.Read(ref _globalConnections) / _maxGlobalConnections;
         if (loadRatio > _config.AdaptiveLoadThreshold)
         {
             return Math.Max(1, (int)(baseMax * _config.AdaptiveTighteningFactor));
         }
-        
+
         return baseMax;
     }
 
@@ -567,12 +573,12 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
                 long lastAccept = entry.LastAcceptTimeTicks;
                 long gap = (nowTicks - lastAccept) / TimeSpan.TicksPerMillisecond;
-                bool isBurst = lastAccept > 0 
+                bool isBurst = lastAccept > 0
                     && gap < _config.MinConnectionIntervalMs
                     && entry.RecentConnectionTimestamps.Count >= _config.BurstThreshold;
 
-                int effectiveMaxAttempts = isBurst 
-                    ? Math.Max(1, maxAttempts / _config.BurstPenaltyDivisor) 
+                int effectiveMaxAttempts = isBurst
+                    ? Math.Max(1, maxAttempts / _config.BurstPenaltyDivisor)
                     : maxAttempts;
 
                 if (entry.RecentConnectionTimestamps.Count >= effectiveMaxAttempts)

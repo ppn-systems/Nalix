@@ -240,7 +240,7 @@ internal sealed class PooledSocketReceiveContext : IPoolable, IDisposable, IValu
         // Mark that a kernel operation is now in-flight before calling into the socket.
         this.BeginOperation();
 
-        bool pending = RECEIVE_ASYNC_SAFE(socket, args);
+        bool pending = this.RECEIVE_ASYNC_SAFE(socket, args);
 
         if (!pending)
         {

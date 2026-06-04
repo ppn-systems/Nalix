@@ -55,9 +55,6 @@ internal sealed class SocketTcpTransport : IConnection.ISocketTransport, IDispos
     public long BytesReceived => _socket.BytesReceived;
 
     /// <inheritdoc/>
-    public long Uptime => _socket.Uptime;
-
-    /// <inheritdoc/>
     public long LastPingTime
     {
         get => _socket.LastPingTime;

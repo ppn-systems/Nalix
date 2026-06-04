@@ -236,7 +236,7 @@ public abstract partial class UdpListenerBase
             return;
         }
 
-        HANDLE_RECEIVE_SAFE(args, ctx);
+        this.HANDLE_RECEIVE_SAFE(args, ctx);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -291,7 +291,7 @@ public abstract partial class UdpListenerBase
     /// go through the TCP channel.
     /// </para>
     /// </remarks>
-    protected virtual void ProcessDatagram(BufferLease lease, EndPoint remoteEndPoint)
+    protected virtual void ProcessDatagram(BufferLease lease, EndPoint? remoteEndPoint)
     {
         // --- 1. Minimum-size and null gate ---
         if (lease == null || remoteEndPoint == null || lease.Length < SessionTokenSize)
@@ -409,6 +409,7 @@ public abstract partial class UdpListenerBase
     private bool IsPinnedEndpointMatch(INetworkEndpoint pinnedEndPoint, IPEndPoint remoteEndPoint)
     {
         IPAddress remoteAddress = remoteEndPoint.Address;
+
         if (remoteAddress.IsIPv4MappedToIPv6)
         {
             remoteAddress = remoteAddress.MapToIPv4();
@@ -482,7 +483,7 @@ public abstract partial class UdpListenerBase
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void LOG_OVERSIZE_DROP(EndPoint remoteEndPoint, int size)
+    private void LOG_OVERSIZE_DROP(EndPoint? remoteEndPoint, int size)
     {
         _ = Interlocked.Increment(ref _dropOversize);
         if (this.Logger != null && this.Logger.IsEnabled(LogLevel.Trace))

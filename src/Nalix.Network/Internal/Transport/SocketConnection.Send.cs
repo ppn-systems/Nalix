@@ -60,7 +60,7 @@ internal sealed partial class SocketConnection
 
         int totalLength = (int)totalLengthLong;
 
-        SEND_SAFE(data, totalLength);
+        this.SEND_SAFE(data, totalLength);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
@@ -264,7 +264,7 @@ internal sealed partial class SocketConnection
 
         int totalLength = (int)totalLengthLong;
 
-        return SEND_ASYNC_SAFE(data, totalLength, cancellationToken);
+        return this.SEND_ASYNC_SAFE(data, totalLength, cancellationToken);
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
