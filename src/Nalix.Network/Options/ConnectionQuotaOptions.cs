@@ -64,6 +64,76 @@ public sealed partial class ConnectionQuotaOptions : ConfigurationLoader, IValid
     [System.ComponentModel.DataAnnotations.Range(typeof(System.TimeSpan), "-14:00:00", "14:00:00", ErrorMessage = "DailyResetTimeOffset must be between -14:00:00 and 14:00:00.")]
     public System.TimeSpan DailyResetTimeOffset { get; set; } = System.TimeSpan.Zero;
 
+    // === Subnet Protection ===
+
+    /// <summary>
+    /// Gets or sets the maximum number of concurrent connections allowed per /24 (IPv4) or /48 (IPv6) subnet.
+    /// </summary>
+    [IniComment("Max concurrent connections from a single /24 (IPv4) or /48 (IPv6) subnet (default 50)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 100_000, ErrorMessage = "MaxConnectionsPerSubnet must be between 1 and 100,000.")]
+    public int MaxConnectionsPerSubnet { get; set; } = 50;
+
+    /// <summary>
+    /// Gets or sets the maximum number of connection attempts allowed from a subnet within the rate window.
+    /// </summary>
+    [IniComment("Max connection attempts from a subnet within the rate window (default 100)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 10_000_000, ErrorMessage = "MaxSubnetConnectionsPerWindow must be between 1 and 10,000,000.")]
+    public int MaxSubnetConnectionsPerWindow { get; set; } = 100;
+
+    // === Burst Detection ===
+
+    /// <summary>
+    /// Gets or sets the minimum interval between connections from the same IP to trigger burst mode.
+    /// </summary>
+    [IniComment("Minimum interval between connections from same IP in ms (default 50). Connections faster than this trigger burst mode.")]
+    [System.ComponentModel.DataAnnotations.Range(0, 10_000, ErrorMessage = "MinConnectionIntervalMs must be between 0 and 10,000.")]
+    public int MinConnectionIntervalMs { get; set; } = 50;
+
+    /// <summary>
+    /// Gets or sets the number of rapid connections needed to activate burst mode.
+    /// </summary>
+    [IniComment("Number of rapid connections needed to activate burst mode (default 3)")]
+    [System.ComponentModel.DataAnnotations.Range(2, 100, ErrorMessage = "BurstThreshold must be between 2 and 100.")]
+    public int BurstThreshold { get; set; } = 3;
+
+    /// <summary>
+    /// Gets or sets the rate limit divisor applied during burst mode.
+    /// </summary>
+    [IniComment("Rate limit divisor applied during burst mode (default 2 = halve the limit)")]
+    [System.ComponentModel.DataAnnotations.Range(1, 10, ErrorMessage = "BurstPenaltyDivisor must be between 1 and 10.")]
+    public int BurstPenaltyDivisor { get; set; } = 2;
+
+    // === Short-Lived Connection Detection ===
+
+    /// <summary>
+    /// Gets or sets the threshold for short-lived connections.
+    /// </summary>
+    [IniComment("Connections shorter than this (ms) count as short-lived and are penalized in rate window (default 2000)")]
+    [System.ComponentModel.DataAnnotations.Range(0, 60_000, ErrorMessage = "ShortLivedThresholdMs must be between 0 and 60,000.")]
+    public int ShortLivedThresholdMs { get; set; } = 2000;
+
+    // === Adaptive Mode ===
+
+    /// <summary>
+    /// Gets or sets a value indicating whether adaptive tightening is enabled.
+    /// </summary>
+    [IniComment("Enable adaptive tightening when server load is high (default false)")]
+    public bool EnableAdaptiveMode { get; set; } = false;
+
+    /// <summary>
+    /// Gets or sets the load ratio threshold to trigger adaptive tightening.
+    /// </summary>
+    [IniComment("Load ratio threshold to trigger adaptive tightening (default 0.7 = 70%)")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(double), "0.1", "0.99", ErrorMessage = "AdaptiveLoadThreshold must be between 0.1 and 0.99.")]
+    public double AdaptiveLoadThreshold { get; set; } = 0.7;
+
+    /// <summary>
+    /// Gets or sets the factor to multiply per-IP limit by when adaptive mode triggers.
+    /// </summary>
+    [IniComment("Factor to multiply per-IP limit by when adaptive mode triggers (default 0.5 = halve)")]
+    [System.ComponentModel.DataAnnotations.Range(typeof(double), "0.1", "1.0", ErrorMessage = "AdaptiveTighteningFactor must be between 0.1 and 1.0.")]
+    public double AdaptiveTighteningFactor { get; set; } = 0.5;
+
     /// <summary>
     /// Validates the configuration options and throws an exception if validation fails.
     /// </summary>

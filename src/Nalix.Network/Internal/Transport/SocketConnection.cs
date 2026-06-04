@@ -159,11 +159,6 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     public long BytesReceived => Interlocked.Read(ref _bytesReceived);
 
     /// <summary>
-    /// Gets the connection uptime in milliseconds (how long the connection has been active).
-    /// </summary>
-    public long Uptime { get => (long)Clock.UnixTime().TotalMilliseconds - field; } = (long)Clock.UnixTime().TotalMilliseconds;
-
-    /// <summary>
     /// Gets or sets the timestamp (in milliseconds) of the last received ping.
     /// Thread-safe via Interlocked operations.
     /// </summary>
@@ -298,7 +293,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override string ToString()
-        => $"FramedSocketConnection (Client={_endpointString}, Disposed={Volatile.Read(ref _disposed) != 0}, UpTime={this.Uptime}ms, LastPing={this.LastPingTime}ms, PendingPackets={(_sink as SocketEventBridge)?.PendingPackets ?? 0}, OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
+        => $"FramedSocketConnection (Client={_endpointString}, Disposed={Volatile.Read(ref _disposed) != 0}, LastPing={this.LastPingTime}ms, PendingPackets={(_sink as SocketEventBridge)?.PendingPackets ?? 0}, OpenFragmentStreams={Volatile.Read(ref _openFragmentStreams)}.";
 
     #endregion Dispose Pattern
 
@@ -701,10 +696,7 @@ internal sealed partial class SocketConnection(Socket socket, IConnection owner,
     }
 
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void HANDLE_FRAGMENT_ERROR(Exception ex)
-    {
-        _owner?.ThrottledError(_logger, s_keyFragmentError, "[NW.SocketConnection:Fragment] fragment-error ep=" + _owner.NetworkEndpoint.Address, ex);
-    }
+    private void HANDLE_FRAGMENT_ERROR(Exception ex) => _owner?.ThrottledError(_logger, s_keyFragmentError, "[NW.SocketConnection:Fragment] fragment-error ep=" + _owner.NetworkEndpoint.Address, ex);
 
     #endregion Private: SAEA Receive Loop
 

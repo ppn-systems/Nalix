@@ -16,6 +16,7 @@ using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Environment.Configuration;
+using Nalix.Environment.Time;
 using Nalix.Framework.Identifiers;
 using Nalix.Framework.Injection;
 using Nalix.Framework.Memory.Objects;
@@ -176,7 +177,7 @@ public sealed partial class Connection :
     public int ErrorCount => _errorCount;
 
     /// <inheritdoc />
-    public long UpTime => this.TcpTransport.Uptime;
+    public long UpTime { get => (long)Clock.UnixTime().TotalMilliseconds - field; } = (long)Clock.UnixTime().TotalMilliseconds;
 
     /// <inheritdoc />
     public long LastPingTime => this.TcpTransport.LastPingTime;

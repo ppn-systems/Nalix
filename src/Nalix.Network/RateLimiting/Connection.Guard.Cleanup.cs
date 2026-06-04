@@ -160,19 +160,69 @@ public sealed partial class ConnectionGuard
                             // Clear queue without lock since no one else can acquire it
                             removedEntry.RecentConnectionTimestamps.Clear();
                             removed++;
-                            _ = Interlocked.Increment(ref _totalCleanedEntries);
                         }
                     }
                 }
             }
 
-            if (removed > 0)
+            long subnetCutoffTicks = now.Ticks - _windowTicks;
+            int subnetRemoved = 0;
+            
+            foreach (var kvp in _subnetMapV4)
+            {
+                if (SHOULD_REMOVE_SUBNET_ENTRY(kvp.Value, subnetCutoffTicks))
+                {
+                    bool lockTaken = false;
+                    try
+                    {
+                        kvp.Value.SpinLock.Enter(ref lockTaken);
+                        if (SHOULD_REMOVE_SUBNET_ENTRY(kvp.Value, subnetCutoffTicks))
+                        {
+                            kvp.Value.IsRemoved = true;
+                            _ = _subnetMapV4.TryRemove(kvp.Key, out _);
+                            subnetRemoved++;
+                        }
+                    }
+                    finally
+                    {
+                        if (lockTaken) kvp.Value.SpinLock.Exit();
+                    }
+                }
+            }
+
+            foreach (var kvp in _subnetMapV6)
+            {
+                if (SHOULD_REMOVE_SUBNET_ENTRY(kvp.Value, subnetCutoffTicks))
+                {
+                    bool lockTaken = false;
+                    try
+                    {
+                        kvp.Value.SpinLock.Enter(ref lockTaken);
+                        if (SHOULD_REMOVE_SUBNET_ENTRY(kvp.Value, subnetCutoffTicks))
+                        {
+                            kvp.Value.IsRemoved = true;
+                            _ = _subnetMapV6.TryRemove(kvp.Key, out _);
+                            subnetRemoved++;
+                        }
+                    }
+                    finally
+                    {
+                        if (lockTaken) kvp.Value.SpinLock.Exit();
+                    }
+                }
+            }
+
+            _ = Interlocked.Add(ref _totalCleanedEntries, removed);
+
+            if (removed > 0 || subnetRemoved > 0)
             {
                 if (_logger != null && _logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.LogDebug("[NW.ConnectionGuard] cleanup scanned={Scanned} removed={Removed} remaining={MapCount}", scanned, removed, _map.Count);
+                    _logger.LogDebug("[NW.ConnectionGuard] cleanup scanned={Scanned} removed={Removed} subnetRemoved={SubnetRemoved} remaining={MapCount}", scanned, removed, subnetRemoved, _map.Count);
                 }
             }
+
+            this.CORRECT_GLOBAL_COUNTER_DRIFT();
         }
         catch (Exception ex) when (ex is not ObjectDisposedException)
         {
@@ -183,6 +233,50 @@ public sealed partial class ConnectionGuard
         }
     }
 
+    private void CORRECT_GLOBAL_COUNTER_DRIFT()
+    {
+        if (_maxGlobalConnections <= -1)
+        {
+            return;
+        }
+
+        int actualTotal = 0;
+        foreach (KeyValuePair<SocketEndpoint, ConnectionLimitEntry> kvp in _map)
+        {
+            bool lockTaken = false;
+            try
+            {
+                kvp.Value.SpinLock.Enter(ref lockTaken);
+                actualTotal += kvp.Value.Info.CurrentConnections;
+            }
+            finally
+            {
+                if (lockTaken)
+                {
+                    kvp.Value.SpinLock.Exit();
+                }
+            }
+        }
+
+        int reported = Volatile.Read(ref _globalConnections);
+        int drift = reported - actualTotal;
+        if (Math.Abs(drift) > 5)
+        {
+            _ = Interlocked.Exchange(ref _globalConnections, actualTotal);
+            if (_logger != null && _logger.IsEnabled(LogLevel.Warning))
+            {
+                _logger.LogWarning("[NW.ConnectionGuard] drift-corrected global counter reported={Reported} actual={Actual}", reported, actualTotal);
+            }
+        }
+    }
+
+    /// <remarks>
+    /// Info is read without lock — this is an intentional approximate check.
+    /// On 64-bit CLR, struct reads up to 8 bytes are atomic. ConnectionLimitInfo
+    /// is 24 bytes (int + DateTime + int), so a torn read is theoretically possible.
+    /// For cleanup decisions, a false-negative (not removing) is safe; the entry
+    /// will be reconsidered in the next cleanup cycle.
+    /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool SHOULD_REMOVE_ENTRY(ConnectionLimitEntry entry, DateTime cutoff)
     {
@@ -262,6 +356,13 @@ public sealed partial class ConnectionGuard
                     try
                     {
                         this.CHECK_FILE_CHANGES();
+                    }
+                    catch (Exception ex) when (ExceptionClassifier.IsNonFatal(ex))
+                    {
+                        if (_logger != null && _logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.LogError(ex, "[NW.ConnectionGuard] hot-reload error in OnFileChanged handler");
+                        }
                     }
                     finally
                     {

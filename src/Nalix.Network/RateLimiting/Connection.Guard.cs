@@ -69,10 +69,19 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
     /// <summary>
     /// Metrics for monitoring
     /// </summary>
+    /// <summary>
+    /// Metrics for monitoring
+    /// </summary>
     private int _globalConnections;
     private long _totalConnectionAttempts;
     private long _totalRejections;
     private long _totalCleanedEntries;
+
+    private double _ewmaConnectionRate;
+    private long _ewmaLastUpdateTicks;
+    private const double EwmaAlpha = 0.3;
+
+    private readonly long _banCountDecayWindowTicks;
 
     #endregion Fields
 
@@ -114,6 +123,8 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         _banRepository = new NetworkBanRepository(_logger);
         _accessList = new NetworkAccessList(_logger, _proxyConfig);
         _map = new System.Collections.Concurrent.ConcurrentDictionary<SocketEndpoint, ConnectionLimitEntry>();
+
+        _banCountDecayWindowTicks = ConfigurationManager.Instance.Get<ConnectionBanStoreOptions>().BanCountDecayWindow.Ticks;
 
         _banRepository.Load(_map);
 
@@ -170,9 +181,21 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         // Get the entry or create a new one if the IP address has never connected.
         ConnectionLimitEntry entry = _map.GetOrAdd(key, static _ => new ConnectionLimitEntry());
 
-        // Update ban duration using Interlocked for thread-safe
-        _ = Interlocked.Exchange(ref entry.BannedUntilTicks, banUntilTicks);
-        entry.LastBanTimeTicks = nowTicks;
+        // Update ban duration under lock to ensure BannedUntilTicks and LastBanTimeTicks are written atomically
+        bool lockTaken = false;
+        try
+        {
+            entry.SpinLock.Enter(ref lockTaken);
+            entry.BannedUntilTicks = banUntilTicks;
+            entry.LastBanTimeTicks = nowTicks;
+        }
+        finally
+        {
+            if (lockTaken)
+            {
+                entry.SpinLock.Exit();
+            }
+        }
 
         // Mark as dirty so NetworkBanRepository saves it to a file in the next cycle
         _banRepository.MarkDirty();
@@ -218,17 +241,45 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
 
         if (_maxGlobalConnections > -1)
         {
-            int currentGlobal = Interlocked.Increment(ref _globalConnections);
-            if (currentGlobal > _maxGlobalConnections)
+            while (true)
             {
-                _ = Interlocked.Decrement(ref _globalConnections);
-                _ = Interlocked.Increment(ref _totalRejections);
-                return false;
+                int current = Volatile.Read(ref _globalConnections);
+                if (current >= _maxGlobalConnections)
+                {
+                    _ = Interlocked.Increment(ref _totalRejections);
+                    return false;
+                }
+                if (Interlocked.CompareExchange(ref _globalConnections, current + 1, current) == current)
+                {
+                    break;
+                }
             }
         }
 
         SocketEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
+
+        long attempts = Interlocked.Read(ref _totalConnectionAttempts);
+        if (attempts % 100 == 0)
+        {
+            this.UPDATE_EWMA(now.Ticks);
+        }
+
         ConnectionAllowResult result = this.TRY_ACQUIRE_CONNECTION_SLOT(key, now, endPoint.Address);
+
+        if (result.Allowed)
+        {
+            SubnetAllowResult subnetResult = this.TRY_ACQUIRE_SUBNET_SLOT(endPoint.Address, now.Ticks);
+            if (!subnetResult.Allowed)
+            {
+                this.TRY_RELEASE_CONNECTION_SLOT(key, now);
+                if (_maxGlobalConnections > -1)
+                {
+                    _ = Interlocked.Decrement(ref _globalConnections);
+                }
+                _ = Interlocked.Increment(ref _totalRejections);
+                return false;
+            }
+        }
 
         if (!result.Allowed)
         {
@@ -312,9 +363,29 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         SocketEndpoint key = SocketEndpoint.FromNetworkEndpoint(args.Connection.NetworkEndpoint);
         bool released = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
 
+        this.TRY_RELEASE_SUBNET_SLOT(key.Address, now);
+
         if (released && _map.TryGetValue(key, out ConnectionLimitEntry? closedEntry) && closedEntry is not null)
         {
             long nowTicks = now.Ticks;
+
+            if (args.Connection.UpTime < _config.ShortLivedThresholdMs && _config.ShortLivedThresholdMs > 0)
+            {
+                bool slLockTaken = false;
+                try
+                {
+                    closedEntry.SpinLock.Enter(ref slLockTaken);
+                    closedEntry.RecentConnectionTimestamps.Enqueue(nowTicks);
+                }
+                finally
+                {
+                    if (slLockTaken)
+                    {
+                        closedEntry.SpinLock.Exit();
+                    }
+                }
+            }
+
             long windowTicks = _logSuppressWindowTicks;
 
             if (ThrottledLogGate.TryAcquire(
@@ -359,11 +430,43 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         DateTime now = Clock.NowUtc();
         SocketEndpoint key = CONVERT_TO_NETWORK_ENDPOINT(endPoint);
         _ = this.TRY_RELEASE_CONNECTION_SLOT(key, now);
+        this.TRY_RELEASE_SUBNET_SLOT(key.Address, now);
     }
 
     #endregion Public API
 
     #region Connection Slot Management
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void UPDATE_EWMA(long nowTicks)
+    {
+        double elapsed = (nowTicks - _ewmaLastUpdateTicks) / (double)TimeSpan.TicksPerSecond;
+        if (elapsed > 0)
+        {
+            double currentRate = Interlocked.Read(ref _totalConnectionAttempts) / elapsed;
+            _ewmaConnectionRate = EwmaAlpha * currentRate + (1 - EwmaAlpha) * _ewmaConnectionRate;
+            _ewmaLastUpdateTicks = nowTicks;
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private int GET_EFFECTIVE_MAX_PER_ENDPOINT(bool isTrustedProxy)
+    {
+        int baseMax = isTrustedProxy ? _proxyConfig.MaxConnectionsPerTrustedProxy : _maxPerEndpoint;
+        
+        if (!_config.EnableAdaptiveMode || _maxGlobalConnections <= -1)
+        {
+            return baseMax;
+        }
+        
+        double loadRatio = (double)Volatile.Read(ref _globalConnections) / _maxGlobalConnections;
+        if (loadRatio > _config.AdaptiveLoadThreshold)
+        {
+            return Math.Max(1, (int)(baseMax * _config.AdaptiveTighteningFactor));
+        }
+        
+        return baseMax;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SocketEndpoint CONVERT_TO_NETWORK_ENDPOINT(IPEndPoint endPoint) => SocketEndpoint.FromIpAddress(endPoint.Address);
@@ -381,7 +484,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         // 3. Trusted proxy check
         bool isTrustedProxy = _accessList.IsTrustedProxy(address);
 
-        int maxConnections = isTrustedProxy ? _proxyConfig.MaxConnectionsPerTrustedProxy : _maxPerEndpoint;
+        int maxConnections = this.GET_EFFECTIVE_MAX_PER_ENDPOINT(isTrustedProxy);
         int maxAttempts = isTrustedProxy ? _proxyConfig.MaxAttemptsPerTrustedProxyWindow : _config.MaxConnectionsPerWindow;
         long nowTicks = now.Ticks;
 
@@ -396,6 +499,35 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
             _ = Interlocked.Exchange(ref entry.LastSeenAtTicks, nowTicks);
 
             long bannedUntil = Interlocked.Read(ref entry.BannedUntilTicks);
+
+            bool trimLockTaken = false;
+            try
+            {
+                entry.SpinLock.Enter(ref trimLockTaken);
+                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, nowTicks);
+
+                long decayWindowTicks = _banCountDecayWindowTicks;
+                if (entry.BanCount > 0 && entry.LastBanTimeTicks > 0)
+                {
+                    long elapsed = nowTicks - entry.LastBanTimeTicks;
+                    if (elapsed > decayWindowTicks)
+                    {
+                        int decayTiers = (int)(elapsed / decayWindowTicks);
+                        entry.BanCount = Math.Max(0, entry.BanCount - decayTiers);
+                        if (entry.BanCount == 0)
+                        {
+                            entry.LastBanTimeTicks = 0;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                if (trimLockTaken)
+                {
+                    entry.SpinLock.Exit();
+                }
+            }
 
             // 4. Runtime ban active -> Reject (Trusted proxies are never banned at runtime)
             if (!isTrustedProxy && bannedUntil > nowTicks)
@@ -433,9 +565,17 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                     continue; // Retry with a fresh GetOrAdd, this one is tombstoned
                 }
 
-                this.TRIM_OLD_TIMESTAMPS(entry.RecentConnectionTimestamps, nowTicks);
+                long lastAccept = entry.LastAcceptTimeTicks;
+                long gap = (nowTicks - lastAccept) / TimeSpan.TicksPerMillisecond;
+                bool isBurst = lastAccept > 0 
+                    && gap < _config.MinConnectionIntervalMs
+                    && entry.RecentConnectionTimestamps.Count >= _config.BurstThreshold;
 
-                if (entry.RecentConnectionTimestamps.Count >= maxAttempts)
+                int effectiveMaxAttempts = isBurst 
+                    ? Math.Max(1, maxAttempts / _config.BurstPenaltyDivisor) 
+                    : maxAttempts;
+
+                if (entry.RecentConnectionTimestamps.Count >= effectiveMaxAttempts)
                 {
                     // 6. On violation -> Update ban state (if not trusted)
                     if (!isTrustedProxy)
@@ -485,6 +625,7 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
                     };
 
                     entry.RecentConnectionTimestamps.Enqueue(nowTicks);
+                    entry.LastAcceptTimeTicks = nowTicks;
 
                     result = new ConnectionAllowResult { Allowed = true, CurrentConnections = entry.Info.CurrentConnections };
                 }
@@ -510,6 +651,12 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         long cutoff = nowTicks - _windowTicks;
 
         while (timestamps.TryPeek(out long oldest) && oldest < cutoff)
+        {
+            _ = timestamps.Dequeue();
+        }
+
+        int hardCap = _config.MaxConnectionsPerWindow * 4;
+        while (timestamps.Count > hardCap)
         {
             _ = timestamps.Dequeue();
         }
@@ -547,6 +694,10 @@ public sealed partial class ConnectionGuard : IDisposable, IAsyncDisposable, IRe
         DateTime logicalLastConnection = (info.LastConnectionTime + offset).Date;
 
         // Use strict inequality (!=) to handle backward NTP syncs and forward day changes.
+        // NOTE: When NTP adjusts clock backward within the same calendar day,
+        // the counter does NOT reset (logicalLastConnection == logicalToday).
+        // This is by design: resetting on small NTP drifts would allow counter manipulation.
+        // The counter only resets on actual day boundaries.
         if (logicalLastConnection != logicalToday)
         {
             return 1; // Different day, reset counter
