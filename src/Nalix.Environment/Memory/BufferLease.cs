@@ -358,11 +358,15 @@ public sealed class BufferLease : IBufferLease, IPoolable, IPoolRentable
 
         if (newValue <= 1)
         {
-            // newValue == 1: ok (single owner) — overflow -> negative or 0
-            throw new InternalErrorException(
-                $"[{nameof(BufferLease)}] Invalid ref-count after Retain: value={newValue}, thread={System.Environment.CurrentManagedThreadId}.");
+            THROW_RETAIN_ERROR(newValue);
         }
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_RETAIN_ERROR(int newValue)
+        => throw new InternalErrorException(
+            $"[{nameof(BufferLease)}] Invalid ref-count after Retain: value={newValue}, thread={System.Environment.CurrentManagedThreadId}.");
 
     /// <summary>
     /// Sets the valid payload length (must be 0..Capacity).
@@ -375,11 +379,15 @@ public sealed class BufferLease : IBufferLease, IPoolable, IPoolRentable
     {
         if ((uint)length > (uint)this.Capacity)
         {
-            throw new ArgumentOutOfRangeException(nameof(length));
+            THROW_OUT_OF_RANGE();
         }
 
         this.Length = length;
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_OUT_OF_RANGE() => throw new ArgumentOutOfRangeException("length");
 
     /// <summary>
     /// Releases a reference. When the count reaches zero and not detached, returns the array to <see cref="IBufferPoolManager"/>.

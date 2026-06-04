@@ -249,7 +249,7 @@ public ref struct DataWriter
 
             if ((uint)count > (uint)src.Length || (uint)count > (uint)dst.Length)
             {
-                throw new ArgumentOutOfRangeException(nameof(count));
+                THROW_OUT_OF_RANGE();
             }
 
             fixed (byte* pSrc = &MemoryMarshal.GetArrayDataReference(src))
@@ -261,6 +261,10 @@ public ref struct DataWriter
             }
         }
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_OUT_OF_RANGE() => throw new ArgumentOutOfRangeException("count");
 
     /// <summary>
     /// Writes any unmanaged value directly to the buffer.

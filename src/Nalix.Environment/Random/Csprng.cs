@@ -3,6 +3,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Nalix.Abstractions.Serialization;
 
@@ -136,7 +137,7 @@ public static class Csprng
     {
         if (length < 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(length), length, "Length cannot be negative.");
+            THROW_NEGATIVE_LENGTH(length);
         }
 
         if (length == 0)
@@ -146,14 +147,23 @@ public static class Csprng
 
         if (length > MaxByteArrayLength)
         {
-            throw new ArgumentOutOfRangeException(
-                nameof(length), length, $"Length cannot exceed {MaxByteArrayLength} bytes.");
+            THROW_EXCEED_MAX_LENGTH(length);
         }
 
         byte[] bytes = new byte[length];
         s_f(bytes);
         return bytes;
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_NEGATIVE_LENGTH(int length)
+        => throw new ArgumentOutOfRangeException(nameof(length), length, "Length cannot be negative.");
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_EXCEED_MAX_LENGTH(int length)
+        => throw new ArgumentOutOfRangeException(nameof(length), length, $"Length cannot exceed {MaxByteArrayLength} bytes.");
 
     /// <summary>
     /// Gets a random integer in the range [min, max).

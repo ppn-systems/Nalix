@@ -3,6 +3,7 @@
 
 using System;
 using System.Buffers.Binary;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -125,7 +126,7 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
     {
         if (src[0] != Magic)
         {
-            throw new InvalidDataException("Invalid fragment magic");
+            THROW_INVALID_MAGIC();
         }
 
         return new(
@@ -134,6 +135,10 @@ public readonly struct FragmentHeader(ushort streamId, ushort chunkIndex, ushort
             totalChunks: BinaryPrimitives.ReadUInt16LittleEndian(src[5..]),
             isLast: (src[7] & FlagIsLast) != 0);
     }
+
+    [DoesNotReturn]
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static void THROW_INVALID_MAGIC() => throw new InvalidDataException("Invalid fragment magic");
 
     // ── Equality ─────────────────────────────────────────────────────────────
 
