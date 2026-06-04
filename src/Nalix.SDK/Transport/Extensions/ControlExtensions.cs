@@ -121,7 +121,6 @@ public static class ControlExtensions
     /// <exception cref="NetworkException">Thrown when the client is not connected.</exception>
     /// <exception cref="TimeoutException">Thrown when no matching packet is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
-    [Obsolete]
     public static ValueTask<TPkt> AwaitPacketAsync<TPkt>(
         this TransportSession client,
         Func<TPkt, bool> predicate,
@@ -157,7 +156,6 @@ public static class ControlExtensions
     /// <exception cref="TimeoutException">Thrown when no matching CONTROL is received within <paramref name="timeoutMs"/>.</exception>
     /// <exception cref="OperationCanceledException">Thrown when <paramref name="ct"/> is canceled.</exception>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [Obsolete]
     public static ValueTask<Control> AwaitControlAsync(
         this TransportSession client,
         Func<Control, bool> predicate,

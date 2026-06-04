@@ -174,7 +174,7 @@ public partial class TaskManager
     {
         long[] snapshot = new long[_workerUptimeBuckets.Length];
         long total = 0;
-        
+
         for (int i = 0; i < snapshot.Length; i++)
         {
             snapshot[i] = Volatile.Read(ref _workerUptimeBuckets[i]);

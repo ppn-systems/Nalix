@@ -1,4 +1,4 @@
-﻿// Copyright (c) 2026 PPN Corporation. All rights reserved.
+// Copyright (c) 2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
 using System;
@@ -50,8 +50,8 @@ public abstract partial class WebSocketListenerBase
 
         args.Connection.OnCloseEvent -= this.HandleConnectionClose;
         args.Connection.OnCloseEvent -= _limiter.OnConnectionClosed;
-        args.Connection.OnPostProcessEvent -= this._protocol.PostProcessMessage;
-        args.Connection.OnProcessEvent -= this._protocol.FrameProcessor.ProcessFrame;
+        args.Connection.OnPostProcessEvent -= _protocol.PostProcessMessage;
+        args.Connection.OnProcessEvent -= _protocol.FrameProcessor.ProcessFrame;
 
         args.Connection.Dispose();
     }
@@ -67,7 +67,7 @@ public abstract partial class WebSocketListenerBase
 
         try
         {
-            this._protocol.OnAccept(connection);
+            _protocol.OnAccept(connection);
 
             if (connection != null && !connection.IsDisposed)
             {
@@ -147,7 +147,7 @@ public abstract partial class WebSocketListenerBase
                     HttpListenerWebSocketContext wsContext = await context.AcceptWebSocketAsync(_config.SubProtocol).ConfigureAwait(false);
 
 #pragma warning disable CA2000
-                    WebSocketConnection connection = new(wsContext.WebSocket, this._protocol.OpCodeExtractor, realEndpoint, _logger);
+                    WebSocketConnection connection = new(wsContext.WebSocket, _protocol.OpCodeExtractor, realEndpoint, _logger);
 #pragma warning restore CA2000
 
                     try
@@ -355,10 +355,10 @@ public abstract partial class WebSocketListenerBase
 
         // Keep post-process as you already have.
         // If your PostProcessMessage should run after app protocol, leaving it subscribed is OK.
-        connection.OnPostProcessEvent += this._protocol.PostProcessMessage;
+        connection.OnPostProcessEvent += _protocol.PostProcessMessage;
 
         // Wire the internal listener method to handle the shared pipeline before routing.
-        connection.OnProcessEvent += this._protocol.FrameProcessor.ProcessFrame;
+        connection.OnProcessEvent += _protocol.FrameProcessor.ProcessFrame;
 
         if (_config.EnableTimeout)
         {

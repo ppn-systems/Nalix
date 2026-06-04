@@ -25,13 +25,19 @@ public static class TimeSyncExtensions
     /// </summary>
     public readonly ref struct TimeSyncBuilder(TimeSync t)
     {
+        /// <inheritdoc/>
         public TimeSyncBuilder WithSeq(ushort seq) { t.SequenceId = seq; return this; }
+
+
+        /// <inheritdoc/>
         public TimeSyncBuilder StampNow()
         {
             t.MonoTicks = Clock.MonoTicksNow();
             t.Timestamp = Clock.UnixMillisecondsNow();
             return this;
         }
+
+        /// <inheritdoc/>
         public TimeSync Build() => t;
     }
 

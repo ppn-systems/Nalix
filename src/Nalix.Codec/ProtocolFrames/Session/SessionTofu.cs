@@ -55,15 +55,15 @@ public sealed partial class SessionTofu : PacketBase<SessionTofu>, IFixedSizeSer
     }
 
     /// <inheritdoc/>
-    public bool Validate([NotNullWhen(false)] out string? reason)
+    public bool Validate([NotNullWhen(false)] out string? failureReason)
     {
         if (this.PublicKey.IsZero)
         {
-            reason = "PublicKey cannot be zero.";
+            failureReason = "PublicKey cannot be zero.";
             return false;
         }
 
-        reason = null;
+        failureReason = null;
         return true;
     }
 }

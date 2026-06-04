@@ -9,6 +9,7 @@ using Nalix.Abstractions;
 using Nalix.Abstractions.Networking;
 using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
+using Nalix.Abstractions.Primitives;
 using Nalix.Abstractions.Security;
 using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
@@ -202,8 +203,8 @@ public sealed class SystemControlHandlers
 
         // Preserve reliability flag from the request
         reply.Flags = (reply.Flags & ~PacketFlags.RELIABLE) | (packet.Flags & PacketFlags.RELIABLE);
-        
-        var header = reply.Header;
+
+        PacketHeader header = reply.Header;
         header.SequenceId = packet.SequenceId;
         reply.Header = header;
 

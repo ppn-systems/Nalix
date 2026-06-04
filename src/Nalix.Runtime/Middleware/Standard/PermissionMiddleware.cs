@@ -1,6 +1,9 @@
 // Copyright (c) 2025-2026 PPN Corporation. All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Nalix.Abstractions.Exceptions;
 using Nalix.Abstractions.Middleware;
@@ -12,9 +15,6 @@ using Nalix.Codec.Pooling;
 using Nalix.Codec.ProtocolFrames;
 using Nalix.Framework.Injection;
 using Nalix.Runtime.Internal.RateLimiting;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Nalix.Runtime.Middleware.Standard;
 

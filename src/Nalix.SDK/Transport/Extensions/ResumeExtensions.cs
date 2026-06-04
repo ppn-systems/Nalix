@@ -26,7 +26,6 @@ public static class ResumeExtensions
     /// <param name="session">The connected TCP session to resume.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns>The <see cref="ProtocolReason"/> reported by the server. <see cref="ProtocolReason.NONE"/> indicates success.</returns>
-    [Obsolete]
     public static async ValueTask<ProtocolReason> ResumeSessionAsync(this TransportSession session, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(session);
@@ -120,7 +119,6 @@ public static class ResumeExtensions
     /// <param name="port">The optional port override.</param>
     /// <param name="ct">The cancellation token to observe.</param>
     /// <returns><see langword="true"/> when resume succeeded; <see langword="false"/> when a fresh handshake was used.</returns>
-    [Obsolete]
     public static async ValueTask<bool> ConnectWithResumeAsync(
         this TransportSession session,
         string? host = null,

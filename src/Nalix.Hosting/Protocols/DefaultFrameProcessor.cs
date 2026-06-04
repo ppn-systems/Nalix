@@ -14,7 +14,6 @@ using Nalix.Environment.Options;
 using Nalix.Framework.Injection;
 using Nalix.Hosting.Internal.Exceptions;
 using Nalix.Network.Connections;
-using Nalix.Network.Listeners.Tcp;
 
 namespace Nalix.Hosting.Protocols;
 
