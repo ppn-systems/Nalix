@@ -107,7 +107,6 @@ public class WebSocketTransportTests : IDisposable
         {
             Address = "127.0.0.1",
             Port = port,
-            EncryptionEnabled = false,
             CompressionEnabled = false
         };
 
@@ -186,7 +185,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -272,7 +270,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -354,7 +351,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -421,7 +417,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 
@@ -468,7 +463,6 @@ public class WebSocketTransportTests : IDisposable
             {
                 Address = "127.0.0.1",
                 Port = port,
-                EncryptionEnabled = false,
                 CompressionEnabled = false
             };
 

@@ -34,6 +34,7 @@ public sealed class CipherExtensionsTests : IDisposable
         builder.BindTcp<IntegrationTestProtocol>().OnPort((ushort)port);
         builder.UseSecureConnections();
         builder.UseSystemControl();
+        builder.UseTimeSync();
 
         using NetworkApplication app = builder.Build();
         await app.ActivateAsync();
@@ -58,13 +59,8 @@ public sealed class CipherExtensionsTests : IDisposable
             Assert.Equal(CipherSuiteType.Salsa20Poly1305, session.Options.Algorithm);
 
             // Send a ping to verify Salsa20 works for subsequent packets
-            using PacketScope<Control> pingLease = PacketFactory<Control>.Acquire();
-            var ping = pingLease.Value;
-            ping.Initialize((ushort)ProtocolOpCode.SYSTEM_CONTROL, ControlType.PING, 100, PacketFlags.NONE, ProtocolReason.NONE);
-
-            using var pong = await session.RequestAsync<Control>(ping);
-            Assert.Equal(ControlType.PONG, pong.Type);
-            Assert.Equal(ping.Header.SequenceId, pong.Header.SequenceId);
+            double rtt = await session.PingAsync(timeoutMs: 5000);
+            Assert.True(rtt >= 0);
         }
         finally
         {

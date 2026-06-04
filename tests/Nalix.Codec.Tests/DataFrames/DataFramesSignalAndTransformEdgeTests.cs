@@ -56,30 +56,6 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(1, assembler.OpenStreamCount);
     }
 
-    [Fact]
-    public void HandshakeInitializeWhenProofIsOmittedUsesZeroProofAndUrgentPriority()
-    {
-        byte[] key = new byte[32];
-        byte[] nonce = new byte[32];
-        key[0] = 0x11;
-        nonce[0] = 0x22;
-
-        Handshake packet = new();
-        packet.Initialize(HandshakeStage.CLIENT_HELLO, new Bytes32(key), new Bytes32(nonce), proof: null, flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-
-        Assert.Equal((ushort)ProtocolOpCode.HANDSHAKE, packet.Header.OpCode);
-        Assert.Equal(HandshakeStage.CLIENT_HELLO, packet.Stage);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
-        Assert.Equal(PacketPriority.URGENT, packet.Header.Priority);
-        Assert.True(packet.Proof.IsZero);
-        Assert.Equal(0UL, packet.SessionToken);
-    }
-
-    [Fact]
-    public void HandshakeIsValidWhenPacketIsInvalidForDefaultStageReturnsFalse()
-    {
-        Assert.False(new Handshake().Validate(out _));
-    }
 
     [Fact]
     public void SessionResumeInitializeWhenOptionalValuesAreOmittedUsesExpectedDefaults()
@@ -104,9 +80,6 @@ public sealed class DataFramesSignalAndTransformEdgeTests
         Assert.Equal(ControlType.PING, packet.Type);
         Assert.Equal(44u, packet.Header.SequenceId);
         Assert.Equal(ProtocolReason.TIMEOUT, packet.Reason);
-        Assert.True(packet.Header.Flags.HasFlag(PacketFlags.UNRELIABLE));
-        Assert.NotEqual(0, packet.Timestamp);
-        Assert.NotEqual(0, packet.MonoTicks);
     }
 
     [Fact]

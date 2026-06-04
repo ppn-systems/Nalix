@@ -9,8 +9,8 @@ using Nalix.Abstractions.Networking.Packets;
 using Nalix.Abstractions.Networking.Protocols;
 using Nalix.Abstractions.Networking.Sessions;
 using Nalix.Abstractions.Primitives;
-using Nalix.Network.Routing;
 using Nalix.Runtime.Dispatching;
+using Nalix.Runtime.Routing;
 using Nalix.Runtime.Extensions;
 using Nalix.Runtime.Handlers;
 using Xunit;
@@ -49,7 +49,7 @@ public sealed class RuntimeDispatchAndHandlersTests
     {
         PacketDispatchOptions<TestPacket> options = new();
 
-        _ = Assert.Throws<ArgumentOutOfRangeException>(() => options.WithDispatchLoopCount(value));
+        _ = Assert.Throws<ArgumentOutOfRangeException>(() => { options.WithDispatchLoopCount(value); });
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class RuntimeDispatchAndHandlersTests
     {
         PacketDispatchOptions<TestPacket> options = new();
 
-        _ = Assert.Throws<ArgumentNullException>(() => options.WithMiddleware(null!));
+        _ = Assert.Throws<ArgumentNullException>(() => { options.WithMiddleware(null!); });
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed class RuntimeDispatchAndHandlersTests
     {
         PacketDispatchOptions<TestPacket> options = new();
 
-        InternalErrorException ex = Assert.Throws<InternalErrorException>(() => options.WithHandler<MissingControllerAttributeController>());
+        InternalErrorException ex = Assert.Throws<InternalErrorException>(() => { options.WithHandler<MissingControllerAttributeController>(); });
 
         Assert.Contains("missing the [PacketController] attribute", ex.Message, StringComparison.Ordinal);
     }
@@ -88,7 +88,7 @@ public sealed class RuntimeDispatchAndHandlersTests
         PacketDispatchOptions<TestPacket> options = new();
         MissingControllerAttributeController? instance = null;
 
-        _ = Assert.Throws<InternalErrorException>(() => options.WithHandler(instance!));
+        _ = Assert.Throws<InternalErrorException>(() => { options.WithHandler(instance!); });
     }
 
     [Fact]
@@ -145,11 +145,7 @@ public sealed class RuntimeDispatchAndHandlersTests
                 options: default));
     }
 
-    [Fact]
-    public async Task HandshakeHandlersHandleAsync_WhenContextIsNull_ThrowsArgumentNullException()
-    {
-        await Assert.ThrowsAsync<ArgumentNullException>(async () => await HandshakeHandlers.HandleAsync(null!).AsTask());
-    }
+
 
     [Fact]
     public async Task SessionHandlersHandleAsync_WhenContextIsNull_ThrowsArgumentNullException()

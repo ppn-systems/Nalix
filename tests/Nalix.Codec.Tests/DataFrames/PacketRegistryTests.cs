@@ -91,55 +91,17 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.Equal(ControlType.PING, control.Type);
     }
 
-    [Fact]
-    public void HandshakeSerializeThenDeserializePreservesPayload()
-    {
-        Span<byte> publicKeyArr = stackalloc byte[32];
-        Span<byte> nonceArr = stackalloc byte[32];
-        Span<byte> proofArr = stackalloc byte[32];
-        Span<byte> hashArr = stackalloc byte[32];
-        hashArr[0] = 0x01; hashArr[1] = 0x02; hashArr[2] = 0x03; hashArr[3] = 0xDE; hashArr[4] = 0xAD; hashArr[5] = 0xBE; hashArr[6] = 0xEF;
-
-        Bytes32 publicKey = new(publicKeyArr);
-        Bytes32 nonce = new(nonceArr);
-        Bytes32 proof = new(proofArr);
-        Bytes32 hash = new(hashArr);
-
-        Handshake original = new(
-            stage: HandshakeStage.CLIENT_HELLO,
-            publicKey: publicKey,
-            nonce: nonce,
-            proof: proof,
-            flags: PacketFlags.SYSTEM | PacketFlags.RELIABLE);
-        original.TranscriptHash = hash;
-
-        byte[] bytes = original.Serialize();
-        IPacket packet = PacketRegistry.Deserialize(bytes);
-
-        Handshake result = Assert.IsType<Handshake>(packet);
-        Assert.Equal(original.Header.OpCode, result.Header.OpCode);
-        Assert.Equal(original.Header.MagicNumber, result.Header.MagicNumber);
-        Assert.Equal(original.Header.Flags, result.Header.Flags);
-        Assert.Equal(original.Stage, result.Stage);
-        Assert.Equal(publicKey, result.PublicKey);
-        Assert.Equal(nonce, result.Nonce);
-        Assert.Equal(proof, result.Proof);
-        Assert.Equal(hash, result.TranscriptHash);
-    }
 
     [Fact]
     public void ComputedMagicMatchesInstanceMagicAndSerializedHeader()
     {
         Control control = new();
-        Handshake handshake = new();
         Directive directive = new();
 
         uint regControl = PacketRegistry.Compute(typeof(Control));
-        uint regHandshake = PacketRegistry.Compute(typeof(Handshake));
         uint regDirective = PacketRegistry.Compute(typeof(Directive));
 
         Assert.Equal(regControl, control.Header.MagicNumber);
-        Assert.Equal(regHandshake, handshake.Header.MagicNumber);
         Assert.Equal(regDirective, directive.Header.MagicNumber);
 
         byte[] bytes = control.Serialize();
@@ -148,26 +110,6 @@ public sealed class PacketRegistryTests : IDisposable
         Assert.Equal(regControl, magicInBytes);
     }
 
-    [Fact]
-    public void HandshakeEmptyPayloadRoundTripsCorrectly()
-    {
-        Handshake original = new(
-            stage: HandshakeStage.CLIENT_HELLO,
-            publicKey: Bytes32.Zero,
-            nonce: Bytes32.Zero,
-            proof: Bytes32.Zero,
-            flags: PacketFlags.SYSTEM | PacketFlags.UNRELIABLE);
-        byte[] bytes = original.Serialize();
-
-        IPacket packet = PacketRegistry.Deserialize(bytes);
-
-        Handshake result = Assert.IsType<Handshake>(packet);
-
-        Assert.True(result.PublicKey.IsZero);
-        Assert.True(result.Nonce.IsZero);
-        Assert.True(result.Proof.IsZero);
-        Assert.True(result.TranscriptHash.IsZero);
-    }
 
     [Fact]
     public void DirectiveSerializeThenDeserializePreservesAllFields()
@@ -264,24 +206,18 @@ public sealed class PacketRegistryTests : IDisposable
     public void AllRegisteredPacketsHaveUniqueMagicNumbers()
     {
         uint controlMagic = new Control().Header.MagicNumber;
-        uint handshakeMagic = new Handshake().Header.MagicNumber;
         uint directiveMagic = new Directive().Header.MagicNumber;
 
-        Assert.NotEqual(controlMagic, handshakeMagic);
         Assert.NotEqual(controlMagic, directiveMagic);
-        Assert.NotEqual(handshakeMagic, directiveMagic);
     }
 
     [Fact]
     public void DifferentPacketTypesProduceDifferentMagicNumbers()
     {
         uint a = PacketRegistry.Compute(typeof(Control));
-        uint b = PacketRegistry.Compute(typeof(Handshake));
         uint c = PacketRegistry.Compute(typeof(Directive));
 
-        Assert.NotEqual(a, b);
         Assert.NotEqual(a, c);
-        Assert.NotEqual(b, c);
     }
 }
 

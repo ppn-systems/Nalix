@@ -86,12 +86,13 @@ public sealed class NetworkApplicationIntegrationTests
         try
         {
             // 2. Setup Client
-            using TcpSession client = new(new TransportOptions
+            var options = new TransportOptions
             {
                 Address = "127.0.0.1",
                 Port = (ushort)port,
-                EncryptionEnabled = false
-            });
+                CompressionEnabled = false
+            };
+            using TcpSession client = new(options);
 
             await client.ConnectAsync();
 
