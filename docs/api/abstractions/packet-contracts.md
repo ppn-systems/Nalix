@@ -13,7 +13,6 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 - `src/Nalix.Abstractions/Networking/Packets/IPacketStaticOpcode.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketContext.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketDeserializer.cs`
-- `src/Nalix.Abstractions/Networking/Packets/IPacketRegistry.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketSender.cs`
 - `src/Nalix.Abstractions/Networking/Packets/PacketDeserializer.cs`
 - `src/Nalix.Abstractions/Networking/Packets/IPacketTimestamped.cs`
@@ -29,16 +28,6 @@ Nalix uses one packet model across runtime and SDK code. Shared contracts preven
 - standard header metadata via `Header` (`OpCode`, `Flags`, `Priority`, `SequenceId`)
 - `Length`
 - serialization methods (`Serialize()`, `Serialize(Span<byte>)`)
-
-### `IPacketRegistry`
-
-`IPacketRegistry` provides read-only deserializer lookup for dispatch and client receive paths:
-
-- `DeserializerCount`
-- `IsKnownOpCode(ushort)`
-- `IsRegistered<TPacket>()`
-- `Deserialize(ReadOnlySpan<byte>)`
-- `TryDeserialize(ReadOnlySpan<byte>, out IPacket?)`
 
 ### `IPacketContext<TPacket>`
 

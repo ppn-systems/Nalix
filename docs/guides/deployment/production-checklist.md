@@ -29,7 +29,7 @@ If you skip validation on types that expose it, bad values usually fail later an
 Make sure these are registered once and early:
 
 - `ILogger`
-- `IPacketRegistry`
+- `PacketRegistry.Build()` called after assembly load
 - any app services your handlers depend on
 
 Also make sure the server and client agree on packet catalog and registry assumptions.

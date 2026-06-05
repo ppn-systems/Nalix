@@ -31,7 +31,7 @@ Nalix enforces strict isolation for all user-provided code (handlers, middleware
 
 Malformed incoming data is intercepted at the earliest possible stage to protect the runtime.
 
-- **OpCode Mismatch:** If the server receives an opcode that is not registered in the `IPacketRegistry`, the frame is discarded.
+- **OpCode Mismatch:** If the server receives an opcode that is not registered in the `PacketRegistry`, the frame is discarded.
 - **Binary Corruption:** If deserialization fails (e.g., bit flipped or missing field), a `SerializationFailureException` is caught internally.
 
 ### Observable Behavior 2

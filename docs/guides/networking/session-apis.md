@@ -81,7 +81,7 @@ await session.HandshakeAsync();
 
 ## 3. Raw Buffer Transmission (Bypassing Serialization)
 
-For systems like proxies or relays, you don't want to deserialize a packet just to reserialize it. The Nalix SDK exposes a `SendAsync` overload that accepts `ReadOnlyMemory<byte>` directly. This skips the `IPacketRegistry` and writes bytes directly to the underlying `FrameSender`.
+For systems like proxies or relays, you don't want to deserialize a packet just to reserialize it. The Nalix SDK exposes a `SendAsync` overload that accepts `ReadOnlyMemory<byte>` directly. This skips the `PacketRegistry` and writes bytes directly to the underlying `FrameSender`.
 
 ```csharp
 byte[] precomputedLoginPacket = ComputeStaticLogin();

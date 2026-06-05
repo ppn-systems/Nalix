@@ -15,7 +15,7 @@ This guide walks through creating, configuring, and connecting a client session 
 
 ## 1. Create a Shared Packet Catalog
 
-The client and server **must** use the exact same packet contracts. The `IPacketRegistry` (catalog) maps packet types to their structural metadata and deserialize logic.
+The client and server **must** use the exact same packet contracts. The `PacketRegistry` (catalog) maps packet types to their deserializers via static OpCodes.
 
 ```csharp
 using Nalix.Abstractions.Networking.Packets;
